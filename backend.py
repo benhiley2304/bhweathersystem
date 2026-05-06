@@ -62,7 +62,9 @@ app = FastAPI(title="COT Weather Station v2", default_response_class=_SafeJSONRe
 # (compute_macro_all, compute_risk_regime, _fetch_ff_months_parallel etc.) run concurrently.
 import concurrent.futures as _cf
 _APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=32, thread_name_prefix="bh-worker")
-app.mount("/photos", StaticFiles(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")), name="photos")
+_photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
+if os.path.isdir(_photos_dir):
+    app.mount("/photos", StaticFiles(directory=_photos_dir), name="photos")
 
 # GZip: compress responses >1KB — reduces /api/scores from ~216KB to ~29KB over the wire
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -7867,6 +7869,8 @@ async def tunnel_url():
 @app.get("/")
 async def serve_index():
     idx = os.path.join(os.path.dirname(__file__), "index.html")
+    if not os.path.exists(idx):
+        return JSONResponse({"status": "BH Weather System API", "docs": "/docs"})
     return FileResponse(idx, media_type="text/html", headers={"Cache-Control": "no-store, must-revalidate"})
 
 # Startup warmup disabled — caches populate on first request to avoid OOM
