@@ -3287,6 +3287,8 @@ FRED_SERIES = {
     # Credit spreads (ICE BofA)
     "HYOAS":    "BAMLH0A0HYM2",   # US HY OAS (bps)
     "IGOAS":    "BAMLC0A0CM",     # US IG OAS (bps)
+    # Labour
+    "JOLTS":    "JTSJOL",         # JOLTS job openings (thousands)
 }
 
 
@@ -3473,7 +3475,7 @@ def compute_macro_all() -> dict:
         components["UNEMP"] = {**r, "title": "Unemployment Rate", "category": "jobs",
                                 "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
 
-    claims_data = fetch_fred_series("CLAIMS", 12)
+    claims_data = fetch_fred_series("CLAIMS", 26)  # 26 weeks = 6m for stable baseline
     if claims_data:
         r = compute_macro_surprise(claims_data, higher_is_good=False, transform="level", scale=15000)
         components["CLAIMS"] = {**r, "title": "Initial Claims", "category": "jobs",
@@ -4393,6 +4395,106 @@ def compute_risk_regime() -> dict:
             "hy_ig_ratio": hy_ig_ratio,
         }
     except Exception: pass
+
+    try:
+        # Labour market dashboard — NFP, UNRATE, ICSA, JOLTS
+        # All raw scores are -2..+2 (surprise_score output); convert to 0-10 via *1.25+5
+        _lab = {}
+
+        # NFP (PAYEMS): monthly level in thousands → compute MoM changes
+        # Fetch 16 months for a stable 6m baseline (avoids BLS revision distortion)
+        _nfp_raw = fetch_fred_series("NFP", 16)
+        if _nfp_raw and len(_nfp_raw) >= 5:
+            _nfp_vals = [x["value"] for x in _nfp_raw if x.get("value") is not None]
+            _nfp_mom  = [_nfp_vals[i] - _nfp_vals[i-1] for i in range(1, len(_nfp_vals))]
+            if len(_nfp_mom) >= 4:
+                _lab["nfp_mom"]        = round(_nfp_mom[-1], 0)           # latest MoM gain (K)
+                # 6m avg for stable expectation (resist BLS revision noise)
+                _nfp_window = _nfp_mom[-7:-1]
+                _lab["nfp_6m_avg"]     = round(sum(_nfp_window) / len(_nfp_window), 0) if _nfp_window else None
+                # 3m avg for recent trend
+                _lab["nfp_3m_avg"]     = round(sum(_nfp_mom[-4:-1]) / 3, 0)
+                # Surprise vs 6m avg (more stable than 3m for benchmark-revised data)
+                _nfp_exp = _lab["nfp_6m_avg"] or _lab["nfp_3m_avg"] or 0
+                _nfp_surp = _nfp_mom[-1] - _nfp_exp
+                _lab["nfp_surprise"]   = round(_nfp_surp, 0)
+                _lab["nfp_surprise_label"] = (
+                    "Strong Beat" if _nfp_surp > 120 else
+                    "Beat"        if _nfp_surp > 32  else
+                    "Strong Miss" if _nfp_surp < -120 else
+                    "Miss"        if _nfp_surp < -32  else "In Line"
+                )
+                # Raw score from component (already computed), convert to 0-10
+                _raw_nfp = components.get("JOBS", {}).get("score", 0)
+                _lab["nfp_score_10"]   = round(min(10, max(0, _raw_nfp * 1.25 + 5)), 1)
+                _lab["nfp_date"]       = _nfp_raw[-1].get("date", "")[:7]
+
+        # UNRATE: monthly level (%)
+        _ur_raw = fetch_fred_series("UNEMP", 14)
+        if _ur_raw and len(_ur_raw) >= 4:
+            _ur_vals = [x["value"] for x in _ur_raw if x.get("value") is not None]
+            if _ur_vals:
+                _lab["unrate"]         = round(_ur_vals[-1], 2)
+                _lab["unrate_prev"]    = round(_ur_vals[-2], 2) if len(_ur_vals) >= 2 else None
+                _lab["unrate_3m_chg"]  = round(_ur_vals[-1] - _ur_vals[-4], 2) if len(_ur_vals) >= 4 else None
+                # Trend: rising/falling/stable over last 3 months
+                _ur_3 = _ur_vals[-4:-1]
+                if _ur_3:
+                    _ur_slope = _ur_vals[-1] - _ur_3[0]
+                    _lab["unrate_trend"] = "Rising" if _ur_slope > 0.15 else "Falling" if _ur_slope < -0.15 else "Stable"
+                _raw_ur = components.get("UNEMP", {}).get("score", 0)
+                _lab["unrate_score_10"] = round(min(10, max(0, _raw_ur * 1.25 + 5)), 1)
+                _lab["unrate_date"]     = _ur_raw[-1].get("date", "")[:7]
+
+        # ICSA: weekly initial claims (absolute level, not thousands — ICSA is already in persons)
+        # Fetch 26 weeks (6m) for robust baseline
+        _cl_raw = fetch_fred_series("CLAIMS", 26)
+        if _cl_raw and len(_cl_raw) >= 6:
+            _cl_vals = [x["value"] for x in _cl_raw if x.get("value") is not None]
+            if _cl_vals:
+                _lab["claims"]          = round(_cl_vals[-1])              # latest weekly (persons)
+                _lab["claims_4w_avg"]   = round(sum(_cl_vals[-5:-1]) / 4) if len(_cl_vals) >= 5 else None
+                _lab["claims_52w_avg"]  = round(sum(_cl_vals) / len(_cl_vals)) if _cl_vals else None
+                _lab["claims_chg_4w"]   = round(_cl_vals[-1] - _cl_vals[-5]) if len(_cl_vals) >= 5 else None
+                _raw_cl = components.get("CLAIMS", {}).get("score", 0)
+                _lab["claims_score_10"] = round(min(10, max(0, _raw_cl * 1.25 + 5)), 1)
+                _lab["claims_date"]     = _cl_raw[-1].get("date", "")
+
+        # JOLTS job openings (JTSJOL via alias "JOLTS") — monthly, thousands
+        try:
+            _jolts_raw = fetch_fred_series("JOLTS", 8)
+            if _jolts_raw and len(_jolts_raw) >= 2:
+                _j_vals = [x["value"] for x in _jolts_raw if x.get("value") is not None]
+                if _j_vals:
+                    _lab["jolts"]        = round(_j_vals[-1] / 1000, 2)   # millions
+                    _lab["jolts_prev"]   = round(_j_vals[-2] / 1000, 2) if len(_j_vals) >= 2 else None
+                    _lab["jolts_chg"]    = round((_j_vals[-1] - _j_vals[-2]) / 1000, 2) if len(_j_vals) >= 2 else None
+                    _lab["jolts_6m_avg"] = round(sum(_j_vals[-7:-1]) / 6 / 1000, 2) if len(_j_vals) >= 7 else None
+                    _lab["jolts_date"]   = _jolts_raw[-1].get("date", "")[:7]
+        except Exception:
+            pass
+
+        # Composite jobs score (0-10) — average of 3 converted scores
+        _composite_parts = [
+            _lab.get("nfp_score_10"),
+            _lab.get("unrate_score_10"),
+            _lab.get("claims_score_10"),
+        ]
+        _parts_valid = [p for p in _composite_parts if p is not None]
+        if _parts_valid:
+            _lab["jobs_composite_10"] = round(sum(_parts_valid) / len(_parts_valid), 1)
+
+        # Also store the raw jobs_avg (-2..+2) for internal use
+        try:
+            _lab["jobs_avg_raw"] = round(jobs_avg, 2)
+        except Exception:
+            pass
+
+        if _lab:
+            macro_dashboard["labour"] = _lab
+
+    except Exception as e:
+        print(f"Labour dashboard error: {e}")
 
     try:
         # Macro composites: equity + bond + commodity etc.
