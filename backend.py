@@ -1612,7 +1612,10 @@ def score_pcr(market_id: str) -> dict:
 # ICE EUROPE COT DATA
 # ============================================================
 
-_ICE_DISK_CACHE_DIR = "/tmp/ice_cot_cache"
+# Store ICE cache alongside the app in DATA_DIR — persists across container
+# restarts (unlike /tmp which is ephemeral). On full redeploys the disk is wiped
+# but the startup event will re-fetch, and the Friday cron re-injects weekly.
+_ICE_DISK_CACHE_DIR = os.path.join(DATA_DIR, "ice_cot_cache")
 os.makedirs(_ICE_DISK_CACHE_DIR, exist_ok=True)
 
 _ICE_MEM_CACHE: dict = {}
@@ -8100,6 +8103,62 @@ async def serve_index():
 # The keepalive cron handles backend health and restarts if needed
 _WARMING = {"done": False, "started": False}
 
+
+async def _startup_load_ice_data():
+    """
+    Called once at startup. For each ICE market:
+      1. Try disk cache (written by the Friday cron injection) — fast, always works
+         as long as a deploy hasn’t wiped the disk.
+      2. If disk is cold, attempt a live HTTP fetch from ICE.com.
+         Render’s shared egress IP may 429 — we swallow all errors silently.
+
+    Runs BEFORE the main scores pre-warm so ICE COT data is available
+    immediately for get_all_scores() on the first startup.
+    """
+    import asyncio as _ice_loop
+    import time as _ice_time
+
+    ICE_DISAGG_MARKETS = ["B", "G", "RC"]   # Brent, Gas Oil, Robusta
+    ICE_TFF_MARKETS    = ["Z", "R"]          # FTSE 100, Long Gilt
+
+    loaded = []
+    cold   = []
+
+    # Step 1: Load from disk cache (near-instant)
+    for mkt in ICE_DISAGG_MARKETS + ICE_TFF_MARKETS:
+        if mkt in _ICE_MEM_CACHE:
+            loaded.append(mkt)
+            continue
+        disk_df = _load_ice_from_disk(mkt)
+        if disk_df is not None and not disk_df.empty:
+            _ICE_MEM_CACHE[mkt] = {"df": disk_df, "ts": _ice_time.time()}
+            loaded.append(mkt)
+            print(f"[startup-ice] {mkt}: loaded {len(disk_df)} rows from disk cache")
+        else:
+            cold.append(mkt)
+
+    if not cold:
+        print(f"[startup-ice] All ICE markets loaded from disk: {loaded}")
+        return
+
+    print(f"[startup-ice] Cold markets (attempting live fetch): {cold}")
+
+    # Step 2: For cold markets, try a live fetch in a thread pool
+    # _fetch_ice_cot_raw handles HTTP, CSV parsing, mem+disk caching
+    loop = _ice_loop.get_event_loop()
+    for mkt in cold:
+        try:
+            df = await loop.run_in_executor(_APP_EXECUTOR, _fetch_ice_cot_raw, mkt)
+            if df is not None and not df.empty:
+                loaded.append(mkt)
+                print(f"[startup-ice] {mkt}: live-fetched {len(df)} rows")
+            else:
+                print(f"[startup-ice] {mkt}: live fetch returned no data (429 or empty) — will populate via Friday cron")
+        except Exception as _e:
+            print(f"[startup-ice] {mkt}: live fetch failed ({_e}) — non-fatal")
+
+    print(f"[startup-ice] Done. Loaded: {loaded}, still cold: {[m for m in cold if m not in loaded]}")
+
 @app.get("/api/warmup-status")
 async def warmup_status():
     return {"ready": _WARMING["done"], "warming": _WARMING["started"]}
@@ -8112,6 +8171,16 @@ async def warmup_cache():
     async def _warm():
         await _astart.sleep(2)
         _WARMING["started"] = True
+
+        # ── ICE COT startup fetch ────────────────────────────────────────────
+        # Attempt to load ICE data before the main pre-warm so COT scores for
+        # ICE markets (B/G/RC/Z/R) are correct from the first request.
+        # Strategy: disk cache (from previous cron injection) loads instantly.
+        # If disk is cold (first deploy), attempt a live fetch from ICE.com.
+        # Render's shared IP may 429 on live fetch — that's fine, the Friday
+        # cron will inject within the week.
+        await _startup_load_ice_data()
+
         print("[startup] Pre-warming all caches (full scores run)...")
         try:
             # Call the full scores endpoint directly (not HTTP) — this populates
