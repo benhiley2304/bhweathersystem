@@ -48,15 +48,15 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-font-smoothing:antialiased;color-scheme:dark;--scale:1;--sidebar-w:280px;--fs-base:13px;height:100%}
 body{font-family:var(--body);font-size:var(--fs-base);color:var(--text);background:var(--bg);-moz-osx-font-smoothing:grayscale;height:var(--app-h,100vh);overflow:hidden;display:flex;flex-direction:column}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1000;background:radial-gradient(ellipse 120% 120% at 50% 0%,transparent 40%,rgba(0,0,0,0.35) 100%);mix-blend-mode:multiply}
+/* body vignette removed */
 .app-wrap{display:flex;flex-direction:column;flex:1;min-height:0;height:100%;overflow:hidden;transform-origin:top left}
 button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:rgba(255,255,255,0.03)}
 /* V13: Brand-coloured scrollbar */
-::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(92,158,255,0.22) 0%,rgba(0,210,255,0.12) 100%);border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,rgba(92,158,255,0.40) 0%,rgba(0,210,255,0.22) 100%)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.20)}
 
 /* ──────────────────────────────────────────────
    NAV
@@ -65,44 +65,34 @@ a{color:inherit;text-decoration:none}
   position:sticky;top:0;z-index:300;
   display:flex;align-items:center;gap:10px;flex-wrap:nowrap;
   padding:0 16px;height:52px;
-  background:linear-gradient(180deg,rgba(9,11,19,0.98) 0%,rgba(5,7,13,0.97) 100%);
-  backdrop-filter:blur(40px) saturate(200%);
-  -webkit-backdrop-filter:blur(40px) saturate(200%);
-  border-bottom:1px solid rgba(0,210,255,0.10);
+  background:rgba(3,5,8,0.97);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,0.09);
   flex-shrink:0;
-  box-shadow:0 1px 0 rgba(0,210,255,0.06), 0 6px 32px rgba(0,0,0,0.6);
+  box-shadow:0 1px 0 rgba(255,255,255,0.05);
 }
 .nav-logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
-.nav-logo svg{width:26px;height:26px;filter:drop-shadow(0 0 4px rgba(92,158,255,0.35))}
+.nav-logo svg{width:26px;height:26px}
 .nav-title{font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;color:#f2f6ff}
-.nav-sub{font-size:8px;color:rgba(100,180,240,0.55);margin-top:1px;font-family:var(--mono);white-space:nowrap;letter-spacing:0.07em}
+.nav-sub{font-size:8px;color:var(--faint);margin-top:1px;font-family:var(--mono);white-space:nowrap;letter-spacing:0.07em}
 .nav-sp{flex:1;min-width:0}
 .regime-badge{
   display:flex;align-items:center;gap:6px;flex-shrink:0;
   padding:4px 13px;border-radius:6px;
-  border:1px solid var(--bdr2);background:var(--surf3);
+  border:1px solid rgba(255,255,255,0.12);background:var(--surf2);
   font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07),0 2px 4px rgba(0,0,0,0.3);
-  position:relative;overflow:hidden;
-  --glow-col:rgba(48,217,136,0.22);
-  animation:borderGlow 3.5s ease-in-out infinite;
+  position:relative;
 }
-.regime-badge::before{
-  content:'';
-  position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 50%,transparent 100%);
-  pointer-events:none;
-}
-.regime-pip{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor}
+.regime-pip{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .nav-btn{
   display:flex;align-items:center;gap:5px;flex-shrink:0;
   padding:5px 11px;border-radius:7px;
-  border:1px solid var(--bdr2);background:var(--surf3);
+  border:1px solid rgba(255,255,255,0.10);background:var(--surf2);
   font-size:9px;font-weight:600;color:var(--dim);letter-spacing:0.02em;
   transition:all 140ms;white-space:nowrap;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07),0 2px 4px rgba(0,0,0,0.3);
 }
-.nav-btn:hover{background:var(--surf4);color:var(--text);border-color:var(--bdr3)}
+.nav-btn:hover{background:var(--surf3);color:var(--text);border-color:rgba(255,255,255,0.18)}
 .nav-btn svg{width:10px;height:10px;flex-shrink:0}
 .nav-btn.spin svg{animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -226,18 +216,11 @@ a{color:inherit;text-decoration:none}
 .sb-head{padding:14px 18px 12px;border-bottom:1px solid var(--bdr2)}
 /* V1: Glassmorphism card utility */
 .glass-card{
-  background:linear-gradient(135deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.01) 100%);
+  background:var(--surf2);
   border:1px solid rgba(255,255,255,0.10);
-  border-radius:12px;
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-  box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);
+  border-radius:10px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.35);
   position:relative;overflow:hidden;
-}
-.glass-card::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(92,158,255,0.06) 0%,transparent 70%);
-  pointer-events:none;z-index:0;
 }
 .sb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .sb-top h2{font-size:8.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(150,195,240,0.65)}
@@ -258,10 +241,9 @@ a{color:inherit;text-decoration:none}
 .cat-btn:hover::before{opacity:1}
 .cat-btn:hover{border-color:rgba(255,255,255,0.22);color:var(--text)}
 .cat-btn.on{
-  border-color:rgba(0,210,255,0.5);
-  background:linear-gradient(135deg,rgba(0,210,255,0.12) 0%,rgba(92,158,255,0.08) 100%);
-  color:rgba(150,230,255,0.95);
-  box-shadow:0 0 8px rgba(0,210,255,0.07),inset 0 1px 0 rgba(255,255,255,0.08);
+  border-color:rgba(92,158,255,0.45);
+  background:rgba(92,158,255,0.10);
+  color:var(--text);
 }
 
 .mkt-list{flex:1;overflow-y:auto}
@@ -272,13 +254,12 @@ a{color:inherit;text-decoration:none}
   padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.07);
   cursor:pointer;transition:background 150ms;position:relative;
 }
-.mkt-row:hover{background:linear-gradient(90deg,rgba(0,210,255,0.04) 0%,rgba(92,158,255,0.03) 40%,transparent 100%)}
+.mkt-row:hover{background:rgba(255,255,255,0.03)}
 .mkt-row:hover .mr-name{color:var(--text)}
-.mkt-row.sel{background:linear-gradient(90deg,rgba(92,158,255,0.06) 0%,var(--surf3) 100%);border-bottom-color:rgba(255,255,255,0.07)}
+.mkt-row.sel{background:var(--surf2);border-bottom-color:rgba(255,255,255,0.07)}
 .mkt-row.sel::before{
-  content:'';position:absolute;left:0;top:3px;bottom:3px;
-  width:3px;border-radius:0 2px 2px 0;background:var(--accent);
-  box-shadow:2px 0 20px rgba(92,158,255,0.85),4px 0 28px rgba(92,158,255,0.35);
+  content:'';position:absolute;left:0;top:4px;bottom:4px;
+  width:2px;border-radius:0 2px 2px 0;background:var(--accent);
 }
 .mr-id{font-family:var(--mono);font-size:9px;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.04em;width:28px;flex-shrink:0}
 .mr-body{flex:1;min-width:0}
@@ -553,7 +534,7 @@ a{color:inherit;text-decoration:none}
   padding:28px 28px 0;
   display:flex;flex-direction:column;gap:0;
   border-bottom:none;
-  background:linear-gradient(170deg,var(--bg2) 0%,#020509 60%,#010204 100%);
+  background:var(--bg2);
 }
 /* Soft dissolve from banner into arc zone — replaces hard border */
 .ov-banner::before{
@@ -564,9 +545,6 @@ a{color:inherit;text-decoration:none}
 }
 .ov-banner-bg{
   position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 55% 40% at 72% 30%, rgba(0,210,140,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 50% at 18% 65%, rgba(0,160,255,0.03) 0%, transparent 55%);
 }
 .ov-banner-canvas{
   position:absolute;inset:0;width:100%;height:100%;opacity:0.22;
@@ -578,35 +556,27 @@ a{color:inherit;text-decoration:none}
   85%{opacity:1}
   100%{transform:translateX(220%) skewX(-12deg);opacity:0}
 }
-.ov-banner::after{
-  content:'';
-  position:absolute;top:0;left:0;width:35%;height:100%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.028),transparent);
-  pointer-events:none;z-index:1;
-  animation:heroshim 7s ease-in-out 1.5s infinite;
-}
+/* hero shimmer removed */
 /* V9: Regime banner Jarvis aesthetic */
 .ov-banner-inner{
   position:relative;z-index:2;
   display:flex;align-items:flex-start;gap:20px;
   padding-bottom:20px;
-  border-left:3px solid rgba(0,210,255,0.4);
+  border-left:2px solid rgba(255,255,255,0.14);
   padding-left:14px;
-  box-shadow:inset 3px 0 0 rgba(0,210,255,0.1),-3px 0 20px rgba(0,210,255,0.08);
 }
 .ov-banner-left{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
 .ov-banner-eyebrow{
   font-size:8px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;
-  color:rgba(0,210,255,0.70);
+  color:var(--faint);
   padding-bottom:6px;
-  border-bottom:1px solid rgba(0,210,255,0.12);
+  border-bottom:1px solid rgba(255,255,255,0.08);
   margin-bottom:4px;
   display:inline-block;
 }
 .ov-banner-regime{
-  font-size:40px;font-weight:900;letter-spacing:-0.03em;line-height:1;
-  background:linear-gradient(135deg,#e8f0ff 0%,var(--regime-col,#5c9eff) 60%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  font-size:40px;font-weight:900;letter-spacing:-0.04em;line-height:1;
+  color:var(--text);
 }
 .ov-banner-desc{
   font-size:11px;color:var(--dim);font-weight:400;margin-top:2px;line-height:1.4;
@@ -623,27 +593,19 @@ a{color:inherit;text-decoration:none}
 }
 /* V11: Stat pills enhanced */
 .ov-stat-pill{
-  position:relative;overflow:hidden;
+  position:relative;
   display:flex;flex-direction:column;gap:3px;
-  background:linear-gradient(135deg,var(--surf3,rgba(26,30,44,1)) 0%,var(--surf2,rgba(20,23,34,1)) 100%);
-  border:1px solid var(--bdr2,rgba(255,255,255,0.13));
+  background:var(--surf2);
+  border:1px solid rgba(255,255,255,0.10);
   border-radius:8px;padding:8px 13px;
-  backdrop-filter:blur(14px);
-  box-shadow:0 2px 8px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.06);
-  transition:border-color 150ms,background 150ms,box-shadow 150ms;
+  transition:border-color 150ms,background 150ms;
   min-width:86px;
 }
-.ov-stat-pill::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
-  pointer-events:none;
-}
 .ov-stat-pill:hover{
-  background:rgba(255,255,255,0.06);
-  border-color:rgba(255,255,255,0.20);
-  box-shadow:0 0 14px rgba(92,158,255,0.10),inset 0 0 0 1px rgba(92,158,255,0.08);
+  background:var(--surf3);
+  border-color:rgba(255,255,255,0.18);
 }
-.ov-stat-label{font-size:6.5px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:rgba(100,180,240,0.55)}
+.ov-stat-label{font-size:6.5px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint)}
 .ov-stat-val{font-family:var(--mono);font-size:15px;font-weight:800;letter-spacing:-0.02em;line-height:1.1}
 .ov-stat-sub{font-size:8px;color:var(--dim);margin-top:1px;opacity:0.85}
 /* Price strip */
@@ -652,24 +614,14 @@ a{color:inherit;text-decoration:none}
 }
 .ov-price-pill{
   display:flex;align-items:center;gap:6px;
-  background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.13);
-  border-top-color:rgba(0,210,255,0.28);
+  background:var(--surf2);border:1px solid rgba(255,255,255,0.10);
   border-radius:6px;padding:4px 10px;
-  transition:background 150ms,border-color 150ms,box-shadow 150ms;
-  backdrop-filter:blur(12px);
-  position:relative;
-  box-shadow:0 1px 8px rgba(0,0,0,0.25),inset 0 1px 0 rgba(0,210,255,0.06);
-}
-.ov-price-pill::before{
-  content:'';position:absolute;top:0;left:8%;right:8%;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(0,210,255,0.45),transparent);
-  pointer-events:none;
+  transition:background 150ms,border-color 150ms;
 }
 .ov-price-pill:hover{
-  background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.18);
-  box-shadow:0 2px 12px rgba(0,0,0,0.3);
+  background:var(--surf3);border-color:rgba(255,255,255,0.18);
 }
-.ov-price-label{font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,210,255,0.65)}
+.ov-price-label{font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
 .ov-price-val{font-family:var(--mono);font-size:11px;font-weight:800;color:var(--text)}
 .ov-price-chg{font-family:var(--mono);font-size:10px;font-weight:700}
 
@@ -680,9 +632,9 @@ a{color:inherit;text-decoration:none}
 }
 .ov-sector-eyebrow{
   font-size:6.5px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;
-  color:rgba(0,210,255,0.65);margin-bottom:6px;margin-top:10px;
+  color:var(--faint);margin-bottom:6px;margin-top:10px;
   padding-bottom:5px;
-  border-bottom:1px solid rgba(0,210,255,0.12);
+  border-bottom:1px solid rgba(255,255,255,0.08);
 }
 .ov-sector-row{
   display:flex;align-items:center;gap:8px;
@@ -750,15 +702,7 @@ a{color:inherit;text-decoration:none}
   0%,100%{opacity:0.7}
   50%{opacity:1}
 }
-.ov-charts::after{
-  content:'';
-  position:absolute;inset:0;pointer-events:none;z-index:1;
-  background:
-    radial-gradient(ellipse 60% 75% at 50% 55%, rgba(0,60,40,0.28) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 50% at 50% 48%, rgba(0,40,60,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 80% 30% at 50% 100%, rgba(0,20,15,0.35) 0%, transparent 100%);
-  animation:arcUnderglow 8s ease-in-out infinite;
-}
+/* arc underglow removed */
 .ov-arc-header{ display:none; }
 .ov-arc-title{ display:none; }
 .ov-arc-legend{ display:none; }
@@ -787,10 +731,9 @@ a{color:inherit;text-decoration:none}
   width:1px;
   background:linear-gradient(180deg,
     transparent 0%,
-    rgba(0,210,255,0.6) 15%,
-    rgba(0,210,255,0.6) 85%,
+    rgba(255,255,255,0.35) 15%,
+    rgba(255,255,255,0.35) 85%,
     transparent 100%);
-  box-shadow: 0 0 6px rgba(0,210,255,0.8), 0 0 12px rgba(0,210,255,0.3);
   pointer-events:none;opacity:0;transition:opacity 50ms;
   will-change:transform;z-index:9;
 }
@@ -798,35 +741,28 @@ a{color:inherit;text-decoration:none}
 /* Tooltip — holographic panel */
 .ov-arc-tooltip{
   position:absolute;pointer-events:none;z-index:20;
-  background:rgba(2,8,20,0.96);
-  border:1px solid rgba(0,210,255,0.3);
-  border-top:1px solid rgba(0,210,255,0.6);
-  border-radius:4px;padding:12px 16px;
-  box-shadow:
-    0 0 0 1px rgba(0,210,255,0.08),
-    0 20px 60px rgba(0,0,0,0.95),
-    inset 0 1px 0 rgba(0,210,255,0.15),
-    0 0 30px rgba(0,210,255,0.06);
-  backdrop-filter:blur(20px);
-  font-size:10px;color:#a8d8e8;white-space:nowrap;
+  background:var(--surf2);
+  border:1px solid rgba(255,255,255,0.14);
+  border-radius:8px;padding:12px 16px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.7);
+  font-size:10px;color:var(--dim);white-space:nowrap;
   opacity:0;transition:opacity 60ms;
   min-width:185px;
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
 }
 .ov-arc-tooltip.visible{opacity:1}
 .ov-arc-tt-date{
-  font-size:7px;color:rgba(0,210,255,0.5);font-weight:700;
+  font-size:7px;color:var(--faint);font-weight:700;
   letter-spacing:0.15em;text-transform:uppercase;margin-bottom:5px;
   font-family:var(--mono);
 }
-.ov-arc-tt-label{font-size:13px;font-weight:800;letter-spacing:-0.01em;margin-bottom:2px;line-height:1;color:#e8f8ff}
-.ov-arc-tt-score{font-family:var(--mono);font-size:9px;color:rgba(0,210,255,0.45);margin-bottom:8px;letter-spacing:0.06em}
+.ov-arc-tt-label{font-size:13px;font-weight:800;letter-spacing:-0.01em;margin-bottom:2px;line-height:1;color:var(--text)}
+.ov-arc-tt-score{font-family:var(--mono);font-size:9px;color:var(--faint);margin-bottom:8px;letter-spacing:0.06em}
 .ov-arc-tt-sigs{
   display:flex;flex-direction:column;gap:3px;
-  border-top:1px solid rgba(0,210,255,0.12);padding-top:7px;
+  border-top:1px solid rgba(255,255,255,0.08);padding-top:7px;
 }
-.ov-arc-tt-sig{display:flex;justify-content:space-between;gap:24px;font-size:8px;color:rgba(168,216,232,0.5)}
-.ov-arc-tt-sig span:last-child{font-family:var(--mono);font-weight:700;color:rgba(168,216,232,0.9)}
+.ov-arc-tt-sig{display:flex;justify-content:space-between;gap:24px;font-size:8px;color:var(--faint)}
+.ov-arc-tt-sig span:last-child{font-family:var(--mono);font-weight:700;color:var(--dim)}
 /* Footer */
 .ov-arc-footer{
   display:flex;align-items:center;justify-content:space-between;
@@ -835,8 +771,8 @@ a{color:inherit;text-decoration:none}
   position:relative;z-index:9;
 }
 .ov-arc-foot-note{
-  font-size:7.5px;color:rgba(0,210,255,0.62);letter-spacing:0.12em;
-  font-weight:700;text-transform:uppercase;font-family:var(--mono);
+  font-size:7.5px;color:var(--faint);letter-spacing:0.10em;
+  font-weight:600;text-transform:uppercase;font-family:var(--mono);
 }
 .ov-arc-phases{display:none;}
 @media(max-width:600px){
@@ -855,7 +791,7 @@ a{color:inherit;text-decoration:none}
 .ov-cat-bar::before{
   content:'';
   position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent 0%,rgba(0,210,255,0.12) 20%,rgba(0,210,255,0.12) 80%,transparent 100%);
+  background:rgba(255,255,255,0.07);
   pointer-events:none;
   z-index:2;
 }
@@ -886,15 +822,15 @@ a{color:inherit;text-decoration:none}
 .ov-cat-pill::after{
   content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
   border-radius:0;
-  opacity:0;transition:opacity 200ms,box-shadow 200ms;
+  opacity:0;transition:opacity 200ms;
 }
-.ov-cat-pill:hover::after{opacity:0.5;box-shadow:0 0 10px rgba(92,158,255,0.25)}
+.ov-cat-pill:hover::after{opacity:0.5}
 .ov-cat-name{
   font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
-  color:rgba(150,195,240,0.45);margin-bottom:4px;
+  color:var(--faint);margin-bottom:4px;
   transition:color 180ms;
 }
-.ov-cat-pill:hover .ov-cat-name{color:rgba(150,195,240,0.70)}
+.ov-cat-pill:hover .ov-cat-name{color:var(--dim)}
 .ov-cat-score-row{
   display:flex;align-items:center;gap:5px;
 }
@@ -938,8 +874,7 @@ a{color:inherit;text-decoration:none}
 .ov-section-hdr{
   display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:4px;
   padding-left:11px;
-  border-left:3px solid transparent;
-  border-image:linear-gradient(180deg,rgba(0,210,255,0.8) 0%,rgba(92,158,255,0.15) 100%) 1;
+  border-left:2px solid rgba(255,255,255,0.18);
 }
 .ov-section-title{font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:1}
 .ov-legend{
@@ -1004,7 +939,6 @@ a{color:inherit;text-decoration:none}
 }
 .ov-tile-pip{
   position:absolute;top:6px;right:6px;width:5px;height:5px;border-radius:50%;
-  box-shadow:0 0 5px currentColor;
 }
 
 /* ── Signals ── */
@@ -1021,15 +955,15 @@ a{color:inherit;text-decoration:none}
 /* ── Smart Money Consensus Panel ── */
 .ov-smart-panel{
   margin:0 16px 12px;
-  background:linear-gradient(135deg,rgba(92,158,255,0.04) 0%,var(--surf2) 100%);
-  border:1px solid rgba(92,158,255,0.15);
-  border-radius:12px;
+  background:var(--surf2);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:10px;
   padding:14px 16px;
   display:none;
   animation:fadeUp 360ms 300ms cubic-bezier(0.16,1,0.3,1) both;
 }
 .ov-smart-panel.loaded{display:block}
-.ov-smart-title{font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(150,200,255,0.7);margin-bottom:10px}
+.ov-smart-title{font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
 .ov-smart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
 .ov-smart-item{
   background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;
@@ -1045,10 +979,8 @@ a{color:inherit;text-decoration:none}
 .ov-sig-wrap-hdr{
   padding:16px 24px 0;
   display:flex;align-items:baseline;gap:12px;
-  border-left:3px solid transparent;
-  border-image:linear-gradient(180deg,rgba(0,210,255,0.8) 0%,rgba(92,158,255,0.15) 100%) 1;
-  margin-left:1px;
-  padding-left:21px;
+  border-left:2px solid rgba(255,255,255,0.18);
+  padding-left:22px;
 }
 .ov-sig-wrap-title{
   font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:0.88;
@@ -1117,9 +1049,7 @@ a{color:inherit;text-decoration:none}
 .ov-cp-header{
   display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
   padding-left:10px;
-  border-left:3px solid transparent;
-  border-image:linear-gradient(180deg,rgba(0,210,255,0.8) 0%,rgba(92,158,255,0.15) 100%) 1;
-  margin-left:-2px;
+  border-left:2px solid rgba(255,255,255,0.18);
 }
 .ov-cp-eyebrow{
   font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:0.88;
@@ -1163,7 +1093,7 @@ a{color:inherit;text-decoration:none}
   transform:translateY(-1px);
 }
 .ov-menv-topic{
-  font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(100,175,240,0.45);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:var(--faint);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .ov-menv-primary{
   font-family:var(--mono);font-size:15px;font-weight:800;color:var(--text);line-height:1;margin-bottom:2px;letter-spacing:-0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -1501,12 +1431,12 @@ a{color:inherit;text-decoration:none}
 /* Detail header */
 /* V5: Detail header premium band */
 .d-head{
-  padding:14px 20px 12px;border-bottom:1px solid rgba(92,158,255,0.12);
+  padding:14px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.09);
   position:sticky;top:0;z-index:50;
-  background:linear-gradient(180deg,rgba(10,14,28,0.98) 0%,rgba(6,8,16,0.97) 100%);backdrop-filter:blur(32px) saturate(180%);
-  -webkit-backdrop-filter:blur(32px) saturate(180%);
+  background:rgba(3,5,8,0.97);backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
   display:flex;align-items:center;gap:16px;
-  box-shadow:0 2px 0 rgba(0,210,255,0.05),0 8px 40px rgba(0,0,0,0.6);
+  box-shadow:0 1px 0 rgba(255,255,255,0.06);
   overflow:hidden;
 }
 /* Asset graphic — large immersive background element */
@@ -1544,17 +1474,16 @@ a{color:inherit;text-decoration:none}
 .d-cat{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);font-family:var(--mono);margin-bottom:5px;overflow:hidden}
 .d-name{font-size:21px;font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:var(--text)}
 .d-bias-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
-.d-bias-pill{padding:3px 12px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:0.05em;border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(8px)}
+.d-bias-pill{padding:3px 12px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:0.05em;border:1px solid rgba(255,255,255,0.12)}
 /* Hero score block */
 .d-score-hero{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-width:100px;padding:14px 20px;border-radius:14px;
-  background:linear-gradient(160deg,var(--surf3) 0%,var(--surf2) 100%);border:1px solid var(--bdr2);text-align:center;
+  min-width:100px;padding:14px 20px;border-radius:12px;
+  background:var(--surf2);border:1px solid rgba(255,255,255,0.12);text-align:center;
   position:relative;overflow:hidden;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 6px 32px rgba(0,0,0,0.5);
-  transition:border-color 400ms,box-shadow 400ms;
+  transition:border-color 400ms;
 }
 /* V10: Score hero glow enhanced */
-.d-score-hero-glow{position:absolute;inset:0;opacity:0.10;pointer-events:none;background:radial-gradient(ellipse 100% 100% at 50% 50%,var(--glow-col,rgba(92,158,255,0.18)) 0%,transparent 70%);animation:pulseGlow 3.5s ease-in-out infinite}
+.d-score-hero-glow{display:none}
 .d-score-hero-num{font-family:var(--mono);font-size:46px;font-weight:900;letter-spacing:-0.04em;line-height:1;transition:color 400ms}
 .d-score-hero-denom{font-size:11px;font-weight:500;opacity:0.35;margin-top:1px}
 .d-score-hero-label{font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-top:6px;opacity:0.7}
@@ -1631,19 +1560,7 @@ a{color:inherit;text-decoration:none}
 .f-card:hover .f-card-bg{opacity:0.13}
 .f-card.act .f-card-bg{opacity:0.20}
 /* Radial bloom in accent colour — inactive=hidden, active=visible */
-.f-card-bloom{
-  position:absolute;
-  bottom:-20px;right:-20px;
-  width:90px;height:90px;
-  border-radius:50%;
-  background:radial-gradient(circle,var(--f-accent,#5c9eff) 0%,transparent 70%);
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 300ms;
-  mix-blend-mode:screen;
-}
-.f-card:hover .f-card-bloom{opacity:0.12}
-.f-card.act .f-card-bloom{opacity:0.22}
+.f-card-bloom{display:none}
 /* Tint fill */
 .f-card::before{
   content:'';
@@ -1671,9 +1588,9 @@ a{color:inherit;text-decoration:none}
 .f-card:hover::after{transform:scaleX(0.45);opacity:0.55}
 /* V18: Active factor card tab — polished */
 .f-card.act{
-  background:linear-gradient(180deg,rgba(92,158,255,0.06) 0%,rgba(255,255,255,0.015) 100%);
+  background:var(--surf2);
   border-right-color:rgba(255,255,255,0.07);
-  box-shadow:inset 0 1px 0 rgba(92,158,255,0.25),inset 0 -2px 0 rgba(92,158,255,0.5),0 2px 12px rgba(92,158,255,0.08);
+  box-shadow:inset 0 -2px 0 var(--f-accent,var(--accent));
 }
 /* ── Label row: factor name + weight pill side by side ── */
 .f-lbl-row{
@@ -2347,8 +2264,7 @@ a{color:inherit;text-decoration:none}
   /* BIG regime headline */
   .mob-hero-regime{
     font-size:38px;font-weight:900;letter-spacing:-0.04em;line-height:0.95;
-    background:linear-gradient(135deg,#e8f0ff 0%,var(--mob-regime-col,#5c9eff) 65%);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    color:var(--text);
     margin-bottom:6px;
   }
   /* Sub-label: description */
@@ -3453,7 +3369,7 @@ function renderOverview(){
 
       mhero.innerHTML=`
         <div class="mob-hero-eyebrow">
-          <div class="mob-hero-pip" style="background:${regCol};box-shadow:0 0 6px ${regCol}"></div>
+          <div class="mob-hero-pip" style="background:${regCol}"></div>
           BH WEATHER SYSTEM &nbsp;·&nbsp; ${total} MARKETS &nbsp;·&nbsp; ${updStr}
         </div>
         <div class="mob-hero-regime" style="--mob-regime-col:${regCol}">${regLabel}</div>
@@ -3516,12 +3432,12 @@ function renderOverview(){
     <div class="ov-banner-left">
       <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-        <div class="ov-banner-regime" style="--regime-col:${regCol}">${regLabel}</div>
-        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}18;border:1px solid ${regCol}45;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 12px ${regCol}22,inset 0 1px 0 ${regCol}20" title="Composite climate score — sum of sector averages, max ±4.0. Positive = risk-on; negative = risk-off."><span style="opacity:0.60;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore>0?'+':''}${regScore.toFixed(1)}</span><span style="opacity:0.40;font-size:7px">/ 4.0</span><span style="font-size:7px;opacity:0.5;margin-left:1px">(?)</span></div>`:''}
+        <div class="ov-banner-regime" style="color:${regCol}">${regLabel}</div>
+        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}35;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px" title="Composite climate score — sum of sector averages, max ±4.0. Positive = risk-on; negative = risk-off."><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore>0?'+':''}${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 4.0</span></div>`:''
       </div>
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
       <div class="ov-banner-sub">
-        <span class="ov-banner-dot" style="background:${regCol};box-shadow:0 0 6px ${regCol};color:${regCol}"></span>
+        <span class="ov-banner-dot" style="background:${regCol};color:${regCol}"></span>
         ${total} markets tracked &nbsp;&middot;&nbsp; Updated ${DATA.updated_at?new Date(DATA.updated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC':'just now'}
       </div>
       <div class="ov-banner-stats">
@@ -4866,10 +4782,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.font = '700 6px "SF Mono",monospace';
     ctx.letterSpacing = '0.20em';
     ctx.textAlign = 'center';
-    ctx.shadowBlur = 8; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.45)`;
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.72)`;
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.60)`;
     ctx.fillText('CLIMATE SCORE', lCX, 13);
-    ctx.shadowBlur = 0;
     ctx.letterSpacing = '0';
 
     // Top rule: thin line under eyebrow with fade-in
@@ -4886,13 +4800,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.save();
     ctx.font = `100 ${heroSz}px "SF Pro Display","Helvetica Neue",sans-serif`;
     ctx.textAlign = 'center';
-    // Multi-layer glow
-    ctx.shadowBlur = 32; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.75)`;
-    ctx.fillStyle = 'rgba(255,255,255,0.97)';
+    ctx.fillStyle = 'rgba(255,255,255,0.96)';
     ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 12; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.95)`;
-    ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 0;
     ctx.restore();
 
     // Scale denom — tiny, positioned just below hero
@@ -4910,10 +4819,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.font = `700 8px "SF Mono",monospace`;
     ctx.letterSpacing = '0.08em';
     ctx.textAlign = 'center';
-    ctx.shadowBlur = 10; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.7)`;
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.95)`;
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.90)`;
     ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
-    ctx.shadowBlur = 0;
     ctx.letterSpacing = '0';
     ctx.restore();
 
@@ -4991,25 +4898,15 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     scanGrd.addColorStop(0.75, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.45)`);
     scanGrd.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
     ctx.beginPath(); ctx.moveTo(lx, needleY); ctx.lineTo(lx + lW, needleY);
-    ctx.shadowBlur = 4; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.4)`;
-    ctx.strokeStyle = scanGrd; ctx.lineWidth = 1.0; ctx.stroke();
-    ctx.shadowBlur = 0;
-    // Bright needle dot on bar
-    ctx.beginPath(); ctx.arc(barCX, needleY, 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.98)';
-    ctx.shadowBlur = 18; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},1.0)`;
-    ctx.fill();
-    ctx.shadowBlur = 10; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},1.0)`;
+    ctx.strokeStyle = scanGrd; ctx.lineWidth = 0.8; ctx.stroke();
+    // Needle dot on bar
+    ctx.beginPath(); ctx.arc(barCX, needleY, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.fill();
     // Outer ring on needle dot
-    ctx.beginPath(); ctx.arc(barCX, needleY, 6, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.70)`;
-    ctx.lineWidth = 1.0; ctx.shadowBlur = 12; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.8)`; ctx.stroke();
-    // Second outer pulse ring
-    ctx.beginPath(); ctx.arc(barCX, needleY, 10, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.18)`;
-    ctx.lineWidth = 0.5; ctx.shadowBlur = 0; ctx.stroke();
-    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(barCX, needleY, 5.5, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`;
+    ctx.lineWidth = 0.8; ctx.stroke();
     ctx.restore();
 
     // ── 52W range band on right side of bar — show hi/lo as bracket
@@ -5106,12 +5003,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Arc section — full canvas width (no clip needed)
   ctx.save();
 
-  // Arc background atmosphere — deep glow from centre
-  const arcAtm = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_OR * 1.3);
-  arcAtm.addColorStop(0,   'rgba(0,20,50,0.5)');
-  arcAtm.addColorStop(0.5, 'rgba(0,10,30,0.2)');
-  arcAtm.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = arcAtm; ctx.fillRect(0, 0, W, H);
+  // Arc background — minimal, no heavy glow
 
   // Guide rings — inner, mid, outer
   [
@@ -5203,8 +5095,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.closePath();
 
     if (isLast) {
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = rgb(sc, 1);
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = rgb(sc, 0.5);
     }
     ctx.fillStyle = segGrd;
     ctx.fill();
@@ -5223,7 +5115,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       ctx.arc(ARC_CX, ARC_CY, rOut, a0, a1);
       ctx.strokeStyle = rgb(sc, 1);
       ctx.lineWidth = 1.5;
-      ctx.shadowBlur = 12; ctx.shadowColor = rgb(sc, 0.9);
+      ctx.shadowBlur = 4; ctx.shadowColor = rgb(sc, 0.5);
       ctx.stroke(); ctx.shadowBlur = 0;
     }
     ctx.restore();
@@ -5256,9 +5148,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.font = '600 7px "SF Mono",monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(140,180,240,0.65)';
-    ctx.shadowBlur = 4; ctx.shadowColor = 'rgba(100,160,255,0.4)';
     ctx.fillText('NEUTRAL', nlx, nly);
-    ctx.shadowBlur = 0;
   }
   ctx.restore();
 
@@ -5279,21 +5169,18 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.beginPath(); ctx.moveTo(ARC_CX, ARC_CY); ctx.lineTo(nx, ny);
     ctx.strokeStyle = nG;
     ctx.lineWidth = 2;
-    ctx.shadowBlur = 12; ctx.shadowColor = rgb(curC, 0.8);
-    ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.stroke();
 
-    // Needle tip — glowing orb
-    ctx.beginPath(); ctx.arc(nx, ny, 5.5, 0, Math.PI * 2);
-    ctx.fillStyle = rgb(curC, 0.2);
-    ctx.shadowBlur = 20; ctx.shadowColor = rgb(curC, 1);
+    // Needle tip
+    ctx.beginPath(); ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+    ctx.fillStyle = rgb(curC, 0.25);
     ctx.fill();
-    ctx.beginPath(); ctx.arc(nx, ny, 3.5, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(nx, ny, 2.5, 0, Math.PI * 2);
     ctx.fillStyle = rgb(curC, 1);
     ctx.fill();
-    ctx.beginPath(); ctx.arc(nx, ny, 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,1)';
+    ctx.beginPath(); ctx.arc(nx, ny, 1, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.restore();
   }
 
@@ -5354,10 +5241,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.beginPath(); ctx.roundRect(lx, ly - 8, lw, 10, 2); ctx.fill(); ctx.stroke();
     // Text
     ctx.fillStyle = rgb(curC, 0.95);
-    ctx.shadowBlur = 5; ctx.shadowColor = rgb(curC, 0.7);
     ctx.textAlign = 'left';
     ctx.fillText('LIVE', lx + 5, ly);
-    ctx.shadowBlur = 0;
     ctx.restore();
   }
 
@@ -5418,11 +5303,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       ctx.font = '700 8px "SF Mono","Fira Code",monospace';
       ctx.letterSpacing = '0.14em';
       ctx.textAlign = 'left';
-      ctx.fillStyle = rgb(curC, 0.80);
-      ctx.shadowColor = rgb(curC, 0.6);
-      ctx.shadowBlur = 10;
+      ctx.fillStyle = rgb(curC, 0.78);
       ctx.fillText('REGIME SIGNALS', SP_X + SP_PAD, SP_TOP + 2);
-      ctx.shadowBlur = 0;
       ctx.letterSpacing = '0';
       // Header underline
       const hdrLineG = ctx.createLinearGradient(SP_X + SP_PAD, 0, SP_X + SIGNAL_W - 4, 0);
@@ -5881,10 +5763,7 @@ function drawOvSparkline(ctx,W,H,scores,accent,drawFill,prices,dates){
   ctx.beginPath();
   ctx.arc(lastX,lastY,3,0,Math.PI*2);
   ctx.fillStyle=dotCol;
-  ctx.shadowColor=dotCol;
-  ctx.shadowBlur=6;
   ctx.fill();
-  ctx.shadowBlur=0;
 
   // Price line (secondary, subtle) — normalised to same canvas
   if(prices&&prices.length>1){
@@ -5998,12 +5877,10 @@ function initMobHeroArc(score, col) {
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // ── Score arc fill (animated, score-coloured with glow)
+    // ── Score arc fill (animated)
     const fillAngle = SWEEP * (clampedScore / 10) * progress;
     if (fillAngle > 0.01) {
       ctx.save();
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = `rgba(${r},${g},${b},0.7)`;
       // Gradient along the arc: slightly brighter at tip
       const tipA = START + fillAngle;
       const tipX = CX + Math.cos(tipA) * (IR + (OR - IR) * 0.5);
@@ -6021,18 +5898,14 @@ function initMobHeroArc(score, col) {
       ctx.lineWidth = OR - IR - 2;
       ctx.lineCap = 'round';
       ctx.stroke();
-      ctx.shadowBlur = 0;
       ctx.restore();
 
-      // Bright tip dot at arc end
+      // Tip dot at arc end
       ctx.save();
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = `rgba(${r},${g},${b},1)`;
       ctx.beginPath();
-      ctx.arc(tipX, tipY, 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,0.9)`;
+      ctx.arc(tipX, tipY, 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,0.85)`;
       ctx.fill();
-      ctx.shadowBlur = 0;
       ctx.restore();
     }
 
@@ -6071,24 +5944,18 @@ function initMobHeroArc(score, col) {
     pipGrad.addColorStop(0, 'rgba(255,255,255,0.85)');
     pipGrad.addColorStop(1, `rgba(${r},${g},${b},0.5)`);
     ctx.fillStyle = pipGrad;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = `rgba(${r},${g},${b},0.8)`;
     ctx.fill();
-    ctx.shadowBlur = 0;
 
     // ── Score number (draws in at 60% progress)
     if (progress > 0.55) {
       const textAlpha = Math.min(1, (progress - 0.55) / 0.25);
       ctx.save();
       ctx.globalAlpha = textAlpha;
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = `rgba(${r},${g},${b},0.6)`;
       ctx.fillStyle = 'rgba(255,255,255,0.92)';
       ctx.font = `900 14px "SF Mono",monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(clampedScore.toFixed(1), CX, CY - 2);
-      ctx.shadowBlur = 0;
       ctx.fillStyle = `rgba(${r},${g},${b},0.50)`;
       ctx.font = `600 6px "SF Mono",monospace`;
       ctx.letterSpacing = '0.08em';
@@ -7238,8 +7105,7 @@ function drawWheel(ws,col){
     // Glow dot at the tip
     const tipX=cx+r*Math.cos(endA),tipY=cy+r*Math.sin(endA);
     ctx.beginPath();ctx.arc(tipX,tipY,3,0,Math.PI*2);
-    ctx.fillStyle=col;ctx.shadowBlur=8;ctx.shadowColor=col;ctx.fill();
-    ctx.shadowBlur=0;
+    ctx.fillStyle=col;ctx.fill();
   }
 }
 
