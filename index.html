@@ -1535,15 +1535,17 @@ a{color:inherit;text-decoration:none}
 }
 .f-card{
   position:relative;
-  padding:13px 14px 11px;
+  padding:13px 14px 12px;
   cursor:pointer;
   border-right:1px solid var(--bdr);
   overflow:hidden;
-  transition:background 150ms,border-right-color 150ms;
+  transition:background 180ms,border-right-color 180ms,box-shadow 180ms;
   display:flex;
   flex-direction:column;
   gap:0;
-  min-height:82px;
+  min-height:92px;
+  /* Top-edge glow strip in accent colour — very subtle */
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .f-card:last-child{border-right:none}
 /* Background graphic layer */
@@ -1551,12 +1553,29 @@ a{color:inherit;text-decoration:none}
   position:absolute;
   inset:0;
   pointer-events:none;
-  opacity:0.06;
-  transition:opacity 200ms;
+  opacity:0.055;
+  transition:opacity 240ms;
+  /* Clip SVG to lower-right quadrant so text area stays clean */
+  -webkit-mask-image:linear-gradient(135deg,transparent 30%,rgba(0,0,0,0.6) 60%,black 100%);
+  mask-image:linear-gradient(135deg,transparent 30%,rgba(0,0,0,0.6) 60%,black 100%);
 }
-.f-card:hover .f-card-bg{opacity:0.10}
-.f-card.act .f-card-bg{opacity:0.14}
-/* Subtle fill tint when active — uses --f-tint set inline per card */
+.f-card:hover .f-card-bg{opacity:0.13}
+.f-card.act .f-card-bg{opacity:0.20}
+/* Radial bloom in accent colour — inactive=hidden, active=visible */
+.f-card-bloom{
+  position:absolute;
+  bottom:-20px;right:-20px;
+  width:90px;height:90px;
+  border-radius:50%;
+  background:radial-gradient(circle,var(--f-accent,#5c9eff) 0%,transparent 70%);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 300ms;
+  mix-blend-mode:screen;
+}
+.f-card:hover .f-card-bloom{opacity:0.12}
+.f-card.act .f-card-bloom{opacity:0.22}
+/* Tint fill */
 .f-card::before{
   content:'';
   position:absolute;
@@ -1572,31 +1591,62 @@ a{color:inherit;text-decoration:none}
   content:'';
   position:absolute;
   bottom:0;left:0;right:0;
-  height:3px;
-  background:var(--f-accent,var(--accent));
+  height:2px;
+  background:linear-gradient(90deg,var(--f-accent,var(--accent)),color-mix(in srgb,var(--f-accent,var(--accent)) 40%,transparent));
   transform:scaleX(0);
   transform-origin:left;
-  transition:transform 250ms var(--ease);
+  transition:transform 260ms var(--ease);
   border-radius:0;
 }
 .f-card.act::after{transform:scaleX(1)}
-.f-card:hover::after{transform:scaleX(0.5);opacity:0.6}
-.f-card.act{background:linear-gradient(180deg,rgba(255,255,255,0.065) 0%,rgba(255,255,255,0.025) 100%);border-right-color:rgba(255,255,255,0.08)}
-/* Text layers */
+.f-card:hover::after{transform:scaleX(0.45);opacity:0.55}
+.f-card.act{
+  background:linear-gradient(180deg,rgba(255,255,255,0.055) 0%,rgba(255,255,255,0.018) 100%);
+  border-right-color:rgba(255,255,255,0.07);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--f-accent,#5c9eff) 35%,transparent);
+}
+/* ── Label row: factor name + weight pill side by side ── */
+.f-lbl-row{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  margin-bottom:5px;
+  position:relative;
+}
 .f-lbl{
   font-size:7.5px;
   font-weight:700;
   letter-spacing:0.11em;
   text-transform:uppercase;
   color:var(--dim);
-  margin-bottom:5px;
-  position:relative;
   transition:color 150ms;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  min-width:0;
 }
 .f-card:hover .f-lbl,.f-card.act .f-lbl{color:var(--text)}
+/* Weight pill */
+.f-wt{
+  flex-shrink:0;
+  font-family:var(--mono);
+  font-size:6.5px;
+  font-weight:800;
+  letter-spacing:0.04em;
+  padding:1px 4px;
+  border-radius:3px;
+  border:1px solid color-mix(in srgb,var(--f-accent,#5c9eff) 28%,transparent);
+  background:color-mix(in srgb,var(--f-accent,#5c9eff) 8%,transparent);
+  color:color-mix(in srgb,var(--f-accent,#5c9eff) 70%,var(--dim));
+  opacity:0.75;
+  transition:opacity 200ms,color 200ms;
+  white-space:nowrap;
+  line-height:1.4;
+}
+.f-card:hover .f-wt,.f-card.act .f-wt{
+  opacity:1;
+  color:var(--f-accent,#5c9eff);
+}
 .f-val{
   font-size:21px;
   font-weight:800;
@@ -1618,18 +1668,37 @@ a{color:inherit;text-decoration:none}
   transition:color 150ms;
 }
 .f-card:hover .f-sub,.f-card.act .f-sub{color:var(--dim)}
+/* Score bar + weight-contribution micro-bar stack */
 .f-bar{
+  margin-top:auto;
+  padding-top:9px;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+/* Score bar (coloured, shows where score sits 0-10) */
+.f-bar-track{
   height:2px;
   border-radius:2px;
   background:rgba(255,255,255,0.06);
-  margin-top:auto;
-  padding-top:8px;
   overflow:visible;
   position:relative;
 }
-.f-bar-f{height:2px;border-radius:2px;position:relative}
-.f-wt{
-  display:none;
+.f-bar-f{height:2px;border-radius:2px;position:absolute;top:0;left:0}
+/* Weight contribution bar (shows how much this factor contributes to total) */
+.f-wt-bar-track{
+  height:1.5px;
+  border-radius:1px;
+  background:rgba(255,255,255,0.04);
+  overflow:hidden;
+  position:relative;
+}
+.f-wt-bar-fill{
+  height:100%;
+  border-radius:1px;
+  background:color-mix(in srgb,var(--f-accent,#5c9eff) 55%,transparent);
+  transition:width 600ms cubic-bezier(0.16,1,0.3,1);
 }
 
 .tab{display:none;padding:18px 20px 28px;animation:tabIn 200ms cubic-bezier(0.22,1,0.36,1)}
@@ -2329,11 +2398,14 @@ a{color:inherit;text-decoration:none}
 
   /* ── 7. DETAIL TAB / CONTENT FIXES ── */
   .factor-strip{grid-template-columns:repeat(3,1fr)}
-  .f-card{padding:9px 10px;min-height:60px}
+  .f-card{padding:9px 10px;min-height:66px}
   .f-val{font-size:16px}
   .f-val-denom{display:none}
   .f-sub{font-size:8px}
   .f-lbl{font-size:7px;letter-spacing:0.09em;color:var(--dim)}
+  .f-wt{font-size:6px;padding:1px 3px}
+  .f-wt-bar-track{display:none}
+  .f-card-bloom{display:none}
   .seas-stats,.modal-stats{grid-template-columns:repeat(3,1fr)}
   .seas-insight-row{grid-template-columns:1fr 1fr}
   .macro-cats{grid-template-columns:1fr}
@@ -6557,113 +6629,235 @@ const FACTOR_META = {
     label: 'Positioning',
     accent: '#5c9eff',
     tint: 'rgba(92,158,255,0.05)',
-    bg: `<svg viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;right:0;width:80px;height:54px">
-      <!-- Stacked bar chart representing COT groups -->
-      <rect x="10" y="42" width="14" height="30" rx="2" fill="#f0f4ff"/>
-      <rect x="30" y="24" width="14" height="48" rx="2" fill="#30d988"/>
-      <rect x="50" y="36" width="14" height="36" rx="2" fill="#f04040"/>
-      <rect x="70" y="18" width="14" height="54" rx="2" fill="#f0f4ff"/>
-      <rect x="90" y="30" width="14" height="42" rx="2" fill="#30d988"/>
+    bg: `<svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0f4ff" stop-opacity="0.9"/><stop offset="100%" stop-color="#f0f4ff" stop-opacity="0.2"/></linearGradient>
+        <linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#30d988" stop-opacity="0.95"/><stop offset="100%" stop-color="#30d988" stop-opacity="0.15"/></linearGradient>
+        <linearGradient id="cg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f04040" stop-opacity="0.9"/><stop offset="100%" stop-color="#f04040" stop-opacity="0.1"/></linearGradient>
+      </defs>
+      <!-- Grid lines -->
+      <line x1="10" y1="25" x2="155" y2="25" stroke="white" stroke-opacity="0.06" stroke-width="0.5"/>
+      <line x1="10" y1="50" x2="155" y2="50" stroke="white" stroke-opacity="0.06" stroke-width="0.5"/>
+      <line x1="10" y1="75" x2="155" y2="75" stroke="white" stroke-opacity="0.06" stroke-width="0.5"/>
+      <!-- Commercials (white) -->
+      <rect x="12" y="52" width="16" height="43" rx="2" fill="url(#cg1)"/>
+      <rect x="32" y="40" width="16" height="55" rx="2" fill="url(#cg1)"/>
+      <rect x="52" y="34" width="16" height="61" rx="2" fill="url(#cg1)"/>
+      <rect x="72" y="44" width="16" height="51" rx="2" fill="url(#cg1)"/>
+      <rect x="92" y="28" width="16" height="67" rx="2" fill="url(#cg1)"/>
+      <rect x="112" y="36" width="16" height="59" rx="2" fill="url(#cg1)"/>
+      <rect x="132" y="22" width="16" height="73" rx="2" fill="url(#cg1)"/>
+      <!-- Large specs (green) -->
+      <rect x="12" y="68" width="8" height="27" rx="1.5" fill="url(#cg2)"/>
+      <rect x="32" y="62" width="8" height="33" rx="1.5" fill="url(#cg2)"/>
+      <rect x="52" y="54" width="8" height="41" rx="1.5" fill="url(#cg2)"/>
+      <rect x="72" y="60" width="8" height="35" rx="1.5" fill="url(#cg2)"/>
+      <rect x="92" y="46" width="8" height="49" rx="1.5" fill="url(#cg2)"/>
+      <rect x="112" y="50" width="8" height="45" rx="1.5" fill="url(#cg2)"/>
+      <rect x="132" y="38" width="8" height="57" rx="1.5" fill="url(#cg2)"/>
+      <!-- Small specs (red) -->
+      <rect x="20" y="78" width="6" height="17" rx="1" fill="url(#cg3)"/>
+      <rect x="40" y="72" width="6" height="23" rx="1" fill="url(#cg3)"/>
+      <rect x="60" y="70" width="6" height="25" rx="1" fill="url(#cg3)"/>
+      <rect x="80" y="75" width="6" height="20" rx="1" fill="url(#cg3)"/>
+      <rect x="100" y="65" width="6" height="30" rx="1" fill="url(#cg3)"/>
+      <rect x="120" y="68" width="6" height="27" rx="1" fill="url(#cg3)"/>
+      <rect x="140" y="60" width="6" height="35" rx="1" fill="url(#cg3)"/>
+      <!-- Divergence trend line across tops -->
+      <path d="M20 52 L40 40 L60 34 L80 44 L100 28 L120 36 L148 22" stroke="#5c9eff" stroke-width="1.2" stroke-linecap="round" fill="none" stroke-dasharray="4 2" opacity="0.7"/>
     </svg>`
   },
   seasonal: {
     label: 'Seasonal',
     accent: '#f5c842',
     tint: 'rgba(245,200,66,0.04)',
-    bg: `<svg viewBox="0 0 120 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;right:0;width:90px;height:42px">
-      <!-- Sine-wave seasonal curve -->
-      <path d="M0 34 C10 34 14 10 26 10 C38 10 42 48 54 48 C66 48 70 10 82 10 C94 10 98 34 110 34 C116 34 118 26 120 26" stroke="#f5c842" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-      <!-- Today vertical line -->
-      <line x1="60" y1="4" x2="60" y2="52" stroke="#f04040" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>
-      <!-- Horizon shading -->
-      <rect x="60" y="0" width="24" height="56" fill="#f5c842" opacity="0.06" rx="1"/>
+    bg: `<svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <linearGradient id="sg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5c842" stop-opacity="0.35"/><stop offset="100%" stop-color="#f5c842" stop-opacity="0"/></linearGradient>
+        <linearGradient id="sg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#30d988" stop-opacity="0.25"/><stop offset="100%" stop-color="#30d988" stop-opacity="0"/></linearGradient>
+      </defs>
+      <!-- Annual cycle curve — full year sweep -->
+      <path d="M0 62 C10 62 16 22 30 18 C44 14 50 72 64 76 C78 80 84 24 100 18 C116 12 122 62 138 64 C150 66 156 54 160 52" stroke="#f5c842" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+      <!-- Area fill under curve -->
+      <path d="M0 62 C10 62 16 22 30 18 C44 14 50 72 64 76 C78 80 84 24 100 18 C116 12 122 62 138 64 C150 66 156 54 160 52 L160 100 L0 100 Z" fill="url(#sg1)"/>
+      <!-- Month markers -->
+      <line x1="13" y1="85" x2="13" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="27" y1="85" x2="27" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="40" y1="85" x2="40" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="53" y1="85" x2="53" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="67" y1="85" x2="67" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="80" y1="85" x2="80" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="93" y1="85" x2="93" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="107" y1="85" x2="107" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="120" y1="85" x2="120" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="133" y1="85" x2="133" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <line x1="147" y1="85" x2="147" y2="92" stroke="#f5c842" stroke-width="0.8" opacity="0.4"/>
+      <!-- Current window highlight -->
+      <rect x="93" y="0" width="27" height="100" fill="url(#sg2)" rx="0"/>
+      <line x1="93" y1="0" x2="93" y2="100" stroke="#30d988" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.6"/>
+      <!-- "Now" dot on curve -->
+      <circle cx="93" cy="18" r="3.5" fill="#30d988" opacity="0.9"/>
+      <circle cx="93" cy="18" r="6" stroke="#30d988" stroke-width="0.8" fill="none" opacity="0.4"/>
     </svg>`
   },
   momentum: {
     label: 'Momentum',
     accent: '#a78bfa',
     tint: 'rgba(167,139,250,0.04)',
-    bg: `<svg viewBox="0 0 120 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;right:0;width:90px;height:42px">
-      <!-- Moving averages: slow + fast crossing -->
-      <path d="M0 38 C15 38 22 32 36 28 C50 24 58 20 72 16 C86 12 100 10 120 8" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.9"/>
-      <path d="M0 44 C20 42 32 38 48 34 C64 30 80 24 120 18" stroke="#a78bfa" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.4" stroke-dasharray="3 2"/>
-      <!-- Arrow tip -->
-      <path d="M110 5 L120 8 L113 14" stroke="#a78bfa" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    bg: `<svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <linearGradient id="mg1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0.9"/></linearGradient>
+        <linearGradient id="mg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.22"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient>
+      </defs>
+      <!-- Candle bodies (simplified price action) -->
+      <rect x="10" y="65" width="6" height="15" rx="1" fill="#f04040" opacity="0.55"/>
+      <line x1="13" y1="58" x2="13" y2="82" stroke="#f04040" stroke-width="0.8" opacity="0.55"/>
+      <rect x="22" y="60" width="6" height="12" rx="1" fill="#f04040" opacity="0.4"/>
+      <line x1="25" y1="54" x2="25" y2="74" stroke="#f04040" stroke-width="0.8" opacity="0.4"/>
+      <rect x="34" y="52" width="6" height="14" rx="1" fill="#30d988" opacity="0.5"/>
+      <line x1="37" y1="46" x2="37" y2="68" stroke="#30d988" stroke-width="0.8" opacity="0.5"/>
+      <rect x="46" y="44" width="6" height="14" rx="1" fill="#30d988" opacity="0.6"/>
+      <line x1="49" y1="38" x2="49" y2="60" stroke="#30d988" stroke-width="0.8" opacity="0.6"/>
+      <rect x="58" y="36" width="6" height="16" rx="1" fill="#30d988" opacity="0.65"/>
+      <line x1="61" y1="30" x2="61" y2="54" stroke="#30d988" stroke-width="0.8" opacity="0.65"/>
+      <rect x="70" y="28" width="6" height="14" rx="1" fill="#30d988" opacity="0.7"/>
+      <line x1="73" y1="22" x2="73" y2="44" stroke="#30d988" stroke-width="0.8" opacity="0.7"/>
+      <rect x="82" y="20" width="6" height="16" rx="1" fill="#30d988" opacity="0.75"/>
+      <line x1="85" y1="14" x2="85" y2="38" stroke="#30d988" stroke-width="0.8" opacity="0.75"/>
+      <!-- Price trend line -->
+      <path d="M8 74 C20 68 30 56 46 48 C62 40 74 30 90 20 C104 12 118 10 140 8" stroke="url(#mg1)" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <!-- Area fill -->
+      <path d="M8 74 C20 68 30 56 46 48 C62 40 74 30 90 20 C104 12 118 10 140 8 L140 100 L8 100 Z" fill="url(#mg2)"/>
+      <!-- 26w MA (slower, dashed) -->
+      <path d="M8 80 C25 76 40 68 60 58 C80 48 100 36 140 24" stroke="#a78bfa" stroke-width="0.9" stroke-linecap="round" fill="none" stroke-dasharray="5 3" opacity="0.45"/>
+      <!-- Momentum arrow -->
+      <path d="M128 6 L140 8 L134 16" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9"/>
     </svg>`
   },
   macro: {
     label: 'Fundamentals',
     accent: '#34d399',
     tint: 'rgba(52,211,153,0.04)',
-    bg: `<svg viewBox="0 0 120 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;right:0;width:90px;height:42px">
-      <!-- Heatmap grid of economic indicators -->
-      <rect x="4"  y="4"  width="16" height="12" rx="2" fill="#30d988" opacity="0.7"/>
-      <rect x="24" y="4"  width="16" height="12" rx="2" fill="#f04040" opacity="0.6"/>
-      <rect x="44" y="4"  width="16" height="12" rx="2" fill="#30d988" opacity="0.5"/>
-      <rect x="64" y="4"  width="16" height="12" rx="2" fill="#30d988" opacity="0.8"/>
-      <rect x="84" y="4"  width="16" height="12" rx="2" fill="#f04040" opacity="0.4"/>
-      <rect x="4"  y="20" width="16" height="12" rx="2" fill="#f04040" opacity="0.5"/>
-      <rect x="24" y="20" width="16" height="12" rx="2" fill="#30d988" opacity="0.9"/>
-      <rect x="44" y="20" width="16" height="12" rx="2" fill="#4a5268" opacity="0.7"/>
-      <rect x="64" y="20" width="16" height="12" rx="2" fill="#30d988" opacity="0.6"/>
-      <rect x="84" y="20" width="16" height="12" rx="2" fill="#30d988" opacity="0.4"/>
-      <rect x="4"  y="36" width="16" height="12" rx="2" fill="#30d988" opacity="0.4"/>
-      <rect x="24" y="36" width="16" height="12" rx="2" fill="#4a5268" opacity="0.6"/>
-      <rect x="44" y="36" width="16" height="12" rx="2" fill="#f04040" opacity="0.7"/>
-      <rect x="64" y="36" width="16" height="12" rx="2" fill="#30d988" opacity="0.5"/>
-      <rect x="84" y="36" width="16" height="12" rx="2" fill="#4a5268" opacity="0.5"/>
+    bg: `<svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <linearGradient id="mcg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#34d399" stop-opacity="0.9"/><stop offset="100%" stop-color="#34d399" stop-opacity="0.2"/></linearGradient>
+        <linearGradient id="mcg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f04040" stop-opacity="0.8"/><stop offset="100%" stop-color="#f04040" stop-opacity="0.15"/></linearGradient>
+        <linearGradient id="mcg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#94a3b8" stop-opacity="0.6"/><stop offset="100%" stop-color="#94a3b8" stop-opacity="0.1"/></linearGradient>
+      </defs>
+      <!-- Horizontal indicator bars (like an economic dashboard) -->
+      <!-- Row labels implied by the layout -->
+      <rect x="8" y="10" width="90" height="8" rx="2" fill="rgba(255,255,255,0.04)"/>
+      <rect x="8" y="10" width="82" height="8" rx="2" fill="url(#mcg1)" opacity="0.8"/>
+      <rect x="8" y="24" width="90" height="8" rx="2" fill="rgba(255,255,255,0.04)"/>
+      <rect x="8" y="24" width="55" height="8" rx="2" fill="url(#mcg2)" opacity="0.7"/>
+      <rect x="8" y="38" width="90" height="8" rx="2" fill="rgba(255,255,255,0.04)"/>
+      <rect x="8" y="38" width="70" height="8" rx="2" fill="url(#mcg1)" opacity="0.65"/>
+      <rect x="8" y="52" width="90" height="8" rx="2" fill="rgba(255,255,255,0.04)"/>
+      <rect x="8" y="52" width="40" height="8" rx="2" fill="url(#mcg3)" opacity="0.7"/>
+      <rect x="8" y="66" width="90" height="8" rx="2" fill="rgba(255,255,255,0.04)"/>
+      <rect x="8" y="66" width="78" height="8" rx="2" fill="url(#mcg1)" opacity="0.75"/>
+      <rect x="8" y="80" width="90" height="8" rx="2" fill="rgba(255,255,255,0.04)"/>
+      <rect x="8" y="80" width="30" height="8" rx="2" fill="url(#mcg2)" opacity="0.6"/>
+      <!-- Value dots at bar ends -->
+      <circle cx="90" cy="14" r="2.5" fill="#34d399" opacity="0.9"/>
+      <circle cx="63" cy="28" r="2.5" fill="#f04040" opacity="0.8"/>
+      <circle cx="78" cy="42" r="2.5" fill="#34d399" opacity="0.8"/>
+      <circle cx="48" cy="56" r="2.5" fill="#94a3b8" opacity="0.7"/>
+      <circle cx="86" cy="70" r="2.5" fill="#34d399" opacity="0.85"/>
+      <circle cx="38" cy="84" r="2.5" fill="#f04040" opacity="0.7"/>
+      <!-- Composite score arc (right side) -->
+      <path d="M128 20 A32 32 0 1 1 128 80" stroke="rgba(255,255,255,0.06)" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M128 20 A32 32 0 0 1 155 65" stroke="#34d399" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.7"/>
+      <circle cx="155" cy="65" r="3" fill="#34d399" opacity="0.9"/>
     </svg>`
   },
   relval: {
     label: 'Rel. Value',
     accent: '#fb923c',
     tint: 'rgba(251,146,60,0.04)',
-    bg: `<svg viewBox="0 0 120 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;right:0;width:90px;height:42px">
-      <!-- Percentile gauge arc + pointer -->
-      <path d="M20 46 A40 40 0 0 1 100 46" stroke="rgba(255,255,255,0.12)" stroke-width="4" stroke-linecap="round" fill="none"/>
-      <path d="M20 46 A40 40 0 0 1 62 8" stroke="#fb923c" stroke-width="4" stroke-linecap="round" fill="none"/>
-      <!-- Pointer -->
-      <line x1="60" y1="46" x2="62" y2="10" stroke="#f0f4ff" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
-      <circle cx="60" cy="46" r="3" fill="#fb923c"/>
-      <!-- Tick marks -->
-      <line x1="20" y1="46" x2="18" y2="40" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-      <line x1="60" y1="6"  x2="60" y2="0"  stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-      <line x1="100" y1="46" x2="102" y2="40" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    bg: `<svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <linearGradient id="rvg1" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#fb923c" stop-opacity="0.6"/><stop offset="100%" stop-color="#fb923c" stop-opacity="0"/></linearGradient>
+      </defs>
+      <!-- Scatter plot of historical relative value points -->
+      <circle cx="20" cy="75" r="2" fill="#94a3b8" opacity="0.4"/>
+      <circle cx="32" cy="68" r="2" fill="#94a3b8" opacity="0.4"/>
+      <circle cx="28" cy="80" r="1.5" fill="#94a3b8" opacity="0.35"/>
+      <circle cx="44" cy="60" r="2" fill="#94a3b8" opacity="0.45"/>
+      <circle cx="52" cy="64" r="1.5" fill="#94a3b8" opacity="0.35"/>
+      <circle cx="48" cy="52" r="2" fill="#94a3b8" opacity="0.4"/>
+      <circle cx="64" cy="48" r="2" fill="#94a3b8" opacity="0.45"/>
+      <circle cx="72" cy="42" r="2" fill="#fb923c" opacity="0.6"/>
+      <circle cx="80" cy="36" r="2.5" fill="#fb923c" opacity="0.7"/>
+      <circle cx="88" cy="30" r="2" fill="#fb923c" opacity="0.65"/>
+      <circle cx="96" cy="24" r="3" fill="#fb923c" opacity="0.8"/>
+      <circle cx="108" cy="20" r="2.5" fill="#fb923c" opacity="0.75"/>
+      <circle cx="68" cy="55" r="1.5" fill="#94a3b8" opacity="0.3"/>
+      <circle cx="56" cy="70" r="1.5" fill="#94a3b8" opacity="0.3"/>
+      <!-- Regression line -->
+      <path d="M12 88 C40 72 70 52 120 18" stroke="#fb923c" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0.7"/>
+      <!-- Regression fill band -->
+      <path d="M12 95 C40 80 70 60 120 26 L120 12 C70 44 40 64 12 80 Z" fill="url(#rvg1)" opacity="0.4"/>
+      <!-- Current position marker -->
+      <circle cx="108" cy="20" r="5" stroke="#fb923c" stroke-width="1.2" fill="none" opacity="0.8"/>
+      <circle cx="108" cy="20" r="2" fill="#fb923c"/>
+      <!-- Axis lines -->
+      <line x1="8" y1="92" x2="150" y2="92" stroke="white" stroke-opacity="0.08" stroke-width="0.8"/>
+      <line x1="8" y1="8" x2="8" y2="92" stroke="white" stroke-opacity="0.08" stroke-width="0.8"/>
     </svg>`
   },
   regime: {
     label: 'Climate & Rates',
-    accent: '#94a3b8',
-    tint: 'rgba(148,163,184,0.04)',
-    bg: `<svg viewBox="0 0 120 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;right:0;width:90px;height:42px">
-      <!-- Risk-on / risk-off wave -->
-      <path d="M0 28 C8 28 12 12 20 12 C28 12 32 44 40 44 C48 44 52 12 60 12 C68 12 72 44 80 44 C88 44 92 20 100 20 C108 20 112 28 120 28" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
-      <!-- Fill below -->
-      <path d="M0 28 C8 28 12 12 20 12 C28 12 32 44 40 44 C48 44 52 12 60 12 C68 12 72 44 80 44 C88 44 92 20 100 20 C108 20 112 28 120 28 L120 56 L0 56 Z" fill="#94a3b8" opacity="0.06"/>
-      <!-- Threshold line -->
-      <line x1="0" y1="28" x2="120" y2="28" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4 3"/>
+    accent: '#64b5f6',
+    tint: 'rgba(100,181,246,0.04)',
+    bg: `<svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <radialGradient id="clg1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#64b5f6" stop-opacity="0.5"/><stop offset="100%" stop-color="#64b5f6" stop-opacity="0"/></radialGradient>
+        <linearGradient id="clg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#30d988" stop-opacity="0.3"/><stop offset="100%" stop-color="#30d988" stop-opacity="0"/></linearGradient>
+      </defs>
+      <!-- Radar / pulse rings -->
+      <circle cx="80" cy="50" r="40" stroke="#64b5f6" stroke-width="0.6" fill="none" opacity="0.15"/>
+      <circle cx="80" cy="50" r="28" stroke="#64b5f6" stroke-width="0.6" fill="none" opacity="0.2"/>
+      <circle cx="80" cy="50" r="16" stroke="#64b5f6" stroke-width="0.6" fill="none" opacity="0.28"/>
+      <!-- Sweep arc (risk-on reading ~70%) -->
+      <path d="M80 10 A40 40 0 0 1 114 72" stroke="#30d988" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.75"/>
+      <!-- Fill wedge -->
+      <path d="M80 50 L80 10 A40 40 0 0 1 114 72 Z" fill="url(#clg2)" opacity="0.5"/>
+      <!-- Crosshair lines -->
+      <line x1="80" y1="8" x2="80" y2="92" stroke="white" stroke-opacity="0.06" stroke-width="0.7"/>
+      <line x1="38" y1="50" x2="122" y2="50" stroke="white" stroke-opacity="0.06" stroke-width="0.7"/>
+      <!-- Rate environment: yield curve lines (right side) -->
+      <path d="M100 30 C108 35 112 48 110 65" stroke="#f5c842" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.5" stroke-dasharray="4 2"/>
+      <path d="M108 28 C116 36 118 52 114 70" stroke="#f5c842" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.3" stroke-dasharray="3 3"/>
+      <!-- Centre dot -->
+      <circle cx="80" cy="50" r="3.5" fill="#64b5f6" opacity="0.8"/>
+      <circle cx="80" cy="50" r="7" stroke="#64b5f6" stroke-width="0.8" fill="none" opacity="0.35"/>
     </svg>`
   },
   pcr: {
     label: 'Put/Call',
     accent: '#e879f9',
     tint: 'rgba(232,121,249,0.04)',
-    bg: `<svg viewBox="0 0 120 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;right:0;width:90px;height:42px">
-      <!-- Fear/greed bar chart -->
-      <rect x="8"  y="38" width="8" height="14" rx="1" fill="#30d988" opacity="0.7"/>
-      <rect x="20" y="30" width="8" height="22" rx="1" fill="#30d988" opacity="0.5"/>
-      <rect x="32" y="34" width="8" height="18" rx="1" fill="#4a5268" opacity="0.6"/>
-      <rect x="44" y="26" width="8" height="26" rx="1" fill="#f04040" opacity="0.5"/>
-      <rect x="56" y="18" width="8" height="34" rx="1" fill="#f04040" opacity="0.7"/>
-      <rect x="68" y="22" width="8" height="30" rx="1" fill="#f04040" opacity="0.55"/>
-      <rect x="80" y="32" width="8" height="20" rx="1" fill="#4a5268" opacity="0.5"/>
-      <rect x="92" y="36" width="8" height="16" rx="1" fill="#30d988" opacity="0.45"/>
-      <!-- MA line -->
-      <path d="M12 36 C22 34 32 30 44 24 C56 18 68 20 80 28 C88 34 96 34 104 32" stroke="#e879f9" stroke-width="1.4" fill="none" opacity="0.9" stroke-linecap="round"/>
-      <!-- Extreme fear threshold -->
-      <line x1="4" y1="16" x2="108" y2="16" stroke="#f04040" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
-      <!-- Extreme greed threshold -->
-      <line x1="4" y1="40" x2="108" y2="40" stroke="#30d988" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
+    bg: `<svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <linearGradient id="pg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e879f9" stop-opacity="0.7"/><stop offset="100%" stop-color="#e879f9" stop-opacity="0"/></linearGradient>
+      </defs>
+      <!-- PCR ratio line — tracks sentiment extremes -->
+      <path d="M8 72 C20 70 26 55 36 48 C46 42 52 50 62 38 C72 26 80 18 92 22 C104 26 110 44 122 40 C134 36 142 30 152 28" stroke="#e879f9" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+      <!-- Area fill -->
+      <path d="M8 72 C20 70 26 55 36 48 C46 42 52 50 62 38 C72 26 80 18 92 22 C104 26 110 44 122 40 C134 36 142 30 152 28 L152 100 L8 100 Z" fill="url(#pg1)" opacity="0.3"/>
+      <!-- Extreme PUT zone (fear) -->
+      <rect x="8" y="8" width="144" height="16" rx="2" fill="#f04040" opacity="0.06"/>
+      <line x1="8" y1="24" x2="152" y2="24" stroke="#f04040" stroke-width="0.7" stroke-dasharray="4 3" opacity="0.4"/>
+      <!-- Extreme CALL zone (greed) -->
+      <rect x="8" y="76" width="144" height="18" rx="2" fill="#30d988" opacity="0.06"/>
+      <line x1="8" y1="76" x2="152" y2="76" stroke="#30d988" stroke-width="0.7" stroke-dasharray="4 3" opacity="0.35"/>
+      <!-- Current reading dot (in elevated put territory) -->
+      <circle cx="80" cy="18" r="4" fill="#f04040" opacity="0.9"/>
+      <circle cx="80" cy="18" r="8" stroke="#f04040" stroke-width="0.8" fill="none" opacity="0.4"/>
+      <!-- P and C labels -->
+      <text x="12" y="20" font-size="7" fill="#f04040" opacity="0.55" font-weight="700" font-family="monospace">PUT</text>
+      <text x="12" y="90" font-size="7" fill="#30d988" opacity="0.55" font-weight="700" font-family="monospace">CALL</text>
     </svg>`
   }
 };
@@ -6672,19 +6866,20 @@ const PCR_EQUITY_IDS = new Set(['ES','NQ','YM','RTY','GC','SI','CL','BTC','ETH']
 
 function factorStrip(m){
   const s=m.scores;
+  const w=m.weights||{}; // per-market weight map from backend
   const hasPcr = PCR_EQUITY_IDS.has(m.id) && s.pcr;
   return `<div class="factor-strip">
-    ${fCard('cot',s.cot)}
-    ${fCard('seasonal',s.seasonal)}
-    ${fCard('momentum',s.momentum)}
-    ${fCard('macro',s.macro)}
-    ${fCard('relval',s.relval)}
-    ${fCard('regime',s.regime)}
-    ${hasPcr ? fCard('pcr',s.pcr) : ''}
+    ${fCard('cot',s.cot,w)}
+    ${fCard('seasonal',s.seasonal,w)}
+    ${fCard('momentum',s.momentum,w)}
+    ${fCard('macro',s.macro,w)}
+    ${fCard('relval',s.relval,w)}
+    ${fCard('regime',s.regime,w)}
+    ${hasPcr ? fCard('pcr',s.pcr,w) : ''}
   </div>`;
 }
 
-function fCard(id,sc){
+function fCard(id,sc,weights){
   if(!sc)return'';
   const mobileMeta={'cot':'Posit.','seasonal':'Seas.','momentum':'Mom.','macro':'Macro','relval':'RelVal','regime':'Climate','pcr':'PCR'};
   const isMob=window.innerWidth<=700;
@@ -6693,19 +6888,37 @@ function fCard(id,sc){
   const sv=sc.score??5.0;
   const col=sHex(sv);
   const pct=Math.min(100,Math.max(0,(sv/10)*100));
-  const lbl=(sc.label||'');  // CSS handles truncation with ellipsis (text-overflow:ellipsis)
+  const lbl=(sc.label||'');
   const barGrad=`linear-gradient(90deg,#f04040 0%,#c47a4a 30%,#4a5268 50%,#3d9e74 70%,#30d988 100%)`;
   const isAct=selTab===id;
+  // Weight pill — show % this factor contributes to composite score
+  const w=weights||{};
+  const rawWt=w[id]??null;
+  const wtPct=rawWt!=null?Math.round(rawWt*100):null;
+  // Weight bar: widest bar = highest-weighted factor (100%), others proportional
+  const wVals=Object.values(w).filter(v=>v>0);
+  const maxWt=wVals.length?Math.max(...wVals):1;
+  const wtBarPct=rawWt!=null?Math.min(100,Math.round((rawWt/maxWt)*100)):0;
+  const wtPill=wtPct!=null
+    ?`<span class="f-wt" style="--f-accent:${meta.accent}">${wtPct}%</span>`
+    :'';
   return `<div class="f-card${isAct?' act':''}" onclick="switchTab('${id}')"
     style="--f-tint:${meta.tint};--f-accent:${meta.accent}">
     <div class="f-card-bg">${meta.bg}</div>
-    <div class="f-lbl">${meta.label}</div>
+    <div class="f-card-bloom"></div>
+    <div class="f-lbl-row">
+      <span class="f-lbl">${meta.label}</span>
+      ${wtPill}
+    </div>
     <div class="f-val" style="color:${col}">${sv.toFixed(1)}<span class="f-val-denom" style="font-size:9px;opacity:0.45;font-weight:500;letter-spacing:0">/10</span></div>
     <div class="f-sub">${lbl}</div>
     <div class="f-bar">
-      <div style="position:absolute;inset:0;border-radius:2px;background:${barGrad};opacity:0.14"></div>
-      <div class="f-bar-f" style="width:${pct}%;background:${barGrad};background-size:${pct>0?(100/pct*100)+'% 100%':'100% 100%'};border-radius:2px;height:2px"></div>
-      <div style="position:absolute;top:-3px;left:${pct}%;transform:translateX(-50%);width:2px;height:8px;border-radius:1px;background:${col};box-shadow:0 0 6px ${col}80"></div>
+      <div class="f-bar-track">
+        <div style="position:absolute;inset:0;border-radius:2px;background:${barGrad};opacity:0.12"></div>
+        <div class="f-bar-f" style="width:${pct}%;background:${barGrad};background-size:${pct>0?(100/pct*100)+'% 100%':'100% 100%'}"></div>
+        <div style="position:absolute;top:-3px;left:${pct}%;transform:translateX(-50%);width:2px;height:8px;border-radius:1px;background:${col};box-shadow:0 0 6px ${col}80"></div>
+      </div>
+      ${wtBarPct>0?`<div class="f-wt-bar-track"><div class="f-wt-bar-fill" style="width:${wtBarPct}%;--f-accent:${meta.accent}"></div></div>`:''}
     </div>
   </div>`;
 }
