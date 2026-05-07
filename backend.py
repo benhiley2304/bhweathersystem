@@ -4310,6 +4310,19 @@ def compute_risk_regime() -> dict:
     except Exception: pass
 
     try:
+        # Individual tenor yields for yield curve visualisation: 2Y, 5Y, 30Y
+        dgs2_raw  = fetch_fred_series("DGS2",  6)
+        dgs5_raw  = fetch_fred_series("DGS5",  6)
+        dgs30_raw = fetch_fred_series("DGS30", 6)
+        tenors = {}
+        if dgs2_raw  and dgs2_raw[-1].get("value")  is not None: tenors["t2y"]  = round(dgs2_raw[-1]["value"],  3)
+        if dgs5_raw  and dgs5_raw[-1].get("value")  is not None: tenors["t5y"]  = round(dgs5_raw[-1]["value"],  3)
+        if dgs30_raw and dgs30_raw[-1].get("value") is not None: tenors["t30y"] = round(dgs30_raw[-1]["value"], 3)
+        if tenors:
+            macro_dashboard["yield_curve"] = {**macro_dashboard.get("yield_curve", {}), **tenors}
+    except Exception: pass
+
+    try:
         # Real yield: DFII10
         ry_data = fetch_fred_series("DFII10", 6)
         if ry_data and len(ry_data) >= 1:

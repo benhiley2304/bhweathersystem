@@ -1032,6 +1032,76 @@ a{color:inherit;text-decoration:none}
 }
 
 
+/* ── Macro Data Panels (Yield Curve, Credit, Fed BS) ── */
+.ov-macro-panels{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+  margin:0 16px 12px;
+}
+@media(max-width:900px){.ov-macro-panels{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr}}
+.ov-macro-card{
+  background:var(--surf2);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:10px;
+  padding:14px 16px 12px;
+  position:relative;
+  overflow:hidden;
+}
+.ov-macro-card::before{
+  content:'';
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:3px;
+  border-radius:3px 0 0 3px;
+}
+.ov-macro-card-eyebrow{
+  font-size:8px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:8px;
+}
+.ov-macro-card-title{
+  font-size:10px;font-weight:700;color:var(--dim);margin-bottom:10px;
+  display:flex;align-items:center;gap:7px;
+}
+.ov-macro-card-regime{
+  font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;
+  padding:2px 8px;border-radius:4px;flex-shrink:0;
+}
+.ov-macro-stats-row{
+  display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;
+}
+.ov-macro-stat{
+  display:flex;flex-direction:column;gap:2px;
+}
+.ov-macro-stat-label{
+  font-size:7.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);
+}
+.ov-macro-stat-val{
+  font-family:var(--mono);font-size:13px;font-weight:800;letter-spacing:-0.02em;
+}
+.ov-macro-stat-delta{
+  font-family:var(--mono);font-size:8.5px;font-weight:600;color:var(--dim);
+}
+.ov-yc-canvas-wrap{height:52px;margin:6px 0 0;position:relative}
+.ov-yc-canvas-wrap canvas{display:block;width:100%;height:100%}
+.ov-credit-bar-wrap{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.ov-credit-bar-row{display:flex;align-items:center;gap:8px}
+.ov-credit-bar-label{font-size:8px;font-weight:700;color:var(--dim);width:22px;flex-shrink:0}
+.ov-credit-bar-track{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,0.06);position:relative;overflow:hidden}
+.ov-credit-bar-fill{height:100%;border-radius:3px;transition:width 600ms var(--ease)}
+.ov-credit-bar-val{font-family:var(--mono);font-size:9px;font-weight:700;width:42px;text-align:right;flex-shrink:0}
+.ov-fedbs-bar-wrap{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+.ov-fedbs-bar-track{height:8px;border-radius:4px;background:rgba(255,255,255,0.06);position:relative;overflow:hidden;margin-bottom:2px}
+.ov-fedbs-bar-fill{height:100%;border-radius:4px;transition:width 600ms var(--ease)}
+.ov-fedbs-trend-row{display:flex;align-items:center;gap:6px;margin-top:4px}
+.ov-macro-sect-header{
+  font-size:8.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--dim);opacity:0.7;
+  margin:16px 16px 8px;
+  border-left:2px solid rgba(255,255,255,0.18);
+  padding-left:10px;
+}
 /* ── Global Climate Panel ── */
 .ov-climate-panel{
   padding:22px 24px 20px;
@@ -2790,6 +2860,8 @@ a{color:inherit;text-decoration:none}
         </div>
         <!-- category summary bar -->
         <div class="ov-cat-bar" id="ov-cat-bar"></div>
+        <!-- macro data panels: yield curve, credit spreads, fed balance sheet -->
+        <div id="ov-macro-panels-wrap"></div>
         <!-- global climate panel -->
         <div class="ov-climate-panel" id="ov-climate-panel"></div>
         <!-- regime signals panel -->
@@ -2798,8 +2870,7 @@ a{color:inherit;text-decoration:none}
         <div class="ov-ai-brief" id="ov-ai-brief"></div>
         <!-- signals (moved above heatmap for better scanability) -->
         <div class="ov-signals-wrap" id="ov-signals-wrap"></div>
-        <!-- smart money consensus panel -->
-        <div class="ov-smart-panel" id="ov-smart-panel"></div>
+        <!-- smart money consensus panel removed -->
         <!-- heatmap -->
         <div class="ov-heatmap-wrap">
           <div class="ov-section-hdr">
@@ -3646,7 +3717,7 @@ function renderOverview(){
     </div>`;
 
   // ── 4b. SMART MONEY CONSENSUS ─────────────────────
-  renderSmartMoney(markets);
+  // Smart Money panel removed — space used for macro climate panels
 
   // ── 5. REGIME SIGNALS PANEL ──────────────────────
   const regSignals=reg.signals||{};
@@ -4122,6 +4193,240 @@ function renderClimatePanel(reg, markets, mktMap){
   el.classList.add('loaded');
 
   loadClimateNarrative();
+  renderMacroDataPanels(reg);
+}
+
+/* ════════════════════════════════════════════
+   MACRO DATA PANELS: Yield Curve, Credit Spreads, Fed Balance Sheet
+   Uses DATA.regime.macro_dashboard — no extra fetches needed
+════════════════════════════════════════════ */
+function renderMacroDataPanels(reg){
+  const el=document.getElementById('ov-macro-panels-wrap');
+  if(!el||!reg)return;
+
+  const md=reg.macro_dashboard||{};
+  const yc=md.yield_curve||{};
+  const credit=md.credit||{};
+  const fedbs=md.fed_balance||{};
+  const ry=md.real_yield||{};
+  const dgs10=md.dgs10||{};
+  const rateSig=reg.rate_signal||{};
+
+  // Individual tenors (backend now sends t2y/t5y/t30y; fall back to derived approximations)
+  const t3m = reg.levels?.IRX ?? null;
+  const t10 = dgs10.level ?? reg.levels?.TNX ?? null;
+  const t2  = yc.t2y  ?? (t10!=null && yc.t10y2y!=null ? +((t10 - yc.t10y2y)).toFixed(3) : null);
+  const t5  = yc.t5y  ?? (t2!=null && t10!=null ? +((t2 + (t10-t2)*0.45)).toFixed(3) : null);
+  const t30 = yc.t30y ?? (t10!=null ? +((t10 + 0.18)).toFixed(3) : null);
+
+  const curveRegime = yc.curve_regime||'Normal';
+  const curveCol = curveRegime==='Inverted'?'#f04040':
+                   curveRegime==='Flat'?'#f5c842':
+                   curveRegime==='Steepening'||curveRegime==='Normal'?'#30d988':'#5a6480';
+  const t10y2y = yc.t10y2y;
+
+  // Credit spreads
+  const hyOas     = credit.hy_oas_bps ?? null;
+  const igOas     = credit.ig_oas_bps ?? null;
+  const hyDelta4w = credit.hy_delta_4w ?? null;
+  const hyTrend   = credit.hy_trend || '';
+  const hyMax=700, igMax=200;
+  const hyPct = hyOas!=null ? Math.min(100,(hyOas/hyMax)*100) : 0;
+  const igPct = igOas!=null ? Math.min(100,(igOas/igMax)*100) : 0;
+  const hyCol = hyOas!=null ? (hyOas<250?'#30d988':hyOas<350?'#5aaa88':hyOas<500?'#f5c842':'#f04040') : '#5a6480';
+  const igCol = igOas!=null ? (igOas<80?'#30d988':igOas<120?'#5aaa88':igOas<170?'#f5c842':'#f04040') : '#5a6480';
+  const creditRegime = hyTrend==='Tightening'?'Tightening':hyTrend==='Widening'?'Widening':'Neutral';
+  const creditCol = hyTrend==='Tightening'?'#30d988':hyTrend==='Widening'?'#f04040':'#5a6480';
+
+  // Fed balance sheet
+  const fbLevel  = fedbs.level ?? null;
+  const fbTrend  = fedbs.trend || '';
+  const fbChg3m  = fedbs.chg_3m ?? null;
+  const fbChg6mP = fedbs.chg_6m_pct ?? null;
+  const fbMin=4.0, fbMax=9.0;
+  const fbPct = fbLevel!=null ? Math.min(100,Math.max(0,((fbLevel-fbMin)/(fbMax-fbMin))*100)) : 0;
+  const fbCol = fbTrend==='Contracting'?'#f04040':fbTrend==='Expanding'?'#5c9eff':'#5a6480';
+
+  // Rates
+  const ryVal   = ry.value ?? null;
+  const effr    = rateSig.effr ?? null;
+  const cuts12m = rateSig.cuts_12m ?? null;
+  const ryCol   = ryVal!=null?(ryVal<0?'#30d988':ryVal>2.5?'#f04040':ryVal>1.0?'#f5c842':'#5aaa88'):'#5a6480';
+
+  function drawYieldCurve(){
+    const canvas=document.getElementById('ov-yc-canvas');
+    if(!canvas)return;
+    const W=canvas.offsetWidth||280, H=52;
+    canvas.width=W; canvas.height=H;
+    const c=canvas.getContext('2d');
+    const pts=[['3M',t3m],['2Y',t2],['5Y',t5],['10Y',t10],['30Y',t30]].filter(p=>p[1]!=null);
+    if(pts.length<2){
+      c.fillStyle='rgba(255,255,255,0.15)';
+      c.font='8px Inter,sans-serif';c.textAlign='center';
+      c.fillText('loading…',W/2,H/2+4);
+      return;
+    }
+    const vals=pts.map(p=>p[1]);
+    const minV=Math.min(...vals), maxV=Math.max(...vals);
+    const pad={l:32,r:6,t:6,b:18};
+    const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+    const range=Math.max(0.25,maxV-minV);
+    const px=i=>pad.l+i*(cW/(pts.length-1));
+    const py=v=>pad.t+cH-(((v-minV)/range)*cH);
+    // Grid
+    c.strokeStyle='rgba(255,255,255,0.05)';c.lineWidth=1;c.setLineDash([2,4]);
+    [0,0.5,1].forEach(f=>{const y=pad.t+cH*(1-f);c.beginPath();c.moveTo(pad.l,y);c.lineTo(W-pad.r,y);c.stroke();});
+    c.setLineDash([]);
+    // Fill
+    const gc=curveRegime==='Inverted'?'240,64,64':curveRegime==='Flat'?'245,200,66':'48,217,136';
+    const grad=c.createLinearGradient(0,pad.t,0,H);
+    grad.addColorStop(0,`rgba(${gc},0.20)`);
+    grad.addColorStop(1,`rgba(${gc},0.00)`);
+    c.beginPath();c.moveTo(px(0),py(vals[0]));
+    for(let i=1;i<pts.length;i++){const x0=px(i-1),y0=py(vals[i-1]),x1=px(i),y1=py(vals[i]),cx=(x0+x1)/2;c.bezierCurveTo(cx,y0,cx,y1,x1,y1);}
+    c.lineTo(px(pts.length-1),H);c.lineTo(px(0),H);c.closePath();
+    c.fillStyle=grad;c.fill();
+    // Line
+    c.beginPath();c.moveTo(px(0),py(vals[0]));
+    for(let i=1;i<pts.length;i++){const x0=px(i-1),y0=py(vals[i-1]),x1=px(i),y1=py(vals[i]),cx=(x0+x1)/2;c.bezierCurveTo(cx,y0,cx,y1,x1,y1);}
+    c.strokeStyle=curveCol;c.lineWidth=2;c.stroke();
+    // Dots + labels
+    pts.forEach((p,i)=>{
+      const x=px(i),y=py(vals[i]);
+      c.beginPath();c.arc(x,y,2.5,0,Math.PI*2);c.fillStyle=curveCol;c.fill();
+      c.fillStyle='rgba(255,255,255,0.28)';c.font='600 7px Inter,sans-serif';c.textAlign='center';
+      c.fillText(p[0],x,H-3);
+      const yLbl=y<pad.t+14?y+11:y-4;
+      c.fillStyle='rgba(255,255,255,0.70)';c.font='700 7.5px JetBrains Mono,monospace';
+      c.fillText(vals[i].toFixed(2),x,yLbl);
+    });
+    // Y-axis
+    c.save();c.translate(10,H/2);c.rotate(-Math.PI/2);
+    c.fillStyle='rgba(255,255,255,0.15)';c.font='600 6.5px Inter,sans-serif';c.textAlign='center';
+    c.fillText('YIELD %',0,0);c.restore();
+  }
+
+  const spreadStr = t10y2y!=null ? `${t10y2y>=0?'+':''}${t10y2y.toFixed(2)}% (10Y−2Y)` : '—';
+  const chgStr    = yc.t10y2y_3m_chg!=null ? `3m chg: ${yc.t10y2y_3m_chg>=0?'+':''}${yc.t10y2y_3m_chg.toFixed(2)}%` : '';
+  const hyDeltaStr = hyDelta4w!=null ? `${hyDelta4w>=0?'+':''}${hyDelta4w.toFixed(0)}bp 4w` : '';
+  const hyRegimeStr = hyOas!=null ? (hyOas<250?'Tight':hyOas<350?'Normal':hyOas<500?'Wide':'Stress') : '—';
+  const igRegimeStr = igOas!=null ? (igOas<80?'Tight':igOas<120?'Normal':'Wide') : '—';
+  const fbLevelStr = fbLevel!=null ? `$${fbLevel.toFixed(2)}T` : '—';
+  const fbChgStr   = fbChg3m!=null ? `${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T 3m` : '';
+  const ryStr      = ryVal!=null ? `${ryVal>=0?'+':''}${ryVal.toFixed(2)}%` : '—';
+  const effrStr    = effr!=null ? effr.toFixed(2)+'%' : '—';
+  const cutsStr    = cuts12m!=null ? (cuts12m<=0?`+${Math.abs(cuts12m).toFixed(2)}% hikes`:`−${Math.abs(cuts12m).toFixed(2)}% cuts`) : '—';
+
+  el.innerHTML=`
+    <div class="ov-macro-sect-header">Rates &amp; Macro Climate</div>
+    <div class="ov-macro-panels">
+
+      <!-- YIELD CURVE -->
+      <div class="ov-macro-card" id="ov-macro-yc">
+        <div class="ov-macro-card-eyebrow">US Treasury</div>
+        <div class="ov-macro-card-title">
+          Yield Curve
+          <span class="ov-macro-card-regime" style="color:${curveCol};background:${curveCol}18;border:1px solid ${curveCol}30">${curveRegime}</span>
+        </div>
+        <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:${curveCol}">${spreadStr}</div>
+        ${chgStr?`<div style="font-size:8px;color:var(--faint);margin-top:1px;font-family:var(--mono)">${chgStr}</div>`:''}
+        <div class="ov-yc-canvas-wrap"><canvas id="ov-yc-canvas"></canvas></div>
+        <div class="ov-macro-stats-row" style="margin-top:6px;gap:8px">
+          ${t3m!=null?`<div class="ov-macro-stat"><div class="ov-macro-stat-label">3M</div><div class="ov-macro-stat-val" style="font-size:11px;color:var(--dim)">${t3m.toFixed(2)}%</div></div>`:''}
+          ${t2!=null?`<div class="ov-macro-stat"><div class="ov-macro-stat-label">2Y</div><div class="ov-macro-stat-val" style="font-size:11px;color:var(--dim)">${t2.toFixed(2)}%</div></div>`:''}
+          ${t10!=null?`<div class="ov-macro-stat"><div class="ov-macro-stat-label">10Y</div><div class="ov-macro-stat-val" style="font-size:11px;color:var(--text)">${t10.toFixed(2)}%</div></div>`:''}
+          ${t30!=null?`<div class="ov-macro-stat"><div class="ov-macro-stat-label">30Y</div><div class="ov-macro-stat-val" style="font-size:11px;color:var(--dim)">${t30.toFixed(2)}%</div></div>`:''}
+        </div>
+      </div>
+
+      <!-- CREDIT SPREADS -->
+      <div class="ov-macro-card" id="ov-macro-credit">
+        <div class="ov-macro-card-eyebrow">Corporate Bonds</div>
+        <div class="ov-macro-card-title">
+          Credit Spreads
+          <span class="ov-macro-card-regime" style="color:${creditCol};background:${creditCol}18;border:1px solid ${creditCol}30">${creditRegime}</span>
+        </div>
+        <div class="ov-credit-bar-wrap">
+          <div class="ov-credit-bar-row">
+            <div class="ov-credit-bar-label" style="color:${hyCol}">HY</div>
+            <div class="ov-credit-bar-track">
+              <div class="ov-credit-bar-fill" style="width:${hyPct.toFixed(1)}%;background:${hyCol}"></div>
+            </div>
+            <div class="ov-credit-bar-val" style="color:${hyCol}">${hyOas!=null?hyOas+'bp':'—'}</div>
+          </div>
+          <div style="font-size:7.5px;color:var(--faint);padding-left:30px;margin-bottom:6px;font-family:var(--mono)">
+            ${hyRegimeStr}${hyDeltaStr?` &middot; ${hyDeltaStr}`:''}
+          </div>
+          <div class="ov-credit-bar-row">
+            <div class="ov-credit-bar-label" style="color:${igCol}">IG</div>
+            <div class="ov-credit-bar-track">
+              <div class="ov-credit-bar-fill" style="width:${igPct.toFixed(1)}%;background:${igCol}"></div>
+            </div>
+            <div class="ov-credit-bar-val" style="color:${igCol}">${igOas!=null?igOas+'bp':'—'}</div>
+          </div>
+          <div style="font-size:7.5px;color:var(--faint);padding-left:30px;font-family:var(--mono)">${igRegimeStr}</div>
+        </div>
+        <div class="ov-macro-stats-row" style="margin-top:10px">
+          <div class="ov-macro-stat">
+            <div class="ov-macro-stat-label">Real Yield</div>
+            <div class="ov-macro-stat-val" style="font-size:11px;color:${ryCol}">${ryStr}</div>
+            <div class="ov-macro-stat-delta">${ry.regime||'—'}</div>
+          </div>
+          <div class="ov-macro-stat">
+            <div class="ov-macro-stat-label">EFFR</div>
+            <div class="ov-macro-stat-val" style="font-size:11px;color:var(--dim)">${effrStr}</div>
+            <div class="ov-macro-stat-delta">${cutsStr}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FED BALANCE SHEET -->
+      <div class="ov-macro-card" id="ov-macro-fedbs">
+        <div class="ov-macro-card-eyebrow">Federal Reserve</div>
+        <div class="ov-macro-card-title">
+          Balance Sheet
+          <span class="ov-macro-card-regime" style="color:${fbCol};background:${fbCol}18;border:1px solid ${fbCol}30">${fbTrend||'—'}</span>
+        </div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:900;color:${fbCol};letter-spacing:-0.03em;margin-bottom:4px">${fbLevelStr}</div>
+        <div class="ov-fedbs-bar-wrap">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:7px;color:var(--faint);">$4T (QT floor)</span>
+            <span style="font-size:7px;color:var(--faint);">$9T (QE peak)</span>
+          </div>
+          <div class="ov-fedbs-bar-track">
+            <div class="ov-fedbs-bar-fill" style="width:${fbPct.toFixed(1)}%;background:linear-gradient(90deg,#30d988 0%,${fbCol} 100%)"></div>
+          </div>
+          <div class="ov-fedbs-trend-row">
+            <div style="width:7px;height:7px;border-radius:50%;background:${fbCol};flex-shrink:0"></div>
+            <span style="font-size:8px;font-weight:700;color:${fbCol}">${fbTrend||'—'}</span>
+            ${fbChgStr?`<span style="font-size:8px;color:var(--faint);font-family:var(--mono)">${fbChgStr}</span>`:''}
+          </div>
+        </div>
+        <div class="ov-macro-stats-row" style="margin-top:8px">
+          <div class="ov-macro-stat">
+            <div class="ov-macro-stat-label">3M Change</div>
+            <div class="ov-macro-stat-val" style="font-size:11px;color:${fbCol}">${fbChg3m!=null?(fbChg3m>=0?'+':'')+fbChg3m.toFixed(2)+'T':'—'}</div>
+          </div>
+          <div class="ov-macro-stat">
+            <div class="ov-macro-stat-label">6M Chg%</div>
+            <div class="ov-macro-stat-val" style="font-size:11px;color:${fbCol}">${fbChg6mP!=null?(fbChg6mP>=0?'+':'')+fbChg6mP.toFixed(1)+'%':'—'}</div>
+          </div>
+          <div class="ov-macro-stat">
+            <div class="ov-macro-stat-label">10Y Yield</div>
+            <div class="ov-macro-stat-val" style="font-size:11px;color:var(--dim)">${t10!=null?t10.toFixed(2)+'%':'—'}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>`;
+
+  // Style card accent bars via JS (can't use CSS :nth-child with dynamic style tags reliably)
+  const cards=el.querySelectorAll('.ov-macro-card');
+  const accentCols=[curveCol, creditCol, fbCol];
+  cards.forEach((card,i)=>{ card.style.borderLeftColor=accentCols[i]+'55'; });
+
+  // Draw canvas after layout
+  requestAnimationFrame(()=>{ drawYieldCurve(); });
 }
 
 // ── Climate narrative loader (async, updates the narrative slot)
@@ -6558,107 +6863,126 @@ function assetGraphic(m){
   const id=m.id;
   const cat=m.category;
 
-  // FX pairs — twin circular flag medallions, premium edition
+  // FX pairs — full-width diagonal split flag panel (cinematic, premium)
   if((cat==='fx'||cat==='fx_cross') && id!=='DX'){
     let baseId=id, quoteId='DX';
     if(m.cross && m.base_leg && m.quote_leg){ baseId=m.base_leg; quoteId=m.quote_leg; }
     else { baseId=id; quoteId='DX'; }
-    const g=fxFlagGraphic(baseId, quoteId);
-    if(!g) return '';
-    const {bSvg, qSvg, r, uid} = g;
-    const sz=r*2;  // 168px diameter each
+
+    const bf=FLAG_SVGS[LEG_FLAG[baseId]];
+    const qf=FLAG_SVGS[LEG_FLAG[quoteId]];
+    if(!bf||!qf) return '';
+    const uid=Math.random().toString(36).slice(2,8);
+    // Coin size: 96px diameter — large enough to read the flag clearly
+    const r=48, sz=r*2;
+    const bSvg=bf(r).replace(/id="cp-/g,`id="cpB${uid}-`).replace(/url\(#cp-/g,`url(#cpB${uid}-`);
+    const qSvg=qf(r).replace(/id="cp-/g,`id="cpQ${uid}-`).replace(/url\(#cp-/g,`url(#cpQ${uid}-`);
+
     const bTint = FLAG_TINT[LEG_FLAG[baseId]] || '92,158,255';
     const qTint = FLAG_TINT[LEG_FLAG[quoteId]] || '92,158,255';
     const bCode = LEG_FLAG[baseId]  || baseId;
     const qCode = LEG_FLAG[quoteId] || quoteId;
-    // overlap: 32% of diameter
-    const overlap = Math.round(sz * 0.32);
-    // Combined width of the two-coin cluster
-    const clusterW = sz * 2 - overlap;
+
+    // SVG diagonal split: left 55% = base flag, right 55% = quote flag, diagonal seam
+    // Both flags rendered as full-width rectangles, clipped by diagonal polygons
+    const W=480, H=200;
+    const diagX1=W*0.50, diagX2=W*0.62; // seam start top, seam end bottom
 
     return `<div class="d-head-graphic">
-      <div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:var(--bg)">
 
-        <!-- Rich atmospheric bloom — base flag colour on right, quote bleeds into centre -->
-        <div style="position:absolute;inset:0;background:
-          radial-gradient(ellipse 60% 130% at 72% 48%,rgba(${bTint},0.18) 0%,transparent 68%),
-          radial-gradient(ellipse 50% 130% at 90% 52%,rgba(${qTint},0.14) 0%,transparent 60%),
-          radial-gradient(ellipse 35% 80% at 55% 50%,rgba(${bTint},0.06) 0%,transparent 55%)"></div>
-
-        <!-- Left text-protect fade: solid bg → transparent, aggressive -->
-        <div style="position:absolute;inset:0;background:linear-gradient(90deg,
-          rgba(5,7,13,0.99) 0%,rgba(5,7,13,0.92) 18%,rgba(5,7,13,0.55) 36%,rgba(5,7,13,0.15) 52%,transparent 65%)"></div>
-
-        <!-- JARVIS HUD grid — slightly more visible -->
-        <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.055;pointer-events:none" preserveAspectRatio="none" viewBox="0 0 480 200">
-          ${Array.from({length:20},(_,i)=>`<line x1="${i*25}" y1="0" x2="${i*25}" y2="200" stroke="rgba(0,210,255,1)" stroke-width="0.5"/>`).join('')}
-          ${Array.from({length:9},(_,i)=>`<line x1="0" y1="${i*25}" x2="480" y2="${i*25}" stroke="rgba(0,210,255,1)" stroke-width="0.5"/>`).join('')}
+        <!-- DIAGONAL SPLIT SVG — full-bleed flag panels -->
+        <svg style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="none" viewBox="0 0 ${W} ${H}">
+          <defs>
+            <!-- Base flag clip: left panel with diagonal right edge -->
+            <clipPath id="cpBase${uid}"><polygon points="0,0 ${diagX2},0 ${diagX1},${H} 0,${H}"/></clipPath>
+            <!-- Quote flag clip: right panel with diagonal left edge -->
+            <clipPath id="cpQuote${uid}"><polygon points="${diagX2},0 ${W},0 ${W},${H} ${diagX1},${H}"/></clipPath>
+            <filter id="satFx${uid}" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="1.25"/></filter>
+          </defs>
+          <!-- BASE flag — fills left panel (heavily desaturated, flag is background texture) -->
+          <g clip-path="url(#cpBase${uid})" opacity="0.55" filter="url(#satFx${uid})">
+            <foreignObject x="0" y="0" width="${W}" height="${H}">
+              <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;overflow:hidden">
+                <svg width="${W}" height="${H}" viewBox="0 0 ${sz} ${sz}" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%">
+                  <defs>${bSvg.split('</g>')[0].split('<g')[0]}</defs>
+                  <g transform="scale(${W/sz},${H/sz})">${bSvg}</g>
+                </svg>
+              </div>
+            </foreignObject>
+          </g>
+          <!-- QUOTE flag — fills right panel -->
+          <g clip-path="url(#cpQuote${uid})" opacity="0.50" filter="url(#satFx${uid})">
+            <foreignObject x="0" y="0" width="${W}" height="${H}">
+              <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;overflow:hidden">
+                <svg width="${W}" height="${H}" viewBox="0 0 ${sz} ${sz}" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%">
+                  <defs>${qSvg.split('</g>')[0].split('<g')[0]}</defs>
+                  <g transform="scale(${W/sz},${H/sz})">${qSvg}</g>
+                </svg>
+              </div>
+            </foreignObject>
+          </g>
+          <!-- Diagonal seam highlight -->
+          <line x1="${diagX2}" y1="0" x2="${diagX1}" y2="${H}" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
         </svg>
 
-        <!-- Coin cluster — vertically centred, positioned in right 45% of graphic -->
-        <div style="position:absolute;right:28px;top:50%;transform:translateY(-50%);display:flex;align-items:center">
+        <!-- Colour atmosphere blooms -->
+        <div style="position:absolute;inset:0;background:
+          radial-gradient(ellipse 45% 100% at 28% 50%,rgba(${bTint},0.22) 0%,transparent 70%),
+          radial-gradient(ellipse 45% 100% at 78% 50%,rgba(${qTint},0.18) 0%,transparent 70%)"></div>
 
-          <!-- BASE medallion — foreground (higher z-index) -->
-          <div style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;
-            box-shadow:
-              0 0 0 2px rgba(255,255,255,0.22),
-              0 0 0 3.5px rgba(${bTint},0.40),
-              0 0 32px 4px rgba(${bTint},0.28),
-              0 12px 40px rgba(0,0,0,0.80);
-            z-index:2">
+        <!-- Strong left-to-right dark fade — protects title/bias text completely -->
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg,
+          rgba(3,5,8,0.97) 0%,rgba(3,5,8,0.88) 20%,rgba(3,5,8,0.60) 36%,rgba(3,5,8,0.18) 52%,transparent 66%)"></div>
+
+        <!-- Top & bottom vignette -->
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,5,8,0.35) 0%,transparent 28%,transparent 72%,rgba(3,5,8,0.35) 100%)"></div>
+
+        <!-- Coin pair — clean, sits in the clear zone right of centre -->
+        <div style="position:absolute;right:24px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:0">
+
+          <!-- BASE coin (front) -->
+          <div style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;z-index:2;
+            box-shadow:0 0 0 2px rgba(255,255,255,0.28),0 0 0 3px rgba(${bTint},0.50),0 8px 28px rgba(0,0,0,0.70)">
             <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="display:block;border-radius:50%">
               <defs>
-                <filter id="satB${uid}" color-interpolation-filters="sRGB">
-                  <feColorMatrix type="saturate" values="1.35"/>
-                  <feComponentTransfer><feFuncA type="linear" slope="1"/></feComponentTransfer>
+                <filter id="satBc${uid}" color-interpolation-filters="sRGB">
+                  <feColorMatrix type="saturate" values="1.4"/>
                 </filter>
               </defs>
-              <g filter="url(#satB${uid})">${bSvg}</g>
+              <g filter="url(#satBc${uid})">${bSvg}</g>
             </svg>
-            <!-- Specular gloss — top-left highlight -->
-            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 65% 45% at 32% 25%,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 50%,transparent 70%);pointer-events:none"></div>
-            <!-- Bottom darkening for depth -->
-            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 80% 60% at 50% 85%,rgba(0,0,0,0.30) 0%,transparent 70%);pointer-events:none"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 60% 40% at 30% 22%,rgba(255,255,255,0.28) 0%,transparent 65%);pointer-events:none"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 70% 55% at 50% 88%,rgba(0,0,0,0.35) 0%,transparent 70%);pointer-events:none"></div>
           </div>
 
-          <!-- QUOTE medallion — behind, overlapping left edge of base -->
-          <div style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;
-            margin-left:-${overlap}px;
-            box-shadow:
-              0 0 0 2px rgba(255,255,255,0.16),
-              0 0 0 3.5px rgba(${qTint},0.30),
-              0 0 28px 4px rgba(${qTint},0.20),
-              0 12px 40px rgba(0,0,0,0.80);
-            z-index:1">
+          <!-- QUOTE coin (behind, overlapping) -->
+          <div style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;z-index:1;
+            margin-left:-${Math.round(sz*0.28)}px;
+            box-shadow:0 0 0 2px rgba(255,255,255,0.18),0 0 0 3px rgba(${qTint},0.38),0 8px 28px rgba(0,0,0,0.65)">
             <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="display:block;border-radius:50%">
               <defs>
-                <filter id="satQ${uid}" color-interpolation-filters="sRGB">
-                  <feColorMatrix type="saturate" values="1.35"/>
+                <filter id="satQc${uid}" color-interpolation-filters="sRGB">
+                  <feColorMatrix type="saturate" values="1.4"/>
                 </filter>
               </defs>
-              <g filter="url(#satQ${uid})">${qSvg}</g>
+              <g filter="url(#satQc${uid})">${qSvg}</g>
             </svg>
-            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 65% 45% at 32% 25%,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.03) 50%,transparent 70%);pointer-events:none"></div>
-            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 80% 60% at 50% 85%,rgba(0,0,0,0.25) 0%,transparent 70%);pointer-events:none"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 60% 40% at 30% 22%,rgba(255,255,255,0.20) 0%,transparent 65%);pointer-events:none"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 70% 55% at 50% 88%,rgba(0,0,0,0.28) 0%,transparent 70%);pointer-events:none"></div>
           </div>
 
         </div>
 
-        <!-- Pair label strip — positioned above bottom edge, right-aligned with coins -->
-        <div style="position:absolute;right:28px;bottom:14px;display:flex;align-items:center;gap:0;
-          background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);
-          border:1px solid rgba(255,255,255,0.10);border-radius:4px;padding:3px 8px 3px 8px">
-          <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.12em;
-            color:rgba(255,255,255,0.80);text-shadow:0 0 8px rgba(${bTint},0.6)">${bCode}</span>
-          <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.30);margin:0 4px">/</span>
-          <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.12em;
-            color:rgba(255,255,255,0.60);text-shadow:0 0 8px rgba(${qTint},0.5)">${qCode}</span>
+        <!-- Pair code label — bottom-right, clean pill -->
+        <div style="position:absolute;right:24px;bottom:12px;
+          background:rgba(0,0,0,0.55);
+          border:1px solid rgba(255,255,255,0.12);border-radius:5px;
+          padding:3px 9px;display:flex;align-items:center;gap:0">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:0.10em;color:rgba(255,255,255,0.85)">${bCode}</span>
+          <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.28);margin:0 4px">/</span>
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.55)">${qCode}</span>
         </div>
-
-        <!-- Right edge vignette (stop harsh clip at right wall) -->
-        <div style="position:absolute;inset:0;background:linear-gradient(270deg,rgba(5,7,13,0.35) 0%,transparent 12%)"></div>
-        <!-- Top/bottom darkening for depth -->
-        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,13,0.22) 0%,transparent 25%,transparent 72%,rgba(5,7,13,0.22) 100%)"></div>
 
       </div>
     </div>`;
@@ -12430,7 +12754,7 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
       borderWidth:isModal?1.8:1.4,
       borderDash:[],
       pointRadius:0,
-      tension:0,
+      tension:0.28,
       spanGaps:true,
       fill:false,
       order:1
