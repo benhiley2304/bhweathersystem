@@ -7894,12 +7894,14 @@ async def warmup_cache():
         _WARMING["started"] = True
         print("[startup] Pre-warming all caches...")
         try:
-            # Trigger the full scores computation to populate ALL_DATA_CACHE
-            import httpx as _hx
-            port = int(os.environ.get("PORT", 5000))
-            async with _hx.AsyncClient(timeout=180) as client:
-                r = await client.get(f"http://127.0.0.1:{port}/api/scores")
-                print(f"[startup] Pre-warm complete — status {r.status_code}")
+            # Call compute functions directly (not via HTTP) to populate caches
+            loop = _astart.get_event_loop()
+            await _astart.gather(
+                loop.run_in_executor(_APP_EXECUTOR, compute_macro_all),
+                loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime),
+                loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro),
+            )
+            print("[startup] Pre-warm complete")
         except Exception as e:
             print(f"[startup] Pre-warm error (non-fatal): {e}")
         _WARMING["done"] = True
