@@ -4617,6 +4617,10 @@ def compute_risk_regime() -> dict:
         # Labour market dashboard — NFP, UNRATE, ICSA, JOLTS
         # All raw scores are -2..+2 (surprise_score output); convert to 0-10 via *1.25+5
         _lab = {}
+        # Fetch US macro components once (cached — no extra HTTP cost)
+        # compute_macro_all() is always called before compute_risk_regime() in get_all_scores()
+        _us_macro = compute_macro_all()
+        _us_comps = _us_macro.get("components", {})
 
         # NFP (PAYEMS): monthly level in thousands → compute MoM changes
         # Fetch 16 months for a stable 6m baseline (avoids BLS revision distortion)
@@ -4641,8 +4645,10 @@ def compute_risk_regime() -> dict:
                     "Strong Miss" if _nfp_surp < -120 else
                     "Miss"        if _nfp_surp < -32  else "In Line"
                 )
-                # Raw score from component (already computed), convert to 0-10
-                _raw_nfp = components.get("JOBS", {}).get("score", 0)
+                # Raw score from compute_macro_all components (JOBS is in category 'jobs')
+                _us_macro = compute_macro_all()
+                _us_comps = _us_macro.get("components", {})
+                _raw_nfp = _us_comps.get("JOBS", {}).get("score", 0)
                 _lab["nfp_score_10"]   = round(min(10, max(0, _raw_nfp * 1.25 + 5)), 1)
                 _lab["nfp_date"]       = _nfp_raw[-1].get("date", "")[:7]
 
@@ -4659,7 +4665,7 @@ def compute_risk_regime() -> dict:
                 if _ur_3:
                     _ur_slope = _ur_vals[-1] - _ur_3[0]
                     _lab["unrate_trend"] = "Rising" if _ur_slope > 0.15 else "Falling" if _ur_slope < -0.15 else "Stable"
-                _raw_ur = components.get("UNEMP", {}).get("score", 0)
+                _raw_ur = _us_comps.get("UNEMP", {}).get("score", 0) if '_us_comps' in dir() else 0
                 _lab["unrate_score_10"] = round(min(10, max(0, _raw_ur * 1.25 + 5)), 1)
                 _lab["unrate_date"]     = _ur_raw[-1].get("date", "")[:7]
 
@@ -4673,7 +4679,7 @@ def compute_risk_regime() -> dict:
                 _lab["claims_4w_avg"]   = round(sum(_cl_vals[-5:-1]) / 4) if len(_cl_vals) >= 5 else None
                 _lab["claims_52w_avg"]  = round(sum(_cl_vals) / len(_cl_vals)) if _cl_vals else None
                 _lab["claims_chg_4w"]   = round(_cl_vals[-1] - _cl_vals[-5]) if len(_cl_vals) >= 5 else None
-                _raw_cl = components.get("CLAIMS", {}).get("score", 0)
+                _raw_cl = _us_comps.get("CLAIMS", {}).get("score", 0) if '_us_comps' in dir() else 0
                 _lab["claims_score_10"] = round(min(10, max(0, _raw_cl * 1.25 + 5)), 1)
                 _lab["claims_date"]     = _cl_raw[-1].get("date", "")
 
