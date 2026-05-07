@@ -7887,26 +7887,24 @@ async def warmup_status():
 
 @app.on_event("startup")
 async def warmup_cache():
-    """Fully pre-warm all scores on startup so first /api/scores request is instant."""
+    """Fully pre-warm all caches on startup — calls get_all_scores() directly so
+    ALL_DATA_CACHE is fully populated before any user request arrives."""
     import asyncio as _astart
     async def _warm():
         await _astart.sleep(2)
         _WARMING["started"] = True
-        print("[startup] Pre-warming all caches...")
+        print("[startup] Pre-warming all caches (full scores run)...")
         try:
-            # Call compute functions directly (not via HTTP) to populate caches
-            loop = _astart.get_event_loop()
-            await _astart.gather(
-                loop.run_in_executor(_APP_EXECUTOR, compute_macro_all),
-                loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime),
-                loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro),
-            )
-            print("[startup] Pre-warm complete")
+            # Call the full scores endpoint directly (not HTTP) — this populates
+            # ALL_DATA_CACHE, MACRO_CACHE, REGIME_CACHE, FF_MACRO_CACHE in one shot.
+            # force=True skips the 202 guard so we don't get stuck in warming loop.
+            await get_all_scores(force=True)
+            print("[startup] Pre-warm complete — ALL_DATA_CACHE populated")
         except Exception as e:
             print(f"[startup] Pre-warm error (non-fatal): {e}")
         _WARMING["done"] = True
     _astart.ensure_future(_warm())
-    print("[startup] Backend ready — cache pre-warming in background")
+    print("[startup] Backend ready — full cache pre-warming in background")
 
 
 if __name__ == "__main__":
