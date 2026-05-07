@@ -8,6 +8,7 @@ import asyncio
 import json
 import math
 import time
+import threading
 from datetime import date, datetime, timedelta
 from typing import Optional
 
@@ -1789,15 +1790,56 @@ def _fetch_ice_fin_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
         return None
 
 
+# ── Shared annual file cache ──────────────────────────────────────────────────
+# Each COTHist{year}.csv contains ALL ICE markets. One download per year
+# serves all markets — eliminates redundant 400KB downloads per market.
+_ICE_ANNUAL_ROW_CACHE: dict = {}
+_ICE_ANNUAL_CACHE_LOCK = threading.Lock()
+
+
+def _fetch_ice_annual_rows(year: int) -> list:
+    """Fetch and parse one year's COTHist CSV. Results cached in memory (shared across markets)."""
+    import csv as _csv, io as _io
+    with _ICE_ANNUAL_CACHE_LOCK:
+        if year in _ICE_ANNUAL_ROW_CACHE:
+            return _ICE_ANNUAL_ROW_CACHE[year]
+
+    _headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "Accept": "text/csv,text/plain,*/*",
+        "Referer": "https://www.ice.com/report/122",
+    }
+    url = f"https://www.ice.com/publicdocs/futures/COTHist{year}.csv"
+    try:
+        resp = requests.get(url, timeout=30, headers=_headers)
+        if resp.status_code != 200:
+            print(f"[ICE ANNUAL] {year}: HTTP {resp.status_code}")
+            return []
+        raw = resp.content.decode("utf-8-sig")
+        if "<!doctype" in raw[:200].lower():
+            print(f"[ICE ANNUAL] {year}: HTML/blocked response")
+            return []
+        reader = _csv.DictReader(_io.StringIO(raw))
+        all_rows = list(reader)
+        # Keep FutOnly; fall back to all rows if FutOnly subset is absent
+        fut_rows = [r for r in all_rows if r.get("FutOnly_or_Combined", "") == "FutOnly"]
+        result = fut_rows if fut_rows else all_rows
+        print(f"[ICE ANNUAL] {year}: {len(result)} FutOnly rows ({len(all_rows)} total)")
+        with _ICE_ANNUAL_CACHE_LOCK:
+            _ICE_ANNUAL_ROW_CACHE[year] = result
+        return result
+    except Exception as e:
+        print(f"[ICE ANNUAL] {year}: {e}")
+        return []
+
+
 def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     """
-    Fetch ICE Europe COT data for a given market code.
-    Uses the official ICE annual CSV files: https://www.ice.com/publicdocs/futures/COTHist{year}.csv
-    Each file contains all markets; we filter by CFTC_Commodity_Code == ice_market_code
-    and FutOnly_or_Combined == 'FutOnly'.  Data available 2011-present (~15 years).
-    Format is disaggregated (Prod/Merc, Swap, M_Money, NonRept) — mapped to standard
-    3-group columns (comm/lspec/sspec) to match fetch_cot_history() output.
-    Z (FTSE) and R (Long Gilt) are NOT in these files — returns None gracefully.
+    Fetch ICE Europe COT data for the given market code.
+    Downloads each year's COTHist CSV once (shared across all ICE markets via
+    _ICE_ANNUAL_ROW_CACHE) using parallel ThreadPoolExecutor fetches, then
+    filters to the target CFTC_Commodity_Code.
+    Z / R (TFF markets) are routed to _fetch_ice_fin_cot_raw.
     """
     import csv as _csv
     import io as _io
@@ -1807,142 +1849,37 @@ def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     if cached and (now - cached["ts"]) < _ICE_MEM_CACHE_TTL:
         return cached["df"]
 
-    # Try disk cache first
+    # Disk cache (survives warm restarts)
     disk_df = _load_ice_from_disk(ice_market_code)
     if disk_df is not None and not disk_df.empty:
         _ICE_MEM_CACHE[ice_market_code] = {"df": disk_df, "ts": now}
         return disk_df
 
-    # Z (FTSE 100) and R (Long Gilt) use the EUFINCOTHist series (TFF format)
-    # instead of the standard COTHist disaggregated files.
+    # TFF markets (FTSE100, Long Gilt) use the financial futures series
     if ice_market_code in ("Z", "R"):
         return _fetch_ice_fin_cot_raw(ice_market_code)
 
-    _headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Accept": "text/csv,text/plain,*/*",
-        "Referer": "https://www.ice.com/report/122",
-    }
-
-    all_rows = []
     current_year = date.today().year
-    # Fetch from 2011 onward for maximum history (~15 years)
-    START_YEAR = 2011
-    consecutive_failures = 0
+    START_YEAR = 2011  # ICE disagg available from ~2011
 
-    for year in range(START_YEAR, current_year + 1):
-        url = f"https://www.ice.com/publicdocs/futures/COTHist{year}.csv"
-        try:
-            # Small delay to be polite to ICE
-            time.sleep(0.4)
-            _req = requests.get(url, timeout=30, headers=_headers)
-            if _req.status_code == 429:
-                # Rate limited — abort if we keep hitting 429 (don’t block the executor)
-                consecutive_failures += 1
-                if consecutive_failures >= 2:
-                    print(f"[ICE COT] {ice_market_code}: rate limited repeatedly, aborting fetch")
-                    break
-                print(f"[ICE COT] {ice_market_code}: rate limited for {year}, waiting 10s")
-                time.sleep(10)
-                _req = requests.get(url, timeout=30, headers=_headers)
-                if _req.status_code != 200:
-                    print(f"[ICE COT] {ice_market_code}: still rate limited for {year}, aborting")
-                    break
-            if _req.status_code != 200:
-                print(f"[ICE COT] {ice_market_code}: HTTP {_req.status_code} for {year}")
-                consecutive_failures += 1
-                continue
-            consecutive_failures = 0
-            content = _req.content.decode("utf-8-sig")  # strips BOM
-            if "<!doctype" in content[:200].lower():
-                print(f"[ICE COT] {ice_market_code}: HTML/rate-limit response for {year}")
-                consecutive_failures += 1
-                continue
-
-            reader = _csv.DictReader(_io.StringIO(content))
-            rows   = list(reader)
-
-            # Filter to target market code, futures-only
-            _g  = [r for r in rows if r.get("CFTC_Commodity_Code", "").strip() == ice_market_code]
-            _gs = [r for r in _g  if r.get("FutOnly_or_Combined", "") == "FutOnly"]
-            if not _gs and _g:
-                _gs = _g  # fall back to combined if FutOnly not present
-
-            all_rows.extend(_gs)
-        except Exception as e:
-            print(f"[ICE COT] {ice_market_code} {year}: {e}")
-            continue
+    # Parallel fetch — all years downloaded concurrently, each file fetched once
+    years = list(range(START_YEAR, current_year + 1))
+    all_rows: list = []
+    with _cf.ThreadPoolExecutor(max_workers=8) as _pool:
+        year_results = list(_pool.map(_fetch_ice_annual_rows, years))
+    for year_rows in year_results:
+        matched = [r for r in year_rows if r.get("CFTC_Commodity_Code", "").strip() == ice_market_code]
+        all_rows.extend(matched)
 
     if not all_rows:
-        # Rate-limited or no data — fall back to stale disk cache if available
+        # Fall back to stale disk cache on complete fetch failure
         disk_fallback = _load_ice_from_disk(ice_market_code)
         if disk_fallback is not None and not disk_fallback.empty:
-            print(f"[ICE COT] {ice_market_code}: using stale disk cache ({len(disk_fallback)} rows) due to fetch failure")
+            print(f"[ICE COT] {ice_market_code}: using stale disk cache ({len(disk_fallback)} rows)")
             _ICE_MEM_CACHE[ice_market_code] = {"df": disk_fallback, "ts": now}
             return disk_fallback
-        print(f"[ICE COT] {ice_market_code}: no data found across all years")
+        print(f"[ICE COT] {ice_market_code}: no rows found across all years")
         return None
-
-    try:
-        df = pd.DataFrame(all_rows)
-
-        # Parse date — ICE format: MM/DD/YYYY in 'As_of_Date_Form_MM/DD/YYYY'
-        df["date"] = pd.to_datetime(df.get("As_of_Date_Form_MM/DD/YYYY", pd.Series(dtype=str)), errors="coerce")
-        # Fallback: YYMMDD in 'As_of_Date_In_Form_YYMMDD'
-        mask = df["date"].isna()
-        if mask.any():
-            df.loc[mask, "date"] = pd.to_datetime(
-                df.loc[mask, "As_of_Date_In_Form_YYMMDD"], format="%y%m%d", errors="coerce"
-            )
-        df = df.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
-
-        # Open interest
-        df["open_interest_all"] = pd.to_numeric(
-            df.get("Open_Interest_All", pd.Series(dtype=float)), errors="coerce"
-        )
-
-        # Disaggregated → 3-group mapping:
-        #   comm_net   = Prod/Merc + Swap Dealers (hedgers + financial intermediaries)
-        #   lspec_net  = Managed Money (CTAs, hedge funds, asset managers)
-        #   sspec_net  = Other Reportables (other large reportables — distinct from NonRept retail)
-        prod_long  = pd.to_numeric(df.get("Prod_Merc_Positions_Long_All",  pd.Series(dtype=float)), errors="coerce")
-        prod_short = pd.to_numeric(df.get("Prod_Merc_Positions_Short_All", pd.Series(dtype=float)), errors="coerce")
-        swap_long  = pd.to_numeric(df.get("Swap_Positions_Long_All",       pd.Series(dtype=float)), errors="coerce")
-        swap_short = pd.to_numeric(df.get("Swap_Positions_Short_All",      pd.Series(dtype=float)), errors="coerce")
-        mm_long    = pd.to_numeric(df.get("M_Money_Positions_Long_All",    pd.Series(dtype=float)), errors="coerce")
-        mm_short   = pd.to_numeric(df.get("M_Money_Positions_Short_All",   pd.Series(dtype=float)), errors="coerce")
-        # Other Reportables: large-account category not fitting Prod/Swap/MM — e.g. corporates, banks
-        or_long    = pd.to_numeric(df.get("Other_Rept_Positions_Long_All",  pd.Series(dtype=float)), errors="coerce")
-        or_short   = pd.to_numeric(df.get("Other_Rept_Positions_Short_All", pd.Series(dtype=float)), errors="coerce")
-
-        df["comm_positions_long_all"]    = (prod_long  + swap_long.fillna(0)).fillna(prod_long)
-        df["comm_positions_short_all"]   = (prod_short + swap_short.fillna(0)).fillna(prod_short)
-        df["noncomm_positions_long_all"] = mm_long
-        df["noncomm_positions_short_all"]= mm_short
-        df["nonrept_positions_long_all"] = or_long    # Other Reportables (not NonRept retail)
-        df["nonrept_positions_short_all"]= or_short
-
-        df["comm_net"]  = df["comm_positions_long_all"]  - df["comm_positions_short_all"]
-        df["lspec_net"] = df["noncomm_positions_long_all"] - df["noncomm_positions_short_all"]
-        df["sspec_net"] = or_long - or_short  # Other Reportables
-        df["lspec_chg"] = df["lspec_net"].diff().fillna(0)
-
-        df = df[["date","comm_net","lspec_net","sspec_net","lspec_chg",
-                 "comm_positions_long_all","comm_positions_short_all",
-                 "noncomm_positions_long_all","noncomm_positions_short_all",
-                 "nonrept_positions_long_all","nonrept_positions_short_all",
-                 "open_interest_all"]].dropna(subset=["comm_net"])
-
-        df = df.sort_values("date").reset_index(drop=True)
-
-        _ICE_MEM_CACHE[ice_market_code] = {"df": df, "ts": now}
-        _save_ice_to_disk(ice_market_code, df)
-        return df
-
-    except Exception as e:
-        print(f"[ICE COT] parse error {ice_market_code}: {e}")
-        return None
-
 
 async def fetch_ice_cot_history(ice_code: str) -> Optional[pd.DataFrame]:
     """Async wrapper for _fetch_ice_cot_raw — matches signature of fetch_cot_history()."""
@@ -7932,6 +7869,46 @@ async def get_candles(market: str, period: str = "6mo", ema_period: int = 50):
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
+
+@app.get("/api/debug-ice")
+async def debug_ice(market: str = "B"):
+    """Diagnose ICE COT fetch: tests connectivity and returns row counts per year."""
+    import csv as _csv, io as _io, concurrent.futures as _cff
+    _headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept": "text/csv,text/plain,*/*",
+        "Referer": "https://www.ice.com/report/122",
+    }
+    current_year = date.today().year
+    results = []
+    for year in range(current_year - 2, current_year + 1):
+        url = f"https://www.ice.com/publicdocs/futures/COTHist{year}.csv"
+        try:
+            resp = requests.get(url, timeout=20, headers=_headers)
+            raw = resp.content.decode("utf-8-sig") if resp.status_code == 200 else ""
+            is_html = "<!doctype" in raw[:200].lower()
+            if resp.status_code == 200 and not is_html:
+                reader = _csv.DictReader(_io.StringIO(raw))
+                rows = list(reader)
+                matched = [r for r in rows if r.get("CFTC_Commodity_Code","").strip() == market]
+                fut = [r for r in matched if r.get("FutOnly_or_Combined","") == "FutOnly"]
+                results.append({"year": year, "status": resp.status_code, "total_rows": len(rows),
+                                 "market_rows": len(matched), "futonly_rows": len(fut)})
+            else:
+                results.append({"year": year, "status": resp.status_code, "is_html": is_html, "error": "non-200 or HTML"})
+        except Exception as e:
+            results.append({"year": year, "error": str(e)})
+    mem_cached = market in _ICE_MEM_CACHE and _ICE_MEM_CACHE[market]["df"] is not None
+    disk_df = _load_ice_from_disk(market)
+    return {
+        "market": market,
+        "mem_cached": mem_cached,
+        "mem_rows": len(_ICE_MEM_CACHE[market]["df"]) if mem_cached else 0,
+        "disk_cached": disk_df is not None and not disk_df.empty,
+        "disk_rows": len(disk_df) if (disk_df is not None and not disk_df.empty) else 0,
+        "annual_cache_years": list(_ICE_ANNUAL_ROW_CACHE.keys()),
+        "fetch_test": results,
+    }
 
 @app.get("/api/tunnel-url")
 async def tunnel_url():
