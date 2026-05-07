@@ -11839,8 +11839,18 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
   const histFuture = allV.map((v,i)=> labels[i]>=todayTD ? v : null);
 
   // 2026 Actual: hard-clipped at todayTD
+  // Snap cy_actual to nearest label TD to handle any minor alignment gaps.
   const cyMap = new Map((cyActual||[]).map(p=>[p[0],p[1]]));
-  const cyV   = labels.map(td=> (cyMap.has(td) && td<=todayTD) ? cyMap.get(td) : null);
+  const cyTDs = Array.from(cyMap.keys()).sort((a,b)=>a-b);
+  function nearestCy(td){
+    if(!cyTDs.length) return null;
+    // Find closest cy_actual TD to the requested label TD
+    let best=cyTDs[0], bestDist=Math.abs(cyTDs[0]-td);
+    for(let t of cyTDs){const d=Math.abs(t-td);if(d<bestDist){bestDist=d;best=t;}}
+    // Only snap if within 2 TDs (avoids spurious interpolation across gaps)
+    return bestDist<=2 ? cyMap.get(best) : null;
+  }
+  const cyV = labels.map(td=> td<=todayTD ? nearestCy(td) : null);
 
 
 
@@ -11918,7 +11928,7 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
 
         // Dot on 2026 Actual at todayTD — green = live data endpoint
         if(cyMap.size>0){
-          const cyVal=cyMap.get(todayTD)||cyMap.get(todayTD-1)||null;
+          const cyVal=nearestCy(todayTD);
           if(cyVal!=null){
             const py=y.getPixelForValue(cyVal);
             c.save();
@@ -12125,9 +12135,15 @@ function renderSeasInsight(all,mt,todayTD,sd,cya,containerId){
   const ti=all.findIndex(p=>p[0]>=todayTD);
   const histNow=ti>=0?allV[ti]:allV[Math.min(allV.length-1,todayTD-1)];
 
-  // 2026 Actual at today
+  // 2026 Actual at today — use nearest-TD snap to handle any alignment gaps
   const cyMap=new Map((cya||[]).map(p=>[p[0],p[1]]));
-  let cyNow=cyMap.get(todayTD)||cyMap.get(todayTD-1)||null;
+  function _cySnap(map, td){
+    if(!map.size) return null;
+    let best=null, bestD=Infinity;
+    map.forEach((_,t)=>{const d=Math.abs(t-td);if(d<bestD){bestD=d;best=t;}});
+    return bestD<=3 ? map.get(best) : null;
+  }
+  let cyNow=_cySnap(cyMap,todayTD);
   // fallback: last available actual
   if(cyNow==null&&cya&&cya.length) cyNow=cya[cya.length-1][1];
   const divergence=(cyNow!=null&&histNow!=null)?cyNow-histNow:null;
@@ -12172,8 +12188,14 @@ function renderSeasStats(all,mt,todayTD,sd,cya,containerId){
   const ye=allV[allV.length-1];
   // Seasonal range = peak-to-trough swing (useful volatility signal)
   const rangeVal=peak-trough;
-  const cyMap=new Map((cya||[]).map(p=>[p[0],p[1]]));
-  let cyNow=cyMap.get(todayTD)||cyMap.get(todayTD-1)||(cya&&cya.length?cya[cya.length-1][1]:null);
+  const cyMap2=new Map((cya||[]).map(p=>[p[0],p[1]]));
+  function _cySnap2(map, td){
+    if(!map.size) return null;
+    let best=null, bestD=Infinity;
+    map.forEach((_,t)=>{const d=Math.abs(t-td);if(d<bestD){bestD=d;best=t;}});
+    return bestD<=3 ? map.get(best) : null;
+  }
+  let cyNow=_cySnap2(cyMap2,todayTD)||(cya&&cya.length?cya[cya.length-1][1]:null);
   const el=document.getElementById(containerId);
   if(!el)return;
   const _sCol=(v,neutral)=>{

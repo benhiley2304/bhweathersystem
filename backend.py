@@ -6156,6 +6156,12 @@ def _get_current_year_actual(market_id: str) -> list:
     """
     Fetch YTD price data for the given market and return cumulative % return
     from trading day 1 of the current year, as [[td, pct], ...] pairs.
+
+    TD mapping: each trading day in the current year is assigned a sequential
+    index 1..N, then linearly scaled to 1..252 so the trace aligns with the
+    historical seasonality curves (which are also built on a 252-point scale).
+    Duplicate TDs are avoided because the index is strictly sequential.
+
     Returns [] on any error (frontend will simply not render the trace).
     """
     import datetime as _dt
@@ -6178,13 +6184,13 @@ def _get_current_year_actual(market_id: str) -> list:
         if len(closes) < 2:
             return []
         base = float(closes.iloc[0])
+        n = len(closes)
         result = []
         for i, (idx, price) in enumerate(closes.items()):
-            # Use same DOY/365*252 formula as the seasonality curve build
-            # so the cy_actual TDs align with the historical curve X-axis.
-            row_date = idx.date() if hasattr(idx, 'date') else idx
-            doy = row_date.timetuple().tm_yday
-            td = max(1, min(252, round((doy / 365) * 252)))
+            # Linear scale: sequential trading day i (0-based) → td in 1..252
+            # Matches exactly how historical curves are built (linear index mapping).
+            # No duplicate TDs possible since i is strictly sequential.
+            td = max(1, min(252, round((i / max(n - 1, 1)) * 251) + 1))
             pct = round((float(price) / base - 1.0) * 100.0, 4)
             result.append([td, pct])
         _CY_ACTUAL_CACHE[market_id] = result
@@ -6215,11 +6221,15 @@ async def get_seasonality(market: str = None):
             # Legacy flat format fallback
             current_snap = mkt_data
         cy_actual = _get_current_year_actual(m)
-        # Compute current_td dynamically (don't use stale value from JSON file)
-        import datetime as _seas_dt
-        _today = _seas_dt.date.today()
-        _doy   = _today.timetuple().tm_yday
-        _current_td = max(1, min(252, round((_doy / 365) * 252)))
+        # current_td = last TD in cy_actual (matches the linear sequential TD mapping).
+        # Falls back to DOY-based estimate if cy_actual is empty.
+        if cy_actual:
+            _current_td = cy_actual[-1][0]
+        else:
+            import datetime as _seas_dt
+            _today = _seas_dt.date.today()
+            _doy   = _today.timetuple().tm_yday
+            _current_td = max(1, min(252, round((_doy / 365) * 252)))
         return {
             "market": m,
             "all":    current_snap.get("all", []),
