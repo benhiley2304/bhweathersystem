@@ -54,8 +54,9 @@ button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:rgba(255,255,255,0.03)}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.16);border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.26)}
+/* V13: Brand-coloured scrollbar */
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(92,158,255,0.22) 0%,rgba(0,210,255,0.12) 100%);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,rgba(92,158,255,0.40) 0%,rgba(0,210,255,0.22) 100%)}
 
 /* ──────────────────────────────────────────────
    NAV
@@ -72,8 +73,8 @@ a{color:inherit;text-decoration:none}
   box-shadow:0 1px 0 rgba(0,210,255,0.06), 0 6px 32px rgba(0,0,0,0.6);
 }
 .nav-logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
-.nav-logo svg{width:24px;height:24px;filter:drop-shadow(0 0 8px rgba(92,158,255,0.5))}
-.nav-title{font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;color:var(--text);background:linear-gradient(90deg,#f0f4ff 0%,rgba(240,244,255,0.75) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-logo svg{width:26px;height:26px;filter:drop-shadow(0 0 10px rgba(92,158,255,0.6)) drop-shadow(0 0 24px rgba(92,158,255,0.25))}
+.nav-title{font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;background:linear-gradient(90deg,#f0f4ff 0%,rgba(92,158,255,0.85) 60%,rgba(0,210,255,0.7) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .nav-sub{font-size:8px;color:rgba(100,180,240,0.55);margin-top:1px;font-family:var(--mono);white-space:nowrap;letter-spacing:0.07em}
 .nav-sp{flex:1;min-width:0}
 .regime-badge{
@@ -187,11 +188,17 @@ a{color:inherit;text-decoration:none}
 .ov-tile-score{transition:color 400ms ease}
 
 /* Factor card hover — inner glow flash */
+/* V6: Factor card upgraded */
 .f-card:hover{
-  background:rgba(255,255,255,0.03);
+  background:linear-gradient(135deg,var(--surf3,rgba(26,30,44,1)) 0%,var(--surf2,rgba(20,23,34,1)) 100%);
+  border-color:rgba(92,158,255,0.25);
+  transform:translateY(-1px);
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
 }
 .f-card::after{
-  will-change:transform;
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);
+  pointer-events:none;
 }
 
 /* Detail header canvas layer */
@@ -217,21 +224,44 @@ a{color:inherit;text-decoration:none}
   background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%);
 }
 .sb-head{padding:14px 18px 12px;border-bottom:1px solid var(--bdr2)}
+/* V1: Glassmorphism card utility */
+.glass-card{
+  background:linear-gradient(135deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.01) 100%);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:12px;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);
+  position:relative;overflow:hidden;
+}
+.glass-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(92,158,255,0.06) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
 .sb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .sb-top h2{font-size:8.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(150,195,240,0.65)}
 #sb-count{font-size:9px;color:var(--dim);font-family:var(--mono)}
 .cat-row{display:flex;gap:3px;flex-wrap:wrap}
+/* V4: Category filter chips */
 .cat-btn{
-  padding:3px 10px;border-radius:5px;border:1px solid rgba(255,255,255,0.12);
+  padding:4px 11px;border-radius:6px;border:1px solid rgba(255,255,255,0.10);
   font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;
-  color:var(--dim);transition:all 130ms;background:transparent;
+  color:rgba(173,184,208,0.7);transition:all 130ms;background:rgba(255,255,255,0.02);
+  position:relative;overflow:hidden;
 }
-.cat-btn:hover{border-color:rgba(255,255,255,0.22);color:var(--text);background:rgba(255,255,255,0.04)}
+.cat-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.04) 0%,transparent 100%);
+  opacity:0;transition:opacity 130ms;pointer-events:none;
+}
+.cat-btn:hover::before{opacity:1}
+.cat-btn:hover{border-color:rgba(255,255,255,0.22);color:var(--text)}
 .cat-btn.on{
-  border-color:rgba(0,210,255,0.4);
-  background:rgba(0,210,255,0.08);
-  color:rgba(150,220,255,0.92);
-  box-shadow:0 0 10px rgba(0,210,255,0.10),inset 0 1px 0 rgba(255,255,255,0.06);
+  border-color:rgba(0,210,255,0.5);
+  background:linear-gradient(135deg,rgba(0,210,255,0.12) 0%,rgba(92,158,255,0.08) 100%);
+  color:rgba(150,230,255,0.95);
+  box-shadow:0 0 14px rgba(0,210,255,0.12),inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 .mkt-list{flex:1;overflow-y:auto}
@@ -254,14 +284,15 @@ a{color:inherit;text-decoration:none}
 .mr-body{flex:1;min-width:0}
 .mr-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(210,218,235,0.95);transition:color 120ms;letter-spacing:-0.01em}
 .mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:var(--text)}
-.mr-bar{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;margin-top:7px;position:relative;overflow:visible}
-.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:3px;transition:all 600ms cubic-bezier(0.34,1.56,0.64,1)}
+.mr-bar{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;margin-top:7px;position:relative;overflow:visible}
+.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:3px;transition:all 600ms cubic-bezier(0.34,1.56,0.64,1);filter:brightness(1.1);box-shadow:0 0 8px currentColor}
 .mr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
-/* Score badge — the key number, prominent */
+/* V3: Score badge — the key number, prominent */
 .mr-score-badge{
-  font-family:var(--mono);font-size:13.5px;font-weight:800;
-  letter-spacing:-0.025em;line-height:1;
-  min-width:36px;text-align:right;
+  font-family:var(--mono);font-size:14px;font-weight:800;
+  letter-spacing:-0.03em;line-height:1;
+  min-width:38px;text-align:right;
+  text-shadow:0 0 12px currentColor;
 }
 .mr-bias{font-size:8px;font-weight:700;white-space:nowrap;opacity:0.88}
 .mr-num{font-family:var(--mono);font-size:8.5px;color:var(--dim)}
@@ -554,10 +585,14 @@ a{color:inherit;text-decoration:none}
   pointer-events:none;z-index:1;
   animation:heroshim 7s ease-in-out 1.5s infinite;
 }
+/* V9: Regime banner Jarvis aesthetic */
 .ov-banner-inner{
   position:relative;z-index:2;
   display:flex;align-items:flex-start;gap:20px;
   padding-bottom:20px;
+  border-left:3px solid rgba(0,210,255,0.4);
+  padding-left:14px;
+  box-shadow:inset 3px 0 0 rgba(0,210,255,0.1),-3px 0 20px rgba(0,210,255,0.08);
 }
 .ov-banner-left{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
 .ov-banner-eyebrow{
@@ -586,14 +621,15 @@ a{color:inherit;text-decoration:none}
   display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;
   max-width:1200px;
 }
+/* V11: Stat pills enhanced */
 .ov-stat-pill{
   position:relative;overflow:hidden;
   display:flex;flex-direction:column;gap:3px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.13);
-  border-top-color:rgba(255,255,255,0.20);
+  background:linear-gradient(135deg,var(--surf3,rgba(26,30,44,1)) 0%,var(--surf2,rgba(20,23,34,1)) 100%);
+  border:1px solid var(--bdr2,rgba(255,255,255,0.13));
   border-radius:8px;padding:8px 13px;
   backdrop-filter:blur(14px);
+  box-shadow:0 2px 8px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.06);
   transition:border-color 150ms,background 150ms,box-shadow 150ms;
   min-width:86px;
 }
@@ -925,8 +961,9 @@ a{color:inherit;text-decoration:none}
   display:flex;gap:6px;align-items:stretch;
 }
 .ov-hm-tiles{display:flex;gap:3px;flex:1;flex-wrap:wrap}
+/* V7: Heatmap tile upgrade */
 .ov-tile{
-  position:relative;border-radius:7px;
+  position:relative;border-radius:8px;
   padding:6px 8px 8px;
   display:flex;flex-direction:column;gap:0;
   cursor:pointer;
@@ -934,7 +971,12 @@ a{color:inherit;text-decoration:none}
   min-width:54px;flex:1;max-width:92px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,0.08);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.ov-tile::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:40%;
+  background:linear-gradient(180deg,rgba(255,255,255,0.04) 0%,transparent 100%);
+  pointer-events:none;
 }
 .ov-tile:hover{
   transform:translateY(-1px) scale(1.02);
@@ -976,6 +1018,30 @@ a{color:inherit;text-decoration:none}
   background:linear-gradient(90deg,transparent,rgba(255,255,255,0.09) 20%,rgba(255,255,255,0.09) 80%,transparent);
   pointer-events:none;
 }
+/* ── Smart Money Consensus Panel ── */
+.ov-smart-panel{
+  margin:0 16px 12px;
+  background:linear-gradient(135deg,rgba(92,158,255,0.04) 0%,var(--surf2) 100%);
+  border:1px solid rgba(92,158,255,0.15);
+  border-radius:12px;
+  padding:14px 16px;
+  display:none;
+  animation:fadeUp 360ms 300ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.ov-smart-panel.loaded{display:block}
+.ov-smart-title{font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(150,200,255,0.7);margin-bottom:10px}
+.ov-smart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
+.ov-smart-item{
+  background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;
+  padding:8px 10px;cursor:pointer;transition:all 140ms;
+}
+.ov-smart-item:hover{background:var(--surf4,var(--surf3));border-color:var(--bdr2);transform:translateY(-1px)}
+.ov-smart-id{font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--faint);letter-spacing:0.04em}
+.ov-smart-dir{font-size:10px;font-weight:800;letter-spacing:0.02em;margin-top:2px}
+.ov-smart-idx{font-family:var(--mono);font-size:7.5px;color:var(--dim);margin-top:1px}
+.ov-smart-bar{height:2px;border-radius:1px;margin-top:5px;background:var(--surf4,var(--surf3));position:relative;overflow:hidden}
+.ov-smart-bar-f{position:absolute;top:0;bottom:0;left:0;border-radius:1px}
+/* ── end Smart Money ── */
 .ov-sig-wrap-hdr{
   padding:16px 24px 0;
   display:flex;align-items:baseline;gap:12px;
@@ -1225,12 +1291,13 @@ a{color:inherit;text-decoration:none}
   pointer-events:none;
 }
 .ov-regime-panel.loaded{display:block}
+/* V17: Regime panel header accent */
 .ov-rp-header{
   display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
-  padding-left:10px;
-  border-left:3px solid transparent;
-  border-image:linear-gradient(180deg,rgba(0,210,255,0.8) 0%,rgba(92,158,255,0.15) 100%) 1;
-  margin-left:-2px;
+  padding:10px 14px 8px;
+  border-bottom:1px solid var(--bdr);
+  border-left:3px solid rgba(92,158,255,0.35);
+  padding-left:11px;
 }
 .ov-rp-title{
   font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:1;
@@ -1369,7 +1436,7 @@ a{color:inherit;text-decoration:none}
   color:#5c9eff;margin-bottom:7px;
 }
 .ov-news-narr-text{
-  font-size:11px;line-height:1.68;color:var(--text);
+  font-size:11px;line-height:1.68;color:var(--text);text-transform:none;
 }
 .ov-news-narr-text strong{color:#fff;font-weight:700}
 .ov-news-day-group{margin-bottom:10px}
@@ -1387,7 +1454,7 @@ a{color:inherit;text-decoration:none}
 .ov-news-row-left{display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0}
 .ov-news-row-info{flex:1;min-width:0}
 .ov-news-row-title{font-size:10.5px;color:var(--text);line-height:1.45;font-weight:500}
-.ov-news-row-preview{font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;font-family:var(--mono)}
+.ov-news-row-preview{font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;font-family:var(--mono);text-transform:none}
 .ov-news-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
 .ov-news-row-time{font-size:8px;color:var(--faint);font-family:var(--mono);white-space:nowrap}
 
@@ -1432,13 +1499,14 @@ a{color:inherit;text-decoration:none}
 .ov-footer{height:32px}
 
 /* Detail header */
+/* V5: Detail header premium band */
 .d-head{
-  padding:14px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.07);
+  padding:14px 20px 12px;border-bottom:1px solid rgba(92,158,255,0.12);
   position:sticky;top:0;z-index:50;
-  background:linear-gradient(180deg,rgba(9,11,19,0.99) 0%,rgba(5,7,13,0.98) 100%);backdrop-filter:blur(32px) saturate(180%);
+  background:linear-gradient(180deg,rgba(10,14,28,0.98) 0%,rgba(6,8,16,0.97) 100%);backdrop-filter:blur(32px) saturate(180%);
   -webkit-backdrop-filter:blur(32px) saturate(180%);
   display:flex;align-items:center;gap:16px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.65),0 1px 0 rgba(255,255,255,0.05) inset;
+  box-shadow:0 2px 0 rgba(0,210,255,0.05),0 8px 40px rgba(0,0,0,0.6);
   overflow:hidden;
 }
 /* Asset graphic — large immersive background element */
@@ -1485,7 +1553,8 @@ a{color:inherit;text-decoration:none}
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 6px 32px rgba(0,0,0,0.5);
   transition:border-color 400ms,box-shadow 400ms;
 }
-.d-score-hero-glow{position:absolute;inset:0;opacity:0.10;pointer-events:none}
+/* V10: Score hero glow enhanced */
+.d-score-hero-glow{position:absolute;inset:0;opacity:0.10;pointer-events:none;background:radial-gradient(ellipse 100% 100% at 50% 50%,var(--glow-col,rgba(92,158,255,0.18)) 0%,transparent 70%);animation:pulseGlow 3.5s ease-in-out infinite}
 .d-score-hero-num{font-family:var(--mono);font-size:46px;font-weight:900;letter-spacing:-0.04em;line-height:1;transition:color 400ms}
 .d-score-hero-denom{font-size:11px;font-weight:500;opacity:0.35;margin-top:1px}
 .d-score-hero-label{font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-top:6px;opacity:0.7}
@@ -1600,10 +1669,11 @@ a{color:inherit;text-decoration:none}
 }
 .f-card.act::after{transform:scaleX(1)}
 .f-card:hover::after{transform:scaleX(0.45);opacity:0.55}
+/* V18: Active factor card tab — polished */
 .f-card.act{
-  background:linear-gradient(180deg,rgba(255,255,255,0.055) 0%,rgba(255,255,255,0.018) 100%);
+  background:linear-gradient(180deg,rgba(92,158,255,0.06) 0%,rgba(255,255,255,0.015) 100%);
   border-right-color:rgba(255,255,255,0.07);
-  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--f-accent,#5c9eff) 35%,transparent);
+  box-shadow:inset 0 1px 0 rgba(92,158,255,0.25),inset 0 -2px 0 rgba(92,158,255,0.5),0 2px 12px rgba(92,158,255,0.08);
 }
 /* ── Label row: factor name + weight pill side by side ── */
 .f-lbl-row{
@@ -1647,6 +1717,7 @@ a{color:inherit;text-decoration:none}
   opacity:1;
   color:var(--f-accent,#5c9eff);
 }
+/* V6: Factor score number glow */
 .f-val{
   font-size:21px;
   font-weight:800;
@@ -1656,6 +1727,7 @@ a{color:inherit;text-decoration:none}
   position:relative;
   margin-bottom:3px;
   transition:color 200ms;
+  text-shadow:0 0 16px currentColor;
 }
 .f-sub{
   font-size:8.5px;
@@ -1685,7 +1757,7 @@ a{color:inherit;text-decoration:none}
   overflow:visible;
   position:relative;
 }
-.f-bar-f{height:2px;border-radius:2px;position:absolute;top:0;left:0}
+.f-bar-f{height:2px;border-radius:2px;position:absolute;top:0;left:0;box-shadow:0 0 6px currentColor;filter:brightness(1.1)}
 /* Weight contribution bar (shows how much this factor contributes to total) */
 .f-wt-bar-track{
   height:1.5px;
@@ -1705,7 +1777,8 @@ a{color:inherit;text-decoration:none}
 .tab.on{display:block}
 
 /* Section heading */
-.sec-h{font-size:7.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--text);opacity:0.55;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
+/* V15: Section headers upgraded */
+.sec-h{font-size:8.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(150,200,255,0.75);margin-bottom:14px;padding-bottom:8px;padding-left:8px;border-bottom:1px solid var(--bdr);border-left:2px solid rgba(92,158,255,0.4);display:flex;align-items:center;gap:8px;position:relative;}
 .sec-h::before{content:'';display:inline-block;width:3px;height:10px;border-radius:2px;background:var(--accent);opacity:1;flex-shrink:0;box-shadow:0 0 6px rgba(92,158,255,0.4)}
 
 /* ──────────────────────────────────────────────
@@ -1815,6 +1888,7 @@ a{color:inherit;text-decoration:none}
 .sig-badge[title]{cursor:help}
 
 /* COT Phase indicator badge */
+/* V16: COT Phase badge glow */
 .cot-phase-badge{
   display:inline-flex;align-items:center;gap:10px;
   padding:10px 16px;
@@ -1824,7 +1898,7 @@ a{color:inherit;text-decoration:none}
   margin-bottom:12px;
   line-height:1;
   position:relative;overflow:hidden;
-  box-shadow:0 2px 12px rgba(0,0,0,0.3);
+  box-shadow:0 2px 12px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.08);
 }
 .cot-phase-badge::before{
   content:'';position:absolute;inset:0;
@@ -1844,7 +1918,7 @@ a{color:inherit;text-decoration:none}
 /* Phase colour overrides */
 .cot-phase-1{background:rgba(48,217,136,0.08);border-color:rgba(48,217,136,0.25);color:#30d988}
 .cot-phase-2{background:rgba(92,158,255,0.08);border-color:rgba(92,158,255,0.25);color:#5c9eff}
-.cot-phase-3{background:rgba(245,200,66,0.08);border-color:rgba(245,200,66,0.25);color:#f5c842}
+.cot-phase-3{background:rgba(245,164,35,0.10);border-color:rgba(245,164,35,0.30);color:#f5a623}
 .cot-phase-4{background:rgba(240,64,64,0.08);border-color:rgba(240,64,64,0.25);color:#f04040}
 /* Crypto methodology collapsible */
 .crypto-note-wrap.open .crypto-note-body{display:block!important}
@@ -2197,7 +2271,10 @@ a{color:inherit;text-decoration:none}
   .d-head-graphic{opacity:0.22;left:30%}
   .mob-back{display:inline-flex}
   .desk-only{display:none!important}
-  .tab{padding:12px 14px 20px}
+  /* V19: Mobile card radius and spacing */
+  .tab{padding:14px 16px 22px}
+  .f-card{border-radius:12px}
+  .glass-card{border-radius:12px}
 
   /* ── 4. OVERVIEW SECTIONS — show/hide ── */
   .d-empty{display:flex;flex-direction:column}
@@ -2205,6 +2282,7 @@ a{color:inherit;text-decoration:none}
   .ov-charts{display:none}
   .ov-ai-brief{display:none}
   .ov-signals-wrap{display:none}
+  .ov-smart-panel{display:none !important}
   .ov-heatmap-wrap{display:none}
   .ov-climate-panel{display:none}
   .ov-regime-panel{display:none}
@@ -2804,6 +2882,8 @@ a{color:inherit;text-decoration:none}
         <div class="ov-ai-brief" id="ov-ai-brief"></div>
         <!-- signals (moved above heatmap for better scanability) -->
         <div class="ov-signals-wrap" id="ov-signals-wrap"></div>
+        <!-- smart money consensus panel -->
+        <div class="ov-smart-panel" id="ov-smart-panel"></div>
         <!-- heatmap -->
         <div class="ov-heatmap-wrap">
           <div class="ov-section-hdr">
@@ -3019,8 +3099,19 @@ function renderAll(){
     renderOverview();
   }
   if(DATA.updated_at){
-    const d=new Date(DATA.updated_at);
-    document.getElementById('ts').textContent=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC';
+    // Set up live relative timestamp
+    function _updateRelTs(){
+      const tsEl=document.getElementById('ts');
+      if(!tsEl||!DATA.updated_at)return;
+      const ageMin=Math.round((Date.now()-new Date(DATA.updated_at).getTime())/60000);
+      const relStr=ageMin<1?'Just updated':ageMin<60?'Updated '+ageMin+'m ago':'Updated '+(Math.round(ageMin/60))+'h ago';
+      const d=new Date(DATA.updated_at);
+      const utcStr=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC';
+      tsEl.textContent=relStr;
+      tsEl.title=utcStr;
+    }
+    _updateRelTs();
+    if(!window._relTsInterval) window._relTsInterval=setInterval(_updateRelTs,60000);
   }
 }
 
@@ -3089,8 +3180,8 @@ function renderList(){
     const isBull     = deviation >= 0;
     // Clamp & scale: 0 at neutral, 1.0 at ±HALF_RANGE (soft clamp beyond)
     const rawPct     = Math.min(1, Math.abs(deviation) / HALF_RANGE);
-    // Ease-in so tiny deviations still register visually (min 4% if any deviation)
-    const fillPct    = deviation === 0 ? 0 : Math.max(4, rawPct * 50); // 0–50% of track
+    // V2: Non-linear power scaling — spreads mid-range (3-7) more visually
+    const fillPct    = deviation === 0 ? 0 : Math.max(4, Math.pow(rawPct, 0.65) * 50); // 0–50% of track
 
     // Hex color with alpha for glow effects
     const colA = (a) => col + Math.round(a*255).toString(16).padStart(2,'0');
@@ -3142,10 +3233,16 @@ function renderList(){
       box-shadow:0 0 4px 1px ${colA(0.7)};
       pointer-events:none"></div>` : '';
 
+    // COT vs Momentum divergence badge
+    const _cotSc  = m.scores?.cot?.score ?? 5;
+    const _momSc  = m.scores?.momentum?.score ?? 5;
+    const _cotDiv = Math.abs(_cotSc - _momSc) > 3 && ((_cotSc > 5.5 && _momSc < 4.5) || (_cotSc < 4.5 && _momSc > 5.5));
+    const _divBadge = _cotDiv ? `<span style="font-size:6px;font-weight:700;letter-spacing:0.08em;color:#f5a623;border:1px solid rgba(245,164,35,0.35);border-radius:3px;padding:1px 4px;margin-left:4px;vertical-align:middle" title="COT vs Momentum divergence: COT ${_cotSc.toFixed(1)} vs Mom ${_momSc.toFixed(1)}">DIV</span>` : '';
+
     return `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id">${m.id}</span>
       <div class="mr-body">
-        <div class="mr-name">${m.name}</div>
+        <div class="mr-name">${m.name}${_divBadge}</div>
         <div class="mr-bar" style="background:${trackBg}">
           <div class="mr-bar-f" style="${fillStyle}"></div>
           ${centreNotch}
@@ -3241,6 +3338,50 @@ function tileColor(ws){
 // Global cancel token for canvas animation
 let _ovAnimId=null;
 
+function renderSmartMoney(markets){
+  const el=document.getElementById('ov-smart-panel');
+  if(!el)return;
+  // Filter markets with COT comm data
+  const valid=markets.filter(m=>{
+    const cot=m.scores?.cot?.detail;
+    return cot&&cot.comm_index!=null;
+  });
+  if(!valid.length){el.classList.remove('loaded');return;}
+  
+  // Count bull/bear/neutral
+  const bulls=valid.filter(m=>m.scores.cot.detail.comm_index>=60).length;
+  const bears=valid.filter(m=>m.scores.cot.detail.comm_index<=40).length;
+  const consensus=bulls>bears?'Bullish':bears>bulls?'Bearish':'Neutral';
+  const consensusCol=bulls>bears?'#30d988':bears>bulls?'#f04040':'#5a6480';
+  
+  const items=valid.map(m=>{
+    const cot=m.scores.cot.detail;
+    const idx=cot.comm_index;
+    const net=cot.comm_net??0;
+    const isLong=net>=0;
+    const col=idx>=65?'#30d988':idx<=35?'#f04040':idx>=55?'#5aaa88':idx<=45?'#c47a4a':'#5a6480';
+    const barW=Math.abs(idx-50)*2;
+    return `<div class="ov-smart-item" onclick="selectMkt('${m.id}')">
+      <div class="ov-smart-id">${m.id}</div>
+      <div class="ov-smart-dir" style="color:${col}">${isLong?'Long':'Short'}</div>
+      <div class="ov-smart-idx">${idx.toFixed(0)}th pctl</div>
+      <div class="ov-smart-bar">
+        <div class="ov-smart-bar-f" style="width:${barW}%;background:${col};left:${isLong?50:50-barW}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  el.innerHTML=`
+    <div class="ov-smart-title">Smart Money (Commercial) Consensus <span style="font-weight:400;color:var(--faint);font-size:8px;letter-spacing:0;text-transform:none">&middot; Briese percentile by market</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:8px;color:var(--dim)">Consensus:</span>
+      <span style="font-size:10px;font-weight:800;color:${consensusCol}">${consensus}</span>
+      <span style="font-size:7.5px;color:var(--faint)">${bulls} bull &middot; ${bears} bear &middot; ${valid.length-bulls-bears} neutral</span>
+    </div>
+    <div class="ov-smart-grid">${items}</div>`;
+  el.classList.add('loaded');
+}
+
 function renderOverview(){
   if(!DATA)return;
   // Stop detail header canvas if navigating back to overview
@@ -3329,7 +3470,7 @@ function renderOverview(){
           <div class="mob-hero-stat">
             <div class="mob-hero-stat-label">Climate</div>
             <div class="mob-hero-stat-val" style="color:${regCol}">${regScore!=null?`${regScore>0?'+':''}${regScore.toFixed(1)}`:'—'}</div>
-            <div class="mob-hero-stat-sub">/ 4.0 pts</div>
+            <div class="mob-hero-stat-sub">/ 4.0 pts <span style="font-size:7px;opacity:0.5" title="Composite climate: sum of sector averages, max ±4.0">(?)</span></div>
           </div>
           <div class="mob-hero-stat">
             <div class="mob-hero-stat-label">Bull / Bear</div>
@@ -3379,7 +3520,7 @@ function renderOverview(){
       <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
         <div class="ov-banner-regime" style="--regime-col:${regCol}">${regLabel}</div>
-        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}18;border:1px solid ${regCol}45;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 12px ${regCol}22,inset 0 1px 0 ${regCol}20"><span style="opacity:0.60;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore>0?'+':''}${regScore.toFixed(1)}</span><span style="opacity:0.40;font-size:7px">/ 4.0</span></div>`:''}
+        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}18;border:1px solid ${regCol}45;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 12px ${regCol}22,inset 0 1px 0 ${regCol}20" title="Composite climate score — sum of sector averages, max ±4.0. Positive = risk-on; negative = risk-off."><span style="opacity:0.60;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore>0?'+':''}${regScore.toFixed(1)}</span><span style="opacity:0.40;font-size:7px">/ 4.0</span><span style="font-size:7px;opacity:0.5;margin-left:1px">(?)</span></div>`:''}
       </div>
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
       <div class="ov-banner-sub">
@@ -3482,12 +3623,12 @@ function renderOverview(){
 
     // ── 3. CATEGORY SUMMARY BAR ─────────────────────
   const CAT_GROUPS=[
-    {key:'equity',   mc:'equity',     label:'Equities',ids:['ES','NQ','YM','RTY','Z']},
-    {key:'fx',       mc:'fx_foreign', label:'FX',      ids:['DX','6E','6B','6J','6A','6C']},
-    {key:'metals',   mc:'gold',       label:'Metals',  ids:['GC','SI','HG','PA','PL']},
-    {key:'energy',   mc:'commodity',  label:'Energy',  ids:['CL','NG','RB','HO','B','GO']},
-    {key:'bonds',    mc:'bond',       label:'Bonds',   ids:['ZB','ZN','ZF','ZT','R']},
-    {key:'crypto',   mc:'crypto',     label:'Crypto',  ids:['BTC','ETH']},
+    {key:'equity',   mc:'equity',     label:'Equities',ids:['ES','NQ','YM','RTY','Z'],   filterCat:'equity'},
+    {key:'fx',       mc:'fx_foreign', label:'FX',      ids:['DX','6E','6B','6J','6A','6C'],filterCat:'fx'},
+    {key:'metals',   mc:'gold',       label:'Metals',  ids:['GC','SI','HG','PA','PL'],    filterCat:'commodity'},
+    {key:'energy',   mc:'commodity',  label:'Energy',  ids:['CL','NG','RB','HO','B','GO'],filterCat:'commodity'},
+    {key:'bonds',    mc:'bond',       label:'Bonds',   ids:['ZB','ZN','ZF','ZT','R'],     filterCat:'bond'},
+    {key:'crypto',   mc:'crypto',     label:'Crypto',  ids:['BTC','ETH'],                 filterCat:'crypto'},
   ];
   const catMc=(reg.macro_dashboard||{}).macro_composites||{};
   const catHtml=CAT_GROUPS.map(cat=>{
@@ -3499,7 +3640,11 @@ function renderOverview(){
     const accentHex=avg>=6.2?'#30d988':avg<=3.8?'#f04040':'#4a5268';
     const mcComp=catMc[cat.mc]?.composite_10;
     const mcCol=mcComp!=null?sHex(mcComp):'var(--faint)';
-    return `<div class="ov-cat-pill" style="border-bottom:2px solid ${accentHex}">
+    return `<div class="ov-cat-pill" style="border-bottom:2px solid ${accentHex};cursor:pointer" onclick="(function(){
+      const btn=document.querySelector('.cat-btn[data-cat=\'${cat.filterCat}\']');
+      if(btn){ document.querySelectorAll('.cat-btn').forEach(x=>x.classList.remove('on')); btn.classList.add('on'); selCat='${cat.filterCat}'; renderList(); }
+      window.scrollTo({top:0,behavior:'smooth'});
+    })()" title="Filter list: ${cat.label}">
       <div class="ov-cat-name">${cat.label}</div>
       <div class="ov-cat-score-row">
         <div class="ov-cat-score" style="color:${col}">${avg.toFixed(1)}</div>
@@ -3600,6 +3745,9 @@ function renderOverview(){
       </div>
     </div>`;
 
+  // ── 4b. SMART MONEY CONSENSUS ─────────────────────
+  renderSmartMoney(markets);
+
   // ── 5. REGIME SIGNALS PANEL ──────────────────────
   const regSignals=reg.signals||{};
   const sigEntries=Object.entries(regSignals);
@@ -3616,7 +3764,12 @@ function renderOverview(){
       if(signal<0)return '#c47a4a';
       return '#4a5268';
     }
-    const sigCards=sigEntries.map(([k,v])=>{
+    const SIG_GROUPS={
+      'RISK':['SPX','RTY','VIX','Credit','Gold','Copper'],
+      'RATES':['Yield Curve','DXY'],
+      'FX':['USD/JPY']
+    };
+    function buildSigCard(k,v){
       const col=sigDot(v.signal);
       const sv=typeof v.signal==='number'?v.signal:0;
       const bg=sv>0?'rgba(38,201,122,0.06)':sv<0?'rgba(240,64,64,0.06)':'var(--surf3)';
@@ -3630,6 +3783,26 @@ function renderOverview(){
           <div class="ov-rp-sig-val">${v.value||''} — ${v.label||''}</div>
         </div>
       </div>`;
+    }
+    // Build grouped signal HTML
+    const sigByGroup={};
+    const allGrouped=new Set(Object.values(SIG_GROUPS).flat());
+    sigEntries.forEach(([k])=>{
+      if(!allGrouped.has(k)){
+        if(!sigByGroup['RISK'])sigByGroup['RISK']=[];
+        sigByGroup['RISK'].push(k);
+      }
+    });
+    Object.entries(SIG_GROUPS).forEach(([g,keys])=>{ sigByGroup[g]=(sigByGroup[g]||[]).concat(keys.filter(k=>regSignals[k])); });
+    const sigCards=Object.entries(SIG_GROUPS).map(([grp],gi)=>{
+      const grpKeys=(sigByGroup[grp]||[]);
+      if(!grpKeys.length)return'';
+      const hdr=`<div style="font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);padding:4px 0 3px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px${gi>0?';margin-top:8px':''}">  ${grp}</div>`;
+      const cards=grpKeys.map(k=>{
+        const v=regSignals[k];if(!v)return'';
+        return buildSigCard(k,v);
+      }).join('');
+      return hdr+`<div class="ov-rp-grid" style="margin-bottom:0">${cards}</div>`;
     }).join('');
 
     // ── Rate path section ──
@@ -3653,12 +3826,12 @@ function renderOverview(){
             <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--text)">${effr.toFixed(2)}%</span>
           </div>`:''}
           ${cuts12m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">12m cuts</span>
-            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#26c97a':'#5c9eff'}">${cuts12m.toFixed(2)}</span>
+            <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${cuts12m>0?'Cuts Priced':'Hike Risk'} 12M</span>
+            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#26c97a':'#5c9eff'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</span>
           </div>`:''}
           ${cuts18m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">18m cuts</span>
-            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#26c97a':'#5c9eff'}">${(cuts18m||0).toFixed(2)}</span>
+            <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${(cuts18m||0)>0?'Cuts 18M':'Hike 18M'}</span>
+            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#26c97a':'#5c9eff'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</span>
           </div>`:''}
         </div>
         <div style="height:2px;background:var(--surf3);border-radius:2px;overflow:hidden;margin-bottom:3px">
@@ -3725,9 +3898,15 @@ function renderOverview(){
           ${cbSectionHtml}
         </div>` : '';
     }
-    // Hide the now-redundant standalone regime panel
+    // Inject grouped regime signals into standalone panel
     const rpEl=document.getElementById('ov-regime-panel');
-    if(rpEl)rpEl.style.display='none';
+    if(rpEl&&sigCards){
+      rpEl.innerHTML=`<div class="ov-rp-header"><div class="ov-rp-title">Regime Signals</div></div><div style="padding:8px 14px 12px">${sigCards}</div>`;
+      rpEl.classList.add('loaded');
+      rpEl.style.display='';
+    } else if(rpEl){
+      rpEl.style.display='none';
+    }
   }
 
   // ── 6. AI MARKET BRIEF (async) ───────────────────
@@ -3963,7 +4142,7 @@ function renderClimatePanel(reg, markets, mktMap){
 
   const DRIVER_LABELS={
     credit:'Credit Spreads',yield_curve:'Yield Curve',fed_bs:'Fed Balance Sheet',
-    inflation:'CPI',real_yield:'Real Yield'
+    inflation:'INFLATION',real_yield:'Real Yield'
   };
 
   function getCatDriverSummary(mcEntry){
@@ -4211,7 +4390,13 @@ async function loadAiBrief(){
 
     const bodyEl = document.getElementById('ai-brief-body');
     if(bodyEl){
-      bodyEl.innerHTML = narrativeHtml + (newsListHtml||'<div style="color:var(--faint);font-size:10px;padding:8px 0">No news available.</div>');
+      const _newsHeaderHtml = newsListHtml ? `<div style="display:flex;align-items:center;gap:8px;padding:10px 0 6px;border-bottom:1px solid var(--bdr);margin-bottom:8px">
+  <div style="font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">MARKET NEWS</div>
+  <div style="font-size:7px;color:var(--faint);opacity:0.7">&middot; Last 48h &middot; High &amp; Medium Impact</div>
+  <div style="flex:1"></div>
+  <div id="news-ts" style="font-size:7px;color:var(--faint);opacity:0.6"></div>
+</div>` : '';
+      bodyEl.innerHTML = narrativeHtml + _newsHeaderHtml + (newsListHtml||'<div style="color:var(--faint);font-size:10px;padding:8px 0">No news available.</div>');
     }
     const tsEl = document.getElementById('ai-brief-ts');
     if(tsEl && ageStr) tsEl.textContent = 'Updated '+ageStr;
@@ -6279,6 +6464,42 @@ function animateScoreHero(targetScore, col){
   }
 }
 
+// Animated score count-up for individual score elements (IDEA-09)
+function animateScoreNumber(el, targetVal, col){
+  if(!el) return;
+  const startVal = 5.0;
+  const dur = 420;
+  const t0 = performance.now();
+  function step(now){
+    const p = Math.min(1, (now - t0) / dur);
+    // Ease-out curve
+    const e = 1 - Math.pow(1 - p, 2.5);
+    const cur = (startVal + (targetVal - startVal) * e);
+    el.textContent = cur.toFixed(1);
+    if(col) el.style.color = col;
+    if(p < 1) requestAnimationFrame(step);
+    else { el.textContent = targetVal.toFixed(1); }
+  }
+  requestAnimationFrame(step);
+}
+
+// Trigger score number animations on active tab score elements
+function animateTabScores(){
+  // Animate the main hero score
+  const heroEl = document.querySelector('.d-score-hero-num');
+  const heroCol = heroEl ? heroEl.style.color : null;
+  const heroVal = heroEl ? parseFloat(heroEl.textContent) : null;
+  if(heroEl && heroVal !== null && !isNaN(heroVal)) animateScoreNumber(heroEl, heroVal, heroCol);
+
+  // Animate visible factor score numbers in the active tab
+  const activeTab = document.querySelector('.tab.on');
+  if(!activeTab) return;
+  activeTab.querySelectorAll('.score-num,[class*="score-val"],[class*="sc-val"]').forEach(el=>{
+    const v = parseFloat(el.textContent);
+    if(!isNaN(v) && v >= 0 && v <= 10) animateScoreNumber(el, v, el.style.color || null);
+  });
+}
+
 // Stagger factor strip bar animations so they grow in sequentially
 function animateHeatmapTiles(){
   // Replay bar grow animations by toggling the class
@@ -6319,7 +6540,7 @@ function renderDetail(m){
     `<div class="tab${selTab==='relval'?' on':''}" id="t-relval">${relvalTab(m)}</div>`+
     `<div class="tab${selTab==='regime'?' on':''}" id="t-regime">${regimeTab(m)}</div>`+
     `<div class="tab${selTab==='history'?' on':''}" id="t-history">${historyTabStub(m)}</div>`+
-    (PCR_EQUITY_IDS.has(m.id)?`<div class="tab${selTab==='pcr'?' on':''}" id="t-pcr">${pcrTabStub(m)}</div>`:'')+
+    (PCR_EQUITY_IDS.has(m.id)&&(m.weights?.pcr||0)>0?`<div class="tab${selTab==='pcr'?' on':''}" id="t-pcr">${pcrTabStub(m)}</div>`:'')+
     `<div class="tab${selTab==='phase'?' on':''}" id="t-phase">${phaseTab(m)}</div>`;
 
   drawWheel(ws,col);
@@ -6333,7 +6554,7 @@ function renderDetail(m){
   if(selTab==='history')  loadHistoryTab(m.id);
   if(selTab==='pcr')      loadPcrTab(m.id);
   if(selTab==='momentum') loadMomCandleChart(m.id);
-  if(selTab==='regime')   loadRegimeNarrative(m.id);
+  if(selTab==='regime'){   loadRegimeNarrative(m.id); loadClimateSparkline(m.id); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -6630,11 +6851,11 @@ function dHead(m,ws,col,bg){
         </button>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">${m.ticker||m.id} · ${m.category}</span>
       </div>
-      <div class="d-name">${m.name}</div>
+      <div class="d-name">${m.name}${['B','G','RC','Z','R'].includes(m.id)?'<span style="display:inline-block;margin-left:7px;vertical-align:middle;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.35);color:#5c9eff;font-size:6.5px;font-weight:700;letter-spacing:0.08em;border-radius:4px;padding:1px 5px">ICE EU</span>':''}</div>
       <div class="d-bias-row">
         <div class="d-bias-pill" style="background:${bg};color:${col};border:1px solid ${col}33">${m.bias}</div>
         <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-          <button onclick="switchTab('phase')" id="btn-phase-tab" style="display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:5px;border:1px solid ${selTab==='phase'?'#f5c842':'var(--bdr2)'};background:${selTab==='phase'?'rgba(245,200,66,0.08)':'var(--surf2)'};color:${selTab==='phase'?'#f5c842':'var(--dim)'};font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 140ms">
+          <button onclick="switchTab('phase')" id="btn-phase-tab" style="display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:5px;border:1px solid ${selTab==='phase'?'#f5a623':'var(--bdr2)'};background:${selTab==='phase'?'rgba(245,164,35,0.10)':'var(--surf2)'};color:${selTab==='phase'?'#f5a623':'var(--dim)'};font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor:pointer;transition:all 140ms">
             <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 1 L4.5 4.5 L7 6.5"/><circle cx="4.5" cy="4.5" r="3.5"/></svg>
             COT Phase
           </button>
@@ -6663,10 +6884,15 @@ function dHead(m,ws,col,bg){
         if(!keys.length) return '';
         const rows=keys.map(k=>{
           const sc=(m.scores[k]?.score??5);
+          const wt=(m.weights[k]||0);
+          const contrib=((sc-5)*wt/100);
+          const contribSign=contrib>=0?'+':'';
           const pct=Math.min(100,Math.max(0,(sc/10)*100));
           const c=FACTOR_COLS[k]||'var(--accent)';
           const lbl=k.slice(0,3).toUpperCase();
-          return `<div class="d-sub-row" title="${k.charAt(0).toUpperCase()+k.slice(1)}: ${sc.toFixed(1)}/10">
+          const factorLabel=k.charAt(0).toUpperCase()+k.slice(1);
+          const tipText=`${factorLabel}: ${sc.toFixed(1)}/10 × ${wt}% = ${contribSign}${contrib.toFixed(2)} pts`;
+          return `<div class="d-sub-row" title="${tipText}">
             <span class="d-sub-lbl">${lbl}</span>
             <div class="d-sub-bar"><div class="d-sub-bar-f" style="width:${pct}%;background:${c}"></div></div>
             <span class="d-sub-num" style="color:${c}">${sc.toFixed(1)}</span>
@@ -6926,9 +7152,9 @@ const PCR_EQUITY_IDS = new Set(['ES','NQ','YM','RTY','GC','SI','CL','BTC','ETH']
 function factorStrip(m){
   const s=m.scores;
   const w=m.weights||{}; // per-market weight map from backend
-  const hasPcr = PCR_EQUITY_IDS.has(m.id) && s.pcr;
+  const hasPcr = PCR_EQUITY_IDS.has(m.id) && s.pcr && (m.weights?.pcr||0) > 0;
   return `<div class="factor-strip">
-    ${fCard('cot',s.cot,w)}
+    ${fCard('cot',s.cot,w,m)}
     ${fCard('seasonal',s.seasonal,w)}
     ${fCard('momentum',s.momentum,w)}
     ${fCard('macro',s.macro,w)}
@@ -6938,7 +7164,7 @@ function factorStrip(m){
   </div>`;
 }
 
-function fCard(id,sc,weights){
+function fCard(id,sc,weights,extras){
   if(!sc)return'';
   const mobileMeta={'cot':'Posit.','seasonal':'Seas.','momentum':'Mom.','macro':'Macro','relval':'RelVal','regime':'Climate','pcr':'PCR'};
   const isMob=window.innerWidth<=700;
@@ -6946,7 +7172,7 @@ function fCard(id,sc,weights){
   if(isMob&&mobileMeta[id]) meta.label=mobileMeta[id];
   const sv=sc.score??5.0;
   const col=sHex(sv);
-  const pct=Math.min(100,Math.max(0,(sv/10)*100));
+  const pct=Math.min(100,Math.max(0,Math.pow(sv/10,0.65)*100)); // V2: non-linear scaling
   const lbl=(sc.label||'');
   const barGrad=`linear-gradient(90deg,#f04040 0%,#c47a4a 30%,#4a5268 50%,#3d9e74 70%,#30d988 100%)`;
   const isAct=selTab===id;
@@ -6971,6 +7197,7 @@ function fCard(id,sc,weights){
     </div>
     <div class="f-val" style="color:${col}">${sv.toFixed(1)}<span class="f-val-denom" style="font-size:9px;opacity:0.45;font-weight:500;letter-spacing:0">/10</span></div>
     <div class="f-sub">${lbl}</div>
+    ${id==='cot'&&extras?.ice_limited_history?`<div style="font-size:6px;font-weight:700;letter-spacing:0.08em;color:#f5a623;border:1px solid rgba(245,164,35,0.3);border-radius:3px;padding:1px 4px;margin-top:2px;display:inline-block">LIMITED DATA</div>`:''}
     <div class="f-bar">
       <div class="f-bar-track">
         <div style="position:absolute;inset:0;border-radius:2px;background:${barGrad};opacity:0.12"></div>
@@ -7028,6 +7255,8 @@ function switchTab(tab){
     const isThis = c.getAttribute('onclick')==="switchTab('"+tab+"')";
     c.classList.toggle('act', isThis);
   });
+  // Animate score count-up on tab switch (IDEA-09)
+  requestAnimationFrame(()=>{ if(typeof animateTabScores==='function') animateTabScores(); });
   // Update Score History button styling
   const hBtn=document.querySelector('.d-bias-row button[onclick*="history"]');
   if(hBtn){
@@ -7040,9 +7269,9 @@ function switchTab(tab){
   const pBtn=document.getElementById('btn-phase-tab');
   if(pBtn){
     const on=tab==='phase';
-    pBtn.style.borderColor=on?'#f5c842':'var(--bdr2)';
-    pBtn.style.background=on?'rgba(245,200,66,0.08)':'var(--surf2)';
-    pBtn.style.color=on?'#f5c842':'var(--dim)';
+    pBtn.style.borderColor=on?'#f5a623':'var(--bdr2)';
+    pBtn.style.background=on?'rgba(245,164,35,0.10)':'var(--surf2)';
+    pBtn.style.color=on?'#f5a623':'var(--dim)';
   }
   if(tab==='cot'&&selMkt)      initCotCharts(selMkt);
   if(tab==='relval'&&selMkt){ rvChartMode='stoch'; initRelValCharts(selMkt); }
@@ -7053,7 +7282,159 @@ function switchTab(tab){
   }
   if(tab==='pcr'&&selMkt)      loadPcrTab(selMkt);
   if(tab==='momentum'&&selMkt)  loadMomCandleChart(selMkt);
-  if(tab==='regime'&&selMkt)    loadRegimeNarrative(selMkt);
+  if(tab==='regime'&&selMkt){    loadRegimeNarrative(selMkt); loadClimateSparkline(selMkt); }
+}
+
+// ─── Mobile swipe navigation (IDEA-08) ────────────────────────────────────
+(function initSwipeNav(){
+  const TAB_ORDER = ['cot','seasonal','momentum','macro','relval','regime'];
+  let _swipeStartX = 0, _swipeStartY = 0;
+  document.addEventListener('touchstart', function(e){
+    if(e.touches.length !== 1) return;
+    _swipeStartX = e.touches[0].clientX;
+    _swipeStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', function(e){
+    const dc = document.getElementById('d-content');
+    if(!dc || dc.style.display === 'none') return;
+    if(!e.changedTouches.length) return;
+    const dx = e.changedTouches[0].clientX - _swipeStartX;
+    const dy = e.changedTouches[0].clientY - _swipeStartY;
+    // Only trigger for horizontal swipes >60px that aren't mostly vertical
+    if(Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.9) return;
+    const curIdx = TAB_ORDER.indexOf(selTab);
+    if(curIdx === -1) return;
+    const nextIdx = dx < 0
+      ? Math.min(curIdx + 1, TAB_ORDER.length - 1)   // swipe left = next tab
+      : Math.max(curIdx - 1, 0);                      // swipe right = prev tab
+    if(nextIdx !== curIdx) switchTab(TAB_ORDER[nextIdx]);
+  }, { passive: true });
+})();
+
+/* ════════════════════════════════════════════
+   COT DESCRIPTION ENGINE
+════════════════════════════════════════════ */
+function cotCardDesc(groupType, netVal, brieseIdx, mktCategory, cotFormat) {
+  // groupType: 'comm' | 'lspec' | 'sspec' | 'am' | 'hf' | 'other'
+  // netVal: number (positive=long, negative=short)
+  // brieseIdx: 0-100 (Briese percentile)
+  // mktCategory: 'commodity' | 'equity' | 'bond' | 'fx'
+  // cotFormat: 'disagg' | 'tff' | 'legacy'
+
+  const isLong = (netVal ?? 0) >= 0;
+  const isExtreme = brieseIdx !== null && (brieseIdx >= 80 || brieseIdx <= 20);
+  const isCrowded = brieseIdx !== null && brieseIdx >= 85;
+  const isSqueeze = brieseIdx !== null && brieseIdx <= 15;
+
+  if (cotFormat === 'tff') {
+    if (groupType === 'am') {
+      if (isLong) {
+        return isCrowded
+          ? 'Institutional funds (pension/SWF) at extreme long — structurally bullish but crowded. Monitor for rebalancing.'
+          : isExtreme
+            ? 'Institutional funds (pension/SWF) heavily long — structural demand confirmed.'
+            : 'Institutional funds (pension/SWF) net long — follow direction as informed long-term holder.';
+      } else {
+        return isSqueeze
+          ? 'Institutional funds (pension/SWF) net short — unusual; may reflect aggressive hedging or regime shift. Contrarian watch.'
+          : 'Institutional funds (pension/SWF) currently net short — atypical; treat with caution as hedging may distort signal.';
+      }
+    }
+    if (groupType === 'hf') {
+      if (isLong) {
+        return isCrowded
+          ? 'Leveraged funds at extreme long — crowded position, risk of squeeze if thesis breaks. Watch for reversal.'
+          : 'Leveraged funds net long — momentum-following signal in the direction of trend.';
+      } else {
+        return isSqueeze
+          ? 'Leveraged funds deeply short — extreme short covering fuel if bullish catalyst emerges.'
+          : 'Leveraged funds net short — structural short pressure. Bearish signal unless squeeze catalyst present.';
+      }
+    }
+    // other reportables in TFF
+    return 'Other large reportables — residual category, limited signal value for financial futures';
+  }
+
+  // Legacy / disagg
+  if (groupType === 'comm') {
+    if (isLong) {
+      return isCrowded
+        ? 'Commercials at historically extreme long — strong forward-looking bullish signal. Physical buyers aggressively hedging future purchases.'
+        : isExtreme
+          ? 'Commercials significantly net long — informed smart-money signal. Structural bullish support.'
+          : 'Commercials net long — directionally bullish; physical market participants positioned for higher prices.';
+    } else {
+      return isSqueeze
+        ? 'Commercials at historically extreme short (producers aggressively hedging) — classic late-cycle bearish signal. High conviction setup.'
+        : isExtreme
+          ? 'Commercials significantly net short — producer/hedger pressure. Bearish signal with good track record.'
+          : 'Commercials net short — producers hedging forward production. Mild bearish bias.';
+    }
+  }
+  if (groupType === 'lspec') {
+    if (isLong) {
+      return isCrowded
+        ? 'Large speculators at extreme long — crowded long, elevated reversal risk. Monitor commercial divergence.'
+        : 'Large speculators (CTAs, hedge funds) net long — trend-following momentum signal. Bullish confirmation.';
+    } else {
+      return isSqueeze
+        ? 'Large speculators at extreme short — powerful short-covering potential if price reverses. Contrarian watch.'
+        : 'Large speculators net short — speculative community leaning bearish. Trend confirmation.';
+    }
+  }
+  if (groupType === 'sspec') {
+    if (isLong) {
+      return isCrowded
+        ? 'Small speculators (retail) at extreme long — often contrarian. Bullish crowding in retail = caution signal.'
+        : 'Small speculators net long — mild contrarian bearish signal; retail tends to be wrong at extremes.';
+    } else {
+      return isSqueeze
+        ? 'Small speculators at extreme short — contrarian bullish setup. Retail at max bearishness often precedes reversals.'
+        : 'Small speculators net short — mild contrarian bullish lean; retail crowd leaning bearish.';
+    }
+  }
+  return '';
+}
+
+/* ════════════════════════════════════════════
+   COT CYCLE CLOCK
+════════════════════════════════════════════ */
+function cotCycleClock(phase, isBull, isBear){
+  if(!phase)return'';
+  const phases=['P1\nAccum','P2\nBuild','P3\nCrowded','P4\nExhaust','P5\nDistrib','P6\nBuild','P7\nCrowded','P8\nExhaust'];
+  const phaseColors=['#30d988','#26c97a','#f5a623','#f04040','#f04040','#dc5a3a','#f5a623','#30d988'];
+  // Map bull phases 1-4 to indices 0-3, bear phases 1-4 to indices 4-7
+  const safePhase=Math.max(1,Math.min(4,phase));
+  const safeIdx=isBull?(safePhase-1):isBear?(safePhase+3):safePhase-1;
+  const col=phaseColors[safeIdx]||'#5a6480';
+  
+  // SVG arc segments — 8 equal segments
+  function seg(i){
+    const a1=(-90+(i/8)*360)*Math.PI/180;
+    const a2=(-90+((i+1)/8)*360)*Math.PI/180-0.04;
+    const r=58,cx=80,cy=80;
+    const sw=14;
+    const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+    const x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2);
+    const isActive=i===safeIdx;
+    const c=phaseColors[i];
+    return `<path d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" stroke="${c}" stroke-width="${isActive?sw+3:sw-4}" fill="none" opacity="${isActive?1:0.25}" stroke-linecap="round"/>`;
+  }
+  
+  const segs=phases.map((_,i)=>seg(i)).join('');
+  const phaseLabel=phases[safeIdx]?.replace('\n',' ')||`P${phase}`;
+  const dirLabel=isBull?'Bull':isBear?'Bear':'—';
+  
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 0">
+    <svg width="140" height="140" viewBox="0 0 160 160" style="overflow:visible">
+      <circle cx="80" cy="80" r="52" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="18"/>
+      ${segs}
+      <circle cx="80" cy="80" r="35" fill="rgba(15,17,25,0.9)"/>
+      <text x="80" y="74" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="18" font-weight="800" fill="${col}">P${phase}</text>
+      <text x="80" y="91" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="rgba(173,184,208,0.8)">${dirLabel}</text>
+    </svg>
+    <div style="font-size:7.5px;color:var(--faint);letter-spacing:0.06em;text-transform:uppercase">${phaseLabel}</div>
+  </div>`;
 }
 
 /* ════════════════════════════════════════════
@@ -7171,6 +7552,9 @@ function cotTab(m){
   const isCryptoCOT = (m.id==='BTC'||m.id==='ETH');
   const isTFF    = m.cot_format === 'tff';     // ICE financial TFF (Z, R): AM/HF/Dealer
   const isDisagg = m.cot_format === 'disagg';  // ICE disagg (B, G, RC): Prod+Swap / MM / Other
+  // Determine market category for description engine
+  const mktCat = m.category || (isCryptoCOT ? 'commodity' : isTFF ? 'equity' : 'commodity');
+  const cotFmt = isCryptoCOT ? 'legacy' : (isTFF ? 'tff' : isDisagg ? 'disagg' : 'legacy');
   const groups=isCryptoCOT
     ? [
         {label:'Fund Managers',   idx:d.lspec_index, net:d.lspec_net, col:'var(--lspec-c)', desc:'Primary signal for crypto — follow their direction, high = bullish'},
@@ -7179,20 +7563,20 @@ function cotTab(m){
       ]
     : isTFF
     ? [
-        {label:'Asset Managers',   idx:d.comm_index,  net:d.comm_net,  col:'var(--comm-c)',  desc:'Institutional longs (pension funds, SWFs) — smart money, follow their direction'},
-        {label:'Hedge Funds',      idx:d.lspec_index, net:d.lspec_net, col:'var(--lspec-c)', desc:'Leveraged funds — structurally short on FTSE/Gilt. Extreme short = squeeze fuel'},
-        {label:'Other Reportables', idx:d.sspec_index, net:d.sspec_net, col:'var(--sspec-c)', desc:'Other large reportables — residual category, limited signal value for financial futures'},
+        {label:'Asset Managers',   idx:d.comm_index,  net:d.comm_net,  col:'var(--comm-c)',  desc:cotCardDesc('am',  d.comm_net,  d.comm_index,  mktCat, 'tff')},
+        {label:'Hedge Funds',      idx:d.lspec_index, net:d.lspec_net, col:'var(--lspec-c)', desc:cotCardDesc('hf',  d.lspec_net, d.lspec_index, mktCat, 'tff')},
+        {label:'Other Reportables', idx:d.sspec_index, net:d.sspec_net, col:'var(--sspec-c)', desc:cotCardDesc('other', d.sspec_net, d.sspec_index, mktCat, 'tff')},
       ]
     : isDisagg
     ? [
-        {label:'Producers & Swaps', idx:d.comm_index,  net:d.comm_net,  col:'var(--comm-c)',  desc:'Producer hedgers + swap dealers — commercial hedging pressure, often contrarian at extremes'},
-        {label:'Managed Money',     idx:d.lspec_index, net:d.lspec_net, col:'var(--lspec-c)', desc:'CTAs, hedge funds, asset managers — trend-following; fade at extremes (>80 / <20)'},
-        {label:'Other Reportables', idx:d.sspec_index, net:d.sspec_net, col:'var(--sspec-c)', desc:'Other large reportables — mixed signal, useful for divergence confirmation'},
+        {label:'Producers & Swaps', idx:d.comm_index,  net:d.comm_net,  col:'var(--comm-c)',  desc:cotCardDesc('comm',  d.comm_net,  d.comm_index,  mktCat, 'disagg')},
+        {label:'Managed Money',     idx:d.lspec_index, net:d.lspec_net, col:'var(--lspec-c)', desc:cotCardDesc('lspec', d.lspec_net, d.lspec_index, mktCat, 'disagg')},
+        {label:'Other Reportables', idx:d.sspec_index, net:d.sspec_net, col:'var(--sspec-c)', desc:cotCardDesc('other', d.sspec_net, d.sspec_index, mktCat, 'disagg')||'Other large reportables — mixed signal, useful for divergence confirmation'},
       ]
     : [
-        {label:'Commercials', idx:d.comm_index,  net:d.comm_net,  col:'var(--comm-c)',  desc:'Smart money / hedgers — follow their direction'},
-        {label:'Large Specs', idx:d.lspec_index, net:d.lspec_net, col:'var(--lspec-c)', desc:'Fund managers — fade extremes (>80 / <20)'},
-        {label:'Small Specs', idx:d.sspec_index, net:d.sspec_net, col:'var(--sspec-c)', desc:'Retail traders — strongest contrarian signal at extremes'},
+        {label:'Commercials', idx:d.comm_index,  net:d.comm_net,  col:'var(--comm-c)',  desc:cotCardDesc('comm',  d.comm_net,  d.comm_index,  mktCat, 'legacy')},
+        {label:'Large Specs', idx:d.lspec_index, net:d.lspec_net, col:'var(--lspec-c)', desc:cotCardDesc('lspec', d.lspec_net, d.lspec_index, mktCat, 'legacy')},
+        {label:'Small Specs', idx:d.sspec_index, net:d.sspec_net, col:'var(--sspec-c)', desc:cotCardDesc('sspec', d.sspec_net, d.sspec_index, mktCat, 'legacy')},
       ];
   // Derive alignment label fallback from COT score when backend returns null
   const cotScoreVal = m.scores?.cot?.score ?? 5;
@@ -7262,19 +7646,21 @@ function cotTab(m){
   if(backendPhase !== null && backendPhase > 0 && !isCryptoCOT2){
     // Colour: direction + phase intensity
     const _BADGE_COL = {
-      bull: {1:'#30d988',2:'#26c97a',3:'#f5c842',4:'#dc5a3a'},
-      bear: {1:'#f04040',2:'#dc5a3a',3:'#f5c842',4:'#26c97a'},
+      bull: {1:'#30d988',2:'#26c97a',3:'#f5a623',4:'#dc5a3a'},
+      bear: {1:'#f04040',2:'#dc5a3a',3:'#f5a623',4:'#26c97a'},
     };
     const bCol = (_BADGE_COL[backendPhaseDir]||{})[backendPhase] || '#7a8ab0';
     const dirArrow = backendPhaseDir==='bull' ? '↑' : backendPhaseDir==='bear' ? '↓' : '';
+    const _crowdedNote = backendPhase===3 ? ` — Monitor for reversal: crowded position` : '';
     html+=`<div class="cot-phase-badge" style="background:${bCol}10;border:1px solid ${bCol}33;color:${bCol}">
       <div class="cp-num">${backendPhase}</div>
       <div class="cp-sep"></div>
       <div class="cp-body">
         <div class="cp-title">${dirArrow ? dirArrow+' ' : ''}${backendPhaseLabel}</div>
-        <div class="cp-desc">${backendPhaseDesc}</div>
+        <div class="cp-desc">${backendPhaseDesc}${_crowdedNote}</div>
       </div>
     </div>`;
+    html += cotCycleClock(backendPhase, backendPhaseDir==='bull', backendPhaseDir==='bear');
   }
 
   // Stacked chart section
@@ -7896,7 +8282,11 @@ function momTab(m){
     </div>
     <div class="mom-card">
       <div class="mc-l">52W Range</div>
-      <div class="mc-v" style="color:${col}">${pctRange!=null?pctRange.toFixed(1)+'%':'—'}</div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <div class="mc-v" style="color:${col}">${pctRange!=null?pctRange.toFixed(1)+'%':'—'}</div>
+        ${pctRange!=null&&pctRange>=95?`<span style="font-size:6.5px;font-weight:700;letter-spacing:0.07em;color:#f5a623;border:1px solid rgba(245,164,35,0.35);border-radius:3px;padding:1px 4px">YEAR HIGH</span>`:''}
+        ${pctRange!=null&&pctRange<=5?`<span style="font-size:6.5px;font-weight:700;letter-spacing:0.07em;color:#f5a623;border:1px solid rgba(245,164,35,0.35);border-radius:3px;padding:1px 4px">YEAR LOW</span>`:''}
+      </div>
       <div class="mc-s">Position in year range</div>
       ${rangeBar}
     </div>
@@ -8169,6 +8559,15 @@ function macroTab(m){
           </div>`;
         }
         html+=`</div>`;
+        // Sparse data footnote — show when foreign currency is missing many categories
+        const _fgnMissingCats=allCats.filter(cat=>fgn.cats[cat]==null&&usd.cats[cat]!=null).length;
+        if(_fgnMissingCats>=2){
+          const _isEUR = (fgn.currency||'').toUpperCase()==='EUR';
+          const _sparseMsg = _isEUR
+            ? 'EUR data unavailable for US-specific indicators (JOLTS, Claims, Initial Claims, Wages). Differential reflects available series only.'
+            : `${fgn.currency} data unavailable for ${_fgnMissingCats} US-specific indicators (JOLTS, Claims, Wages etc). Differential reflects available series only and may appear more extreme than with full coverage.`;
+          html+=`<div style="margin-top:8px;padding:6px 10px;border-radius:5px;background:rgba(245,200,66,0.05);border:1px solid rgba(245,200,66,0.18);font-size:8px;color:rgba(245,200,66,0.75);line-height:1.5"><strong style="color:rgba(245,200,66,0.9)">Data note:</strong> ${_sparseMsg}</div>`;
+        }
       }
 
       // ── FULL PER-INDICATOR BREAKDOWN (cat_details from ff_macro) ──
@@ -8556,8 +8955,10 @@ function macroTab(m){
     const rows = [];
     let _rm;
     while((_rm = _rePairs.exec(reasonStr + ',')) !== null){
-      const label = _rm[1].trim();
+      let label = _rm[1].trim();
       const val = parseFloat(_rm[2]);
+      // Normalise CPI/PCE, CPI/PPI, CPI labels → INFLATION in score components
+      if(/^cpi(\/pce|\/ppi|\/pce\/ppi)?$/i.test(label) || label.toLowerCase() === 'cpi') label = 'INFLATION';
       if(label && !isNaN(val) && Math.abs(val) >= 0.05) rows.push({label, val});
     }
     if(rows.length){
@@ -8937,7 +9338,9 @@ function macroTab(m){
       // Prefer reason-string derived value, fall back to global category score
       const _val = _componentsByCat[_cat] !== undefined ? _componentsByCat[_cat] : (cats[_cat] ?? null);
       if(_val === null) continue; // skip if no data at all
-      if(Math.abs(_val) < 0.05) continue; // skip near-zero — looks broken as "+0.00"
+      // For GC (Gold): show all assessed factors even if zero contribution
+      const _showZero = m.id === 'GC';
+      if(!_showZero && Math.abs(_val) < 0.05) continue; // skip near-zero — looks broken as "+0.00"
       const _col = sHex(_val);
       const _pct = Math.min(100, Math.abs(_val)/2*100);
       const _expl = _amc.explain[_cat] || cap(_cat);
@@ -8960,6 +9363,8 @@ function macroTab(m){
       </div>`;
     }
     html+=`</div>`;
+    // For GC: add note that zero-contribution factors are shown for completeness
+    if(m.id==='GC') html+=`<div style="padding:5px 9px;border-radius:5px;background:rgba(245,200,66,0.04);border:1px solid rgba(245,200,66,0.14);font-size:8px;color:rgba(245,200,66,0.65);line-height:1.4;margin-bottom:12px">Factors with 0.00 contribution are listed for completeness. Gold's inflation sensitivity is fully captured via the Real Yield channel — raw CPI has near-zero direct beta to gold prices.</div>`;
   }
 
   if(compArr.length){
@@ -9212,7 +9617,7 @@ function relvalTab(m){
           <div style="font-size:6.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Z-Score</div>
           <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:${zCol};line-height:1">${zComp!=null?(zComp>0?'+':'')+zComp.toFixed(2):'—'}</div>
           <div style="font-size:6.5px;color:${zCol};font-weight:600;margin-top:3px">${zAbs==null?'—':zAbs>=2?'Extreme':zAbs>=1.2?'Elevated':'Normal'}</div>
-          <div style="font-size:6px;color:var(--faint);margin-top:1px">SDs from 52w mean</div>
+          <div style="font-size:6px;color:var(--faint);margin-top:1px">Std deviations vs 52W avg</div>
         </div>
         <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:8px 10px">
           <div style="font-size:6.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Trend</div>
@@ -9963,12 +10368,14 @@ function regimeTab(m){
             <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:var(--text)">${effr.toFixed(2)}%</div>
           </div>`:''}
           ${cuts12m!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
-            <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Cuts 12M</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#26c97a':'#5c9eff'}">${cuts12m.toFixed(2)}</div>
+            <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">${cuts12m>0?'CUTS PRICED 12M':'HIKE RISK 12M'}</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#26c97a':'#5c9eff'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</div>
+            <div style="font-size:7px;color:var(--faint);margin-top:2px">${cuts12m>0?cuts12m.toFixed(2)+' = cuts priced':cuts12m<0?Math.abs(cuts12m).toFixed(2)+' = hike priced':'flat path'}</div>
           </div>`:''}
           ${cuts18m!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
-            <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Cuts 18M</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#26c97a':'#5c9eff'}">${(cuts18m||0).toFixed(2)}</div>
+            <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">${(cuts18m||0)>0?'CUTS PRICED 18M':'HIKE PRICED 18M'}</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#26c97a':'#5c9eff'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</div>
+            <div style="font-size:7px;color:var(--faint);margin-top:2px">${(cuts18m||0)>0?(cuts18m||0).toFixed(2)+' = cuts priced':(cuts18m||0)<0?Math.abs(cuts18m||0).toFixed(2)+' = hike priced':'flat path'}</div>
           </div>`:''}
         </div>`;
       }
@@ -10837,7 +11244,19 @@ function regimeTab(m){
   }
 
 
-    // ════════════════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════════════
+  // 5b. CLIMATE SCORE HISTORY SPARKLINE
+  // ════════════════════════════════════════════════════════════════════════
+  html += `<div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">52W Climate Score History</div>
+      <div id="climate-hist-chg-${m.id}" style="font-size:7.5px;font-weight:700;color:var(--faint)"></div>
+    </div>
+    <canvas id="climate-hist-${m.id}" width="320" height="44" style="width:100%;height:44px;display:block;border-radius:4px"></canvas>
+    <div id="climate-hist-note-${m.id}" style="font-size:7px;color:var(--faint);margin-top:5px;text-align:right"></div>
+  </div>`;
+
+  // ════════════════════════════════════════════════════════════════════════
   // 6. AI NARRATIVE + NEWS — async slot, populated by loadRegimeNarrative()
   // ════════════════════════════════════════════════════════════════════════
   html += `<div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--bdr)">Market Context</div>`;
@@ -10931,7 +11350,7 @@ async function loadRegimeNarrative(marketId) {
               ${ago ? `<span style="font-size:8px;color:var(--faint);margin-left:auto">${ago}</span>` : ''}
             </div>
             <div style="font-size:10px;font-weight:600;color:var(--text);line-height:1.4">${n.title}</div>
-            ${n.preview ? `<div style="font-size:9px;color:var(--dim);line-height:1.4;margin-top:3px">${n.preview}</div>` : ''}
+            ${n.preview ? `<div style="font-size:9px;color:var(--dim);line-height:1.4;margin-top:3px;text-transform:none">${n.preview}</div>` : ''}
           </div>`;
         }
         html += `</div>`;
@@ -10941,6 +11360,101 @@ async function loadRegimeNarrative(marketId) {
     slot.innerHTML = html;
   } catch(e) {
     if (slot) slot.innerHTML = `<div style="font-size:9px;color:var(--faint);padding:8px 0">Market context unavailable.</div>`;
+  }
+}
+
+// ─── Climate Score History Sparkline (IDEA-03) ─────────────────────────────
+async function loadClimateSparkline(marketId) {
+  const canvas = document.getElementById('climate-hist-' + marketId);
+  if (!canvas) return;
+  const chgEl  = document.getElementById('climate-hist-chg-'  + marketId);
+  const noteEl = document.getElementById('climate-hist-note-' + marketId);
+  try {
+    // Reuse cached ov chart data if available
+    let data = (typeof ovChartCache !== 'undefined' && ovChartCache[marketId]) || null;
+    if (!data) {
+      const res = await fetch(API + '/api/score_history?market=' + encodeURIComponent(marketId));
+      data = await res.json();
+      if (typeof ovChartCache !== 'undefined') ovChartCache[marketId] = data;
+    }
+    const MAX = 52; // last 52 weeks
+    // Prefer regime-specific scores; fall back to composite
+    const rawScores = data.regime_scores || data.regime || data.scores || [];
+    if (!rawScores.length) return;
+    const scores = rawScores.slice(-MAX);
+    const dates  = (data.dates || []).slice(-MAX);
+
+    const W = canvas.width, H = canvas.height;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+
+    const PAD_T = 5, PAD_B = 6;
+    const minS = Math.min(...scores), maxS = Math.max(...scores);
+    const range = Math.max(maxS - minS, 0.5);
+    const sx = i => (i / (scores.length - 1 || 1)) * W;
+    const sy = v => PAD_T + (1 - (v - minS) / range) * (H - PAD_T - PAD_B);
+
+    // Neutral midline
+    const mid = (minS + maxS) / 2;
+    const midY = sy(mid);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 5]);
+    ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Gradient fill
+    const lastV = scores[scores.length - 1];
+    const accentCol = lastV >= 5.5 ? '#30d988' : lastV <= 4.5 ? '#f04040' : '#5c9eff';
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, accentCol + '22'); // V12: subtle fill alpha 0.08
+    grad.addColorStop(0.5, accentCol + '14');
+    grad.addColorStop(1, accentCol + '00');
+    ctx.beginPath();
+    ctx.moveTo(sx(0), H);
+    scores.forEach((v, i) => ctx.lineTo(sx(i), sy(v)));
+    ctx.lineTo(sx(scores.length - 1), H);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Colour-segmented line
+    for (let i = 1; i < scores.length; i++) {
+      const avg = (scores[i] + scores[i - 1]) / 2;
+      ctx.strokeStyle = avg >= 5.5 ? '#30d988' : avg <= 4.5 ? '#f04040' : 'rgba(92,158,255,0.7)';
+      ctx.lineWidth = 2.5; // V12: thicker sparkline
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sx(i - 1), sy(scores[i - 1]));
+      ctx.lineTo(sx(i), sy(scores[i]));
+      ctx.stroke();
+    }
+
+    // Endpoint dot
+    const dotCol = lastV >= 5.5 ? '#30d988' : lastV <= 4.5 ? '#f04040' : '#5c9eff';
+    const lx = sx(scores.length - 1), ly = sy(lastV);
+    ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+    ctx.fillStyle = dotCol;
+    ctx.shadowColor = dotCol; ctx.shadowBlur = 6;
+    ctx.fill(); ctx.shadowBlur = 0;
+
+    // Delta badge
+    if (chgEl && scores.length >= 2) {
+      const delta = lastV - scores[0];
+      const sign = delta >= 0 ? '+' : '';
+      chgEl.textContent = sign + delta.toFixed(1) + ' pts';
+      chgEl.style.color = delta >= 0 ? '#30d988' : '#f04040';
+    }
+    // Note
+    if (noteEl) {
+      const n = scores.length;
+      const hiStr = maxS.toFixed(1), loStr = minS.toFixed(1);
+      const firstDate = dates[0] || '';
+      const lastDate  = dates[dates.length - 1] || '';
+      noteEl.textContent = n + ' bars  ·  HI ' + hiStr + '  ·  LO ' + loStr + (firstDate ? '  ·  ' + firstDate + ' – ' + lastDate : '');
+    }
+  } catch(e) {
+    console.warn('climate sparkline fail', marketId, e);
   }
 }
 
@@ -11675,8 +12189,8 @@ async function loadHistoryTab(marketId){
           yAxisID: 'y1',
           backgroundColor: barColors,
           borderColor: barBorderColors,
-          borderWidth: 1,
-          borderRadius: 2,
+          borderWidth: 0, // V14: no border on bars
+          borderRadius: 3, // V14: rounded bars
           order: 2,
         },
         ...(cotLine ? [{
@@ -12147,7 +12661,8 @@ function renderSeasInsight(all,mt,todayTD,sd,cya,containerId){
   // fallback: last available actual
   if(cyNow==null&&cya&&cya.length) cyNow=cya[cya.length-1][1];
   const divergence=(cyNow!=null&&histNow!=null)?cyNow-histNow:null;
-  const divCol=divergence==null?'var(--dim)':divergence>=0?'var(--s1)':'var(--sm1)';
+  // Threshold-based colour: grey for ±5% range, green >+5, red <-5
+  const divCol=divergence==null?'var(--dim)':divergence>5?'var(--s1)':divergence<-5?'var(--sm1)':'var(--faint)';
   const divStr=divergence==null?'—':(divergence>=0?'+':'')+divergence.toFixed(1)+'%';
 
   // Projection slope

@@ -1207,10 +1207,11 @@ def compute_rel_val_score(market_id: str) -> dict:
 #   Crypto (Deribit): Different norms — raw PCR thresholds calibrated separately.
 #   Bonds/FX/Ag: No statistically significant edge found — excluded.
 #
-# Weights in WEIGHTS_EXTENDED below:
-#   TIER-1 (10%): ES, NQ, RTY, YM, GC, SI   — deep markets, strong backtest edge
-#   TIER-2 ( 5%): CL                         — moderate liquidity, bidirectional signal
+# PCR weight tiers — evidence-based liquidity hierarchy:
+#   TIER-1 (10%): ES, NQ, RTY, YM            — deepest equity options markets, strong backtest edge
+#   TIER-2 ( 5%): GC, CL                     — GLD/USO ETF options meaningful but thinner than equity
 #   TIER-3 ( 3%): BTC, ETH                   — good depth on Deribit, unique norms
+#   TIER-4 ( 4%): SI                         — SLV ETF options thinner than GLD; dual industrial/precious char
 
 PCR_EQUITY_SYMBOLS = {"ES", "NQ", "YM", "RTY"}  # keep for legacy weight-switching
 
@@ -1231,8 +1232,8 @@ PCR_TIERS = {
     "NQ":  {"tier": 1, "source": "cboe_equity"},
     "YM":  {"tier": 1, "source": "cboe_equity"},
     "RTY": {"tier": 1, "source": "cboe_equity"},
-    "GC":  {"tier": 1, "source": "cboe_etf"},
-    "SI":  {"tier": 1, "source": "cboe_etf"},
+    "GC":  {"tier": 2, "source": "cboe_etf"},   # GLD ETF options — deep but secondary signal; 5% weight
+    "SI":  {"tier": 4, "source": "cboe_etf"},   # SLV ETF options — thinner than GLD; 4% weight
     "CL":  {"tier": 2, "source": "cboe_etf"},
     "BTC": {"tier": 3, "source": "deribit"},
     "ETH": {"tier": 3, "source": "deribit"},
@@ -5290,6 +5291,9 @@ def fetch_ff_news(hours_back: int = 48) -> list:
                 if len(preview) > 200:
                     preview = preview[:200].rsplit(' ', 1)[0] + "\u2026"
                 preview = _unescape(preview)
+                # Normalise ALL CAPS preview text from some FF sources — convert to sentence case
+                if preview and preview == preview.upper() and len(preview) > 10:
+                    preview = preview.capitalize()
 
                 # Human-friendly date/time labels
                 pub_dt = _dt.datetime.fromtimestamp(dateline, _dt.timezone.utc)
@@ -5458,17 +5462,21 @@ WEIGHTS_EQUITY = {
     "pcr":      0.10,  # Tier-1: 10% — deep markets, strong backtest edge
 }
 
-# Tier-2 PCR: CL oil — 5% weight
-# COT at 26%: crude commercial shorts have 74% directional hit rate (NYU Stern study);
-# slightly below full commodity weight due to OPEC structural interference post-2016.
+# Tier-2 PCR: GC (Gold via GLD) and CL (Oil via USO) — 5% weight
+# GC: GLD has 5M OI, 8k strikes — liquid options market with real sentiment signal.
+#   PCR reduces from 10% (equity tier) because GLD options are thinner than ES/NQ
+#   and gold's primary sentiment driver is real yields, not options sentiment.
+# CL: USO ETF options — moderate liquidity; crude commercial shorts 74% directional hit
+#   rate (NYU Stern study). OPEC structural interference limits the signal post-2016.
+# Both: COT slightly boosted to 26% to compensate (COT is more reliable for physical commodities).
 WEIGHTS_PCR_TIER2 = {
-    "cot":      0.26,
+    "cot":      0.25,
     "seasonal": 0.13,
     "momentum": 0.20,
     "macro":    0.15,
     "regime":   0.13,
-    "relval":   0.13,
-    "pcr":      0.05,  # CL has meaningful options market signal
+    "relval":   0.09,
+    "pcr":      0.05,  # 5% — meaningful but secondary signal for physical commodity options
 }
 
 # Tier-3 PCR: BTC/ETH — 3% weight
@@ -5481,6 +5489,21 @@ WEIGHTS_PCR_TIER3 = {
     "regime":   0.15,
     "relval":   0.10,
     "pcr":      0.03,
+}
+
+# Tier-4 PCR: SI (Silver via SLV) — 4% weight
+# SLV ETF options are thinner than GLD (lower OI, fewer strikes, wider spreads).
+# Silver is also more thinly traded in the options space due to its dual industrial/
+# precious metal character — institutional options hedging is less systematic.
+# PCR weight reduced to 4%; COT maintained at 25% (full commodity weight).
+WEIGHTS_PCR_TIER4 = {
+    "cot":      0.25,
+    "seasonal": 0.13,
+    "momentum": 0.20,
+    "macro":    0.15,
+    "regime":   0.14,
+    "relval":   0.09,
+    "pcr":      0.04,  # 4% — SLV options present, thinner than GLD
 }
 
 # ICE Europe thin-data markets (Z=73w, R=57w): COT weight reduced to 12%.
@@ -5553,6 +5576,8 @@ def compute_weighted_bias(scores: dict, market_id: str = "",
             w_map = WEIGHTS_PCR_TIER2
         elif pcr_tier == 3:
             w_map = WEIGHTS_PCR_TIER3
+        elif pcr_tier == 4:
+            w_map = WEIGHTS_PCR_TIER4
         else:
             w_map = WEIGHTS
     elif market_id in _FX_MARKETS:
@@ -5961,6 +5986,8 @@ async def get_all_scores(force: bool = False):
                 mkt_weights = WEIGHTS_PCR_TIER2
             elif _tier == 3:
                 mkt_weights = WEIGHTS_PCR_TIER3
+            elif _tier == 4:
+                mkt_weights = WEIGHTS_PCR_TIER4
             else:
                 mkt_weights = WEIGHTS
         elif mid in _FX_MKTS:
@@ -6112,6 +6139,9 @@ async def get_all_scores(force: bool = False):
         "weights":           WEIGHTS,
         "weights_equity":    WEIGHTS_EQUITY,
         "weights_fx":        WEIGHTS_FX,
+        "weights_pcr_tier2": WEIGHTS_PCR_TIER2,
+        "weights_pcr_tier3": WEIGHTS_PCR_TIER3,
+        "weights_pcr_tier4": WEIGHTS_PCR_TIER4,
         "weights_ice_thin":  WEIGHTS_ICE_THIN,  # Applied to Z (FTSE100) and R (Long Gilt) — thin COT history
         # news_context intentionally excluded — frontend fetches /api/news-context separately
     }
@@ -7417,10 +7447,14 @@ async def get_score_history(market: str):
                    "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
                    "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
                    "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
-    if cat == "equity":
+    if m_upper in {"Z", "R"}:
+        w_map = WEIGHTS_ICE_THIN
+    elif cat == "equity":
         w_map = WEIGHTS_EQUITY
-    elif m_upper == "CL":
+    elif m_upper in {"GC", "CL"}:
         w_map = WEIGHTS_PCR_TIER2
+    elif m_upper == "SI":
+        w_map = WEIGHTS_PCR_TIER4
     elif cat == "crypto":
         w_map = WEIGHTS_PCR_TIER3
     elif m_upper in _SH_FX_MKTS or cat in ("fx", "fx_cross"):
