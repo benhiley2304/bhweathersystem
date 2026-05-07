@@ -8453,6 +8453,13 @@ async def get_candles(market: str, period: str = "6mo", ema_period: int = 50):
 async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
 
+@app.get("/api/clear-regime-cache")
+async def clear_regime_cache():
+    """Bust the RISK_REGIME_CACHE so the next /api/scores call recomputes fresh."""
+    RISK_REGIME_CACHE["data"] = None
+    RISK_REGIME_CACHE["time"] = 0
+    return {"cleared": True, "message": "Regime cache cleared — next scores call will recompute"}
+
 @app.get("/api/debug-ice")
 async def debug_ice(market: str = "B"):
     """Diagnose ICE COT fetch: tests connectivity and returns row counts per year."""
