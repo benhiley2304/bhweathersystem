@@ -5819,7 +5819,11 @@ async def get_all_scores(force: bool = False):
                 window = 260
                 mu  = raw_primary.rolling(window, min_periods=52).mean()
                 sig = raw_primary.rolling(window, min_periods=52).std().replace(0, 1)
-                return (z_blend * sig + mu).round(0).astype(int)
+                result = (z_blend * sig + mu).round(0)
+                # Replace any NaN/inf with the raw primary value (safe fallback)
+                fallback = raw_primary.round(0)
+                result = result.where(result.notna() & np.isfinite(result), other=fallback)
+                return result.fillna(0).astype(int)
 
             # Align indices for rolling stats (use primary df aligned to merged dates)
             p_aligned = p[p["date"].isin(merged["date"])].reset_index(drop=True)
