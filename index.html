@@ -254,8 +254,8 @@ a{color:inherit;text-decoration:none}
 .mr-body{flex:1;min-width:0}
 .mr-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(210,218,235,0.95);transition:color 120ms;letter-spacing:-0.01em}
 .mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:var(--text)}
-.mr-bar{height:2.5px;background:rgba(255,255,255,0.09);border-radius:2px;overflow:hidden;margin-top:5px;position:relative}
-.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:2px;transition:all 400ms var(--ease)}
+.mr-bar{height:3px;background:rgba(255,255,255,0.07);border-radius:2px;margin-top:6px;position:relative;overflow:visible;isolation:isolate}
+.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:2px;transition:all 500ms var(--ease)}
 .mr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
 /* Score badge — the key number, prominent */
 .mr-score-badge{
@@ -3074,24 +3074,40 @@ function renderList(){
   document.getElementById('mkt-list').innerHTML=markets.map(m=>{
     const ws=m.weighted_score;
     const col=sHex(ws);
-    // Bar: 0-10 scale — left=0%, width=ws/10*100%
-    const barPct=Math.min(100,Math.max(0,(ws/10)*100));
-    // Full-spectrum gradient: always spans the entire track so score position lands on the correct colour
-    const barGrad=`linear-gradient(90deg,#f04040 0%,#c47a4a 30%,#4a5268 50%,#3d9e74 70%,#30d988 100%)`;
-    // background-size stretches the gradient to fill the full bar regardless of fill width
-    const bgSize=barPct>0?`${(100/barPct)*100}% 100%`:'100% 100%';
-    // Short bias label (1-2 words max)
+    // Short bias label
     const biasShort=m.bias?m.bias.replace('Very ','').replace('Mildly ','').replace('mildly ',''):'—';
     // On mobile: score-coloured left accent border
     const mobBorder=`--mob-row-col:${col}`;
+
+    // ── Centred bidirectional bar ──────────────────────────────────────────
+    // 5.0 = centre (50%). Bullish: fill extends RIGHT; Bearish: fill extends LEFT.
+    const deviation = ws - 5.0;          // -5 to +5
+    const fillPct   = Math.min(50, Math.abs(deviation) / 5 * 50); // 0–50%
+    const isBull    = deviation >= 0;
+    // Gradient fades from col → transparent toward the centre
+    const fillGrad  = isBull
+      ? `linear-gradient(90deg,transparent,${col})`
+      : `linear-gradient(90deg,${col},transparent)`;
+    const fillStyle = isBull
+      ? `left:50%;width:${fillPct}%;background:${fillGrad}`
+      : `right:50%;width:${fillPct}%;background:${fillGrad}`;
+    // Glow: subtle radial bloom at the bar tip
+    const tipPos    = isBull ? `left:${50+fillPct}%` : `left:${50-fillPct}%`;
+    // Subtle ghost spectrum behind the entire track
+    const trackSpec = `linear-gradient(90deg,rgba(240,64,64,0.08) 0%,rgba(74,82,104,0.04) 50%,rgba(48,217,136,0.08) 100%)`;
+    // Centre tick mark
+    const centreTick= `<div style="position:absolute;top:-1px;bottom:-1px;left:50%;transform:translateX(-50%);width:1px;background:rgba(255,255,255,0.18);border-radius:1px"></div>`;
+    // Tip dot
+    const tipDot    = fillPct>2 ? `<div style="position:absolute;top:50%;${tipPos};transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:${col};box-shadow:0 0 5px 1px ${col}55;flex-shrink:0"></div>` : '';
+
     return `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id">${m.id}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
-        <div class="mr-bar" style="position:relative;overflow:visible">
-          <div style="position:absolute;inset:0;background:${barGrad};opacity:0.10;border-radius:1px"></div>
-          <div class="mr-bar-f" style="left:0;width:${barPct}%;background:${barGrad};background-size:${bgSize}"></div>
-          <div style="position:absolute;top:-2px;left:${barPct}%;transform:translateX(-50%);width:1.5px;height:6px;border-radius:1px;background:${col}"></div>
+        <div class="mr-bar" style="background:${trackSpec}">
+          <div class="mr-bar-f" style="${fillStyle}"></div>
+          ${centreTick}
+          ${tipDot}
         </div>
       </div>
       <div class="mr-right">
