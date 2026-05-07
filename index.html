@@ -2954,15 +2954,15 @@ function diffHex(d){
   return '#f04040';
 }
 function sHex(s){
-  if(s>=8.5)  return '#30d988';  // strong bull
-  if(s>=7.5)  return '#26c97a';  // bull
-  if(s>=6.5)  return '#3d9e82';  // lean bull
-  if(s>=5.5)  return '#5aaa88';  // mild bull
-  if(s>=4.5)  return '#475569';  // neutral
-  if(s>=3.5)  return '#7a6a52';  // mild bear
-  if(s>=2.5)  return '#c47a4a';  // lean bear
-  if(s>=1.5)  return '#dc5a3a';  // bear
-  return '#f04040';               // strong bear
+  if(s>=8.5)  return '#30d988';  // strong bull — vivid emerald
+  if(s>=7.5)  return '#26c97a';  // bull — green
+  if(s>=6.5)  return '#52b88a';  // lean bull — mid green
+  if(s>=5.5)  return '#6aad8e';  // mild bull — soft green
+  if(s>=4.5)  return '#4a5268';  // neutral — slate
+  if(s>=3.5)  return '#e07840';  // mild bear — orange  ← was muddy brown
+  if(s>=2.5)  return '#e05535';  // lean bear — orange-red
+  if(s>=1.5)  return '#f04040';  // bear — vivid red
+  return '#f03030';               // strong bear — deep red
 }
 function sBg(s){
   if(s>=6.0)  return 'rgba(16,185,129,0.10)';
@@ -3126,24 +3126,12 @@ function renderList(){
       background:linear-gradient(180deg,transparent,rgba(255,255,255,0.35),transparent);
       border-radius:1px;pointer-events:none"></div>`;
 
-    // Tip glow — radial bloom at bar end, sized to conviction
-    const glowSize  = 6 + rawPct * 8;  // 6–14px based on strength
-    const glowOpacity = 0.5 + rawPct * 0.35;
-    const tipGlow   = fillPct > 3 ? `<div style="position:absolute;
+    // Tip cap — clean solid dot at bar end, no glow
+    const tipCap = fillPct > 3 ? `<div style="position:absolute;
       top:50%;left:${tipLeft}%;
       transform:translate(-50%,-50%);
-      width:${glowSize}px;height:${glowSize}px;
-      border-radius:50%;
-      background:radial-gradient(circle,${colA(glowOpacity)} 0%,transparent 70%);
-      pointer-events:none"></div>` : '';
-
-    // Tip cap — solid dot anchoring the end
-    const tipCap    = fillPct > 3 ? `<div style="position:absolute;
-      top:50%;left:${tipLeft}%;
-      transform:translate(-50%,-50%);
-      width:5px;height:5px;border-radius:50%;
-      background:${col};
-      box-shadow:0 0 4px 1px ${colA(0.7)};
+      width:4px;height:4px;border-radius:50%;
+      background:${col};opacity:0.9;
       pointer-events:none"></div>` : '';
 
     // COT vs Momentum divergence badge
@@ -3159,7 +3147,6 @@ function renderList(){
         <div class="mr-bar" style="background:${trackBg}">
           <div class="mr-bar-f" style="${fillStyle}"></div>
           ${centreNotch}
-          ${tipGlow}
           ${tipCap}
         </div>
       </div>
@@ -3690,7 +3677,7 @@ function renderOverview(){
       const barW=Math.min(100,Math.abs(sv)/2*100);
       return `<div class="ov-rp-sig" style="background:${bg};border-color:${bdr};overflow:hidden;position:relative">
         <div style="position:absolute;bottom:0;left:0;height:2px;width:${barW}%;background:${col};opacity:0.4"></div>
-        <div class="ov-rp-sig-dot" style="background:${col};box-shadow:0 0 5px ${col}66"></div>
+        <div class="ov-rp-sig-dot" style="background:${col}"></div>
         <div class="ov-rp-sig-body">
           <div class="ov-rp-sig-label">${SIG_ICONS[k]||k}</div>
           <div class="ov-rp-sig-val">${v.value||''} — ${v.label||''}</div>
