@@ -7877,8 +7877,22 @@ async def serve_index():
 # The keepalive cron handles backend health and restarts if needed
 @app.on_event("startup")
 async def warmup_cache():
-    """Startup handler — warmup disabled to prevent OOM on resource-constrained host."""
-    print("[startup] Backend ready — caches will populate on first request")
+    """Pre-warm caches in background so first request hits cache, not 30s timeout."""
+    import asyncio as _astart
+    async def _warm():
+        await _astart.sleep(3)  # let server fully start first
+        print("[startup] Pre-warming caches in background...")
+        try:
+            loop = _astart.get_event_loop()
+            await asyncio.gather(
+                loop.run_in_executor(_APP_EXECUTOR, compute_macro_all),
+                loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime),
+            )
+            print("[startup] Cache pre-warm complete")
+        except Exception as e:
+            print(f"[startup] Pre-warm error (non-fatal): {e}")
+    _astart.ensure_future(_warm())
+    print("[startup] Backend ready — cache pre-warming in background")
 
 
 if __name__ == "__main__":
