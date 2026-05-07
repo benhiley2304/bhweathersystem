@@ -5592,6 +5592,10 @@ async def get_all_scores(force: bool = False):
         FF_MACRO_CACHE["data"] = None
     if not force and ALL_DATA_CACHE["data"] and (now - ALL_DATA_CACHE["time"]) < ALL_DATA_TTL:
         return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+    # If cache is cold and still warming up, return 202 so frontend can poll
+    if _WARMING["started"] and not _WARMING["done"] and not force:
+        from fastapi.responses import JSONResponse as _JR
+        return _JR({"status": "warming", "message": "Cache warming — retry in 10s"}, status_code=202)
 
     # Run all sync blocking data-fetch functions in thread executors
     # so the async event loop (and /api/health) remain responsive
@@ -7875,22 +7879,30 @@ async def serve_index():
 
 # Startup warmup disabled — caches populate on first request to avoid OOM
 # The keepalive cron handles backend health and restarts if needed
+_WARMING = {"done": False, "started": False}
+
+@app.get("/api/warmup-status")
+async def warmup_status():
+    return {"ready": _WARMING["done"], "warming": _WARMING["started"]}
+
 @app.on_event("startup")
 async def warmup_cache():
-    """Pre-warm caches in background so first request hits cache, not 30s timeout."""
+    """Fully pre-warm all scores on startup so first /api/scores request is instant."""
     import asyncio as _astart
     async def _warm():
-        await _astart.sleep(3)  # let server fully start first
-        print("[startup] Pre-warming caches in background...")
+        await _astart.sleep(2)
+        _WARMING["started"] = True
+        print("[startup] Pre-warming all caches...")
         try:
-            loop = _astart.get_event_loop()
-            await asyncio.gather(
-                loop.run_in_executor(_APP_EXECUTOR, compute_macro_all),
-                loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime),
-            )
-            print("[startup] Cache pre-warm complete")
+            # Trigger the full scores computation to populate ALL_DATA_CACHE
+            import httpx as _hx
+            port = int(os.environ.get("PORT", 5000))
+            async with _hx.AsyncClient(timeout=180) as client:
+                r = await client.get(f"http://127.0.0.1:{port}/api/scores")
+                print(f"[startup] Pre-warm complete — status {r.status_code}")
         except Exception as e:
             print(f"[startup] Pre-warm error (non-fatal): {e}")
+        _WARMING["done"] = True
     _astart.ensure_future(_warm())
     print("[startup] Backend ready — cache pre-warming in background")
 
