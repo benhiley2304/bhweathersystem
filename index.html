@@ -254,8 +254,8 @@ a{color:inherit;text-decoration:none}
 .mr-body{flex:1;min-width:0}
 .mr-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(210,218,235,0.95);transition:color 120ms;letter-spacing:-0.01em}
 .mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:var(--text)}
-.mr-bar{height:3px;background:rgba(255,255,255,0.07);border-radius:2px;margin-top:6px;position:relative;overflow:visible;isolation:isolate}
-.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:2px;transition:all 500ms var(--ease)}
+.mr-bar{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;margin-top:7px;position:relative;overflow:visible}
+.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:3px;transition:all 600ms cubic-bezier(0.34,1.56,0.64,1)}
 .mr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
 /* Score badge — the key number, prominent */
 .mr-score-badge{
@@ -3079,35 +3079,78 @@ function renderList(){
     // On mobile: score-coloured left accent border
     const mobBorder=`--mob-row-col:${col}`;
 
-    // ── Centred bidirectional bar ──────────────────────────────────────────
-    // 5.0 = centre (50%). Bullish: fill extends RIGHT; Bearish: fill extends LEFT.
-    const deviation = ws - 5.0;          // -5 to +5
-    const fillPct   = Math.min(50, Math.abs(deviation) / 5 * 50); // 0–50%
-    const isBull    = deviation >= 0;
-    // Gradient fades from col → transparent toward the centre
-    const fillGrad  = isBull
-      ? `linear-gradient(90deg,transparent,${col})`
-      : `linear-gradient(90deg,${col},transparent)`;
+    // ── Scaled bidirectional bar ────────────────────────────────────────────
+    // Display range 3.0–7.0 maps to 0–100% of each half.
+    // Scores outside this range are clamped — extreme signals hit the wall.
+    // This makes the 4–6 cluster visually meaningful instead of invisible.
+    const NEUTRAL = 5.0;
+    const HALF_RANGE = 2.0;  // 3.0↔5.0 = bear half, 5.0↔7.0 = bull half
+    const deviation  = ws - NEUTRAL;                              // −5 to +5
+    const isBull     = deviation >= 0;
+    // Clamp & scale: 0 at neutral, 1.0 at ±HALF_RANGE (soft clamp beyond)
+    const rawPct     = Math.min(1, Math.abs(deviation) / HALF_RANGE);
+    // Ease-in so tiny deviations still register visually (min 4% if any deviation)
+    const fillPct    = deviation === 0 ? 0 : Math.max(4, rawPct * 50); // 0–50% of track
+
+    // Hex color with alpha for glow effects
+    const colA = (a) => col + Math.round(a*255).toString(16).padStart(2,'0');
+
+    // Fill: solid colour with inner glow gradient from centre
+    const fillGrad = isBull
+      ? `linear-gradient(90deg,${colA(0.55)},${col})`
+      : `linear-gradient(90deg,${col},${colA(0.55)})`;
     const fillStyle = isBull
       ? `left:50%;width:${fillPct}%;background:${fillGrad}`
       : `right:50%;width:${fillPct}%;background:${fillGrad}`;
-    // Glow: subtle radial bloom at the bar tip
-    const tipPos    = isBull ? `left:${50+fillPct}%` : `left:${50-fillPct}%`;
-    // Subtle ghost spectrum behind the entire track
-    const trackSpec = `linear-gradient(90deg,rgba(240,64,64,0.08) 0%,rgba(74,82,104,0.04) 50%,rgba(48,217,136,0.08) 100%)`;
-    // Centre tick mark
-    const centreTick= `<div style="position:absolute;top:-1px;bottom:-1px;left:50%;transform:translateX(-50%);width:1px;background:rgba(255,255,255,0.18);border-radius:1px"></div>`;
-    // Tip dot
-    const tipDot    = fillPct>2 ? `<div style="position:absolute;top:50%;${tipPos};transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:${col};box-shadow:0 0 5px 1px ${col}55;flex-shrink:0"></div>` : '';
+
+    // Tip position for glow dot
+    const tipLeft = isBull ? (50 + fillPct) : (50 - fillPct);
+
+    // Track: banded background — bear zone / neutral zone / bull zone
+    // Each zone is a separate div for precise control
+    const trackBg = `linear-gradient(90deg,
+      rgba(240,64,64,0.10) 0%,
+      rgba(240,64,64,0.04) 35%,
+      rgba(255,255,255,0.04) 40%,
+      rgba(255,255,255,0.04) 60%,
+      rgba(48,217,136,0.04) 65%,
+      rgba(48,217,136,0.10) 100%)`;
+
+    // Centre notch — crisp vertical rule at 50%
+    const centreNotch = `<div style="position:absolute;top:-2px;bottom:-2px;left:50%;
+      transform:translateX(-50%);width:1.5px;
+      background:linear-gradient(180deg,transparent,rgba(255,255,255,0.35),transparent);
+      border-radius:1px;pointer-events:none"></div>`;
+
+    // Tip glow — radial bloom at bar end, sized to conviction
+    const glowSize  = 6 + rawPct * 8;  // 6–14px based on strength
+    const glowOpacity = 0.5 + rawPct * 0.35;
+    const tipGlow   = fillPct > 3 ? `<div style="position:absolute;
+      top:50%;left:${tipLeft}%;
+      transform:translate(-50%,-50%);
+      width:${glowSize}px;height:${glowSize}px;
+      border-radius:50%;
+      background:radial-gradient(circle,${colA(glowOpacity)} 0%,transparent 70%);
+      pointer-events:none"></div>` : '';
+
+    // Tip cap — solid dot anchoring the end
+    const tipCap    = fillPct > 3 ? `<div style="position:absolute;
+      top:50%;left:${tipLeft}%;
+      transform:translate(-50%,-50%);
+      width:5px;height:5px;border-radius:50%;
+      background:${col};
+      box-shadow:0 0 4px 1px ${colA(0.7)};
+      pointer-events:none"></div>` : '';
 
     return `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id">${m.id}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
-        <div class="mr-bar" style="background:${trackSpec}">
+        <div class="mr-bar" style="background:${trackBg}">
           <div class="mr-bar-f" style="${fillStyle}"></div>
-          ${centreTick}
-          ${tipDot}
+          ${centreNotch}
+          ${tipGlow}
+          ${tipCap}
         </div>
       </div>
       <div class="mr-right">
