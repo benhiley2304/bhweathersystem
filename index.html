@@ -4307,6 +4307,21 @@ function renderMacroDataPanels(reg){
   const urDate    = lab.unrate_date||'';
   const clDate    = lab.claims_date||'';
 
+  // FF actual vs consensus data
+  const ffLab     = lab.ff_labour||null;
+  const ffScores  = ffLab?.scores||{};
+  const ffLatest  = ffLab?.latest||{};
+  const ffEms     = ffLab?.composite_ems??null;
+  const ffHasData = ffLab && ffLab.n_events > 0;
+
+  // FF latest per-metric (for Actual vs Forecast display)
+  const ffNfp     = ffLatest.nfp||null;
+  const ffAdp     = ffLatest.adp||null;
+  const ffUr      = ffLatest.unrate||null;
+  const ffCl      = ffLatest.claims||null;
+  const ffJolts   = ffLatest.jolts||null;
+  const ffWages   = ffLatest.wages||null;
+
   // Colour helpers
   const nfpCol = nfpMom!=null?(nfpMom>200?'#30d988':nfpMom>100?'#8ecf60':nfpMom>0?'#adb8d0':nfpMom>-50?'#f5c842':'#f04040'):'#5a6480';
   const surpCol = nfpSurp!=null?(nfpSurp>32?'#30d988':nfpSurp>0?'#8ecf60':nfpSurp>-32?'#f5c842':'#f04040'):'#adb8d0';
@@ -4328,6 +4343,26 @@ function renderMacroDataPanels(reg){
     return `<div class="ov-mc-stat">
       <div class="ov-mc-stat-lbl">${label}</div>
       <div class="ov-mc-stat-val" ${col?`style="color:${col}"`:''}>${val}</div>
+    </div>`;
+  }
+
+  // FF actual vs forecast row renderer
+  // Shows: label | Actual vs Forecast | surprise delta | beat/miss pill
+  function ffRow(label, ffData, unit, higherGood){
+    if(!ffData) return '';
+    const act  = ffData.actual;
+    const fct  = ffData.forecast;
+    const surp = ffData.surprise;
+    const beat = ffData.beat;
+    if(act==null||fct==null) return '';
+    const sCol = beat?'#30d988':'#f04040';
+    const pill = beat?'BEAT':'MISS';
+    const surpStr = surp!=null?(surp>0?'+':'')+surp+unit:'';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <span style="font-size:9px;font-weight:600;color:var(--dim);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</span>
+      <span style="font-size:9px;font-weight:700;color:var(--dim);margin:0 6px">${fct}${unit}</span>
+      <span style="font-size:9px;font-weight:800;color:${sCol};margin:0 6px">${act}${unit}</span>
+      <span style="font-size:7px;font-weight:800;letter-spacing:0.06em;padding:1px 5px;border-radius:3px;background:${sCol}18;border:1px solid ${sCol}30;color:${sCol};white-space:nowrap">${pill}${surpStr?` ${surpStr}`:''}</span>
     </div>`;
   }
 
@@ -4466,72 +4501,73 @@ function renderMacroDataPanels(reg){
 
         <!-- NFP hero -->
         <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:1px">
-          <div class="ov-mc-hero" style="font-size:26px;color:${nfpCol}">${nfpMom!=null?`${nfpMom>=0?'+':''}${nfpMom.toFixed(0)}K`:'—'}</div>
-          ${surprisePill(nfpSurpL,surpCol)}
+          <div class="ov-mc-hero" style="font-size:26px;color:${nfpCol}">${nfpMom!=null?`${nfpMom>=0?'+':''}${nfpMom.toFixed(0)}K`:'\u2014'}</div>
+          ${surprisePill(nfpSurpL, surpCol)}
         </div>
-        <div class="ov-mc-hero-sub">
-          NFP ${nfpDate?`(${nfpDate})`:''}&nbsp;
-          ${nfp6mAvg!=null?`<span style="color:var(--faint)">6m avg ${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span>`:''}
-          ${nfpSurp!=null?`&nbsp;<span style="color:${surpCol}">${nfpSurp>=0?'+':''}${nfpSurp.toFixed(0)}K vs exp</span>`:''}
+        <div class="ov-mc-hero-sub" style="margin-bottom:6px">
+          NFP ${nfpDate?`(${nfpDate})`:''}
+          ${ffNfp?.forecast!=null
+            ? `&nbsp;\u00b7 <span style="color:var(--faint)">Exp ${ffNfp.forecast}K</span>&nbsp;<span style="color:${surpCol}">${nfpSurp!=null?(nfpSurp>=0?'+':'')+nfpSurp+'K':''}</span>`
+            : (nfp6mAvg!=null?`&nbsp;<span style="color:var(--faint)">6m avg ${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span>`:'')
+          }
         </div>
 
-        <!-- 3 metric bars: UNRATE · Claims · JOLTS -->
-        <div class="ov-spread-group" style="gap:6px;margin-top:2px">
-
-          <!-- Unemployment rate -->
+        <!-- FF actual vs consensus table (shown when FF data is available) -->
+        ${ffHasData ? `
+        <div style="margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 3px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:2px">
+            <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);flex:1">Indicator</span>
+            <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);width:36px;text-align:right">Exp</span>
+            <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);width:36px;text-align:right;margin:0 4px">Act</span>
+            <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);width:52px;text-align:right">Signal</span>
+          </div>
+          ${ffRow('ADP Payrolls',    ffAdp,   'K',  true)}
+          ${ffRow('Unemp. Rate',     ffUr,    '%',  false)}
+          ${ffRow('Init. Claims',    ffCl,    'K',  false)}
+          ${ffRow('JOLTS Openings',  ffJolts, 'M',  true)}
+          ${ffRow('Hrly Earnings',   ffWages, '%',  true)}
+        </div>
+        ` : `
+        <div class="ov-spread-group" style="gap:5px;margin-bottom:6px">
           <div class="ov-spread-row">
             <div class="ov-spread-meta">
               <span class="ov-spread-name" style="color:${urCol}">Unemployment</span>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span class="ov-spread-val" style="color:${urCol}">${unrate!=null?unrate+'%':'—'}</span>
-                ${unratePrev!=null?`<span style="font-family:var(--mono);font-size:8px;color:${urTCol}">${urTrend==='Rising'?'▲':urTrend==='Falling'?'▼':'→'} ${urTrend}</span>`:''}
+              <div style="display:flex;align-items:center;gap:5px">
+                <span class="ov-spread-val" style="color:${urCol}">${unrate!=null?unrate+'%':'\u2014'}</span>
+                <span style="font-size:8px;color:${urTCol}">${urTrend==='Rising'?'\u25b2':urTrend==='Falling'?'\u25bc':'\u2192'}</span>
               </div>
             </div>
-            <!-- Bar: 3% (full emp) → 7% (stress) range -->
-            <div class="ov-spread-track">
-              <div class="ov-spread-fill" style="width:${unrate!=null?Math.min(100,Math.max(0,((unrate-3)/(7-3))*100)).toFixed(1):0}%;background:linear-gradient(90deg,#30d988 0%,#f5c842 50%,#f04040 100%)"></div>
-            </div>
-            <div class="ov-spread-hint">3% full employment → 7% recession &nbsp;${urDate?`· ${urDate}`:''}</div>
+            <div class="ov-spread-track"><div class="ov-spread-fill" style="width:${unrate!=null?Math.min(100,Math.max(0,((unrate-3)/(7-3))*100)).toFixed(1):0}%;background:linear-gradient(90deg,#30d988 0%,#f5c842 50%,#f04040 100%)"></div></div>
+            <div class="ov-spread-hint">3%\u20137% range ${urDate?`\u00b7 ${urDate}`:''}</div>
           </div>
-
-          <!-- Initial claims -->
           <div class="ov-spread-row">
             <div class="ov-spread-meta">
               <span class="ov-spread-name" style="color:${clCol}">Init. Claims</span>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span class="ov-spread-val" style="color:${clCol}">${claims!=null?(claims/1000).toFixed(0)+'K':'—'}</span>
-                ${clChg4w!=null?`<span style="font-family:var(--mono);font-size:8px;color:${clChg4w<0?'#30d988':'#f04040'}">${clChg4w>=0?'+':''}${(clChg4w/1000).toFixed(0)}K 4w</span>`:''}
-              </div>
+              <span class="ov-spread-val" style="color:${clCol}">${claims!=null?(claims/1000).toFixed(0)+'K':'\u2014'} ${clChg4w!=null?`<span style="font-size:8px;color:${clChg4w<0?'#30d988':'#f04040'}">${clChg4w>=0?'+':''}${(clChg4w/1000).toFixed(0)}K 4w</span>`:''}</span>
             </div>
-            <!-- Bar: 150K (hot) → 350K (stress) -->
-            <div class="ov-spread-track">
-              <div class="ov-spread-fill" style="width:${claims!=null?Math.min(100,Math.max(0,((claims-150000)/(350000-150000))*100)).toFixed(1):0}%;background:linear-gradient(90deg,#30d988 0%,#f5c842 55%,#f04040 100%)"></div>
-            </div>
-            <div class="ov-spread-hint">4w avg ${claims4w!=null?(claims4w/1000).toFixed(0)+'K':''} &nbsp;${clDate?`· wk ${clDate}`:''}  &nbsp;150K–350K range</div>
+            <div class="ov-spread-track"><div class="ov-spread-fill" style="width:${claims!=null?Math.min(100,Math.max(0,((claims-150000)/(350000-150000))*100)).toFixed(1):0}%;background:linear-gradient(90deg,#30d988 0%,#f5c842 55%,#f04040 100%)"></div></div>
+            <div class="ov-spread-hint">4w avg ${claims4w!=null?(claims4w/1000).toFixed(0)+'K':''} \u00b7 150K\u2013350K</div>
           </div>
-
-          <!-- JOLTS openings -->
           ${jolts!=null?`<div class="ov-spread-row">
             <div class="ov-spread-meta">
               <span class="ov-spread-name" style="color:${joltsCol}">Job Openings</span>
-              <div style="display:flex;align-items:center;gap:6px">
+              <div style="display:flex;align-items:center;gap:5px">
                 <span class="ov-spread-val" style="color:${joltsCol}">${jolts.toFixed(2)}M</span>
-                ${joltsChg!=null?`<span style="font-family:var(--mono);font-size:8px;color:${joltsChg>=0?'#30d988':'#f04040'}">${joltsChg>=0?'+':''}${joltsChg.toFixed(2)}M</span>`:''}
+                ${joltsChg!=null?`<span style="font-size:8px;color:${joltsChg>=0?'#30d988':'#f04040'}">${joltsChg>=0?'+':''}${joltsChg.toFixed(2)}M</span>`:''}
               </div>
             </div>
-            <!-- Bar: 4M (weak) → 12M (peak 2022) -->
-            <div class="ov-spread-track">
-              <div class="ov-spread-fill" style="width:${Math.min(100,Math.max(0,((jolts-4)/(12-4))*100)).toFixed(1)}%;background:linear-gradient(90deg,#f04040 0%,#f5c842 40%,#30d988 100%)"></div>
-            </div>
-            <div class="ov-spread-hint">JOLTS ${lab.jolts_date||''} &nbsp;· 6m avg ${jolts6m!=null?jolts6m.toFixed(2)+'M':'—'} &nbsp;4M–12M range</div>
+            <div class="ov-spread-track"><div class="ov-spread-fill" style="width:${Math.min(100,Math.max(0,((jolts-4)/(12-4))*100)).toFixed(1)}%;background:linear-gradient(90deg,#f04040 0%,#f5c842 40%,#30d988 100%)"></div></div>
+            <div class="ov-spread-hint">4M\u201312M \u00b7 6m avg ${jolts6m!=null?jolts6m.toFixed(2)+'M':'\u2014'}</div>
           </div>`:''}
         </div>
+        `}
 
-        ${jobsComp!=null?`<div class="ov-mc-stats">
-          ${chip('NFP Score',nfpScore.toFixed(1)+'/10',nfpCol)}
-          ${chip('UNEMP Score',urScore.toFixed(1)+'/10',urCol)}
-          ${chip('Claims Score',clScore.toFixed(1)+'/10',clCol)}
-        </div>`:''}
+        <!-- Bottom score chips -->
+        <div class="ov-mc-stats" style="padding-top:6px;border-top:1px solid rgba(255,255,255,0.06)">
+          ${chip('Composite', jobsComp!=null?jobsComp.toFixed(1)+'/10':'\u2014', jcCol)}
+          ${chip('NFP Score', nfpScore.toFixed(1)+'/10', nfpCol)}
+          ${chip(ffHasData?'Bloomberg Consensus':'FRED Trailing', ffHasData?'Live':'Approx', ffHasData?'#30d988':'var(--faint)')}
+        </div>
       </div>
 
     </div>`;

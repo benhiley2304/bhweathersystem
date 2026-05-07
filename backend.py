@@ -3013,6 +3013,211 @@ def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
     return flat_events
 
 
+# ── ForexFactory Labour Surprise Cache ───────────────────────────────────────
+# Fetches last 12 weeks of FF calendar pages from sandbox (no Cloudflare block)
+# and extracts actual vs forecast for key US labour market events.
+# Cache TTL 4h — refreshed automatically on each get_all_scores() cycle.
+
+_FF_LABOUR_CACHE: dict = {"data": None, "time": 0}
+_FF_LABOUR_CACHE_TTL = 3600 * 4  # 4 hours
+
+# Key labour event names as they appear on ForexFactory
+_FF_LABOUR_EVENTS = {
+    "Non-Farm Employment Change":        {"key": "nfp",    "unit": "K",  "higher_is_good": True},
+    "ADP Non-Farm Employment Change":    {"key": "adp",    "unit": "K",  "higher_is_good": True},
+    "Unemployment Rate":                 {"key": "unrate", "unit": "%",  "higher_is_good": False},
+    "Unemployment Claims":               {"key": "claims", "unit": "K",  "higher_is_good": False},
+    "JOLTS Job Openings":                {"key": "jolts",  "unit": "M",  "higher_is_good": True},
+    "Average Hourly Earnings m/m":       {"key": "wages",  "unit": "%",  "higher_is_good": True},
+}
+
+
+def _fetch_ff_week_html(week_str: str) -> list:
+    """
+    Fetch one week of FF calendar events from HTML (JSON blobs embedded).
+    week_str: e.g. 'may3.2026', 'apr26.2026'
+    Returns flat list of event dicts with keys: name, actual, forecast,
+    previous, currency, dateline, impactClass
+    """
+    import re as _re
+    url = f"https://www.forexfactory.com/calendar?week={week_str}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-GB,en;q=0.9",
+        "Referer": "https://www.forexfactory.com/",
+    }
+    try:
+        r = requests.get(url, timeout=20, headers=headers)
+        if r.status_code != 200:
+            return []
+        html = r.text
+        # Extract JSON event blobs embedded in the HTML
+        pattern = r'\{"id":\d+,"ebaseId":\d+,"name":"[^"]+.*?\}(?=,\{"id"|\])'
+        blobs = _re.findall(pattern, html, _re.DOTALL)
+        events = []
+        for blob in blobs:
+            try:
+                obj = json.loads(blob)
+                events.append({
+                    "name":        obj.get("name", ""),
+                    "actual":      obj.get("actual", "") or "",
+                    "forecast":    obj.get("forecast", "") or "",
+                    "previous":    obj.get("previous", "") or "",
+                    "currency":    obj.get("currency", ""),
+                    "dateline":    obj.get("dateline") or obj.get("date"),
+                    "impactClass": obj.get("impactClass", ""),
+                })
+            except Exception:
+                pass
+        return events
+    except Exception as _e:
+        print(f"[FF Labour] week={week_str} fetch error: {_e}")
+        return []
+
+
+def _get_week_strings(n_weeks: int = 12) -> list:
+    """
+    Generate last n_weeks FF week URL strings (week starts Sunday).
+    FF format: 'may3.2026', 'apr26.2026'
+    """
+    import calendar as _cal
+    from datetime import date, timedelta
+    today = date.today()
+    # Walk back to the most recent Sunday
+    day_of_week = today.weekday()  # Mon=0, Sun=6
+    days_since_sunday = (day_of_week + 1) % 7
+    current_sunday = today - timedelta(days=days_since_sunday)
+    months_short = ["jan", "feb", "mar", "apr", "may", "jun",
+                    "jul", "aug", "sep", "oct", "nov", "dec"]
+    week_strings = []
+    for i in range(n_weeks):
+        sunday = current_sunday - timedelta(weeks=i)
+        mon = months_short[sunday.month - 1]
+        week_strings.append(f"{mon}{sunday.day}.{sunday.year}")
+    return week_strings
+
+
+def _fetch_ff_labour_surprises(force: bool = False) -> dict:
+    """
+    Fetch last 12 weeks of ForexFactory calendar (HTML) and extract
+    actual vs forecast surprise data for key US labour market events.
+    Returns a dict with per-event lists of releases and aggregate surprise scores.
+    Cached for _FF_LABOUR_CACHE_TTL (4h) — auto-refreshes on each score cycle.
+    """
+    global _FF_LABOUR_CACHE
+    now = time.time()
+    if not force and _FF_LABOUR_CACHE["data"] and (now - _FF_LABOUR_CACHE["time"]) < _FF_LABOUR_CACHE_TTL:
+        return _FF_LABOUR_CACHE["data"]
+
+    week_strings = _get_week_strings(14)  # 14 weeks back (~3.5 months)
+    all_events = []
+
+    # Fetch weeks in parallel (ThreadPool)
+    with _cf.ThreadPoolExecutor(max_workers=6) as ex:
+        futs = {ex.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
+        for fut in _cf.as_completed(futs):
+            try:
+                all_events.extend(fut.result())
+            except Exception:
+                pass
+
+    # Filter: USD only, has actual AND forecast, is a key labour event
+    releases: dict = {key_info["key"]: [] for key_info in _FF_LABOUR_EVENTS.values()}
+
+    for ev in all_events:
+        if ev.get("currency") != "USD":
+            continue
+        name = ev.get("name", "")
+        actual_str   = ev.get("actual", "")
+        forecast_str = ev.get("forecast", "")
+        if not actual_str or not forecast_str or actual_str in ("", "—") or forecast_str in ("", "—"):
+            continue
+        for event_name, meta in _FF_LABOUR_EVENTS.items():
+            if name == event_name:
+                actual_raw   = _parse_ff_value(actual_str)
+                forecast_raw = _parse_ff_value(forecast_str)
+                previous_raw = _parse_ff_value(ev.get("previous", ""))
+                if actual_raw is None or forecast_raw is None:
+                    break
+                surprise_raw = actual_raw - forecast_raw
+                # Normalise for display (convert to same units as forecast)
+                unit = meta["unit"]
+                if unit == "K":
+                    # NFP/ADP/Claims: values already in persons from _parse_ff_value (multiplied by 1000)
+                    # Display in thousands for readability
+                    actual_disp   = round(actual_raw / 1000, 1) if abs(actual_raw) > 500 else round(actual_raw, 2)
+                    forecast_disp = round(forecast_raw / 1000, 1) if abs(forecast_raw) > 500 else round(forecast_raw, 2)
+                    surprise_disp = round(surprise_raw / 1000, 1) if abs(surprise_raw) > 500 else round(surprise_raw, 2)
+                elif unit == "M":
+                    actual_disp   = round(actual_raw / 1e6, 3)
+                    forecast_disp = round(forecast_raw / 1e6, 3)
+                    surprise_disp = round(surprise_raw / 1e6, 3)
+                else:  # % etc
+                    actual_disp   = round(actual_raw, 2)
+                    forecast_disp = round(forecast_raw, 2)
+                    surprise_disp = round(surprise_raw, 2)
+
+                # Direction: positive surprise = actual beat expectation
+                beat = surprise_raw > 0 if meta["higher_is_good"] else surprise_raw < 0
+                releases[meta["key"]].append({
+                    "dateline":    ev.get("dateline"),
+                    "actual":      actual_disp,
+                    "forecast":    forecast_disp,
+                    "previous":    round(previous_raw / 1000, 1) if (previous_raw and unit == "K" and abs(previous_raw) > 500) else (
+                                   round(previous_raw / 1e6, 3) if (previous_raw and unit == "M") else
+                                   (round(previous_raw, 2) if previous_raw else None)),
+                    "surprise":    surprise_disp,
+                    "beat":        beat,
+                    "unit":        unit,
+                })
+                break
+
+    # Sort each event's releases chronologically (oldest → newest)
+    for key in releases:
+        releases[key].sort(key=lambda x: x["dateline"] or 0)
+
+    # Compute rolling EMS-style surprise scores per event (last 6 releases)
+    # Score per release: +1 beat, -1 miss (weighted by magnitude quartile)
+    def _ems_score(rel_list: list) -> Optional[float]:
+        recent = rel_list[-8:]  # last 8 releases
+        if not recent:
+            return None
+        hits = [1 if r["beat"] else -1 for r in recent]
+        # Weight: most recent 4 get 1.5x weight
+        weights = [1.0] * len(hits)
+        for i in range(max(0, len(hits) - 4), len(hits)):
+            weights[i] = 1.5
+        raw = sum(h * w for h, w in zip(hits, weights)) / sum(weights)
+        # Convert -1..+1 → 0..10
+        return round(max(0, min(10, raw * 3 + 5)), 1)
+
+    scores = {}
+    latest = {}  # Most recent release for each metric (for display)
+    for key, rel_list in releases.items():
+        if rel_list:
+            scores[key] = _ems_score(rel_list)
+            latest[key] = rel_list[-1]  # most recent
+
+    # Composite EMS score (average of available metric scores)
+    valid_scores = [s for s in scores.values() if s is not None]
+    composite_ems = round(sum(valid_scores) / len(valid_scores), 1) if valid_scores else None
+
+    result = {
+        "releases":      releases,
+        "scores":        scores,
+        "latest":        latest,
+        "composite_ems": composite_ems,
+        "fetched_at":    now,
+        "n_events_found": sum(len(v) for v in releases.values()),
+    }
+
+    _FF_LABOUR_CACHE["data"] = result
+    _FF_LABOUR_CACHE["time"] = now
+    print(f"[FF Labour] Refreshed — {result['n_events_found']} releases across {len(releases)} metrics, composite EMS: {composite_ems}")
+    return result
+
+
 def _classify_ff_event(name: str, currency: str):
     """
     Returns (category, higher_is_good) if the event matches a known indicator,
@@ -3235,6 +3440,18 @@ def compute_all_ff_macro() -> dict:
     # USD from compute_macro_all
     us_macro = compute_macro_all()
     cats = us_macro.get("category_scores", {})
+
+    # Blend FF EMS jobs score into USD category score if available
+    # This ensures FX pair macro differentials use real Bloomberg-consensus jobs surprise
+    _ff_lab_data = _FF_LABOUR_CACHE.get("data")
+    _jobs_cat_raw = cats.get("jobs", 0)  # -2..+2 FRED trailing avg
+    if _ff_lab_data and _ff_lab_data.get("composite_ems") is not None:
+        # FF EMS is 0-10; convert to -2..+2 for blending
+        _ff_jobs_raw = (_ff_lab_data["composite_ems"] - 5.0) / 2.5
+        # 60% FF consensus, 40% FRED trailing
+        _jobs_cat_raw = round(_ff_jobs_raw * 0.60 + _jobs_cat_raw * 0.40, 3)
+        cats = {**cats, "jobs": _jobs_cat_raw}  # non-destructive copy
+
     # Normalise US cat scores (-2..+2) to 0-10
     _s = sum(cats.values()) / max(1, len(cats)) if cats else 0
     usd_raw   = max(-2.0, min(2.0, _s))
@@ -4489,6 +4706,92 @@ def compute_risk_regime() -> dict:
             _lab["jobs_avg_raw"] = round(jobs_avg, 2)
         except Exception:
             pass
+
+        # ── ForexFactory actual vs consensus surprise injection ──────────────────────
+        # Fetch is cached for 4h; zero network cost on subsequent calls.
+        # If FF is unreachable, we gracefully fall through and the frontend
+        # shows FRED-based scores only.
+        try:
+            _ff_labour = _fetch_ff_labour_surprises()
+            if _ff_labour and _ff_labour.get("n_events_found", 0) > 0:
+                _lab["ff_labour"] = {
+                    "scores":        _ff_labour.get("scores", {}),
+                    "latest":        _ff_labour.get("latest", {}),
+                    "releases":      _ff_labour.get("releases", {}),
+                    "composite_ems": _ff_labour.get("composite_ems"),
+                    "fetched_at":    _ff_labour.get("fetched_at"),
+                    "n_events":      _ff_labour.get("n_events_found", 0),
+                }
+                # Override jobs_composite_10 with FF EMS score when available
+                # Blend: 60% FF EMS + 40% FRED trailing (best of both worlds)
+                _ff_ems = _ff_labour.get("composite_ems")
+                if _ff_ems is not None and _lab.get("jobs_composite_10") is not None:
+                    _lab["jobs_composite_10"] = round(
+                        _ff_ems * 0.6 + _lab["jobs_composite_10"] * 0.4, 1
+                    )
+                elif _ff_ems is not None:
+                    _lab["jobs_composite_10"] = _ff_ems
+
+                # Inject per-metric FF scores to replace FRED trailing scores where available
+                _ff_scores = _ff_labour.get("scores", {})
+                _ff_latest = _ff_labour.get("latest", {})
+                if "nfp" in _ff_scores and _ff_scores["nfp"] is not None:
+                    _lab["nfp_score_10"] = _ff_scores["nfp"]
+                    # Replace nfp_surprise with real FF consensus surprise
+                    _nfp_lat = _ff_latest.get("nfp", {})
+                    if _nfp_lat:
+                        _lab["nfp_surprise"]       = _nfp_lat.get("surprise")
+                        _lab["nfp_consensus"]      = _nfp_lat.get("forecast")
+                        _lab["nfp_actual_ff"]      = _nfp_lat.get("actual")
+                        _beat = _nfp_lat.get("beat")
+                        _surp_val = _nfp_lat.get("surprise", 0) or 0
+                        _lab["nfp_surprise_label"] = (
+                            "Strong Beat" if _beat and abs(_surp_val) > 80 else
+                            "Beat"        if _beat else
+                            "Strong Miss" if not _beat and abs(_surp_val) > 80 else
+                            "Miss"        if not _beat else "In Line"
+                        )
+                if "unrate" in _ff_scores and _ff_scores["unrate"] is not None:
+                    _lab["unrate_score_10"] = _ff_scores["unrate"]
+                    _ur_lat = _ff_latest.get("unrate", {})
+                    if _ur_lat:
+                        _lab["unrate_consensus"] = _ur_lat.get("forecast")
+                        _lab["unrate_actual_ff"] = _ur_lat.get("actual")
+                        _lab["unrate_surprise"]  = _ur_lat.get("surprise")
+                        _lab["unrate_beat"]      = _ur_lat.get("beat")
+                if "claims" in _ff_scores and _ff_scores["claims"] is not None:
+                    _lab["claims_score_10"] = _ff_scores["claims"]
+                    _cl_lat = _ff_latest.get("claims", {})
+                    if _cl_lat:
+                        _lab["claims_consensus"] = _cl_lat.get("forecast")
+                        _lab["claims_actual_ff"] = _cl_lat.get("actual")
+                        _lab["claims_surprise"]  = _cl_lat.get("surprise")
+                        _lab["claims_beat"]      = _cl_lat.get("beat")
+                if "jolts" in _ff_scores and _ff_scores["jolts"] is not None:
+                    _jolts_lat = _ff_latest.get("jolts", {})
+                    if _jolts_lat:
+                        _lab["jolts_consensus"] = _jolts_lat.get("forecast")
+                        _lab["jolts_actual_ff"] = _jolts_lat.get("actual")
+                        _lab["jolts_surprise"]  = _jolts_lat.get("surprise")
+                        _lab["jolts_beat"]      = _jolts_lat.get("beat")
+                if "adp" in _ff_scores and _ff_scores["adp"] is not None:
+                    _lab["adp_score_10"]  = _ff_scores["adp"]
+                    _adp_lat = _ff_latest.get("adp", {})
+                    if _adp_lat:
+                        _lab["adp_consensus"] = _adp_lat.get("forecast")
+                        _lab["adp_actual_ff"] = _adp_lat.get("actual")
+                        _lab["adp_surprise"]  = _adp_lat.get("surprise")
+                        _lab["adp_beat"]      = _adp_lat.get("beat")
+                if "wages" in _ff_scores and _ff_scores["wages"] is not None:
+                    _lab["wages_score_10"] = _ff_scores["wages"]
+                    _wg_lat = _ff_latest.get("wages", {})
+                    if _wg_lat:
+                        _lab["wages_consensus"] = _wg_lat.get("forecast")
+                        _lab["wages_actual_ff"] = _wg_lat.get("actual")
+                        _lab["wages_surprise"]  = _wg_lat.get("surprise")
+                        _lab["wages_beat"]      = _wg_lat.get("beat")
+        except Exception as _ff_e:
+            print(f"[FF Labour] Injection error (non-fatal): {_ff_e}")
 
         if _lab:
             macro_dashboard["labour"] = _lab
@@ -7227,53 +7530,99 @@ def _score_macro_at(market_id: str, bar_ts: float,
                 break
 
     # Build category scores from US components
-    US_SCALE = {"nfp": 100, "claims": 10, "gdp": 0.5, "retail": 0.3,
-                "cpi": 0.1, "pce": 0.1, "ppi": 0.1, "wages": 0.1,
-                "pmi": 1.0, "jolts": 200}
+    # ── FIX 1: Scale by category (not by key name) — key names from substr.upper().replace()
+    # do not match the old lowercase US_SCALE dict, causing every K-denominated indicator
+    # (NFP, Claims, JOLTS) to use scale=1.0 and saturate to ±2 on any non-zero surprise.
+    # Correct scales are calibrated so a typical 1-sigma surprise produces norm ≈ 1.0.
+    # _parse_ff_value multiplies K→×1000, M→×1e6, so scales are in raw parsed units.
+    US_SCALE_BY_CAT = {
+        "JOBS":     40000,   # NFP/ADP: raw persons; ~40K = moderate beat
+        "CLAIMS":   15000,   # Claims:  raw persons; ~15K = meaningful week-to-week surprise
+        "JOLTS":    200000,  # JOLTS:   raw persons (6.87M → 6870000); ~200K typical
+        "UNEMP":    0.1,     # Unemployment rate: % float; 0.1pp typical miss
+        "WAGES":    0.1,     # Hourly earnings m/m %: 0.1pp typical
+        "GDP":      0.5,     # GDP QoQ %: 0.5pp typical
+        "MFG_PMI":  1.0,     # ISM/PMI: index pts; 1pt typical
+        "SVC_PMI":  1.0,
+        "CPI":      0.1,     # CPI m/m %: 0.1pp typical
+        "CORE_CPI": 0.1,
+        "PCE":      0.1,
+        "PPI":      0.2,
+        "RETAIL":   0.3,     # Retail sales MoM %: 0.3pp typical
+    }
+
+    # Shared score computation helper (used for both cat scores and components)
+    def _norm_score(surprise: float, cat_key: str, higher_is_good: bool) -> int:
+        scale = US_SCALE_BY_CAT.get(cat_key, 1.0)
+        norm  = surprise / scale if scale else surprise
+        if norm > 1.5:    raw = 2
+        elif norm > 0.4:  raw = 1
+        elif norm < -1.5: raw = -2
+        elif norm < -0.4: raw = -1
+        else:             raw = 0
+        return raw if higher_is_good else -raw
+
     us_cat_scores: dict = {}
     for key, info in best.items():
         cat_key = info["category"]
         surprise = info["actual_raw"] - info["forecast_raw"]
-        scale = US_SCALE.get(key, 1.0)
-        norm  = surprise / scale if scale else surprise
-        if norm > 1.5:    sc = 2
-        elif norm > 0.4:  sc = 1
-        elif norm < -1.5: sc = -2
-        elif norm < -0.4: sc = -1
-        else:             sc = 0
-        if not info["higher_is_good"]:
-            sc = -sc
+        sc = _norm_score(surprise, cat_key, info["higher_is_good"])
         if cat_key not in us_cat_scores:
             us_cat_scores[cat_key] = []
         us_cat_scores[cat_key].append(sc)
 
-    usd_cats: dict = {c: sum(v)/len(v) for c, v in us_cat_scores.items() if v}
+    # ── FIX 2: Normalise category keys to lowercase so get_macro_score_for_market
+    # can read them correctly (it uses .get("jobs"), .get("growth") etc. — all lowercase).
+    # Previously usd_cats had uppercase keys ("JOBS", "GDP") causing all non-FX asset
+    # macro scores to read as 0 → score always 5.0 (dead neutral) in score_history.
+    _CAT_KEY_MAP = {
+        "JOBS": "jobs",   "CLAIMS": "jobs",  "JOLTS": "jobs",   "UNEMP": "jobs",
+        "WAGES": "jobs",  "GDP": "growth",   "MFG_PMI": "growth", "SVC_PMI": "growth",
+        "RETAIL": "growth", "CPI": "inflation", "CORE_CPI": "inflation",
+        "PCE": "inflation", "PPI": "inflation", "DGS2": "rates", "YLDCRV": "rates",
+    }
+    us_cat_scores_normalised: dict = {}  # lowercase merged
+    for cat_key, scores in us_cat_scores.items():
+        lc_key = _CAT_KEY_MAP.get(cat_key, cat_key.lower())
+        if lc_key not in us_cat_scores_normalised:
+            us_cat_scores_normalised[lc_key] = []
+        us_cat_scores_normalised[lc_key].extend(scores)
+    usd_cats: dict = {c: sum(v)/len(v) for c, v in us_cat_scores_normalised.items() if v}
+
     usd_score = max(-2.0, min(2.0, sum(usd_cats.values()) / len(usd_cats))) if usd_cats else 0.0
     ff_macro_snap["USD"] = {"score": usd_score, "cat_avg": usd_cats, "cat_details": {}, "label": "USD"}
 
     # Build a full components dict so get_macro_score_for_market can extract
-    # per-indicator scores (nfp_s, gdp_s, cpi_s etc.) via its s() helper.
-    # Without this, non-FX formulas (ES, GC, ZB etc.) get all-zero inputs.
-    US_KEY_TO_COMP = {
-        "NFP":     "NFP",    "ADP":     "ADP",    "UNEMP":   "UNEMP",
-        "CLAIMS":  "CLAIMS", "JOLTS":   "JOLTS",  "WAGES":   "WAGES",
-        "GDP":     "GDP",    "MFG_PMI": "MFG_PMI","SVC_PMI": "SVC_PMI",
-        "RETAIL":  "RETAIL", "CPI":     "CPI",    "PCE":     "PCE",
-        "PPI":     "PPI",    "DGS2":    "DGS2",
+    # per-indicator scores for the non-FX asset formulas (ES uses JOBS/GDP/CPI directly).
+    # Components keys must match what get_macro_score_for_market expects.
+    _INDICATOR_TO_COMP = {
+        # Maps substr-derived uppercase key → standard component key
+        "NON-FARM_EMPLOYMENT_CHANGE": "JOBS",
+        "ADP_NON-FARM_EMPLOYMENT":    "ADP",
+        "UNEMPLOYMENT_CLAIMS":        "CLAIMS",
+        "UNEMPLOYMENT_RATE":          "UNEMP",
+        "JOLTS_JOB_OPENINGS":         "JOLTS",
+        "AVERAGE_HOURLY_EARNINGS":    "WAGES",
+        "GDP":                        "GDP",
+        "ISM_MANUFACTURING_PMI":      "MFG_PMI",
+        "ISM_SERVICES_PMI":           "SVC_PMI",
+        "MANUFACTURING_PMI":          "MFG_PMI",
+        "SERVICES_PMI":               "SVC_PMI",
+        "CORE_RETAIL_SALES":          "RETAIL",
+        "RETAIL_SALES":               "RETAIL",
+        "INDUSTRIAL_PRODUCTION":      "MFG_PMI",
+        "CPI":                        "CPI",
+        "CORE_CPI":                   "CPI",
+        "PPI":                        "PPI",
+        "CORE_PCE_PRICE_INDEX":       "PCE",
+        "PCE_PRICE_INDEX":            "PCE",
     }
     components = {}
     for key, info in best.items():
-        comp_key = US_KEY_TO_COMP.get(key, key)
+        comp_key = _INDICATOR_TO_COMP.get(key, key)
         surprise = info["actual_raw"] - info["forecast_raw"]
-        scale = US_SCALE.get(key, 1.0)
-        norm = surprise / scale if scale else surprise
-        if norm > 1.5:    sc = 2
-        elif norm > 0.4:  sc = 1
-        elif norm < -1.5: sc = -2
-        elif norm < -0.4: sc = -1
-        else:             sc = 0
-        if not info["higher_is_good"]:
-            sc = -sc
+        cat_key  = info["category"]
+        sc = _norm_score(surprise, cat_key, info["higher_is_good"])
         components[comp_key] = {"score": sc, "actual": info["actual_raw"],
                                 "forecast": info["forecast_raw"]}
 
