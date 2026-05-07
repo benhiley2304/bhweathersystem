@@ -1881,6 +1881,69 @@ def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
         print(f"[ICE COT] {ice_market_code}: no rows found across all years")
         return None
 
+    # ── Convert rows → DataFrame ──────────────────────────────────────────────
+    try:
+        df = pd.DataFrame(all_rows)
+
+        # Parse date (prefer MM/DD/YYYY, fall back to YYMMDD)
+        df["date"] = pd.to_datetime(
+            df.get("As_of_Date_Form_MM/DD/YYYY", pd.Series(dtype=str)), errors="coerce"
+        )
+        mask = df["date"].isna()
+        if mask.any():
+            df.loc[mask, "date"] = pd.to_datetime(
+                df.loc[mask, "As_of_Date_In_Form_YYMMDD"], format="%y%m%d", errors="coerce"
+            )
+        df = df.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
+
+        df["open_interest_all"] = pd.to_numeric(
+            df.get("Open_Interest_All", pd.Series(dtype=float)), errors="coerce"
+        )
+
+        # ICE disagg group mapping:
+        #   comm_net  = Prod/Merc + Swap (hedgers — primary commercial signal)
+        #   lspec_net = Managed Money    (hedge funds — directional signal)
+        #   sspec_net = Non-Reportable   (retail)
+        pm_long  = pd.to_numeric(df.get("Prod_Merc_Positions_Long_All",  pd.Series(dtype=float)), errors="coerce").fillna(0)
+        pm_short = pd.to_numeric(df.get("Prod_Merc_Positions_Short_All", pd.Series(dtype=float)), errors="coerce").fillna(0)
+        sw_long  = pd.to_numeric(df.get("Swap_Positions_Long_All",       pd.Series(dtype=float)), errors="coerce").fillna(0)
+        sw_short = pd.to_numeric(df.get("Swap_Positions_Short_All",      pd.Series(dtype=float)), errors="coerce").fillna(0)
+        mm_long  = pd.to_numeric(df.get("M_Money_Positions_Long_All",    pd.Series(dtype=float)), errors="coerce").fillna(0)
+        mm_short = pd.to_numeric(df.get("M_Money_Positions_Short_All",   pd.Series(dtype=float)), errors="coerce").fillna(0)
+        nr_long  = pd.to_numeric(df.get("NonRept_Positions_Long_All",    pd.Series(dtype=float)), errors="coerce").fillna(0)
+        nr_short = pd.to_numeric(df.get("NonRept_Positions_Short_All",   pd.Series(dtype=float)), errors="coerce").fillna(0)
+
+        df["comm_positions_long_all"]    = pm_long + sw_long
+        df["comm_positions_short_all"]   = pm_short + sw_short
+        df["noncomm_positions_long_all"] = mm_long
+        df["noncomm_positions_short_all"]= mm_short
+        df["nonrept_positions_long_all"] = nr_long
+        df["nonrept_positions_short_all"]= nr_short
+
+        df["comm_net"]  = (pm_long + sw_long)  - (pm_short + sw_short)
+        df["lspec_net"] = mm_long - mm_short
+        df["sspec_net"] = nr_long - nr_short
+        df["lspec_chg"] = df["lspec_net"].diff().fillna(0)
+
+        df = df[["date","comm_net","lspec_net","sspec_net","lspec_chg",
+                 "comm_positions_long_all","comm_positions_short_all",
+                 "noncomm_positions_long_all","noncomm_positions_short_all",
+                 "nonrept_positions_long_all","nonrept_positions_short_all",
+                 "open_interest_all"]].dropna(subset=["comm_net"])
+
+        df = df.drop_duplicates(subset=["date"], keep="last").sort_values("date").reset_index(drop=True)
+
+        print(f"[ICE COT] {ice_market_code}: {len(df)} rows, "
+              f"{df['date'].iloc[0].date()} → {df['date'].iloc[-1].date()}")
+
+        _ICE_MEM_CACHE[ice_market_code] = {"df": df, "ts": now}
+        _save_ice_to_disk(ice_market_code, df)
+        return df
+
+    except Exception as e:
+        print(f"[ICE COT] parse error {ice_market_code}: {e}")
+        return None
+
 async def fetch_ice_cot_history(ice_code: str) -> Optional[pd.DataFrame]:
     """Async wrapper for _fetch_ice_cot_raw — matches signature of fetch_cot_history()."""
     import asyncio as _asyncio
@@ -7909,6 +7972,106 @@ async def debug_ice(market: str = "B"):
         "annual_cache_years": list(_ICE_ANNUAL_ROW_CACHE.keys()),
         "fetch_test": results,
     }
+
+
+@app.post("/api/inject-ice-cache")
+async def inject_ice_cache(payload: dict):
+    """
+    Accepts pre-fetched ICE COT CSV rows (fetched externally, bypassing Render's
+    rate-limited IP) and injects them directly into _ICE_MEM_CACHE + disk cache.
+
+    Called by the Computer sandbox cron every Friday after CFTC pre-warm.
+    Payload: { "market": "B", "rows": [ {dict of CSV row}, ... ], "fmt": "disagg"|"tff" }
+    """
+    import time as _time
+    market = payload.get("market", "")
+    rows   = payload.get("rows", [])
+    fmt    = payload.get("fmt", "disagg")   # "disagg" for B/G/RC, "tff" for Z/R
+
+    if not market or not rows:
+        return {"ok": False, "error": "Missing market or rows"}
+
+    try:
+        df = pd.DataFrame(rows)
+
+        # ── Date parsing ────────────────────────────────────────────────────
+        df["date"] = pd.to_datetime(
+            df.get("As_of_Date_Form_MM/DD/YYYY", pd.Series(dtype=str)), errors="coerce"
+        )
+        mask = df["date"].isna()
+        if mask.any():
+            df.loc[mask, "date"] = pd.to_datetime(
+                df.loc[mask, "As_of_Date_In_Form_YYMMDD"], format="%y%m%d", errors="coerce"
+            )
+        df = df.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
+
+        df["open_interest_all"] = pd.to_numeric(
+            df.get("Open_Interest_All", pd.Series(dtype=float)), errors="coerce"
+        )
+
+        if fmt == "tff":
+            # TFF: Leveraged Fund = comm_net, Asset Manager = lspec_net
+            lf_long  = pd.to_numeric(df.get("Leveraged_Fund_Long_All",  pd.Series(dtype=float)), errors="coerce").fillna(0)
+            lf_short = pd.to_numeric(df.get("Leveraged_Fund_Short_All", pd.Series(dtype=float)), errors="coerce").fillna(0)
+            am_long  = pd.to_numeric(df.get("Asset_Manager_Long_All",   pd.Series(dtype=float)), errors="coerce").fillna(0)
+            am_short = pd.to_numeric(df.get("Asset_Manager_Short_All",  pd.Series(dtype=float)), errors="coerce").fillna(0)
+            nr_long  = pd.to_numeric(df.get("NonRept_Positions_Long_All",  pd.Series(dtype=float)), errors="coerce").fillna(0)
+            nr_short = pd.to_numeric(df.get("NonRept_Positions_Short_All", pd.Series(dtype=float)), errors="coerce").fillna(0)
+            df["comm_positions_long_all"]    = lf_long
+            df["comm_positions_short_all"]   = lf_short
+            df["noncomm_positions_long_all"] = am_long
+            df["noncomm_positions_short_all"]= am_short
+            df["nonrept_positions_long_all"] = nr_long
+            df["nonrept_positions_short_all"]= nr_short
+            df["comm_net"]  = lf_long  - lf_short
+            df["lspec_net"] = am_long  - am_short
+            df["sspec_net"] = nr_long  - nr_short
+        else:
+            # Disagg: Prod/Merc + Swap = comm, M_Money = lspec, NonRept = sspec
+            pm_long  = pd.to_numeric(df.get("Prod_Merc_Positions_Long_All",  pd.Series(dtype=float)), errors="coerce").fillna(0)
+            pm_short = pd.to_numeric(df.get("Prod_Merc_Positions_Short_All", pd.Series(dtype=float)), errors="coerce").fillna(0)
+            sw_long  = pd.to_numeric(df.get("Swap_Positions_Long_All",       pd.Series(dtype=float)), errors="coerce").fillna(0)
+            sw_short = pd.to_numeric(df.get("Swap_Positions_Short_All",      pd.Series(dtype=float)), errors="coerce").fillna(0)
+            mm_long  = pd.to_numeric(df.get("M_Money_Positions_Long_All",    pd.Series(dtype=float)), errors="coerce").fillna(0)
+            mm_short = pd.to_numeric(df.get("M_Money_Positions_Short_All",   pd.Series(dtype=float)), errors="coerce").fillna(0)
+            nr_long  = pd.to_numeric(df.get("NonRept_Positions_Long_All",    pd.Series(dtype=float)), errors="coerce").fillna(0)
+            nr_short = pd.to_numeric(df.get("NonRept_Positions_Short_All",   pd.Series(dtype=float)), errors="coerce").fillna(0)
+            df["comm_positions_long_all"]    = pm_long + sw_long
+            df["comm_positions_short_all"]   = pm_short + sw_short
+            df["noncomm_positions_long_all"] = mm_long
+            df["noncomm_positions_short_all"]= mm_short
+            df["nonrept_positions_long_all"] = nr_long
+            df["nonrept_positions_short_all"]= nr_short
+            df["comm_net"]  = (pm_long + sw_long) - (pm_short + sw_short)
+            df["lspec_net"] = mm_long - mm_short
+            df["sspec_net"] = nr_long - nr_short
+
+        df["lspec_chg"] = df["lspec_net"].diff().fillna(0)
+
+        keep_cols = ["date","comm_net","lspec_net","sspec_net","lspec_chg",
+                     "comm_positions_long_all","comm_positions_short_all",
+                     "noncomm_positions_long_all","noncomm_positions_short_all",
+                     "nonrept_positions_long_all","nonrept_positions_short_all",
+                     "open_interest_all"]
+        df = df[[c for c in keep_cols if c in df.columns]].dropna(subset=["comm_net"])
+        df = df.drop_duplicates(subset=["date"], keep="last").sort_values("date").reset_index(drop=True)
+
+        _ICE_MEM_CACHE[market] = {"df": df, "ts": _time.time()}
+        _save_ice_to_disk(market, df)
+
+        print(f"[INJECT ICE] {market} ({fmt}): {len(df)} rows injected, "
+              f"{df['date'].iloc[0].date()} → {df['date'].iloc[-1].date()}")
+        return {
+            "ok": True,
+            "market": market,
+            "rows_injected": len(df),
+            "date_min": str(df["date"].iloc[0].date()),
+            "date_max": str(df["date"].iloc[-1].date()),
+        }
+    except Exception as e:
+        print(f"[INJECT ICE] {market}: error — {e}")
+        return {"ok": False, "error": str(e)}
+
 
 @app.get("/api/tunnel-url")
 async def tunnel_url():
