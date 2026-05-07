@@ -6251,15 +6251,14 @@ async def get_seasonality(market: str = None):
             # Legacy flat format fallback
             current_snap = mkt_data
         cy_actual = _get_current_year_actual(m)
-        # current_td = last TD in cy_actual (matches the linear sequential TD mapping).
-        # Falls back to DOY-based estimate if cy_actual is empty.
-        if cy_actual:
-            _current_td = cy_actual[-1][0]
-        else:
-            import datetime as _seas_dt
-            _today = _seas_dt.date.today()
-            _doy   = _today.timetuple().tm_yday
-            _current_td = max(1, min(252, round((_doy / 365) * 252)))
+        # current_td = today's position on the 1-252 TD scale.
+        # Use calendar-based DOY mapping — same formula used by historical curves.
+        # Do NOT use cy_actual[-1][0]: the linear index maps the LAST data point
+        # to TD 252 regardless of date, which makes the chart think today = year-end.
+        import datetime as _seas_dt
+        _today = _seas_dt.date.today()
+        _doy   = _today.timetuple().tm_yday
+        _current_td = max(1, min(252, round((_doy / 365) * 252)))
         return {
             "market": m,
             "all":    current_snap.get("all", []),

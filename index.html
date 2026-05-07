@@ -73,8 +73,8 @@ a{color:inherit;text-decoration:none}
   box-shadow:0 1px 0 rgba(0,210,255,0.06), 0 6px 32px rgba(0,0,0,0.6);
 }
 .nav-logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
-.nav-logo svg{width:26px;height:26px;filter:drop-shadow(0 0 10px rgba(92,158,255,0.6)) drop-shadow(0 0 24px rgba(92,158,255,0.25))}
-.nav-title{font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;background:linear-gradient(90deg,#f0f4ff 0%,rgba(92,158,255,0.85) 60%,rgba(0,210,255,0.7) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-logo svg{width:26px;height:26px;filter:drop-shadow(0 0 4px rgba(92,158,255,0.35))}
+.nav-title{font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;color:#f2f6ff}
 .nav-sub{font-size:8px;color:rgba(100,180,240,0.55);margin-top:1px;font-family:var(--mono);white-space:nowrap;letter-spacing:0.07em}
 .nav-sp{flex:1;min-width:0}
 .regime-badge{
@@ -261,7 +261,7 @@ a{color:inherit;text-decoration:none}
   border-color:rgba(0,210,255,0.5);
   background:linear-gradient(135deg,rgba(0,210,255,0.12) 0%,rgba(92,158,255,0.08) 100%);
   color:rgba(150,230,255,0.95);
-  box-shadow:0 0 14px rgba(0,210,255,0.12),inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow:0 0 8px rgba(0,210,255,0.07),inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 .mkt-list{flex:1;overflow-y:auto}
@@ -285,15 +285,15 @@ a{color:inherit;text-decoration:none}
 .mr-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(210,218,235,0.95);transition:color 120ms;letter-spacing:-0.01em}
 .mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:var(--text)}
 .mr-bar{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;margin-top:7px;position:relative;overflow:visible}
-.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:3px;transition:all 600ms cubic-bezier(0.34,1.56,0.64,1);filter:brightness(1.1);box-shadow:0 0 8px currentColor}
+.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:3px;transition:all 600ms cubic-bezier(0.34,1.56,0.64,1)}
 .mr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
 /* V3: Score badge — the key number, prominent */
 .mr-score-badge{
   font-family:var(--mono);font-size:14px;font-weight:800;
   letter-spacing:-0.03em;line-height:1;
   min-width:38px;text-align:right;
-  text-shadow:0 0 12px currentColor;
 }
+
 .mr-bias{font-size:8px;font-weight:700;white-space:nowrap;opacity:0.88}
 .mr-num{font-family:var(--mono);font-size:8.5px;color:var(--dim)}
 .mr-pip{width:7px;height:7px;border-radius:2px;flex-shrink:0}
@@ -1097,8 +1097,8 @@ a{color:inherit;text-decoration:none}
 .ov-sig-mini-bar{width:5px;border-radius:1px 1px 0 0;transition:height 400ms var(--ease)}
 .ov-sig-score{
   font-family:var(--mono);font-size:18px;font-weight:900;flex-shrink:0;letter-spacing:-0.03em;
-  text-shadow:0 0 20px currentColor;
 }
+
 
 /* ── Global Climate Panel ── */
 .ov-climate-panel{
@@ -1727,8 +1727,8 @@ a{color:inherit;text-decoration:none}
   position:relative;
   margin-bottom:3px;
   transition:color 200ms;
-  text-shadow:0 0 16px currentColor;
 }
+
 .f-sub{
   font-size:8.5px;
   color:var(--dim);
@@ -1757,7 +1757,7 @@ a{color:inherit;text-decoration:none}
   overflow:visible;
   position:relative;
 }
-.f-bar-f{height:2px;border-radius:2px;position:absolute;top:0;left:0;box-shadow:0 0 6px currentColor;filter:brightness(1.1)}
+.f-bar-f{height:2px;border-radius:2px;position:absolute;top:0;left:0}
 /* Weight contribution bar (shows how much this factor contributes to total) */
 .f-wt-bar-track{
   height:1.5px;
@@ -3180,19 +3180,16 @@ function renderList(){
     const isBull     = deviation >= 0;
     // Clamp & scale: 0 at neutral, 1.0 at ±HALF_RANGE (soft clamp beyond)
     const rawPct     = Math.min(1, Math.abs(deviation) / HALF_RANGE);
-    // V2: Non-linear power scaling — spreads mid-range (3-7) more visually
-    const fillPct    = deviation === 0 ? 0 : Math.max(4, Math.pow(rawPct, 0.65) * 50); // 0–50% of track
+    // Linear fill: 0 at neutral, 50% of track at ±HALF_RANGE. Min 3% so bar is always visible.
+    const fillPct    = deviation === 0 ? 0 : Math.max(3, rawPct * 50); // 0–50% of track
 
     // Hex color with alpha for glow effects
     const colA = (a) => col + Math.round(a*255).toString(16).padStart(2,'0');
 
-    // Fill: solid colour with inner glow gradient from centre
-    const fillGrad = isBull
-      ? `linear-gradient(90deg,${colA(0.55)},${col})`
-      : `linear-gradient(90deg,${col},${colA(0.55)})`;
+    // Fill: solid crisp colour — no alpha fade so bearish red stays vivid
     const fillStyle = isBull
-      ? `left:50%;width:${fillPct}%;background:${fillGrad}`
-      : `right:50%;width:${fillPct}%;background:${fillGrad}`;
+      ? `left:50%;width:${fillPct}%;background:${col}`
+      : `right:50%;width:${fillPct}%;background:${col}`;
 
     // Tip position for glow dot
     const tipLeft = isBull ? (50 + fillPct) : (50 - fillPct);
@@ -7172,7 +7169,7 @@ function fCard(id,sc,weights,extras){
   if(isMob&&mobileMeta[id]) meta.label=mobileMeta[id];
   const sv=sc.score??5.0;
   const col=sHex(sv);
-  const pct=Math.min(100,Math.max(0,Math.pow(sv/10,0.65)*100)); // V2: non-linear scaling
+  const pct=Math.min(100,Math.max(0,(sv/10)*100));
   const lbl=(sc.label||'');
   const barGrad=`linear-gradient(90deg,#f04040 0%,#c47a4a 30%,#4a5268 50%,#3d9e74 70%,#30d988 100%)`;
   const isAct=selTab===id;
@@ -7401,39 +7398,36 @@ function cotCardDesc(groupType, netVal, brieseIdx, mktCategory, cotFormat) {
 ════════════════════════════════════════════ */
 function cotCycleClock(phase, isBull, isBear){
   if(!phase)return'';
-  const phases=['P1\nAccum','P2\nBuild','P3\nCrowded','P4\nExhaust','P5\nDistrib','P6\nBuild','P7\nCrowded','P8\nExhaust'];
   const phaseColors=['#30d988','#26c97a','#f5a623','#f04040','#f04040','#dc5a3a','#f5a623','#30d988'];
-  // Map bull phases 1-4 to indices 0-3, bear phases 1-4 to indices 4-7
+  const phaseLabels=['Accum','Build','Crowded','Exhaustion','Distrib','Build','Crowded','Exhaustion'];
   const safePhase=Math.max(1,Math.min(4,phase));
   const safeIdx=isBull?(safePhase-1):isBear?(safePhase+3):safePhase-1;
   const col=phaseColors[safeIdx]||'#5a6480';
-  
-  // SVG arc segments — 8 equal segments
+  const sz=72, cx=36, cy=36, r=28, sw=7;
+
   function seg(i){
     const a1=(-90+(i/8)*360)*Math.PI/180;
-    const a2=(-90+((i+1)/8)*360)*Math.PI/180-0.04;
-    const r=58,cx=80,cy=80;
-    const sw=14;
-    const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
-    const x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2);
+    const a2=(-90+((i+1)/8)*360)*Math.PI/180-0.05;
+    const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
     const isActive=i===safeIdx;
-    const c=phaseColors[i];
-    return `<path d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" stroke="${c}" stroke-width="${isActive?sw+3:sw-4}" fill="none" opacity="${isActive?1:0.25}" stroke-linecap="round"/>`;
+    return `<path d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" stroke="${phaseColors[i]}" stroke-width="${isActive?sw+2:sw-3}" fill="none" opacity="${isActive?1:0.22}" stroke-linecap="round"/>`;
   }
-  
-  const segs=phases.map((_,i)=>seg(i)).join('');
-  const phaseLabel=phases[safeIdx]?.replace('\n',' ')||`P${phase}`;
-  const dirLabel=isBull?'Bull':isBear?'Bear':'—';
-  
-  return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 0">
-    <svg width="140" height="140" viewBox="0 0 160 160" style="overflow:visible">
-      <circle cx="80" cy="80" r="52" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="18"/>
+
+  const segs=Array.from({length:8},(_,i)=>seg(i)).join('');
+
+  return `<div style="display:inline-flex;align-items:center;gap:8px;padding:4px 10px 4px 6px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+    <svg width="${sz}" height="${sz}" viewBox="0 0 72 72" style="flex-shrink:0;overflow:visible">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="${sw-1}"/>
       ${segs}
-      <circle cx="80" cy="80" r="35" fill="rgba(15,17,25,0.9)"/>
-      <text x="80" y="74" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="18" font-weight="800" fill="${col}">P${phase}</text>
-      <text x="80" y="91" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="rgba(173,184,208,0.8)">${dirLabel}</text>
+      <circle cx="${cx}" cy="${cy}" r="18" fill="var(--surf)"/>
+      <text x="${cx}" y="${cy-3}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" font-weight="800" fill="${col}">P${phase}</text>
+      <text x="${cx}" y="${cy+9}" text-anchor="middle" font-family="Inter,sans-serif" font-size="6.5" fill="rgba(173,184,208,0.75)">${isBull?'BULL':isBear?'BEAR':'—'}</text>
     </svg>
-    <div style="font-size:7.5px;color:var(--faint);letter-spacing:0.06em;text-transform:uppercase">${phaseLabel}</div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:9px;font-weight:700;color:${col};letter-spacing:0.02em">${phaseLabels[safeIdx]}</div>
+      <div style="font-size:7.5px;color:var(--faint);letter-spacing:0.04em">COT Cycle · Phase ${phase} of 4</div>
+    </div>
   </div>`;
 }
 
@@ -7652,15 +7646,17 @@ function cotTab(m){
     const bCol = (_BADGE_COL[backendPhaseDir]||{})[backendPhase] || '#7a8ab0';
     const dirArrow = backendPhaseDir==='bull' ? '↑' : backendPhaseDir==='bear' ? '↓' : '';
     const _crowdedNote = backendPhase===3 ? ` — Monitor for reversal: crowded position` : '';
-    html+=`<div class="cot-phase-badge" style="background:${bCol}10;border:1px solid ${bCol}33;color:${bCol}">
-      <div class="cp-num">${backendPhase}</div>
-      <div class="cp-sep"></div>
-      <div class="cp-body">
-        <div class="cp-title">${dirArrow ? dirArrow+' ' : ''}${backendPhaseLabel}</div>
-        <div class="cp-desc">${backendPhaseDesc}${_crowdedNote}</div>
+    html+=`<div style="display:flex;align-items:stretch;gap:10px;margin-bottom:2px;flex-wrap:wrap">
+      <div class="cot-phase-badge" style="background:${bCol}10;border:1px solid ${bCol}33;color:${bCol};flex:1;min-width:0">
+        <div class="cp-num">${backendPhase}</div>
+        <div class="cp-sep"></div>
+        <div class="cp-body">
+          <div class="cp-title">${dirArrow ? dirArrow+' ' : ''}${backendPhaseLabel}</div>
+          <div class="cp-desc">${backendPhaseDesc}${_crowdedNote}</div>
+        </div>
       </div>
+      ${cotCycleClock(backendPhase, backendPhaseDir==='bull', backendPhaseDir==='bear')}
     </div>`;
-    html += cotCycleClock(backendPhase, backendPhaseDir==='bull', backendPhaseDir==='bear');
   }
 
   // Stacked chart section
