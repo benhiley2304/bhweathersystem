@@ -8349,12 +8349,16 @@ async def get_regime_history():
         labels_out = labels_out[-52:]
         signal_rows = signal_rows[-52:]
 
+        # Convert raw ±4 scores → 0-10 scale (5.0 = neutral) for consistency
+        # with all other scores in the system and the arc renderer
+        scores_10 = [round((s + 4.0) / 8.0 * 10.0, 1) for s in scores_out]
+
         return {
             "dates":   dates_out,
-            "scores":  scores_out,
+            "scores":  scores_10,
             "labels":  labels_out,
             "signals": signal_rows,
-            "current_score": scores_out[-1] if scores_out else None,
+            "current_score": scores_10[-1] if scores_10 else None,
             "current_label": labels_out[-1] if labels_out else None,
         }
 

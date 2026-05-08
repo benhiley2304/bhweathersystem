@@ -4962,13 +4962,13 @@ function _renderClimateArcAnimated(canvas, data, _unused, live={}) {
       // _buildPhaseSummary removed per user request
       const lastScore = data.scores[data.scores.length - 1];
       const lastLabel = data.labels[data.labels.length - 1];
-      const scoreStr  = (lastScore > 0 ? '+' : '') + lastScore.toFixed(2);
+      const scoreStr  = lastScore.toFixed(1);
       const lastCol   = _scoreToColor(lastScore);
       const note = document.getElementById('ov-arc-foot-note');
       if (note) {
         // Footnote: clearly identifies this as history context, not the live reading
-        const _hiStr = Math.max(...data.scores) >= 0 ? '+'+Math.max(...data.scores).toFixed(2) : Math.max(...data.scores).toFixed(2);
-        const _loStr = Math.min(...data.scores) >= 0 ? '+'+Math.min(...data.scores).toFixed(2) : Math.min(...data.scores).toFixed(2);
+        const _hiStr = Math.max(...data.scores).toFixed(1);
+        const _loStr = Math.min(...data.scores).toFixed(1);
         note.textContent = `52W CLIMATE HISTORY  ·  HI ${_hiStr}  ·  LO ${_loStr}  ·  ${data.scores.length} BARS`;
         note.style.color = 'rgba(255,255,255,0.28)';
       }
@@ -5038,7 +5038,7 @@ function _drawLiveDot(canvas, data, phase) {
   const ARC_CY = H * 0.56;
   const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
   const ARC_IR = ARC_OR * 0.30;
-  const MIN_S = -4, MAX_S = 4;
+  const MIN_S = 0, MAX_S = 10;
   const SWEEP = 210 * Math.PI / 180;
   const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
   const N = scores.length;
@@ -5060,9 +5060,8 @@ function _drawLiveDot(canvas, data, phase) {
 }
 
 function _scoreToColor(score) {
-  // Maps -4..+4 to RGB
-  // -4 = deep red (#f04040), 0 = muted grey (#4a5268), +4 = vivid green (#30d988)
-  const t = (score + 4) / 8; // 0..1
+  // Maps 0..10 to RGB (5 = neutral grey, 10 = vivid green, 0 = deep red)
+  const t = score / 10; // 0..1
   if (t >= 0.5) {
     // grey → green
     const u = (t - 0.5) * 2; // 0..1
@@ -5134,7 +5133,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Strong bull: electric cyan-to-mint, neutral: steel, bear: vivid crimson
   function scoreColor(s) {
     // Clamp to 4-band palette
-    const t = Math.max(-1, Math.min(1, s / 3.5));
+    const t = Math.max(-1, Math.min(1, (s - 5) / 3.5));
     if (t >= 0) {
       // 0→1: steel-blue → electric cyan → neon mint
       const CYAN  = [0, 230, 255];
@@ -5189,7 +5188,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   const ARC_CY = H * 0.56;
   const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
   const ARC_IR = ARC_OR * 0.30;
-  const MIN_S  = -4, MAX_S = 4;
+  const MIN_S  = 0, MAX_S = 10;
   const SWEEP  = 210 * Math.PI / 180;
   const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
   const scoreToR = s => ARC_IR + (ARC_OR - ARC_IR) * ((s - MIN_S) / (MAX_S - MIN_S));
@@ -5434,11 +5433,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       ctx.font = '400 4.5px "SF Mono",monospace';
       ctx.textAlign = 'left';
       ctx.fillStyle = 'rgba(48,217,136,0.70)';
-      ctx.fillText((scoreMax >= 0 ? '+' : '') + scoreMax.toFixed(2), brkX + tickL + 2, hiY + 1.5);
+      ctx.fillText(scoreMax.toFixed(1), brkX + tickL + 2, hiY + 1.5);
 
       // LO label
       ctx.fillStyle = scoreMin < 0 ? 'rgba(240,80,80,0.70)' : 'rgba(48,217,136,0.70)';
-      ctx.fillText((scoreMin >= 0 ? '+' : '') + scoreMin.toFixed(2), brkX + tickL + 2, loY + 1.5);
+      ctx.fillText(scoreMin.toFixed(1), brkX + tickL + 2, loY + 1.5);
 
       // AVG dashed tick
       const avgT = (scoreAvg + 4) / 8;
@@ -5464,8 +5463,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       const colW = lW / 2;
 
       const stats = [
-        { lbl:'52W HI', val:(scoreMax>=0?'+':'')+scoreMax.toFixed(2), col:[0,200,130] },
-        { lbl:'52W LO', val:(scoreMin>=0?'+':'')+scoreMin.toFixed(2), col: scoreMin < 0 ? [240,80,80] : [0,200,120] },
+        { lbl:'52W HI', val:scoreMax.toFixed(1), col:[0,200,130] },
+        { lbl:'52W LO', val:scoreMin.toFixed(1), col: scoreMin < 3.5 ? [240,80,80] : [0,200,120] },
       ];
 
       stats.forEach((st, i) => {
@@ -5623,7 +5622,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
   // Zero / neutral dashed reference ring
   ctx.save();
-  const zeroR = scoreToR(0);
+  const zeroR = scoreToR(5);
   ctx.beginPath();
   ctx.arc(ARC_CX, ARC_CY, zeroR, START_A, START_A + SWEEP);
   const zG = ctx.createLinearGradient(
@@ -5904,12 +5903,12 @@ function _drawPhaseLabels(ctx, scores, dates, sx, sy, W, PAD_T, chartH, PAD_B, H
   // Detect regime phases: blocks where the label stays the same
   // Only label the dominant phase within each visually-distinct block
   const labels = scores.map(s =>
-    s >= 3.0 ? 'Strong Risk-On' :
-    s >= 1.8 ? 'Risk-On' :
-    s >= 0.7 ? 'Lean Risk-On' :
-    s <= -3.0 ? 'Strong Risk-Off' :
-    s <= -1.8 ? 'Risk-Off' :
-    s <= -0.7 ? 'Lean Risk-Off' : 'Neutral'
+    s >= 8.5 ? 'Strong Risk-On' :
+    s >= 7.25 ? 'Risk-On' :
+    s >= 5.9 ? 'Lean Risk-On' :
+    s <= 1.5 ? 'Strong Risk-Off' :
+    s <= 2.75 ? 'Risk-Off' :
+    s <= 4.1 ? 'Lean Risk-Off' : 'Neutral'
   );
   const N = scores.length;
 
@@ -5942,7 +5941,7 @@ function _drawPhaseLabels(ctx, scores, dates, sx, sy, W, PAD_T, chartH, PAD_B, H
 
     // Position label above the line if risk-on, below if risk-off
     const lineY = sy(avgScore);
-    const isPositive = avgScore >= 0;
+    const isPositive = avgScore >= 5;
     const labelY = isPositive
       ? Math.max(PAD_T + 10, lineY - 9)
       : Math.min(H - PAD_B - 3, lineY + 14);
@@ -6098,7 +6097,7 @@ function _setupArcTooltip(canvas, data) {
     // Hide old crosshair — doesn't apply to polar layout
     if (crosshair) crosshair.classList.remove('visible');
 
-    const scoreStr = (score > 0 ? '+' : '') + score.toFixed(2);
+    const scoreStr = score.toFixed(1);
 
     document.getElementById('ov-arc-tt-date').textContent  = dateStr;
     document.getElementById('ov-arc-tt-label').textContent = label;
