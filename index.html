@@ -36,13 +36,13 @@
   /* --sm05 removed — unused */
   --sm1:   #e06030;  /* orange-red — mild bear */
   --sm2:   #f04040;  /* vivid red — strong bear */
-  --accent:#5c9eff;  /* bright iOS blue */
-  --accent2:#7bb8ff; /* lighter blue for text on dark */
-  --adim:  rgba(92,158,255,0.14);
+  --accent:#c8a96e;  /* warm premium gold */
+  --accent2:#e8d5b0; /* warm off-white */
+  --adim:  rgba(200,169,110,0.14);
   --gold:  #f5c842;
   /* ── COT group colours ── */
-  --comm-c:  #f0f4ff;  /* Commercials — bright white */
-  --lspec-c: #30d988;  /* Large Specs — vivid emerald */
+  --comm-c:  #5c9eff;  /* Commercials — iOS blue */
+  --lspec-c: #f5c842;  /* Large Specs — gold/yellow */
   --sspec-c: #e03a2a;  /* Small Specs — vivid red */
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1463,7 +1463,7 @@ a{color:inherit;text-decoration:none}
 .ov-news-narr-label{
   display:flex;align-items:center;gap:5px;
   font-size:7.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;
-  color:#5c9eff;margin-bottom:7px;
+  color:var(--dim);margin-bottom:7px;
 }
 .ov-news-narr-text{
   font-size:11px;line-height:1.68;color:var(--text);text-transform:none;
@@ -1795,8 +1795,8 @@ a{color:inherit;text-decoration:none}
 
 /* Section heading */
 /* V15: Section headers upgraded */
-.sec-h{font-size:8.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(150,200,255,0.75);margin-bottom:14px;padding-bottom:8px;padding-left:8px;border-bottom:1px solid var(--bdr);border-left:2px solid rgba(92,158,255,0.4);display:flex;align-items:center;gap:8px;position:relative;}
-.sec-h::before{content:'';display:inline-block;width:3px;height:10px;border-radius:2px;background:var(--accent);opacity:1;flex-shrink:0;box-shadow:0 0 6px rgba(92,158,255,0.4)}
+.sec-h{font-size:8.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(230,220,200,0.70);margin-bottom:14px;padding-bottom:8px;padding-left:8px;border-bottom:1px solid var(--bdr);border-left:2px solid rgba(200,169,110,0.35);display:flex;align-items:center;gap:8px;position:relative;}
+.sec-h::before{content:'';display:inline-block;width:3px;height:10px;border-radius:2px;background:var(--accent);opacity:1;flex-shrink:0;box-shadow:0 0 5px rgba(200,169,110,0.3)}
 
 /* ──────────────────────────────────────────────
    COT TAB
@@ -1821,7 +1821,7 @@ a{color:inherit;text-decoration:none}
 .cc-idx{font-family:var(--mono);font-size:26px;font-weight:800;line-height:1;margin-bottom:4px;color:var(--text);letter-spacing:-0.03em}
 .cc-idx sup{font-size:10px;color:var(--dim);font-weight:600}
 .cc-gauge{height:4px;border-radius:2px;background:rgba(255,255,255,0.10);overflow:hidden;margin-bottom:6px;position:relative;box-shadow:inset 0 1px 2px rgba(0,0,0,0.3)}
-.cc-gauge-f{height:100%;border-radius:2px;background:var(--accent);position:absolute;top:0;left:0;transition:width 0.4s}
+.cc-gauge-f{height:100%;border-radius:2px;background:var(--bdr3);position:absolute;top:0;left:0;transition:width 0.4s}
 .cc-net{font-size:9px;color:var(--dim);font-family:var(--mono);margin-bottom:4px}
 .cc-tag{font-size:8px;font-weight:700;letter-spacing:0.04em;padding:2px 8px;border-radius:4px;display:inline-block}
 .cc-desc{font-size:8.5px;color:var(--dim);line-height:1.5;margin-top:5px;opacity:0.9}
@@ -3156,7 +3156,7 @@ function renderRegime(){
   const vixEl=document.getElementById('regime-vix');
   if(vixEl && reg.vix_level!=null){
     vixEl.textContent='VIX '+reg.vix_level.toFixed(1);
-    vixEl.style.color=reg.vix_level>=30?'#e03a2a':reg.vix_level>=23?'#e06030':reg.vix_level<=14?'#3b82c4':'var(--dim)';
+    vixEl.style.color=reg.vix_level>=30?'#e03a2a':reg.vix_level>=23?'#e06030':reg.vix_level<=14?'var(--dim)':'var(--dim)';
   }
 }
 
@@ -3815,7 +3815,7 @@ function renderOverview(){
     const cuts12m = rateSig.cuts_12m;
     const cuts18m = rateSig.cuts_18m;
     const rateNorm = rateSig.rate_norm??0.5;
-    const rateBarCol = rateNorm>=0.7?'#3b82c4':rateNorm<=0.3?'#e03a2a':'#5c9eff';
+    const rateBarCol = rateNorm>=0.7?'#3b82c4':rateNorm<=0.3?'#e03a2a':'#adb8d0';
     const ratePct = Math.round(rateNorm*100);
     const rateCardHtml = (effr!=null||cuts12m!=null) ? `
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--bdr)">
@@ -3830,11 +3830,11 @@ function renderOverview(){
           </div>`:''}
           ${cuts12m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
             <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${cuts12m>0?'Cuts Priced':'Hike Risk'} 12M</span>
-            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#3b82c4':'#5c9eff'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</span>
+            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#3b82c4':'#adb8d0'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</span>
           </div>`:''}
           ${cuts18m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
             <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${(cuts18m||0)>0?'Cuts 18M':'Hike 18M'}</span>
-            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#3b82c4':'#5c9eff'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</span>
+            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#3b82c4':'#adb8d0'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</span>
           </div>`:''}
         </div>
         <div style="height:2px;background:var(--surf3);border-radius:2px;overflow:hidden;margin-bottom:3px">
@@ -3977,13 +3977,13 @@ function renderClimatePanel(reg, markets, mktMap){
   const creditSig=regSignals['Credit']||{};
   const hygRet=ret.HYG?.return_1m;
   const lqdRet=ret.LQD?.return_1m;
-  const creditCol=hyTrend==='Tightening'?'#3b82c4':hyTrend==='Widening'?'#e03a2a':'#5a6480';
+  const creditCol=hyTrend==='Tightening'?'#adb8d0':hyTrend==='Widening'?'#e03a2a':'#5a6480';
 
   // Yield Curve
   const t10y2y=ycurve.t10y2y;
   const curveRegime=ycurve.curve_regime||'';
   const curveSig=regSignals['Yield Curve']||{};
-  const curveCol=curveRegime==='Normal'||curveRegime==='Steepening'?'#3b82c4':curveRegime==='Inverted'?'#e03a2a':curveRegime==='Flat'?'#b87333':'#5a6480';
+  const curveCol=curveRegime==='Normal'||curveRegime==='Steepening'?'#adb8d0':curveRegime==='Inverted'?'#e03a2a':curveRegime==='Flat'?'#b87333':'#5a6480';
 
   // Rates (10Y, Real Yield, EFFR)
   const y10=dgs10.level;
@@ -3994,16 +3994,16 @@ function renderClimatePanel(reg, markets, mktMap){
   const effr=rateSig.effr;
   const cuts12m=rateSig.cuts_12m;
   const rateLabel=reg.rate_label||'';
-  const y10Col=y10chg!=null?(y10chg<-0.2?'#3b82c4':y10chg>0.3?'#e03a2a':'var(--dim)'):'var(--dim)';
-  const ryCol=ryVal!=null?(ryVal<0?'#3b82c4':ryVal>2?'#e03a2a':'var(--dim)'):'var(--dim)';
+  const y10Col=y10chg!=null?(y10chg<-0.2?'#adb8d0':y10chg>0.3?'#e03a2a':'var(--dim)'):'var(--dim)';
+  const ryCol=ryVal!=null?(ryVal<0?'#adb8d0':ryVal>2?'#e03a2a':'var(--dim)'):'var(--dim)';
 
   // Inflation & Fed
   const cpi=infl.cpi_yoy;
   const inflTrend=infl.trend||'';
   const fbTrend=fedbs.trend||'';
   const fbLevel=fedbs.level;
-  const inflCol=inflTrend==='Falling'?'#3b82c4':inflTrend==='Rising'?'#e06030':'#5a6480';
-  const fbCol=fbTrend==='Contracting'?'#e03a2a':fbTrend==='Expanding'?'#3b82c4':'#5a6480';
+  const inflCol=inflTrend==='Falling'?'#adb8d0':inflTrend==='Rising'?'#e06030':'#5a6480';
+  const fbCol=fbTrend==='Contracting'?'#e03a2a':fbTrend==='Expanding'?'#adb8d0':'#5a6480';
 
   // Risk Appetite
   const vixLevel=lev.VIX;
@@ -4011,7 +4011,7 @@ function renderClimatePanel(reg, markets, mktMap){
   const goldRet1m=ret.GLD?.return_1m;
   const copperRet1m=ret.COPPER?.return_1m;
   const vixSig=regSignals['VIX']||{};
-  const riskCol=vixLevel!=null?(vixLevel<16?'#3b82c4':vixLevel<21?'var(--dim)':vixLevel<27?'#b87333':vixLevel<35?'#e06030':'#e03a2a'):'var(--dim)';
+  const riskCol=vixLevel!=null?(vixLevel<16?'var(--dim)':vixLevel<21?'var(--dim)':vixLevel<27?'#b87333':vixLevel<35?'#e06030':'#e03a2a'):'var(--dim)';
 
   // Dollar
   const dxySig=regSignals['DXY']||regSignals['Dollar']||{};
@@ -4019,12 +4019,12 @@ function renderClimatePanel(reg, markets, mktMap){
   const dxyLevel=lev.DXY;
   const usdJpySig=regSignals['USD/JPY']||{};
   const usdJpyVal=ret.USDJPY?.return_1m;
-  const dxyCol=dxyRet1m!=null?(Math.abs(dxyRet1m)<0.5?'var(--dim)':dxyRet1m>0?'#e06030':'#3b82c4'):'var(--dim)';
+  const dxyCol=dxyRet1m!=null?(Math.abs(dxyRet1m)<0.5?'var(--dim)':dxyRet1m>0?'#e06030':'#adb8d0'):'var(--dim)';
 
   // ── Build unified market environment cards
   function menvCard(topic, primaryVal, primaryCol, secondaryLine, badgeEl, priceRowHtml, accentCol){
     const accent=accentCol||'transparent';
-    return `<div class="ov-menv-card" style="--menv-accent:${accent};border-left:3px solid ${accentCol?accentCol+'33':'var(--bdr)'}">
+    return `<div class="ov-menv-card" style="--menv-accent:${accent};border-left:3px solid var(--bdr2)">
       <div class="ov-menv-topic">${topic}</div>
       <div class="ov-menv-primary" style="color:${primaryCol||'var(--text)'}">${primaryVal}</div>
       ${secondaryLine?`<div class="ov-menv-secondary">${secondaryLine}</div>`:''}
@@ -4077,7 +4077,7 @@ function renderClimatePanel(reg, markets, mktMap){
 
   // 4. Rates — 10Y yield + real yield + EFFR (all rates in one place)
   const rateBadgeText=rateLabel||(cuts12m!=null?(cuts12m>=2?'Dovish':cuts12m<=0.25?'Hawkish':'Flat Path'):'');
-  const rateAccent=cuts12m!=null?(cuts12m>=1.5?'#3b82c4':cuts12m<=0.25?'#e03a2a':'#5c9eff'):'#5c9eff';
+  const rateAccent=cuts12m!=null?(cuts12m>=1.5?'#3b82c4':cuts12m<=0.25?'#e03a2a':'#adb8d0'):'#adb8d0';
   const ratesCard=menvCard(
     'Rates',
     y10!=null?y10.toFixed(2)+'%':'—', y10Col,
@@ -4086,7 +4086,7 @@ function renderClimatePanel(reg, markets, mktMap){
     [
       ryVal!=null?priceChip('Real',retStr(ryVal),ryCol):'',
       effr!=null?priceChip('EFFR',effr.toFixed(2)+'%','var(--dim)'):'',
-      cuts12m!=null?priceChip('Cuts 12m',cuts12m.toFixed(2),cuts12m>=1?'#3b82c4':'var(--dim)'):'',
+      cuts12m!=null?priceChip('Cuts 12m',cuts12m.toFixed(2),cuts12m>=1?'#3b82c4':'var(--faint)'):'',
     ].filter(Boolean).join(''),
     rateAccent
   );
@@ -4156,7 +4156,7 @@ function renderClimatePanel(reg, markets, mktMap){
     return items.map(({k,v})=>{
       const lbl=DRIVER_LABELS[k]||k;
       const dir=v>0.05?'tailwind':v<-0.05?'headwind':'neutral';
-      const col=v>0.05?'#3b82c4':v<-0.05?'#e03a2a':'#5a6480';
+      const col=v>0.05?'#adb8d0':v<-0.05?'#e03a2a':'#5a6480';
       return `<span style="color:${col}">${lbl}: ${dir}</span>`;
     }).join(' &nbsp;\u00b7&nbsp; ');
   }
@@ -4256,7 +4256,7 @@ function renderMacroDataPanels(reg){
 
   // ── Yield Curve ─────────────────────────────────────────────────────────────
   const cr_regime   = yc.curve_regime||'Normal';
-  const crCol       = cr_regime==='Inverted'?'#e03a2a':cr_regime.includes('Flat')?'#b87333':cr_regime==='Steepening'?'#3b82c4':'#5c9eff';
+  const crCol       = cr_regime==='Inverted'?'#e03a2a':cr_regime.includes('Flat')?'#b87333':cr_regime==='Steepening'?'#adb8d0':'#adb8d0';
   const t10y2y      = yc.t10y2y;
   const spreadStr   = t10y2y!=null?`${t10y2y>=0?'+':''}${t10y2y.toFixed(2)}%`:'—';
   const chg3mStr    = yc.t10y2y_3m_chg!=null?`${yc.t10y2y_3m_chg>=0?'+':''}${yc.t10y2y_3m_chg.toFixed(2)}%`:'';
@@ -4269,12 +4269,12 @@ function renderMacroDataPanels(reg){
   const hyMax=700,igMax=200;
   const hyPct    = hyOas!=null?Math.min(100,(hyOas/hyMax)*100):0;
   const igPct    = igOas!=null?Math.min(100,(igOas/igMax)*100):0;
-  const hyCol    = hyOas!=null?(hyOas<250?'#3b82c4':hyOas<350?'#5c9eff':hyOas<500?'#b87333':'#e03a2a'):'#5a6480';
-  const igCol    = igOas!=null?(igOas<80?'#3b82c4':igOas<120?'#5c9eff':igOas<170?'#b87333':'#e03a2a'):'#5a6480';
-  const crSpreadCol = hyTrend==='Tightening'?'#3b82c4':hyTrend==='Widening'?'#e03a2a':'#adb8d0';
+  const hyCol    = hyOas!=null?(hyOas<250?'#adb8d0':hyOas<350?'#9aabb0':hyOas<500?'#b87333':'#e03a2a'):'#5a6480';
+  const igCol    = igOas!=null?(igOas<80?'#adb8d0':igOas<120?'#9aabb0':igOas<170?'#b87333':'#e03a2a'):'#5a6480';
+  const crSpreadCol = hyTrend==='Tightening'?'#adb8d0':hyTrend==='Widening'?'#e03a2a':'#adb8d0';
   const crLabel  = hyTrend==='Tightening'?'Tightening':hyTrend==='Widening'?'Widening':'Neutral';
   const ryVal    = ry.value??null;
-  const ryCol    = ryVal!=null?(ryVal<0?'#3b82c4':ryVal>2.5?'#e03a2a':ryVal>1.0?'#b87333':'#5c9eff'):'#5a6480';
+  const ryCol    = ryVal!=null?(ryVal<0?'#adb8d0':ryVal>2.5?'#e03a2a':ryVal>1.0?'#b87333':'#9aabb0'):'#5a6480';
   const effr     = rs.effr??null;
   const cuts12m  = rs.cuts_12m??null;
 
@@ -4285,7 +4285,7 @@ function renderMacroDataPanels(reg){
   const fbChg6mP = fb.chg_6m_pct??null;
   const fbMin=4.0,fbMax=9.0;
   const fbPct    = fbLevel!=null?Math.min(100,Math.max(0,((fbLevel-fbMin)/(fbMax-fbMin))*100)):0;
-  const fbCol    = fbTrend.includes('Contract')||fbTrend.includes('QT')?'#e03a2a':fbTrend.includes('Expand')?'#5c9eff':'#adb8d0';
+  const fbCol    = fbTrend.includes('Contract')||fbTrend.includes('QT')?'#e03a2a':fbTrend.includes('Expand')?'#adb8d0':'#adb8d0';
 
   // ── Labour ──────────────────────────────────────────────────────────────────
   const nfpMom    = lab.nfp_mom??null;
@@ -4326,13 +4326,13 @@ function renderMacroDataPanels(reg){
   const ffWages   = ffLatest.wages||null;
 
   // Colour helpers
-  const nfpCol = nfpMom!=null?(nfpMom>200?'#22c97a':nfpMom>100?'#3b82c4':nfpMom>0?'#5c9eff':nfpMom>-50?'#b87333':'#e03a2a'):'#5a6480';
-  const surpCol = nfpSurp!=null?(nfpSurp>32?'#22c97a':nfpSurp>0?'#3b82c4':nfpSurp>-32?'#b87333':'#e03a2a'):'#adb8d0';
-  const urCol   = unrate!=null?(unrate<4.0?'#22c97a':unrate<4.5?'#3b82c4':unrate<5.0?'#b87333':'#e03a2a'):'#5a6480';
+  const nfpCol = nfpMom!=null?(nfpMom>200?'#22c97a':nfpMom>100?'#7aaa88':nfpMom>0?'#adb8d0':nfpMom>-50?'#b87333':'#e03a2a'):'#5a6480';
+  const surpCol = nfpSurp!=null?(nfpSurp>32?'#22c97a':nfpSurp>0?'#adb8d0':nfpSurp>-32?'#b87333':'#e03a2a'):'#adb8d0';
+  const urCol   = unrate!=null?(unrate<4.0?'#22c97a':unrate<4.5?'#adb8d0':unrate<5.0?'#b87333':'#e03a2a'):'#5a6480';
   const urTCol  = urTrend==='Falling'?'#22c97a':urTrend==='Rising'?'#e03a2a':'#adb8d0';
-  const clCol   = claims!=null?(claims<210000?'#22c97a':claims<240000?'#3b82c4':claims<280000?'#b87333':'#e03a2a'):'#5a6480';
-  const joltsCol= jolts!=null?(jolts>8?'#22c97a':jolts>7?'#3b82c4':jolts>6?'#b87333':'#e03a2a'):'#5a6480';
-  const jcCol   = jobsComp!=null?(jobsComp>=6.5?'#22c97a':jobsComp>=5.5?'#3b82c4':jobsComp>=4.5?'#adb8d0':jobsComp>=3.5?'#b87333':'#e03a2a'):'#adb8d0';
+  const clCol   = claims!=null?(claims<210000?'#22c97a':claims<240000?'#adb8d0':claims<280000?'#b87333':'#e03a2a'):'#5a6480';
+  const joltsCol= jolts!=null?(jolts>8?'#22c97a':jolts>7?'#adb8d0':jolts>6?'#b87333':'#e03a2a'):'#5a6480';
+  const jcCol   = jobsComp!=null?(jobsComp>=6.5?'#22c97a':jobsComp>=5.5?'#adb8d0':jobsComp>=4.5?'#6e7d80':jobsComp>=3.5?'#b87333':'#e03a2a'):'#adb8d0';
 
   // Surprise pill renderer
   function surprisePill(label,col){
@@ -4388,7 +4388,7 @@ function renderMacroDataPanels(reg){
 
         <!-- Hero: 10Y-2Y spread -->
         <div class="ov-mc-hero" style="font-size:26px;color:${crCol}">${spreadStr}</div>
-        <div class="ov-mc-hero-sub">10Y − 2Y spread &nbsp;${chg3mStr?`<span style="color:${yc.t10y2y_3m_chg>=0?'#3b82c4':'#e03a2a'}">${chg3mStr} 3m</span>`:''}</div>
+        <div class="ov-mc-hero-sub">10Y − 2Y spread &nbsp;${chg3mStr?`<span style="color:${yc.t10y2y_3m_chg>=0?'#adb8d0':'#e03a2a'}">${chg3mStr} 3m</span>`:''}</div>
 
         <!-- Canvas sparkline -->
         <div class="ov-yc-canvas-wrap"><canvas id="ov-yc-canvas"></canvas></div>
@@ -4448,7 +4448,7 @@ function renderMacroDataPanels(reg){
         <div class="ov-mc-stats">
           ${chip('Real Yield',ryVal!=null?`${ryVal>=0?'+':''}${ryVal.toFixed(2)}%`:'—',ryCol)}
           ${chip('EFFR',effr!=null?effr.toFixed(2)+'%':'—')}
-          ${chip('Cuts 12m',cuts12m!=null?(cuts12m<=0?`+${Math.abs(cuts12m).toFixed(2)}%`:`−${Math.abs(cuts12m).toFixed(2)}%`):'—',cuts12m!=null&&cuts12m>0?'#3b82c4':cuts12m!=null&&cuts12m<0?'#e03a2a':'')}
+          ${chip('Cuts 12m',cuts12m!=null?(cuts12m<=0?`+${Math.abs(cuts12m).toFixed(2)}%`:`−${Math.abs(cuts12m).toFixed(2)}%`):'—',cuts12m!=null&&cuts12m>0?'#adb8d0':cuts12m!=null&&cuts12m<0?'#e03a2a':'')}
         </div>
       </div>
 
@@ -4469,12 +4469,12 @@ function renderMacroDataPanels(reg){
         <div class="ov-mc-hero" style="font-size:28px;color:${fbCol}">${fbLevel!=null?`$${fbLevel.toFixed(2)}T`:'—'}</div>
         <div class="ov-mc-hero-sub">
           Total assets &nbsp;
-          ${fbChg3m!=null?`<span style="color:${fbChg3m>=0?'#5c9eff':'#e03a2a'}">${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T 3m</span>`:''}
+          ${fbChg3m!=null?`<span style="color:${fbChg3m>=0?'#adb8d0':'#e03a2a'}">${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T 3m</span>`:''}
         </div>
 
         <!-- Level bar: $4T floor → $9T peak -->
         <div class="ov-bs-track">
-          <div class="ov-bs-fill" style="width:${fbPct.toFixed(1)}%;background:linear-gradient(90deg,#3b82c4 0%,${fbCol} 100%)"></div>
+          <div class="ov-bs-fill" style="width:${fbPct.toFixed(1)}%;background:linear-gradient(90deg,#adb8d0 0%,${fbCol} 100%)"></div>
         </div>
         <div class="ov-bs-labels">
           <span class="ov-bs-label">$4T QT floor</span>
@@ -6518,7 +6518,7 @@ function initMobHeroCanvas(regCol){
   canvas.width=W; canvas.height=H;
   const ctx=canvas.getContext('2d');
 
-  const baseCol=regCol||'#5c9eff';
+  const baseCol=regCol||'#7b8ba8';
   let r=92,g=158,b=255;
   if(baseCol.startsWith('#')&&baseCol.length===7){
     r=parseInt(baseCol.slice(1,3),16);
@@ -6617,7 +6617,7 @@ function initOvCanvas(regCol){
   canvas.height=H;
   const ctx=canvas.getContext('2d');
 
-  const baseCol=regCol||'#5c9eff';
+  const baseCol=regCol||'#7b8ba8';
   let r=92,g=158,b=255;
   if(baseCol.startsWith('#')&&baseCol.length===7){
     r=parseInt(baseCol.slice(1,3),16);
@@ -7302,11 +7302,11 @@ function dHead(m,ws,col,bg){
 const FACTOR_META = {
   cot: {
     label: 'Positioning',
-    accent: '#5c9eff',
+    accent: '#7b8ba8',
     tint: 'rgba(92,158,255,0.05)',
     bg: `<svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%">
       <defs>
-        <linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0f4ff" stop-opacity="0.9"/><stop offset="100%" stop-color="#f0f4ff" stop-opacity="0.2"/></linearGradient>
+        <linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5c9eff" stop-opacity="0.9"/><stop offset="100%" stop-color="#5c9eff" stop-opacity="0.2"/></linearGradient>
         <linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22c97a" stop-opacity="0.95"/><stop offset="100%" stop-color="#22c97a" stop-opacity="0.15"/></linearGradient>
         <linearGradient id="cg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e03a2a" stop-opacity="0.9"/><stop offset="100%" stop-color="#e03a2a" stop-opacity="0.1"/></linearGradient>
       </defs>
@@ -7558,7 +7558,7 @@ function fCard(id,sc,weights,extras){
   if(!sc)return'';
   const mobileMeta={'cot':'Posit.','seasonal':'Seas.','momentum':'Mom.','macro':'Macro','relval':'RelVal','regime':'Climate','pcr':'PCR'};
   const isMob=window.innerWidth<=700;
-  const meta=FACTOR_META[id]||{label:id,accent:'#5c9eff',tint:'',bg:''};
+  const meta=FACTOR_META[id]||{label:id,accent:'#7b8ba8',tint:'',bg:''};
   if(isMob&&mobileMeta[id]) meta.label=mobileMeta[id];
   const sv=sc.score??5.0;
   const col=sHex(sv);
@@ -8406,8 +8406,8 @@ async function initCotCharts(marketId){
       :[data.comm_idx_series,  data.lspec_idx_series, data.sspec_idx_series]);
   // Colors follow the swapped order so Fund Managers get the bright lspec green
   const colors=isCryptoMarket
-    ?['#22c97a','#f0f4ff','#e03a2a']   // [lspec-c, comm-c, sspec-c]
-    :['#f0f4ff','#22c97a','#e03a2a']; // [comm-c,  lspec-c, sspec-c]
+    ?['#f5c842','#5c9eff','#e03a2a']   // [lspec-c, comm-c, sspec-c]
+    :['#5c9eff','#f5c842','#e03a2a']; // [comm-c,  lspec-c, sspec-c]
   const panels=['comm-latest','lspec-latest','sspec-latest'];
 
   // Update latest value labels
@@ -9052,7 +9052,7 @@ function macroTab(m){
       const fgnCur2 = fgn.currency||'FGN';
       const diff2 = (fgn.score||0)-(usd.score||0);
       const _fxPairInterp = diff2>0.5?`${fgnCur2} macro is outperforming USD — ${fgnCur2} economic data is beating on key indicators. Fundamental tailwind for this pair.`:diff2<-0.5?`USD macro is outperforming ${fgnCur2} — stronger US data is a headwind for this pair. Rate differential favours the dollar.`:`${fgnCur2}/USD macro differential is balanced — central bank policy divergence and risk appetite are the near-term swing factors.`;
-      const _interpCol2 = diff2>0.5?'#22c97a':diff2<-0.5?'#e03a2a':'#5c9eff';
+      const _interpCol2 = diff2>0.5?'#22c97a':diff2<-0.5?'#e03a2a':'#6e7d80';
       const _interpRGB2 = diff2>0.5?'48,217,136':diff2<-0.5?'240,64,64':'92,158,255';
       html+=`<div style="padding:12px 14px;border-radius:10px;background:rgba(${_interpRGB2},0.06);border:1px solid rgba(${_interpRGB2},0.22);margin-top:14px">
         <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
@@ -9411,7 +9411,7 @@ function macroTab(m){
   const _interpFn = MACRO_INTERP_CONTEXT[MACRO_INTERP_MAP[m.id]];
   if(_interpFn){
     const _interpText = _interpFn(msc);
-    const _interpCol = msc>6 ? '#22c97a' : msc<4 ? '#e03a2a' : '#5c9eff';
+    const _interpCol = msc>6 ? '#22c97a' : msc<4 ? '#e03a2a' : '#6e7d80';
     const _interpRGB = msc>6 ? '48,217,136' : msc<4 ? '240,64,64' : '92,158,255';
     html+=`<div style="padding:12px 14px;border-radius:10px;background:rgba(${_interpRGB},0.06);border:1px solid rgba(${_interpRGB},0.22);margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
@@ -9827,7 +9827,7 @@ function relvalTab(m){
   const tgCfg = {
     bull:    {c:'#22c97a',l:'Uptrend',  dot:'#22c97a'},
     bear:    {c:'#e03a2a',l:'Downtrend',dot:'#e03a2a'},
-    neutral: {c:'#5c9eff',l:'Sideways', dot:'#5c9eff'},
+    neutral: {c:'#6e7d80',l:'Sideways', dot:'#6e7d80'},
   };
   const tgc  = tgCfg[tg] || tgCfg.neutral;
   const zAbs = zComp!=null ? Math.abs(zComp) : null;
@@ -10036,7 +10036,7 @@ function relvalTab(m){
     const logic = ln.logic || '';
     const zone  = stochZone(v);
     const barW  = v!=null ? Math.min(100,Math.max(0,v)) : 50;
-    const zvCol = zv==null?'var(--faint)':Math.abs(zv)>=1.5?'#f5c842':Math.abs(zv)>=0.8?'#5c9eff':'var(--faint)';
+    const zvCol = zv==null?'var(--faint)':Math.abs(zv)>=1.5?'#f5c842':Math.abs(zv)>=0.8?'#adb8d0':'var(--faint)';
     const rpSign= rp!=null&&rp>0?'+':'';
     const hasBt = btWr!=null&&btN!=null;
     const btCol = hasBt?(btWr>=80?'#22c97a':btWr>=65?'#f5c842':'#94a3b8'):'var(--faint)';
@@ -10408,7 +10408,7 @@ function regimeTab(m){
   const intlDiff     = d.intl_diff     ?? null;
   const intlDetail   = d.intl_detail   || null;
 
-  const regColor = rawScore >= 6.5 ? '#22c97a' : rawScore <= 3.5 ? '#e03a2a' : '#5c9eff';
+  const regColor = rawScore >= 6.5 ? '#22c97a' : rawScore <= 3.5 ? '#e03a2a' : '#6e7d80';
 
   // ── AI narrative — populated async by loadRegimeNarrative(), not from DATA ──
   // (DATA.news_context removed from /api/scores payload; fetched via /api/news-context)
@@ -10615,7 +10615,7 @@ function regimeTab(m){
           (m.id==='Z'||m.id==='R') ? 'Rate Path (BoE)' : 'Rate Path (US)',
           rateContrib,
           (m.id==='Z'||m.id==='R') ? 'BoE SONIA trend (FRED IUDSOIA) — cuts=bullish, hikes=bearish' : 'Fed rate expectations via ZQ futures',
-          '#5c9eff'
+          '#6e7d80'
         )}
         ${intlContrib !== null ? _contribRow('CB Differential', intlContrib, isFX ? `${CB_NAMES[FX_CB[m.id]]||FX_CB[m.id]} path vs Fed` : 'N/A', '#f5c842') : ''}
       </div>
@@ -10658,7 +10658,7 @@ function regimeTab(m){
   const rateNorm= rateSig.rate_norm ?? rateScore ?? 0.5;
   const rateErr = rateSig.error    ?? null;
 
-  const rateBarCol  = rateNorm >= 0.7 ? '#3b82c4' : rateNorm <= 0.3 ? '#e03a2a' : '#5c9eff';
+  const rateBarCol  = rateNorm >= 0.7 ? '#3b82c4' : rateNorm <= 0.3 ? '#e03a2a' : '#adb8d0';
   const rateBarPct  = Math.round(rateNorm * 100);
 
   // Asset-specific rate interpretation
@@ -10709,7 +10709,7 @@ function regimeTab(m){
   // ── Section divider: Rate Path ──
   html += `<div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px">
     <div style="flex:1;height:1px;background:var(--bdr)"></div>
-    <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(92,158,255,0.08);border:1px solid rgba(92,158,255,0.2);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5c9eff">
+    <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(110,125,128,0.12);border:1px solid rgba(110,125,128,0.25);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#adb8d0">
       <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="#5c9eff" stroke-width="1.5" stroke-linecap="round"><path d="M1 7L4 1l3 6"/><path d="M2 5h4"/></svg>
       Rate Path
     </div>
@@ -10757,12 +10757,12 @@ function regimeTab(m){
           </div>`:''}
           ${cuts12m!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">${cuts12m>0?'CUTS PRICED 12M':'HIKE RISK 12M'}</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#3b82c4':'#5c9eff'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#3b82c4':'#adb8d0'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</div>
             <div style="font-size:7px;color:var(--faint);margin-top:2px">${cuts12m>0?cuts12m.toFixed(2)+' = cuts priced':cuts12m<0?Math.abs(cuts12m).toFixed(2)+' = hike priced':'flat path'}</div>
           </div>`:''}
           ${cuts18m!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">${(cuts18m||0)>0?'CUTS PRICED 18M':'HIKE PRICED 18M'}</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#3b82c4':'#5c9eff'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#3b82c4':'#adb8d0'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</div>
             <div style="font-size:7px;color:var(--faint);margin-top:2px">${(cuts18m||0)>0?(cuts18m||0).toFixed(2)+' = cuts priced':(cuts18m||0)<0?Math.abs(cuts18m||0).toFixed(2)+' = hike priced':'flat path'}</div>
           </div>`:''}
         </div>`;
@@ -11113,7 +11113,7 @@ function regimeTab(m){
 
     // ── Composite Score Callout ──────────────────────────────────────────────
     if(_mScore10 !== null){
-      const msCol = _mScore10 >= 6.5 ? '#22c97a' : _mScore10 <= 3.5 ? '#e03a2a' : _mScore10 >= 5.5 ? '#22c97a' : _mScore10 <= 4.5 ? '#e06030' : '#5c9eff';
+      const msCol = _mScore10 >= 6.5 ? '#22c97a' : _mScore10 <= 3.5 ? '#e03a2a' : _mScore10 >= 5.5 ? '#7aaa88' : _mScore10 <= 4.5 ? '#b87333' : '#6e7d80';
       const msLabel = _mScore10 >= 7.5 ? 'Strong Tailwind' : _mScore10 >= 6.0 ? 'Mild Tailwind' : _mScore10 <= 2.5 ? 'Strong Headwind' : _mScore10 <= 4.0 ? 'Mild Headwind' : 'Neutral';
       // Contribution bars for the composite
       const _contribs = [
@@ -11164,7 +11164,7 @@ function regimeTab(m){
       const hyDelta3m = mdCredit.hy_delta_3m;
       const hyRatio   = mdCredit.hy_ig_ratio;
       const hyCol   = hyScore >= 0.5 ? '#22c97a' : hyScore <= -0.5 ? '#e03a2a' : '#f5c842';
-      const trendCol= hyTrend==='Tightening'?'#22c97a':hyTrend==='Widening'?'#e03a2a':'#5c9eff';
+      const trendCol= hyTrend==='Tightening'?'#adb8d0':hyTrend==='Widening'?'#e03a2a':'#6e7d80';
       const trendArrow= hyTrend==='Tightening'?'↓':hyTrend==='Widening'?'↑':'→';
       // Gauge: HY OAS context zones (crisis=600+, stress=450-600, elevated=300-450, normal=200-300, tight=<200)
       const hyGaugePct = Math.min(100, Math.max(0, ((hyBps - 150) / (700 - 150)) * 100));
@@ -11591,7 +11591,7 @@ function regimeTab(m){
     const weightRGBs = {'Primary':'48,217,136','Significant':'92,158,255','Secondary':'154,165,190','Situational':'245,200,66'};
     html += `<div style="display:flex;align-items:center;gap:10px;margin:16px 0 12px">
       <div style="flex:1;height:1px;background:var(--bdr)"></div>
-      <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(92,158,255,0.08);border:1px solid rgba(92,158,255,0.2);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5c9eff">
+      <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(110,125,128,0.12);border:1px solid rgba(110,125,128,0.25);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#adb8d0">
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="#5c9eff" stroke-width="1.5" stroke-linecap="round"><path d="M4 1v2M4 5v2M1 4h2M5 4h2"/></svg>
         Asset-Specific Drivers
       </div>
@@ -12486,7 +12486,7 @@ async function loadHistoryTab(marketId){
 
   // Current score context
   const lastScore = scores[scores.length-1];
-  function histScoreCol(s){ return s>=7.5?'#22c97a':s>=6.0?'#3b82c4':s>=5.5?'#22c97a':s>=4.5?'#94a3b8':s>=4.0?'#7a6a52':s>=2.5?'#e06030':'#e03a2a'; }
+  function histScoreCol(s){ return s>=7.5?'#22c97a':s>=6.0?'#5aaa7a':s>=5.5?'#7aaa88':s>=4.5?'#6e7d80':s>=4.0?'#b87333':s>=2.5?'#e06030':'#e03a2a'; }
   function histScoreLbl(s){ return s>=8.5?'Exceptional Bull':s>=7.5?'Strong Bull':s>=6.5?'Bull':s>=6.0?'Lean Bull':s>=5.5?'Mild Bull':s>=4.5?'Neutral':s>=4.0?'Mild Bear':s>=3.5?'Lean Bear':s>=2.5?'Bear':s>=1.5?'Strong Bear':'Exceptional Bear'; }
   const lastScoreCol = histScoreCol(lastScore);
   const lastScoreLbl = histScoreLbl(lastScore);
