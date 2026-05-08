@@ -3055,13 +3055,13 @@ function diffHex(d){
   return '#e03a2a';
 }
 function sHex(s){
-  // 0-10 scale. Green reserved for genuinely bullish (>=6.5).
-  // Neutral band (4.5-5.5) is cool slate — no green, no red.
+  // 0-10 scale. Pure green-to-red spectrum for score bars & labels.
+  // Green = bullish, red = bearish. No blue in score context.
   if(s>=8.5)  return '#00f09a';  // strong bull  — vivid mint
   if(s>=7.5)  return '#22c97a';  // bull          — teal-green
-  if(s>=6.5)  return '#3b82c4';  // lean bull     — sky blue (directional, not yet green)
-  if(s>=5.5)  return '#5c7fa8';  // mild bull     — muted blue
-  if(s>=4.5)  return '#4a5268';  // neutral       — slate
+  if(s>=6.5)  return '#5aaa7a';  // lean bull     — muted green
+  if(s>=5.5)  return '#7aaa88';  // mild bull     — soft sage
+  if(s>=4.5)  return '#6e7d80';  // neutral       — grey-slate
   if(s>=3.5)  return '#b87333';  // mild bear     — warm copper/amber
   if(s>=2.5)  return '#e06030';  // lean bear     — burnt orange
   if(s>=1.5)  return '#e03a2a';  // bear          — vivid red
@@ -3332,7 +3332,7 @@ function tileColor(ws){
   if(ws>=7.5) return {bg:'rgba(0,240,154,0.12)',text:'#00f09a',pip:'#00f09a'};
   if(ws>=6.5) return {bg:'rgba(38,201,122,0.10)',text:'#22c97a',pip:'#22c97a'};
   if(ws>=5.5) return {bg:'rgba(61,158,116,0.09)',text:'#5aaa88',pip:'#5aaa88'};
-  if(ws>=4.5) return {bg:'rgba(74,82,104,0.20)',text:'#7a8ab0',pip:'#4a5268'};
+  if(ws>=4.5) return {bg:'rgba(74,82,104,0.18)',text:'#6e7d80',pip:'#4a5268'};
   if(ws>=3.5) return {bg:'rgba(196,122,74,0.10)',text:'#c47a4a',pip:'#c47a4a'};
   if(ws>=2.5) return {bg:'rgba(220,90,58,0.12)',text:'#e06030',pip:'#e06030'};
   return {bg:'rgba(240,64,64,0.16)',text:'#e03a2a',pip:'#e03a2a'};
@@ -3362,7 +3362,7 @@ function renderSmartMoney(markets){
     const idx=cot.comm_index;
     const net=cot.comm_net??0;
     const isLong=net>=0;
-    const col=idx>=65?'#22c97a':idx<=35?'#e03a2a':idx>=55?'#3b82c4':idx<=45?'#b87333':'#5a6480';
+    const col=idx>=65?'#22c97a':idx<=35?'#e03a2a':idx>=55?'#5aaa7a':idx<=45?'#b87333':'#5a6480';
     const barW=Math.abs(idx-50)*2;
     return `<div class="ov-smart-item" onclick="selectMkt('${m.id}')">
       <div class="ov-smart-id">${m.id}</div>
@@ -5062,16 +5062,17 @@ function _drawLiveDot(canvas, data, phase) {
   ctx.stroke();
 }
 
-// Shared 6-stop climate colour ramp (0-10, 5=neutral)
-// 0=deep crimson · 2=red · 3.5=amber · 5=slate · 6.5=sky blue · 8=teal · 10=vivid mint
+// Shared 8-stop climate colour ramp (0-10, 5=neutral)
+// 0=deep crimson · 1.5=vivid red · 3=red-orange · 4=orange · 5=slate · 6=blue · 7.5=teal · 10=mint
 const _ARC_PALETTE = [
-  [0,   [196, 26,  46 ]],
-  [2,   [232, 64,  42 ]],
-  [3.5, [232, 137, 42 ]],
-  [5,   [74,  82,  104]],
-  [6.5, [59,  130, 196]],
-  [8,   [34,  201, 122]],
-  [10,  [0,   240, 154]],
+  [0,   [180, 18,  36 ]],  // deep crimson
+  [1.5, [220, 40,  30 ]],  // vivid red
+  [3,   [230, 80,  30 ]],  // red-orange
+  [4,   [210, 110, 40 ]],  // orange
+  [5,   [90,  92,  115]],  // neutral slate (slightly warmer)
+  [6,   [59,  130, 196]],  // lean bull blue
+  [7.5, [34,  201, 122]],  // teal-green
+  [10,  [0,   240, 154]],  // vivid mint
 ];
 function _arcPaletteColor(score) {
   const sc = Math.max(0, Math.min(10, score));
@@ -5560,10 +5561,16 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     const innerY = ARC_CY + Math.sin(midA) * ARC_IR;
     const outerX = ARC_CX + Math.cos(midA) * rOut;
     const outerY = ARC_CY + Math.sin(midA) * rOut;
+    // Score-adaptive alpha: bearish bars punch harder visually
+    const isBull  = s >= 5.5;
+    const isBear  = s < 4.5;
+    const aInner  = isBear ? 0.22 : 0.12;
+    const aMid    = isLast ? 0.80 : (isBear ? 0.65 : isBull ? 0.45 : 0.38);
+    const aOuter  = isLast ? 1.00 : (isBear ? 0.88 : isBull ? 0.68 : 0.55);
     const segGrd = ctx.createLinearGradient(innerX, innerY, outerX, outerY);
-    segGrd.addColorStop(0,   rgb(sc, 0.15));
-    segGrd.addColorStop(0.5, rgb(sc, isLast ? 0.7 : 0.45));
-    segGrd.addColorStop(1,   rgb(sc, isLast ? 0.95 : 0.65));
+    segGrd.addColorStop(0,   rgb(sc, aInner));
+    segGrd.addColorStop(0.5, rgb(sc, aMid));
+    segGrd.addColorStop(1,   rgb(sc, aOuter));
 
     ctx.beginPath();
     ctx.moveTo(ARC_CX + Math.cos(a0) * ARC_IR, ARC_CY + Math.sin(a0) * ARC_IR);
@@ -5583,8 +5590,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     if (!isLast) {
       ctx.beginPath();
       ctx.arc(ARC_CX, ARC_CY, rOut, a0, a1);
-      ctx.strokeStyle = rgb(sc, 0.55);
-      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = rgb(sc, isBear ? 0.75 : 0.55);
+      ctx.lineWidth = isBear ? 1.0 : 0.8;
       ctx.stroke();
     } else {
       // Current bar: brighter with glow
