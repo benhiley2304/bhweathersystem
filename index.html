@@ -5194,16 +5194,16 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Radial vignette from arc centre — atmospheric glow
   // Atmospheric bloom — two passes for depth
   const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_OR * 1.6);
-  vigGrd.addColorStop(0,    rgb(curC, 0.26));   // deeper centre bloom
-  vigGrd.addColorStop(0.25, rgb(curC, 0.14));
-  vigGrd.addColorStop(0.55, rgb(curC, 0.06));
+  vigGrd.addColorStop(0,    rgb(curC, 0.14));   // subtle centre bloom
+  vigGrd.addColorStop(0.30, rgb(curC, 0.07));
+  vigGrd.addColorStop(0.65, rgb(curC, 0.03));
   vigGrd.addColorStop(1,    'rgba(0,0,0,0)');
   ctx.fillStyle = vigGrd;
   ctx.fillRect(0, 0, W, H);
   // Second pass: wide soft bloom
-  const vigGrd2 = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.5, ARC_CX, ARC_CY, ARC_OR * 2.4);
-  vigGrd2.addColorStop(0,   rgb(curC, 0.10));
-  vigGrd2.addColorStop(0.4, rgb(curC, 0.05));
+  const vigGrd2 = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.5, ARC_CX, ARC_CY, ARC_OR * 2.2);
+  vigGrd2.addColorStop(0,   rgb(curC, 0.05));
+  vigGrd2.addColorStop(0.5, rgb(curC, 0.02));
   vigGrd2.addColorStop(1,   'rgba(0,0,0,0)');
   ctx.fillStyle = vigGrd2;
   ctx.fillRect(0, 0, W, H);
@@ -5300,15 +5300,13 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.save();
     ctx.font = `100 ${heroSz}px "SF Pro Display","Helvetica Neue",sans-serif`;
     ctx.textAlign = 'center';
-    // Quad glow: tight white core → colour mid → wide halo → ultra-wide ambient
-    ctx.shadowBlur = 12;  ctx.shadowColor = 'rgba(255,255,255,0.95)';
-    ctx.fillStyle = 'rgba(255,255,255,0.99)';
+    // Triple glow: tight white core → colour mid → wide halo
+    ctx.shadowBlur = 8;  ctx.shadowColor = 'rgba(255,255,255,0.88)';
+    ctx.fillStyle = 'rgba(255,255,255,0.98)';
     ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 28; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.85)`;
+    ctx.shadowBlur = 22; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.60)`;
     ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 56; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.40)`;
-    ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 96; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.15)`;
+    ctx.shadowBlur = 44; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.22)`;
     ctx.fillText(dispScore, lCX, 18 + heroSz);
     ctx.shadowBlur = 0;
     ctx.restore();
@@ -5328,13 +5326,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.font = `700 8px "SF Mono",monospace`;
     ctx.letterSpacing = '0.08em';
     ctx.textAlign = 'center';
-    // Triple-pass: crisp text + mid bloom + wide halo
-    ctx.shadowBlur = 20; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.95)`;
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},1.0)`;
+    // Double-pass: crisp label + soft halo
+    ctx.shadowBlur = 14; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.80)`;
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.95)`;
     ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
-    ctx.shadowBlur = 44; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`;
-    ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
-    ctx.shadowBlur = 72; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.22)`;
+    ctx.shadowBlur = 32; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.30)`;
     ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
     ctx.shadowBlur = 0;
     ctx.letterSpacing = '0';
@@ -5618,8 +5614,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
     // Glow: all bars get a bloom, stronger toward recent
     const recencyFrac = Math.max(0, (i - (visNArc - 16)) / 16);  // last 16 bars bloom in
-    const glowBlur    = isLast ? 36 : (recencyFrac > 0 ? 18 * recencyFrac : 5);
-    const glowAlpha   = isLast ? 0.90 : (recencyFrac > 0 ? 0.65 * recencyFrac : 0.22);
+    const glowBlur    = isLast ? 18 : (recencyFrac > 0 ? 9 * recencyFrac : 3);
+    const glowAlpha   = isLast ? 0.60 : (recencyFrac > 0 ? 0.38 * recencyFrac : 0.12);
     ctx.shadowBlur  = glowBlur;
     ctx.shadowColor = rgb(sc, glowAlpha);
     ctx.fillStyle = segGrd;
@@ -5639,14 +5635,12 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       // Current bar: brighter with glow
       ctx.beginPath();
       ctx.arc(ARC_CX, ARC_CY, rOut, a0, a1);
-      // Triple-draw current bar tip for maximum glow intensity
+      // Double-draw current bar tip for crisp glow
       ctx.strokeStyle = rgb(sc, 1);
-      ctx.lineWidth = 2.5;
-      ctx.shadowBlur = 36; ctx.shadowColor = rgb(sc, 0.95);
+      ctx.lineWidth = 2.0;
+      ctx.shadowBlur = 20; ctx.shadowColor = rgb(sc, 0.80);
       ctx.stroke();
-      ctx.shadowBlur = 56; ctx.shadowColor = rgb(sc, 0.55);
-      ctx.stroke();
-      ctx.shadowBlur = 80; ctx.shadowColor = rgb(sc, 0.25);
+      ctx.shadowBlur = 38; ctx.shadowColor = rgb(sc, 0.35);
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
