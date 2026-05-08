@@ -34,7 +34,7 @@
   /* --s05 removed — unused */
   --s0:    #4a5268;  /* slate — neutral */
   /* --sm05 removed — unused */
-  --sm1:   #e06030;  /* orange-red — mild bear */
+  --sm1:   #d63a24;  /* red-toned  — mild bear */
   --sm2:   #f04040;  /* vivid red — strong bear */
   --accent:#c8a96e;  /* warm premium gold */
   --accent2:#e8d5b0; /* warm off-white */
@@ -1016,7 +1016,7 @@ a{color:inherit;text-decoration:none}
   border-radius:3px 0 0 3px;
 }
 .ov-sig-card.bull::before{background:linear-gradient(180deg,#22c97a,#3b82c4)}
-.ov-sig-card.bear::before{background:linear-gradient(180deg,#e03a2a,#e06030)}
+.ov-sig-card.bear::before{background:linear-gradient(180deg,#c41a2e,#e03a2a)}
 .ov-sig-card.bull:hover{background:linear-gradient(135deg,rgba(48,217,136,0.08) 0%,var(--surf2) 100%);border-color:rgba(48,217,136,0.25);box-shadow:0 2px 16px rgba(48,217,136,0.08)}
 .ov-sig-card.bear:hover{background:linear-gradient(135deg,rgba(240,64,64,0.08) 0%,var(--surf2) 100%);border-color:rgba(240,64,64,0.25);box-shadow:0 2px 16px rgba(240,64,64,0.08)}
 .ov-sig-rank{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--faint);width:16px;flex-shrink:0;text-align:right}
@@ -1894,7 +1894,7 @@ a{color:inherit;text-decoration:none}
 .sig-div-bull-mod{background:rgba(38,201,122,0.08);border-color:rgba(38,201,122,0.24);color:#22c97a}
 /* Divergence — bear */
 .sig-div-bear-str{background:rgba(240,64,64,0.10);border-color:rgba(240,64,64,0.28);color:#e03a2a}
-.sig-div-bear-mod{background:rgba(220,90,58,0.09);border-color:rgba(220,90,58,0.24);color:#e06030}
+.sig-div-bear-mod{background:rgba(200,60,36,0.09);border-color:rgba(200,60,36,0.24);color:#d63a24}
 /* Exhaustion */
 .sig-exhaust-bull{background:rgba(74,124,106,0.08);border-color:rgba(74,124,106,0.22);color:#3d9e82}
 .sig-exhaust-bear{background:rgba(184,92,82,0.07);border-color:rgba(184,92,82,0.18);color:#8a5a52}
@@ -3051,7 +3051,7 @@ function diffHex(d){
   if(d>=0.1)  return '#3d9e82';
   if(d>=-0.1) return '#5a6480';
   if(d>=-0.3) return '#c47a4a';
-  if(d>=-0.6) return '#e06030';
+  if(d>=-0.6) return '#d63a24';
   return '#e03a2a';
 }
 function sHex(s){
@@ -3062,8 +3062,8 @@ function sHex(s){
   if(s>=6.5)  return '#5aaa7a';  // lean bull     — muted green
   if(s>=5.5)  return '#7aaa88';  // mild bull     — soft sage
   if(s>=4.5)  return '#6e7d80';  // neutral       — grey-slate
-  if(s>=3.5)  return '#b87333';  // mild bear     — warm copper/amber
-  if(s>=2.5)  return '#e06030';  // lean bear     — burnt orange
+  if(s>=3.5)  return '#c44030';  // mild bear     — red-toned (was copper/amber)
+  if(s>=2.5)  return '#d63a24';  // lean bear     — deep red-orange (was burnt orange)
   if(s>=1.5)  return '#e03a2a';  // bear          — vivid red
   return '#c41a2e';               // strong bear   — deep crimson
 }
@@ -3282,7 +3282,7 @@ function goHome(){
   if(DATA){
     const reg=DATA.regime||{};
     const regLabel=reg.regime||'';
-    const regCol=regLabel.includes('Strong Risk-On')?'#00f09a':regLabel.includes('Risk-On')?'#22c97a':regLabel.includes('Lean Risk-On')?'#3b82c4':regLabel.includes('Strong Risk-Off')?'#c41a2e':regLabel.includes('Risk-Off')?'#e03a2a':regLabel.includes('Lean Risk-Off')?'#e06030':'#7b8ba8';
+    const regCol=regLabel.includes('Strong Risk-On')?'#00f09a':regLabel.includes('Risk-On')?'#22c97a':regLabel.includes('Lean Risk-On')?'#3b82c4':regLabel.includes('Strong Risk-Off')?'#c41a2e':regLabel.includes('Risk-Off')?'#e03a2a':regLabel.includes('Lean Risk-Off')?'#d63a24':'#7b8ba8';
     initOvCanvas(regCol);
   }
   // scroll to overview (desktop: scroll within detail col; mobile: back to top)
@@ -3334,7 +3334,7 @@ function tileColor(ws){
   if(ws>=5.5) return {bg:'rgba(61,158,116,0.09)',text:'#5aaa88',pip:'#5aaa88'};
   if(ws>=4.5) return {bg:'rgba(74,82,104,0.18)',text:'#6e7d80',pip:'#4a5268'};
   if(ws>=3.5) return {bg:'rgba(196,122,74,0.10)',text:'#c47a4a',pip:'#c47a4a'};
-  if(ws>=2.5) return {bg:'rgba(220,90,58,0.12)',text:'#e06030',pip:'#e06030'};
+  if(ws>=2.5) return {bg:'rgba(200,58,36,0.12)',text:'#d63a24',pip:'#d63a24'};
   return {bg:'rgba(240,64,64,0.16)',text:'#e03a2a',pip:'#e03a2a'};
 }
 
@@ -3396,7 +3396,7 @@ function renderOverview(){
   const regLabel=reg.regime||reg.label||'Unknown';
   const regDesc=reg.regime_label||'';
   const regScore=reg.score_10!=null?reg.score_10:null;
-  const regCol=regLabel.includes('Strong Risk-On')?'#00f09a':regLabel.includes('Risk-On')&&!regLabel.includes('Lean')?'#22c97a':regLabel.includes('Lean Risk-On')?'#3b82c4':regLabel.includes('Strong Risk-Off')?'#c41a2e':regLabel.includes('Risk-Off')&&!regLabel.includes('Lean')?'#e03a2a':regLabel.includes('Lean Risk-Off')?'#e06030':'#7b8ba8';
+  const regCol=regLabel.includes('Strong Risk-On')?'#00f09a':regLabel.includes('Risk-On')&&!regLabel.includes('Lean')?'#22c97a':regLabel.includes('Lean Risk-On')?'#3b82c4':regLabel.includes('Strong Risk-Off')?'#c41a2e':regLabel.includes('Risk-Off')&&!regLabel.includes('Lean')?'#e03a2a':regLabel.includes('Lean Risk-Off')?'#d63a24':'#7b8ba8';
   const bull=markets.filter(m=>m.weighted_score>=6).length;
   const bear=markets.filter(m=>m.weighted_score<4).length;
   const neut=markets.length-bull-bear;
@@ -5063,14 +5063,14 @@ function _drawLiveDot(canvas, data, phase) {
 }
 
 // Shared 8-stop climate colour ramp (0-10, 5=neutral)
-// 0=deep crimson · 1.5=vivid red · 3=red-orange · 4=orange · 5=slate · 6=blue · 7.5=teal · 10=mint
+// 0=deep crimson · 1.5=vivid red · 3=warm red · 4=red-amber · 5=slate · 6=steel blue · 7.5=teal · 10=mint
 const _ARC_PALETTE = [
-  [0,   [180, 18,  36 ]],  // deep crimson
-  [1.5, [220, 40,  30 ]],  // vivid red
-  [3,   [230, 80,  30 ]],  // red-orange
-  [4,   [210, 110, 40 ]],  // orange
-  [5,   [90,  92,  115]],  // neutral slate (slightly warmer)
-  [6,   [59,  130, 196]],  // lean bull blue
+  [0,   [175, 15,  32 ]],  // deep crimson
+  [1.5, [218, 38,  28 ]],  // vivid red
+  [3,   [224, 44,  32 ]],  // warm red       (was red-orange — G reduced 80→44)
+  [4,   [212, 62,  36 ]],  // red-amber      (was orange     — G reduced 110→62)
+  [5,   [88,  90,  112]],  // neutral slate
+  [6,   [52,  118, 185]],  // steel blue     (lean bull, slightly muted)
   [7.5, [34,  201, 122]],  // teal-green
   [10,  [0,   240, 154]],  // vivid mint
 ];
@@ -7216,7 +7216,7 @@ function dHead(m,ws,col,bg){
   const histActive=selTab==='history';
   const barPct=Math.min(100,Math.max(0,(ws/10)*100));
   // Gradient fill stretched so bar position = correct colour
-  const gradStr=`linear-gradient(90deg,#c41a2e 0%,#e06030 30%,#4a5268 50%,#3b82c4 70%,#22c97a 100%)`;
+  const gradStr=`linear-gradient(90deg,#c41a2e 0%,#d63a24 30%,#4a5268 50%,#3b82c4 70%,#22c97a 100%)`;
   const barSize=`calc(${100/barPct*100}% )`;
 
   // Per-factor weight summary for tooltip
@@ -8124,7 +8124,7 @@ function cotTab(m){
     const isStr=div.strength==='strong';
     const isBull=div.type==='bull';
     const cls=isBull?(isStr?'sig-div-bull-str':'sig-div-bull-mod'):(isStr?'sig-div-bear-str':'sig-div-bear-mod');
-    const dotCol=isBull?(isStr?'#22c97a':'#22c97a'):(isStr?'#e03a2a':'#e06030');
+    const dotCol=isBull?(isStr?'#22c97a':'#22c97a'):(isStr?'#e03a2a':'#d63a24');
     const label=isBull
       ?(isStr?'Mgr Divergence — Strong Bull':'Mgr Divergence — Bull')
       :(isStr?'Mgr Divergence — Strong Bear':'Mgr Divergence — Bear');
@@ -12486,7 +12486,7 @@ async function loadHistoryTab(marketId){
 
   // Current score context
   const lastScore = scores[scores.length-1];
-  function histScoreCol(s){ return s>=7.5?'#22c97a':s>=6.0?'#5aaa7a':s>=5.5?'#7aaa88':s>=4.5?'#6e7d80':s>=4.0?'#b87333':s>=2.5?'#e06030':'#e03a2a'; }
+  function histScoreCol(s){ return s>=7.5?'#22c97a':s>=6.0?'#5aaa7a':s>=5.5?'#7aaa88':s>=4.5?'#6e7d80':s>=4.0?'#c44030':s>=2.5?'#d63a24':'#e03a2a'; }
   function histScoreLbl(s){ return s>=8.5?'Exceptional Bull':s>=7.5?'Strong Bull':s>=6.5?'Bull':s>=6.0?'Lean Bull':s>=5.5?'Mild Bull':s>=4.5?'Neutral':s>=4.0?'Mild Bear':s>=3.5?'Lean Bear':s>=2.5?'Bear':s>=1.5?'Strong Bear':'Exceptional Bear'; }
   const lastScoreCol = histScoreCol(lastScore);
   const lastScoreLbl = histScoreLbl(lastScore);
