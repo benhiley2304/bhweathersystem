@@ -3138,8 +3138,8 @@ function renderAll(){
 function renderRegime(){
   const reg=DATA.regime||{};
   const label=reg.regime||reg.label||'Unknown';
-  const rawScore=reg.raw_score??0;
-  const col=rawScore>=1.2?'#30d988':rawScore<=-1.2?'#f04040':'#5c9eff';
+  const rawScore=reg.score_10??5;
+  const col=rawScore>=6.5?'#30d988':rawScore<=3.5?'#f04040':'#5c9eff';
   document.getElementById('regime-pip').style.background=col;
   // Nav badge: label only — score shown on overview panel
   document.getElementById('regime-text').textContent=label;
@@ -3393,7 +3393,7 @@ function renderOverview(){
   const reg=DATA.regime||{};
   const regLabel=reg.regime||reg.label||'Unknown';
   const regDesc=reg.regime_label||'';
-  const regScore=reg.score!=null?reg.score:null;
+  const regScore=reg.score_10!=null?reg.score_10:null;
   const regCol=regLabel.includes('On')?'#30d988':regLabel.includes('Off')?'#f04040':'#7b8ba8';
   const bull=markets.filter(m=>m.weighted_score>=6).length;
   const bear=markets.filter(m=>m.weighted_score<4).length;
@@ -3434,7 +3434,7 @@ function renderOverview(){
       const mobDesc=regDesc?regDesc.split('–')[0].trim().substring(0,70):
         (regLabel.includes('On')?'Broad market positioning is bullish':regLabel.includes('Off')?'Broad market positioning is bearish':'Markets in transitional mode');
       // Score display
-      const regScoreStr=regScore!=null?`${regScore>0?'+':''}${regScore.toFixed(1)} / 4.0`:`Avg ${avg}`;
+      const regScoreStr=regScore!=null?`${regScore.toFixed(1)} / 10`:`Avg ${avg}`;
       // Updated: of markets, X
       const updStr=DATA.updated_at?new Date(DATA.updated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC':'Live';
 
@@ -3452,7 +3452,7 @@ function renderOverview(){
       const bBR=document.createElement('div'); bBR.className='mob-hero-bracket-br'; heroEl.appendChild(bBR);
       // Drive the score arc
       // Arc ring: regime score (-4..+4) normalised to 0-10, matching the climate label
-      const _arcScore = regScore!=null ? Math.max(0,Math.min(10,((regScore+4)/8)*10)) : parseFloat(avg);
+      const _arcScore = regScore!=null ? Math.max(0,Math.min(10,regScore)) : parseFloat(avg);
       initMobHeroArc(_arcScore, regCol);
 
       mhero.innerHTML=`
@@ -3470,8 +3470,8 @@ function renderOverview(){
           </div>
           <div class="mob-hero-stat">
             <div class="mob-hero-stat-label">Climate</div>
-            <div class="mob-hero-stat-val" style="color:${regCol}">${regScore!=null?`${regScore>0?'+':''}${regScore.toFixed(1)}`:'—'}</div>
-            <div class="mob-hero-stat-sub">/ 4.0 pts <span style="font-size:7px;opacity:0.5" title="Composite climate: sum of sector averages, max ±4.0">(?)</span></div>
+            <div class="mob-hero-stat-val" style="color:${regCol}">${regScore!=null?regScore.toFixed(1):'—'}</div>
+            <div class="mob-hero-stat-sub">/ 10 <span style="font-size:7px;opacity:0.5" title="Composite climate score — 5.0 = neutral, 10 = maximum risk-on, 0 = maximum risk-off">(?)</span></div>
           </div>
           <div class="mob-hero-stat">
             <div class="mob-hero-stat-label">Bull / Bear</div>
@@ -3521,7 +3521,7 @@ function renderOverview(){
       <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
         <div class="ov-banner-regime" style="color:${regCol}">${regLabel}</div>
-        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}35;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px" title="Composite climate score — sum of sector averages, max ±4.0. Positive = risk-on; negative = risk-off."><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore>0?'+':''}${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 4.0</span></div>`:''}
+        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}35;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px" title="Composite climate score — 5.0 = neutral, 10 = max risk-on, 0 = max risk-off"><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 10</span></div>`:''}
       </div>
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
       <div class="ov-banner-sub">
@@ -5296,7 +5296,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
     // Hero number: live score — large, glowing, white
     const heroSz = Math.round(Math.min(lW * 0.36, 38));
-    const dispScore = (_liveScore >= 0 ? '+' : '') + _liveScore.toFixed(1);
+    const dispScore = _liveScore.toFixed(1);
     ctx.save();
     ctx.font = `100 ${heroSz}px "SF Pro Display","Helvetica Neue",sans-serif`;
     ctx.textAlign = 'center';
@@ -5308,7 +5308,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.font = '400 6.5px "SF Mono",monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.32)`;
-    ctx.fillText('/ ±4.0', lCX, 20 + heroSz + 10);
+    ctx.fillText('/ 10', lCX, 20 + heroSz + 10);
 
     // Regime label — bold, coloured, glowing
     const labelFull = _liveLabel
@@ -5334,7 +5334,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     const barX0     = barCX - barW / 2;
 
     // ── Live position fraction (0=bottom=-4, 1=top=+4)
-    const liveFrac = Math.max(0, Math.min(1, (_liveScore + 4) / 8));
+    const liveFrac = Math.max(0, Math.min(1, _liveScore / 10));
 
     // ── Bar background track (gradient, top=bull, bot=bear)
     const trackGrd = ctx.createLinearGradient(0, barY1, 0, barY2);
@@ -5353,7 +5353,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     const liveY      = barY1 + (1 - liveFrac) * barTotalH;  // live position
     const fillTop    = Math.min(neutralY, liveY);
     const fillH      = Math.abs(neutralY - liveY);
-    const isBull     = _liveScore >= 0;
+    const isBull     = _liveScore >= 5;
     const fillGrd    = ctx.createLinearGradient(0, fillTop, 0, fillTop + fillH);
     if (isBull) {
       fillGrd.addColorStop(0, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.85)`);
@@ -6103,7 +6103,7 @@ function _setupArcTooltip(canvas, data) {
     document.getElementById('ov-arc-tt-date').textContent  = dateStr;
     document.getElementById('ov-arc-tt-label').textContent = label;
     document.getElementById('ov-arc-tt-label').style.color = col;
-    document.getElementById('ov-arc-tt-score').textContent = `Score: ${scoreStr} / 4.0`;
+    document.getElementById('ov-arc-tt-score').textContent = `Score: ${scoreStr} / 10`;
 
     if (sig) {
       const fmtPct = v => (v > 0 ? '+' : '') + (v || 0).toFixed(1) + '%';
@@ -10409,7 +10409,7 @@ function regimeTab(m){
   const levels    = gReg.levels    || {};
   const regName   = gReg.regime    || d.regime   || 'Mixed';
   const regLabel  = gReg.regime_label || '';
-  const rawScore  = gReg.raw_score ?? 0;
+  const rawScore  = gReg.score_10 ?? 5;
   const vixLvl    = gReg.vix_level   ?? null;
   const vix3mLvl  = gReg.vix3m_level ?? null;
   const vixTs     = gReg.vix_ts      ?? 0;
@@ -10424,7 +10424,7 @@ function regimeTab(m){
   const intlDiff     = d.intl_diff     ?? null;
   const intlDetail   = d.intl_detail   || null;
 
-  const regColor = rawScore >= 1.2 ? '#26c97a' : rawScore <= -1.2 ? '#f04040' : '#5c9eff';
+  const regColor = rawScore >= 6.5 ? '#26c97a' : rawScore <= 3.5 ? '#f04040' : '#5c9eff';
 
   // ── AI narrative — populated async by loadRegimeNarrative(), not from DATA ──
   // (DATA.news_context removed from /api/scores payload; fetched via /api/news-context)
@@ -10652,8 +10652,8 @@ function regimeTab(m){
       const _rtProxy = (rateContrib !== null ? rateContrib : -_usRateRaw);
       const _riText = _riFn(sc, _rkProxy, _rtProxy) || '';
       if(_riText){
-        const _riRGB = rawScore>=1.2?'48,217,136':rawScore<=-1.2?'240,64,64':'92,158,255';
-      const _riIcon = rawScore>=1.2?`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="${regColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,8 4,4 7,6 11,1"/><polyline points="8,1 11,1 11,4"/></svg>`:rawScore<=-1.2?`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="${regColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,4 4,8 7,6 11,11"/><polyline points="8,11 11,11 11,8"/></svg>`:`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="${regColor}" stroke-width="1.5" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><line x1="4" y1="6" x2="8" y2="6"/></svg>`;
+        const _riRGB = rawScore>=6.5?'48,217,136':rawScore<=3.5?'240,64,64':'92,158,255';
+      const _riIcon = rawScore>=6.5?`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="${regColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,8 4,4 7,6 11,1"/><polyline points="8,1 11,1 11,4"/></svg>`:rawScore<=3.5?`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="${regColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,4 4,8 7,6 11,11"/><polyline points="8,11 11,11 11,8"/></svg>`:`<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="${regColor}" stroke-width="1.5" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><line x1="4" y1="6" x2="8" y2="6"/></svg>`;
         html+=`<div style="padding:12px 14px;border-radius:10px;background:rgba(${_riRGB},0.06);border:1px solid rgba(${_riRGB},0.22);margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
             ${_riIcon}

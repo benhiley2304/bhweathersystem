@@ -4905,8 +4905,10 @@ def compute_risk_regime() -> dict:
         rate_signal = {"effr": None, "cuts_12m": 0, "cuts_18m": 0, "rate_norm": 0.5}
         rate_label  = "On Hold"
 
+    _score_10 = round(max(0.0, min(10.0, (regime_score + 4.0) / 8.0 * 10.0)), 1)
     result = {
         "score":         regime_score,
+        "score_10":      _score_10,
         "regime":        regime_name,
         "regime_label":  regime_label,
         "raw_score":     regime_score,
