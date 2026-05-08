@@ -323,8 +323,8 @@ a{color:inherit;text-decoration:none}
   50%{opacity:1}
 }
 @keyframes regimePulse{
-  0%,100%{opacity:0.85;filter:drop-shadow(0 0 8px currentColor) drop-shadow(0 0 20px currentColor)}
-  50%{opacity:1.0;filter:drop-shadow(0 0 12px currentColor) drop-shadow(0 0 32px currentColor) drop-shadow(0 0 56px currentColor)}
+  0%,100%{opacity:0.82}
+  50%{opacity:1.0}
 }
 @keyframes borderBreath{
   0%,100%{border-color:rgba(255,255,255,0.10)}
@@ -577,7 +577,7 @@ a{color:inherit;text-decoration:none}
 .ov-banner-regime{
   font-size:40px;font-weight:900;letter-spacing:-0.04em;line-height:1;
   color:var(--text);
-  filter:drop-shadow(0 0 8px currentColor) drop-shadow(0 0 24px currentColor) drop-shadow(0 0 48px currentColor);
+  filter:drop-shadow(0 0 4px currentColor);
   transition:color 400ms,filter 600ms;
 }
 .ov-banner-desc{
@@ -5193,19 +5193,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
   // Radial vignette from arc centre — atmospheric glow
   // Atmospheric bloom — two passes for depth
-  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_OR * 1.6);
-  vigGrd.addColorStop(0,    rgb(curC, 0.14));   // subtle centre bloom
-  vigGrd.addColorStop(0.30, rgb(curC, 0.07));
-  vigGrd.addColorStop(0.65, rgb(curC, 0.03));
-  vigGrd.addColorStop(1,    'rgba(0,0,0,0)');
+  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_OR * 1.8);
+  vigGrd.addColorStop(0,   rgb(curC, 0.04));
+  vigGrd.addColorStop(0.5, rgb(curC, 0.02));
+  vigGrd.addColorStop(1,   'rgba(0,0,0,0)');
   ctx.fillStyle = vigGrd;
-  ctx.fillRect(0, 0, W, H);
-  // Second pass: wide soft bloom
-  const vigGrd2 = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.5, ARC_CX, ARC_CY, ARC_OR * 2.2);
-  vigGrd2.addColorStop(0,   rgb(curC, 0.05));
-  vigGrd2.addColorStop(0.5, rgb(curC, 0.02));
-  vigGrd2.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = vigGrd2;
   ctx.fillRect(0, 0, W, H);
 
   // Subtle horizontal scan bands (HUD effect)
@@ -5300,15 +5292,9 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.save();
     ctx.font = `100 ${heroSz}px "SF Pro Display","Helvetica Neue",sans-serif`;
     ctx.textAlign = 'center';
-    // Triple glow: tight white core → colour mid → wide halo
-    ctx.shadowBlur = 8;  ctx.shadowColor = 'rgba(255,255,255,0.88)';
-    ctx.fillStyle = 'rgba(255,255,255,0.98)';
+    // Clean hero number — no shadow, pure white
+    ctx.fillStyle = 'rgba(255,255,255,0.96)';
     ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 22; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.60)`;
-    ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 44; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.22)`;
-    ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 0;
     ctx.restore();
 
     // Scale denom — tiny, positioned just below hero
@@ -5326,13 +5312,9 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.font = `700 8px "SF Mono",monospace`;
     ctx.letterSpacing = '0.08em';
     ctx.textAlign = 'center';
-    // Double-pass: crisp label + soft halo
-    ctx.shadowBlur = 14; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.80)`;
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.95)`;
+    // Regime label — clean, coloured, no shadow
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.90)`;
     ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
-    ctx.shadowBlur = 32; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.30)`;
-    ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
-    ctx.shadowBlur = 0;
     ctx.letterSpacing = '0';
     ctx.restore();
 
@@ -5612,12 +5594,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.arc(ARC_CX, ARC_CY, rOut, a1, a0, true);
     ctx.closePath();
 
-    // Glow: all bars get a bloom, stronger toward recent
-    const recencyFrac = Math.max(0, (i - (visNArc - 16)) / 16);  // last 16 bars bloom in
-    const glowBlur    = isLast ? 18 : (recencyFrac > 0 ? 9 * recencyFrac : 3);
-    const glowAlpha   = isLast ? 0.60 : (recencyFrac > 0 ? 0.38 * recencyFrac : 0.12);
-    ctx.shadowBlur  = glowBlur;
-    ctx.shadowColor = rgb(sc, glowAlpha);
+    // Glow: current bar only gets a subtle bloom
+    if (isLast) { ctx.shadowBlur = 6; ctx.shadowColor = rgb(sc, 0.50); }
     ctx.fillStyle = segGrd;
     ctx.fill();
     ctx.shadowBlur = 0;
@@ -5635,12 +5613,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       // Current bar: brighter with glow
       ctx.beginPath();
       ctx.arc(ARC_CX, ARC_CY, rOut, a0, a1);
-      // Double-draw current bar tip for crisp glow
+      // Current bar tip — crisp with light glow
       ctx.strokeStyle = rgb(sc, 1);
-      ctx.lineWidth = 2.0;
-      ctx.shadowBlur = 20; ctx.shadowColor = rgb(sc, 0.80);
-      ctx.stroke();
-      ctx.shadowBlur = 38; ctx.shadowColor = rgb(sc, 0.35);
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 4; ctx.shadowColor = rgb(sc, 0.50);
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
