@@ -62,7 +62,7 @@ app = FastAPI(title="COT Weather Station v2", default_response_class=_SafeJSONRe
 # Dedicated thread pool — large enough to avoid deadlocks when heavy sync functions
 # (compute_macro_all, compute_risk_regime, _fetch_ff_months_parallel etc.) run concurrently.
 import concurrent.futures as _cf
-_APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=32, thread_name_prefix="bh-worker")
+_APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=8, thread_name_prefix="bh-worker")
 _photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 if os.path.isdir(_photos_dir):
     app.mount("/photos", StaticFiles(directory=_photos_dir), name="photos")
@@ -1313,7 +1313,7 @@ def fetch_pcr_history() -> Optional[pd.DataFrame]:
                 pass
             return None
 
-        with _TPE(max_workers=25) as ex:
+        with _TPE(max_workers=8) as ex:
             fetch_results = list(ex.map(_fetch_day, all_dates))
 
         new_rows = [row for row in fetch_results if row is not None]
@@ -2984,7 +2984,7 @@ def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
     Uses the shared app executor to avoid thread pool deadlocks.
     """
     flat_events = []
-    with _cf.ThreadPoolExecutor(max_workers=12) as ex:
+    with _cf.ThreadPoolExecutor(max_workers=6) as ex:
         futs = {ex.submit(_fetch_ff_month, y, m): (y, m) for y, m in year_month_pairs}
         for fut in _cf.as_completed(futs):
             try:
@@ -3114,7 +3114,7 @@ def _fetch_ff_labour_surprises(force: bool = False) -> dict:
     all_events = []
 
     # Fetch weeks in parallel (ThreadPool)
-    with _cf.ThreadPoolExecutor(max_workers=6) as ex:
+    with _cf.ThreadPoolExecutor(max_workers=3) as ex:
         futs = {ex.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
         for fut in _cf.as_completed(futs):
             try:
@@ -6116,11 +6116,12 @@ async def get_all_scores(force: bool = False):
     # Run all sync blocking data-fetch functions in thread executors
     # so the async event loop (and /api/health) remain responsive
     _loop = asyncio.get_event_loop()
-    macro, regime, ff_macro = await asyncio.gather(
-        _loop.run_in_executor(_APP_EXECUTOR, compute_macro_all),
-        _loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime),
-        _loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro),
-    )
+    # Run sequentially (not concurrently) to avoid OOM on 2GB instance.
+    # Each function is cache-backed (TTL 2h) so the sequential cost is trivial
+    # on warm hits. On a cold start only the first call is expensive per function.
+    macro    = await _loop.run_in_executor(_APP_EXECUTOR, compute_macro_all)
+    regime   = await _loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime)
+    ff_macro = await _loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro)
     # News context — pull from cache if warm; trigger background fetch if cold.
     # compute_news_context() runs the Sonar call in a thread to avoid blocking.
     _news_now = time.time()
