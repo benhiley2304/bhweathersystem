@@ -255,6 +255,7 @@ a{color:inherit;text-decoration:none}
   cursor:pointer;transition:background 150ms;position:relative;
 }
 .mkt-row:hover{background:rgba(255,255,255,0.03)}
+.mkt-row:hover::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:2px;border-radius:0 2px 2px 0;background:rgba(255,255,255,0.18)}
 .mkt-row:hover .mr-name{color:var(--text)}
 .mkt-row.sel{background:var(--surf2);border-bottom-color:rgba(255,255,255,0.07)}
 .mkt-row.sel::before{
@@ -265,17 +266,18 @@ a{color:inherit;text-decoration:none}
 .mr-body{flex:1;min-width:0}
 .mr-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(210,218,235,0.95);transition:color 120ms;letter-spacing:-0.01em}
 .mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:var(--text)}
-.mr-bar{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;margin-top:7px;position:relative;overflow:visible}
-.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:3px;transition:all 600ms cubic-bezier(0.34,1.56,0.64,1)}
+.mr-bar{height:5px;background:rgba(255,255,255,0.05);border-radius:3px;margin-top:7px;position:relative;overflow:visible}
+.mr-bar-f{position:absolute;top:0;bottom:0;border-radius:3px;transition:all 600ms cubic-bezier(0.34,1.56,0.64,1);opacity:0.88}
 .mr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
 /* V3: Score badge — the key number, prominent */
 .mr-score-badge{
   font-family:var(--mono);font-size:14px;font-weight:800;
   letter-spacing:-0.03em;line-height:1;
   min-width:38px;text-align:right;
+  text-shadow:0 0 14px currentColor;
 }
 
-.mr-bias{font-size:8px;font-weight:700;white-space:nowrap;opacity:0.88}
+.mr-bias{font-size:7.5px;font-weight:700;white-space:nowrap;opacity:0.80;letter-spacing:0.04em;text-transform:uppercase}
 .mr-num{font-family:var(--mono);font-size:8.5px;color:var(--dim)}
 .mr-pip{width:7px;height:7px;border-radius:2px;flex-shrink:0}
 
@@ -323,8 +325,13 @@ a{color:inherit;text-decoration:none}
   50%{opacity:1}
 }
 @keyframes regimePulse{
-  0%,100%{opacity:0.78;filter:drop-shadow(0 0 2px currentColor)}
-  50%{opacity:1.0;filter:drop-shadow(0 0 8px currentColor)}
+  0%,100%{opacity:0.82}
+  50%{opacity:1.0}
+}
+/* Sheen sweep across regime text — premium light reflection */
+@keyframes textSheen{
+  0%{background-position:200% center}
+  100%{background-position:-200% center}
 }
 @keyframes borderBreath{
   0%,100%{border-color:rgba(255,255,255,0.10)}
@@ -334,6 +341,10 @@ a{color:inherit;text-decoration:none}
   0%{transform:scale(1);box-shadow:0 0 0 0 currentColor}
   50%{transform:scale(1.2);box-shadow:0 0 0 4px transparent}
   100%{transform:scale(1);box-shadow:0 0 0 0 transparent}
+}
+@keyframes pillBreath{
+  0%,100%{box-shadow:0 0 0 0 transparent}
+  50%{box-shadow:0 0 10px 1px rgba(34,201,122,0.18)}
 }
 @keyframes barFillIn{
   from{width:0 !important;opacity:0}
@@ -355,7 +366,7 @@ a{color:inherit;text-decoration:none}
 
 /* ── Hero regime text ── */
 .ov-banner-regime{
-  animation:regimePulse 4s ease-in-out infinite;
+  animation:regimePulse 5s ease-in-out infinite, textSheen 7s linear infinite;
 }
 
 /* ── Live dot on banner ── */
@@ -534,7 +545,7 @@ a{color:inherit;text-decoration:none}
   padding:28px 28px 0;
   display:flex;flex-direction:column;gap:0;
   border-bottom:none;
-  background:var(--bg2);
+  background:linear-gradient(180deg, var(--bg2) 0%, rgba(3,5,8,0.96) 100%);
 }
 /* Soft dissolve from banner into arc zone — replaces hard border */
 .ov-banner::before{
@@ -547,7 +558,8 @@ a{color:inherit;text-decoration:none}
   position:absolute;inset:0;pointer-events:none;
 }
 .ov-banner-canvas{
-  position:absolute;inset:0;width:100%;height:100%;opacity:0.22;
+  position:absolute;inset:0;width:100%;height:100%;
+  opacity:0.32;mix-blend-mode:screen;
 }
 /* Ambient shimmer sweep across hero */
 @keyframes heroshim{
@@ -576,7 +588,20 @@ a{color:inherit;text-decoration:none}
 }
 .ov-banner-regime{
   font-size:40px;font-weight:900;letter-spacing:-0.04em;line-height:1;
-  color:var(--text);
+  /* Sheen: gradient that animates across the text — no glow, just light */
+  background:linear-gradient(
+    105deg,
+    currentColor 0%,
+    currentColor 35%,
+    rgba(255,255,255,0.65) 50%,
+    currentColor 65%,
+    currentColor 100%
+  );
+  background-size:300% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:regimePulse 5s ease-in-out infinite, textSheen 7s linear infinite;
   transition:color 400ms;
 }
 .ov-banner-desc{
@@ -596,11 +621,14 @@ a{color:inherit;text-decoration:none}
 .ov-stat-pill{
   position:relative;
   display:flex;flex-direction:column;gap:3px;
-  background:var(--surf2);
+  background:rgba(14,17,28,0.72);
   border:1px solid rgba(255,255,255,0.10);
+  border-top-color:rgba(255,255,255,0.18);
   border-radius:8px;padding:8px 13px;
   transition:border-color 150ms,background 150ms;
   min-width:86px;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
 }
 .ov-stat-pill:hover{
   background:var(--surf3);
@@ -615,9 +643,12 @@ a{color:inherit;text-decoration:none}
 }
 .ov-price-pill{
   display:flex;align-items:center;gap:6px;
-  background:var(--surf2);border:1px solid rgba(255,255,255,0.10);
+  background:rgba(14,17,28,0.68);border:1px solid rgba(255,255,255,0.10);
+  border-top-color:rgba(255,255,255,0.16);
   border-radius:6px;padding:4px 10px;
   transition:background 150ms,border-color 150ms;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
 }
 .ov-price-pill:hover{
   background:var(--surf3);border-color:rgba(255,255,255,0.18);
@@ -653,6 +684,7 @@ a{color:inherit;text-decoration:none}
 }
 .ov-sector-bar-fill{
   height:100%;border-radius:2px;transition:width 600ms var(--ease);
+  opacity:0.90;
 }
 .ov-sector-score{
   font-family:var(--mono);font-size:9.5px;font-weight:700;
@@ -1186,7 +1218,7 @@ a{color:inherit;text-decoration:none}
   overflow:hidden;
   transition:border-color 200ms, box-shadow 200ms, transform 200ms;
   min-width:0;
-  box-shadow:0 1px 0 rgba(255,255,255,0.04) inset;
+  box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 2px 12px rgba(0,0,0,0.28);
 }
 .ov-menv-card:hover{
   border-color:rgba(255,255,255,0.18);
