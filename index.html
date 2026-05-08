@@ -323,8 +323,8 @@ a{color:inherit;text-decoration:none}
   50%{opacity:1}
 }
 @keyframes regimePulse{
-  0%,100%{opacity:0.82}
-  50%{opacity:1.0}
+  0%,100%{opacity:0.80;filter:drop-shadow(0 0 3px currentColor)}
+  50%{opacity:1.0;filter:drop-shadow(0 0 10px currentColor) drop-shadow(0 0 1px rgba(255,255,255,0.6))}
 }
 @keyframes borderBreath{
   0%,100%{border-color:rgba(255,255,255,0.10)}
@@ -577,8 +577,7 @@ a{color:inherit;text-decoration:none}
 .ov-banner-regime{
   font-size:40px;font-weight:900;letter-spacing:-0.04em;line-height:1;
   color:var(--text);
-  filter:drop-shadow(0 0 4px currentColor);
-  transition:color 400ms,filter 600ms;
+  transition:color 400ms;
 }
 .ov-banner-desc{
   font-size:11px;color:var(--dim);font-weight:400;margin-top:2px;line-height:1.4;
@@ -5191,13 +5190,20 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   ctx.fillStyle = 'rgba(1, 3, 9, 0.38)';
   ctx.fillRect(0, 0, W, H);
 
-  // Radial vignette from arc centre — atmospheric glow
-  // Atmospheric bloom — two passes for depth
-  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_OR * 1.8);
-  vigGrd.addColorStop(0,   rgb(curC, 0.04));
-  vigGrd.addColorStop(0.5, rgb(curC, 0.02));
+  // Radial atmosphere: two layers — warm colour bloom + dark inner void
+  // Layer 1: subtle colour atmosphere around the arc
+  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.4, ARC_CX, ARC_CY, ARC_OR * 2.0);
+  vigGrd.addColorStop(0,   rgb(curC, 0.07));
+  vigGrd.addColorStop(0.4, rgb(curC, 0.04));
   vigGrd.addColorStop(1,   'rgba(0,0,0,0)');
   ctx.fillStyle = vigGrd;
+  ctx.fillRect(0, 0, W, H);
+  // Layer 2: dark inner void — makes bars pop off a deep background
+  const voidGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_IR * 1.1);
+  voidGrd.addColorStop(0,   'rgba(1,2,7,0.72)');
+  voidGrd.addColorStop(0.7, 'rgba(1,2,7,0.30)');
+  voidGrd.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = voidGrd;
   ctx.fillRect(0, 0, W, H);
 
   // Subtle horizontal scan bands (HUD effect)
@@ -5292,9 +5298,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.save();
     ctx.font = `100 ${heroSz}px "SF Pro Display","Helvetica Neue",sans-serif`;
     ctx.textAlign = 'center';
-    // Clean hero number — no shadow, pure white
-    ctx.fillStyle = 'rgba(255,255,255,0.96)';
+    // Hero number: white with a single tight glow for presence
+    ctx.shadowBlur = 10; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.45)`;
+    ctx.fillStyle = 'rgba(255,255,255,0.97)';
     ctx.fillText(dispScore, lCX, 18 + heroSz);
+    ctx.shadowBlur = 0;
     ctx.restore();
 
     // Scale denom — tiny, positioned just below hero
@@ -5312,9 +5320,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.font = `700 8px "SF Mono",monospace`;
     ctx.letterSpacing = '0.08em';
     ctx.textAlign = 'center';
-    // Regime label — clean, coloured, no shadow
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.90)`;
+    // Regime label: tight single glow for legibility
+    ctx.shadowBlur = 8; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.60)`;
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.92)`;
     ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
+    ctx.shadowBlur = 0;
     ctx.letterSpacing = '0';
     ctx.restore();
 
@@ -5594,32 +5604,34 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.arc(ARC_CX, ARC_CY, rOut, a1, a0, true);
     ctx.closePath();
 
-    // Glow: current bar only gets a subtle bloom
-    if (isLast) { ctx.shadowBlur = 6; ctx.shadowColor = rgb(sc, 0.50); }
+    // Subtle bloom: last 8 bars get a recency fade-in, giving depth without a wall of glow
+    const recF = Math.max(0, (i - (visNArc - 8)) / 8);
+    if (isLast) { ctx.shadowBlur = 10; ctx.shadowColor = rgb(sc, 0.55); }
+    else if (recF > 0) { ctx.shadowBlur = 6 * recF; ctx.shadowColor = rgb(sc, 0.30 * recF); }
     ctx.fillStyle = segGrd;
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Outer edge highlight (bright top line on each bar)
-    if (!isLast) {
-      ctx.beginPath();
-      ctx.arc(ARC_CX, ARC_CY, rOut, a0, a1);
-      ctx.shadowBlur = 4; ctx.shadowColor = rgb(sc, 0.50);
-      ctx.strokeStyle = rgb(sc, isBear ? 0.90 : 0.72);
-      ctx.lineWidth = isBear ? 1.4 : 1.0;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    } else {
-      // Current bar: brighter with glow
-      ctx.beginPath();
-      ctx.arc(ARC_CX, ARC_CY, rOut, a0, a1);
-      // Current bar tip — crisp with light glow
-      ctx.strokeStyle = rgb(sc, 1);
+    // Outer edge: each bar gets a crisp rim line
+    ctx.beginPath();
+    ctx.arc(ARC_CX, ARC_CY, rOut, a0, a1);
+    if (isLast) {
+      // Current bar: brighter rim with a soft halo
+      ctx.strokeStyle = rgb(sc, 1.0);
       ctx.lineWidth = 1.5;
-      ctx.shadowBlur = 4; ctx.shadowColor = rgb(sc, 0.50);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      ctx.shadowBlur = 6; ctx.shadowColor = rgb(sc, 0.55);
+    } else {
+      ctx.strokeStyle = rgb(sc, isBear ? 0.88 : 0.65);
+      ctx.lineWidth = isBear ? 1.2 : 0.9;
     }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Inner edge: dark rim to give each bar a sense of depth/thickness
+    ctx.beginPath();
+    ctx.arc(ARC_CX, ARC_CY, ARC_IR + 0.5, a0, a1);
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 1.0;
+    ctx.stroke();
     ctx.restore();
   }
 
