@@ -63,6 +63,10 @@ app = FastAPI(title="COT Weather Station v2", default_response_class=_SafeJSONRe
 # (compute_macro_all, compute_risk_regime, _fetch_ff_months_parallel etc.) run concurrently.
 import concurrent.futures as _cf
 _APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=8, thread_name_prefix="bh-worker")
+# Dedicated low-priority executor for score_history heavy yfinance prefetch.
+# Capped at 2 workers so concurrent history requests cannot OOM by competing
+# with the main scores/FRED/COT executor on the 2GB Render instance.
+_SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bh-sh")
 _photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 if os.path.isdir(_photos_dir):
     app.mount("/photos", StaticFiles(directory=_photos_dir), name="photos")
@@ -6361,6 +6365,7 @@ async def get_all_scores(force: bool = False):
 
         seasonal_data = score_seasonality(mid)
         momentum_data = score_momentum(market["yf"])
+        import gc as _gc; _gc.collect()  # release yfinance buffers between markets
         macro_data    = get_macro_score_for_market(mid, macro, ff_macro=ff_macro)
         _news_sent    = news_ctx.get("narrative_scores", {}).get(mid)
         regime_data   = get_regime_score_for_market(mid, regime, news_sentiment=_news_sent)
@@ -7906,7 +7911,7 @@ async def get_score_history(market: str):
             return _SH_PREFETCH_CACHE[m_upper]
 
         # Run the heavy IO in a thread so the event loop stays responsive
-        _pf = await asyncio.get_event_loop().run_in_executor(_APP_EXECUTOR, _do_prefetch)
+        _pf = await asyncio.get_event_loop().run_in_executor(_SH_EXECUTOR, _do_prefetch)
         all_ff_events      = _pf["ff_events"]
         regime_px          = _pf["regime_px"]
         relval_self_series = _pf["relval_self"]
