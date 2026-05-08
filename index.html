@@ -5059,25 +5059,34 @@ function _drawLiveDot(canvas, data, phase) {
   ctx.stroke();
 }
 
-function _scoreToColor(score) {
-  // Maps 0..10 to RGB (5 = neutral grey, 10 = vivid green, 0 = deep red)
-  const t = score / 10; // 0..1
-  if (t >= 0.5) {
-    // grey → green
-    const u = (t - 0.5) * 2; // 0..1
-    const r = Math.round(74  + (48  - 74)  * u);
-    const g = Math.round(82  + (217 - 82)  * u);
-    const b = Math.round(104 + (136 - 104) * u);
-    return [r, g, b];
-  } else {
-    // red → grey
-    const u = t * 2; // 0..1
-    const r = Math.round(240 + (74  - 240) * u);
-    const g = Math.round(64  + (82  - 64)  * u);
-    const b = Math.round(64  + (104 - 64)  * u);
-    return [r, g, b];
+// Shared 6-stop climate colour ramp (0-10, 5=neutral)
+// 0=deep crimson · 2=red · 3.5=amber · 5=slate · 6.5=sky blue · 8=teal · 10=vivid mint
+const _ARC_PALETTE = [
+  [0,   [196, 26,  46 ]],
+  [2,   [232, 64,  42 ]],
+  [3.5, [232, 137, 42 ]],
+  [5,   [74,  82,  104]],
+  [6.5, [59,  130, 196]],
+  [8,   [34,  201, 122]],
+  [10,  [0,   240, 154]],
+];
+function _arcPaletteColor(score) {
+  const sc = Math.max(0, Math.min(10, score));
+  for (let i = 0; i < _ARC_PALETTE.length - 1; i++) {
+    const [s0, c0] = _ARC_PALETTE[i];
+    const [s1, c1] = _ARC_PALETTE[i + 1];
+    if (sc >= s0 && sc <= s1) {
+      const u = (sc - s0) / (s1 - s0);
+      return [
+        Math.round(c0[0] + (c1[0] - c0[0]) * u),
+        Math.round(c0[1] + (c1[1] - c0[1]) * u),
+        Math.round(c0[2] + (c1[2] - c0[2]) * u),
+      ];
+    }
   }
+  return _ARC_PALETTE[_ARC_PALETTE.length - 1][1];
 }
+function _scoreToColor(score) { return _arcPaletteColor(score); }
 
 function _rgbStr(rgb, alpha) {
   return alpha != null
@@ -5131,44 +5140,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
   // ── Score-adaptive colour system ─────────────────────────────────────
   // Strong bull: electric cyan-to-mint, neutral: steel, bear: vivid crimson
-  function scoreColor(s) {
-    // Clamp to 4-band palette
-    const t = Math.max(-1, Math.min(1, (s - 5) / 3.5));
-    if (t >= 0) {
-      // 0→1: steel-blue → electric cyan → neon mint
-      const CYAN  = [0, 230, 255];
-      const MINT  = [0, 255, 145];
-      return [
-        Math.round(CYAN[0] + (MINT[0] - CYAN[0]) * t),
-        Math.round(CYAN[1] + (MINT[1] - CYAN[1]) * t),
-        Math.round(CYAN[2] + (MINT[2] - CYAN[2]) * t),
-      ];
-    } else {
-      // -1→0: vivid crimson → steel
-      const u = -t;
-      const STEEL  = [80, 120, 180];
-      const CRIMSON = [255, 38, 68];
-      return [
-        Math.round(STEEL[0] + (CRIMSON[0] - STEEL[0]) * u),
-        Math.round(STEEL[1] + (CRIMSON[1] - STEEL[1]) * u),
-        Math.round(STEEL[2] + (CRIMSON[2] - STEEL[2]) * u),
-      ];
-    }
-  }
+  function scoreColor(s) { return _arcPaletteColor(s); }
 
   // Segment colour: full-range -4→+4, richer palette
-  function segColor(s) {
-    const t = Math.max(-1, Math.min(1, s / 4));
-    if (t >= 0) {
-      // cyan (#00bfff) → mint (#00ff9d)
-      const u = t;
-      return [Math.round(0 + 0*u), Math.round(191 + 64*u), Math.round(255 - 110*u)];
-    } else {
-      // steel (#506070) → crimson (#ff1a44)
-      const u = -t;
-      return [Math.round(80 + 175*u), Math.round(96 - 58*u), Math.round(112 - 68*u)];
-    }
-  }
+  function segColor(s) { return _arcPaletteColor(s); }
 
   function rgb(c, a) {
     return a === undefined
