@@ -2116,71 +2116,143 @@ a{color:inherit;text-decoration:none}
    SEASONAL TAB
 ────────────────────────────────────────────── */
 /* ── Seasonality Tab ── */
+/* ── Seasonality score header card ─────────────────────────────────────── */
 .seas-score-card{
-  display:flex;align-items:center;gap:14px;
-  background:var(--surf2);border:1px solid var(--bdr2);
-  border-radius:10px;padding:14px 16px;margin-bottom:10px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
+  display:flex;align-items:center;gap:16px;
+  background:linear-gradient(135deg,rgba(15,17,25,0.95) 0%,rgba(20,23,34,0.9) 100%);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px;padding:16px 18px;margin-bottom:12px;
+  backdrop-filter:blur(6px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 4px 16px rgba(0,0,0,0.35);
 }
 .ss-badge{
-  width:52px;height:52px;border-radius:10px;flex-shrink:0;
+  width:58px;height:58px;border-radius:12px;flex-shrink:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:1px;border:1px solid rgba(255,255,255,0.07);
+  gap:2px;position:relative;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.06),inset 0 1px 0 rgba(255,255,255,0.12),0 4px 12px rgba(0,0,0,0.4);
 }
-.ss-badge-score{font-family:var(--mono);font-size:20px;font-weight:900;letter-spacing:-0.03em;line-height:1}
-.ss-badge-label{font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7}
+.ss-badge::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 60%);
+  border-radius:inherit;pointer-events:none;
+}
+.ss-badge-score{font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;line-height:1;position:relative;z-index:1}
+.ss-badge-label{font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;opacity:0.65;position:relative;z-index:1}
 .ss-content{flex:1;min-width:0}
-.ss-signal{font-size:13px;font-weight:700;letter-spacing:-0.01em;margin-bottom:4px}
-.ss-meta{font-size:8.5px;color:var(--dim);line-height:1.6}
-.ss-meta strong{color:var(--text)}
-.ss-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
-.ss-btn{
-  padding:6px 14px;border-radius:7px;
-  border:1px solid rgba(200,169,110,0.40);
-  background:rgba(200,169,110,0.07);
-  color:var(--accent);font-size:8.5px;font-weight:700;letter-spacing:0.04em;
-  cursor:pointer;white-space:nowrap;transition:background-color 200ms cubic-bezier(0.25,0.1,0.25,1),border-color 200ms cubic-bezier(0.25,0.1,0.25,1);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 2px 4px rgba(0,0,0,0.3);
+.ss-signal{
+  font-size:14px;font-weight:800;letter-spacing:-0.02em;margin-bottom:5px;
+  line-height:1.2;
 }
-.ss-btn:hover{background:rgba(200,169,110,0.14);border-color:rgba(200,169,110,0.65)}
+.ss-slope-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:4px;
+}
+.ss-slope-arrow{
+  display:inline-flex;align-items:center;gap:3px;
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  padding:2px 7px;border-radius:5px;letter-spacing:-0.01em;
+}
+.ss-meta{font-size:8.5px;color:var(--dim);line-height:1.6}
+.ss-meta strong{color:rgba(255,255,255,0.7)}
+.ss-actions{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0}
+.ss-btn{
+  padding:7px 15px;border-radius:8px;
+  border:1px solid rgba(200,169,110,0.35);
+  background:rgba(200,169,110,0.06);
+  color:var(--accent);font-size:8.5px;font-weight:700;letter-spacing:0.05em;
+  cursor:pointer;white-space:nowrap;
+  transition:background 180ms ease,border-color 180ms ease,box-shadow 180ms ease;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 2px 6px rgba(0,0,0,0.25);
+}
+.ss-btn:hover{
+  background:rgba(200,169,110,0.13);border-color:rgba(200,169,110,0.6);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 0 10px rgba(200,169,110,0.12);
+}
 .ss-cycle-tag{
   font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
-  color:var(--faint);background:var(--surf3);border:1px solid var(--bdr);
-  border-radius:4px;padding:2px 6px;
+  color:var(--faint);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  border-radius:5px;padding:2px 7px;
 }
 
-/* Chart legend */
-.seas-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:7px;padding:0 2px;align-items:center}
-.seas-leg-item{display:flex;align-items:center;gap:5px;font-size:7.5px;color:var(--dim);white-space:nowrap}
-.seas-leg-line{width:16px;height:0;border-radius:1px;flex-shrink:0}
-.seas-leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+/* ── Chart legend ───────────────────────────────────────────────────────── */
+.seas-legend{
+  display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;padding:0 2px;
+  align-items:center;
+}
+.seas-leg-item{
+  display:flex;align-items:center;gap:5px;
+  font-size:7.5px;color:rgba(255,255,255,0.4);white-space:nowrap;letter-spacing:0.03em;
+}
+.seas-leg-line{width:18px;height:0;border-radius:1px;flex-shrink:0}
+.seas-leg-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 
-/* Mini chart container */
+/* ── Mini chart container ──────────────────────────────────────────────── */
 .seas-mini{
-  position:relative;height:230px;
-  background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;
-  padding:10px 12px 22px 10px;
-  margin-bottom:10px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+  position:relative;height:270px;
+  background:linear-gradient(180deg,rgba(12,14,22,0.85) 0%,rgba(6,8,16,0.95) 100%);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px;
+  padding:10px 10px 22px 8px;
+  margin-bottom:12px;
+  backdrop-filter:blur(4px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.4);
+  overflow:hidden;
+}
+.seas-mini::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(91,110,245,0.35),rgba(255,255,255,0.12),rgba(91,110,245,0.35),transparent);
+  pointer-events:none;
 }
 
-/* Signal insight row below chart */
+/* ── Signal insight row ─────────────────────────────────────────────────── */
 .seas-insight-row{
   display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:0;
 }
 .seas-insight-cell{
-  background:var(--surf2);border:1px solid var(--bdr2);border-radius:9px;
-  padding:11px 13px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(15,17,25,0.9) 0%,rgba(10,12,20,0.95) 100%);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:10px;
+  padding:13px 14px 12px;
+  backdrop-filter:blur(4px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 2px 8px rgba(0,0,0,0.3);
+  transition:border-color 200ms ease;
 }
-.sic-label{font-size:7.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
-.sic-value{font-family:var(--mono);font-size:15px;font-weight:800;letter-spacing:-0.02em}
-.sic-sub{font-size:8px;color:var(--dim);margin-top:3px;line-height:1.4}
+.seas-insight-cell::before{
+  content:'';position:absolute;top:0;left:0;width:3px;bottom:0;
+  border-radius:10px 0 0 10px;
+  background:var(--sic-accent,rgba(255,255,255,0.15));
+  opacity:0.7;
+}
+.sic-label{
+  font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:rgba(255,255,255,0.3);margin-bottom:6px;
+}
+.sic-value{
+  font-family:var(--mono);font-size:17px;font-weight:900;letter-spacing:-0.03em;
+  line-height:1;margin-bottom:5px;
+}
+.sic-sub{font-size:8px;color:rgba(255,255,255,0.35);line-height:1.5}
+.sic-sub strong{color:rgba(255,255,255,0.55)}
 
-/* Stat cards for modal */
-.sstat{background:var(--surf2);border:1px solid var(--bdr2);border-radius:8px;padding:10px 12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);position:relative;overflow:hidden}
-.sstat-l{font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
-.sstat-v{font-family:var(--mono);font-size:15px;font-weight:800;letter-spacing:-0.02em;color:var(--text)}
-.seas-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+/* ── Modal stat chips ──────────────────────────────────────────────────── */
+.sstat{
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(15,17,25,0.9),rgba(10,12,20,0.95));
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:9px;padding:11px 13px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 2px 8px rgba(0,0,0,0.3);
+}
+.sstat::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  border-radius:9px 9px 0 0;
+  background:var(--sstat-top,rgba(255,255,255,0.08));
+}
+.sstat-l{
+  font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:rgba(255,255,255,0.3);margin-bottom:6px;
+}
+.sstat-v{font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.03em;line-height:1}
+.seas-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
 
 /* ──────────────────────────────────────────────
    MOMENTUM TAB
@@ -2635,7 +2707,7 @@ a{color:inherit;text-decoration:none}
   .cot-chart-wrap{height:120px!important}
   .modal{max-width:100%;max-height:100dvh;border-radius:0}
   .modal-back{padding:0}
-  .seas-mini{height:190px;padding-bottom:20px}
+  .seas-mini{height:210px;padding-bottom:20px}
   .rv-table-wrap{overflow-x:auto}
   .mom-bar-label{white-space:normal;word-break:break-word;font-size:8px}
   .back-to-ov-btn{font-size:8.5px;padding:5px 10px 5px 7px;min-height:28px}
@@ -9029,27 +9101,35 @@ function seasTabStub(m){
   // Score label
   const scoreLbl=sc>=8?'Strong Bull':sc>=6.5?'Bull Window':sc>=5.5?'Mild Bull':sc>=4.5?'Neutral':sc>=3.5?'Mild Bear':sc>=2?'Bear Window':'Strong Bear';
 
+  const arrowSym=slope==null?'':slope>=0?'▲':'▼';
+  const slopeAccent=slope==null?'rgba(255,255,255,0.15)':slope>=0?'rgba(34,201,122,0.18)':'rgba(224,58,42,0.18)';
+  const slopeTxt=slope==null?'':slope>=0?'var(--s1)':'var(--sm1)';
+  const cycleKey=d.cycle_key||'';
+  const cycleLabel={'post_election':'Post-Election','midterm':'Midterm','pre_election':'Pre-Election','election':'Election Year'}[cycleKey]||cycleKey;
+
   return `<div class="seas-score-card">
-    <div class="ss-badge" style="background:${bg};border-color:${col}22">
+    <div class="ss-badge" style="background:${bg};">
       <div class="ss-badge-score" style="color:${col}">${sc.toFixed(1)}</div>
       <div class="ss-badge-label" style="color:${col}">/10</div>
     </div>
     <div class="ss-content">
-      <div class="ss-signal" style="color:${col}">${slope!=null?slopeStr+' over next 3–4 weeks':scoreLbl}</div>
-      <div class="ss-meta">
-        ${slope!=null?'Curve slope TD '+d.horizon_td_start+'→'+d.horizon_td_end+' · <strong>'+scoreLbl+'</strong>':'Window-based estimate'}
-        · Source: ${d.source==='curve'?'25yr weighted curve':'Seasonal window'}
-      </div>
+      <div class="ss-signal" style="color:${col}">${scoreLbl}</div>
+      ${slope!=null?`<div class="ss-slope-row">
+        <span class="ss-slope-arrow" style="background:${slopeAccent};color:${slopeTxt}">${arrowSym} ${slopeStr}</span>
+        <span style="font-size:8px;color:rgba(255,255,255,0.35)">TD ${d.horizon_td_start}→${d.horizon_td_end} · 3–4 week window</span>
+      </div>`:`<div style="font-size:8.5px;color:var(--dim);margin-bottom:4px">Window-based estimate</div>`}
+      <div class="ss-meta">Source: <strong>${d.source==='curve'?'25yr recency-weighted curve':'Seasonal window'}</strong>${cycleLabel?' · '+cycleLabel+' year':''}</div>
     </div>
     <div class="ss-actions">
       <button class="ss-btn" onclick="openModal('${m.id}','${m.name}')">Full Chart ↗</button>
-
+      ${cycleLabel?`<span class="ss-cycle-tag">${cycleLabel.toUpperCase()}</span>`:''}
     </div>
   </div>
   <div class="seas-legend">
-    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2.5px solid #5b6ef5"></span>Hist. Avg</span>
-    <span class="seas-leg-item"><span class="seas-leg-line" style="height:0;border-top:1.5px dashed rgba(91,110,245,0.5)"></span>Projected</span>
-    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:1.5px solid rgba(255,255,255,0.85)"></span>2026 YTD</span>
+    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2.5px solid #6b7cff"></span>Hist. Avg (past)</span>
+    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:1.5px dashed rgba(107,124,255,0.5)"></span>Projected</span>
+    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2px solid rgba(255,255,255,0.85)"></span>2026 YTD Actual</span>
+    <span class="seas-leg-item"><span class="seas-leg-dot" style="background:#e03a2a"></span>Today</span>
   </div>
   <div class="seas-mini" id="seas-mini">
     <div class="ldots" id="seas-mini-load">
@@ -13210,15 +13290,17 @@ function normalizeSeasCurve(curve){
   return curve.map((v,i)=>[Math.round((i/365)*252), v]);
 }
 
+const SEAS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 async function fetchSeas(id){
-  if(seasCache[id])return seasCache[id];
+  const cached=seasCache[id];
+  if(cached && (Date.now()-cached._ts)<SEAS_CACHE_TTL)return cached;
   const r=await fetch(API+'/api/seasonality?market='+id);
   if(!r.ok)throw new Error('HTTP '+r.status);
   const d=await r.json();
   if(d.error)throw new Error(d.error);
-  // Normalise curves for cross pairs
   if(d.all)d.all=normalizeSeasCurve(d.all);
   if(d.mt) d.mt =normalizeSeasCurve(d.mt);
+  d._ts=Date.now();
   seasCache[id]=d;
   return d;
 }
@@ -13239,41 +13321,80 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
   const slope      = scoreDetail.slope_pct;
 
   // ── Data arrays ──────────────────────────────────────────
-  // Historical Avg: solid past, faded dashed future
   const histPast   = allV.map((v,i)=> labels[i]<=todayTD ? v : null);
   const histFuture = allV.map((v,i)=> labels[i]>=todayTD ? v : null);
 
-  // 2026 Actual: hard-clipped at todayTD
-  // Snap cy_actual to nearest label TD to handle any minor alignment gaps.
+  // 2026 Actual — DOY-based TDs now match todayTD coordinate system.
+  // Snap tolerance raised to 5 TDs (DOY-mapped points can sit 2-3 apart).
   const cyMap = new Map((cyActual||[]).map(p=>[p[0],p[1]]));
   const cyTDs = Array.from(cyMap.keys()).sort((a,b)=>a-b);
   function nearestCy(td){
     if(!cyTDs.length) return null;
-    // Find closest cy_actual TD to the requested label TD
     let best=cyTDs[0], bestDist=Math.abs(cyTDs[0]-td);
-    for(let t of cyTDs){const d=Math.abs(t-td);if(d<bestDist){bestDist=d;best=t;}}
-    // Only snap if within 2 TDs (avoids spurious interpolation across gaps)
-    return bestDist<=2 ? cyMap.get(best) : null;
+    for(const t of cyTDs){const d=Math.abs(t-td);if(d<bestDist){bestDist=d;best=t;}}
+    return bestDist<=5 ? cyMap.get(best) : null;
   }
-  const cyV = labels.map(td=> td<=todayTD ? nearestCy(td) : null);
+  // The last cya TD is now DOY-based — find it for clip boundary
+  const cyMaxTD = cyTDs.length ? cyTDs[cyTDs.length-1] : todayTD;
+  const cyV = labels.map(td=> td<=cyMaxTD ? nearestCy(td) : null);
 
-
+  // ── Cycle map (for bracket Y-positions) ──────────────────
+  const activeCycleMap = new Map(labels.map((td,i)=>[td,allV[i]]));
 
   // ── Canvas plugin ─────────────────────────────────────────
   const mpPlugin={
     id:'mp-'+prefix,
     beforeDatasetsDraw(chart){
-      // Draw future region wash BEFORE datasets so lines render on top
       const{ctx:c,scales:{x,y}}=chart;
+
+      // Area fill under historical avg (past region only) — very subtle
+      if(todayTD && todayTD>1){
+        const xStart=x.getPixelForValue(1);
+        const xNow=x.getPixelForValue(todayTD);
+        const y0=y.getPixelForValue(0);
+        // Clip to chart area
+        c.save();
+        c.beginPath();
+        c.rect(x.left,y.top,x.right-x.left,y.bottom-y.top);
+        c.clip();
+        // Build path along the historical avg past segment
+        const grad=c.createLinearGradient(0,y.top,0,y.bottom);
+        // Colour based on trend direction (last histPast value vs start)
+        const lastPastVal=allV[labels.findIndex(td=>td>=todayTD)-1]??allV[0];
+        if(lastPastVal>=0){
+          grad.addColorStop(0,'rgba(107,124,255,0.13)');
+          grad.addColorStop(1,'rgba(107,124,255,0.01)');
+        } else {
+          grad.addColorStop(0,'rgba(224,58,42,0.01)');
+          grad.addColorStop(1,'rgba(224,58,42,0.10)');
+        }
+        c.beginPath();
+        let started=false;
+        for(let i=0;i<labels.length;i++){
+          if(labels[i]>todayTD)break;
+          const px=x.getPixelForValue(labels[i]);
+          const py=y.getPixelForValue(allV[i]);
+          if(!started){c.moveTo(px,py);started=true;}else{c.lineTo(px,py);}
+        }
+        // Close path down to baseline
+        const lastPx=Math.min(xNow,x.right);
+        c.lineTo(lastPx,Math.max(Math.min(y0,y.bottom),y.top));
+        c.lineTo(xStart,Math.max(Math.min(y0,y.bottom),y.top));
+        c.closePath();
+        c.fillStyle=grad;
+        c.fill();
+        c.restore();
+      }
+
+      // Future region wash
       if(todayTD && todayTD<252){
         const xNow=x.getPixelForValue(todayTD);
         const xEnd=x.getPixelForValue(252);
         c.save();
-        // Subtle gradient wash
-        const grad=c.createLinearGradient(xNow,0,xEnd,0);
-        grad.addColorStop(0,'rgba(255,255,255,0.025)');
-        grad.addColorStop(1,'rgba(255,255,255,0.004)');
-        c.fillStyle=grad;
+        const grad2=c.createLinearGradient(xNow,0,xEnd,0);
+        grad2.addColorStop(0,'rgba(255,255,255,0.018)');
+        grad2.addColorStop(1,'rgba(255,255,255,0.003)');
+        c.fillStyle=grad2;
         c.fillRect(xNow,y.top,xEnd-xNow,y.bottom-y.top);
         c.restore();
       }
@@ -13286,74 +13407,99 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
       if(y0>=y.top && y0<=y.bottom){
         c.save();
         c.beginPath();c.moveTo(x.left,y0);c.lineTo(x.right,y0);
-        c.strokeStyle='rgba(255,255,255,0.12)';c.lineWidth=1;
-        c.setLineDash([]);c.stroke();
-        c.fillStyle='rgba(255,255,255,0.18)';
-        c.font='7px Inter,sans-serif';c.textAlign='left';
-        c.fillText('0%',x.left+3,y0-3);
+        c.strokeStyle='rgba(255,255,255,0.14)';c.lineWidth=1;
+        c.setLineDash([4,4]);c.stroke();
+        c.setLineDash([]);
+        c.fillStyle='rgba(255,255,255,0.22)';
+        c.font='600 7.5px JetBrains Mono,monospace';c.textAlign='left';
+        c.fillText('0%',x.left+4,y0-4);
         c.restore();
       }
 
       // ── Month boundary lines + labels ─────────────────────
-      // Build sorted month list with next-boundary so we can find midpoint
       const mSorted=[...months].sort((a,b)=>a.td-b.td);
       mSorted.forEach((m,mi)=>{
         const px=x.getPixelForValue(m.td);
         if(px<x.left||px>x.right)return;
         c.save();
-        c.beginPath();c.moveTo(px,y.top);c.lineTo(px,y.bottom);
-        c.strokeStyle='rgba(255,255,255,0.07)';c.lineWidth=1;c.setLineDash([]);c.stroke();
-        // Midpoint between this boundary and next (or end of year)
+        // Vertical tick mark at bottom only (cleaner than full line)
+        c.beginPath();
+        c.moveTo(px,y.bottom-16);
+        c.lineTo(px,y.bottom);
+        c.strokeStyle='rgba(255,255,255,0.1)';c.lineWidth=1;c.setLineDash([]);c.stroke();
         const nextTd=mSorted[mi+1]?mSorted[mi+1].td:252;
         const midTd=(m.td+nextTd)/2;
         const midPx=x.getPixelForValue(midTd);
-        if(midPx<x.left||midPx>x.right){c.restore();return;}
-        // Draw label INSIDE chart area just above the bottom axis
-        c.fillStyle='rgba(255,255,255,0.28)';
-        c.font='500 8px Inter,sans-serif';
-        c.textAlign='center';
-        c.fillText(m.label,midPx,y.bottom-5);
+        if(midPx>=x.left && midPx<=x.right){
+          c.fillStyle='rgba(255,255,255,0.32)';
+          c.font='500 8.5px Inter,sans-serif';
+          c.textAlign='center';
+          c.fillText(m.label,midPx,y.bottom-4);
+        }
         c.restore();
       });
 
-      // ── TODAY line ────────────────────────────────────────
+      // ── TODAY vertical line ───────────────────────────────
       if(todayTD){
         const px=x.getPixelForValue(todayTD);
         c.save();
-        c.beginPath();c.moveTo(px,y.top);c.lineTo(px,y.bottom);
-        c.strokeStyle='rgba(240,64,64,0.9)';c.lineWidth=1.5;
-        c.setLineDash([3,3]);c.stroke();
-        c.setLineDash([]);
-        // TODAY label
-        c.fillStyle='#e03a2a';
-        c.font='bold 7.5px Inter,sans-serif';
+        // Soft glow column
+        const tGrad=c.createLinearGradient(px-6,0,px+6,0);
+        tGrad.addColorStop(0,'rgba(224,58,42,0)');
+        tGrad.addColorStop(0.5,'rgba(224,58,42,0.18)');
+        tGrad.addColorStop(1,'rgba(224,58,42,0)');
+        c.fillStyle=tGrad;
+        c.fillRect(px-6,y.top,12,y.bottom-y.top);
+        // Solid line on top
+        c.beginPath();c.moveTo(px,y.top+10);c.lineTo(px,y.bottom);
+        c.strokeStyle='rgba(224,58,42,0.85)';c.lineWidth=1.5;
+        c.setLineDash([4,3]);c.stroke();c.setLineDash([]);
+        // TODAY pill label
+        const lbl='TODAY';
+        c.font='700 7px Inter,sans-serif';
+        const tw=c.measureText(lbl).width;
+        const pillW=tw+10,pillH=14;
+        const pillX=px-pillW/2,pillY=y.top;
+        c.fillStyle='rgba(224,58,42,0.9)';
+        c.beginPath();
+        c.roundRect(pillX,pillY,pillW,pillH,3);
+        c.fill();
+        c.fillStyle='#fff';
         c.textAlign='center';
-        c.fillText('TODAY',px,y.top-2);
+        c.fillText(lbl,px,pillY+9.5);
         c.restore();
 
-        // Dot on 2026 Actual at todayTD — green = live data endpoint
+        // Live data endpoint dot on the YTD actual line
         if(cyMap.size>0){
-          const cyVal=nearestCy(todayTD);
+          const cyVal=nearestCy(cyMaxTD);  // use last available actual point
           if(cyVal!=null){
-            const py=y.getPixelForValue(cyVal);
+            const dotX=x.getPixelForValue(cyMaxTD);
+            const dotY=y.getPixelForValue(cyVal);
             c.save();
-            // Outer glow ring
-            c.beginPath();c.arc(px,py,6,0,Math.PI*2);
-            c.fillStyle='rgba(48,217,136,0.18)';c.fill();
-            // Inner dot — green
-            c.beginPath();c.arc(px,py,3,0,Math.PI*2);
+            // Glow halo
+            c.beginPath();c.arc(dotX,dotY,8,0,Math.PI*2);
+            c.fillStyle='rgba(34,201,122,0.12)';c.fill();
+            c.beginPath();c.arc(dotX,dotY,4.5,0,Math.PI*2);
+            c.fillStyle='rgba(34,201,122,0.25)';c.fill();
+            c.beginPath();c.arc(dotX,dotY,2.5,0,Math.PI*2);
             c.fillStyle='#22c97a';c.fill();
-            // Value label — left of line to avoid collision
+            // Value pill
             const valStr=(cyVal>=0?'+':'')+cyVal.toFixed(1)+'%';
-            c.font='600 8px Inter,sans-serif';
-            const tw=c.measureText(valStr).width;
-            const lblX=px-tw-12;
-            const lblY=py<y.top+22?py+14:py-5;
+            c.font='700 8px JetBrains Mono,monospace';
+            const vw=c.measureText(valStr).width;
+            const vPillW=vw+10,vPillH=15;
+            const rightSide=dotX+10;
+            const vPillX=(rightSide+vPillW<=x.right)?rightSide:dotX-vPillW-10;
+            const vPillY=dotY-(vPillH/2);
+            c.fillStyle='rgba(5,7,13,0.92)';
+            c.strokeStyle='rgba(34,201,122,0.5)';
+            c.lineWidth=1;
+            c.beginPath();
+            c.roundRect(vPillX,vPillY,vPillW,vPillH,4);
+            c.fill();c.stroke();
+            c.fillStyle='#22c97a';
             c.textAlign='left';
-            c.fillStyle='rgba(5,7,13,0.88)';
-            c.fillRect(lblX-2,lblY-9,tw+6,13);
-            c.fillStyle='rgba(255,255,255,0.95)';
-            c.fillText(valStr,lblX,lblY);
+            c.fillText(valStr,vPillX+5,vPillY+10.5);
             c.restore();
           }
         }
@@ -13363,50 +13509,44 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
       if(slope!=null && horizStart && horizEnd){
         const xA=x.getPixelForValue(horizStart);
         const xB=x.getPixelForValue(horizEnd);
-        // Get the historical avg value at those TDs
-        // Use active cycle map for bracket Y-positions so they match the projection line
-        const _bracketMap=activeCycleMap;
         const _near=(td)=>{
-          if(_bracketMap.has(td))return _bracketMap.get(td);
+          if(activeCycleMap.has(td))return activeCycleMap.get(td);
           let best=null,bestD=999;
-          _bracketMap.forEach((v,k)=>{const d=Math.abs(k-td);if(d<bestD){bestD=d;best=v;}});
+          activeCycleMap.forEach((v,k)=>{const d=Math.abs(k-td);if(d<bestD){bestD=d;best=v;}});
           return best;
         };
         const vA=_near(horizStart), vB=_near(horizEnd);
         if(vA!=null && vB!=null){
           const pyA=y.getPixelForValue(vA);
           const pyB=y.getPixelForValue(vB);
-          const scoreColor=slope>=0?'#22c97a':'#e03a2a';
+          const isBull=slope>=0;
+          const scoreColor=isBull?'#22c97a':'#e03a2a';
           c.save();
-          // Shaded projection zone
+          // Filled zone
           c.beginPath();
-          c.rect(xA,Math.min(pyA,pyB)-2,xB-xA,Math.abs(pyB-pyA)+4);
-          c.fillStyle=slope>=0?'rgba(48,217,136,0.07)':'rgba(240,64,64,0.07)';
+          c.rect(xA,Math.min(pyA,pyB)-1,xB-xA,Math.abs(pyB-pyA)+2);
+          c.fillStyle=isBull?'rgba(34,201,122,0.06)':'rgba(224,58,42,0.06)';
           c.fill();
-          // Bracket lines
-          c.strokeStyle=slope>=0?'rgba(48,217,136,0.5)':'rgba(240,64,64,0.5)';
-          c.lineWidth=1;c.setLineDash([]);
-          // top bracket
-          c.beginPath();c.moveTo(xA,pyA);c.lineTo(xB,pyB);c.stroke();
-          // Slope arrow at end
+          // Diagonal line
+          c.beginPath();c.moveTo(xA,pyA);c.lineTo(xB,pyB);
+          c.strokeStyle=isBull?'rgba(34,201,122,0.55)':'rgba(224,58,42,0.55)';
+          c.lineWidth=1.5;c.setLineDash([]);c.stroke();
+          // End dot
           c.beginPath();c.arc(xB,pyB,3,0,Math.PI*2);
           c.fillStyle=scoreColor;c.fill();
-          // Label
+          // Slope label
           const slStr=(slope>=0?'+':'')+slope.toFixed(2)+'%';
-          // Place label just right of the end-dot for cleaner read
-          const lblRX=xB+6;
-          const lblRY=pyB+(pyB>pyA?8:-8);
-          c.font='600 8px Inter,sans-serif';
+          c.font='700 7.5px JetBrains Mono,monospace';
           c.textAlign='left';
           const tw2=c.measureText(slStr).width;
-          const inBounds=lblRX+tw2+6<x.right;
-          const finalX=inBounds?lblRX:(xA+xB)/2-tw2/2;
-          const finalY=inBounds?lblRY:Math.min(pyA,pyB)-8;
-          c.fillStyle='rgba(9,11,16,0.88)';
-          c.fillRect(finalX-2,finalY-9,tw2+6,13);
+          const lblX=xB+6, lblY=pyB+(pyB>pyA?9:-9);
+          const inBounds=lblX+tw2+8<x.right;
+          const fx=inBounds?lblX:(xA+xB)/2-tw2/2;
+          const fy=inBounds?lblY:Math.min(pyA,pyB)-9;
+          c.fillStyle='rgba(9,11,16,0.9)';
+          c.beginPath();c.roundRect(fx-3,fy-10,tw2+8,14,3);c.fill();
           c.fillStyle=scoreColor;
-          c.textAlign='left';
-          c.fillText(slStr,finalX,finalY);
+          c.fillText(slStr,fx,fy);
           c.restore();
         }
       }
@@ -13416,64 +13556,64 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
   // ── Datasets ─────────────────────────────────────────────
   const datasets=[];
 
-
-  // Historical Avg — PAST segment (solid blue)
+  // Historical Avg — PAST segment
   datasets.push({
     label:'Historical Avg',
     data:histPast,
-    borderColor:isModal?'#6b7cff':'#5b6ef5',
-    borderWidth:isModal?2.8:2.2,
-    pointRadius:0,tension:0.4,fill:false,
+    borderColor:isModal?'rgba(107,124,255,0.95)':'rgba(91,110,245,0.85)',
+    borderWidth:isModal?2.5:2,
+    pointRadius:0,tension:0.42,fill:false,
     order:2
   });
 
-  // Projected line = all-years curve future segment (cycle weighting already baked in)
-  const activeCycleMap = new Map(labels.map((td,i)=>[td,allV[i]]));
-
+  // Projected (future) — dashed, faded
   datasets.push({
     label:'Projected',
     data:histFuture,
-    borderColor:isModal?'rgba(91,110,245,0.55)':'rgba(91,110,245,0.42)',
-    borderWidth:isModal?1.8:1.4,
-    borderDash:[6,3],
-    pointRadius:0,tension:0.4,fill:false,
+    borderColor:isModal?'rgba(107,124,255,0.4)':'rgba(91,110,245,0.32)',
+    borderWidth:isModal?1.6:1.3,
+    borderDash:[6,4],
+    pointRadius:0,tension:0.42,fill:false,
     order:3
   });
 
-  // Ghost cycle curves — modal full-screen only, faint context lines
+  // Ghost cycle curves — modal only, faint context
   if(isModal){
     const cycleNames  = {midterm:'Midterm',pre_election:'Pre-Election',post_election:'Post-Election',election:'Election'};
-    const cycleColors = {midterm:'#f0c060',pre_election:'#a78bfa',post_election:'#34d399',election:'#fb923c'};
+    const cycleColors = {midterm:'rgba(240,192,96,0.55)',pre_election:'rgba(167,139,250,0.45)',post_election:'rgba(52,211,153,0.45)',election:'rgba(251,146,60,0.45)'};
     Object.entries(cycles).forEach(([key,curve])=>{
       if(!curve||!curve.length)return;
+      const cMap=new Map(curve.map(p=>[p[0],p[1]]));
       const vals=labels.map(td=>{
-        const p=(curve||[]).find(x=>x[0]===td);
-        return p?p[1]:null;
+        if(cMap.has(td))return cMap.get(td);
+        let b=null,bd=999;
+        cMap.forEach((v,k)=>{const d=Math.abs(k-td);if(d<bd){bd=d;b=v;}});
+        return bd<=2?b:null;
       });
       datasets.push({
         label:cycleNames[key]||key,
         data:vals,
-        borderColor:cycleColors[key]||'#666',
-        borderWidth:0.7,
-        borderDash:[2,6],
-        pointRadius:0,tension:0.4,fill:false,
+        borderColor:cycleColors[key]||'rgba(150,150,150,0.3)',
+        borderWidth:1,
+        borderDash:[3,6],
+        pointRadius:0,tension:0.42,fill:false,
         order:10,
         yAxisID:'yGhost'
       });
     });
   }
 
-  // 2026 Actual — solid white, zero tension so real price action shows through
+  // 2026 Actual — bright white, crisp
   if(cyActual&&cyActual.length>1){
     datasets.unshift({
       label:'2026 Actual YTD',
       data:cyV,
-      borderColor:'rgba(255,255,255,0.9)',
-      borderWidth:isModal?1.8:1.4,
+      borderColor:'rgba(255,255,255,0.92)',
+      borderWidth:isModal?2:1.6,
       borderDash:[],
       pointRadius:0,
-      tension:0.28,
-      spanGaps:true,
+      tension:0.3,
+      spanGaps:false,
       fill:false,
       order:1
     });
@@ -13484,15 +13624,15 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
     data:{labels,datasets},
     options:{
       responsive:true,maintainAspectRatio:false,
-      layout:{padding:{bottom:20,top:14,left:0,right:8}},
+      layout:{padding:{bottom:20,top:18,left:2,right:10}},
       interaction:{mode:'index',intersect:false},
       plugins:{
         legend:{display:false},
         tooltip:{
-          backgroundColor:'rgba(9,11,19,0.96)',
-          borderColor:'rgba(255,255,255,0.08)',borderWidth:1,
-          titleColor:'rgba(154,165,190,0.9)',bodyColor:'#dce2f2',
-          padding:10,cornerRadius:8,
+          backgroundColor:'rgba(9,11,19,0.97)',
+          borderColor:'rgba(255,255,255,0.09)',borderWidth:1,
+          titleColor:'rgba(154,165,190,0.8)',bodyColor:'#dce2f2',
+          padding:11,cornerRadius:8,caretSize:5,
           callbacks:{
             title:items=>'TD '+items[0].label+' — '+getMonth(parseInt(items[0].label),months),
             label:item=>{
@@ -13510,119 +13650,106 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
           type:'linear',min:1,max:252,
           ticks:{display:false},
           grid:{display:false},
-          border:{color:'rgba(255,255,255,0.06)'}
+          border:{color:'rgba(255,255,255,0.08)'}
         },
         y:{
           ticks:{
-            color:'rgba(255,255,255,0.25)',
-            font:{size:7.5,family:'JetBrains Mono,monospace'},
+            color:'rgba(255,255,255,0.28)',
+            font:{size:isModal?8:7.5,family:'JetBrains Mono,monospace'},
             callback:v=>(v>=0?'+':'')+v.toFixed(0)+'%',
-            maxTicksLimit:6
+            maxTicksLimit:isModal?8:6,
+            padding:4
           },
-          grid:{color:'rgba(255,255,255,0.035)'},
+          grid:{color:'rgba(255,255,255,0.04)'},
           border:{color:'transparent'}
         },
-        yGhost:{
-          display:false,
-          axis:'y'
-        }
+        yGhost:{display:false,axis:'y'}
       }
     },
     plugins:[mpPlugin]
   });
 }
 
+function _accentFromVal(v){
+  if(v==null)return 'rgba(255,255,255,0.12)';
+  if(v>5)return 'rgba(34,201,122,0.7)';
+  if(v<-5)return 'rgba(224,58,42,0.7)';
+  return 'rgba(148,165,190,0.35)';
+}
+
 function renderSeasInsight(all,mt,todayTD,sd,cya,containerId){
-  // Three focused cells: divergence, projection slope, historical context
   const el=document.getElementById(containerId);
   if(!el)return;
   const allV=all.map(p=>p[1]);
   const ti=all.findIndex(p=>p[0]>=todayTD);
   const histNow=ti>=0?allV[ti]:allV[Math.min(allV.length-1,todayTD-1)];
 
-  // 2026 Actual at today — use nearest-TD snap to handle any alignment gaps
-  const cyMap=new Map((cya||[]).map(p=>[p[0],p[1]]));
-  function _cySnap(map, td){
-    if(!map.size) return null;
-    let best=null, bestD=Infinity;
-    map.forEach((_,t)=>{const d=Math.abs(t-td);if(d<bestD){bestD=d;best=t;}});
-    return bestD<=3 ? map.get(best) : null;
-  }
-  let cyNow=_cySnap(cyMap,todayTD);
-  // fallback: last available actual
-  if(cyNow==null&&cya&&cya.length) cyNow=cya[cya.length-1][1];
+  // 2026 Actual — use last available point (DOY-mapped TDs now correct)
+  const cyArr=cya||[];
+  const cyNow=cyArr.length ? cyArr[cyArr.length-1][1] : null;
+
   const divergence=(cyNow!=null&&histNow!=null)?cyNow-histNow:null;
-  // Threshold-based colour: grey for ±5% range, green >+5, red <-5
-  const divCol=divergence==null?'var(--dim)':divergence>5?'var(--s1)':divergence<-5?'var(--sm1)':'var(--faint)';
+  const divCol=divergence==null?'rgba(255,255,255,0.3)':divergence>5?'#22c97a':divergence<-5?'#e03a2a':'#94a3b8';
   const divStr=divergence==null?'—':(divergence>=0?'+':'')+divergence.toFixed(1)+'%';
+  const divAccent=_accentFromVal(divergence);
 
-  // Projection slope
   const slope=sd?.slope_pct;
-  const slopeCol=slope==null?'var(--dim)':slope>=0?'var(--s1)':'var(--sm1)';
+  const slopeCol=slope==null?'rgba(255,255,255,0.3)':slope>=0?'#22c97a':'#e03a2a';
   const slopeStr=slope==null?'—':(slope>=0?'+':'')+slope.toFixed(2)+'%';
-  const horizStr=slope!=null?'TD '+(sd.horizon_td_start)+'→'+(sd.horizon_td_end):'Next 3–4 wks';
+  const slopeAccent=_accentFromVal(slope??0);
+  const horizStr=slope!=null?'TD '+sd.horizon_td_start+'→'+sd.horizon_td_end:'3–4 wk window';
 
-  // Historical avg projected year-end
   const ye=allV[allV.length-1];
-  const yeCol=ye>=0?'var(--s1)':'var(--sm1)';
+  const yeCol=ye>=0?'#22c97a':'#e03a2a';
+  const yeAccent=ye>=0?'rgba(34,201,122,0.55)':'rgba(224,58,42,0.55)';
+
+  const cyStr=cyNow!=null?(cyNow>=0?'+':'')+cyNow.toFixed(1)+'%':'No data';
+  const histStr=histNow!=null?(histNow>=0?'+':'')+histNow.toFixed(1)+'%':'—';
 
   el.innerHTML=`
-    <div class="seas-insight-cell">
+    <div class="seas-insight-cell" style="--sic-accent:${divAccent}">
       <div class="sic-label">2026 vs Hist. Avg</div>
       <div class="sic-value" style="color:${divCol}">${divStr}</div>
-      <div class="sic-sub">${cyNow!=null?'Actual: '+(cyNow>=0?'+':'')+cyNow.toFixed(1)+'%':'No actual data'} · Hist: ${histNow!=null?(histNow>=0?'+':'')+histNow.toFixed(1)+'%':'—'}</div>
+      <div class="sic-sub"><strong>${cyStr}</strong> actual &nbsp;&middot;&nbsp; ${histStr} hist</div>
     </div>
-    <div class="seas-insight-cell">
-      <div class="sic-label">3–4 Wk Projection</div>
+    <div class="seas-insight-cell" style="--sic-accent:${slopeAccent}">
+      <div class="sic-label">3–4 Wk Slope</div>
       <div class="sic-value" style="color:${slopeCol}">${slopeStr}</div>
-      <div class="sic-sub">${horizStr} · ${sd?.source==='curve'?'Curve-based':'Window'}</div>
+      <div class="sic-sub">${horizStr} &nbsp;&middot;&nbsp; ${sd?.source==='curve'?'Curve':'Window'}</div>
     </div>
-    <div class="seas-insight-cell">
-      <div class="sic-label">Hist. Avg Year-End</div>
+    <div class="seas-insight-cell" style="--sic-accent:${yeAccent}">
+      <div class="sic-label">Hist. Year-End</div>
       <div class="sic-value" style="color:${yeCol}">${(ye>=0?'+':'')+ye.toFixed(1)+'%'}</div>
       <div class="sic-sub">25yr recency-weighted avg</div>
     </div>`;
 }
 
 function renderSeasStats(all,mt,todayTD,sd,cya,containerId){
-  // Used in modal — 5 stats
   const allV=all.map(p=>p[1]);
   const ti=all.findIndex(p=>p[0]>=todayTD);
   const tv=ti>=0?allV[ti]:allV[allV.length-1];
   const peak=Math.max(...allV);
   const trough=Math.min(...allV);
   const ye=allV[allV.length-1];
-  // Seasonal range = peak-to-trough swing (useful volatility signal)
   const rangeVal=peak-trough;
-  const cyMap2=new Map((cya||[]).map(p=>[p[0],p[1]]));
-  function _cySnap2(map, td){
-    if(!map.size) return null;
-    let best=null, bestD=Infinity;
-    map.forEach((_,t)=>{const d=Math.abs(t-td);if(d<bestD){bestD=d;best=t;}});
-    return bestD<=3 ? map.get(best) : null;
-  }
-  let cyNow=_cySnap2(cyMap2,todayTD)||(cya&&cya.length?cya[cya.length-1][1]:null);
+  // Use last cya point (DOY-mapped TDs — just take the last value)
+  const cyNow=(cya&&cya.length)?cya[cya.length-1][1]:null;
   const el=document.getElementById(containerId);
   if(!el)return;
-  const _sCol=(v,neutral)=>{
-    if(neutral)return '#9aa5be';
-    return v>=0?'#22c97a':'#e03a2a';
-  };
-  const _sBdr=(v,neutral)=>{
-    if(neutral)return 'rgba(154,165,190,0.2)';
-    return v>=0?'rgba(38,201,122,0.2)':'rgba(240,64,64,0.2)';
-  };
-  const cyC=cyNow!=null?_sCol(cyNow):'#5a6480';
-  const cyB=cyNow!=null?_sBdr(cyNow):'rgba(90,100,128,0.2)';
+  const _col=(v,neutral)=>neutral?'#94a3b8':v>=0?'#22c97a':'#e03a2a';
+  const _top=(v,neutral)=>neutral?'rgba(148,165,190,0.3)':v>=0?'rgba(34,201,122,0.5)':'rgba(224,58,42,0.5)';
+  const cyC=cyNow!=null?_col(cyNow):'#5a6480';
+  const cyTop=cyNow!=null?_top(cyNow):'rgba(90,100,128,0.2)';
   const stats=[
-    {l:'2026 Actual',  v:cyNow!=null?(cyNow>=0?'+':'')+cyNow.toFixed(2)+'%':'—', col:cyC, bdr:cyB},
-    {l:'Hist. Today',  v:(tv>=0?'+':'')+tv.toFixed(2)+'%',  col:_sCol(tv),  bdr:_sBdr(tv)},
-    {l:'Hist. Year-End',v:(ye>=0?'+':'')+ye.toFixed(2)+'%', col:_sCol(ye),  bdr:_sBdr(ye)},
-    {l:'Seas. Range',  v:'+'+rangeVal.toFixed(2)+'%',        col:_sCol(rangeVal,true), bdr:_sBdr(rangeVal,true)},
-    {l:'3–4wk Slope',  v:sd?.slope_pct!=null?(sd.slope_pct>=0?'+':'')+sd.slope_pct.toFixed(2)+'%':'—',
-     col:sd?.slope_pct!=null?_sCol(sd.slope_pct):'#5a6480', bdr:sd?.slope_pct!=null?_sBdr(sd.slope_pct):'rgba(90,100,128,0.2)'},
+    {l:'2026 Actual', v:cyNow!=null?(cyNow>=0?'+':'')+cyNow.toFixed(2)+'%':'—', col:cyC, top:cyTop},
+    {l:'Hist. Today', v:(tv>=0?'+':'')+tv.toFixed(2)+'%', col:_col(tv), top:_top(tv)},
+    {l:'Year-End Avg', v:(ye>=0?'+':'')+ye.toFixed(2)+'%', col:_col(ye), top:_top(ye)},
+    {l:'Seas. Range', v:'+'+rangeVal.toFixed(2)+'%', col:_col(0,true), top:_top(0,true)},
+    {l:'3–4wk Slope', v:sd?.slope_pct!=null?(sd.slope_pct>=0?'+':'')+sd.slope_pct.toFixed(2)+'%':'—',
+     col:sd?.slope_pct!=null?_col(sd.slope_pct):'#5a6480',
+     top:sd?.slope_pct!=null?_top(sd.slope_pct):'rgba(90,100,128,0.2)'},
   ];
-  el.innerHTML=stats.map(s=>`<div class="sstat" style="border-top:2px solid ${s.bdr}"><div class="sstat-l">${s.l}</div><div class="sstat-v" style="color:${s.col}">${s.v}</div></div>`).join('');
+  el.innerHTML=stats.map(s=>`<div class="sstat" style="--sstat-top:${s.top}"><div class="sstat-l">${s.l}</div><div class="sstat-v" style="color:${s.col}">${s.v}</div></div>`).join('');
 }
 
 /* ════════════════════════════════════════════

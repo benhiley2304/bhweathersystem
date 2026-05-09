@@ -62,41 +62,11 @@ app = FastAPI(title="COT Weather Station v2", default_response_class=_SafeJSONRe
 # Dedicated thread pool — large enough to avoid deadlocks when heavy sync functions
 # (compute_macro_all, compute_risk_regime, _fetch_ff_months_parallel etc.) run concurrently.
 import concurrent.futures as _cf
-# ── Thread pool design (2 GB Render Standard instance) ─────────────────────
-# All blocking I/O (yfinance, requests, FRED, ForexFactory, ICE) runs through
-# these two pools.  Every previously-inline ThreadPoolExecutor has been replaced
-# with _APP_EXECUTOR so we have ONE pool whose concurrency is controlled here.
-#
-# _APP_EXECUTOR  — general work (COT, FRED, macro, momentum, price data)
-#   4 workers: enough to parallelise the sequential cold-start fetch chain
-#   without piling up RSS.  Warm-cache hits are near-instant so throughput
-#   is unaffected.
-#
-# _SH_EXECUTOR   — score_history prefetch (60 FF-months + yfinance history)
-#   1 worker: score_history requests queue rather than run concurrently.
-#   The shared regime-price cache means the yfinance cost is paid once across
-#   all markets, so single-worker throughput is acceptable.
-#
-# Global yfinance semaphore (_YF_SEM) is declared after the event loop is
-# available (see below).  It caps concurrent yfinance calls at 3 regardless
-# of which executor they run in.
-_APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=4, thread_name_prefix="bh-worker")
-_SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=1, thread_name_prefix="bh-sh")
-
-# ── Global yfinance concurrency cap ────────────────────────────────────
-# yfinance.Ticker().history() is synchronous and loads full OHLCV DataFrames
-# into RAM.  Without a cap, multiple concurrent score_history prefetches
-# fetching 16 RISK_ASSETS each would create dozens of simultaneous yfinance
-# calls — enough to OOM a 2 GB instance.
-# threading.Semaphore because these run inside sync functions in thread executors.
-import threading as _threading
-_YF_SEMAPHORE = _threading.Semaphore(3)  # max 3 concurrent yfinance calls
-
-def _yf_history(ticker_obj, **kwargs):
-    """Call yfinance .history() under the global semaphore."""
-    with _YF_SEMAPHORE:
-        return ticker_obj.history(**kwargs)
-
+_APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=8, thread_name_prefix="bh-worker")
+# Dedicated low-priority executor for score_history heavy yfinance prefetch.
+# Capped at 2 workers so concurrent history requests cannot OOM by competing
+# with the main scores/FRED/COT executor on the 2GB Render instance.
+_SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bh-sh")
 _photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 if os.path.isdir(_photos_dir):
     app.mount("/photos", StaticFiles(directory=_photos_dir), name="photos")
@@ -1327,6 +1297,8 @@ def fetch_pcr_history() -> Optional[pd.DataFrame]:
 
         daily_headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.cboe.com/"}
 
+        from concurrent.futures import ThreadPoolExecutor as _TPE
+
         def _fetch_day(d):
             date_str = d.strftime("%Y-%m-%d")
             url = f"https://cdn.cboe.com/data/us/options/market_statistics/daily/{date_str}_daily_options"
@@ -1345,8 +1317,8 @@ def fetch_pcr_history() -> Optional[pd.DataFrame]:
                 pass
             return None
 
-        # Use global executor (previously inline ThreadPoolExecutor(max_workers=8))
-        fetch_results = list(_APP_EXECUTOR.map(_fetch_day, all_dates))
+        with _TPE(max_workers=8) as ex:
+            fetch_results = list(ex.map(_fetch_day, all_dates))
 
         new_rows = [row for row in fetch_results if row is not None]
         if new_rows:
@@ -1898,12 +1870,11 @@ def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     current_year = date.today().year
     START_YEAR = 2011  # ICE disagg available from ~2011
 
-    # Parallel fetch — all years downloaded concurrently via the global executor
-    # (previously used an inline ThreadPoolExecutor(max_workers=8) which bypassed
-    # the global concurrency cap and contributed to OOM on cold start).
+    # Parallel fetch — all years downloaded concurrently, each file fetched once
     years = list(range(START_YEAR, current_year + 1))
     all_rows: list = []
-    year_results = list(_APP_EXECUTOR.map(_fetch_ice_annual_rows, years))
+    with _cf.ThreadPoolExecutor(max_workers=8) as _pool:
+        year_results = list(_pool.map(_fetch_ice_annual_rows, years))
     for year_rows in year_results:
         matched = [r for r in year_rows if r.get("CFTC_Commodity_Code", "").strip() == ice_market_code]
         all_rows.extend(matched)
@@ -2659,7 +2630,7 @@ def fetch_price_data(yf_ticker: str) -> Optional[pd.DataFrame]:
         return PRICE_CACHE[yf_ticker]
     try:
         tk = yf.Ticker(yf_ticker)
-        df = _yf_history(tk, period="1y", interval="1d")
+        df = tk.history(period="1y", interval="1d")
         PRICE_CACHE[yf_ticker]          = df
         PRICE_CACHE[yf_ticker + "_t"]   = now
         return df
@@ -2675,7 +2646,7 @@ def fetch_price_data_long(yf_ticker: str) -> Optional[pd.DataFrame]:
         return PRICE_CACHE[cache_key]
     try:
         tk = yf.Ticker(yf_ticker)
-        df = _yf_history(tk, period="5y", interval="1d")
+        df = tk.history(period="5y", interval="1d")
         PRICE_CACHE[cache_key]          = df
         PRICE_CACHE[cache_key + "_t"]   = now
         return df
@@ -3014,35 +2985,35 @@ def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
     """
     Fetch multiple months in parallel and return a flat list of event dicts,
     each with: ts, currency, name, actual, forecast, previous, impactClass.
-    Uses the global _APP_EXECUTOR to stay within the system-wide concurrency cap
-    (previously used an inline ThreadPoolExecutor(max_workers=6) which bypassed it).
+    Uses the shared app executor to avoid thread pool deadlocks.
     """
     flat_events = []
-    futs = {_APP_EXECUTOR.submit(_fetch_ff_month, y, m): (y, m) for y, m in year_month_pairs}
-    for fut in _cf.as_completed(futs):
-        try:
-            days = fut.result()  # list of day-dicts from new _fetch_ff_month
-            for day in days:
-                if not isinstance(day, dict):
-                    continue
-                for ev in day.get('events', []):
-                    if not isinstance(ev, dict):
+    with _cf.ThreadPoolExecutor(max_workers=6) as ex:
+        futs = {ex.submit(_fetch_ff_month, y, m): (y, m) for y, m in year_month_pairs}
+        for fut in _cf.as_completed(futs):
+            try:
+                days = fut.result()  # list of day-dicts from new _fetch_ff_month
+                for day in days:
+                    if not isinstance(day, dict):
                         continue
-                    dl = ev.get('dateline') or ev.get('ts')
-                    if not dl:
-                        continue
-                    flat_events.append({
-                        'ts':          float(dl),
-                        'currency':    ev.get('currency', ''),
-                        'name':        ev.get('name', ''),
-                        'actual':      ev.get('actual', '') or '',
-                        'forecast':    ev.get('forecast', '') or '',
-                        'previous':    ev.get('previous', '') or '',
-                        'impactClass': ev.get('impactClass', ''),
-                        'dateline':    float(dl),
-                    })
-        except Exception:
-            pass
+                    for ev in day.get('events', []):
+                        if not isinstance(ev, dict):
+                            continue
+                        dl = ev.get('dateline') or ev.get('ts')
+                        if not dl:
+                            continue
+                        flat_events.append({
+                            'ts':          float(dl),
+                            'currency':    ev.get('currency', ''),
+                            'name':        ev.get('name', ''),
+                            'actual':      ev.get('actual', '') or '',
+                            'forecast':    ev.get('forecast', '') or '',
+                            'previous':    ev.get('previous', '') or '',
+                            'impactClass': ev.get('impactClass', ''),
+                            'dateline':    float(dl),
+                        })
+            except Exception:
+                pass
     return flat_events
 
 
@@ -3146,13 +3117,14 @@ def _fetch_ff_labour_surprises(force: bool = False) -> dict:
     week_strings = _get_week_strings(14)  # 14 weeks back (~3.5 months)
     all_events = []
 
-    # Fetch weeks in parallel via global executor (previously inline ThreadPoolExecutor)
-    futs = {_APP_EXECUTOR.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
-    for fut in _cf.as_completed(futs):
-        try:
-            all_events.extend(fut.result())
-        except Exception:
-            pass
+    # Fetch weeks in parallel (ThreadPool)
+    with _cf.ThreadPoolExecutor(max_workers=3) as ex:
+        futs = {ex.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
+        for fut in _cf.as_completed(futs):
+            try:
+                all_events.extend(fut.result())
+            except Exception:
+                pass
 
     # Filter: USD only, has actual AND forecast, is a key labour event
     releases: dict = {key_info["key"]: [] for key_info in _FF_LABOUR_EVENTS.values()}
@@ -3810,7 +3782,7 @@ def compute_eia_inventory_signal() -> dict:
     try:
         import yfinance as _yf
         cl_raw = _yf.Ticker("CL=F")
-        cl = _yf_history(cl_raw, period="3mo", interval="1d", auto_adjust=True)
+        cl = cl_raw.history(period="3mo", interval="1d", auto_adjust=True)
         if cl.empty or len(cl) < 10:
             return {"score": 0, "label": "Neutral EIA signal"}
         cl_df = cl.copy()
@@ -3857,7 +3829,7 @@ def compute_ng_storage_signal() -> dict:
     try:
         import yfinance as _yf
         ng_raw = _yf.Ticker("NG=F")
-        ng = _yf_history(ng_raw, period="3mo", interval="1d", auto_adjust=True)
+        ng = ng_raw.history(period="3mo", interval="1d", auto_adjust=True)
         if ng.empty or len(ng) < 10:
             return {"score": 0, "label": "Neutral NG storage signal"}
         ng_df = ng.copy()
@@ -4188,47 +4160,6 @@ RISK_ASSETS = {
 RISK_REGIME_CACHE: dict = {"data": None, "time": 0}
 RISK_REGIME_CACHE_TTL = 3600 * 2  # 2h
 
-# ── Shared regime price cache ────────────────────────────────────────────────
-# score_history._do_prefetch() was fetching all 16 RISK_ASSETS tickers fresh
-# for every single market request (16 tickers × 8 concurrent markets = 128
-# yfinance calls, each loading years of weekly OHLCV into RAM → OOM crash).
-# This shared cache fetches them ONCE with a 4h TTL and reuses across all
-# score_history calls.
-_REGIME_PX_SHARED_CACHE: dict = {"data": None, "time": 0}
-_REGIME_PX_SHARED_TTL = 3600 * 4  # 4h
-_REGIME_PX_LOCK = _cf.ThreadPoolExecutor(max_workers=1)  # serialise fetches
-import threading as _threading
-_REGIME_PX_FETCH_LOCK = _threading.Lock()
-
-def _get_shared_regime_px() -> dict:
-    """Return cached RISK_ASSETS price history, fetching once if cold/stale."""
-    _now = time.time()
-    if _REGIME_PX_SHARED_CACHE["data"] and (_now - _REGIME_PX_SHARED_CACHE["time"]) < _REGIME_PX_SHARED_TTL:
-        return _REGIME_PX_SHARED_CACHE["data"]
-    # Serialise so concurrent score_history calls don’t all fetch simultaneously
-    with _REGIME_PX_FETCH_LOCK:
-        # Double-check after acquiring lock
-        if _REGIME_PX_SHARED_CACHE["data"] and (time.time() - _REGIME_PX_SHARED_CACHE["time"]) < _REGIME_PX_SHARED_TTL:
-            return _REGIME_PX_SHARED_CACHE["data"]
-        import yfinance as _yf_regime
-        _px: dict = {}
-        for _rn, _rticker in RISK_ASSETS.items():
-            try:
-                _tk_r = _yf_regime.Ticker(_rticker)
-                _df = _yf_history(_tk_r, period="max", interval="1wk", auto_adjust=True)
-                if not _df.empty:
-                    import numpy as _np_regime
-                    _s = _df["Close"].copy()
-                    _s.index = pd.to_datetime(_s.index).tz_localize(None).normalize()
-                    _s.index = _s.index.map(lambda d: _np_regime.datetime64(d.date().isoformat(), 'D'))
-                    _px[_rn] = _s
-            except Exception:
-                pass
-        _REGIME_PX_SHARED_CACHE["data"] = _px
-        _REGIME_PX_SHARED_CACHE["time"] = time.time()
-        print(f"[regime-px-cache] Loaded {len(_px)} tickers into shared cache")
-        return _px
-
 
 
 # ── International CB rates cache ─────────────────────────────────────────────
@@ -4367,7 +4298,7 @@ def compute_risk_regime() -> dict:
     for name, ticker in RISK_ASSETS.items():
         try:
             tk = yf.Ticker(ticker)
-            hist = _yf_history(tk, period="3mo", interval="1wk")
+            hist = tk.history(period="3mo", interval="1wk")
             if not hist.empty and len(hist) >= 4:
                 close = hist["Close"].values.astype(float)
                 ret_1w = (close[-1] / close[-2] - 1) * 100 if len(close) >= 2 else 0
@@ -4907,8 +4838,7 @@ def compute_risk_regime() -> dict:
             _y = _today_d.year + ((_today_d.month - 1 + _i) // 12)
             _tkr = f"ZQ{_fff_months_code[_m]}{str(_y)[-2:]}.CBT"
             try:
-                _tk_live = yf.Ticker(_tkr)
-                _h = _yf_history(_tk_live, period="5d")
+                _h = yf.Ticker(_tkr).history(period="5d")
                 if not _h.empty:
                     _fff_results[(_y, _m)] = round(100.0 - float(_h["Close"].iloc[-1]), 4)
             except Exception:
@@ -6244,25 +6174,9 @@ async def get_all_scores(force: bool = False):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(_APP_EXECUTOR, _fetch_ice_cot_raw, "RC")
 
-    # Fetch COT in chunks to avoid launching 55 coroutines simultaneously.
-    # Each coroutine runs a blocking HTTP fetch in _APP_EXECUTOR (4 workers),
-    # but 55 queued coroutines holding result buffers still consumes significant
-    # RSS.  Chunking to 10 reduces peak in-flight allocations by 5× while
-    # still parallelising well (4 workers means the executor is always busy).
-    async def _fetch_cot_chunked(markets, chunk_size=10):
-        results = []
-        for i in range(0, len(markets), chunk_size):
-            chunk = markets[i:i + chunk_size]
-            chunk_results = await asyncio.gather(
-                *[_fetch_cot_for_market(m) for m in chunk],
-                return_exceptions=True
-            )
-            results.extend(chunk_results)
-        return results
-
     async with httpx.AsyncClient(timeout=20):
         cot_results, ice_london_cocoa_df, ice_robusta_df = await asyncio.gather(
-            _fetch_cot_chunked(regular_markets),
+            asyncio.gather(*[_fetch_cot_for_market(m) for m in regular_markets], return_exceptions=True),
             _fetch_ice_london_cocoa(),
             _fetch_ice_robusta(),
         )
@@ -6728,7 +6642,7 @@ def _get_current_year_actual(market_id: str) -> list:
         cur_year = _dt.date.today().year
         start_date = f"{cur_year}-01-01"
         tk_obj = yf.Ticker(yf_sym)
-        df = _yf_history(tk_obj, start=start_date, interval="1d", auto_adjust=True)
+        df = tk_obj.history(start=start_date, interval="1d", auto_adjust=True)
         if df is None or df.empty:
             return []
         df.index = df.index.tz_localize(None) if df.index.tz else df.index
@@ -6736,15 +6650,24 @@ def _get_current_year_actual(market_id: str) -> list:
         if len(closes) < 2:
             return []
         base = float(closes.iloc[0])
-        n = len(closes)
         result = []
-        for i, (idx, price) in enumerate(closes.items()):
-            # Linear scale: sequential trading day i (0-based) → td in 1..252
-            # Matches exactly how historical curves are built (linear index mapping).
-            # No duplicate TDs possible since i is strictly sequential.
-            td = max(1, min(252, round((i / max(n - 1, 1)) * 251) + 1))
-            pct = round((float(price) / base - 1.0) * 100.0, 4)
+        for idx, price in closes.items():
+            # Calendar-DOY based td — MUST match the formula used by current_td and
+            # by _score_seasonality_at() so that the CYA line and the TODAY marker
+            # always sit on the same coordinate.  The previous linear-index formula
+            # mapped the LAST data point to td=252 (year-end) even in May, which
+            # caused buildSeasChart to clip the visible trace at ~30/86 days.
+            _d   = idx.date() if hasattr(idx, 'date') else idx
+            _doy = _d.timetuple().tm_yday
+            td   = max(1, min(252, round((_doy / 365) * 252)))
+            pct  = round((float(price) / base - 1.0) * 100.0, 4)
             result.append([td, pct])
+        # Deduplicate: keep last value for any duplicate TDs (adjacent trading days
+        # can share the same DOY-based td when the calendar fraction rounds the same)
+        seen: dict = {}
+        for pair in result:
+            seen[pair[0]] = pair[1]
+        result = [[t, v] for t, v in sorted(seen.items())]
         _CY_ACTUAL_CACHE[market_id] = result
         _CY_ACTUAL_TIME[market_id] = now
         return result
@@ -7928,23 +7851,6 @@ async def get_score_history(market: str):
         # here would prevent /api/health from responding for minutes.
         def _do_prefetch():
             _pf_ts = time.time()
-            # ── Memory guard: abort prefetch if RSS is already high ────────────
-            # Prevents OOM crash when multiple concurrent score_history
-            # requests fire on a cold-start before caches are warm.
-            try:
-                import resource as _rsrc
-                _rss_bytes = _rsrc.getrusage(_rsrc.RUSAGE_SELF).ru_maxrss * 1024
-                _rss_gb = _rss_bytes / (1024 ** 3)
-                if _rss_gb > 1.4:
-                    print(f"[score_history] Memory guard: RSS {_rss_gb:.2f}GB > 1.4GB, skipping prefetch for {m_upper}")
-                    # Return a minimal stub so the endpoint can still serve partial data
-                    return {
-                        "ff_events": [], "regime_px": {}, "relval_self": None,
-                        "relval_peer_map": {}, "relval_periods": [], "pcr_s_const": 5.0,
-                        "ts": _pf_ts,
-                    }
-            except Exception:
-                pass  # resource module unavailable, proceed anyway
             # 1. FF macro: fetch 5 years of monthly calendar data in parallel
             _months_to_fetch = 60  # ~5 years
             _today_d = date.today()
@@ -7959,10 +7865,18 @@ async def get_score_history(market: str):
             _all_ff = _fetch_ff_months_parallel(_year_month_pairs)
             print(f"score_history[{m_upper}]: fetched {len(_all_ff)} FF events over {_months_to_fetch} months")
 
-            # 2. Regime: use shared cache (fetched once for all markets)
-            # Previously this fetched all 16 RISK_ASSETS tickers per market,
-            # causing 128 yfinance calls when 8 markets ran concurrently → OOM.
-            _regime_px: dict = _get_shared_regime_px()
+            # 2. Regime: fetch max weekly closes for all regime tickers
+            _regime_px: dict = {}
+            for _rn, _rticker in RISK_ASSETS.items():
+                try:
+                    _df = yf.Ticker(_rticker).history(period="max", interval="1wk", auto_adjust=True)
+                    if not _df.empty:
+                        _s = _df["Close"].copy()
+                        _s.index = pd.to_datetime(_s.index).tz_localize(None).normalize()
+                        _s.index = _s.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
+                        _regime_px[_rn] = _s
+                except Exception:
+                    pass
 
             # 3. Rel-val: fetch max weekly closes for self + all configured peers
             _relval_self: pd.Series = None
@@ -7972,8 +7886,7 @@ async def get_score_history(market: str):
             if _rv_cfg:
                 _relval_periods = _rv_cfg.get("periods", [13, 26])
                 try:
-                    _tk_s = yf.Ticker(mkt["yf"])
-                    _df_s = _yf_history(_tk_s, period="max", interval="1wk", auto_adjust=True)
+                    _df_s = yf.Ticker(mkt["yf"]).history(period="max", interval="1wk", auto_adjust=True)
                     if not _df_s.empty:
                         _ss = _df_s["Close"].copy()
                         _ss.index = pd.to_datetime(_ss.index).tz_localize(None).normalize()
@@ -7983,8 +7896,7 @@ async def get_score_history(market: str):
                     pass
                 for _peer in _rv_cfg.get("peers", []):
                     try:
-                        _tk_p = yf.Ticker(_peer["yf"])
-                        _df_p = _yf_history(_tk_p, period="max", interval="1wk", auto_adjust=True)
+                        _df_p = yf.Ticker(_peer["yf"]).history(period="max", interval="1wk", auto_adjust=True)
                         if not _df_p.empty:
                             _sp = _df_p["Close"].copy()
                             _sp.index = pd.to_datetime(_sp.index).tz_localize(None).normalize()
@@ -8332,8 +8244,7 @@ async def get_regime_history():
             # Fetch fresh — only RISK_ASSETS needed
             for _rn, _rticker in RISK_ASSETS.items():
                 try:
-                    _tk_rh = yf.Ticker(_rticker)
-                    _df = _yf_history(_tk_rh, period="3y", interval="1wk", auto_adjust=True)
+                    _df = yf.Ticker(_rticker).history(period="3y", interval="1wk", auto_adjust=True)
                     if not _df.empty:
                         _s = _df["Close"].copy()
                         _s.index = pd.to_datetime(_s.index).tz_localize(None).normalize()
@@ -8503,7 +8414,7 @@ async def get_candles(market: str, period: str = "6mo", ema_period: int = 50):
         import yfinance as yf
         tk = yf.Ticker(yf_ticker)
         # Always fetch 2y so the 200 SMA has enough history to render
-        hist = _yf_history(tk, period="2y", interval="1d", auto_adjust=True)
+        hist = tk.history(period="2y", interval="1d", auto_adjust=True)
         if hist.empty:
             return {"error": "No data", "candles": [], "ema": []}
 
@@ -8775,24 +8686,23 @@ async def _startup_load_ice_data():
         print(f"[startup-ice] All ICE markets loaded from disk: {loaded}")
         return
 
-    # Step 2: Cold markets — skip live HTTP fetch on startup.
-    #
-    # Previously we attempted a live ICE.com fetch here, but this caused OOM
-    # crashes on fresh Render deploys: ICE fetch spawns 16 HTTP threads, runs
-    # concurrently with get_all_scores(), and together they blow past 2 GB RAM.
-    #
-    # Safe strategy:
-    #   - Disk cache is warm on every non-deploy restart (Render persists the
-    #     app directory across warm restarts).
-    #   - On a fresh deploy the disk is wiped, but ICE scores will serve as
-    #     neutral (5.0) until the Friday cron injects fresh data within the week.
-    #   - The inject_ice_now.py cron (daily 11pm) also re-injects so at most
-    #     one day of neutral ICE scores after a deploy.
-    #
-    # This makes cold-start completely safe: no live network I/O during startup.
-    print(f"[startup-ice] Cold markets: {cold} — skipping live fetch at startup "
-          f"(will populate via daily cron injection). ICE scores will be neutral until then.")
-    print(f"[startup-ice] Done. Loaded from disk: {loaded}, cold (deferred): {cold}")
+    print(f"[startup-ice] Cold markets (attempting live fetch): {cold}")
+
+    # Step 2: For cold markets, try a live fetch in a thread pool
+    # _fetch_ice_cot_raw handles HTTP, CSV parsing, mem+disk caching
+    loop = _ice_loop.get_event_loop()
+    for mkt in cold:
+        try:
+            df = await loop.run_in_executor(_APP_EXECUTOR, _fetch_ice_cot_raw, mkt)
+            if df is not None and not df.empty:
+                loaded.append(mkt)
+                print(f"[startup-ice] {mkt}: live-fetched {len(df)} rows")
+            else:
+                print(f"[startup-ice] {mkt}: live fetch returned no data (429 or empty) — will populate via Friday cron")
+        except Exception as _e:
+            print(f"[startup-ice] {mkt}: live fetch failed ({_e}) — non-fatal")
+
+    print(f"[startup-ice] Done. Loaded: {loaded}, still cold: {[m for m in cold if m not in loaded]}")
 
 @app.get("/api/warmup-status")
 async def warmup_status():
