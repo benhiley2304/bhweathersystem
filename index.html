@@ -1078,106 +1078,176 @@ a{color:inherit;text-decoration:none}
 .ov-macro-panels{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:8px;
+  gap:10px;
   margin:0 16px 14px;
 }
 @media(max-width:1100px){.ov-macro-panels{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr}}
+@media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr;gap:8px}}
+/* Mobile tweaks for new menv card internals */
+@media(max-width:600px){
+  .ov-macro-card{padding:14px 14px 12px;border-radius:12px}
+  .ov-mc-hero{font-size:22px!important}
+  .ov-yc-canvas-wrap{height:68px}
+  .ov-arc-gauge-row{gap:8px}
+  .ov-bs-container{gap:8px}
+  .ov-bs-vbar-track{min-height:56px}
+  .ov-lab-grid{grid-template-columns:1fr 1fr;gap:4px}
+  .ov-lab-cell{padding:6px 7px 5px}
+  .ov-lab-cell-val{font-size:12px!important}
+  .ov-tenor-val{font-size:10px!important}
+  .ov-spread-val{font-size:12px!important}
+}
 
-/* Card base */
+/* ── Card base ─────────────────────────────────────────── */
 .ov-macro-card{
-  background:linear-gradient(165deg,rgba(20,23,34,0.86) 0%,rgba(15,17,25,0.82) 100%);
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:12px;
-  padding:16px 16px 14px;
+  background:linear-gradient(158deg,rgba(18,21,32,0.92) 0%,rgba(11,13,20,0.88) 100%);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:14px;
+  padding:18px 18px 15px;
   position:relative;
   overflow:hidden;
   display:flex;flex-direction:column;gap:0;
-  transition:border-color 220ms,box-shadow 220ms,transform 220ms var(--ease);
-  box-shadow:0 2px 14px rgba(0,0,0,0.32);
+  transition:border-color 280ms,box-shadow 280ms,transform 280ms var(--ease);
+  box-shadow:0 4px 24px rgba(0,0,0,0.42),inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .ov-macro-card:hover{
-  border-color:rgba(255,255,255,0.15);
-  box-shadow:0 8px 28px rgba(0,0,0,0.48);
-  transform:translateY(-1px);
+  border-color:rgba(255,255,255,0.14);
+  box-shadow:0 10px 36px rgba(0,0,0,0.56),inset 0 1px 0 rgba(255,255,255,0.08);
+  transform:translateY(-2px);
 }
-/* Animated accent glow strip — top edge (uses background colour set via inline style) */
+/* Particle-transparent shimmer overlay */
+.ov-macro-card::after{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:14px;
+  background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(255,255,255,0.03) 0%,transparent 70%);
+  z-index:0;
+}
+/* Animated top-edge accent glow */
 .ov-macro-card-glow{
-  position:absolute;top:0;left:0;right:0;height:1.5px;
-  border-radius:0;
-  /* Inline style sets background colour; we fade to transparent at edges */
-  -webkit-mask:linear-gradient(90deg,transparent 0%,white 20%,white 80%,transparent 100%);
-  mask:linear-gradient(90deg,transparent 0%,white 20%,white 80%,transparent 100%);
-  animation:macroGlowPulse 3.5s ease-in-out infinite;
+  position:absolute;top:0;left:0;right:0;height:2px;
+  border-radius:0;z-index:2;
+  -webkit-mask:linear-gradient(90deg,transparent 0%,white 18%,white 82%,transparent 100%);
+  mask:linear-gradient(90deg,transparent 0%,white 18%,white 82%,transparent 100%);
+  animation:macroGlowPulse 4s ease-in-out infinite;
 }
 @keyframes macroGlowPulse{
-  0%,100%{opacity:0.55;filter:blur(0px)}
-  50%{opacity:1;filter:blur(0.8px)}
+  0%,100%{opacity:0.5;filter:blur(0px)}
+  50%{opacity:1;filter:blur(1px)}
 }
-/* Background tint wash */
+/* Background colour wash (very subtle) */
 .ov-macro-card-wash{
-  position:absolute;inset:0;opacity:0.035;pointer-events:none;border-radius:12px;
+  position:absolute;inset:0;opacity:0.028;pointer-events:none;border-radius:14px;z-index:0;
 }
+/* All direct children sit above overlays */
+.ov-macro-card>*{position:relative;z-index:1}
 
-/* Header row */
-.ov-mc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
-.ov-mc-eyebrow{font-size:7.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--faint)}
+/* ── Header ────────────────────────────────────────────── */
+.ov-mc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.ov-mc-eyebrow{font-size:7px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
+.ov-mc-title{font-size:11.5px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
 .ov-mc-badge{
-  font-size:7.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;
-  padding:2.5px 8px;border-radius:20px;flex-shrink:0;white-space:nowrap;
+  font-size:7px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;
+  padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap;margin-top:1px;
 }
 
-/* Hero number */
+/* ── Hero number ───────────────────────────────────────── */
 .ov-mc-hero{
   font-family:var(--mono);font-weight:900;letter-spacing:-0.03em;line-height:1;
   margin-bottom:3px;
 }
 .ov-mc-hero-sub{
   font-family:var(--mono);font-size:8.5px;font-weight:600;color:var(--faint);
-  margin-bottom:10px;
+  margin-bottom:8px;
 }
 
-/* Canvas (yield curve) */
-.ov-yc-canvas-wrap{height:58px;margin:8px 0 4px;position:relative}
+/* ── Yield curve canvas ────────────────────────────────── */
+.ov-yc-canvas-wrap{height:80px;margin:6px 0 6px;position:relative;border-radius:8px;overflow:hidden;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04)}
 .ov-yc-canvas-wrap canvas{display:block;width:100%;height:100%}
 
-/* Tenor row under curve */
-.ov-tenor-row{display:flex;justify-content:space-between;margin-top:6px}
-.ov-tenor-item{display:flex;flex-direction:column;align-items:center;gap:1px}
-.ov-tenor-lbl{font-size:7px;font-weight:700;letter-spacing:0.05em;color:var(--faint);text-transform:uppercase}
-.ov-tenor-val{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--text)}
+/* Tenor row */
+.ov-tenor-row{display:flex;justify-content:space-between;margin-top:8px;padding:0 2px}
+.ov-tenor-item{display:flex;flex-direction:column;align-items:center;gap:2px}
+.ov-tenor-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.06em;color:var(--faint);text-transform:uppercase}
+.ov-tenor-val{font-family:var(--mono);font-size:11px;font-weight:900;color:var(--text);letter-spacing:-0.02em}
+.ov-tenor-item.ov-tenor-key .ov-tenor-val{color:var(--accent)}
+.ov-tenor-item.ov-tenor-key .ov-tenor-lbl{color:var(--dim)}
 
-/* Spread bar — used by credit + jobs */
-.ov-spread-group{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+/* ── Arc gauge (credit + labour) ──────────────────────── */
+.ov-arc-gauge-row{display:flex;align-items:flex-start;gap:10px;margin:4px 0 8px}
+.ov-arc-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;overflow:visible}
+.ov-arc-gauge-lbl{font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)}
+.ov-arc-gauge-val{font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em}
+.ov-arc-gauge-hint{font-size:6.5px;font-family:var(--mono);color:var(--faint);text-align:center}
+/* Large composite arc */
+.ov-arc-gauge-large{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 8px}
+.ov-arc-gauge-large svg{filter:drop-shadow(0 0 6px var(--arc-glow,rgba(255,255,255,0.2)))}
+
+/* ── Spread bars (retained but upgraded) ──────────────── */
+.ov-spread-group{display:flex;flex-direction:column;gap:9px;margin-top:6px}
 .ov-spread-row{display:flex;flex-direction:column;gap:4px}
 .ov-spread-meta{display:flex;justify-content:space-between;align-items:baseline}
-.ov-spread-name{font-size:8px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase}
-.ov-spread-val{font-family:var(--mono);font-size:12px;font-weight:900;letter-spacing:-0.02em}
-.ov-spread-track{height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative}
-.ov-spread-fill{height:100%;border-radius:3px;transition:width 700ms cubic-bezier(0.16,1,0.3,1)}
-.ov-spread-hint{font-size:7px;color:var(--faint);font-family:var(--mono);margin-top:1px}
+.ov-spread-name{font-size:7.5px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase}
+.ov-spread-val{font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em}
+.ov-spread-track{height:6px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:hidden;position:relative}
+.ov-spread-fill{height:100%;border-radius:3px;transition:width 800ms cubic-bezier(0.16,1,0.3,1)}
+.ov-spread-hint{font-size:6.5px;color:var(--faint);font-family:var(--mono);margin-top:1px}
 
-/* Stat chips row */
-.ov-mc-stats{display:flex;gap:0;margin-top:12px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px}
+/* ── Stat chips row ────────────────────────────────────── */
+.ov-mc-stats{display:flex;gap:0;margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px}
 .ov-mc-stat{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 8px}
 .ov-mc-stat:first-child{padding-left:0}
 .ov-mc-stat:last-child{padding-right:0}
 .ov-mc-stat+.ov-mc-stat{border-left:1px solid rgba(255,255,255,0.05)}
-.ov-mc-stat-lbl{font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
-.ov-mc-stat-val{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
+.ov-mc-stat-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)}
+.ov-mc-stat-val{font-family:var(--mono);font-size:11.5px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
 .ov-mc-stat-delta{font-family:var(--mono);font-size:8px;color:var(--faint)}
 
-/* Fed BS bar */
-.ov-bs-track{height:10px;border-radius:5px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative;margin:10px 0 4px}
-.ov-bs-fill{height:100%;border-radius:5px;transition:width 700ms cubic-bezier(0.16,1,0.3,1)}
-.ov-bs-labels{display:flex;justify-content:space-between}
-.ov-bs-label{font-size:6.5px;color:var(--faint);font-family:var(--mono)}
+/* ── Fed Balance Sheet ─────────────────────────────────── */
+.ov-bs-container{display:flex;gap:10px;align-items:stretch;margin:8px 0 6px}
+/* Vertical liquid bar */
+.ov-bs-vbar-wrap{width:22px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.ov-bs-vbar-track{flex:1;width:14px;border-radius:7px;background:rgba(255,255,255,0.05);overflow:hidden;
+  position:relative;border:1px solid rgba(255,255,255,0.06);min-height:70px}
+.ov-bs-vbar-fill{
+  position:absolute;bottom:0;left:0;right:0;border-radius:6px;
+  transition:height 900ms cubic-bezier(0.16,1,0.3,1);
+}
+.ov-bs-vbar-fill::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  border-radius:6px 6px 0 0;
+  background:rgba(255,255,255,0.25);
+  animation:bsLiquidShimmer 2.5s ease-in-out infinite;
+}
+@keyframes bsLiquidShimmer{
+  0%,100%{opacity:0.5}50%{opacity:1}
+}
+.ov-bs-vbar-peak{position:absolute;top:calc(100% - var(--peak-pct,100%));left:-4px;right:-4px;height:1px;
+  background:rgba(255,255,255,0.15);pointer-events:none}
+/* BS detail panel */
+.ov-bs-detail{flex:1;display:flex;flex-direction:column;gap:6px;justify-content:center}
+.ov-bs-row{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.04)}
+.ov-bs-row-lbl{font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)}
+.ov-bs-row-val{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:-0.01em}
+/* Scale labels below bar */
+.ov-bs-scale{display:flex;flex-direction:column;gap:2px;align-items:center}
+.ov-bs-scale-lbl{font-size:5.5px;color:var(--faint);font-family:var(--mono);text-align:center;line-height:1.2}
 
-/* Jobs donut-style gauge — simple arc via CSS clip */
-.ov-jobs-gauge-row{display:flex;align-items:center;gap:12px;margin:8px 0 4px}
-.ov-jobs-gauge{position:relative;width:48px;height:48px;flex-shrink:0}
-.ov-jobs-gauge svg{display:block}
+/* ── Labour metric grid ────────────────────────────────── */
+.ov-lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 4px}
+.ov-lab-cell{
+  padding:7px 8px 6px;border-radius:8px;
+  background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);
+  display:flex;flex-direction:column;gap:3px;
+}
+.ov-lab-cell-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
+.ov-lab-cell-val{font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em}
+.ov-lab-cell-sub{font-size:6.5px;font-family:var(--mono);color:var(--faint)}
+.ov-lab-mini-bar{height:3px;border-radius:2px;background:rgba(255,255,255,0.05);margin-top:2px;overflow:hidden}
+.ov-lab-mini-fill{height:100%;border-radius:2px;transition:width 800ms cubic-bezier(0.16,1,0.3,1)}
+
+/* FF actual vs consensus table (kept as-is, minor spacing) */
 /* ── Global Climate Panel ── */
 .ov-climate-panel{
   padding:22px 24px 20px;
@@ -4703,21 +4773,21 @@ function renderMacroDataPanels(reg){
   const rs   = reg.rate_signal||{};
   const infl = md.inflation||{};
 
-  // ── Tenor data ─────────────────────────────────────────────────────────────
+  // ── Tenor data
   const t3m = reg.levels?.IRX ?? null;
   const t10 = dgs10.level ?? reg.levels?.TNX ?? null;
   const t2  = yc.t2y  ?? (t10!=null&&yc.t10y2y!=null ? +(t10-yc.t10y2y).toFixed(3) : null);
   const t5  = yc.t5y  ?? (t2!=null&&t10!=null ? +(t2+(t10-t2)*0.45).toFixed(3) : null);
   const t30 = yc.t30y ?? (t10!=null ? +(t10+0.18).toFixed(3) : null);
 
-  // ── Yield Curve ─────────────────────────────────────────────────────────────
+  // ── Yield Curve
   const cr_regime   = yc.curve_regime||'Normal';
-  const crCol       = cr_regime==='Inverted'?'#e03a2a':cr_regime.includes('Flat')?'#b87333':cr_regime==='Steepening'?'#adb8d0':'#adb8d0';
+  const crCol       = cr_regime==='Inverted'?'#e03a2a':cr_regime.includes('Flat')?'#f5c842':cr_regime==='Steepening'?'#22c97a':'#22c97a';
   const t10y2y      = yc.t10y2y;
   const spreadStr   = t10y2y!=null?`${t10y2y>=0?'+':''}${t10y2y.toFixed(2)}%`:'—';
   const chg3mStr    = yc.t10y2y_3m_chg!=null?`${yc.t10y2y_3m_chg>=0?'+':''}${yc.t10y2y_3m_chg.toFixed(2)}%`:'';
 
-  // ── Credit ──────────────────────────────────────────────────────────────────
+  // ── Credit
   const hyOas    = cr.hy_oas_bps??null;
   const igOas    = cr.ig_oas_bps??null;
   const hyTrend  = cr.hy_trend||'';
@@ -4725,25 +4795,26 @@ function renderMacroDataPanels(reg){
   const hyMax=700,igMax=200;
   const hyPct    = hyOas!=null?Math.min(100,(hyOas/hyMax)*100):0;
   const igPct    = igOas!=null?Math.min(100,(igOas/igMax)*100):0;
-  const hyCol    = hyOas!=null?(hyOas<250?'#adb8d0':hyOas<350?'#9aabb0':hyOas<500?'#b87333':'#e03a2a'):'#5a6480';
-  const igCol    = igOas!=null?(igOas<80?'#adb8d0':igOas<120?'#9aabb0':igOas<170?'#b87333':'#e03a2a'):'#5a6480';
-  const crSpreadCol = hyTrend==='Tightening'?'#adb8d0':hyTrend==='Widening'?'#e03a2a':'#adb8d0';
+  const hyCol    = hyOas!=null?(hyOas<250?'#22c97a':hyOas<350?'#adb8d0':hyOas<500?'#f5c842':'#e03a2a'):'#5a6480';
+  const igCol    = igOas!=null?(igOas<80?'#22c97a':igOas<120?'#adb8d0':igOas<170?'#f5c842':'#e03a2a'):'#5a6480';
+  const crSpreadCol = hyTrend==='Tightening'?'#22c97a':hyTrend==='Widening'?'#e03a2a':'#adb8d0';
   const crLabel  = hyTrend==='Tightening'?'Tightening':hyTrend==='Widening'?'Widening':'Neutral';
   const ryVal    = ry.value??null;
-  const ryCol    = ryVal!=null?(ryVal<0?'#adb8d0':ryVal>2.5?'#e03a2a':ryVal>1.0?'#b87333':'#9aabb0'):'#5a6480';
+  const ryCol    = ryVal!=null?(ryVal<0?'#22c97a':ryVal>2.5?'#e03a2a':ryVal>1.0?'#f5c842':'#adb8d0'):'#5a6480';
   const effr     = rs.effr??null;
   const cuts12m  = rs.cuts_12m??null;
 
-  // ── Fed Balance Sheet ────────────────────────────────────────────────────────
+  // ── Fed Balance Sheet
   const fbLevel  = fb.level??null;
   const fbTrend  = fb.trend||'—';
   const fbChg3m  = fb.chg_3m??null;
   const fbChg6mP = fb.chg_6m_pct??null;
   const fbMin=4.0,fbMax=9.0;
-  const fbPct    = fbLevel!=null?Math.min(100,Math.max(0,((fbLevel-fbMin)/(fbMax-fbMin))*100)):0;
-  const fbCol    = fbTrend.includes('Contract')||fbTrend.includes('QT')?'#e03a2a':fbTrend.includes('Expand')?'#adb8d0':'#adb8d0';
+  const fbPct    = fbLevel!=null?Math.min(100,Math.max(0,((fbLevel-fbMin)/(fbMax-fbMin))*100)):50;
+  const fbCol    = fbTrend.includes('Contract')||fbTrend.includes('QT')?'#e03a2a':fbTrend.includes('Expand')?'#22c97a':'#adb8d0';
+  const fbPeakPct= 100; // $9T = 100%
 
-  // ── Labour ──────────────────────────────────────────────────────────────────
+  // ── Labour
   const nfpMom    = lab.nfp_mom??null;
   const nfp6mAvg  = lab.nfp_6m_avg??null;
   const nfpSurp   = lab.nfp_surprise??null;
@@ -4765,15 +4836,11 @@ function renderMacroDataPanels(reg){
   const nfpDate   = lab.nfp_date||'';
   const urDate    = lab.unrate_date||'';
   const clDate    = lab.claims_date||'';
-
-  // FF actual vs consensus data
   const ffLab     = lab.ff_labour||null;
   const ffScores  = ffLab?.scores||{};
   const ffLatest  = ffLab?.latest||{};
   const ffEms     = ffLab?.composite_ems??null;
   const ffHasData = ffLab && ffLab.n_events > 0;
-
-  // FF latest per-metric (for Actual vs Forecast display)
   const ffNfp     = ffLatest.nfp||null;
   const ffAdp     = ffLatest.adp||null;
   const ffUr      = ffLatest.unrate||null;
@@ -4782,22 +4849,83 @@ function renderMacroDataPanels(reg){
   const ffWages   = ffLatest.wages||null;
 
   // Colour helpers
-  const nfpCol = nfpMom!=null?(nfpMom>200?'#22c97a':nfpMom>100?'#7aaa88':nfpMom>0?'#adb8d0':nfpMom>-50?'#b87333':'#e03a2a'):'#5a6480';
-  const surpCol = nfpSurp!=null?(nfpSurp>32?'#22c97a':nfpSurp>0?'#adb8d0':nfpSurp>-32?'#b87333':'#e03a2a'):'#adb8d0';
-  const urCol   = unrate!=null?(unrate<4.0?'#22c97a':unrate<4.5?'#adb8d0':unrate<5.0?'#b87333':'#e03a2a'):'#5a6480';
+  const nfpCol = nfpMom!=null?(nfpMom>200?'#22c97a':nfpMom>100?'#7aaa88':nfpMom>0?'#adb8d0':nfpMom>-50?'#f5c842':'#e03a2a'):'#5a6480';
+  const surpCol = nfpSurp!=null?(nfpSurp>32?'#22c97a':nfpSurp>0?'#adb8d0':nfpSurp>-32?'#f5c842':'#e03a2a'):'#adb8d0';
+  const urCol   = unrate!=null?(unrate<4.0?'#22c97a':unrate<4.5?'#adb8d0':unrate<5.0?'#f5c842':'#e03a2a'):'#5a6480';
   const urTCol  = urTrend==='Falling'?'#22c97a':urTrend==='Rising'?'#e03a2a':'#adb8d0';
-  const clCol   = claims!=null?(claims<210000?'#22c97a':claims<240000?'#adb8d0':claims<280000?'#b87333':'#e03a2a'):'#5a6480';
-  const joltsCol= jolts!=null?(jolts>8?'#22c97a':jolts>7?'#adb8d0':jolts>6?'#b87333':'#e03a2a'):'#5a6480';
-  const jcCol   = jobsComp!=null?(jobsComp>=6.5?'#22c97a':jobsComp>=5.5?'#adb8d0':jobsComp>=4.5?'#6e7d80':jobsComp>=3.5?'#b87333':'#e03a2a'):'#adb8d0';
+  const clCol   = claims!=null?(claims<210000?'#22c97a':claims<240000?'#adb8d0':claims<280000?'#f5c842':'#e03a2a'):'#5a6480';
+  const joltsCol= jolts!=null?(jolts>8?'#22c97a':jolts>7?'#adb8d0':jolts>6?'#f5c842':'#e03a2a'):'#5a6480';
+  const jcCol   = jobsComp!=null?(jobsComp>=6.5?'#22c97a':jobsComp>=5.5?'#adb8d0':jobsComp>=4.5?'#6e7d80':jobsComp>=3.5?'#f5c842':'#e03a2a'):'#adb8d0';
+  const jcLabel = jobsComp!=null?(jobsComp>=6.5?'Strong':jobsComp>=5.5?'Healthy':jobsComp>=4.5?'Neutral':jobsComp>=3.5?'Cooling':'Weak'):'—';
 
-  // Surprise pill renderer
-  function surprisePill(label,col){
-    if(!label)return'';
-    return `<span style="font-size:7px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;
-      padding:2px 7px;border-radius:20px;background:${col}18;border:1px solid ${col}35;color:${col};white-space:nowrap">${label}</span>`;
+  // ── SVG arc gauge helper (HD — geometricPrecision, crisp paths, sub-pixel coords)
+  // Sweeps a 220° arc. size = viewBox dimension, strokeW = track stroke width.
+  function arcGaugeSVG(pct, col, size=76, strokeW=8){
+    const R    = (size - strokeW * 2 - 2) / 2;
+    const cx   = size / 2;
+    const cy   = size * 0.54;
+    // Arc runs from 200° to 340° (clockwise from bottom-left to bottom-right) = 140° sweep
+    const startDeg = 200, sweepDeg = 140;
+    const toRad = d => (d - 90) * Math.PI / 180;
+    const polar = rad => [+(cx + R * Math.cos(rad)).toFixed(3), +(cy + R * Math.sin(rad)).toFixed(3)];
+
+    const [sx, sy] = polar(toRad(startDeg));
+    const [ex, ey] = polar(toRad(startDeg + sweepDeg));
+    const safePct  = Math.min(Math.max(pct, 0.5), 99.5); // avoid degenerate arcs
+    const [ax, ay] = polar(toRad(startDeg + (safePct / 100) * sweepDeg));
+    const bgLarge  = sweepDeg > 180 ? 1 : 0;
+    const fgLarge  = (safePct / 100) * sweepDeg > 180 ? 1 : 0;
+
+    const uid = 'ag' + (Math.random() * 0xFFFFFF | 0).toString(16);
+    const hexToRgb = h => { const m = (h.replace('#','')).match(/.{2}/g); return m ? m.map(x=>parseInt(x,16)).join(',') : '200,169,110'; };
+    const rgb = hexToRgb(col);
+
+    // Subtle tick marks at 0%, 50%, 100% of the arc
+    const ticks = [0, 50, 100].map(tp => {
+      const [tx, ty] = polar(toRad(startDeg + (tp / 100) * sweepDeg));
+      const innerR = R - strokeW * 0.8;
+      const [ix, iy] = [+(cx + innerR * Math.cos(toRad(startDeg + (tp/100)*sweepDeg))).toFixed(3),
+                        +(cy + innerR * Math.sin(toRad(startDeg + (tp/100)*sweepDeg))).toFixed(3)];
+      return `<line x1="${tx}" y1="${ty}" x2="${ix}" y2="${iy}" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-linecap="round"/>`;
+    }).join('');
+
+    return `<svg width="${size}" height="${(size * 0.72).toFixed(0)}" viewBox="0 0 ${size} ${(size * 0.72).toFixed(0)}"
+      fill="none" xmlns="http://www.w3.org/2000/svg"
+      style="overflow:visible;--arc-glow:rgba(${rgb},0.45)"
+      shape-rendering="geometricPrecision">
+      <defs>
+        <filter id="${uid}-glow" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
+          <feComposite in="b" in2="SourceGraphic" operator="over"/>
+        </filter>
+        <linearGradient id="${uid}-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="${col}" stop-opacity="0.7"/>
+          <stop offset="100%" stop-color="${col}" stop-opacity="1"/>
+        </linearGradient>
+      </defs>
+      <!-- Track -->
+      <path d="M${sx},${sy} A${R},${R} 0 ${bgLarge},1 ${ex},${ey}"
+        stroke="rgba(255,255,255,0.07)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"
+        vector-effect="non-scaling-stroke"/>
+      <!-- Tick marks -->
+      ${ticks}
+      <!-- Active arc — glow halo -->
+      ${pct > 0.5 ? `<path d="M${sx},${sy} A${R},${R} 0 ${fgLarge},1 ${ax},${ay}"
+        stroke="${col}" stroke-width="${strokeW + 4}" stroke-linecap="round" fill="none"
+        opacity="0.18" filter="url(#${uid}-glow)" vector-effect="non-scaling-stroke"/>
+      <!-- Active arc — solid -->
+      <path d="M${sx},${sy} A${R},${R} 0 ${fgLarge},1 ${ax},${ay}"
+        stroke="url(#${uid}-grad)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"
+        vector-effect="non-scaling-stroke"/>
+      <!-- Tip glow halo -->
+      <circle cx="${ax}" cy="${ay}" r="${strokeW * 0.8}" fill="${col}" opacity="0.2"
+        filter="url(#${uid}-glow)"/>
+      <!-- Tip dot -->
+      <circle cx="${ax}" cy="${ay}" r="${strokeW * 0.45}" fill="${col}" opacity="1"/>` : ''}
+    </svg>`;
   }
 
-  // Stat chip renderer
+  // Stat chip helper
   function chip(label,val,col=''){
     return `<div class="ov-mc-stat">
       <div class="ov-mc-stat-lbl">${label}</div>
@@ -4805,25 +4933,40 @@ function renderMacroDataPanels(reg){
     </div>`;
   }
 
-  // FF actual vs forecast row renderer
-  // Shows: label | Actual vs Forecast | surprise delta | beat/miss pill
+  // Surprise pill helper
+  function surprisePill(label,col){
+    if(!label)return'';
+    return `<span style="font-size:7px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;
+      padding:2px 7px;border-radius:20px;background:${col}18;border:1px solid ${col}35;color:${col};white-space:nowrap">${label}</span>`;
+  }
+
+  // FF row helper
   function ffRow(label, ffData, unit, higherGood){
     if(!ffData) return '';
-    const act  = ffData.actual;
-    const fct  = ffData.forecast;
-    const surp = ffData.surprise;
-    const beat = ffData.beat;
+    const act=ffData.actual, fct=ffData.forecast, surp=ffData.surprise, beat=ffData.beat;
     if(act==null||fct==null) return '';
-    const sCol = beat?'#22c97a':'#e03a2a';
-    const pill = beat?'BEAT':'MISS';
-    const surpStr = surp!=null?(surp>0?'+':'')+surp+unit:'';
+    const sCol=beat?'#22c97a':'#e03a2a';
+    const surpStr=surp!=null?(surp>0?'+':'')+surp+unit:'';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
       <span style="font-size:9px;font-weight:600;color:var(--dim);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</span>
       <span style="font-size:9px;font-weight:700;color:var(--dim);margin:0 6px">${fct}${unit}</span>
       <span style="font-size:9px;font-weight:800;color:${sCol};margin:0 6px">${act}${unit}</span>
-      <span style="font-size:7px;font-weight:800;letter-spacing:0.06em;padding:1px 5px;border-radius:3px;background:${sCol}18;border:1px solid ${sCol}30;color:${sCol};white-space:nowrap">${pill}${surpStr?` ${surpStr}`:''}</span>
+      <span style="font-size:7px;font-weight:800;letter-spacing:0.06em;padding:1px 5px;border-radius:3px;background:${sCol}18;border:1px solid ${sCol}30;color:${sCol};white-space:nowrap">${beat?'BEAT':'MISS'}${surpStr?` ${surpStr}`:''}</span>
     </div>`;
   }
+
+  // Mini bar helper
+  function miniBar(pct, col){
+    return `<div class="ov-lab-mini-bar"><div class="ov-lab-mini-fill" style="width:${Math.min(100,Math.max(0,pct)).toFixed(1)}%;background:${col}"></div></div>`;
+  }
+
+  // ── Tenor dot colour
+  const tenorDotCol = t => {
+    if(t===null) return 'var(--faint)';
+    if(t<0) return '#e03a2a';
+    if(t>5) return '#f5c842';
+    return 'var(--dim)';
+  };
 
   el.innerHTML=`
     <div class="ov-macro-sect-header">Market Environment</div>
@@ -4837,24 +4980,27 @@ function renderMacroDataPanels(reg){
         <div class="ov-mc-header">
           <div>
             <div class="ov-mc-eyebrow">US Treasury</div>
-            <div style="font-size:11px;font-weight:800;color:var(--text);margin-top:2px">Yield Curve</div>
+            <div class="ov-mc-title">Yield Curve</div>
           </div>
-          <span class="ov-mc-badge" style="color:${crCol};background:${crCol}15;border:1px solid ${crCol}30">${cr_regime}</span>
+          <span class="ov-mc-badge" style="color:${crCol};background:${crCol}18;border:1px solid ${crCol}30">${cr_regime}</span>
         </div>
 
-        <!-- Hero: 10Y-2Y spread -->
-        <div class="ov-mc-hero" style="font-size:26px;color:${crCol}">${spreadStr}</div>
-        <div class="ov-mc-hero-sub">10Y − 2Y spread &nbsp;${chg3mStr?`<span style="color:${yc.t10y2y_3m_chg>=0?'#adb8d0':'#e03a2a'}">${chg3mStr} 3m</span>`:''}</div>
+        <!-- Hero: 10Y-2Y spread + 3m change -->
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <div class="ov-mc-hero" style="font-size:30px;color:${crCol}">${spreadStr}</div>
+          ${chg3mStr?`<span style="font-size:8.5px;font-family:var(--mono);font-weight:700;color:${yc.t10y2y_3m_chg>=0?'#22c97a':'#e03a2a'}">${chg3mStr} <span style="font-size:7.5px;color:var(--faint);font-weight:600;letter-spacing:0.04em">3M CHG</span></span>`:''}
+        </div>
+        <div class="ov-mc-hero-sub">10Y &minus; 2Y spread</div>
 
-        <!-- Canvas sparkline -->
+        <!-- Canvas sparkline (taller) -->
         <div class="ov-yc-canvas-wrap"><canvas id="ov-yc-canvas"></canvas></div>
 
-        <!-- Tenor dots -->
+        <!-- Tenor dots — larger, colour-coded -->
         <div class="ov-tenor-row">
-          ${[[`3M`,t3m],[`2Y`,t2],[`5Y`,t5],[`10Y`,t10],[`30Y`,t30]].filter(p=>p[1]!=null).map(([lbl,val])=>`
-          <div class="ov-tenor-item">
+          ${[[`3M`,t3m,false],[`2Y`,t2,false],[`5Y`,t5,false],[`10Y`,t10,true],[`30Y`,t30,false]].filter(p=>p[1]!=null).map(([lbl,val,key])=>`
+          <div class="ov-tenor-item${key?' ov-tenor-key':''}">
             <div class="ov-tenor-lbl">${lbl}</div>
-            <div class="ov-tenor-val" style="color:${lbl==='10Y'?'var(--text)':'var(--dim)'}">${val.toFixed(2)}%</div>
+            <div class="ov-tenor-val" style="color:${key?'var(--accent)':tenorDotCol(val)}">${val.toFixed(2)}%</div>
           </div>`).join('')}
         </div>
       </div>
@@ -4867,44 +5013,42 @@ function renderMacroDataPanels(reg){
         <div class="ov-mc-header">
           <div>
             <div class="ov-mc-eyebrow">Corporate Bonds</div>
-            <div style="font-size:11px;font-weight:800;color:var(--text);margin-top:2px">Credit Spreads</div>
+            <div class="ov-mc-title">Credit Spreads</div>
           </div>
-          <span class="ov-mc-badge" style="color:${crSpreadCol};background:${crSpreadCol}15;border:1px solid ${crSpreadCol}30">${crLabel}</span>
+          <span class="ov-mc-badge" style="color:${crSpreadCol};background:${crSpreadCol}18;border:1px solid ${crSpreadCol}30">${crLabel}</span>
         </div>
 
-        <!-- HY OAS hero -->
-        <div class="ov-mc-hero" style="font-size:24px;color:${hyCol}">${hyOas!=null?hyOas+'bp':'—'}</div>
-        <div class="ov-mc-hero-sub">HY OAS &nbsp;${hyDelta4w!=null?`<span style="color:${hyDelta4w<0?'#22c97a':'#e03a2a'}">${hyDelta4w>=0?'+':''}${hyDelta4w.toFixed(0)}bp 4w</span>`:''}</div>
-
-        <div class="ov-spread-group">
-          <!-- HY bar -->
-          <div class="ov-spread-row">
-            <div class="ov-spread-meta">
-              <span class="ov-spread-name" style="color:${hyCol}">High Yield</span>
-              <span class="ov-spread-val" style="color:${hyCol}">${hyOas!=null?hyOas+'bp':'—'}</span>
+        <!-- Dual arc gauges -->
+        <div class="ov-arc-gauge-row">
+          <div class="ov-arc-gauge-wrap">
+            <div style="position:relative;display:inline-block">
+              ${arcGaugeSVG(hyPct, hyCol, 76, 8)}
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:6px;pointer-events:none">
+                <div style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${hyCol};line-height:1">${hyOas!=null?hyOas+'':'—'}</div>
+                <div style="font-size:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);margin-top:2px">bp</div>
+              </div>
             </div>
-            <div class="ov-spread-track">
-              <div class="ov-spread-fill" style="width:${hyPct.toFixed(1)}%;background:linear-gradient(90deg,${hyCol}88,${hyCol})"></div>
-            </div>
-            <div class="ov-spread-hint">${hyOas!=null?(hyOas<250?'Tight — risk-on':hyOas<350?'Normal':hyOas<500?'Wide — caution':'Stress — risk-off'):''}&nbsp;&nbsp;max 700bp</div>
+            <div class="ov-arc-gauge-lbl" style="color:${hyCol}">High Yield</div>
+            ${hyDelta4w!=null?`<div class="ov-arc-gauge-hint" style="color:${hyDelta4w<0?'#22c97a':'#e03a2a'}">${hyDelta4w>=0?'+':''}${hyDelta4w.toFixed(0)}bp 4w</div>`:''}
+            <div class="ov-arc-gauge-hint">${hyOas!=null?(hyOas<250?'Tight':hyOas<350?'Normal':hyOas<500?'Wide':'Stress'):''}</div>
           </div>
-          <!-- IG bar -->
-          <div class="ov-spread-row">
-            <div class="ov-spread-meta">
-              <span class="ov-spread-name" style="color:${igCol}">Inv. Grade</span>
-              <span class="ov-spread-val" style="color:${igCol}">${igOas!=null?igOas+'bp':'—'}</span>
+          <div class="ov-arc-gauge-wrap">
+            <div style="position:relative;display:inline-block">
+              ${arcGaugeSVG(igPct, igCol, 76, 8)}
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:6px;pointer-events:none">
+                <div style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${igCol};line-height:1">${igOas!=null?igOas+'':'—'}</div>
+                <div style="font-size:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);margin-top:2px">bp</div>
+              </div>
             </div>
-            <div class="ov-spread-track">
-              <div class="ov-spread-fill" style="width:${igPct.toFixed(1)}%;background:linear-gradient(90deg,${igCol}88,${igCol})"></div>
-            </div>
-            <div class="ov-spread-hint">${igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':'Wide'):''}&nbsp;&nbsp;max 200bp</div>
+            <div class="ov-arc-gauge-lbl" style="color:${igCol}">Inv. Grade</div>
+            <div class="ov-arc-gauge-hint">${igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':'Wide'):''}</div>
           </div>
         </div>
 
         <div class="ov-mc-stats">
           ${chip('Real Yield',ryVal!=null?`${ryVal>=0?'+':''}${ryVal.toFixed(2)}%`:'—',ryCol)}
           ${chip('EFFR',effr!=null?effr.toFixed(2)+'%':'—')}
-          ${chip('Cuts 12m',cuts12m!=null?(cuts12m<=0?`+${Math.abs(cuts12m).toFixed(2)}%`:`−${Math.abs(cuts12m).toFixed(2)}%`):'—',cuts12m!=null&&cuts12m>0?'#adb8d0':cuts12m!=null&&cuts12m<0?'#e03a2a':'')}
+          ${chip('Rate Path',cuts12m!=null?(cuts12m<0?`\u2212${(Math.abs(cuts12m)*100).toFixed(0)}bp`:`+${(Math.abs(cuts12m)*100).toFixed(0)}bp`):'—',cuts12m!=null&&cuts12m<0?'#22c97a':cuts12m!=null&&cuts12m>0?'#e03a2a':'')}
         </div>
       </div>
 
@@ -4916,32 +5060,44 @@ function renderMacroDataPanels(reg){
         <div class="ov-mc-header">
           <div>
             <div class="ov-mc-eyebrow">Federal Reserve</div>
-            <div style="font-size:11px;font-weight:800;color:var(--text);margin-top:2px">Balance Sheet</div>
+            <div class="ov-mc-title">Balance Sheet</div>
           </div>
-          <span class="ov-mc-badge" style="color:${fbCol};background:${fbCol}15;border:1px solid ${fbCol}30">${fbTrend}</span>
+          <span class="ov-mc-badge" style="color:${fbCol};background:${fbCol}18;border:1px solid ${fbCol}30">${fbTrend}</span>
         </div>
 
-        <!-- Hero: level -->
+        <!-- Hero level -->
         <div class="ov-mc-hero" style="font-size:28px;color:${fbCol}">${fbLevel!=null?`$${fbLevel.toFixed(2)}T`:'—'}</div>
-        <div class="ov-mc-hero-sub">
-          Total assets &nbsp;
-          ${fbChg3m!=null?`<span style="color:${fbChg3m>=0?'#adb8d0':'#e03a2a'}">${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T 3m</span>`:''}
-        </div>
+        <div class="ov-mc-hero-sub">Total assets${fbChg3m!=null?` &nbsp;<span style="color:${fbChg3m>=0?'#adb8d0':'#e03a2a'}">${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T 3m</span>`:''}</div>
 
-        <!-- Level bar: $4T floor → $9T peak -->
-        <div class="ov-bs-track">
-          <div class="ov-bs-fill" style="width:${fbPct.toFixed(1)}%;background:linear-gradient(90deg,#adb8d0 0%,${fbCol} 100%)"></div>
-        </div>
-        <div class="ov-bs-labels">
-          <span class="ov-bs-label">$4T QT floor</span>
-          <span class="ov-bs-label" style="color:${fbCol};font-weight:700">${fbLevel!=null?`$${fbLevel.toFixed(1)}T`:'—'}</span>
-          <span class="ov-bs-label">$9T QE peak</span>
-        </div>
-
-        <div class="ov-mc-stats" style="margin-top:10px">
-          ${chip('3M Chg',fbChg3m!=null?`${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T`:'—',fbCol)}
-          ${chip('6M Chg%',fbChg6mP!=null?`${fbChg6mP>=0?'+':''}${fbChg6mP.toFixed(1)}%`:'—',fbCol)}
-          ${chip('10Y Yield',t10!=null?t10.toFixed(2)+'%':'—')}
+        <!-- Vertical liquid bar + detail rows -->
+        <div class="ov-bs-container">
+          <div class="ov-bs-vbar-wrap">
+            <div style="font-size:5.5px;color:var(--faint);font-family:var(--mono);text-align:center;margin-bottom:3px">$9T</div>
+            <div class="ov-bs-vbar-track">
+              <!-- Peak marker at QE max -->
+              <div class="ov-bs-vbar-peak" style="--peak-pct:${fbPeakPct}%"></div>
+              <div class="ov-bs-vbar-fill" style="height:${fbPct.toFixed(1)}%;background:linear-gradient(180deg,${fbCol} 0%,${fbCol}66 100%)"></div>
+            </div>
+            <div style="font-size:5.5px;color:var(--faint);font-family:var(--mono);text-align:center;margin-top:3px">$4T</div>
+          </div>
+          <div class="ov-bs-detail">
+            <div class="ov-bs-row">
+              <div class="ov-bs-row-lbl">Level</div>
+              <div class="ov-bs-row-val" style="color:${fbCol}">${fbLevel!=null?`$${fbLevel.toFixed(2)}T`:'—'}</div>
+            </div>
+            <div class="ov-bs-row">
+              <div class="ov-bs-row-lbl">3M Change</div>
+              <div class="ov-bs-row-val" style="color:${fbChg3m!=null?(fbChg3m>=0?'#adb8d0':'#e03a2a'):'var(--faint)'}">${fbChg3m!=null?`${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T`:'—'}</div>
+            </div>
+            <div class="ov-bs-row">
+              <div class="ov-bs-row-lbl">6M Change</div>
+              <div class="ov-bs-row-val" style="color:${(fbChg6mP!=null&&fbLevel!=null)?(fbChg6mP>=0?'#adb8d0':'#e03a2a'):'var(--faint)'}">${(fbChg6mP!=null&&fbLevel!=null)?`${fbChg6mP>=0?'+':''}$${(fbLevel*(fbChg6mP/100)).toFixed(2)}T`:'—'}</div>
+            </div>
+            <div class="ov-bs-row">
+              <div class="ov-bs-row-lbl">vs QE Peak</div>
+              <div class="ov-bs-row-val" style="color:var(--dim)">${fbLevel!=null?`${(((fbLevel-9)/9)*100).toFixed(1)}%`:'—'}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -4953,25 +5109,31 @@ function renderMacroDataPanels(reg){
         <div class="ov-mc-header">
           <div>
             <div class="ov-mc-eyebrow">Employment</div>
-            <div style="font-size:11px;font-weight:800;color:var(--text);margin-top:2px">Labour Market</div>
+            <div class="ov-mc-title">Labour Market</div>
           </div>
-          ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}15;border:1px solid ${jcCol}30">${jobsComp>=6.5?'Strong':jobsComp>=5.5?'Healthy':jobsComp>=4.5?'Neutral':jobsComp>=3.5?'Cooling':'Weak'}</span>`:''}
+          ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}18;border:1px solid ${jcCol}30">${jcLabel}</span>`:''}
         </div>
 
-        <!-- NFP hero -->
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:1px">
-          <div class="ov-mc-hero" style="font-size:26px;color:${nfpCol}">${nfpMom!=null?`${nfpMom>=0?'+':''}${nfpMom.toFixed(0)}K`:'\u2014'}</div>
-          ${surprisePill(nfpSurpL, surpCol)}
-        </div>
-        <div class="ov-mc-hero-sub" style="margin-bottom:6px">
-          NFP ${nfpDate?`(${nfpDate})`:''}
-          ${ffNfp?.forecast!=null
-            ? `&nbsp;\u00b7 <span style="color:var(--faint)">Exp ${ffNfp.forecast}K</span>&nbsp;<span style="color:${surpCol}">${nfpSurp!=null?(nfpSurp>=0?'+':'')+nfpSurp+'K':''}</span>`
-            : (nfp6mAvg!=null?`&nbsp;<span style="color:var(--faint)">6m avg ${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span>`:'')
-          }
+        <!-- Composite arc gauge + NFP hero row -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="position:relative;display:inline-block;flex-shrink:0">
+            ${arcGaugeSVG(jobsComp!=null?jobsComp*10:50, jcCol, 74, 8)}
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:4px;pointer-events:none">
+              <div style="font-family:var(--mono);font-size:15px;font-weight:900;color:${jcCol};line-height:1;letter-spacing:-0.02em">${jobsComp!=null?jobsComp.toFixed(1):'—'}</div>
+              <div style="font-size:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);margin-top:2px">/ 10</div>
+            </div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:6px">
+              <div style="font-family:var(--mono);font-weight:900;font-size:22px;color:${nfpCol};letter-spacing:-0.03em;line-height:1">${nfpMom!=null?`${nfpMom>=0?'+':''}${nfpMom.toFixed(0)}K`:'\u2014'}</div>
+              ${surprisePill(nfpSurpL, surpCol)}
+            </div>
+            <div style="font-family:var(--mono);font-size:7.5px;color:var(--faint);margin-top:2px">NFP${nfpDate?` \u00b7 ${nfpDate}`:''}</div>
+            ${nfp6mAvg!=null?`<div style="font-family:var(--mono);font-size:7px;color:var(--faint)">6m avg ${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</div>`:''}
+          </div>
         </div>
 
-        <!-- FF actual vs consensus table (shown when FF data is available) -->
+        <!-- FF actual vs consensus (when available) -->
         ${ffHasData ? `
         <div style="margin-bottom:6px">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 3px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:2px">
@@ -4980,52 +5142,47 @@ function renderMacroDataPanels(reg){
             <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);width:36px;text-align:right;margin:0 4px">Act</span>
             <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);width:52px;text-align:right">Signal</span>
           </div>
-          ${ffRow('ADP Payrolls',    ffAdp,   'K',  true)}
-          ${ffRow('Unemp. Rate',     ffUr,    '%',  false)}
-          ${ffRow('Init. Claims',    ffCl,    'K',  false)}
-          ${ffRow('JOLTS Openings',  ffJolts, 'M',  true)}
-          ${ffRow('Hrly Earnings',   ffWages, '%',  true)}
+          ${ffRow('ADP Payrolls',ffAdp,'K',true)}
+          ${ffRow('Unemp. Rate',ffUr,'%',false)}
+          ${ffRow('Init. Claims',ffCl,'K',false)}
+          ${ffRow('JOLTS Openings',ffJolts,'M',true)}
+          ${ffRow('Hrly Earnings',ffWages,'%',true)}
         </div>
         ` : `
-        <div class="ov-spread-group" style="gap:5px;margin-bottom:6px">
-          <div class="ov-spread-row">
-            <div class="ov-spread-meta">
-              <span class="ov-spread-name" style="color:${urCol}">Unemployment</span>
-              <div style="display:flex;align-items:center;gap:5px">
-                <span class="ov-spread-val" style="color:${urCol}">${unrate!=null?unrate+'%':'\u2014'}</span>
-                <span style="font-size:8px;color:${urTCol}">${urTrend==='Rising'?'\u25b2':urTrend==='Falling'?'\u25bc':'\u2192'}</span>
-              </div>
-            </div>
-            <div class="ov-spread-track"><div class="ov-spread-fill" style="width:${unrate!=null?Math.min(100,Math.max(0,((unrate-3)/(7-3))*100)).toFixed(1):0}%;background:linear-gradient(90deg,#22c97a 0%,#b87333 50%,#e03a2a 100%)"></div></div>
-            <div class="ov-spread-hint">3%\u20137% range ${urDate?`\u00b7 ${urDate}`:''}</div>
+        <!-- 2x2 metric grid -->
+        <div class="ov-lab-grid">
+          <div class="ov-lab-cell">
+            <div class="ov-lab-cell-lbl">Unemployment</div>
+            <div class="ov-lab-cell-val" style="color:${urCol}">${unrate!=null?unrate+'%':'\u2014'}<span style="font-size:10px;margin-left:4px;color:${urTCol}">${urTrend==='Rising'?'\u25b2':urTrend==='Falling'?'\u25bc':'\u2192'}</span></div>
+            <div class="ov-lab-cell-sub">${urDate||(urTrend!=='Stable'?urTrend:'—')}</div>
+            ${miniBar(unrate!=null?((unrate-3)/(7-3))*100:0, `linear-gradient(90deg,#22c97a 0%,#f5c842 55%,#e03a2a 100%)`)}
           </div>
-          <div class="ov-spread-row">
-            <div class="ov-spread-meta">
-              <span class="ov-spread-name" style="color:${clCol}">Init. Claims</span>
-              <span class="ov-spread-val" style="color:${clCol}">${claims!=null?(claims/1000).toFixed(0)+'K':'\u2014'} ${clChg4w!=null?`<span style="font-size:8px;color:${clChg4w<0?'#22c97a':'#e03a2a'}">${clChg4w>=0?'+':''}${(clChg4w/1000).toFixed(0)}K 4w</span>`:''}</span>
-            </div>
-            <div class="ov-spread-track"><div class="ov-spread-fill" style="width:${claims!=null?Math.min(100,Math.max(0,((claims-150000)/(350000-150000))*100)).toFixed(1):0}%;background:linear-gradient(90deg,#22c97a 0%,#b87333 55%,#e03a2a 100%)"></div></div>
-            <div class="ov-spread-hint">4w avg ${claims4w!=null?(claims4w/1000).toFixed(0)+'K':''} \u00b7 150K\u2013350K</div>
+          <div class="ov-lab-cell">
+            <div class="ov-lab-cell-lbl">Init. Claims</div>
+            <div class="ov-lab-cell-val" style="color:${clCol}">${claims!=null?(claims/1000).toFixed(0)+'K':'\u2014'}</div>
+            <div class="ov-lab-cell-sub">${clChg4w!=null?`chg: ${clChg4w>=0?'+':''}${(clChg4w/1000).toFixed(0)}K 4w`:clDate||'—'}</div>
+            ${miniBar(claims!=null?((claims-150000)/(350000-150000))*100:0, `linear-gradient(90deg,#22c97a 0%,#f5c842 55%,#e03a2a 100%)`)}
           </div>
-          ${jolts!=null?`<div class="ov-spread-row">
-            <div class="ov-spread-meta">
-              <span class="ov-spread-name" style="color:${joltsCol}">Job Openings</span>
-              <div style="display:flex;align-items:center;gap:5px">
-                <span class="ov-spread-val" style="color:${joltsCol}">${jolts.toFixed(2)}M</span>
-                ${joltsChg!=null?`<span style="font-size:8px;color:${joltsChg>=0?'#22c97a':'#e03a2a'}">${joltsChg>=0?'+':''}${joltsChg.toFixed(2)}M</span>`:''}
-              </div>
-            </div>
-            <div class="ov-spread-track"><div class="ov-spread-fill" style="width:${Math.min(100,Math.max(0,((jolts-4)/(12-4))*100)).toFixed(1)}%;background:linear-gradient(90deg,#e03a2a 0%,#b87333 40%,#22c97a 100%)"></div></div>
-            <div class="ov-spread-hint">4M\u201312M \u00b7 6m avg ${jolts6m!=null?jolts6m.toFixed(2)+'M':'\u2014'}</div>
-          </div>`:''}
+          ${jolts!=null?`
+          <div class="ov-lab-cell">
+            <div class="ov-lab-cell-lbl">Job Openings</div>
+            <div class="ov-lab-cell-val" style="color:${joltsCol}">${jolts.toFixed(1)}M</div>
+            <div class="ov-lab-cell-sub">${joltsChg!=null?`${joltsChg>=0?'+':''}${joltsChg.toFixed(1)}M`:'JOLTS'}</div>
+            ${miniBar(((jolts-4)/(12-4))*100, `linear-gradient(90deg,#e03a2a 0%,#f5c842 40%,#22c97a 100%)`)}
+          </div>`:`<div class="ov-lab-cell" style="opacity:0.35"><div class="ov-lab-cell-lbl">JOLTS</div><div class="ov-lab-cell-val" style="color:var(--faint)">\u2014</div></div>`}
+          <div class="ov-lab-cell">
+            <div class="ov-lab-cell-lbl">NFP Score</div>
+            <div class="ov-lab-cell-val" style="color:${nfpCol}">${nfpScore.toFixed(1)}</div>
+            <div class="ov-lab-cell-sub">/ 10</div>
+            ${miniBar(nfpScore*10, nfpCol)}
+          </div>
         </div>
         `}
 
-        <!-- Bottom score chips -->
-        <div class="ov-mc-stats" style="padding-top:6px;border-top:1px solid rgba(255,255,255,0.06)">
+        <div class="ov-mc-stats" style="padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">
           ${chip('Composite', jobsComp!=null?jobsComp.toFixed(1)+'/10':'\u2014', jcCol)}
           ${chip('NFP Score', nfpScore.toFixed(1)+'/10', nfpCol)}
-          ${chip(ffHasData?'Bloomberg Consensus':'FRED Trailing', ffHasData?'Live':'Approx', ffHasData?'#22c97a':'var(--faint)')}
+          ${chip(ffHasData?'Source':'Source', ffHasData?'Live FF':'FRED', ffHasData?'#22c97a':'var(--faint)')}
         </div>
       </div>
 
@@ -5039,59 +5196,113 @@ function _drawYieldCurve(lineCol, regime, pts){
   pts = pts.filter(p=>p[1]!=null);
   const canvas = document.getElementById('ov-yc-canvas');
   if(!canvas) return;
-  const W = canvas.offsetWidth||320, H = 58;
-  canvas.width=W; canvas.height=H;
+
+  // ── HD: render at 2× device pixel ratio for crisp display
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const W = canvas.offsetWidth || 300;
+  const H = 80;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
   const c = canvas.getContext('2d');
+  c.scale(dpr, dpr);
+
   if(pts.length < 2){
-    c.fillStyle='rgba(255,255,255,0.15)';
-    c.font='8px Inter,sans-serif'; c.textAlign='center';
-    c.fillText('loading…',W/2,H/2+3);
+    c.fillStyle='rgba(255,255,255,0.18)';
+    c.font='600 9px Inter,sans-serif'; c.textAlign='center';
+    c.fillText('loading\u2026', W/2, H/2+3);
     return;
   }
+
   const vals = pts.map(p=>p[1]);
   const minV = Math.min(...vals), maxV = Math.max(...vals);
-  const pad  = {l:4,r:4,t:8,b:8};
-  const cW   = W-pad.l-pad.r, cH = H-pad.t-pad.b;
-  const range= Math.max(0.15, maxV-minV);
-  const px   = i => pad.l + i*(cW/(pts.length-1));
-  const py   = v => pad.t + cH - ((v-minV)/range)*cH;
+  const pad  = {l:8,r:8,t:12,b:12};
+  const cW   = W - pad.l - pad.r;
+  const cH   = H - pad.t - pad.b;
+  const range= Math.max(0.18, maxV - minV);
+  const px   = i  => pad.l + i * (cW / (pts.length - 1));
+  const py   = v  => pad.t + cH - ((v - minV) / range) * cH;
 
-  // Fill gradient
-  const gc = regime==='Inverted'?'240,64,64':regime.includes('Flat')?'245,200,66':'48,217,136';
-  const grad = c.createLinearGradient(0,pad.t,0,H);
-  grad.addColorStop(0,`rgba(${gc},0.18)`);
-  grad.addColorStop(1,`rgba(${gc},0.00)`);
+  // Colour components
+  const gc = regime==='Inverted'?'224,58,42':regime.includes('Flat')?'245,200,66':'34,201,122';
+
+  // ── Area fill under curve
+  const areaGrad = c.createLinearGradient(0, pad.t, 0, H);
+  areaGrad.addColorStop(0,   `rgba(${gc},0.20)`);
+  areaGrad.addColorStop(0.65,`rgba(${gc},0.05)`);
+  areaGrad.addColorStop(1,   `rgba(${gc},0.00)`);
   c.beginPath();
-  c.moveTo(px(0),py(vals[0]));
+  c.moveTo(px(0), py(vals[0]));
   for(let i=1;i<pts.length;i++){
-    const x0=px(i-1),y0=py(vals[i-1]),x1=px(i),y1=py(vals[i]),cx=(x0+x1)/2;
-    c.bezierCurveTo(cx,y0,cx,y1,x1,y1);
+    const x0=px(i-1),y0=py(vals[i-1]),x1=px(i),y1=py(vals[i]),mx=(x0+x1)/2;
+    c.bezierCurveTo(mx,y0,mx,y1,x1,y1);
   }
-  c.lineTo(px(pts.length-1),H); c.lineTo(px(0),H); c.closePath();
-  c.fillStyle=grad; c.fill();
+  c.lineTo(px(pts.length-1), H);
+  c.lineTo(px(0), H);
+  c.closePath();
+  c.fillStyle=areaGrad; c.fill();
 
-  // Grid line at 0% yield
-  if(minV<=0 && maxV>=0){
-    const y0 = py(0);
-    c.strokeStyle='rgba(255,255,255,0.08)'; c.lineWidth=1; c.setLineDash([3,4]);
-    c.beginPath(); c.moveTo(pad.l,y0); c.lineTo(W-pad.r,y0); c.stroke();
-    c.setLineDash([]);
+  // ── Subtle horizontal grid lines at 1% intervals
+  const step = range > 1.5 ? 1 : range > 0.6 ? 0.5 : 0.25;
+  const gridStart = Math.ceil(minV / step) * step;
+  for(let g=gridStart; g<=maxV+0.001; g=+(g+step).toFixed(4)){
+    const gy = py(g);
+    if(gy<pad.t||gy>H-pad.b) continue;
+    c.save();
+    c.strokeStyle = g===0 ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)';
+    c.lineWidth = g===0 ? 1 : 0.5;
+    if(g===0) c.setLineDash([3,5]);
+    c.beginPath(); c.moveTo(pad.l,gy); c.lineTo(W-pad.r,gy); c.stroke();
+    c.setLineDash([]); c.restore();
+    // Label only the 0% line
+    if(g===0){
+      c.fillStyle='rgba(255,255,255,0.22)';
+      c.font='600 6.5px Inter,sans-serif'; c.textAlign='left';
+      c.fillText('0%', pad.l+2, gy-2);
+    }
   }
 
-  // Curve line
-  c.beginPath();
-  c.moveTo(px(0),py(vals[0]));
-  for(let i=1;i<pts.length;i++){
-    const x0=px(i-1),y0=py(vals[i-1]),x1=px(i),y1=py(vals[i]),cx=(x0+x1)/2;
-    c.bezierCurveTo(cx,y0,cx,y1,x1,y1);
+  // ── Draw bezier path helper
+  function drawPath(lw, col, alpha=1, blur=0){
+    c.save();
+    c.globalAlpha=alpha;
+    if(blur>0){ c.shadowColor=`rgba(${gc},0.7)`; c.shadowBlur=blur; }
+    c.beginPath();
+    c.moveTo(px(0),py(vals[0]));
+    for(let i=1;i<pts.length;i++){
+      const x0=px(i-1),y0=py(vals[i-1]),x1=px(i),y1=py(vals[i]),mx=(x0+x1)/2;
+      c.bezierCurveTo(mx,y0,mx,y1,x1,y1);
+    }
+    c.strokeStyle=col; c.lineWidth=lw; c.lineCap='round'; c.lineJoin='round'; c.stroke();
+    c.restore();
   }
-  c.strokeStyle=lineCol; c.lineWidth=2.5; c.stroke();
 
-  // Dots
+  // Glow pass
+  drawPath(6, lineCol, 0.22, 10);
+  // Main crisp line
+  drawPath(2, lineCol, 1, 0);
+
+  // ── Tenor dots
   pts.forEach((p,i)=>{
-    const x=px(i),y=py(vals[i]);
-    c.beginPath(); c.arc(x,y,3,0,Math.PI*2);
-    c.fillStyle=i===3?lineCol:'rgba(255,255,255,0.55)'; c.fill();
+    const x=px(i), y=py(vals[i]);
+    const is10Y = p[0]==='10Y';
+    const r     = is10Y ? 4 : 2.5;
+
+    if(is10Y){
+      // Outer halo
+      c.save();
+      c.shadowColor=`rgba(${gc},0.9)`; c.shadowBlur=12;
+      c.beginPath(); c.arc(x,y,r+2.5,0,Math.PI*2);
+      c.fillStyle=`rgba(${gc},0.18)`; c.fill();
+      c.restore();
+    }
+    // Dot border (subtle)
+    c.beginPath(); c.arc(x,y,r+0.8,0,Math.PI*2);
+    c.fillStyle=`rgba(0,0,0,0.4)`; c.fill();
+    // Dot fill
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2);
+    c.fillStyle=is10Y?lineCol:'rgba(255,255,255,0.75)'; c.fill();
   });
 }
 
