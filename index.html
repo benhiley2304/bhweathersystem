@@ -1553,10 +1553,10 @@ a{color:inherit;text-decoration:none}
   flex:1;height:4px;
   background:linear-gradient(90deg,#e03a2a 0%,#b87333 25%,#5a6480 50%,#5aaa88 75%,#22c97a 100%);
   border-radius:3px;overflow:visible;
-  position:relative;opacity:0.5;
+  position:relative;opacity:0.35;
   transition:opacity 160ms;
 }
-.ov-cp-cat-row:hover .ov-cp-cat-bar-wrap{opacity:0.9}
+.ov-cp-cat-row:hover .ov-cp-cat-bar-wrap{opacity:0.75}
 .ov-cp-cat-bar-fill{
   display:none; /* replaced by spectrum dot */
 }
@@ -1633,6 +1633,7 @@ a{color:inherit;text-decoration:none}
   .ov-climate-panel{padding:14px 14px 12px}
   .ov-menv-grid{grid-template-columns:repeat(2,1fr);gap:5px}
   .ov-cp-cat-drivers{display:none}
+  .ov-cp-narr-text{font-size:12px;line-height:1.68}
 }
 
 /* .ov-regime-panel removed */
@@ -1692,7 +1693,7 @@ a{color:inherit;text-decoration:none}
   margin-bottom:6px;
 }
 .ov-cb-col-head{
-  font-size:6.5px;color:var(--faint);letter-spacing:0.07em;text-transform:uppercase;
+  font-size:6.5px;color:var(--faint);letter-spacing:0.07em;text-transform:uppercase;opacity:0.8;
 }
 .ov-cb-row{
   display:flex;align-items:center;gap:7px;padding:3px 0;
@@ -1830,9 +1831,15 @@ a{color:inherit;text-decoration:none}
 .ov-news-row-left{display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0}
 .ov-news-row-info{flex:1;min-width:0}
 .ov-news-row-title{font-size:10.5px;color:var(--text);line-height:1.45;font-weight:500}
-.ov-news-row-preview{font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;text-transform:none;font-style:italic;opacity:0.82}
-.ov-news-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.ov-news-row-preview{font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;text-transform:none;font-style:italic;opacity:0.72}
+.ov-news-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;max-width:80px}
 .ov-news-row-time{font-size:8px;color:var(--faint);font-family:var(--mono);white-space:nowrap}
+@media(max-width:600px){
+  .ov-news-row-title{font-size:10px}
+  .ov-news-row-preview{font-size:8.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .ov-news-row-right{max-width:64px}
+  .ov-news-row-time{font-size:7.5px}
+}
 
 /* Remove old collapsed state — news is always open */
 .ov-ai-brief-body{display:none;padding:4px 24px 18px}
@@ -4852,7 +4859,7 @@ function renderClimatePanel(reg, markets, mktMap){
       <div class="ov-cp-cat-bar-wrap">
         <div class="ov-cp-cat-bar-fill" style="width:${barPct}%;background:${col}"></div>
       </div>
-      <div style="font-size:8.5px;font-weight:700;color:${col};width:62px;flex-shrink:0;text-align:right;letter-spacing:0.02em">${dirLabel}</div>
+      <div style="font-size:7.5px;font-weight:800;color:${col};width:58px;flex-shrink:0;text-align:right;letter-spacing:0.06em;text-transform:uppercase;opacity:0.9">${dirLabel}</div>
       <div class="ov-cp-cat-drivers">${drivers}</div>
     </div>`;
   }).filter(Boolean).join('');
@@ -4900,6 +4907,22 @@ function renderClimatePanel(reg, markets, mktMap){
     </div>
     <div id="ov-cp-signal-slot"></div>`;
   el.classList.add('loaded');
+
+  // ── Inject spectrum position dots into each cat row bar
+  requestAnimationFrame(()=>{
+    el.querySelectorAll('.ov-cp-cat-row').forEach(row=>{
+      const wrap=row.querySelector('.ov-cp-cat-bar-wrap'); if(!wrap)return;
+      const fill=row.querySelector('.ov-cp-cat-bar-fill'); if(!fill)return;
+      const pct=parseFloat(fill.style.width)||50;
+      const col=fill.style.background||'#5a6480';
+      // Remove old dot if any
+      wrap.querySelectorAll('.ov-cp-cat-bar-dot').forEach(d=>d.remove());
+      const dot=document.createElement('div');
+      dot.className='ov-cp-cat-bar-dot';
+      dot.style.cssText=`left:${pct}%;background:${col};box-shadow:0 0 6px ${col}`;
+      wrap.appendChild(dot);
+    });
+  });
 
   // Start ambient particle bg in climate panel
   const _cpRegLabel=reg.regime||reg.label||'';
