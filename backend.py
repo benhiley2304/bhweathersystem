@@ -62,11 +62,14 @@ app = FastAPI(title="COT Weather Station v2", default_response_class=_SafeJSONRe
 # Dedicated thread pool — large enough to avoid deadlocks when heavy sync functions
 # (compute_macro_all, compute_risk_regime, _fetch_ff_months_parallel etc.) run concurrently.
 import concurrent.futures as _cf
-_APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=8, thread_name_prefix="bh-worker")
+# Reduced from 8->4 workers to cap concurrent memory pressure on 2GB Render instance.
+# score_history prefetch fetches yfinance + FF in parallel; 8 concurrent workers
+# was pushing RSS well over 2GB and triggering OOM-kill crash loops.
+_APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=4, thread_name_prefix="bh-worker")
 # Dedicated low-priority executor for score_history heavy yfinance prefetch.
-# Capped at 2 workers so concurrent history requests cannot OOM by competing
-# with the main scores/FRED/COT executor on the 2GB Render instance.
-_SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bh-sh")
+# Reduced to 1 worker so concurrent score_history requests queue rather than
+# pile up in RAM and OOM the 2GB Render instance.
+_SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=1, thread_name_prefix="bh-sh")
 _photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 if os.path.isdir(_photos_dir):
     app.mount("/photos", StaticFiles(directory=_photos_dir), name="photos")
@@ -4160,6 +4163,46 @@ RISK_ASSETS = {
 RISK_REGIME_CACHE: dict = {"data": None, "time": 0}
 RISK_REGIME_CACHE_TTL = 3600 * 2  # 2h
 
+# ── Shared regime price cache ────────────────────────────────────────────────
+# score_history._do_prefetch() was fetching all 16 RISK_ASSETS tickers fresh
+# for every single market request (16 tickers × 8 concurrent markets = 128
+# yfinance calls, each loading years of weekly OHLCV into RAM → OOM crash).
+# This shared cache fetches them ONCE with a 4h TTL and reuses across all
+# score_history calls.
+_REGIME_PX_SHARED_CACHE: dict = {"data": None, "time": 0}
+_REGIME_PX_SHARED_TTL = 3600 * 4  # 4h
+_REGIME_PX_LOCK = _cf.ThreadPoolExecutor(max_workers=1)  # serialise fetches
+import threading as _threading
+_REGIME_PX_FETCH_LOCK = _threading.Lock()
+
+def _get_shared_regime_px() -> dict:
+    """Return cached RISK_ASSETS price history, fetching once if cold/stale."""
+    _now = time.time()
+    if _REGIME_PX_SHARED_CACHE["data"] and (_now - _REGIME_PX_SHARED_CACHE["time"]) < _REGIME_PX_SHARED_TTL:
+        return _REGIME_PX_SHARED_CACHE["data"]
+    # Serialise so concurrent score_history calls don’t all fetch simultaneously
+    with _REGIME_PX_FETCH_LOCK:
+        # Double-check after acquiring lock
+        if _REGIME_PX_SHARED_CACHE["data"] and (time.time() - _REGIME_PX_SHARED_CACHE["time"]) < _REGIME_PX_SHARED_TTL:
+            return _REGIME_PX_SHARED_CACHE["data"]
+        import yfinance as _yf_regime
+        _px: dict = {}
+        for _rn, _rticker in RISK_ASSETS.items():
+            try:
+                _df = _yf_regime.Ticker(_rticker).history(period="max", interval="1wk", auto_adjust=True)
+                if not _df.empty:
+                    import numpy as _np_regime
+                    _s = _df["Close"].copy()
+                    _s.index = pd.to_datetime(_s.index).tz_localize(None).normalize()
+                    _s.index = _s.index.map(lambda d: _np_regime.datetime64(d.date().isoformat(), 'D'))
+                    _px[_rn] = _s
+            except Exception:
+                pass
+        _REGIME_PX_SHARED_CACHE["data"] = _px
+        _REGIME_PX_SHARED_CACHE["time"] = time.time()
+        print(f"[regime-px-cache] Loaded {len(_px)} tickers into shared cache")
+        return _px
+
 
 
 # ── International CB rates cache ─────────────────────────────────────────────
@@ -7842,6 +7885,23 @@ async def get_score_history(market: str):
         # here would prevent /api/health from responding for minutes.
         def _do_prefetch():
             _pf_ts = time.time()
+            # ── Memory guard: abort prefetch if RSS is already high ────────────
+            # Prevents OOM crash when multiple concurrent score_history
+            # requests fire on a cold-start before caches are warm.
+            try:
+                import resource as _rsrc
+                _rss_bytes = _rsrc.getrusage(_rsrc.RUSAGE_SELF).ru_maxrss * 1024
+                _rss_gb = _rss_bytes / (1024 ** 3)
+                if _rss_gb > 1.4:
+                    print(f"[score_history] Memory guard: RSS {_rss_gb:.2f}GB > 1.4GB, skipping prefetch for {m_upper}")
+                    # Return a minimal stub so the endpoint can still serve partial data
+                    return {
+                        "ff_events": [], "regime_px": {}, "relval_self": None,
+                        "relval_peer_map": {}, "relval_periods": [], "pcr_s_const": 5.0,
+                        "ts": _pf_ts,
+                    }
+            except Exception:
+                pass  # resource module unavailable, proceed anyway
             # 1. FF macro: fetch 5 years of monthly calendar data in parallel
             _months_to_fetch = 60  # ~5 years
             _today_d = date.today()
@@ -7856,18 +7916,10 @@ async def get_score_history(market: str):
             _all_ff = _fetch_ff_months_parallel(_year_month_pairs)
             print(f"score_history[{m_upper}]: fetched {len(_all_ff)} FF events over {_months_to_fetch} months")
 
-            # 2. Regime: fetch max weekly closes for all regime tickers
-            _regime_px: dict = {}
-            for _rn, _rticker in RISK_ASSETS.items():
-                try:
-                    _df = yf.Ticker(_rticker).history(period="max", interval="1wk", auto_adjust=True)
-                    if not _df.empty:
-                        _s = _df["Close"].copy()
-                        _s.index = pd.to_datetime(_s.index).tz_localize(None).normalize()
-                        _s.index = _s.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
-                        _regime_px[_rn] = _s
-                except Exception:
-                    pass
+            # 2. Regime: use shared cache (fetched once for all markets)
+            # Previously this fetched all 16 RISK_ASSETS tickers per market,
+            # causing 128 yfinance calls when 8 markets ran concurrently → OOM.
+            _regime_px: dict = _get_shared_regime_px()
 
             # 3. Rel-val: fetch max weekly closes for self + all configured peers
             _relval_self: pd.Series = None
