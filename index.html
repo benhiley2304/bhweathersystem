@@ -52,6 +52,8 @@ body{font-family:var(--body);font-size:var(--fs-base);color:var(--text);backgrou
 .app-wrap{display:flex;flex-direction:column;flex:1;min-height:0;height:100%;overflow:hidden;transform-origin:top left}
 button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
+/* Suppress iOS grey flash on tap — we use :active states instead */
+*{-webkit-tap-highlight-color:transparent}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 /* V13: Brand-coloured scrollbar */
@@ -2628,13 +2630,17 @@ a{color:inherit;text-decoration:none}
 @media(max-width:700px){
 
   /* ── 1. CORE LAYOUT ── */
-  body{height:auto;overflow-x:hidden;overflow-y:auto}
+  body{height:auto;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:none}
   .app-wrap{height:auto;overflow:visible;zoom:unset;flex:unset;display:flex;flex-direction:column}
 
   /* Nav: fixed — cleaner on mobile */
   .nav{
     position:fixed;top:0;left:0;right:0;z-index:500;
-    padding:0 14px;gap:10px;height:50px;
+    padding:env(safe-area-inset-top,0px) 14px 0;
+    gap:10px;
+    /* Height includes safe-area so content sits in the 50px zone below the notch */
+    height:calc(50px + env(safe-area-inset-top,0px));
+    align-items:flex-end;padding-bottom:0;
     background:linear-gradient(180deg,rgba(5,7,13,0.99) 0%,rgba(5,7,13,0.96) 100%);
     box-shadow:0 1px 0 rgba(255,255,255,0.07),0 4px 28px rgba(0,0,0,0.8);
   }
@@ -2645,14 +2651,14 @@ a{color:inherit;text-decoration:none}
   .nav-logo svg{width:22px;height:22px}
   /* Refresh: icon only on mobile */
   .nav-btn-label{display:none}
-  .nav-btn{padding:7px 9px;gap:0}
+  .nav-btn{padding:9px 11px;gap:0;min-height:34px}
   .nav-btn svg{width:11px;height:11px}
   /* Regime badge: slightly tighter */
   .regime-badge{padding:4px 10px;font-size:8.5px}
 
-  /* Spacer */
+  /* Spacer — accounts for dynamic nav height including safe-area */
   .main{
-    margin-top:50px;
+    margin-top:calc(50px + env(safe-area-inset-top,0px));
     flex-direction:column;height:auto;overflow:visible;min-height:0;flex:unset;
   }
 
@@ -2666,8 +2672,8 @@ a{color:inherit;text-decoration:none}
   }
   .sb-head{
     padding:8px 14px 7px;
-    /* nav=50px fixed; hero scrolls away */
-    position:sticky;top:50px;z-index:99;
+    /* nav is fixed height includes safe-area inset */
+    position:sticky;top:calc(50px + env(safe-area-inset-top,0px));z-index:99;
     background:rgba(5,7,13,0.97);
     border-bottom:1px solid rgba(255,255,255,0.07);
     backdrop-filter:blur(24px);
@@ -2679,7 +2685,7 @@ a{color:inherit;text-decoration:none}
   .sb-top h2{font-size:8.5px;letter-spacing:0.12em}
   #sb-count{font-size:8.5px}
   .cat-row{gap:4px;flex-wrap:wrap}
-  .cat-btn{padding:3px 9px;font-size:7.5px;border-radius:5px}
+  .cat-btn{padding:7px 11px;font-size:7.5px;border-radius:5px;min-height:32px}
   .cat-btn.on{box-shadow:0 0 8px rgba(200,169,110,0.15),inset 0 1px 0 rgba(255,255,255,0.08)}
 
   /* Market list: no clip */
@@ -2900,6 +2906,20 @@ a{color:inherit;text-decoration:none}
   }
   .mob-sector-cell:last-child{border-right:none}
   .mob-sector-cell:active{background:rgba(92,158,255,0.06)}
+  /* ── Touch feedback: active states for all tappable elements ── */
+  .mkt-row:active{background:rgba(255,255,255,0.06)!important;transition:none}
+  .cat-btn:active{background:rgba(200,169,110,0.14)!important;border-color:rgba(200,169,110,0.4)!important;transform:scale(0.97);transition:none}
+  .nav-btn:active{background:rgba(255,255,255,0.12)!important;transition:none}
+  .regime-badge:active{opacity:0.7;transition:none}
+  .ov-sig-card:active,.ov-cp-cat-row:active{transform:scale(0.99)!important;transition:none}
+  .back-to-ov-btn:active,.mob-back:active{opacity:0.7;transition:none}
+  /* Prevent sticky hover states on touch devices */
+  @media(hover:none){
+    .mkt-row:hover{background:transparent}
+    .nav-btn:hover{background:var(--surf2);color:var(--dim)}
+    .cat-btn:hover{border-color:rgba(255,255,255,0.10);color:rgba(173,184,208,0.7)}
+    .ov-cp-cat-row:hover{background:linear-gradient(90deg,rgba(20,23,34,0.80) 0%,rgba(15,17,25,0.72) 100%);transform:none;box-shadow:0 1px 6px rgba(0,0,0,0.22)}
+  }
   /* Jarvis corner bracket — top left */
   .mob-sector-cell::before{
     content:'';
@@ -2977,7 +2997,7 @@ a{color:inherit;text-decoration:none}
   }
   /* Detail panel fills full viewport below nav */
   body.mob-detail-open .detail{
-    min-height:calc(100dvh - 50px);
+    min-height:calc(100dvh - 50px - env(safe-area-inset-top,0px));
   }
   /* Ensure d-content is scrollable and fills space */
   body.mob-detail-open #d-content{
@@ -3219,7 +3239,7 @@ a{color:inherit;text-decoration:none}
   opacity:1;
 }
 /* Ensure all direct layout children sit above the canvas */
-.app-layout,#app-wrap,.nav,body>*:not(#app-particle-bg){
+.app-layout,#app-wrap,body>*:not(#app-particle-bg){
   position:relative;
   z-index:1;
 }
@@ -3329,7 +3349,13 @@ a{color:inherit;text-decoration:none}
 (function(){
   function setH(){
     document.documentElement.style.setProperty('--app-h', window.innerHeight+'px');
-    document.body.style.height = window.innerHeight+'px';
+    // On mobile (≤700px) body scrolls naturally — don't lock height via inline style
+    // as it overrides the media-query body{height:auto} rule
+    if(window.innerWidth > 700){
+      document.body.style.height = window.innerHeight+'px';
+    } else {
+      document.body.style.height = '';
+    }
   }
   setH();
   window.addEventListener('resize', setH);
