@@ -358,6 +358,16 @@ a{color:inherit;text-decoration:none}
   from{opacity:0;transform:translateY(6px)}
   to{opacity:1;transform:none}
 }
+/* CS card — needle settle: slides from far left on load */
+@keyframes needleSettle{
+  from{left:3% !important;opacity:0}
+  to{opacity:1}
+}
+/* CS card — row entrance */
+@keyframes csRowIn{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:none}
+}
 
 /* ── Overview entrance stagger ── */
 .ov-banner-inner{animation:fadeUp 400ms cubic-bezier(0.16,1,0.3,1) both}
@@ -864,7 +874,7 @@ a{color:inherit;text-decoration:none}
 }
 .ov-cat-pill:hover::after{opacity:0.5}
 .ov-cat-name{
-  font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
   color:var(--faint);margin-bottom:4px;
   transition:color 180ms;
 }
@@ -899,7 +909,7 @@ a{color:inherit;text-decoration:none}
 
 /* ── Heatmap ── */
 .ov-heatmap-wrap{
-  padding:16px 22px 4px;
+  padding:16px 22px 28px;
   border-bottom:none;
   position:relative;
 }
@@ -913,7 +923,7 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:center;gap:10px;margin-bottom:12px;margin-top:4px;
 }
 .ov-section-title{
-  font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
   flex-shrink:0;
 }
 .ov-section-hdr-line{
@@ -1006,7 +1016,7 @@ a{color:inherit;text-decoration:none}
   animation:fadeUp 360ms 300ms cubic-bezier(0.16,1,0.3,1) both;
 }
 .ov-smart-panel.loaded{display:block}
-.ov-smart-title{font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.ov-smart-title{font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
 .ov-smart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
 .ov-smart-item{
   background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;
@@ -1024,7 +1034,7 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:center;gap:10px;
 }
 .ov-sig-wrap-title{
-  font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
   flex-shrink:0;
 }
 .ov-sig-wrap-title-line{
@@ -1032,7 +1042,7 @@ a{color:inherit;text-decoration:none}
   background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%);
 }
 .ov-sig-wrap-sub{
-  font-size:8px;color:var(--faint);opacity:0.7;flex-shrink:0;
+  font-family:var(--mono);font-size:8px;color:var(--faint);opacity:0.7;flex-shrink:0;
 }
 .ov-sig-cols{
   display:grid;grid-template-columns:1fr 1fr;gap:0;
@@ -1081,7 +1091,7 @@ a{color:inherit;text-decoration:none}
 /* ── Macro Data Panels (Yield Curve, Credit, Fed BS) ── */
 /* ── Macro Climate Panels ───────────────────────────────────────────── */
 .ov-macro-sect-header{
-  font-size:8px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
+  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
   color:var(--faint);margin:20px 16px 12px;
   display:flex;align-items:center;gap:10px;
 }
@@ -1188,13 +1198,13 @@ a{color:inherit;text-decoration:none}
 
 /* ── Header ────────────────────────────────────────────── */
 .ov-mc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
-.ov-mc-eyebrow{font-size:7px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
-.ov-mc-title{font-size:11.5px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
+.ov-mc-eyebrow{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--faint);margin-bottom:3px;opacity:0.75}
+.ov-mc-title{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
 .ov-mc-badge{
-  font-size:7px;font-weight:800;letter-spacing:0;text-transform:uppercase;
-  padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap;margin-top:2px;
+  font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;
+  padding:3px 8px;border-radius:4px;flex-shrink:0;white-space:nowrap;margin-top:2px;
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  overflow:hidden;max-width:80px;text-overflow:ellipsis;
+  overflow:hidden;max-width:88px;text-overflow:ellipsis;
   display:inline-flex;align-items:center;
 }
 
@@ -1284,142 +1294,198 @@ a{color:inherit;text-decoration:none}
 ════════════════════════════════════════════ */
 /* Main body wrapper fills card */
 .ov-cs-body{
-  flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;
+  flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;
   margin-top:10px;
 }
-/* Each spread row — equal height, fills available space */
+/* Row card */
 .ov-cs-row{
-  flex:1;display:flex;flex-direction:column;justify-content:space-between;
-  padding:16px 18px;
-  border-radius:12px;
-  background:rgba(255,255,255,0.03);
+  flex:1;display:flex;flex-direction:column;
+  padding:13px 15px 11px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.028);
   border:1px solid rgba(255,255,255,0.08);
+  /* Subtle top highlight — gives card depth */
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07),0 2px 8px rgba(0,0,0,0.25);
   position:relative;overflow:hidden;
+  animation:csRowIn 420ms cubic-bezier(0.16,1,0.3,1) both;
+  transition:border-color 200ms,box-shadow 200ms;
 }
-/* The wash opacity is now higher for more presence */
-.ov-cs-row .ov-cs-row-wash{opacity:0.08!important}
-/* Subtle colour tint wash behind each row */
+.ov-cs-row:nth-child(1){animation-delay:180ms}
+.ov-cs-row:nth-child(2){animation-delay:280ms}
+.ov-cs-row:hover{
+  border-color:rgba(255,255,255,0.12);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.09),0 4px 14px rgba(0,0,0,0.35);
+}
+.ov-cs-row .ov-cs-row-wash{opacity:0.055!important}
 .ov-cs-row-wash{
-  position:absolute;inset:0;pointer-events:none;border-radius:10px;
-  opacity:0.06;
+  position:absolute;inset:0;pointer-events:none;border-radius:9px;
+  opacity:0.05;
 }
-/* Left accent stripe on each row */
+/* Left accent stripe — 1px, full height, accent colour */
 .ov-cs-row::before{
-  content:'';position:absolute;top:12px;bottom:12px;left:0;width:3px;
-  border-radius:0 2px 2px 0;
+  content:'';position:absolute;top:0;bottom:0;left:0;width:2px;
+  border-radius:0;
   background:var(--cs-accent,rgba(255,255,255,0.2));
-  opacity:0.7;
+  opacity:0.55;
 }
-/* Header row: label left, bp value right */
+/* Row header */
 .ov-cs-row-head{
   display:flex;align-items:flex-start;justify-content:space-between;
-  position:relative;z-index:1;margin-bottom:14px;
+  position:relative;z-index:1;margin-bottom:8px;
 }
 .ov-cs-name{
-  font-size:8.5px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;
-  color:var(--text);opacity:0.7;
+  font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--faint);opacity:0.85;
+  margin-top:1px;
 }
 .ov-cs-val-wrap{display:flex;align-items:baseline;gap:4px}
 .ov-cs-val{
-  font-family:var(--mono);font-size:38px;font-weight:900;
-  letter-spacing:-0.05em;line-height:1;
+  font-family:var(--mono);font-size:32px;font-weight:800;
+  letter-spacing:-0.04em;line-height:1;
 }
 .ov-cs-unit{
-  font-size:10px;font-weight:700;color:var(--faint);
-  text-transform:uppercase;margin-bottom:2px;letter-spacing:0.04em;
+  font-family:var(--mono);font-size:9px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--faint);opacity:0.45;margin-bottom:3px;
+  align-self:flex-end;
 }
 /* Delta chip */
 .ov-cs-delta{
-  font-family:var(--mono);font-size:8.5px;font-weight:800;
-  padding:3px 8px;border-radius:5px;
-  margin-top:5px;display:inline-block;
+  font-family:var(--mono);font-size:7px;font-weight:700;
+  padding:2px 7px;border-radius:4px;
+  margin-top:4px;display:inline-block;letter-spacing:0.05em;
+  backdrop-filter:blur(4px);
 }
-/* Spectrum bar — the key visual */
-.ov-cs-spectrum-wrap{position:relative;z-index:1}
+
+/* ── Spectrum track ── */
+.ov-cs-spectrum-wrap{position:relative;z-index:1;margin-top:4px}
 .ov-cs-spectrum{
-  height:12px;border-radius:7px;
+  height:8px;border-radius:5px;
   position:relative;overflow:visible;
-  margin-bottom:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.1);
+  margin-bottom:5px;
 }
-/* HY spectrum: 150bp=tight(green) → 350bp=normal(yellow) → 600bp=stress(red) */
+/*
+  Track gradient: measured, desaturated tone.
+  Reads left=safe/tight, right=stress — same grammar as traffic lights
+  but at a fraction of the saturation so it feels data-driven not decorative.
+  HY scale 0–600bp: normal zone ~250–350bp (42%–58%)
+*/
 .ov-cs-spectrum-hy{
-  background:linear-gradient(90deg,
-    #22c97a 0%,
-    #22c97a 20%,
-    #f5c842 42%,
-    #e03a2a 68%,
-    #c41a2e 100%
+  background:linear-gradient(to right,
+    #1e6038 0%,
+    #2e7848 20%,
+    #568440 38%,  /* olive-green — firm */
+    #8a7a26 53%,  /* dark gold — elevated */
+    #9a5020 67%,  /* burnt sienna */
+    #842218 83%,
+    #621410 100%  /* dark crimson */
   );
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.45),
+    0 1px 6px rgba(0,0,0,0.5);
+  overflow:visible;
 }
-/* IG spectrum: 50bp=tight(green) → 120bp=normal(yellow) → 250bp=stress(red) */
 .ov-cs-spectrum-ig{
-  background:linear-gradient(90deg,
-    #22c97a 0%,
-    #22c97a 25%,
-    #f5c842 48%,
-    #e03a2a 72%,
-    #c41a2e 100%
+  background:linear-gradient(to right,
+    #1e6038 0%,
+    #2e7848 18%,
+    #568440 36%,
+    #8a7a26 56%,
+    #9a5020 72%,
+    #621410 100%
   );
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.45),
+    0 1px 6px rgba(0,0,0,0.5);
+  overflow:visible;
 }
-/* Marker dot on spectrum */
+/* Fill — hidden, gradient track carries the signal */
+.ov-cs-fill{ display:none; }
+/* Zone divider ticks — dark incisions with a hairline bright edge */
+.ov-cs-tick{
+  position:absolute;top:-1px;bottom:-1px;width:1px;
+  background:rgba(5,8,18,0.7);
+  box-shadow:1px 0 0 rgba(255,255,255,0.08);
+  z-index:2;pointer-events:none;
+}
+/*
+  Marker — a thin bright needle.
+  Deliberately narrow so it reads as a precision indicator,
+  tall enough to protrude above/below the track for easy reading.
+*/
 .ov-cs-marker{
   position:absolute;top:50%;transform:translate(-50%,-50%);
-  width:20px;height:20px;border-radius:50%;
-  border:3px solid rgba(8,11,20,0.98);
-  box-shadow:0 0 0 2px rgba(255,255,255,0.4),0 3px 14px rgba(0,0,0,0.9);
-  z-index:2;transition:left 800ms cubic-bezier(0.16,1,0.3,1);
+  width:2.5px;height:20px;
+  border-radius:2px;
+  background:linear-gradient(to bottom, #ffffff 0%, #dde8f8 100%);
+  box-shadow:
+    0 0 0 1.5px rgba(0,0,0,0.85),
+    0 0 5px rgba(255,255,255,0.45),
+    0 0 12px rgba(210,230,255,0.25),
+    0 2px 8px rgba(0,0,0,0.75);
+  z-index:3;
+  /* Settle from left on load, then smooth live updates */
+  animation:needleSettle 1200ms cubic-bezier(0.16,1,0.3,1) both;
+  transition:left 1000ms cubic-bezier(0.16,1,0.3,1);
 }
-/* Zone labels below spectrum */
+/* Zone labels — three columns, coloured to match gradient zones */
 .ov-cs-zone-labels{
-  display:flex;justify-content:space-between;
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  margin-top:4px;padding:0 1px;
 }
 .ov-cs-zone-lbl{
-  font-size:7px;font-weight:700;letter-spacing:0.05em;
-  text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;
 }
-/* Context label — big readable interpretation */
+.ov-cs-zone-lbl:nth-child(1){ color:rgba(90,175,110,0.6); }
+.ov-cs-zone-lbl:nth-child(2){ color:rgba(185,165,65,0.5); text-align:center; }
+.ov-cs-zone-lbl:nth-child(3){ color:rgba(185,75,55,0.6); text-align:right; }
+
+/* Context strip — clean separator line, no box */
 .ov-cs-context{
-  display:flex;align-items:center;gap:8px;
-  margin-top:12px;padding:8px 10px;
-  border-radius:7px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.06);
+  display:flex;align-items:center;gap:7px;
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid rgba(255,255,255,0.06);
   position:relative;z-index:1;
   overflow:hidden;min-width:0;
 }
 .ov-cs-context-dot{
-  width:8px;height:8px;border-radius:50%;flex-shrink:0;
-  box-shadow:0 0 8px currentColor;
-  border:1.5px solid rgba(255,255,255,0.2);
+  width:5px;height:5px;border-radius:50%;flex-shrink:0;
+  /* Subtle live-status pulse — same pattern as regime pip */
+  animation:dotLivePulse 3s ease-in-out infinite;
 }
 .ov-cs-context-txt{
-  font-size:10px;font-weight:700;letter-spacing:0.01em;
+  font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.02em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  flex:1;min-width:0;
+  flex:1;min-width:0;opacity:0.88;
 }
 /* Footer stat strip */
 .ov-cs-footer{
   display:flex;gap:0;
-  margin-top:10px;padding-top:10px;
-  border-top:1px solid rgba(255,255,255,0.07);
+  margin-top:11px;padding-top:11px;
+  border-top:1px solid rgba(255,255,255,0.06);
   flex-shrink:0;
 }
 .ov-cs-foot-item{
-  flex:1;display:flex;flex-direction:column;gap:3px;padding:0 8px;
+  flex:1;display:flex;flex-direction:column;gap:5px;padding:0 10px;
 }
 .ov-cs-foot-item:first-child{padding-left:0}
 .ov-cs-foot-item:last-child{padding-right:0}
 .ov-cs-foot-item+.ov-cs-foot-item{
-  border-left:1px solid rgba(255,255,255,0.06);
+  border-left:1px solid rgba(255,255,255,0.05);
 }
 .ov-cs-foot-lbl{
-  font-size:7px;font-weight:700;letter-spacing:0.09em;
-  text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.12em;
+  text-transform:uppercase;color:rgba(138,152,184,0.5);
 }
 .ov-cs-foot-val{
-  font-family:var(--mono);font-size:14px;font-weight:800;
-  letter-spacing:-0.01em;
+  font-family:var(--mono);font-size:13px;font-weight:800;
+  letter-spacing:-0.02em;color:var(--text);
 }
 
 /* ════════════════════════════════════════════
@@ -1605,7 +1671,7 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:center;gap:10px;margin-bottom:14px;
 }
 .ov-cp-eyebrow{
-  font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
   flex-shrink:0;
 }
 .ov-cp-header-line{
@@ -1917,7 +1983,7 @@ a{color:inherit;text-decoration:none}
   margin-bottom:9px;
 }
 .ov-rate-section-title{
-  font-size:7px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
   flex-shrink:0;
 }
 .ov-rate-section-line{
@@ -2005,10 +2071,10 @@ a{color:inherit;text-decoration:none}
   box-shadow:0 0 8px rgba(200,169,110,0.05);
 }
 .ov-ai-brief-label{
-  font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
 }
 .ov-ai-brief-sub{
-  font-size:8px;color:var(--faint);opacity:0.6;flex-shrink:0;
+  font-family:var(--mono);font-size:8px;color:var(--faint);opacity:0.6;flex-shrink:0;
 }
 .ov-ai-brief-toggle{
   width:18px;height:18px;display:flex;align-items:center;justify-content:center;
@@ -5496,17 +5562,25 @@ function renderMacroDataPanels(reg){
                 <div class="ov-cs-unit">bp</div>
               </div>
             </div>
-            <!-- Spectrum: 150=tight → 350=normal → 600=stress, max=750 -->
-            <div class="ov-cs-spectrum-wrap">
-              <div class="ov-cs-spectrum ov-cs-spectrum-hy" style="position:relative">
-                <div class="ov-cs-marker" style="left:${hyOas!=null?Math.min(97,Math.max(3,(hyOas/600)*100)).toFixed(1):50}%;background:${hyCol}"></div>
-              </div>
-              <div class="ov-cs-zone-labels">
-                <span class="ov-cs-zone-lbl" style="color:#22c97a">Tight / Risk-On</span>
-                <span class="ov-cs-zone-lbl">Normal</span>
-                <span class="ov-cs-zone-lbl" style="color:#e03a2a">Stress</span>
-              </div>
-            </div>
+            <!-- Spectrum: 0–600bp track. Zones: tight<250(42%), normal 250-350(58%), stress>500(83%) -->
+            ${(()=>{
+              const hyPct = hyOas!=null?Math.min(97,Math.max(3,(hyOas/600)*100)):50;
+              const hyFill = `${hyCol}1a`;
+              return `<div class="ov-cs-spectrum-wrap">
+                <div class="ov-cs-spectrum ov-cs-spectrum-hy">
+                  <div class="ov-cs-fill" style="width:${hyPct.toFixed(1)}%;background:${hyFill}"></div>
+                  <div class="ov-cs-tick" style="left:41.7%"></div>
+                  <div class="ov-cs-tick" style="left:58.3%"></div>
+                  <div class="ov-cs-tick" style="left:83.3%"></div>
+                  <div class="ov-cs-marker" style="left:${hyPct.toFixed(1)}%"></div>
+                </div>
+                <div class="ov-cs-zone-labels">
+                  <span class="ov-cs-zone-lbl">Tight</span>
+                  <span class="ov-cs-zone-lbl">Normal</span>
+                  <span class="ov-cs-zone-lbl">Stress</span>
+                </div>
+              </div>`;
+            })()}
             <div class="ov-cs-context">
               <div class="ov-cs-context-dot" style="background:${hyCol}"></div>
               <div class="ov-cs-context-txt" style="color:${hyCol}">${hyOas!=null?(hyOas<250?'Tight — credit supportive':hyOas<350?'Normal — balanced risk':hyOas<500?'Widening — risk-off':'Stress — caution'):'—'}</div>
@@ -5525,17 +5599,24 @@ function renderMacroDataPanels(reg){
                 <div class="ov-cs-unit">bp</div>
               </div>
             </div>
-            <!-- IG spectrum: 50=tight → 120=normal → 250=stress, max=300 -->
-            <div class="ov-cs-spectrum-wrap">
-              <div class="ov-cs-spectrum ov-cs-spectrum-ig" style="position:relative">
-                <div class="ov-cs-marker" style="left:${igOas!=null?Math.min(97,Math.max(3,(igOas/250)*100)).toFixed(1):50}%;background:${igCol}"></div>
-              </div>
-              <div class="ov-cs-zone-labels">
-                <span class="ov-cs-zone-lbl" style="color:#22c97a">Tight</span>
-                <span class="ov-cs-zone-lbl">Normal</span>
-                <span class="ov-cs-zone-lbl" style="color:#e03a2a">Wide</span>
-              </div>
-            </div>
+            <!-- IG spectrum: 0–250bp monochrome track + coloured marker -->
+            ${(()=>{
+              const igPct = igOas!=null?Math.min(97,Math.max(3,(igOas/250)*100)):50;
+              const igFill = `${igCol}1a`;
+              return `<div class="ov-cs-spectrum-wrap">
+                <div class="ov-cs-spectrum ov-cs-spectrum-ig">
+                  <div class="ov-cs-fill" style="width:${igPct.toFixed(1)}%;background:${igFill}"></div>
+                  <div class="ov-cs-tick" style="left:32%"></div>
+                  <div class="ov-cs-tick" style="left:60%"></div>
+                  <div class="ov-cs-marker" style="left:${igPct.toFixed(1)}%"></div>
+                </div>
+                <div class="ov-cs-zone-labels">
+                  <span class="ov-cs-zone-lbl">Tight</span>
+                  <span class="ov-cs-zone-lbl">Normal</span>
+                  <span class="ov-cs-zone-lbl">Wide</span>
+                </div>
+              </div>`;
+            })()}
             <div class="ov-cs-context">
               <div class="ov-cs-context-dot" style="background:${igCol}"></div>
               <div class="ov-cs-context-txt" style="color:${igCol}">${igOas!=null?(igOas<80?'Tight — IG well-bid':igOas<120?'Normal range':igOas<180?'Widening — caution':'Elevated — stress'):'—'}</div>
