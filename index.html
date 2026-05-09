@@ -211,12 +211,14 @@ a{color:inherit;text-decoration:none}
   display:flex;flex-direction:column;
   border-right:1px solid rgba(255,255,255,0.09);
   overflow:hidden;
-  background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%);
+  background:rgba(5,7,14,0.45);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
 }
 .sb-head{padding:14px 18px 12px;border-bottom:1px solid var(--bdr2)}
 /* V1: Glassmorphism card utility */
 .glass-card{
-  background:var(--surf2);
+  background:rgba(13,15,24,0.55);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border:1px solid rgba(255,255,255,0.10);
   border-radius:10px;
   box-shadow:0 2px 12px rgba(0,0,0,0.35);
@@ -527,7 +529,7 @@ a{color:inherit;text-decoration:none}
 /* ──────────────────────────────────────────────
    DETAIL PANEL
 ────────────────────────────────────────────── */
-.detail{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0}
+.detail{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;background:transparent}
 
 .d-empty{flex:1;display:flex;flex-direction:column;min-width:0}
 
@@ -545,7 +547,8 @@ a{color:inherit;text-decoration:none}
   padding:28px 28px 0;
   display:flex;flex-direction:column;gap:0;
   border-bottom:none;
-  background:linear-gradient(180deg, var(--bg2) 0%, rgba(3,5,8,0.96) 100%);
+  background:linear-gradient(180deg, rgba(8,11,22,0.55) 0%, rgba(3,5,8,0.42) 100%);
+  backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);
 }
 /* Soft dissolve from banner into arc zone — replaces hard border */
 .ov-banner::before{
@@ -1087,14 +1090,22 @@ a{color:inherit;text-decoration:none}
 @media(max-width:600px){
   .ov-macro-card{padding:14px 14px 12px;border-radius:12px}
   .ov-mc-hero{font-size:22px!important}
-  .ov-yc-canvas-wrap{height:68px}
-  .ov-gauge-pair{gap:6px}
-  .ov-gauge-bp{font-size:18px!important}
+  .ov-yc-canvas-wrap{height:60px}
+  /* Constrain arc SVGs on mobile so they never overflow the card */
+  .ov-gauge-pair{gap:0;margin:6px 0 8px}
+  .ov-gauge-unit{padding:0 2px}
+  .ov-gauge-unit svg{max-width:88px!important;width:88px!important}
+  .ov-gauge-bp{font-size:20px!important}
+  .ov-gauge-bp-unit{font-size:8px!important}
+  .ov-gauge-lbl{font-size:7px!important}
+  .ov-gauge-sub{font-size:6.5px!important}
   .ov-bs-kpi{grid-template-columns:1fr 1fr;gap:4px}
-  .ov-bs-kpi-val{font-size:11px!important}
+  .ov-bs-kpi-val{font-size:12px!important}
   .ov-lab-top{gap:8px}
-  .ov-lab-arc-score{font-size:18px!important}
-  .ov-lab-nfp-val{font-size:22px!important}
+  /* Labour arc: constrain on mobile */
+  .ov-lab-arc-wrap svg{max-width:86px!important;width:86px!important}
+  .ov-lab-arc-score{font-size:22px!important}
+  .ov-lab-nfp-val{font-size:24px!important}
   .ov-lab-grid{grid-template-columns:1fr 1fr;gap:4px}
   .ov-lab-cell{padding:6px 7px 5px}
   .ov-lab-cell-val{font-size:12px!important}
@@ -1105,8 +1116,8 @@ a{color:inherit;text-decoration:none}
 
 /* ── Card base ─────────────────────────────────────────── */
 .ov-macro-card{
-  background:linear-gradient(155deg,rgba(22,26,40,0.97) 0%,rgba(10,12,22,0.95) 100%);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:linear-gradient(155deg,rgba(14,17,28,0.72) 0%,rgba(7,9,18,0.68) 100%);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   border:1px solid rgba(255,255,255,0.09);
   border-radius:16px;
   padding:18px 18px 16px;
@@ -1124,7 +1135,7 @@ a{color:inherit;text-decoration:none}
 /* Inner highlight edge */
 .ov-macro-card::before{
   content:'';position:absolute;inset:0;pointer-events:none;border-radius:16px;z-index:0;
-  background:linear-gradient(158deg,rgba(255,255,255,0.05) 0%,transparent 40%);
+  background:linear-gradient(158deg,rgba(255,255,255,0.07) 0%,transparent 45%);
 }
 /* Shimmer overlay */
 .ov-macro-card::after{
@@ -1160,7 +1171,8 @@ a{color:inherit;text-decoration:none}
 .ov-mc-title{font-size:11.5px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
 .ov-mc-badge{
   font-size:7px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;
-  padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap;margin-top:1px;
+  padding:3px 10px;border-radius:20px;flex-shrink:0;white-space:nowrap;margin-top:1px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
 }
 
 /* ── Hero number ───────────────────────────────────────── */
@@ -1174,8 +1186,8 @@ a{color:inherit;text-decoration:none}
 }
 
 /* ── Yield curve canvas ────────────────────────────────── */
-.ov-yc-canvas-wrap{height:80px;margin:6px 0 6px;position:relative;border-radius:8px;overflow:hidden;
-  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04)}
+.ov-yc-canvas-wrap{height:70px;margin:4px 0 4px;position:relative;border-radius:8px;overflow:hidden;
+  background:transparent;border:none}
 .ov-yc-canvas-wrap canvas{display:block;width:100%;height:100%}
 
 /* Tenor row */
@@ -1189,7 +1201,7 @@ a{color:inherit;text-decoration:none}
 /* ── Arc gauge: two-column layout ─────────────────────── */
 .ov-gauge-pair{display:flex;gap:0;margin:10px 0 12px;align-items:flex-start}
 .ov-gauge-unit{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;padding:0 6px}
-.ov-gauge-unit svg{display:block;overflow:visible;margin:0 auto}
+.ov-gauge-unit svg{display:block;overflow:hidden;margin:0 auto}
 .ov-gauge-lbl{font-size:7.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;text-align:center}
 .ov-gauge-val-row{display:flex;align-items:baseline;gap:3px;margin-top:3px;justify-content:center}
 .ov-gauge-bp{font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.04em;line-height:1}
@@ -1240,8 +1252,10 @@ a{color:inherit;text-decoration:none}
 /* BS kpi grid */
 .ov-bs-kpi{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
 .ov-bs-kpi-cell{
-  padding:6px 8px;border-radius:7px;
-  background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);
+  padding:7px 9px;border-radius:8px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .ov-bs-kpi-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
 .ov-bs-kpi-val{font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em}
@@ -1272,7 +1286,9 @@ a{color:inherit;text-decoration:none}
 .ov-lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 4px}
 .ov-lab-cell{
   padding:7px 8px 6px;border-radius:8px;
-  background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
   display:flex;flex-direction:column;gap:3px;
   overflow:hidden;min-width:0;
 }
@@ -1288,6 +1304,8 @@ a{color:inherit;text-decoration:none}
   position:relative;
   overflow:hidden;
   display:none;
+  background:rgba(5,7,14,0.35);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
 }
 /* Ambient particle canvas sits below all content */
 #ov-cp-bg-canvas{
@@ -1654,10 +1672,11 @@ a{color:inherit;text-decoration:none}
 .ov-ai-narr-card{
   padding:10px 14px;
   border-radius:8px;
-  background:var(--surf);
+  background:rgba(10,12,22,0.50));
   border:1px solid var(--bdr);
   cursor:pointer;
   transition:all 150ms;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
 }
 .ov-ai-narr-card:hover{background:var(--surf2);border-color:var(--bdr2)}
 .ov-ai-narr-top{
@@ -2030,12 +2049,12 @@ a{color:inherit;text-decoration:none}
 /* 3 summary cards */
 .cot-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .cot-card{
-  background:linear-gradient(160deg,rgba(19,22,34,0.95) 0%,rgba(9,11,19,0.98) 100%);
+  background:linear-gradient(160deg,rgba(12,15,26,0.62) 0%,rgba(6,8,17,0.58) 100%);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border:1px solid var(--bdr2);border-radius:11px;padding:14px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 4px 16px rgba(0,0,0,0.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07),0 4px 16px rgba(0,0,0,0.25);
   transition:border-color 200ms,box-shadow 200ms;
   border-top-width:2px;position:relative;overflow:hidden;
-  transition:border-color 200ms,box-shadow 200ms;
 }
 .cot-card:hover{
   border-color:var(--bdr3);
@@ -2086,7 +2105,7 @@ a{color:inherit;text-decoration:none}
 
 /* Alignment */
 .cot-align{
-  background:linear-gradient(135deg,rgba(23,26,38,0.9) 0%,rgba(18,21,32,0.9) 100%);
+  background:linear-gradient(135deg,rgba(12,15,26,0.60) 0%,rgba(8,10,20,0.58) 100%);
   border:1px solid var(--bdr2);border-radius:11px;padding:14px 16px;
   margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 2px 8px rgba(0,0,0,0.2);
@@ -2312,7 +2331,7 @@ a{color:inherit;text-decoration:none}
 }
 .seas-insight-cell{
   position:relative;overflow:hidden;
-  background:linear-gradient(135deg,rgba(15,17,25,0.9) 0%,rgba(10,12,20,0.95) 100%);
+  background:linear-gradient(135deg,rgba(8,10,20,0.62) 0%,rgba(5,7,15,0.60) 100%);
   border:1px solid rgba(255,255,255,0.07);
   border-radius:10px;
   padding:13px 14px 12px;
@@ -2340,7 +2359,7 @@ a{color:inherit;text-decoration:none}
 /* ── Modal stat chips ──────────────────────────────────────────────────── */
 .sstat{
   position:relative;overflow:hidden;
-  background:linear-gradient(135deg,rgba(15,17,25,0.9),rgba(10,12,20,0.95));
+  background:linear-gradient(135deg,rgba(8,10,20,0.62),rgba(5,7,15,0.60));
   border:1px solid rgba(255,255,255,0.07);
   border-radius:9px;padding:11px 13px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 2px 8px rgba(0,0,0,0.3);
@@ -4894,67 +4913,53 @@ function renderMacroDataPanels(reg){
   // ── SVG arc gauge — semi-circle style, value sits below arc
   // size = overall width, strokeW = track width. Returns raw SVG string.
   function arcSVG(pct, col, size=100, strokeW=11){
-    // Classic 220° speedometer gauge
-    // Angles: 0° = 12 o'clock, clockwise positive
-    const startDeg = 220; // degrees clockwise from 12 o'clock
-    const sweepDeg = 220; // total sweep
-    // Convert from "clock degrees" to SVG math (clockwise from 3 o'clock)
-    const toRad = clockDeg => (clockDeg - 90) * (Math.PI / 180);
-    const R  = (size / 2) - strokeW / 2 - 2;
+    // 270° horseshoe gauge: starts at 225° (lower-left), sweeps 270° CW to 135° (lower-right)
+    // Gap is 90° at the bottom — symmetrical, clean, no clipping issues
+    // Clock-angle convention: 0°=12 o'clock, clockwise positive
+    const startDeg = 225, sweepDeg = 270;
+    const toRad = d => (d - 90) * (Math.PI / 180);
+    const R  = (size / 2) - strokeW / 2 - 1.5;
     const cx = size / 2;
-    const cy = size / 2 + size * 0.05; // slightly below center so more arc is visible
-    const polar = clockDeg => [
-      +(cx + R * Math.cos(toRad(clockDeg))).toFixed(3),
-      +(cy + R * Math.sin(toRad(clockDeg))).toFixed(3)
-    ];
+    const cy = size / 2; // dead center — arc is symmetric
+    const polar = d => [+(cx + R*Math.cos(toRad(d))).toFixed(3), +(cy + R*Math.sin(toRad(d))).toFixed(3)];
     const [sx,sy] = polar(startDeg);
     const [ex,ey] = polar(startDeg + sweepDeg);
-    const safe    = Math.min(Math.max(pct, 0.5), 99.5);
+    const safe    = Math.min(Math.max(pct,0.5),99.5);
     const [ax,ay] = polar(startDeg + (safe/100)*sweepDeg);
     const bgLg    = sweepDeg > 180 ? 1 : 0;
     const fgLg    = (safe/100)*sweepDeg > 180 ? 1 : 0;
     const uid     = 'arc' + (Math.random()*0xFFFFF|0).toString(16);
-    // viewBox height: show arc body, clip the very bottom (open gap of gauge)
-    const vbH = +(size * 0.82).toFixed(1);
+    // vbH: just enough to show start/end points + stroke margin, clipping the bottom gap
+    const vbH = +(size * 0.91).toFixed(1);
     // Tick marks at 0,25,50,75,100%
     const ticks = [0,25,50,75,100].map(tp=>{
       const d2 = startDeg + (tp/100)*sweepDeg;
       const r2 = toRad(d2);
-      const outerR2 = R + strokeW*0.5;
-      const innerR2 = R - strokeW*0.5;
-      const ox = +(cx+outerR2*Math.cos(r2)).toFixed(2);
-      const oy = +(cy+outerR2*Math.sin(r2)).toFixed(2);
-      const ix = +(cx+innerR2*Math.cos(r2)).toFixed(2);
-      const iy = +(cy+innerR2*Math.sin(r2)).toFixed(2);
-      return `<line x1="${ox}" y1="${oy}" x2="${ix}" y2="${iy}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>`;
+      const oR2 = R + strokeW*0.55, iR2 = R - strokeW*0.55;
+      return `<line x1="${+(cx+oR2*Math.cos(r2)).toFixed(2)}" y1="${+(cy+oR2*Math.sin(r2)).toFixed(2)}" x2="${+(cx+iR2*Math.cos(r2)).toFixed(2)}" y2="${+(cy+iR2*Math.sin(r2)).toFixed(2)}" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>`;
     }).join('');
     return `<svg width="${size}" height="${vbH}" viewBox="0 0 ${size} ${vbH}" fill="none"
-      shape-rendering="geometricPrecision" style="overflow:visible;display:block">
+      shape-rendering="geometricPrecision" style="display:block;overflow:hidden">
       <defs>
-        <filter id="${uid}g" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="5" result="b"/><feComposite in="b" in2="SourceGraphic" operator="over"/>
+        <filter id="${uid}g" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="b"/><feComposite in="b" in2="SourceGraphic" operator="over"/>
         </filter>
         <linearGradient id="${uid}l" gradientUnits="userSpaceOnUse" x1="${sx}" y1="${sy}" x2="${ax}" y2="${ay}">
           <stop offset="0%" stop-color="${col}" stop-opacity="0.4"/>
           <stop offset="100%" stop-color="${col}" stop-opacity="1"/>
         </linearGradient>
       </defs>
-      <!-- Track -->
       <path d="M${sx},${sy} A${R},${R} 0 ${bgLg},1 ${ex},${ey}"
-        stroke="rgba(255,255,255,0.08)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"/>
+        stroke="rgba(255,255,255,0.09)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"/>
       ${ticks}
       ${pct>0.5?`
-      <!-- Glow halo -->
       <path d="M${sx},${sy} A${R},${R} 0 ${fgLg},1 ${ax},${ay}"
-        stroke="${col}" stroke-width="${strokeW+8}" stroke-linecap="round" fill="none"
-        opacity="0.25" filter="url(#${uid}g)"/>
-      <!-- Main arc -->
+        stroke="${col}" stroke-width="${strokeW+7}" stroke-linecap="round" fill="none"
+        opacity="0.2" filter="url(#${uid}g)"/>
       <path d="M${sx},${sy} A${R},${R} 0 ${fgLg},1 ${ax},${ay}"
         stroke="url(#${uid}l)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"/>
-      <!-- Tip glow -->
-      <circle cx="${ax}" cy="${ay}" r="${strokeW*1.1}" fill="${col}" opacity="0.22" filter="url(#${uid}g)"/>
-      <!-- Tip dot -->
-      <circle cx="${ax}" cy="${ay}" r="${strokeW*0.48}" fill="${col}"/>
+      <circle cx="${ax}" cy="${ay}" r="${strokeW*1.0}" fill="${col}" opacity="0.2" filter="url(#${uid}g)"/>
+      <circle cx="${ax}" cy="${ay}" r="${strokeW*0.46}" fill="${col}"/>
       `:''}    </svg>`;
   }
 
@@ -5244,6 +5249,8 @@ function _drawYieldCurve(lineCol, regime, pts){
   pts = pts.filter(p=>p[1]!=null);
   const canvas = document.getElementById('ov-yc-canvas');
   if(!canvas) return;
+  // Reveal the canvas wrap when we have data to draw
+  canvas.closest('.ov-yc-canvas-wrap')?.classList.add('yc-ready');
 
   // ── HD: render at 2× device pixel ratio for crisp display
   const dpr = Math.min(window.devicePixelRatio||1, 2);
