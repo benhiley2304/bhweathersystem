@@ -1093,10 +1093,10 @@ a{color:inherit;text-decoration:none}
   grid-template-columns:repeat(4,1fr);
   gap:10px;
   margin:0 16px 14px;
-  align-items:start;
+  align-items:stretch;
 }
-@media(max-width:1100px){.ov-macro-panels{grid-template-columns:1fr 1fr;align-items:start}}
-@media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr;gap:8px;align-items:start}}
+@media(max-width:1100px){.ov-macro-panels{grid-template-columns:1fr 1fr;align-items:stretch}}
+@media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr;gap:8px;align-items:stretch}}
 /* Mobile tweaks for new menv card internals */
 @media(max-width:600px){
   .ov-macro-card{padding:14px 14px 12px;border-radius:12px}
@@ -1197,7 +1197,7 @@ a{color:inherit;text-decoration:none}
 }
 
 /* ── Yield curve canvas ────────────────────────────────── */
-.ov-yc-canvas-wrap{height:80px;margin:6px 0 4px;position:relative;border-radius:8px;overflow:hidden;
+.ov-yc-canvas-wrap{height:80px;min-height:80px;flex:1;margin:6px 0 4px;position:relative;border-radius:8px;overflow:hidden;
   background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05)}
 .ov-yc-canvas-wrap canvas{display:block;width:100%;height:100%}
 
@@ -1210,7 +1210,7 @@ a{color:inherit;text-decoration:none}
 .ov-tenor-item.ov-tenor-key .ov-tenor-lbl{color:var(--dim)}
 
 /* ── Arc gauge: two-column layout ─────────────────────── */
-.ov-gauge-pair{display:flex;gap:0;margin:10px 0 12px;align-items:flex-start}
+.ov-gauge-pair{display:flex;gap:0;margin:10px 0 12px;align-items:center;justify-content:center;flex:1}
 .ov-gauge-unit{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;padding:0 6px}
 .ov-gauge-unit svg{display:block;overflow:hidden;margin:0 auto}
 .ov-gauge-lbl{font-size:7.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;text-align:center}
@@ -1222,7 +1222,7 @@ a{color:inherit;text-decoration:none}
 .ov-gauge-divider{width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.1) 30%,rgba(255,255,255,0.1) 70%,transparent);margin:8px 0;flex-shrink:0;align-self:stretch}
 
 /* ── Stat chips row ────────────────────────────────────── */
-.ov-mc-stats{display:flex;gap:0;margin-top:10px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px}
+.ov-mc-stats{display:flex;gap:0;margin-top:auto;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07)}
 .ov-mc-stat{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 8px}
 .ov-mc-stat:first-child{padding-left:0}
 .ov-mc-stat:last-child{padding-right:0}
@@ -1232,7 +1232,8 @@ a{color:inherit;text-decoration:none}
 .ov-mc-stat-delta{font-family:var(--mono);font-size:8px;color:var(--faint)}
 
 /* ── Fed Balance Sheet — horizontal range bar ─────────── */
-.ov-bs-range-wrap{margin:10px 0 8px}
+.ov-bs-body{flex:1;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.ov-bs-range-wrap{margin:0}
 .ov-bs-range-bar{height:14px;border-radius:7px;background:rgba(255,255,255,0.06);
   position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.08)}
 .ov-bs-range-fill{
@@ -1272,7 +1273,7 @@ a{color:inherit;text-decoration:none}
 .ov-bs-kpi-val{font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em}
 
 /* ── Labour — compact arc + NFP block ─────────────────── */
-.ov-lab-top{display:flex;align-items:stretch;gap:10px;margin-bottom:8px}
+.ov-lab-top{display:flex;align-items:stretch;gap:10px;margin-bottom:8px;flex-shrink:0}
 .ov-lab-arc-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
   flex-shrink:0;gap:2px}
 .ov-lab-arc-score{font-family:var(--mono);font-size:28px;font-weight:900;letter-spacing:-0.04em;line-height:1;text-align:center}
@@ -1283,6 +1284,7 @@ a{color:inherit;text-decoration:none}
 .ov-lab-nfp-sub{font-family:var(--mono);font-size:7.5px;color:var(--faint)}
 
 /* ── FF consensus table ────────────────────────────────── */
+.ov-lab-body{flex:1;display:flex;flex-direction:column;justify-content:space-between}
 .ov-ff-table{width:100%;border-collapse:collapse;margin-bottom:6px}
 .ov-ff-thead th{font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;
   color:var(--faint);padding:0 0 5px;text-align:right}
@@ -5261,6 +5263,9 @@ function renderMacroDataPanels(reg){
         </div>
         <div class="ov-mc-hero-sub">Total assets \u00b7 $4T\u2013$9T range</div>
 
+        <!-- Body: range bar + KPI grid fills remaining height -->
+        <div class="ov-bs-body">
+
         <!-- Horizontal range bar with needle -->
         <div class="ov-bs-range-wrap">
           <div class="ov-bs-range-bar">
@@ -5293,6 +5298,8 @@ function renderMacroDataPanels(reg){
             <div class="ov-bs-kpi-val">${t10!=null?t10.toFixed(2)+'%':'—'}</div>
           </div>
         </div>
+
+        </div><!-- /ov-bs-body -->
       </div>
 
       <!-- ══ PANEL 4: LABOUR MARKET ══════════════════════════════════════════ -->
@@ -5389,6 +5396,8 @@ function renderMacroDataPanels(reg){
           ${chip('NFP Score', nfpScore.toFixed(1)+'/10', nfpCol)}
           ${chip('Source', ffHasData?'Live FF':'FRED', ffHasData?'#22c97a':'var(--faint)')}
         </div>
+
+        </div><!-- /ov-lab-body -->
       </div>
 
     </div>`;
