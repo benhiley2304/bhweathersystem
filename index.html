@@ -1277,73 +1277,86 @@ a{color:inherit;text-decoration:none}
   transition:opacity 220ms;
 }
 .ov-menv-card:hover::after{opacity:1}
-/* Card header row: topic label left, mini visual right */
+/* Card header: topic label + status badge on same row */
 .ov-menv-card-head{
-  display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;
-}
-.ov-menv-topic{
-  font-size:6.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;
-  color:rgba(var(--menv-accent-rgb,173,184,208),0.85);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  line-height:1.2;
-}
-/* Mini SVG visual area */
-.ov-menv-visual{
-  flex-shrink:0;line-height:0;opacity:0.85;
-  transition:opacity 200ms;
-}
-.ov-menv-card:hover .ov-menv-visual{opacity:1}
-/* Primary stat */
-.ov-menv-primary{
-  font-family:var(--mono);font-size:20px;font-weight:900;color:var(--text);
-  line-height:1;letter-spacing:-0.03em;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  text-shadow:0 0 20px rgba(var(--menv-accent-rgb,200,169,110),0.3);
-  margin-bottom:2px;
-}
-/* Signal meter bar under primary */
-.ov-menv-meter{
-  height:2px;border-radius:1px;
-  background:rgba(255,255,255,0.06);
-  overflow:visible;position:relative;
+  display:flex;align-items:center;justify-content:space-between;
   margin-bottom:6px;
 }
-.ov-menv-meter-fill{
-  position:absolute;top:0;left:0;height:100%;border-radius:1px;
-  transition:width 700ms var(--ease);
+.ov-menv-topic{
+  font-size:6px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--faint);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  line-height:1;
 }
-.ov-menv-meter-dot{
-  position:absolute;top:-2px;width:5px;height:5px;
-  border-radius:50%;
-  border:1px solid rgba(0,0,0,0.5);
-  transform:translateX(-50%);
+/* Inline status badge (replaces separate badge element) */
+.ov-menv-status{
+  font-size:6px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;
+  padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;
+  line-height:1.4;
+}
+/* Hero number */
+.ov-menv-primary{
+  font-family:var(--mono);font-size:22px;font-weight:900;color:var(--text);
+  line-height:1;letter-spacing:-0.03em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-shadow:0 0 22px rgba(var(--menv-accent-rgb,200,169,110),0.35);
+  margin-bottom:1px;
+}
+/* Context line: metric label + change */
+.ov-menv-context{
+  font-size:7.5px;font-family:var(--mono);color:var(--faint);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-bottom:7px;
+  display:flex;align-items:center;gap:5px;
+}
+.ov-menv-context-delta{
+  font-weight:700;
+}
+/* Spectrum bar — full width bearish→neutral→bullish indicator */
+.ov-menv-spectrum{
+  height:3px;border-radius:2px;
+  background:linear-gradient(90deg,#e03a2a 0%,#b87333 30%,#5a6480 50%,#5aaa88 70%,#22c97a 100%);
+  position:relative;
+  margin-bottom:7px;
+  opacity:0.55;
+  transition:opacity 200ms;
+}
+.ov-menv-card:hover .ov-menv-spectrum{opacity:0.85}
+.ov-menv-spectrum-dot{
+  position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:7px;height:7px;border-radius:50%;
+  border:1.5px solid var(--bg);
   transition:left 700ms var(--ease);
-  box-shadow:0 0 6px rgba(var(--menv-accent-rgb,200,169,110),0.7);
+  box-shadow:0 0 8px rgba(var(--menv-accent-rgb,200,169,110),0.8);
 }
-.ov-menv-secondary{
-  font-size:7px;color:var(--faint);margin-bottom:5px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  letter-spacing:0.01em;
-}
-.ov-menv-badge{
-  display:inline-flex;align-items:center;
-  font-size:6.5px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;
-  padding:2px 7px;border-radius:20px;white-space:nowrap;
-  transition:background 160ms;
-  margin-bottom:5px;
-}
-.ov-menv-price-row{
-  display:flex;align-items:center;gap:3px;flex-wrap:nowrap;overflow:hidden;
+/* Data chips row */
+.ov-menv-chips{
+  display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden;
   margin-top:auto;
 }
-.ov-menv-price-chip{
-  font-size:6.5px;font-family:var(--mono);font-weight:700;
-  background:rgba(255,255,255,0.05);
-  border-radius:4px;padding:2px 5px;
+.ov-menv-chip{
+  display:flex;align-items:center;gap:3px;
+  font-size:7px;font-family:var(--mono);font-weight:700;
+  background:rgba(255,255,255,0.06);
+  border-radius:4px;padding:3px 6px;
   border:1px solid rgba(255,255,255,0.09);
   white-space:nowrap;flex-shrink:0;
   transition:background 160ms;
 }
-.ov-menv-price-chip:hover{background:rgba(255,255,255,0.09)}
+.ov-menv-chip:hover{background:rgba(255,255,255,0.1)}
+.ov-menv-chip-lbl{
+  color:var(--faint);font-weight:600;
+}
+.ov-menv-chip-val{
+  font-weight:800;
+}
+/* Legacy compat */
+.ov-menv-badge{display:none}
+.ov-menv-price-row{display:none}
+.ov-menv-price-chip{display:none}
+.ov-menv-visual{display:none}
+.ov-menv-meter{display:none}
+.ov-menv-secondary{display:none}
 /* Category climate rows */
 .ov-cp-menv-label{
   font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;
@@ -1386,23 +1399,36 @@ a{color:inherit;text-decoration:none}
 }
 
 .ov-cp-cat-name{
-  font-size:9px;font-weight:700;color:var(--text);width:68px;flex-shrink:0;letter-spacing:0.02em;
+  font-size:9.5px;font-weight:700;color:var(--text);width:60px;flex-shrink:0;letter-spacing:0.01em;
 }
 .ov-cp-cat-score{
-  font-family:var(--mono);font-size:13px;font-weight:800;width:32px;flex-shrink:0;
-  text-shadow:0 0 14px rgba(var(--cat-accent-rgb,200,169,110),0.35);
+  font-family:var(--mono);font-size:15px;font-weight:900;width:36px;flex-shrink:0;
+  text-shadow:0 0 16px rgba(var(--cat-accent-rgb,200,169,110),0.4);
 }
+/* Score bar — full spectrum gradient with position dot */
 .ov-cp-cat-bar-wrap{
-  flex:1;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;
-  box-shadow:inset 0 1px 2px rgba(0,0,0,0.3);
+  flex:1;height:4px;
+  background:linear-gradient(90deg,#e03a2a 0%,#b87333 25%,#5a6480 50%,#5aaa88 75%,#22c97a 100%);
+  border-radius:3px;overflow:visible;
+  position:relative;opacity:0.5;
+  transition:opacity 160ms;
 }
+.ov-cp-cat-row:hover .ov-cp-cat-bar-wrap{opacity:0.9}
 .ov-cp-cat-bar-fill{
-  height:100%;border-radius:2px;
-  transition:width 700ms var(--ease);
-  box-shadow:0 0 6px rgba(var(--cat-accent-rgb,200,169,110),0.5);
+  display:none; /* replaced by spectrum dot */
+}
+.ov-cp-cat-bar-dot{
+  position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:8px;height:8px;border-radius:50%;
+  border:1.5px solid var(--bg);
+  transition:left 700ms var(--ease);
+  box-shadow:0 0 8px rgba(var(--cat-accent-rgb,200,169,110),0.7);
+}
+.ov-cp-cat-dir{
+  font-size:8px;font-weight:800;letter-spacing:0.04em;width:58px;flex-shrink:0;text-align:right;
 }
 .ov-cp-cat-drivers{
-  font-size:8px;color:var(--faint);flex:2;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.01em;
+  font-size:7.5px;color:var(--faint);flex:2;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.01em;
 }
 /* Global narrative */
 .ov-cp-narrative{
@@ -1446,60 +1472,7 @@ a{color:inherit;text-decoration:none}
   .ov-cp-cat-drivers{display:none}
 }
 
-/* ── Regime Panel ── */
-.ov-regime-panel{
-  padding:22px 24px 20px;
-  border-bottom:none;
-  position:relative;
-  display:none;
-}
-.ov-regime-panel::after{
-  content:'';
-  position:absolute;bottom:0;left:24px;right:24px;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.09) 20%,rgba(255,255,255,0.09) 80%,transparent);
-  pointer-events:none;
-}
-.ov-regime-panel.loaded{display:block}
-/* V17: Regime panel header accent */
-.ov-rp-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
-  padding:10px 14px 8px;
-  border-bottom:1px solid var(--bdr);
-  border-left:3px solid rgba(200,169,110,0.50);
-  padding-left:11px;
-}
-.ov-rp-title{
-  font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:1;
-}
-.ov-rp-label{
-  font-size:10px;font-weight:700;letter-spacing:0.05em;padding:3px 10px;
-  border-radius:5px;border:1px solid var(--bdr2);
-}
-.ov-rp-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-  gap:6px;
-}
-.ov-rp-sig{
-  display:flex;align-items:center;gap:9px;
-  padding:9px 12px;
-  border-radius:8px;
-  background:linear-gradient(150deg,var(--surf2) 0%,var(--surf) 100%);
-  border:1px solid rgba(255,255,255,0.10);
-  border-top-color:rgba(255,255,255,0.15);
-  transition:all 150ms;
-}
-.ov-rp-sig:hover{
-  background:linear-gradient(150deg,var(--surf3) 0%,var(--surf2) 100%);
-  border-color:rgba(255,255,255,0.18);
-  box-shadow:0 2px 10px rgba(0,0,0,0.3);
-}
-.ov-rp-sig-dot{
-  width:7px;height:7px;border-radius:50%;flex-shrink:0;
-}
-.ov-rp-sig-body{flex:1;min-width:0}
-.ov-rp-sig-label{font-size:9px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ov-rp-sig-val{font-size:8px;color:var(--dim);margin-top:1px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* .ov-regime-panel removed */
 
 /* ── AI Brief ── */
 .ov-ai-brief{
@@ -2316,7 +2289,7 @@ a{color:inherit;text-decoration:none}
   html{--sidebar-w:380px;--fs-base:14.5px}
   .ov-banner{padding-left:48px;padding-right:48px}
   .ov-arc-footer{padding-left:48px;padding-right:48px}
-  .ov-climate-panel,.ov-regime-panel,.ov-ai-brief{padding-left:40px;padding-right:40px}
+  .ov-climate-panel,.ov-ai-brief{padding-left:40px;padding-right:40px}
   .ov-menv-grid{grid-template-columns:repeat(7,1fr)}
 }
 
@@ -2325,7 +2298,7 @@ a{color:inherit;text-decoration:none}
   html{--sidebar-w:440px;--fs-base:16px}
   .ov-banner{padding-left:80px;padding-right:80px}
   .ov-arc-footer{padding-left:80px;padding-right:80px}
-  .ov-climate-panel,.ov-regime-panel,.ov-ai-brief{padding-left:60px;padding-right:60px}
+  .ov-climate-panel,.ov-ai-brief{padding-left:60px;padding-right:60px}
   .ov-menv-grid{grid-template-columns:repeat(7,1fr)}
 }
 
@@ -2452,7 +2425,7 @@ a{color:inherit;text-decoration:none}
   .ov-smart-panel{display:none !important}
   .ov-heatmap-wrap{display:none}
   .ov-climate-panel{display:none}
-  .ov-regime-panel{display:none}
+
   .ov-cat-bar{display:none}
 
   /* ── 5. MOBILE HERO PANEL ── */
@@ -2917,9 +2890,128 @@ a{color:inherit;text-decoration:none}
   font-weight:500;
   color:var(--text);
 }
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   GLOBAL PARTICLE BACKGROUND & FULL-APP GLASS PASS
+   ────────────────────────────────────────────────────────────────────────────── */
+
+/* Global particle canvas — fixed behind everything */
+#app-particle-bg{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  pointer-events:none;
+  z-index:0;
+  opacity:1;
+}
+/* Ensure all direct layout children sit above the canvas */
+.app-layout,#app-wrap,.nav,body>*:not(#app-particle-bg){
+  position:relative;
+  z-index:1;
+}
+
+/* ── Market row glass upgrade ── */
+.mkt-row{
+  background:linear-gradient(90deg,rgba(15,17,25,0.72) 0%,rgba(9,11,17,0.62) 100%);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  border-bottom:1px solid rgba(255,255,255,0.055);
+  transition:background 150ms,border-color 150ms;
+}
+.mkt-row:hover{
+  background:linear-gradient(90deg,rgba(26,30,44,0.88) 0%,rgba(20,23,34,0.80) 100%);
+  border-bottom-color:rgba(255,255,255,0.10);
+}
+.mkt-row.sel{
+  background:linear-gradient(90deg,rgba(var(--row-accent-rgb,200,169,110),0.08) 0%,rgba(20,23,34,0.82) 100%);
+  border-bottom-color:rgba(var(--row-accent-rgb,200,169,110),0.18);
+}
+
+/* ── Market leaders / signal cards glass upgrade ── */
+.ov-sig-card{
+  background:linear-gradient(150deg,rgba(20,23,34,0.82) 0%,rgba(15,17,25,0.76) 100%) !important;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,0.09) !important;
+  border-top-color:rgba(255,255,255,0.14) !important;
+  box-shadow:0 2px 10px rgba(0,0,0,0.24);
+}
+.ov-sig-card.bull{
+  background:linear-gradient(150deg,rgba(20,23,34,0.82) 0%,rgba(15,17,25,0.76) 100%) !important;
+  border-top-color:rgba(34,201,122,0.22) !important;
+}
+.ov-sig-card.bear{
+  background:linear-gradient(150deg,rgba(20,23,34,0.82) 0%,rgba(15,17,25,0.76) 100%) !important;
+  border-top-color:rgba(224,58,42,0.22) !important;
+}
+.ov-sig-card.bull:hover{
+  background:linear-gradient(135deg,rgba(34,201,122,0.07) 0%,rgba(20,23,34,0.88) 100%) !important;
+  border-color:rgba(34,201,122,0.22) !important;
+  box-shadow:0 3px 18px rgba(34,201,122,0.07);
+}
+.ov-sig-card.bear:hover{
+  background:linear-gradient(135deg,rgba(224,58,42,0.07) 0%,rgba(20,23,34,0.88) 100%) !important;
+  border-color:rgba(224,58,42,0.22) !important;
+  box-shadow:0 3px 18px rgba(224,58,42,0.07);
+}
+
+/* ── AI brief glass upgrade ── */
+.ov-ai-brief.loaded{
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+
+/* ── COT summary cards glass upgrade ── */
+.cot-card{
+  background:linear-gradient(160deg,rgba(19,22,34,0.82) 0%,rgba(9,11,19,0.78) 100%) !important;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  border-color:rgba(255,255,255,0.09) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07),0 3px 14px rgba(0,0,0,0.28);
+}
+
+/* ── Factor tab cards glass upgrade ── */
+.f-card{
+  background:rgba(10,12,20,0.60) !important;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.f-card.act{
+  background:rgba(20,23,34,0.82) !important;
+}
+.f-card:hover{
+  background:rgba(22,26,40,0.86) !important;
+}
+
+/* ── Heatmap rows glass upgrade ── */
+.ov-heatmap-row{
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+
+/* ── Sector breadth rows ── */
+.ov-cat-bar-item{
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  background:rgba(10,12,20,0.55);
+  border-radius:4px;
+}
+
+/* ── FX cross rows glass ── */
+.fx-cat-row{
+  background:linear-gradient(90deg,rgba(15,17,25,0.72) 0%,rgba(9,11,17,0.62) 100%) !important;
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  border-color:rgba(255,255,255,0.07) !important;
+}
+.fx-cat-row:hover{
+  background:linear-gradient(90deg,rgba(26,30,44,0.88) 0%,rgba(20,23,34,0.80) 100%) !important;
+}
 </style>
 </head>
 <body>
+<canvas id="app-particle-bg" aria-hidden="true"></canvas>
 <script>
 (function(){
   function setH(){
@@ -3044,8 +3136,7 @@ a{color:inherit;text-decoration:none}
         <div id="ov-macro-panels-wrap"></div>
         <!-- global climate panel -->
         <div class="ov-climate-panel" id="ov-climate-panel"></div>
-        <!-- regime signals panel -->
-        <div class="ov-regime-panel" id="ov-regime-panel"></div>
+        <!-- regime signals panel removed -->
         <!-- ai brief -->
         <div class="ov-ai-brief" id="ov-ai-brief"></div>
         <!-- signals (moved above heatmap for better scanability) -->
@@ -3768,6 +3859,8 @@ function renderOverview(){
 
   // Start canvas animation
   initOvCanvas(regCol);
+  // Start / update global app particle background with current regime tint
+  initAppBg(regLabel);
 
   // ── 2. CLIMATE ARC ─────────────────────────────────
   const mktMap={};
@@ -4051,15 +4144,7 @@ function renderOverview(){
           ${cbSectionHtml}
         </div>` : '';
     }
-    // Inject grouped regime signals into standalone panel
-    const rpEl=document.getElementById('ov-regime-panel');
-    if(rpEl&&sigCards){
-      rpEl.innerHTML=`<div class="ov-rp-header"><div class="ov-rp-title">Regime Signals</div></div><div style="padding:8px 14px 12px">${sigCards}</div>`;
-      rpEl.classList.add('loaded');
-      rpEl.style.display='';
-    } else if(rpEl){
-      rpEl.style.display='none';
-    }
+    // regime panel removed
   }
 
   // ── 6. AI MARKET BRIEF (async) ───────────────────
@@ -4174,8 +4259,10 @@ function renderClimatePanel(reg, markets, mktMap){
   // ── Build unified market environment cards
   // meterPct: 0-100 position for signal meter (null = hide)
   // visualHtml: per-card bespoke SVG mini-visual string
-  function menvCard(topic, primaryVal, primaryCol, secondaryLine, badgeEl, priceRowHtml, accentCol, meterPct, visualHtml){
-    const accent=accentCol||'transparent';
+  // New menvCard signature: (topic, primaryVal, primaryCol, contextLabel, contextDelta, deltaCol, statusText, statusCol, spectrumPct, accentCol, chips)
+  // chips: array of {lbl, val, col}
+  function menvCard(topic, primaryVal, primaryCol, contextLabel, contextDelta, deltaCol, statusText, statusCol, spectrumPct, accentCol, chips){
+    const accent=accentCol||'#c8a96e';
     let accentRgb='200,169,110';
     if(accentCol && accentCol.startsWith('#') && accentCol.length===7){
       const r=parseInt(accentCol.slice(1,3),16);
@@ -4183,21 +4270,29 @@ function renderClimatePanel(reg, markets, mktMap){
       const b=parseInt(accentCol.slice(5,7),16);
       accentRgb=`${r},${g},${b}`;
     }
-    const meterHtml=meterPct!=null?`
-      <div class="ov-menv-meter">
-        <div class="ov-menv-meter-fill" style="width:${meterPct.toFixed(1)}%;background:linear-gradient(90deg,rgba(${accentRgb},0.4),rgba(${accentRgb},0.9))"></div>
-        <div class="ov-menv-meter-dot" style="left:${meterPct.toFixed(1)}%;background:${accent}"></div>
-      </div>`:'';
+    const sPct=spectrumPct!=null?Math.min(100,Math.max(0,spectrumPct)):50;
+    const sCol=statusCol||primaryCol||'var(--dim)';
+    // Derive safe hex for status bg (18% opacity) and border (30%)
+    let statusBg='rgba(200,169,110,0.12)',statusBdr='rgba(200,169,110,0.25)';
+    if(sCol && sCol.startsWith('#') && sCol.length===7){
+      const sr=parseInt(sCol.slice(1,3),16);
+      const sg=parseInt(sCol.slice(3,5),16);
+      const sb=parseInt(sCol.slice(5,7),16);
+      statusBg=`rgba(${sr},${sg},${sb},0.12)`;
+      statusBdr=`rgba(${sr},${sg},${sb},0.28)`;
+    }
+    const chipsHtml=(chips||[]).filter(Boolean).map(c=>`<div class="ov-menv-chip"><span class="ov-menv-chip-lbl">${c.lbl}</span><span class="ov-menv-chip-val" style="color:${c.col||'var(--dim)'}">${c.val}</span></div>`).join('');
     return `<div class="ov-menv-card" style="--menv-accent:${accent};--menv-accent-rgb:${accentRgb}">
       <div class="ov-menv-card-head">
         <div class="ov-menv-topic">${topic}</div>
-        ${visualHtml?`<div class="ov-menv-visual">${visualHtml}</div>`:''}
+        ${statusText?`<div class="ov-menv-status" style="color:${sCol};background:${statusBg};border:1px solid ${statusBdr}">${statusText}</div>`:''}
       </div>
       <div class="ov-menv-primary" style="color:${primaryCol||'var(--text)'}">${primaryVal}</div>
-      ${meterHtml}
-      ${secondaryLine?`<div class="ov-menv-secondary">${secondaryLine}</div>`:''}
-      ${badgeEl||''}
-      ${priceRowHtml?`<div class="ov-menv-price-row">${priceRowHtml}</div>`:''}
+      ${contextLabel?`<div class="ov-menv-context"><span>${contextLabel}</span>${contextDelta?`<span class="ov-menv-context-delta" style="color:${deltaCol||'var(--dim)'}">${contextDelta}</span>`:''}</div>`:''}
+      <div class="ov-menv-spectrum">
+        <div class="ov-menv-spectrum-dot" style="left:${sPct.toFixed(1)}%;background:${accent}"></div>
+      </div>
+      ${chipsHtml?`<div class="ov-menv-chips">${chipsHtml}</div>`:''}
     </div>`;
   }
 
@@ -4293,147 +4388,122 @@ function renderClimatePanel(reg, markets, mktMap){
       `</svg>`;
   }
 
-  // 1. Equities — SPX/RTY/NDX return bar cluster + composite arc gauge
-  const eqBadgeText=equityComp!=null?(equityComp>=6?'Bullish':equityComp<=4?'Bearish':equityComp>=5.5?'Mild Bull':equityComp<=4.5?'Mild Bear':'Neutral'):'';
-  const eqPrimaryVal=spxRet1m!=null?retStr(spxRet1m):(equityComp!=null?equityComp.toFixed(1):'—');
-  const eqPrimaryCol=spxRet1m!=null?retCol(spxRet1m):equityCol;
-  const eqSecLine=spxRet1m!=null?`SPX 1m · RTY ${retStr(rtyRet1m)} 1m`:`Composite ${equityComp!=null?equityComp.toFixed(1):'—'}`;
-  const eqVisual=menvBarViz(
-    [spxRet1m,ndxRet1m,rtyRet1m],
-    [retCol(spxRet1m),retCol(ndxRet1m),retCol(rtyRet1m)]
-  );
-  const eqMeter=equityComp!=null?equityComp*10:null;
+  // ── 1. EQUITIES
+  const eqStatusText=equityComp!=null?(equityComp>=6.5?'Bullish':equityComp>=5.3?'Mild Bull':equityComp>=4.7?'Neutral':equityComp>=3.5?'Mild Bear':'Bearish'):'—';
+  const eqAccent=equityComp!=null?sHex(equityComp):'#5a6480';
+  const eqSpecPct=equityComp!=null?equityComp*10:50;
+  // Primary: composite score is cleaner hero than raw 1m return (more stable, meaningful)
+  const eqPrimaryVal=equityComp!=null?equityComp.toFixed(1):(spxRet1m!=null?retStr(spxRet1m):'—');
+  const eqPrimaryCol=equityComp!=null?sHex(equityComp):(spxRet1m!=null?retCol(spxRet1m):'var(--text)');
+  // Context: most recent return for quick glance
+  const eqContextLabel='SPX 1m';
+  const eqContextDelta=spxRet1m!=null?retStr(spxRet1m):null;
+  const eqDeltaCol=spxRet1m!=null?retCol(spxRet1m):'var(--dim)';
   const eqCard=menvCard(
-    'Equities',
-    eqPrimaryVal, eqPrimaryCol,
-    eqSecLine,
-    equityComp!=null?badge(eqBadgeText||'Neutral', equityCol):'',
+    'Equities', eqPrimaryVal, eqPrimaryCol,
+    eqContextLabel, eqContextDelta, eqDeltaCol,
+    eqStatusText, eqAccent, eqSpecPct, eqAccent,
     [
-      spxRet1w!=null?priceChip('SPX 1w',retStr(spxRet1w),retCol(spxRet1w)):'',
-      ndxRet1m!=null?priceChip('NDX',retStr(ndxRet1m),retCol(ndxRet1m)):'',
-      rtyRet1m!=null?priceChip('RTY',retStr(rtyRet1m),retCol(rtyRet1m)):'',
-    ].filter(Boolean).join(''),
-    equityComp!=null?sHex(equityComp):null,
-    eqMeter,
-    eqVisual
+      ndxRet1m!=null?{lbl:'NDX',val:retStr(ndxRet1m),col:retCol(ndxRet1m)}:null,
+      rtyRet1m!=null?{lbl:'RTY',val:retStr(rtyRet1m),col:retCol(rtyRet1m)}:null,
+      spxRet1w!=null?{lbl:'SPX 1w',val:retStr(spxRet1w),col:retCol(spxRet1w)}:null,
+    ]
   );
 
-  // 2. Credit — dual OAS bar (HY width vs IG width)
+  // ── 2. CREDIT
   const hyPctCard=hyOas!=null?Math.min(100,Math.max(0,(hyOas/700)*100)):50;
+  const creditSpecPct=hyOas!=null?(100-hyPctCard):50; // inverted: tight spreads = bullish = right
+  const creditStatusText=hyTrend||'—';
   const hygCol=hygRet!=null?retCol(hygRet):'#5a6480';
   const lqdCol=lqdRet!=null?retCol(lqdRet):'#5a6480';
-  const creditVisual=menvDualBarViz(hyPctCard,creditCol,hyPctCard*0.6,creditCol);
-  const creditMeter=hyOas!=null?(100-(hyPctCard)):null; // inverted: tight = right
   const creditCard=menvCard(
     'Credit',
     hyOas!=null?hyOas+'bp':'—', creditCol,
-    `HY OAS · ${hyTrend||'—'}`,
-    badge(hyTrend||'—', creditCol),
+    'HY OAS', hyTrend||null, creditCol,
+    creditStatusText, creditCol, creditSpecPct, creditCol,
     [
-      hygRet!=null?priceChip('HYG',retStr(hygRet),hygCol):'',
-      lqdRet!=null?priceChip('LQD',retStr(lqdRet),lqdCol):'',
-    ].filter(Boolean).join(''),
-    creditCol,
-    creditMeter,
-    creditVisual
+      hygRet!=null?{lbl:'HYG',val:retStr(hygRet),col:hygCol}:null,
+      lqdRet!=null?{lbl:'LQD',val:retStr(lqdRet),col:lqdCol}:null,
+    ]
   );
 
-  // 3. Yield Curve — sparkline shape of actual tenor yields
-  // Derive tenors from ycurve data available in this scope
+  // ── 3. YIELD CURVE
   const ycT10=dgs10.level??null;
   const ycT2=ycurve.t2y??(ycT10!=null&&t10y2y!=null?+(ycT10-t10y2y).toFixed(3):null);
   const ycT5=ycurve.t5y??(ycT2!=null&&ycT10!=null?+(ycT2+(ycT10-ycT2)*0.45).toFixed(3):null);
   const ycT30=ycurve.t30y??(ycT10!=null?+(ycT10+0.18).toFixed(3):null);
   const ycT3m=lev.IRX??null;
   const ycPts=[ycT3m,ycT2,ycT5,ycT10,ycT30].filter(v=>v!=null);
-  const curveVisual=ycPts.length>=2?menvCurveViz(ycPts,curveCol):menvArcViz(50,curveCol);
-  // meter: steepness expressed as 0-100 (0=deeply inverted, 50=flat, 100=very steep)
-  const curveMeter=t10y2y!=null?Math.min(100,Math.max(0,(t10y2y+2)/4*100)):null;
+  const curveSpecPct=t10y2y!=null?Math.min(100,Math.max(0,(t10y2y+2)/4*100)):50;
+  const curveStatusText=curveRegime||'—';
   const curveCard=menvCard(
     'Yield Curve',
     t10y2y!=null?(t10y2y>=0?'+':'')+t10y2y.toFixed(2)+'%':'—', curveCol,
-    `10Y-2Y · ${curveRegime||'—'}`,
-    badge(curveRegime||'—', curveCol),
-    curveSig.label?[priceChip('Signal', curveSig.value||curveSig.label, sigCol(curveSig.signal||0))].join(''):'',
-    curveCol,
-    curveMeter,
-    curveVisual
+    '10Y–2Y spread', curveRegime||null, curveCol,
+    curveStatusText, curveCol, curveSpecPct, curveCol,
+    [
+      ycT10!=null?{lbl:'10Y',val:ycT10.toFixed(2)+'%',col:'var(--dim)'}:null,
+      ycT2!=null?{lbl:'2Y',val:ycT2.toFixed(2)+'%',col:'var(--dim)'}:null,
+      curveSig.label?{lbl:'Sig',val:curveSig.label,col:sigCol(curveSig.signal||0)}:null,
+    ]
   );
 
-  // 4. Rates — stacked dot arc showing 10Y position 0-8%
+  // ── 4. RATES
   const ratesPct=y10!=null?Math.min(100,Math.max(0,(y10/8)*100)):50;
-  const ratesVisual=menvArcViz(ratesPct,y10Col);
-  const rateBadgeText=rateLabel||(cuts12m!=null?(cuts12m>=2?'Dovish':cuts12m<=0.25?'Hawkish':'Flat Path'):'');
-  const rateAccent=cuts12m!=null?(cuts12m>=1.5?'#3b82c4':cuts12m<=0.25?'#e03a2a':'#adb8d0'):'#adb8d0';
-  const ratesMeter=y10!=null?ratesPct:null;
+  const rateBadgeText=rateLabel||(cuts12m!=null?(cuts12m>=2?'Dovish':cuts12m<=0.25?'Hawkish':cuts12m>=1?'Mild Dove':'Flat Path'):'—');
+  const rateAccent=cuts12m!=null?(cuts12m>=1.5?'#3b82c4':cuts12m<=0.25?'#e03a2a':cuts12m>=0.75?'#7aacdc':'#adb8d0'):'#adb8d0';
   const ratesCard=menvCard(
     'Rates',
     y10!=null?y10.toFixed(2)+'%':'—', y10Col,
-    `10Y · ${y10chg!=null?(y10chg>0?'+':'')+y10chg.toFixed(2)+'% 3m':''}`,
-    badge(rateBadgeText||'—', rateAccent),
+    '10Y yield', y10chg!=null?(y10chg>0?'+':'')+y10chg.toFixed(2)+'% 3m':null, y10chg!=null?retCol(-y10chg):'var(--dim)',
+    rateBadgeText, rateAccent, ratesPct, rateAccent,
     [
-      ryVal!=null?priceChip('Real',(ryVal>=0?'+':'')+ryVal.toFixed(2)+'%',ryCol):'',
-      effr!=null?priceChip('EFFR',effr.toFixed(2)+'%','var(--dim)'):'',
-      cuts12m!=null?priceChip('Cuts',cuts12m.toFixed(1),cuts12m>=1?'#3b82c4':'var(--faint)'):'',
-    ].filter(Boolean).join(''),
-    rateAccent,
-    ratesMeter,
-    ratesVisual
+      ryVal!=null?{lbl:'Real',val:(ryVal>=0?'+':'')+ryVal.toFixed(2)+'%',col:ryCol}:null,
+      effr!=null?{lbl:'EFFR',val:effr.toFixed(2)+'%',col:'var(--dim)'}:null,
+      cuts12m!=null?{lbl:'Cuts',val:cuts12m.toFixed(1),col:cuts12m>=1?'#3b82c4':'var(--faint)'}:null,
+    ]
   );
 
-  // 5. Inflation & Fed — dual bar: CPI position + Fed BS fill
-  const inflPct=cpi!=null?Math.min(100,Math.max(0,(cpi/10)*100)):50;
-  const fbPctCard=fbLevel!=null?Math.min(100,Math.max(0,((fbLevel-4)/(9-4))*100)):50;
-  const inflVisual=menvDualBarViz(inflPct,inflCol,fbPctCard,fbCol);
-  const inflMeter=cpi!=null?inflPct:null;
+  // ── 5. INFLATION & FED
+  const inflSpecPct=cpi!=null?Math.min(100,Math.max(0,100-(cpi/10)*100)):50; // inverted: falling CPI = bullish = right
+  const inflStatusText=inflTrend||'—';
   const inflCard=menvCard(
     'Inflation & Fed',
     cpi!=null?cpi.toFixed(1)+'%':'—', inflCol,
-    `CPI YoY · ${inflTrend||'—'}`,
-    badge(inflTrend||'—', inflCol),
+    'CPI YoY', inflTrend||null, inflCol,
+    inflStatusText, inflCol, inflSpecPct, inflCol,
     [
-      fbLevel!=null?priceChip('BS','$'+fbLevel.toFixed(1)+'T',fbCol):'',
-      fbTrend?priceChip('QT/QE',fbTrend,fbCol):'',
-    ].filter(Boolean).join(''),
-    inflCol,
-    inflMeter,
-    inflVisual
+      fbLevel!=null?{lbl:'Fed BS',val:'$'+fbLevel.toFixed(1)+'T',col:fbCol}:null,
+      fbTrend?{lbl:'Stance',val:fbTrend,col:fbCol}:null,
+    ]
   );
 
-  // 6. Risk Appetite — VIX arc gauge
-  const riskBadgeText=vixLevel!=null?(vixLevel<16?'Low Vol':vixLevel>35?'Stress':vixLevel>25?'High Vol':'Moderate'):'';
-  const riskVisual=vixLevel!=null?menvVixViz(vixLevel,riskCol):menvArcViz(50,'#5a6480');
-  const riskMeter=vixLevel!=null?Math.min(100,Math.max(0,(vixLevel-10)/40*100)):null;
+  // ── 6. RISK APPETITE
+  const riskBadgeText=vixLevel!=null?(vixLevel<16?'Low Vol':vixLevel>35?'Stress':vixLevel>25?'High Vol':'Moderate'):'—';
+  const riskSpecPct=vixLevel!=null?Math.min(100,Math.max(0,100-(vixLevel-10)/40*100)):50; // inverted: low VIX = bullish = right
   const riskCard=menvCard(
     'Risk Appetite',
     vixLevel!=null?vixLevel.toFixed(1):'—', riskCol,
-    `VIX · ${vixSig.label||riskBadgeText||'—'}`,
-    badge(riskBadgeText||'—', riskCol),
+    'VIX', vixSig.label||riskBadgeText||null, riskCol,
+    riskBadgeText, riskCol, riskSpecPct, riskCol,
     [
-      goldRet1m!=null?priceChip('Gold',retStr(goldRet1m),retCol(goldRet1m)):'',
-      copperRet1m!=null?priceChip('Cu',retStr(copperRet1m),retCol(copperRet1m)):'',
-    ].filter(Boolean).join(''),
-    riskCol,
-    riskMeter,
-    riskVisual
+      goldRet1m!=null?{lbl:'Gold',val:retStr(goldRet1m),col:retCol(goldRet1m)}:null,
+      copperRet1m!=null?{lbl:'Copper',val:retStr(copperRet1m),col:retCol(copperRet1m)}:null,
+    ]
   );
 
-  // 7. Dollar — directional arrow
-  const dxyBadgeText=dxySig.label||(dxyRet1m!=null?(dxyRet1m>1?'Strong USD':dxyRet1m>0.5?'Firm USD':dxyRet1m<-1?'Weak USD':dxyRet1m<-0.5?'Soft USD':'Flat'):'');
-  const dxyVisual=dxyRet1m!=null?menvArrowViz(dxyRet1m,dxyCol):menvArcViz(50,'#5a6480',22,16);
-  const dxyMeter=dxyLevel!=null?Math.min(100,Math.max(0,((dxyLevel-90)/30)*100)):null;
+  // ── 7. DOLLAR
+  const dxyBadgeText=dxySig.label||(dxyRet1m!=null?(dxyRet1m>1?'Strong USD':dxyRet1m>0.5?'Firm USD':dxyRet1m<-1?'Weak USD':dxyRet1m<-0.5?'Soft USD':'Flat'):'—');
+  const dxySpecPct=dxyLevel!=null?Math.min(100,Math.max(0,((dxyLevel-90)/30)*100)):50;
   const dollarCard=menvCard(
     'Dollar',
     dxyLevel!=null?dxyLevel.toFixed(1):'—', dxyCol,
-    `DXY · ${dxyRet1m!=null?retStr(dxyRet1m)+' 1m':''}`,
-    badge(dxyBadgeText||'—', dxyCol),
+    'DXY', dxyRet1m!=null?retStr(dxyRet1m)+' 1m':null, dxyRet1m!=null?retCol(dxyRet1m):'var(--dim)',
+    dxyBadgeText, dxyCol, dxySpecPct, dxyCol,
     [
-      usdJpyVal!=null?priceChip('JPY',retStr(usdJpyVal),retCol(usdJpyVal)):'',
-      usdJpySig.label?priceChip('Sig',usdJpySig.label,sigCol(usdJpySig.signal||0)):'',
-    ].filter(Boolean).join(''),
-    dxyCol,
-    dxyMeter,
-    dxyVisual
+      usdJpyVal!=null?{lbl:'JPY',val:retStr(usdJpyVal),col:retCol(usdJpyVal)}:null,
+      usdJpySig.label?{lbl:'Sig',val:usdJpySig.label,col:sigCol(usdJpySig.signal||0)}:null,
+    ]
   );
 
   const menvGridHtml=[eqCard,creditCard,curveCard,ratesCard,inflCard,riskCard,dollarCard].join('');
@@ -6097,152 +6167,6 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Phase distribution pills removed per user request
 
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // RIGHT PANEL: LIVE REGIME SIGNALS — Bloomberg-style data strip
-  // ═══════════════════════════════════════════════════════════════════════
-  {
-    const SIGNAL_W = 200;          // width of the panel
-    const SP_X     = W - SIGNAL_W - PAD_R + 8; // left edge of panel
-    const SP_PAD   = 12;           // inner horizontal padding
-    const SP_TOP   = 22;           // top padding from canvas edge
-
-    // Only draw if we have signals
-    const sigData = (data.signals && data.signals.length)
-      ? data.signals[data.signals.length - 1]
-      : null;
-
-    if (sigData && progress > 0.7) {
-      ctx.save();
-
-      // Signal definitions: label, key, range [min,max], display formatter, flip (higher=bearish)
-      const SIGS = [
-        { lbl: 'SPX 1M',     key: 'spx_1m',     rng: [-5, 10],  fmt: v => (v>0?'+':'')+v.toFixed(1)+'%', flip: false },
-        { lbl: 'RTY 1M',     key: 'rut_1m',      rng: [-8, 12],  fmt: v => (v>0?'+':'')+v.toFixed(1)+'%', flip: false },
-        { lbl: 'VIX',        key: 'vix',          rng: [10, 40],  fmt: v => v.toFixed(1),                  flip: true  },
-        { lbl: 'HY CREDIT',  key: 'credit',       rng: [-3, 3],   fmt: v => (v>0?'+':'')+v.toFixed(2)+'σ', flip: true  },
-        { lbl: 'USD/JPY 1M', key: 'usdjpy_1m',    rng: [-5, 8],   fmt: v => (v>0?'+':'')+v.toFixed(1)+'%', flip: true  },
-        { lbl: '10Y YIELD',  key: 'tnx',          rng: [2, 6],    fmt: v => v.toFixed(2)+'%',              flip: null  },
-        { lbl: 'TERM SPRD',  key: 'term_spread',  rng: [-1, 5],   fmt: v => v.toFixed(2)+'%',              flip: false },
-      ];
-
-      const rowH   = (H - SP_TOP - 16) / SIGS.length;
-      const barMaxW = SIGNAL_W - SP_PAD * 2 - 52; // width of bar area
-      const valW   = 42; // reserved for value text
-
-      // Panel subtle bg
-      ctx.fillStyle = 'rgba(8,12,24,0.65)';
-      ctx.strokeStyle = rgb(curC, 0.08);
-      ctx.lineWidth = 0.5;
-      ctx.beginPath();
-      ctx.roundRect(SP_X - 4, SP_TOP - 8, SIGNAL_W + 4, H - SP_TOP - 8, 4);
-      ctx.fill(); ctx.stroke();
-
-      // Left divider line
-      const divG2 = ctx.createLinearGradient(SP_X - 4, SP_TOP, SP_X - 4, H - 16);
-      divG2.addColorStop(0, rgb(curC, 0));
-      divG2.addColorStop(0.2, rgb(curC, 0.18));
-      divG2.addColorStop(0.8, rgb(curC, 0.18));
-      divG2.addColorStop(1, rgb(curC, 0));
-      ctx.beginPath();
-      ctx.moveTo(SP_X - 4, SP_TOP); ctx.lineTo(SP_X - 4, H - 16);
-      ctx.strokeStyle = divG2; ctx.lineWidth = 0.5; ctx.stroke();
-
-      // Panel header
-      ctx.font = '700 8px "SF Mono","Fira Code",monospace';
-      ctx.letterSpacing = '0.14em';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = rgb(curC, 0.78);
-      ctx.fillText('REGIME SIGNALS', SP_X + SP_PAD, SP_TOP + 2);
-      ctx.letterSpacing = '0';
-      // Header underline
-      const hdrLineG = ctx.createLinearGradient(SP_X + SP_PAD, 0, SP_X + SIGNAL_W - 4, 0);
-      hdrLineG.addColorStop(0, rgb(curC, 0.35));
-      hdrLineG.addColorStop(0.6, rgb(curC, 0.10));
-      hdrLineG.addColorStop(1, rgb(curC, 0));
-      ctx.beginPath();
-      ctx.moveTo(SP_X + SP_PAD, SP_TOP + 7);
-      ctx.lineTo(SP_X + SIGNAL_W - 4, SP_TOP + 7);
-      ctx.strokeStyle = hdrLineG; ctx.lineWidth = 0.5; ctx.stroke();
-
-      // Each signal row
-      SIGS.forEach((sig, i) => {
-        const rawVal = sigData[sig.key];
-        if (rawVal === undefined || rawVal === null) return;
-
-        const ry = SP_TOP + 14 + i * rowH;
-        const [rMin, rMax] = sig.rng;
-        const norm = Math.max(0, Math.min(1, (rawVal - rMin) / (rMax - rMin)));
-
-        // Is this bullish signal? (>midpoint for non-flip, <midpoint for flip)
-        const mid = (rMin + rMax) / 2;
-        let isBull;
-        if (sig.flip === null) isBull = null;
-        else if (sig.flip) isBull = rawVal < mid;
-        else isBull = rawVal > mid;
-
-        const rowCol = isBull === null
-          ? [100, 140, 200]
-          : isBull ? [0, 210, 140] : [220, 70, 70];
-
-        // Subtle row separator
-        if (i > 0) {
-          ctx.beginPath();
-          ctx.moveTo(SP_X + SP_PAD, ry - 1);
-          ctx.lineTo(SP_X + SIGNAL_W - 4, ry - 1);
-          ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-          ctx.lineWidth = 0.5;
-          ctx.stroke();
-        }
-
-        // Label
-        ctx.font = '500 7.5px "SF Mono","Fira Code",monospace';
-        ctx.textAlign = 'left';
-        ctx.fillStyle = `rgba(${rowCol[0]},${rowCol[1]},${rowCol[2]},0.50)`;
-        ctx.fillText(sig.lbl, SP_X + SP_PAD, ry + 7);
-
-        // Value (right-aligned)
-        const valStr = sig.fmt(rawVal);
-        ctx.font = '700 8.5px "SF Mono","Fira Code",monospace';
-        ctx.textAlign = 'right';
-        ctx.fillStyle = `rgba(${rowCol[0]},${rowCol[1]},${rowCol[2]},0.92)`;
-        ctx.shadowBlur = 3; ctx.shadowColor = `rgba(${rowCol[0]},${rowCol[1]},${rowCol[2]},0.4)`;
-        ctx.fillText(valStr, SP_X + SIGNAL_W - 4, ry + 7);
-        ctx.shadowBlur = 0;
-
-        // Bar track
-        const barX = SP_X + SP_PAD;
-        const barY = ry + 12;
-        const bW   = SIGNAL_W - SP_PAD * 2 - valW;
-        ctx.beginPath();
-        ctx.roundRect(barX, barY, bW, 3, 1.5);
-        ctx.fillStyle = 'rgba(255,255,255,0.07)';
-        ctx.fill();
-
-        // Bar fill
-        const fillW = Math.max(2, norm * bW);
-        const bG = ctx.createLinearGradient(barX, 0, barX + bW, 0);
-        bG.addColorStop(0, `rgba(${rowCol[0]},${rowCol[1]},${rowCol[2]},0.18)`);
-        bG.addColorStop(norm, `rgba(${rowCol[0]},${rowCol[1]},${rowCol[2]},0.85)`);
-        bG.addColorStop(1, `rgba(${rowCol[0]},${rowCol[1]},${rowCol[2]},0.05)`);
-        ctx.beginPath();
-        ctx.roundRect(barX, barY, fillW, 3, 1.5);
-        ctx.fillStyle = bG;
-        ctx.fill();
-
-        // Needle tick on bar
-        ctx.beginPath();
-        ctx.rect(barX + fillW - 0.75, barY - 1.5, 1.5, 6);
-        ctx.fillStyle = `rgba(${rowCol[0]},${rowCol[1]},${rowCol[2]},0.95)`;
-        ctx.shadowColor = `rgba(${rowCol[0]},${rowCol[1]},${rowCol[2]},0.6)`;
-        ctx.shadowBlur = 3;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      });
-
-      ctx.restore();
-    }
-  }
-
   ctx.restore(); // end right-zone clip
 }
 
@@ -7063,6 +6987,123 @@ function initClimateBg(regCol){
     }
 
     _cpBgAnimId=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ───────────────────────────────────────────────────────────────────
+// GLOBAL APP PARTICLE BACKGROUND
+// Single fixed canvas behind the entire app, regime-tinted.
+// Much more particle-dense than climate panel but much lower alpha
+// so it reads as pure ambience, never distracting.
+// ───────────────────────────────────────────────────────────────────
+let _appBgAnimId=null;
+let _appBgR=30,_appBgG=40,_appBgB=60;  // default neutral tint
+
+function setAppBgTint(regLabel){
+  // Map regime label to colour, matching existing palette
+  const L=regLabel||'';
+  let hex=L.includes('Strong Risk-On')?'#00f09a'
+    :L.includes('Risk-On')&&!L.includes('Lean')?'#22c97a'
+    :L.includes('Lean Risk-On')?'#5aaa7a'
+    :L.includes('Strong Risk-Off')?'#c41a2e'
+    :L.includes('Risk-Off')&&!L.includes('Lean')?'#e03a2a'
+    :L.includes('Lean Risk-Off')?'#d63a24'
+    :'#5c6880';
+  if(hex.startsWith('#')&&hex.length===7){
+    _appBgR=parseInt(hex.slice(1,3),16);
+    _appBgG=parseInt(hex.slice(3,5),16);
+    _appBgB=parseInt(hex.slice(5,7),16);
+  }
+}
+
+function initAppBg(regLabel){
+  setAppBgTint(regLabel);
+  if(_appBgAnimId){cancelAnimationFrame(_appBgAnimId);_appBgAnimId=null;}
+  const canvas=document.getElementById('app-particle-bg');
+  if(!canvas)return;
+
+  const resize=()=>{
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+  };
+  resize();
+  window.addEventListener('resize',resize,{passive:true});
+
+  const ctx=canvas.getContext('2d');
+  const W=()=>canvas.width;
+  const H=()=>canvas.height;
+
+  // More particles than climate panel, even slower, even lower alpha
+  const PTS=38;
+  const CONNECT_DIST=140;
+  const pts=Array.from({length:PTS},()=>({
+    x:Math.random()*window.innerWidth,
+    y:Math.random()*window.innerHeight,
+    vx:(Math.random()-0.5)*0.05,   // ultra-slow drift
+    vy:(Math.random()-0.5)*0.04,
+    size:Math.random()*1.8+0.4,
+    alpha:Math.random()*0.055+0.015, // very low — barely visible individually
+    phase:Math.random()*Math.PI*2,
+    pulseSpeed:Math.random()*0.004+0.002  // very slow pulse
+  }));
+  let frame=0;
+
+  function draw(){
+    ctx.clearRect(0,0,W(),H());
+    frame++;
+    const r=_appBgR,g=_appBgG,b=_appBgB;
+
+    // Three large radial nebula blobs — very soft
+    [[W()*0.18,H()*0.22,W()*0.30],[W()*0.82,H()*0.65,W()*0.26],[W()*0.50,H()*0.40,W()*0.20]].forEach(([bx,by,br])=>{
+      const bg=ctx.createRadialGradient(bx,by,0,bx,by,br);
+      bg.addColorStop(0,`rgba(${r},${g},${b},0.018)`);
+      bg.addColorStop(1,`rgba(${r},${g},${b},0)`);
+      ctx.fillStyle=bg;
+      ctx.fillRect(0,0,W(),H());
+    });
+
+    // Constellation lines
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<CONNECT_DIST){
+          const la=(1-dist/CONNECT_DIST)*0.045;
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x,pts[i].y);
+          ctx.lineTo(pts[j].x,pts[j].y);
+          ctx.strokeStyle=`rgba(${r},${g},${b},${la.toFixed(3)})`;
+          ctx.lineWidth=0.5;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Particles
+    for(const p of pts){
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<-30)p.x=W()+30; if(p.x>W()+30)p.x=-30;
+      if(p.y<-30)p.y=H()+30; if(p.y>H()+30)p.y=-30;
+      const pulse=Math.sin(frame*p.pulseSpeed+p.phase)*0.5+0.5;
+      const a=p.alpha*(0.5+pulse*0.5);
+      // Soft halo
+      const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*6);
+      grad.addColorStop(0,`rgba(${r},${g},${b},${(a*0.5).toFixed(3)})`);
+      grad.addColorStop(0.5,`rgba(${r},${g},${b},${(a*0.08).toFixed(3)})`);
+      grad.addColorStop(1,`rgba(${r},${g},${b},0)`);
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.size*6,0,Math.PI*2);
+      ctx.fillStyle=grad;
+      ctx.fill();
+      // Core
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${r},${g},${b},${Math.min(1,a*1.8).toFixed(3)})`;
+      ctx.fill();
+    }
+
+    _appBgAnimId=requestAnimationFrame(draw);
   }
   draw();
 }
@@ -13588,6 +13629,9 @@ function renderSeasStats(all,mt,todayTD,sd,cya,containerId){
    BOOT
 ════════════════════════════════════════════ */
 loadData();
+// Boot the global particle background immediately with neutral tint
+// (regime tint applied once data loads via initAppBg in renderOverview)
+initAppBg('');
 </script>
 </div><!-- /.app-wrap -->
 </body>
