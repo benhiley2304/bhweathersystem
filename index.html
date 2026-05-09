@@ -1227,7 +1227,7 @@ a{color:inherit;text-decoration:none}
 .ov-gauge-divider{width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.1) 30%,rgba(255,255,255,0.1) 70%,transparent);margin:8px 0;flex-shrink:0;align-self:stretch}
 
 /* ── Stat chips row ────────────────────────────────────── */
-.ov-mc-stats{display:flex;gap:0;margin-top:auto;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07)}
+.ov-mc-stats{display:flex;gap:0;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0}
 .ov-mc-stat{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 8px}
 .ov-mc-stat:first-child{padding-left:0}
 .ov-mc-stat:last-child{padding-right:0}
@@ -5186,11 +5186,13 @@ function renderMacroDataPanels(reg){
         <!-- Canvas: hero overlay + sparkline fills space -->
         <div class="ov-yc-canvas-wrap">
           <canvas id="ov-yc-canvas"></canvas>
-          <!-- Hero overlay: spread value pinned top-left inside canvas -->
+          <!-- Hero overlay: spread + change pinned top-left inside canvas -->
           <div class="ov-yc-hero-overlay">
-            <div class="ov-yc-hero-val" style="color:${crCol}">${spreadStr}</div>
-            ${chg3mStr?`<div class="ov-yc-hero-chg" style="color:${yc.t10y2y_3m_chg>=0?'#22c97a':'#e03a2a'}">${chg3mStr} <span style="font-size:6.5px;color:rgba(255,255,255,0.35);font-weight:600">3M</span></div>`:''}
-            <div class="ov-yc-hero-sub">10Y&minus;2Y spread</div>
+            <div class="ov-yc-hero-row">
+              <div class="ov-yc-hero-val" style="color:${crCol}">${spreadStr}</div>
+              ${chg3mStr?`<div class="ov-yc-hero-chg" style="color:${yc.t10y2y_3m_chg>=0?'#22c97a':'#e03a2a'}">${chg3mStr} <span style="font-size:6.5px;color:rgba(255,255,255,0.32)">3M CHG</span></div>`:''}
+            </div>
+            <div class="ov-yc-hero-sub">10Y &minus; 2Y spread</div>
           </div>
         </div>
 
@@ -5272,11 +5274,11 @@ function renderMacroDataPanels(reg){
         </div>
 
         <!-- Hero level -->
-        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px">
-          <div class="ov-mc-hero" style="font-size:32px;color:${fbCol}">${fbLevel!=null?`$${fbLevel.toFixed(2)}T`:'—'}</div>
-          ${fbChg3m!=null?`<span style="font-size:8.5px;font-family:var(--mono);font-weight:700;color:${fbChg3m>=0?'#adb8d0':'#e03a2a'}">${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T <span style="font-size:7px;color:var(--faint)">3M CHG</span></span>`:''}
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px;flex-shrink:0">
+          <div class="ov-mc-hero" style="font-size:36px;color:${fbCol}">${fbLevel!=null?`$${fbLevel.toFixed(2)}T`:'—'}</div>
+          ${fbChg3m!=null?`<span style="font-size:9px;font-family:var(--mono);font-weight:700;color:${fbChg3m>=0?'#adb8d0':'#e03a2a'}">${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T <span style="font-size:7px;color:var(--faint)">3M CHG</span></span>`:''}
         </div>
-        <div class="ov-mc-hero-sub">Total assets \u00b7 $4T\u2013$9T range</div>
+        <div class="ov-mc-hero-sub" style="flex-shrink:0">Total assets · $4T–$9T range</div>
 
         <!-- Body: range bar + KPI grid fills remaining height -->
         <div class="ov-bs-body">
