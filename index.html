@@ -908,11 +908,16 @@ a{color:inherit;text-decoration:none}
   pointer-events:none;
 }
 .ov-section-hdr{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:4px;
-  padding-left:11px;
-  border-left:2px solid rgba(200,169,110,0.40);
+  display:flex;align-items:center;gap:10px;margin-bottom:12px;margin-top:4px;
 }
-.ov-section-title{font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:1}
+.ov-section-title{
+  font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  flex-shrink:0;
+}
+.ov-section-hdr-line{
+  flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%);
+}
 .ov-legend{
   display:flex;align-items:center;gap:6px;
 }
@@ -1013,16 +1018,19 @@ a{color:inherit;text-decoration:none}
 .ov-smart-bar-f{position:absolute;top:0;bottom:0;left:0;border-radius:1px}
 /* ── end Smart Money ── */
 .ov-sig-wrap-hdr{
-  padding:16px 24px 0;
-  display:flex;align-items:baseline;gap:12px;
-  border-left:2px solid rgba(255,255,255,0.18);
-  padding-left:22px;
+  padding:16px 24px 10px;
+  display:flex;align-items:center;gap:10px;
 }
 .ov-sig-wrap-title{
-  font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:0.88;
+  font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  flex-shrink:0;
+}
+.ov-sig-wrap-title-line{
+  flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%);
 }
 .ov-sig-wrap-sub{
-  font-size:8px;color:var(--faint);
+  font-size:8px;color:var(--faint);opacity:0.7;flex-shrink:0;
 }
 .ov-sig-cols{
   display:grid;grid-template-columns:1fr 1fr;gap:0;
@@ -1325,12 +1333,15 @@ a{color:inherit;text-decoration:none}
 }
 .ov-climate-panel.loaded{display:block}
 .ov-cp-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
-  padding-left:10px;
-  border-left:2px solid rgba(255,255,255,0.18);
+  display:flex;align-items:center;gap:10px;margin-bottom:14px;
 }
 .ov-cp-eyebrow{
-  font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:0.88;
+  font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  flex-shrink:0;
+}
+.ov-cp-header-line{
+  flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%);
 }
 .ov-cp-timestamp{
   display:flex;align-items:center;gap:5px;
@@ -1481,10 +1492,20 @@ a{color:inherit;text-decoration:none}
 .ov-menv-secondary{display:none}
 /* Category climate rows */
 .ov-cp-menv-label{
-  font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;
+  font-size:7px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;
+}
+.ov-cp-menv-label::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%);
 }
 .ov-cp-cats-label{
-  font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;
+  font-size:7px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;margin-top:4px;
+}
+.ov-cp-cats-label::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%);
 }
 .ov-cp-cats{
   display:flex;flex-direction:column;gap:4px;
@@ -1554,35 +1575,55 @@ a{color:inherit;text-decoration:none}
 }
 /* Global narrative */
 .ov-cp-narrative{
-  background:linear-gradient(145deg,rgba(20,23,34,0.82) 0%,rgba(15,17,25,0.76) 100%);
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  border:1px solid var(--bdr);
-  border-radius:10px;
-  padding:14px 16px;
+  background:linear-gradient(145deg,rgba(14,17,26,0.88) 0%,rgba(9,11,20,0.84) 100%);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(200,169,110,0.18);
+  border-radius:12px;
+  padding:18px 20px 16px;
   position:relative;overflow:hidden;
+  box-shadow:0 4px 24px rgba(0,0,0,0.45),0 0 0 1px rgba(200,169,110,0.06) inset;
 }
+/* Top gold accent line — animated pulse */
 .ov-cp-narrative::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(200,169,110,0.22),transparent);
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,0.5) 25%,rgba(245,200,66,0.7) 50%,rgba(200,169,110,0.5) 75%,transparent 100%);
+  animation:narrativeGoldPulse 4s ease-in-out infinite;
   pointer-events:none;
 }
+@keyframes narrativeGoldPulse{
+  0%,100%{opacity:0.55;filter:blur(0px)}
+  50%{opacity:1;filter:blur(0.5px)}
+}
+/* Subtle radial glow from top */
+.ov-cp-narrative::after{
+  content:'';position:absolute;top:0;left:10%;right:10%;height:60%;
+  background:radial-gradient(ellipse 70% 40% at 50% 0%,rgba(200,169,110,0.05) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
 .ov-cp-narr-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;
+  position:relative;z-index:1;
 }
 .ov-cp-narr-label{
-  display:flex;align-items:center;gap:7px;
-  font-size:8.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim);
+  display:flex;align-items:center;gap:8px;
+  font-size:8px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);
+  opacity:0.85;
 }
 .ov-cp-narr-icon{
-  width:18px;height:18px;border-radius:5px;
-  background:linear-gradient(135deg,rgba(200,169,110,0.14),rgba(200,169,110,0.07));
+  width:22px;height:22px;border-radius:6px;
+  background:linear-gradient(135deg,rgba(200,169,110,0.18),rgba(200,169,110,0.08));
+  border:1px solid rgba(200,169,110,0.25);
   display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 10px rgba(200,169,110,0.12);
 }
 .ov-cp-narr-text{
-  font-size:11.5px;line-height:1.65;color:var(--text);font-style:normal;
+  font-size:13px;line-height:1.72;color:rgba(242,246,255,0.92);font-style:normal;
+  position:relative;z-index:1;
+  letter-spacing:0.01em;
 }
 .ov-cp-narr-skel{
-  display:flex;flex-direction:column;gap:6px;
+  display:flex;flex-direction:column;gap:7px;
+  position:relative;z-index:1;
 }
 /* Responsive */
 @media(max-width:900px) and (min-width:601px){
@@ -1595,6 +1636,72 @@ a{color:inherit;text-decoration:none}
 }
 
 /* .ov-regime-panel removed */
+
+/* ── Rate Path + G10 CB signal slot ── */
+.ov-rate-cb-wrap{
+  margin-top:14px;padding-top:12px;
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+.ov-rate-section-hdr{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:9px;
+}
+.ov-rate-section-title{
+  font-size:7px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  flex-shrink:0;
+}
+.ov-rate-section-line{
+  flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.06) 0%,transparent 100%);
+}
+.ov-rate-badge{
+  font-size:7.5px;font-weight:700;border-radius:4px;
+  padding:2px 8px;letter-spacing:0.04em;flex-shrink:0;
+}
+.ov-rate-stats{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;
+}
+.ov-rate-stat{
+  display:flex;align-items:baseline;gap:4px;
+}
+.ov-rate-stat-label{
+  font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);
+}
+.ov-rate-stat-val{
+  font-family:var(--mono);font-size:12px;font-weight:800;color:var(--text);
+}
+.ov-rate-bar-wrap{
+  height:2px;background:var(--surf3);border-radius:2px;overflow:hidden;margin-bottom:3px;
+}
+.ov-rate-bar-fill{
+  height:100%;border-radius:2px;transition:width 600ms var(--ease);
+}
+.ov-rate-bar-labels{
+  display:flex;justify-content:space-between;
+}
+.ov-rate-bar-lbl{
+  font-size:7px;color:var(--faint);
+}
+/* G10 CB table */
+.ov-cb-table-wrap{
+  margin-top:12px;padding-top:10px;
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+.ov-cb-table-hdr{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:6px;
+}
+.ov-cb-col-head{
+  font-size:6.5px;color:var(--faint);letter-spacing:0.07em;text-transform:uppercase;
+}
+.ov-cb-row{
+  display:flex;align-items:center;gap:7px;padding:3px 0;
+}
+.ov-cb-name{font-family:var(--mono);font-size:8px;font-weight:700;color:var(--dim);width:30px;flex-shrink:0}
+.ov-cb-rate{font-family:var(--mono);font-size:8.5px;color:var(--text);width:38px;flex-shrink:0;font-weight:700}
+.ov-cb-bar-wrap{flex:1;height:2px;background:var(--surf3);border-radius:2px;overflow:hidden;position:relative}
+.ov-cb-bias{font-size:7.5px;font-weight:700;width:36px;text-align:right;flex-shrink:0}
+.ov-cb-chg{font-family:var(--mono);font-size:7.5px;width:32px;text-align:right;flex-shrink:0}
 
 /* ── AI Brief ── */
 .ov-ai-brief{
@@ -1610,24 +1717,28 @@ a{color:inherit;text-decoration:none}
 }
 .ov-ai-brief.loaded{display:block}
 .ov-ai-brief-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:16px 24px 12px;
+  display:flex;align-items:center;gap:10px;
+  padding:16px 24px 10px;
 }
 .ov-ai-brief-title{
-  display:flex;align-items:center;gap:9px;
+  display:flex;align-items:center;gap:9px;flex-shrink:0;
+}
+.ov-ai-brief-header-line{
+  flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%);
 }
 .ov-ai-brief-icon{
-  width:22px;height:22px;border-radius:6px;
-  background:linear-gradient(135deg,rgba(200,169,110,0.14),rgba(200,169,110,0.07));
-  border:1px solid rgba(200,169,110,0.20);
+  width:20px;height:20px;border-radius:5px;
+  background:linear-gradient(135deg,rgba(200,169,110,0.12),rgba(200,169,110,0.06));
+  border:1px solid rgba(200,169,110,0.18);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  box-shadow:0 0 8px rgba(200,169,110,0.06);
+  box-shadow:0 0 8px rgba(200,169,110,0.05);
 }
 .ov-ai-brief-label{
-  font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);opacity:0.88;
+  font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
 }
 .ov-ai-brief-sub{
-  font-size:9px;color:var(--faint);margin-left:4px;
+  font-size:8px;color:var(--faint);opacity:0.6;flex-shrink:0;
 }
 .ov-ai-brief-toggle{
   width:18px;height:18px;display:flex;align-items:center;justify-content:center;
@@ -3340,7 +3451,8 @@ a{color:inherit;text-decoration:none}
         <!-- heatmap -->
         <div class="ov-heatmap-wrap">
           <div class="ov-section-hdr">
-            <div class="ov-section-title">Market Heatmap &mdash; All Markets</div>
+            <div class="ov-section-title">Market Heatmap</div>
+            <div class="ov-section-hdr-line"></div>
             <div class="ov-legend">
               <div style="display:flex;flex-direction:column;gap:2px">
                 <div class="ov-legend-bar"></div>
@@ -4167,7 +4279,8 @@ function renderOverview(){
   document.getElementById('ov-signals-wrap').innerHTML=`
     <div class="ov-sig-wrap-hdr">
       <div class="ov-sig-wrap-title">Market Leaders</div>
-      <div class="ov-sig-wrap-sub">Top 4 by composite score &nbsp;&middot;&nbsp; Click to explore</div>
+      <div class="ov-sig-wrap-title-line"></div>
+      <div class="ov-sig-wrap-sub">Top 4 · click to explore</div>
     </div>
     <div class="ov-sig-cols">
       <div class="ov-signals-col">
@@ -4256,33 +4369,18 @@ function renderOverview(){
     const rateBarCol = rateNorm>=0.7?'#3b82c4':rateNorm<=0.3?'#e03a2a':'#adb8d0';
     const ratePct = Math.round(rateNorm*100);
     const rateCardHtml = (effr!=null||cuts12m!=null) ? `
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--bdr)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-          <div style="font-size:7.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);opacity:0.55">US Rate Path</div>
-          <div style="font-size:8px;font-weight:700;color:${rateBarCol};background:${rateBarCol}15;border:1px solid ${rateBarCol}30;border-radius:4px;padding:2px 8px;letter-spacing:0.04em">${rateLabel}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:7px">
-          ${effr!=null?`<div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">EFFR</span>
-            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--text)">${effr.toFixed(2)}%</span>
-          </div>`:''}
-          ${cuts12m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${cuts12m>0?'Cuts Priced':'Hike Risk'} 12M</span>
-            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#3b82c4':'#adb8d0'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</span>
-          </div>`:''}
-          ${cuts18m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${(cuts18m||0)>0?'Cuts 18M':'Hike 18M'}</span>
-            <span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#3b82c4':'#adb8d0'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</span>
-          </div>`:''}
-        </div>
-        <div style="height:2px;background:var(--surf3);border-radius:2px;overflow:hidden;margin-bottom:3px">
-          <div style="height:100%;width:${ratePct}%;background:${rateBarCol};border-radius:2px;transition:width 600ms var(--ease)"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-          <div style="font-size:7px;color:var(--faint)">Hawkish</div>
-          <div style="font-size:7px;color:var(--faint)">Dovish</div>
-        </div>
-      </div>` : '';
+      <div class="ov-rate-section-hdr">
+        <div class="ov-rate-section-title">US Rate Path</div>
+        <div class="ov-rate-section-line"></div>
+        <div class="ov-rate-badge" style="color:${rateBarCol};background:${rateBarCol}18;border:1px solid ${rateBarCol}28">${rateLabel}</div>
+      </div>
+      <div class="ov-rate-stats">
+        ${effr!=null?`<div class="ov-rate-stat"><span class="ov-rate-stat-label">EFFR</span><span class="ov-rate-stat-val">${effr.toFixed(2)}%</span></div>`:''}
+        ${cuts12m!=null?`<div class="ov-rate-stat"><span class="ov-rate-stat-label">${cuts12m>0?'Cuts 12M':'Hike Risk 12M'}</span><span class="ov-rate-stat-val" style="color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#3b82c4':'#adb8d0'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</span></div>`:''}
+        ${cuts18m!=null?`<div class="ov-rate-stat"><span class="ov-rate-stat-label">${(cuts18m||0)>0?'Cuts 18M':'Hike 18M'}</span><span class="ov-rate-stat-val" style="color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#3b82c4':'#adb8d0'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</span></div>`:''}
+      </div>
+      <div class="ov-rate-bar-wrap"><div class="ov-rate-bar-fill" style="width:${ratePct}%;background:${rateBarCol}"></div></div>
+      <div class="ov-rate-bar-labels"><div class="ov-rate-bar-lbl">Hawkish</div><div class="ov-rate-bar-lbl">Dovish</div></div>` : '';
 
     // ── G10 CB rates section ──
     const intlRates = reg.intl_rates||{};
@@ -4302,27 +4400,30 @@ function renderOverview(){
       const barCol=_cbPaused?'#4a5268':t6>0?'#22c97a':t6<0?'#e03a2a':'#4a5268';
       const chgCol=_cbPaused?'var(--faint)':t6>0?'#22c97a':t6<0?'#e03a2a':'#4a5268';
       const staleStr=(d.stale_days||0)>14?` · ${d.stale_days}d old`:'';
-      return `<div style="display:flex;align-items:center;gap:7px;padding:3px 0">
-        <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--dim);width:30px;flex-shrink:0">${CB_NAMES_OV[cb]||cb}</div>
-        <div style="font-family:var(--mono);font-size:8.5px;color:var(--text);width:38px;flex-shrink:0;font-weight:700">${(d.rate??0).toFixed(2)}%</div>
-        <div style="flex:1;height:2px;background:var(--surf3);border-radius:2px;overflow:hidden;position:relative">
+      return `<div class="ov-cb-row">
+        <div class="ov-cb-name">${CB_NAMES_OV[cb]||cb}</div>
+        <div class="ov-cb-rate">${(d.rate??0).toFixed(2)}%</div>
+        <div class="ov-cb-bar-wrap">
           <div style="position:absolute;${t6>=0?'left:50%':'right:50%'};height:100%;width:${barW/2}%;background:${barCol};border-radius:1px"></div>
           <div style="position:absolute;left:50%;top:-1px;width:1px;height:4px;background:var(--bdr3)"></div>
         </div>
-        <div style="font-size:7.5px;font-weight:700;color:${bc};width:36px;text-align:right">${biasTxt}</div>
-        <div style="font-family:var(--mono);font-size:7.5px;color:${chgCol};width:32px;text-align:right">${_cbPaused?'—':((t6>0?'+':'')+t6.toFixed(2)+'%')}</div>
+        <div class="ov-cb-bias" style="color:${bc}">${biasTxt}</div>
+        <div class="ov-cb-chg" style="color:${chgCol}">${_cbPaused?'\u2014':((t6>0?'+':'')+t6.toFixed(2)+'%')}</div>
       </div>`;
     }).join('');
 
     const cbSectionHtml = cbRows ? `
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bdr)">
-        <div style="font-size:7.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);opacity:0.5;margin-bottom:6px">G10 Central Banks</div>
-        <div style="display:flex;align-items:center;gap:7px;padding:0 0 3px 0;margin-bottom:2px;border-bottom:1px solid var(--bdr)">
-          <div style="font-size:6.5px;color:var(--faint);width:30px;letter-spacing:0.06em;text-transform:uppercase">CB</div>
-          <div style="font-size:6.5px;color:var(--faint);width:38px;letter-spacing:0.06em;text-transform:uppercase">Rate</div>
-          <div style="flex:1;font-size:6.5px;color:var(--faint);letter-spacing:0.06em;text-transform:uppercase">6m Trend</div>
-          <div style="font-size:6.5px;color:var(--faint);width:36px;text-align:right;letter-spacing:0.06em;text-transform:uppercase">Bias</div>
-          <div style="font-size:6.5px;color:var(--faint);width:32px;text-align:right;letter-spacing:0.06em;text-transform:uppercase">Chg</div>
+      <div class="ov-cb-table-wrap">
+        <div class="ov-cb-table-hdr">
+          <div class="ov-rate-section-title">G10 Central Banks</div>
+          <div class="ov-rate-section-line"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;padding:0 0 4px 0;margin-bottom:1px;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <div class="ov-cb-col-head" style="width:30px">CB</div>
+          <div class="ov-cb-col-head" style="width:38px">Rate</div>
+          <div class="ov-cb-col-head" style="flex:1">6m Trend</div>
+          <div class="ov-cb-col-head" style="width:36px;text-align:right">Bias</div>
+          <div class="ov-cb-col-head" style="width:32px;text-align:right">Chg</div>
         </div>
         ${cbRows}
       </div>` : '';
@@ -4330,11 +4431,9 @@ function renderOverview(){
     // ── Inject signals + rates into climate panel (merged section)
     const cpSignalSlot=document.getElementById('ov-cp-signal-slot');
     if(cpSignalSlot){
-      // Cross-asset price signals are now embedded in the Market Environment grid above.
-      // Signal slot now only carries: US Rate Expectations + G10 CB Rates.
       const hasRateOrCB = (effr!=null||cuts12m!=null) || !!cbRows;
       cpSignalSlot.innerHTML = hasRateOrCB ? `
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bdr)">
+        <div class="ov-rate-cb-wrap">
           ${rateCardHtml}
           ${cbSectionHtml}
         </div>` : '';
@@ -4766,6 +4865,7 @@ function renderClimatePanel(reg, markets, mktMap){
     <canvas id="ov-cp-bg-canvas"></canvas>
     <div class="ov-cp-header">
       <div class="ov-cp-eyebrow">Global Market Climate</div>
+      <div class="ov-cp-header-line"></div>
       <div class="ov-cp-timestamp">
         <div class="ov-cp-live-dot"></div>
         <span id="ov-cp-score-age">${scoreAgeStr}</span>
@@ -5436,17 +5536,15 @@ async function loadAiBrief(){
     <div class="ov-ai-brief-header">
       <div class="ov-ai-brief-title">
         <div class="ov-ai-brief-icon">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#5c9eff" stroke-width="1.5" stroke-linecap="round">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="rgba(200,169,110,0.8)" stroke-width="1.5" stroke-linecap="round">
             <path d="M6 1v1M6 10v1M1 6h1M10 6h1M2.5 2.5l.7.7M8.8 8.8l.7.7M2.5 9.5l.7-.7M8.8 3.2l.7-.7"/>
             <circle cx="6" cy="6" r="2"/>
           </svg>
         </div>
-        <div>
-          <div class="ov-ai-brief-label">Breaking News</div>
-          <div class="ov-ai-brief-sub" id="ai-brief-sub">High &amp; Medium impact · last 48h</div>
-        </div>
+        <div class="ov-ai-brief-label">Breaking News</div>
       </div>
-      <div id="ai-brief-ts" style="font-size:8px;color:var(--faint);font-family:var(--mono)"></div>
+      <div class="ov-ai-brief-header-line"></div>
+      <div class="ov-ai-brief-sub" id="ai-brief-sub">High &amp; Medium impact · 48h</div>
     </div>
     <div class="ov-ai-brief-body open" id="ai-brief-body">
       <div style="margin-bottom:14px">

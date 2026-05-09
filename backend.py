@@ -5768,6 +5768,133 @@ def fetch_ff_news(hours_back: int = 48) -> list:
         return []
 
 
+# Global narrative cache (separate TTL — regen every 2h with fresh macro data)
+GLOBAL_NARR_CACHE: dict = {"data": None, "time": 0}
+GLOBAL_NARR_CACHE_TTL = 3600 * 2  # 2 hours
+
+
+def generate_global_narrative(regime_data: dict, news_items: list) -> str | None:
+    """
+    Generate a 3–4 sentence global market narrative using Sonar.
+    Has sight of: regime, macro dashboard (yield curve, credit, labour,
+    inflation, rate path) and the latest news headlines.
+    Returns the narrative string or None on failure.
+    """
+    import json as _json
+    api_key = os.environ.get("PPLX_API_KEY", "")
+    if not api_key:
+        return None
+
+    # ── Pull key macro fields from regime_data ──────────────────────────
+    regime_name  = regime_data.get("regime", "Unknown")
+    score_10     = regime_data.get("score_10", 5.0)
+    md           = regime_data.get("macro_dashboard", {})
+    yc           = md.get("yield_curve", {})
+    cr           = md.get("credit", {})
+    lb           = md.get("labour", {})
+    fb           = md.get("fed_balance", {})
+    ry           = md.get("real_yield", {})
+    rs           = regime_data.get("rate_signal", {})
+    mc           = regime_data.get("macro_composites", {})
+
+    # Yield curve
+    yc_spread    = yc.get("t10y2y")
+    yc_regime    = yc.get("curve_regime", "Unknown")
+    t2y          = yc.get("t2y")
+    t10y         = yc.get("t10y")
+    # Credit
+    hy_oas       = cr.get("hy_oas_bps")
+    ig_oas       = cr.get("ig_oas_bps")
+    hy_trend     = cr.get("hy_trend", "")
+    # Labour
+    jobs_comp    = lb.get("jobs_composite_10")
+    nfp_mom      = lb.get("nfp_mom")
+    nfp_surp     = lb.get("nfp_surprise_label", "")
+    unrate       = lb.get("unrate")
+    # Fed balance / rates
+    fb_level     = fb.get("level")
+    fb_trend     = fb.get("trend", "")
+    effr         = rs.get("effr")
+    cuts_12m     = rs.get("cuts_12m", 0)
+    rate_label   = regime_data.get("rate_label", "On Hold")
+    # Real yield
+    real_yield   = ry.get("value") if isinstance(ry, dict) else None
+    # Macro composites by asset class
+    eq_score     = mc.get("equity",  {}).get("composite_10") if isinstance(mc.get("equity"), dict)  else None
+    bond_score   = mc.get("bond",    {}).get("composite_10") if isinstance(mc.get("bond"),   dict)  else None
+    comm_score   = mc.get("commodity",{}).get("composite_10") if isinstance(mc.get("commodity"),dict) else None
+    gold_score   = mc.get("gold",   {}).get("composite_10") if isinstance(mc.get("gold"),    dict)  else None
+
+    # ── Build the context block ──────────────────────────────────────────
+    lines = [f"REGIME: {regime_name} (climate score {score_10}/10)"]
+    if yc_spread is not None:
+        lines.append(f"YIELD CURVE: {yc_regime} | 10Y-2Y spread {yc_spread:+.2f}% | 2Y {t2y:.2f}% | 10Y {t10y:.2f}%" if t2y and t10y else f"YIELD CURVE: {yc_regime} | 10Y-2Y {yc_spread:+.2f}%")
+    if hy_oas is not None:
+        lines.append(f"CREDIT SPREADS: HY OAS {hy_oas}bp ({hy_trend}) | IG OAS {ig_oas}bp" if ig_oas else f"CREDIT: HY OAS {hy_oas}bp ({hy_trend})")
+    if jobs_comp is not None:
+        nfp_str = f" | NFP {nfp_mom:+.0f}K ({nfp_surp})" if nfp_mom is not None else ""
+        ur_str  = f" | Unemployment {unrate}%" if unrate is not None else ""
+        lines.append(f"LABOUR: composite {jobs_comp:.1f}/10{nfp_str}{ur_str}")
+    if effr is not None:
+        cuts_str = f" | market pricing {cuts_12m*100:+.0f}bp cuts over 12m" if cuts_12m else ""
+        lines.append(f"FED POLICY: EFFR {effr:.2f}% | stance {rate_label}{cuts_str}")
+    if fb_level is not None:
+        lines.append(f"FED BALANCE SHEET: ${fb_level:.2f}T ({fb_trend})")
+    if real_yield is not None:
+        lines.append(f"REAL YIELD (10Y TIPS): {real_yield:+.2f}%")
+    if eq_score is not None:  lines.append(f"MACRO COMPOSITE — Equities: {eq_score:.1f}/10")
+    if bond_score is not None: lines.append(f"MACRO COMPOSITE — Bonds: {bond_score:.1f}/10")
+    if comm_score is not None: lines.append(f"MACRO COMPOSITE — Commodities: {comm_score:.1f}/10")
+    if gold_score is not None: lines.append(f"MACRO COMPOSITE — Gold: {gold_score:.1f}/10")
+
+    macro_block = "\n".join(lines)
+
+    # ── Top headlines ────────────────────────────────────────────────────
+    headlines = []
+    for n in news_items[:10]:
+        title   = n.get("title", "")
+        impact  = n.get("impact", "medium").upper()
+        preview = n.get("preview", "")
+        if title:
+            line = f"[{impact}] {title}"
+            if preview:
+                line += f" — {preview[:100]}"
+            headlines.append(line)
+    headline_block = "\n".join(headlines) if headlines else "No significant headlines."
+
+    prompt = (
+        "You are a senior macro analyst writing a concise market brief for a professional trader. "
+        "Based on the macro data and headlines below, write a 3–4 sentence global market narrative. "
+        "Rules: (1) Reference specific data points where relevant — e.g. the yield curve spread, "
+        "credit spread levels, NFP figure, or EFFR. (2) Explain what the regime means for cross-asset "
+        "positioning — which asset classes benefit or face headwinds. (3) Flag any notable macro tensions "
+        "or contradictions (e.g. risk-on regime but labour softening). (4) Be direct and data-driven. "
+        "No bullet points, no headers — flowing prose only. No markdown. 3–4 sentences maximum.\n\n"
+        f"MACRO CONTEXT:\n{macro_block}\n\n"
+        f"RECENT HEADLINES (last 48h):\n{headline_block}"
+    )
+
+    try:
+        resp = httpx.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "sonar",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 300,
+                "temperature": 0.4,
+            },
+            timeout=30.0,
+        )
+        text = resp.json()["choices"][0]["message"]["content"].strip()
+        # Strip any stray markdown
+        text = text.replace("**", "").replace("##", "").replace("\n\n", " ").strip()
+        return text if len(text) > 40 else None
+    except Exception as e:
+        print(f"[global_narr] error: {e}", flush=True)
+        return None
+
+
 def compute_news_context(force: bool = False) -> dict:
     """
     News feed: qualitative financial headlines from ForexFactory /news page,
@@ -5813,11 +5940,30 @@ def compute_news_context(force: bool = False) -> dict:
     narratives_text   = {k: v["text"]     for k, v in narratives.items() if isinstance(v, dict)}
     narratives_scores = {k: v["score_10"] for k, v in narratives.items() if isinstance(v, dict) and v.get("score_10") is not None}
 
+    # ── 3. Global narrative (Sonar) — uses macro + news context ────────────
+    gnl_hit = (
+        not force
+        and GLOBAL_NARR_CACHE["data"] is not None
+        and (now - GLOBAL_NARR_CACHE["time"]) < GLOBAL_NARR_CACHE_TTL
+    )
+    if gnl_hit:
+        global_narrative = GLOBAL_NARR_CACHE["data"]
+    else:
+        regime_data = RISK_REGIME_CACHE.get("data") or {}
+        print("[global_narr] Generating global market narrative…", flush=True)
+        global_narrative = generate_global_narrative(regime_data, news_items)
+        GLOBAL_NARR_CACHE["data"] = global_narrative
+        GLOBAL_NARR_CACHE["time"] = now
+        if global_narrative:
+            print(f"[global_narr] Generated: {global_narrative[:80]}…", flush=True)
+        else:
+            print("[global_narr] Generation failed — will use fallback", flush=True)
+
     return {
         "narratives":        narratives_text,    # {assetId: "text string"} — frontend display
         "narrative_scores":  narratives_scores,  # {assetId: 0-10 float} — regime blending
         "news_items":        news_items[:20],
-        "global_narrative":  None,
+        "global_narrative":  global_narrative,
         "price_context":     {},
         "updated_at":        news_ts,
         "ff_event_count":    len(news_items),
