@@ -1835,7 +1835,7 @@ a{color:inherit;text-decoration:none}
 .ov-news-row-time{font-size:8px;color:var(--faint);font-family:var(--mono);white-space:nowrap}
 
 /* Remove old collapsed state — news is always open */
-.ov-ai-brief-body{display:none;padding:0 24px 18px}
+.ov-ai-brief-body{display:none;padding:4px 24px 18px}
 .ov-ai-brief-body.open{display:block}
 
 /* ── Back to Overview button (in detail header) ── */
@@ -5560,7 +5560,6 @@ async function loadAiBrief(){
 
   try{
     const data = await getNewsContext();
-    const narrative = data.global_narrative || null;
     const newsItems = data.news_items || [];
     const updAt = data.updated_at;
 
@@ -5571,17 +5570,7 @@ async function loadAiBrief(){
       ageStr = ageMin < 2 ? 'just now' : ageMin < 60 ? ageMin+'m ago' : (Math.round(ageMin/60))+'h ago';
     }
 
-    // ── AI narrative block ───────────────────────────────────────
-    const narrativeHtml = narrative ? `
-      <div class="ov-news-narrative">
-        <div class="ov-news-narr-label">
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="#5c9eff" stroke-width="1.5" stroke-linecap="round">
-            <path d="M1 3h7M1 5h5M1 7h3"/>
-          </svg>
-          AI Synthesis
-        </div>
-        <div class="ov-news-narr-text">${narrative.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\[\d+\]/g,'')}</div>
-      </div>` : '';
+    // ── AI narrative block removed — narrative now lives in Market Narrative card above ──
 
     // ── News items list ──────────────────────────────────────────
     // Group by date label for a clean feed layout
@@ -5627,16 +5616,11 @@ async function loadAiBrief(){
 
     const bodyEl = document.getElementById('ai-brief-body');
     if(bodyEl){
-      const _newsHeaderHtml = newsListHtml ? `<div style="display:flex;align-items:center;gap:8px;padding:10px 0 6px;border-bottom:1px solid var(--bdr);margin-bottom:8px">
-  <div style="font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">MARKET NEWS</div>
-  <div style="font-size:7px;color:var(--faint);opacity:0.7">&middot; Last 48h &middot; High &amp; Medium Impact</div>
-  <div style="flex:1"></div>
-  <div id="news-ts" style="font-size:7px;color:var(--faint);opacity:0.6"></div>
-</div>` : '';
-      bodyEl.innerHTML = narrativeHtml + _newsHeaderHtml + (newsListHtml||'<div style="color:var(--faint);font-size:10px;padding:8px 0">No news available.</div>');
+      bodyEl.innerHTML = newsListHtml || '<div style="color:var(--faint);font-size:10px;padding:8px 0">No news available.</div>';
     }
-    const tsEl = document.getElementById('ai-brief-ts');
-    if(tsEl && ageStr) tsEl.textContent = 'Updated '+ageStr;
+    // Update sub-label with age
+    const subEl = document.getElementById('ai-brief-sub');
+    if(subEl && ageStr) subEl.textContent = 'High & Medium impact · '+ageStr;
     _aiBriefLoaded = true;
   } catch(e){
     const bodyEl = document.getElementById('ai-brief-body');
