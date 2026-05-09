@@ -1081,8 +1081,8 @@ a{color:inherit;text-decoration:none}
 /* ── Macro Data Panels (Yield Curve, Credit, Fed BS) ── */
 /* ── Macro Climate Panels ───────────────────────────────────────────── */
 .ov-macro-sect-header{
-  font-size:8px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;
-  color:var(--faint);margin:18px 16px 10px;
+  font-size:8px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--faint);margin:20px 16px 12px;
   display:flex;align-items:center;gap:10px;
 }
 .ov-macro-sect-header::after{
@@ -1094,35 +1094,40 @@ a{color:inherit;text-decoration:none}
   gap:10px;
   margin:0 16px 14px;
   align-items:stretch;
+  grid-auto-rows:minmax(440px,auto);
 }
 @media(max-width:1100px){.ov-macro-panels{grid-template-columns:1fr 1fr;align-items:stretch}}
 @media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr;gap:8px;align-items:stretch}}
-/* Mobile tweaks for new menv card internals */
+/* Mobile tweaks */
 @media(max-width:600px){
+  .ov-macro-panels{grid-auto-rows:minmax(340px,auto)}
   .ov-macro-card{padding:14px 14px 12px;border-radius:12px}
   .ov-mc-hero{font-size:22px!important}
-  .ov-yc-canvas-wrap{height:60px}
-  /* Constrain arc SVGs on mobile so they never overflow the card */
-  .ov-gauge-pair{gap:0;margin:6px 0 8px}
-  .ov-gauge-unit{padding:0 2px}
-  .ov-gauge-unit svg{max-width:120px!important;width:120px!important}
-  .ov-gauge-bp{font-size:20px!important}
-  .ov-gauge-bp-unit{font-size:8px!important}
-  .ov-gauge-lbl{font-size:7px!important}
-  .ov-gauge-sub{font-size:6.5px!important}
-  .ov-bs-kpi{grid-template-columns:1fr 1fr;gap:4px}
-  .ov-bs-kpi-val{font-size:12px!important}
-  .ov-lab-top{gap:8px}
-  /* Labour arc: constrain on mobile */
-  .ov-lab-arc-wrap svg{max-width:86px!important;width:86px!important}
+  .ov-yc-canvas-wrap{min-height:80px}
+  .ov-yc-hero-val{font-size:28px!important}
+  /* Credit spreads mobile */
+  .ov-cs-val{font-size:26px!important}
+  .ov-cs-row{padding:12px 14px}
+  .ov-cs-footer{gap:0}
+  .ov-cs-foot-val{font-size:12px!important}
+  .ov-cs-foot-lbl{font-size:6.5px!important}
+  /* Labour arc mobile */
+  .ov-lab-arc-wrap svg{max-width:80px!important;width:80px!important}
   .ov-lab-arc-score{font-size:22px!important}
   .ov-lab-nfp-val{font-size:24px!important}
-  .ov-lab-grid{grid-template-columns:1fr 1fr;gap:4px}
-  .ov-lab-cell{padding:6px 7px 5px}
-  .ov-lab-cell-val{font-size:12px!important}
-  .ov-tenor-val{font-size:10px!important}
-  .ov-ff-table{font-size:7.5px}
-  .ov-ff-pill{font-size:6px;padding:1px 4px}
+  /* BS mobile */
+  .ov-bs-kpi{grid-template-columns:1fr 1fr;gap:5px}
+  .ov-bs-kpi-val{font-size:16px!important}
+  /* Labour grid mobile */
+  .ov-lab-grid{grid-template-columns:1fr 1fr;gap:5px}
+  .ov-lab-cell{padding:8px 10px}
+  .ov-lab-cell-val{font-size:13px!important}
+  /* Tenor mobile */
+  .ov-tenor-val{font-size:11px!important}
+  .ov-tenor-lbl{font-size:6px!important}
+  /* FF table mobile */
+  .ov-ff-table{font-size:8px}
+  .ov-ff-pill{font-size:6.5px;padding:2px 5px}
 }
 
 /* ── Card base ─────────────────────────────────────────── */
@@ -1131,7 +1136,7 @@ a{color:inherit;text-decoration:none}
   backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   border:1px solid rgba(255,255,255,0.10);
   border-radius:16px;
-  padding:18px 18px 16px;
+  padding:20px 20px 18px;
   position:relative;
   overflow:hidden;
   display:flex;flex-direction:column;gap:0;
@@ -1186,55 +1191,369 @@ a{color:inherit;text-decoration:none}
 .ov-mc-eyebrow{font-size:7px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
 .ov-mc-title{font-size:11.5px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
 .ov-mc-badge{
-  font-size:7px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;
+  font-size:7px;font-weight:800;letter-spacing:0;text-transform:uppercase;
   padding:3px 10px;border-radius:20px;flex-shrink:0;white-space:nowrap;margin-top:1px;
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
 }
 
 /* ── Hero number ───────────────────────────────────────── */
 .ov-mc-hero{
-  font-family:var(--mono);font-weight:900;letter-spacing:-0.03em;line-height:1;
-  margin-bottom:3px;
+  font-family:var(--mono);font-weight:900;letter-spacing:-0.04em;line-height:1;
+  margin-bottom:4px;
 }
 .ov-mc-hero-sub{
   font-family:var(--mono);font-size:9px;font-weight:600;color:var(--faint);
-  margin-bottom:6px;
+  margin-bottom:6px;letter-spacing:0.02em;
 }
 
-/* ── CARD 1: Yield Curve canvas — fills all remaining height ── */
+/* ════════════════════════════════════════════
+   CARD 1 — YIELD CURVE
+════════════════════════════════════════════ */
+/* Canvas fills flex space */
 .ov-yc-canvas-wrap{
-  flex:1;min-height:0;
-  position:relative;border-radius:10px;overflow:hidden;margin:8px 0 0;
-  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);
+  flex:1;min-height:0;position:relative;border-radius:10px;overflow:hidden;
+  margin:10px 0 0;
+  background:rgba(255,255,255,0.025);
+  border:1px solid rgba(255,255,255,0.08);
 }
-.ov-yc-canvas-wrap canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
-/* Hero overlay pinned inside canvas */
-.ov-yc-hero-overlay{position:absolute;top:12px;left:14px;z-index:2;pointer-events:none}
-.ov-yc-hero-row{display:flex;align-items:baseline;gap:9px}
-.ov-yc-hero-val{font-family:var(--mono);font-size:36px;font-weight:900;letter-spacing:-0.05em;line-height:1;text-shadow:0 2px 16px rgba(0,0,0,0.95)}
-.ov-yc-hero-chg{font-family:var(--mono);font-size:9px;font-weight:700;background:rgba(0,0,0,0.6);padding:2px 6px;border-radius:4px}
-.ov-yc-hero-sub{font-family:var(--mono);font-size:7.5px;color:rgba(255,255,255,0.38);margin-top:4px;letter-spacing:0.04em}
-
-/* ── Tenor row: pill at bottom of Card 1 ── */
+/* Fade bottom of canvas into card bg */
+.ov-yc-canvas-wrap::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:40px;
+  background:linear-gradient(transparent,rgba(8,11,20,0.6));
+  pointer-events:none;z-index:1;
+}
+.ov-yc-canvas-wrap canvas{
+  position:absolute;inset:0;display:block;width:100%;height:100%;
+}
+/* Hero overlay — spread + 3m change, pinned top-left inside canvas */
+.ov-yc-hero-overlay{
+  position:absolute;top:14px;left:16px;z-index:2;pointer-events:none;
+}
+/* YC bottom info bar — regime context pinned bottom of canvas */
+.ov-yc-canvas-regime{
+  position:absolute;bottom:12px;left:14px;z-index:3;pointer-events:none;
+  font-family:var(--mono);font-size:8px;font-weight:700;
+  color:rgba(255,255,255,0.5);letter-spacing:0.04em;text-transform:uppercase;
+  text-shadow:0 1px 6px rgba(0,0,0,0.9);
+}
+.ov-yc-hero-row{display:flex;align-items:baseline;gap:10px}
+.ov-yc-hero-val{
+  font-family:var(--mono);font-size:38px;font-weight:900;
+  letter-spacing:-0.05em;line-height:1;
+  text-shadow:0 2px 24px rgba(0,0,0,1),0 0 40px rgba(0,0,0,0.9);
+}
+.ov-yc-hero-chg{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  background:rgba(0,0,0,0.7);padding:3px 7px;border-radius:5px;
+  backdrop-filter:blur(4px);
+}
+.ov-yc-hero-sub{
+  font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.45);
+  margin-top:6px;letter-spacing:0.05em;text-transform:uppercase;
+  text-shadow:0 1px 8px rgba(0,0,0,0.9);
+}
+/* Tenor strip — compact pill bar at bottom */
 .ov-tenor-row{
   display:flex;justify-content:space-between;align-items:center;
-  flex-shrink:0;margin-top:9px;
-  padding:9px 10px;
-  background:rgba(255,255,255,0.03);border-radius:9px;border:1px solid rgba(255,255,255,0.07);
+  flex-shrink:0;margin-top:10px;
+  padding:10px 8px;
+  background:rgba(255,255,255,0.035);
+  border-radius:10px;border:1px solid rgba(255,255,255,0.08);
 }
-.ov-tenor-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.ov-tenor-item{
+  display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;
+  padding:0 2px;min-width:0;
+}
 .ov-tenor-item+.ov-tenor-item{border-left:1px solid rgba(255,255,255,0.06)}
-.ov-tenor-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.06em;color:var(--faint);text-transform:uppercase}
-.ov-tenor-val{font-family:var(--mono);font-size:12.5px;font-weight:900;color:var(--text);letter-spacing:-0.02em}
+.ov-tenor-lbl{
+  font-size:7px;font-weight:700;letter-spacing:0.07em;
+  color:var(--faint);text-transform:uppercase;
+}
+.ov-tenor-val{
+  font-family:var(--mono);font-size:13px;font-weight:900;
+  color:var(--text);letter-spacing:-0.02em;
+  white-space:nowrap;
+}
 .ov-tenor-item.ov-tenor-key .ov-tenor-val{color:var(--accent)}
 .ov-tenor-item.ov-tenor-key .ov-tenor-lbl{color:var(--dim)}
 
-/* ── CARD 2: Arc gauge — scales to fill card ── */
-.ov-gauge-pair{
-  display:flex;gap:0;flex:1;min-height:0;
-  align-items:center;justify-content:space-evenly;
-  margin:6px 0 0;
+/* ════════════════════════════════════════════
+   CARD 2 — CREDIT SPREADS  (spectrum bar design)
+════════════════════════════════════════════ */
+/* Main body wrapper fills card */
+.ov-cs-body{
+  flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;
+  margin-top:10px;
 }
+/* Each spread row — equal height, fills available space */
+.ov-cs-row{
+  flex:1;display:flex;flex-direction:column;justify-content:space-between;
+  padding:16px 18px;
+  border-radius:12px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);
+  position:relative;overflow:hidden;
+}
+/* Subtle colour tint wash behind each row */
+.ov-cs-row-wash{
+  position:absolute;inset:0;pointer-events:none;border-radius:10px;
+  opacity:0.06;
+}
+/* Left accent stripe on each row */
+.ov-cs-row::before{
+  content:'';position:absolute;top:12px;bottom:12px;left:0;width:3px;
+  border-radius:0 2px 2px 0;
+  background:var(--cs-accent,rgba(255,255,255,0.2));
+  opacity:0.7;
+}
+/* Header row: label left, bp value right */
+.ov-cs-row-head{
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;z-index:1;margin-bottom:12px;
+}
+.ov-cs-name{
+  font-size:8px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--dim);
+}
+.ov-cs-val-wrap{display:flex;align-items:baseline;gap:4px}
+.ov-cs-val{
+  font-family:var(--mono);font-size:38px;font-weight:900;
+  letter-spacing:-0.05em;line-height:1;
+}
+.ov-cs-unit{
+  font-size:11px;font-weight:700;color:var(--faint);
+  text-transform:uppercase;margin-bottom:3px;
+}
+/* Delta chip */
+.ov-cs-delta{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  padding:2px 7px;border-radius:5px;
+  background:rgba(255,255,255,0.06);
+}
+/* Spectrum bar — the key visual */
+.ov-cs-spectrum-wrap{position:relative;z-index:1}
+.ov-cs-spectrum{
+  height:12px;border-radius:7px;
+  position:relative;overflow:visible;
+  margin-bottom:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.1);
+}
+/* HY spectrum: 150bp=tight(green) → 350bp=normal(yellow) → 600bp=stress(red) */
+.ov-cs-spectrum-hy{
+  background:linear-gradient(90deg,
+    #22c97a 0%,
+    #22c97a 20%,
+    #f5c842 42%,
+    #e03a2a 68%,
+    #c41a2e 100%
+  );
+}
+/* IG spectrum: 50bp=tight(green) → 120bp=normal(yellow) → 250bp=stress(red) */
+.ov-cs-spectrum-ig{
+  background:linear-gradient(90deg,
+    #22c97a 0%,
+    #22c97a 25%,
+    #f5c842 48%,
+    #e03a2a 72%,
+    #c41a2e 100%
+  );
+}
+/* Marker dot on spectrum */
+.ov-cs-marker{
+  position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:20px;height:20px;border-radius:50%;
+  border:3px solid rgba(8,11,20,0.98);
+  box-shadow:0 0 0 2px rgba(255,255,255,0.4),0 3px 14px rgba(0,0,0,0.9);
+  z-index:2;transition:left 800ms cubic-bezier(0.16,1,0.3,1);
+}
+/* Zone labels below spectrum */
+.ov-cs-zone-labels{
+  display:flex;justify-content:space-between;
+}
+.ov-cs-zone-lbl{
+  font-size:6.5px;font-weight:700;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--faint);
+}
+/* Context label — big readable interpretation */
+.ov-cs-context{
+  display:flex;align-items:center;gap:8px;
+  margin-top:12px;padding:8px 10px;
+  border-radius:7px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.06);
+  position:relative;z-index:1;
+  overflow:hidden;min-width:0;
+}
+.ov-cs-context-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 8px currentColor;
+  border:1.5px solid rgba(255,255,255,0.2);
+}
+.ov-cs-context-txt{
+  font-size:9.5px;font-weight:700;letter-spacing:0.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  flex:1;min-width:0;
+}
+/* Footer stat strip */
+.ov-cs-footer{
+  display:flex;gap:0;
+  margin-top:10px;padding-top:10px;
+  border-top:1px solid rgba(255,255,255,0.07);
+  flex-shrink:0;
+}
+.ov-cs-foot-item{
+  flex:1;display:flex;flex-direction:column;gap:3px;padding:0 8px;
+}
+.ov-cs-foot-item:first-child{padding-left:0}
+.ov-cs-foot-item:last-child{padding-right:0}
+.ov-cs-foot-item+.ov-cs-foot-item{
+  border-left:1px solid rgba(255,255,255,0.06);
+}
+.ov-cs-foot-lbl{
+  font-size:7px;font-weight:700;letter-spacing:0.09em;
+  text-transform:uppercase;color:var(--faint);
+}
+.ov-cs-foot-val{
+  font-family:var(--mono);font-size:14px;font-weight:800;
+  letter-spacing:-0.01em;
+}
+
+/* ════════════════════════════════════════════
+   CARD 3 — BALANCE SHEET
+════════════════════════════════════════════ */
+.ov-bs-body{flex:1;display:flex;flex-direction:column;gap:8px;min-height:0}
+.ov-bs-range-wrap{flex-shrink:0}
+.ov-bs-range-bar{
+  height:24px;border-radius:12px;
+  background:rgba(255,255,255,0.06);
+  position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,0.09);
+}
+.ov-bs-range-fill{
+  height:100%;border-radius:9px;
+  transition:width 900ms cubic-bezier(0.16,1,0.3,1);
+  position:relative;
+}
+.ov-bs-range-fill::after{
+  content:'';position:absolute;inset:0;border-radius:9px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.28) 0%,transparent 55%);
+}
+.ov-bs-range-fill::before{
+  content:'';position:absolute;top:0;bottom:0;width:40%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.16),transparent);
+  animation:bsSweep 3s ease-in-out infinite;
+}
+@keyframes bsSweep{0%{left:-40%}100%{left:140%}}
+.ov-bs-range-needle{
+  position:absolute;top:-5px;bottom:-5px;width:2.5px;border-radius:2px;
+  background:rgba(255,255,255,0.95);
+  box-shadow:0 0 10px rgba(255,255,255,0.8),0 0 20px rgba(255,255,255,0.3);
+  transition:left 900ms cubic-bezier(0.16,1,0.3,1);
+}
+.ov-bs-range-labels{display:flex;justify-content:space-between;margin-top:5px}
+.ov-bs-range-lbl{font-size:7px;color:var(--faint);font-family:var(--mono)}
+/* 2×2 KPI grid — fills remaining height */
+.ov-bs-kpi{
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+  gap:8px;flex:1;min-height:0;margin-top:2px;
+}
+.ov-bs-kpi-cell{
+  display:flex;flex-direction:column;justify-content:center;
+  padding:12px 14px;border-radius:10px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.09),0 1px 6px rgba(0,0,0,0.3);
+  position:relative;overflow:hidden;
+}
+/* Subtle shimmer top edge on each KPI cell */
+.ov-bs-kpi-cell::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18) 50%,transparent);
+  pointer-events:none;
+}
+.ov-bs-kpi-lbl{
+  font-size:7px;font-weight:700;letter-spacing:0.09em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:7px;
+}
+.ov-bs-kpi-val{
+  font-family:var(--mono);font-size:20px;font-weight:900;
+  letter-spacing:-0.03em;line-height:1;
+}
+
+/* ════════════════════════════════════════════
+   CARD 4 — LABOUR MARKET
+════════════════════════════════════════════ */
+.ov-lab-top{display:flex;align-items:stretch;gap:14px;margin-bottom:14px;flex-shrink:0}
+.ov-lab-arc-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;flex-shrink:0;gap:4px;
+  padding:6px 0;
+}
+.ov-lab-arc-score{
+  font-family:var(--mono);font-size:36px;font-weight:900;
+  letter-spacing:-0.04em;line-height:1;text-align:center;
+}
+.ov-lab-arc-sub{
+  font-size:7px;font-weight:800;letter-spacing:0.09em;
+  text-transform:uppercase;color:var(--faint);text-align:center;margin-top:2px;
+}
+.ov-lab-nfp-block{
+  flex:1;display:flex;flex-direction:column;justify-content:center;gap:5px;
+  padding-left:12px;border-left:1px solid rgba(255,255,255,0.08);
+}
+.ov-lab-nfp-val{
+  font-family:var(--mono);font-weight:900;font-size:32px;
+  letter-spacing:-0.04em;line-height:1;
+}
+.ov-lab-nfp-sub{font-family:var(--mono);font-size:8px;color:var(--faint)}
+/* FF table fills remaining height */
+.ov-lab-body{flex:1;display:flex;flex-direction:column;min-height:0}
+.ov-ff-table{width:100%;border-collapse:collapse}
+.ov-ff-thead th{
+  font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;
+  color:var(--faint);padding:0 0 8px;text-align:right;
+}
+.ov-ff-thead th:first-child{text-align:left}
+.ov-ff-row td{
+  padding:7px 0;border-top:1px solid rgba(255,255,255,0.05);
+  font-size:9px;vertical-align:middle;
+}
+.ov-ff-row td:first-child{font-weight:700;color:var(--dim);text-align:left;font-size:8.5px}
+.ov-ff-row td{text-align:right;font-family:var(--mono);font-weight:800}
+.ov-ff-pill{
+  display:inline-block;font-size:7px;font-weight:800;
+  letter-spacing:0.06em;padding:3px 8px;border-radius:5px;white-space:nowrap;
+  box-shadow:0 1px 4px rgba(0,0,0,0.4);
+}
+/* Labour metric grid (no-FF fallback) */
+.ov-lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;flex:1;min-height:0}
+.ov-lab-cell{
+  padding:11px 12px;border-radius:10px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
+  display:flex;flex-direction:column;gap:4px;overflow:hidden;min-width:0;
+}
+.ov-lab-cell-lbl{
+  font-size:7px;font-weight:700;letter-spacing:0.05em;
+  text-transform:uppercase;color:var(--faint);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ov-lab-cell-val{font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em}
+.ov-lab-cell-sub{font-size:7px;font-family:var(--mono);color:var(--faint)}
+.ov-lab-mini-bar{height:3px;border-radius:2px;background:rgba(255,255,255,0.05);margin-top:3px;overflow:hidden}
+.ov-lab-mini-fill{height:100%;border-radius:2px;transition:width 800ms cubic-bezier(0.16,1,0.3,1)}
+
+/* Stat chips (Card 2 footer) */
+.ov-mc-stats{display:flex;gap:0;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0}
+.ov-mc-stat{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 8px}
+.ov-mc-stat:first-child{padding-left:0}
+.ov-mc-stat:last-child{padding-right:0}
+.ov-mc-stat+.ov-mc-stat{border-left:1px solid rgba(255,255,255,0.05)}
+.ov-mc-stat-lbl{font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)}
+.ov-mc-stat-val{font-family:var(--mono);font-size:13px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
+.ov-mc-stat-delta{font-family:var(--mono);font-size:8px;color:var(--faint)}
+
+/* ── Old gauge classes kept for Labour arc compatibility ── */
 .ov-gauge-unit{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;padding:0 4px}
 .ov-gauge-unit-inner{position:relative;display:flex;flex-direction:column;align-items:center;width:100%;max-width:165px}
 .ov-gauge-ring-glow{
@@ -1244,103 +1563,9 @@ a{color:inherit;text-decoration:none}
   pointer-events:none;
 }
 .ov-gauge-unit svg{display:block;overflow:hidden;margin:0 auto;width:100%}
-.ov-gauge-lbl{font-size:8px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-top:8px;text-align:center}
-.ov-gauge-val-row{display:flex;align-items:baseline;gap:3px;margin-top:5px;justify-content:center}
-.ov-gauge-bp{font-family:var(--mono);font-size:34px;font-weight:900;letter-spacing:-0.04em;line-height:1}
-.ov-gauge-bp-unit{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--faint);align-self:flex-end;margin-bottom:4px}
-.ov-gauge-sub{font-size:8px;font-family:var(--mono);margin-top:5px;text-align:center}
-.ov-gauge-divider{
-  width:1px;flex-shrink:0;align-self:stretch;
-  background:linear-gradient(180deg,transparent 0%,rgba(255,255,255,0.1) 20%,rgba(255,255,255,0.1) 80%,transparent 100%);
-}
+.ov-gauge-pair{display:flex;gap:0;flex:1;min-height:0;align-items:center;justify-content:space-evenly;margin:6px 0 0}
+.ov-gauge-divider{width:1px;flex-shrink:0;align-self:stretch;background:linear-gradient(180deg,transparent 0%,rgba(255,255,255,0.1) 20%,rgba(255,255,255,0.1) 80%,transparent 100%)}
 
-/* ── Stat chips: sits naturally below gauge ── */
-.ov-mc-stats{display:flex;gap:0;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0}
-.ov-mc-stat{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 8px}
-.ov-mc-stat:first-child{padding-left:0}
-.ov-mc-stat:last-child{padding-right:0}
-.ov-mc-stat+.ov-mc-stat{border-left:1px solid rgba(255,255,255,0.05)}
-.ov-mc-stat-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)}
-.ov-mc-stat-val{font-family:var(--mono);font-size:12px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
-.ov-mc-stat-delta{font-family:var(--mono);font-size:8px;color:var(--faint)}
-
-/* ── CARD 3: Balance Sheet body fills space ── */
-.ov-bs-body{flex:1;display:flex;flex-direction:column;gap:9px;min-height:0}
-.ov-bs-range-wrap{flex-shrink:0}
-.ov-bs-range-bar{
-  height:20px;border-radius:10px;
-  background:rgba(255,255,255,0.06);
-  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.09);
-}
-.ov-bs-range-fill{
-  height:100%;border-radius:8px;
-  transition:width 900ms cubic-bezier(0.16,1,0.3,1);
-  position:relative;
-}
-.ov-bs-range-fill::after{
-  content:'';position:absolute;inset:0;border-radius:8px;
-  background:linear-gradient(180deg,rgba(255,255,255,0.25) 0%,transparent 55%);
-}
-.ov-bs-range-fill::before{
-  content:'';position:absolute;top:0;bottom:0;width:40%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.14),transparent);
-  animation:bsSweep 3s ease-in-out infinite;
-}
-@keyframes bsSweep{0%{left:-40%}100%{left:140%}}
-.ov-bs-range-needle{
-  position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;
-  background:rgba(255,255,255,0.9);box-shadow:0 0 8px rgba(255,255,255,0.7);
-  transition:left 900ms cubic-bezier(0.16,1,0.3,1);
-}
-.ov-bs-range-labels{display:flex;justify-content:space-between;margin-top:4px}
-.ov-bs-range-lbl{font-size:6.5px;color:var(--faint);font-family:var(--mono)}
-/* 2×2 KPI grid fills remaining card height */
-.ov-bs-kpi{
-  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
-  gap:7px;flex:1;min-height:0;
-}
-.ov-bs-kpi-cell{
-  display:flex;flex-direction:column;justify-content:center;
-  padding:12px 14px;border-radius:10px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.09);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
-}
-.ov-bs-kpi-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
-.ov-bs-kpi-val{font-family:var(--mono);font-size:21px;font-weight:900;letter-spacing:-0.03em;line-height:1}
-
-/* ── CARD 4: Labour top block ── */
-.ov-lab-top{display:flex;align-items:stretch;gap:10px;margin-bottom:10px;flex-shrink:0}
-.ov-lab-arc-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;gap:2px}
-.ov-lab-arc-score{font-family:var(--mono);font-size:30px;font-weight:900;letter-spacing:-0.04em;line-height:1;text-align:center}
-.ov-lab-arc-sub{font-size:7px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);text-align:center;margin-top:2px}
-.ov-lab-nfp-block{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding-left:10px;border-left:1px solid rgba(255,255,255,0.07)}
-.ov-lab-nfp-val{font-family:var(--mono);font-weight:900;font-size:28px;letter-spacing:-0.03em;line-height:1}
-.ov-lab-nfp-sub{font-family:var(--mono);font-size:7.5px;color:var(--faint)}
-
-/* FF table body fills remaining height */
-.ov-lab-body{flex:1;display:flex;flex-direction:column;min-height:0}
-.ov-ff-table{width:100%;border-collapse:collapse;flex:1}
-.ov-ff-thead th{font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);padding:0 0 6px;text-align:right}
-.ov-ff-thead th:first-child{text-align:left}
-.ov-ff-row td{padding:5px 0;border-top:1px solid rgba(255,255,255,0.05);font-size:8.5px;vertical-align:middle}
-.ov-ff-row td:first-child{font-weight:700;color:var(--dim);text-align:left;font-size:8px}
-.ov-ff-row td{text-align:right;font-family:var(--mono);font-weight:800}
-.ov-ff-pill{display:inline-block;font-size:6.5px;font-weight:800;letter-spacing:0.07em;padding:2px 6px;border-radius:4px;white-space:nowrap}
-
-/* ── Labour metric grid (no-FF fallback) ── */
-.ov-lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1;min-height:0}
-.ov-lab-cell{
-  padding:9px 10px 8px;border-radius:9px;
-  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
-  display:flex;flex-direction:column;gap:3px;overflow:hidden;min-width:0;
-}
-.ov-lab-cell-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ov-lab-cell-val{font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em}
-.ov-lab-cell-sub{font-size:6.5px;font-family:var(--mono);color:var(--faint)}
-.ov-lab-mini-bar{height:3px;border-radius:2px;background:rgba(255,255,255,0.05);margin-top:2px;overflow:hidden}
-.ov-lab-mini-fill{height:100%;border-radius:2px;transition:width 800ms cubic-bezier(0.16,1,0.3,1)}
 /* ── Global Climate Panel ── */
 .ov-climate-panel{
   padding:22px 24px 24px;
@@ -5092,8 +5317,8 @@ function renderMacroDataPanels(reg){
   const urTCol  = urTrend==='Falling'?'#22c97a':urTrend==='Rising'?'#e03a2a':'#adb8d0';
   const clCol   = claims!=null?(claims<210000?'#22c97a':claims<240000?'#adb8d0':claims<280000?'#f5c842':'#e03a2a'):'#5a6480';
   const joltsCol= jolts!=null?(jolts>8?'#22c97a':jolts>7?'#adb8d0':jolts>6?'#f5c842':'#e03a2a'):'#5a6480';
-  const jcCol   = jobsComp!=null?(jobsComp>=6.5?'#22c97a':jobsComp>=5.5?'#adb8d0':jobsComp>=4.5?'#6e7d80':jobsComp>=3.5?'#f5c842':'#e03a2a'):'#adb8d0';
-  const jcLabel = jobsComp!=null?(jobsComp>=6.5?'Strong':jobsComp>=5.5?'Healthy':jobsComp>=4.5?'Neutral':jobsComp>=3.5?'Cooling':'Weak'):'—';
+  const jcCol   = jobsComp!=null?(jobsComp>=7?'#22c97a':jobsComp>=5.5?'#5aaa7a':jobsComp>=4.5?'#f5c842':jobsComp>=3.5?'#e07a2a':'#e03a2a'):'#adb8d0';
+  const jcLabel = jobsComp!=null?(jobsComp>=7?'Strong':jobsComp>=5.5?'Healthy':jobsComp>=4.5?'Neutral':jobsComp>=3.5?'Cooling':'Weak'):'—';
 
   // ── SVG arc gauge — semi-circle style, value sits below arc
   // size = overall width, strokeW = track width. Returns raw SVG string.
@@ -5218,8 +5443,8 @@ function renderMacroDataPanels(reg){
               <div class="ov-yc-hero-val" style="color:${crCol}">${spreadStr}</div>
               ${chg3mStr?`<div class="ov-yc-hero-chg" style="color:${yc.t10y2y_3m_chg>=0?'#22c97a':'#e03a2a'}">${chg3mStr} <span style="font-size:6.5px;color:rgba(255,255,255,0.32)">3M CHG</span></div>`:''}
             </div>
-            <div class="ov-yc-hero-sub">10Y &minus; 2Y spread</div>
           </div>
+          <div class="ov-yc-canvas-regime">10Y &minus; 2Y spread</div>
         </div>
 
         <!-- Tenor dots — row at bottom -->
@@ -5246,42 +5471,84 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${crSpreadCol};background:${crSpreadCol}18;border:1px solid ${crSpreadCol}30">${crLabel}</span>
         </div>
 
-        <!-- Two arc gauges side by side, value beneath each arc -->
-        <div class="ov-gauge-pair">
-          <!-- HY -->
-          <div class="ov-gauge-unit">
-            <div class="ov-gauge-unit-inner">
-              <div class="ov-gauge-ring-glow" style="--g-col:${hyCol}28"></div>
-              ${arcSVG(hyPct, hyCol, 160, 13)}
-            </div>
-            <div class="ov-gauge-val-row">
-              <div class="ov-gauge-bp" style="color:${hyCol}">${hyOas!=null?hyOas:'—'}</div>
-              <div class="ov-gauge-bp-unit">bp</div>
-            </div>
-            <div class="ov-gauge-lbl" style="color:${hyCol}">High Yield</div>
-            <div class="ov-gauge-sub" style="color:${hyDelta4w!=null&&hyDelta4w<0?'#22c97a':'#e03a2a'}">${hyDelta4w!=null?(hyDelta4w>=0?'+':'')+hyDelta4w.toFixed(0)+'bp 4w':''}</div>
-            <div class="ov-gauge-sub" style="color:var(--faint)">${hyOas!=null?(hyOas<250?'Tight \u2014 risk-on':hyOas<350?'Normal':hyOas<500?'Wide \u2014 caution':'Stress'):''}</div>
-          </div>
-          <div class="ov-gauge-divider"></div>
-          <!-- IG -->
-          <div class="ov-gauge-unit">
-            <div class="ov-gauge-unit-inner">
-              <div class="ov-gauge-ring-glow" style="--g-col:${igCol}28"></div>
-              ${arcSVG(igPct, igCol, 160, 13)}
-            </div>
-            <div class="ov-gauge-val-row">
-              <div class="ov-gauge-bp" style="color:${igCol}">${igOas!=null?igOas:'—'}</div>
-              <div class="ov-gauge-bp-unit">bp</div>
-            </div>
-            <div class="ov-gauge-lbl" style="color:${igCol}">Inv. Grade</div>
-            <div class="ov-gauge-sub" style="color:var(--faint)">${igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':'Wide'):''}</div>
-          </div>
-        </div>
+        <!-- Spectrum bar design — HY + IG rows -->
+        <div class="ov-cs-body">
 
-        <div class="ov-mc-stats">
-          ${chip('Real Yield',ryVal!=null?`${ryVal>=0?'+':''}${ryVal.toFixed(2)}%`:'—',ryCol)}
-          ${chip('EFFR',effr!=null?effr.toFixed(2)+'%':'—')}
-          ${chip('Rate Path',cuts12m!=null?(cuts12m<0?`\u2212${(Math.abs(cuts12m)*100).toFixed(0)}bp`:`+${(Math.abs(cuts12m)*100).toFixed(0)}bp`):'—',cuts12m!=null&&cuts12m<0?'#22c97a':cuts12m!=null&&cuts12m>0?'#e03a2a':'')}
+          <!-- HY Row -->
+          <div class="ov-cs-row" style="--cs-accent:${hyCol}">
+            <div class="ov-cs-row-wash" style="background:${hyCol}"></div>
+            <div class="ov-cs-row-head">
+              <div>
+                <div class="ov-cs-name">High Yield OAS</div>
+                ${hyDelta4w!=null?`<div class="ov-cs-delta" style="color:${hyDelta4w<0?'#22c97a':'#e03a2a'};background:${hyDelta4w<0?'#22c97a':'#e03a2a'}18;margin-top:4px">${hyDelta4w>=0?'+':''}${hyDelta4w.toFixed(0)}bp 4w</div>`:''}
+              </div>
+              <div class="ov-cs-val-wrap">
+                <div class="ov-cs-val" style="color:${hyCol}">${hyOas!=null?hyOas:'—'}</div>
+                <div class="ov-cs-unit">bp</div>
+              </div>
+            </div>
+            <!-- Spectrum: 150=tight → 350=normal → 600=stress, max=750 -->
+            <div class="ov-cs-spectrum-wrap">
+              <div class="ov-cs-spectrum ov-cs-spectrum-hy" style="position:relative">
+                <div class="ov-cs-marker" style="left:${hyOas!=null?Math.min(97,Math.max(3,(hyOas/600)*100)).toFixed(1):50}%;background:${hyCol}"></div>
+              </div>
+              <div class="ov-cs-zone-labels">
+                <span class="ov-cs-zone-lbl" style="color:#22c97a">Tight / Risk-On</span>
+                <span class="ov-cs-zone-lbl">Normal</span>
+                <span class="ov-cs-zone-lbl" style="color:#e03a2a">Stress</span>
+              </div>
+            </div>
+            <div class="ov-cs-context">
+              <div class="ov-cs-context-dot" style="background:${hyCol}"></div>
+              <div class="ov-cs-context-txt" style="color:${hyCol}">${hyOas!=null?(hyOas<250?'Tight — credit supportive':hyOas<350?'Normal — balanced risk':hyOas<500?'Widening — risk-off':'Stress — caution'):'—'}</div>
+            </div>
+          </div>
+
+          <!-- IG Row -->
+          <div class="ov-cs-row" style="--cs-accent:${igCol}">
+            <div class="ov-cs-row-wash" style="background:${igCol}"></div>
+            <div class="ov-cs-row-head">
+              <div>
+                <div class="ov-cs-name">Investment Grade OAS</div>
+              </div>
+              <div class="ov-cs-val-wrap">
+                <div class="ov-cs-val" style="color:${igCol}">${igOas!=null?igOas:'—'}</div>
+                <div class="ov-cs-unit">bp</div>
+              </div>
+            </div>
+            <!-- IG spectrum: 50=tight → 120=normal → 250=stress, max=300 -->
+            <div class="ov-cs-spectrum-wrap">
+              <div class="ov-cs-spectrum ov-cs-spectrum-ig" style="position:relative">
+                <div class="ov-cs-marker" style="left:${igOas!=null?Math.min(97,Math.max(3,(igOas/250)*100)).toFixed(1):50}%;background:${igCol}"></div>
+              </div>
+              <div class="ov-cs-zone-labels">
+                <span class="ov-cs-zone-lbl" style="color:#22c97a">Tight</span>
+                <span class="ov-cs-zone-lbl">Normal</span>
+                <span class="ov-cs-zone-lbl" style="color:#e03a2a">Wide</span>
+              </div>
+            </div>
+            <div class="ov-cs-context">
+              <div class="ov-cs-context-dot" style="background:${igCol}"></div>
+              <div class="ov-cs-context-txt" style="color:${igCol}">${igOas!=null?(igOas<80?'Tight — IG well-bid':igOas<120?'Normal range':igOas<180?'Widening — caution':'Elevated — stress'):'—'}</div>
+            </div>
+          </div>
+
+        </div><!-- /ov-cs-body -->
+
+        <!-- Footer: rate context -->
+        <div class="ov-cs-footer">
+          <div class="ov-cs-foot-item">
+            <div class="ov-cs-foot-lbl">Real Yield</div>
+            <div class="ov-cs-foot-val" style="color:${ryCol}">${ryVal!=null?`${ryVal>=0?'+':''}${ryVal.toFixed(2)}%`:'—'}</div>
+          </div>
+          <div class="ov-cs-foot-item">
+            <div class="ov-cs-foot-lbl">EFFR</div>
+            <div class="ov-cs-foot-val">${effr!=null?effr.toFixed(2)+'%':'—'}</div>
+          </div>
+          <div class="ov-cs-foot-item">
+            <div class="ov-cs-foot-lbl">Rate Path 12M</div>
+            <div class="ov-cs-foot-val" style="color:${cuts12m!=null&&cuts12m<0?'#22c97a':cuts12m!=null&&cuts12m>0?'#e03a2a':'var(--text)'}">${cuts12m!=null?(cuts12m<0?`−${(Math.abs(cuts12m)*100).toFixed(0)}bp`:`+${(Math.abs(cuts12m)*100).toFixed(0)}bp`):'—'}</div>
+          </div>
         </div>
       </div>
 
@@ -5362,7 +5629,7 @@ function renderMacroDataPanels(reg){
         <!-- Top block: arc gauge (composite score) + NFP hero side by side -->
         <div class="ov-lab-top">
           <div class="ov-lab-arc-wrap">
-            ${arcSVG(jobsComp!=null?jobsComp*10:50, jcCol, 110, 12)}
+            ${arcSVG(jobsComp!=null?jobsComp*10:50, jcCol, 120, 15)}
             <div class="ov-lab-arc-score" style="color:${jcCol}">${jobsComp!=null?jobsComp.toFixed(1):'—'}</div>
             <div class="ov-lab-arc-sub">composite / 10</div>
           </div>
