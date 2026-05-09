@@ -1308,7 +1308,7 @@ a{color:inherit;text-decoration:none}
 .ov-lab-mini-fill{height:100%;border-radius:2px;transition:width 800ms cubic-bezier(0.16,1,0.3,1)}
 /* ── Global Climate Panel ── */
 .ov-climate-panel{
-  padding:22px 24px 20px;
+  padding:22px 24px 24px;
   border-bottom:none;
   position:relative;
   overflow:hidden;
@@ -1571,7 +1571,7 @@ a{color:inherit;text-decoration:none}
   font-size:8px;font-weight:800;letter-spacing:0.04em;width:58px;flex-shrink:0;text-align:right;
 }
 .ov-cp-cat-drivers{
-  font-size:7.5px;color:var(--faint);flex:2;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.01em;
+  font-size:8px;color:var(--dim);flex:2;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.01em;opacity:0.75;
 }
 /* Global narrative */
 .ov-cp-narrative{
@@ -1718,7 +1718,7 @@ a{color:inherit;text-decoration:none}
 .ov-ai-brief.loaded{display:block}
 .ov-ai-brief-header{
   display:flex;align-items:center;gap:10px;
-  padding:16px 24px 10px;
+  padding:20px 24px 10px;
 }
 .ov-ai-brief-title{
   display:flex;align-items:center;gap:9px;flex-shrink:0;
@@ -1830,7 +1830,7 @@ a{color:inherit;text-decoration:none}
 .ov-news-row-left{display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0}
 .ov-news-row-info{flex:1;min-width:0}
 .ov-news-row-title{font-size:10.5px;color:var(--text);line-height:1.45;font-weight:500}
-.ov-news-row-preview{font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;font-family:var(--mono);text-transform:none}
+.ov-news-row-preview{font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;text-transform:none;font-style:italic;opacity:0.82}
 .ov-news-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
 .ov-news-row-time{font-size:8px;color:var(--faint);font-family:var(--mono);white-space:nowrap}
 
@@ -4820,11 +4820,13 @@ function renderClimatePanel(reg, markets, mktMap){
   function getCatDriverSummary(mcEntry){
     if(!mcEntry)return '';
     const keys=['credit','yield_curve','fed_bs','inflation','real_yield'];
-    const items=keys.map(k=>({k,v:mcEntry[k]??0})).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,2);
-    return items.map(({k,v})=>{
+    // Only show drivers that are actually tail/headwinds (not neutral)
+    const significant=keys.map(k=>({k,v:mcEntry[k]??0})).filter(({v})=>Math.abs(v)>0.05).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,2);
+    if(!significant.length)return '';
+    return significant.map(({k,v})=>{
       const lbl=DRIVER_LABELS[k]||k;
-      const dir=v>0.05?'tailwind':v<-0.05?'headwind':'neutral';
-      const col=v>0.05?'#adb8d0':v<-0.05?'#e03a2a':'#5a6480';
+      const dir=v>0?'tailwind':'headwind';
+      const col=v>0?'#adb8d0':'#e03a2a';
       return `<span style="color:${col}">${lbl}: ${dir}</span>`;
     }).join(' &nbsp;\u00b7&nbsp; ');
   }
@@ -4871,7 +4873,7 @@ function renderClimatePanel(reg, markets, mktMap){
         <span id="ov-cp-score-age">${scoreAgeStr}</span>
       </div>
     </div>
-    <div class="ov-cp-menv-label">Market Environment</div>
+    <div class="ov-cp-menv-label">Market Signals</div>
     <div class="ov-menv-grid">${menvGridHtml}</div>
     <div class="ov-cp-cats-label">Asset Class Climate</div>
     <div class="ov-cp-cats" id="ov-cp-cats">${catRowsHtml}</div>
@@ -4886,7 +4888,7 @@ function renderClimatePanel(reg, markets, mktMap){
           </div>
           Market Narrative
         </div>
-        <div id="ov-cp-narr-ts" style="font-size:8px;color:var(--faint);font-family:var(--mono)"></div>
+        <div id="ov-cp-narr-ts" style="font-size:7.5px;color:var(--faint);font-family:var(--mono);opacity:0.55;letter-spacing:0.03em"></div>
       </div>
       <div id="ov-cp-narr-body">
         <div class="ov-cp-narr-skel">
