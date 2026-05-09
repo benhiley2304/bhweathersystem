@@ -1161,7 +1161,7 @@ a{color:inherit;text-decoration:none}
 }
 /* Animated top-edge accent glow — thicker and brighter */
 .ov-macro-card-glow{
-  position:absolute;top:0;left:0;right:0;height:3px;
+  position:absolute!important;top:0;left:0;right:0;height:3px;
   border-radius:3px 3px 0 0;z-index:2;
   -webkit-mask:linear-gradient(90deg,transparent 0%,white 10%,white 90%,transparent 100%);
   mask:linear-gradient(90deg,transparent 0%,white 10%,white 90%,transparent 100%);
@@ -1174,8 +1174,8 @@ a{color:inherit;text-decoration:none}
 }
 /* Diffuse colour bleed from top */
 .ov-macro-card-wash{
-  position:absolute;top:0;left:0;right:0;height:60%;
-  opacity:0.055;pointer-events:none;border-radius:16px 16px 0 0;z-index:0;
+  position:absolute!important;top:0;left:0;right:0;height:60%;
+  opacity:0.055;pointer-events:none;border-radius:16px 16px 0 0;z-index:0!important;
   background:inherit;
 }
 /* All direct children sit above overlays */
@@ -1201,117 +1201,143 @@ a{color:inherit;text-decoration:none}
   margin-bottom:6px;
 }
 
-/* ── Yield curve canvas ────────────────────────────────── */
-.ov-yc-canvas-wrap{height:80px;min-height:80px;flex:1;margin:6px 0 4px;position:relative;border-radius:8px;overflow:hidden;
-  background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05)}
-.ov-yc-canvas-wrap canvas{display:block;width:100%;height:100%}
+/* ── CARD 1: Yield Curve canvas — fills all remaining height ── */
+.ov-yc-canvas-wrap{
+  flex:1;min-height:0;
+  position:relative;border-radius:10px;overflow:hidden;margin:8px 0 0;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);
+}
+.ov-yc-canvas-wrap canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+/* Hero overlay pinned inside canvas */
+.ov-yc-hero-overlay{position:absolute;top:12px;left:14px;z-index:2;pointer-events:none}
+.ov-yc-hero-row{display:flex;align-items:baseline;gap:9px}
+.ov-yc-hero-val{font-family:var(--mono);font-size:36px;font-weight:900;letter-spacing:-0.05em;line-height:1;text-shadow:0 2px 16px rgba(0,0,0,0.95)}
+.ov-yc-hero-chg{font-family:var(--mono);font-size:9px;font-weight:700;background:rgba(0,0,0,0.6);padding:2px 6px;border-radius:4px}
+.ov-yc-hero-sub{font-family:var(--mono);font-size:7.5px;color:rgba(255,255,255,0.38);margin-top:4px;letter-spacing:0.04em}
 
-/* Tenor row */
-.ov-tenor-row{display:flex;justify-content:space-between;margin-top:8px;padding:0 2px}
-.ov-tenor-item{display:flex;flex-direction:column;align-items:center;gap:2px}
+/* ── Tenor row: pill at bottom of Card 1 ── */
+.ov-tenor-row{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;margin-top:9px;
+  padding:9px 10px;
+  background:rgba(255,255,255,0.03);border-radius:9px;border:1px solid rgba(255,255,255,0.07);
+}
+.ov-tenor-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.ov-tenor-item+.ov-tenor-item{border-left:1px solid rgba(255,255,255,0.06)}
 .ov-tenor-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.06em;color:var(--faint);text-transform:uppercase}
-.ov-tenor-val{font-family:var(--mono);font-size:11px;font-weight:900;color:var(--text);letter-spacing:-0.02em}
+.ov-tenor-val{font-family:var(--mono);font-size:12.5px;font-weight:900;color:var(--text);letter-spacing:-0.02em}
 .ov-tenor-item.ov-tenor-key .ov-tenor-val{color:var(--accent)}
 .ov-tenor-item.ov-tenor-key .ov-tenor-lbl{color:var(--dim)}
 
-/* ── Arc gauge: two-column layout ─────────────────────── */
-.ov-gauge-pair{display:flex;gap:0;margin:10px 0 12px;align-items:center;justify-content:center;flex:1}
-.ov-gauge-unit{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;padding:0 6px}
-.ov-gauge-unit svg{display:block;overflow:hidden;margin:0 auto}
-.ov-gauge-lbl{font-size:7.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;text-align:center}
-.ov-gauge-val-row{display:flex;align-items:baseline;gap:3px;margin-top:3px;justify-content:center}
-.ov-gauge-bp{font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.04em;line-height:1}
-.ov-gauge-bp-unit{font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint);align-self:flex-end;margin-bottom:2px}
-.ov-gauge-sub{font-size:7px;font-family:var(--mono);margin-top:3px;text-align:center}
-/* divider between gauges */
-.ov-gauge-divider{width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.1) 30%,rgba(255,255,255,0.1) 70%,transparent);margin:8px 0;flex-shrink:0;align-self:stretch}
+/* ── CARD 2: Arc gauge — scales to fill card ── */
+.ov-gauge-pair{
+  display:flex;gap:0;flex:1;min-height:0;
+  align-items:center;justify-content:space-evenly;
+  margin:6px 0 0;
+}
+.ov-gauge-unit{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;padding:0 4px}
+.ov-gauge-unit-inner{position:relative;display:flex;flex-direction:column;align-items:center;width:100%;max-width:165px}
+.ov-gauge-ring-glow{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:100%;height:100%;border-radius:50%;
+  background:radial-gradient(circle,var(--g-col,rgba(34,201,122,0.22)) 0%,transparent 65%);
+  pointer-events:none;
+}
+.ov-gauge-unit svg{display:block;overflow:hidden;margin:0 auto;width:100%}
+.ov-gauge-lbl{font-size:8px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-top:8px;text-align:center}
+.ov-gauge-val-row{display:flex;align-items:baseline;gap:3px;margin-top:5px;justify-content:center}
+.ov-gauge-bp{font-family:var(--mono);font-size:34px;font-weight:900;letter-spacing:-0.04em;line-height:1}
+.ov-gauge-bp-unit{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--faint);align-self:flex-end;margin-bottom:4px}
+.ov-gauge-sub{font-size:8px;font-family:var(--mono);margin-top:5px;text-align:center}
+.ov-gauge-divider{
+  width:1px;flex-shrink:0;align-self:stretch;
+  background:linear-gradient(180deg,transparent 0%,rgba(255,255,255,0.1) 20%,rgba(255,255,255,0.1) 80%,transparent 100%);
+}
 
-/* ── Stat chips row ────────────────────────────────────── */
+/* ── Stat chips: sits naturally below gauge ── */
 .ov-mc-stats{display:flex;gap:0;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0}
 .ov-mc-stat{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 8px}
 .ov-mc-stat:first-child{padding-left:0}
 .ov-mc-stat:last-child{padding-right:0}
 .ov-mc-stat+.ov-mc-stat{border-left:1px solid rgba(255,255,255,0.05)}
 .ov-mc-stat-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)}
-.ov-mc-stat-val{font-family:var(--mono);font-size:11.5px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
+.ov-mc-stat-val{font-family:var(--mono);font-size:12px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
 .ov-mc-stat-delta{font-family:var(--mono);font-size:8px;color:var(--faint)}
 
-/* ── Fed Balance Sheet — horizontal range bar ─────────── */
-.ov-bs-body{flex:1;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
-.ov-bs-range-wrap{margin:0}
-.ov-bs-range-bar{height:14px;border-radius:7px;background:rgba(255,255,255,0.06);
-  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.08)}
+/* ── CARD 3: Balance Sheet body fills space ── */
+.ov-bs-body{flex:1;display:flex;flex-direction:column;gap:9px;min-height:0}
+.ov-bs-range-wrap{flex-shrink:0}
+.ov-bs-range-bar{
+  height:20px;border-radius:10px;
+  background:rgba(255,255,255,0.06);
+  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.09);
+}
 .ov-bs-range-fill{
-  height:100%;border-radius:5px;
+  height:100%;border-radius:8px;
   transition:width 900ms cubic-bezier(0.16,1,0.3,1);
   position:relative;
 }
 .ov-bs-range-fill::after{
-  content:'';position:absolute;inset:0;border-radius:5px;
-  background:linear-gradient(180deg,rgba(255,255,255,0.22) 0%,transparent 60%);
+  content:'';position:absolute;inset:0;border-radius:8px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.25) 0%,transparent 55%);
 }
-/* Animated shimmer sweep */
 .ov-bs-range-fill::before{
   content:'';position:absolute;top:0;bottom:0;width:40%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.14),transparent);
   animation:bsSweep 3s ease-in-out infinite;
 }
 @keyframes bsSweep{0%{left:-40%}100%{left:140%}}
-/* Needle marker at current position */
 .ov-bs-range-needle{
-  position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;
-  background:rgba(255,255,255,0.9);
-  box-shadow:0 0 6px rgba(255,255,255,0.6);
+  position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;
+  background:rgba(255,255,255,0.9);box-shadow:0 0 8px rgba(255,255,255,0.7);
   transition:left 900ms cubic-bezier(0.16,1,0.3,1);
 }
 .ov-bs-range-labels{display:flex;justify-content:space-between;margin-top:4px}
 .ov-bs-range-lbl{font-size:6.5px;color:var(--faint);font-family:var(--mono)}
-/* BS kpi grid */
-.ov-bs-kpi{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
-.ov-bs-kpi-cell{
-  padding:7px 9px;border-radius:8px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.08);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
+/* 2×2 KPI grid fills remaining card height */
+.ov-bs-kpi{
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+  gap:7px;flex:1;min-height:0;
 }
-.ov-bs-kpi-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
-.ov-bs-kpi-val{font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em}
+.ov-bs-kpi-cell{
+  display:flex;flex-direction:column;justify-content:center;
+  padding:12px 14px;border-radius:10px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.ov-bs-kpi-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
+.ov-bs-kpi-val{font-family:var(--mono);font-size:21px;font-weight:900;letter-spacing:-0.03em;line-height:1}
 
-/* ── Labour — compact arc + NFP block ─────────────────── */
-.ov-lab-top{display:flex;align-items:stretch;gap:10px;margin-bottom:8px;flex-shrink:0}
-.ov-lab-arc-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  flex-shrink:0;gap:2px}
-.ov-lab-arc-score{font-family:var(--mono);font-size:28px;font-weight:900;letter-spacing:-0.04em;line-height:1;text-align:center}
+/* ── CARD 4: Labour top block ── */
+.ov-lab-top{display:flex;align-items:stretch;gap:10px;margin-bottom:10px;flex-shrink:0}
+.ov-lab-arc-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;gap:2px}
+.ov-lab-arc-score{font-family:var(--mono);font-size:30px;font-weight:900;letter-spacing:-0.04em;line-height:1;text-align:center}
 .ov-lab-arc-sub{font-size:7px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);text-align:center;margin-top:2px}
-.ov-lab-nfp-block{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;
-  padding-left:10px;border-left:1px solid rgba(255,255,255,0.07)}
-.ov-lab-nfp-val{font-family:var(--mono);font-weight:900;font-size:26px;letter-spacing:-0.03em;line-height:1}
+.ov-lab-nfp-block{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding-left:10px;border-left:1px solid rgba(255,255,255,0.07)}
+.ov-lab-nfp-val{font-family:var(--mono);font-weight:900;font-size:28px;letter-spacing:-0.03em;line-height:1}
 .ov-lab-nfp-sub{font-family:var(--mono);font-size:7.5px;color:var(--faint)}
 
-/* ── FF consensus table ────────────────────────────────── */
-.ov-lab-body{flex:1;display:flex;flex-direction:column;justify-content:space-between}
-.ov-ff-table{width:100%;border-collapse:collapse;margin-bottom:6px}
-.ov-ff-thead th{font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;
-  color:var(--faint);padding:0 0 5px;text-align:right}
+/* FF table body fills remaining height */
+.ov-lab-body{flex:1;display:flex;flex-direction:column;min-height:0}
+.ov-ff-table{width:100%;border-collapse:collapse;flex:1}
+.ov-ff-thead th{font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);padding:0 0 6px;text-align:right}
 .ov-ff-thead th:first-child{text-align:left}
-.ov-ff-row td{padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);font-size:8.5px;vertical-align:middle}
+.ov-ff-row td{padding:5px 0;border-top:1px solid rgba(255,255,255,0.05);font-size:8.5px;vertical-align:middle}
 .ov-ff-row td:first-child{font-weight:700;color:var(--dim);text-align:left;font-size:8px}
 .ov-ff-row td{text-align:right;font-family:var(--mono);font-weight:800}
-.ov-ff-pill{display:inline-block;font-size:6.5px;font-weight:800;letter-spacing:0.07em;
-  padding:2px 6px;border-radius:4px;white-space:nowrap}
+.ov-ff-pill{display:inline-block;font-size:6.5px;font-weight:800;letter-spacing:0.07em;padding:2px 6px;border-radius:4px;white-space:nowrap}
 
-/* ── Labour metric grid (no-FF fallback) ──────────────── */
-.ov-lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 4px}
+/* ── Labour metric grid (no-FF fallback) ── */
+.ov-lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1;min-height:0}
 .ov-lab-cell{
-  padding:7px 8px 6px;border-radius:8px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.08);
+  padding:9px 10px 8px;border-radius:9px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
-  display:flex;flex-direction:column;gap:3px;
-  overflow:hidden;min-width:0;
+  display:flex;flex-direction:column;gap:3px;overflow:hidden;min-width:0;
 }
 .ov-lab-cell-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ov-lab-cell-val{font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em}
+.ov-lab-cell-val{font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em}
 .ov-lab-cell-sub{font-size:6.5px;font-family:var(--mono);color:var(--faint)}
 .ov-lab-mini-bar{height:3px;border-radius:2px;background:rgba(255,255,255,0.05);margin-top:2px;overflow:hidden}
 .ov-lab-mini-fill{height:100%;border-radius:2px;transition:width 800ms cubic-bezier(0.16,1,0.3,1)}
