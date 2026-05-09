@@ -1088,55 +1088,68 @@ a{color:inherit;text-decoration:none}
   .ov-macro-card{padding:14px 14px 12px;border-radius:12px}
   .ov-mc-hero{font-size:22px!important}
   .ov-yc-canvas-wrap{height:68px}
-  .ov-arc-gauge-row{gap:8px}
-  .ov-bs-container{gap:8px}
-  .ov-bs-vbar-track{min-height:56px}
+  .ov-gauge-pair{gap:6px}
+  .ov-gauge-bp{font-size:18px!important}
+  .ov-bs-kpi{grid-template-columns:1fr 1fr;gap:4px}
+  .ov-bs-kpi-val{font-size:11px!important}
+  .ov-lab-top{gap:8px}
+  .ov-lab-arc-score{font-size:18px!important}
+  .ov-lab-nfp-val{font-size:22px!important}
   .ov-lab-grid{grid-template-columns:1fr 1fr;gap:4px}
   .ov-lab-cell{padding:6px 7px 5px}
   .ov-lab-cell-val{font-size:12px!important}
   .ov-tenor-val{font-size:10px!important}
-  .ov-spread-val{font-size:12px!important}
+  .ov-ff-table{font-size:7.5px}
+  .ov-ff-pill{font-size:6px;padding:1px 4px}
 }
 
 /* ── Card base ─────────────────────────────────────────── */
 .ov-macro-card{
-  background:linear-gradient(158deg,rgba(18,21,32,0.92) 0%,rgba(11,13,20,0.88) 100%);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,0.07);
-  border-radius:14px;
-  padding:18px 18px 15px;
+  background:linear-gradient(155deg,rgba(22,26,40,0.97) 0%,rgba(10,12,22,0.95) 100%);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:16px;
+  padding:18px 18px 16px;
   position:relative;
   overflow:hidden;
   display:flex;flex-direction:column;gap:0;
   transition:border-color 280ms,box-shadow 280ms,transform 280ms var(--ease);
-  box-shadow:0 4px 24px rgba(0,0,0,0.42),inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow:0 6px 32px rgba(0,0,0,0.55),0 1px 0 rgba(255,255,255,0.04) inset,0 -1px 0 rgba(0,0,0,0.3) inset;
 }
 .ov-macro-card:hover{
-  border-color:rgba(255,255,255,0.14);
-  box-shadow:0 10px 36px rgba(0,0,0,0.56),inset 0 1px 0 rgba(255,255,255,0.08);
+  border-color:rgba(255,255,255,0.16);
+  box-shadow:0 14px 44px rgba(0,0,0,0.65),0 1px 0 rgba(255,255,255,0.06) inset;
   transform:translateY(-2px);
 }
-/* Particle-transparent shimmer overlay */
+/* Inner highlight edge */
+.ov-macro-card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:16px;z-index:0;
+  background:linear-gradient(158deg,rgba(255,255,255,0.05) 0%,transparent 40%);
+}
+/* Shimmer overlay */
 .ov-macro-card::after{
-  content:'';position:absolute;inset:0;pointer-events:none;border-radius:14px;
-  background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(255,255,255,0.03) 0%,transparent 70%);
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:16px;
+  background:radial-gradient(ellipse 90% 35% at 50% 0%,rgba(255,255,255,0.04) 0%,transparent 70%);
   z-index:0;
 }
-/* Animated top-edge accent glow */
+/* Animated top-edge accent glow — thicker and brighter */
 .ov-macro-card-glow{
-  position:absolute;top:0;left:0;right:0;height:2px;
-  border-radius:0;z-index:2;
-  -webkit-mask:linear-gradient(90deg,transparent 0%,white 18%,white 82%,transparent 100%);
-  mask:linear-gradient(90deg,transparent 0%,white 18%,white 82%,transparent 100%);
+  position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:3px 3px 0 0;z-index:2;
+  -webkit-mask:linear-gradient(90deg,transparent 0%,white 10%,white 90%,transparent 100%);
+  mask:linear-gradient(90deg,transparent 0%,white 10%,white 90%,transparent 100%);
   animation:macroGlowPulse 4s ease-in-out infinite;
+  filter:blur(0.5px);
 }
 @keyframes macroGlowPulse{
-  0%,100%{opacity:0.5;filter:blur(0px)}
+  0%,100%{opacity:0.6}
   50%{opacity:1;filter:blur(1px)}
 }
-/* Background colour wash (very subtle) */
+/* Diffuse colour bleed from top */
 .ov-macro-card-wash{
-  position:absolute;inset:0;opacity:0.028;pointer-events:none;border-radius:14px;z-index:0;
+  position:absolute;top:0;left:0;right:0;height:60%;
+  opacity:0.055;pointer-events:none;border-radius:16px 16px 0 0;z-index:0;
+  background:inherit;
 }
 /* All direct children sit above overlays */
 .ov-macro-card>*{position:relative;z-index:1}
@@ -1156,8 +1169,8 @@ a{color:inherit;text-decoration:none}
   margin-bottom:3px;
 }
 .ov-mc-hero-sub{
-  font-family:var(--mono);font-size:8.5px;font-weight:600;color:var(--faint);
-  margin-bottom:8px;
+  font-family:var(--mono);font-size:9px;font-weight:600;color:var(--faint);
+  margin-bottom:6px;
 }
 
 /* ── Yield curve canvas ────────────────────────────────── */
@@ -1173,28 +1186,20 @@ a{color:inherit;text-decoration:none}
 .ov-tenor-item.ov-tenor-key .ov-tenor-val{color:var(--accent)}
 .ov-tenor-item.ov-tenor-key .ov-tenor-lbl{color:var(--dim)}
 
-/* ── Arc gauge (credit + labour) ──────────────────────── */
-.ov-arc-gauge-row{display:flex;align-items:flex-start;gap:10px;margin:4px 0 8px}
-.ov-arc-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;overflow:visible}
-.ov-arc-gauge-lbl{font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)}
-.ov-arc-gauge-val{font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em}
-.ov-arc-gauge-hint{font-size:6.5px;font-family:var(--mono);color:var(--faint);text-align:center}
-/* Large composite arc */
-.ov-arc-gauge-large{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 8px}
-.ov-arc-gauge-large svg{filter:drop-shadow(0 0 6px var(--arc-glow,rgba(255,255,255,0.2)))}
-
-/* ── Spread bars (retained but upgraded) ──────────────── */
-.ov-spread-group{display:flex;flex-direction:column;gap:9px;margin-top:6px}
-.ov-spread-row{display:flex;flex-direction:column;gap:4px}
-.ov-spread-meta{display:flex;justify-content:space-between;align-items:baseline}
-.ov-spread-name{font-size:7.5px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase}
-.ov-spread-val{font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em}
-.ov-spread-track{height:6px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:hidden;position:relative}
-.ov-spread-fill{height:100%;border-radius:3px;transition:width 800ms cubic-bezier(0.16,1,0.3,1)}
-.ov-spread-hint{font-size:6.5px;color:var(--faint);font-family:var(--mono);margin-top:1px}
+/* ── Arc gauge: two-column layout ─────────────────────── */
+.ov-gauge-pair{display:flex;gap:0;margin:10px 0 12px;align-items:flex-start}
+.ov-gauge-unit{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;padding:0 6px}
+.ov-gauge-unit svg{display:block;overflow:visible;margin:0 auto}
+.ov-gauge-lbl{font-size:7.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;text-align:center}
+.ov-gauge-val-row{display:flex;align-items:baseline;gap:3px;margin-top:3px;justify-content:center}
+.ov-gauge-bp{font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.04em;line-height:1}
+.ov-gauge-bp-unit{font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint);align-self:flex-end;margin-bottom:2px}
+.ov-gauge-sub{font-size:7px;font-family:var(--mono);margin-top:3px;text-align:center}
+/* divider between gauges */
+.ov-gauge-divider{width:1px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.1) 30%,rgba(255,255,255,0.1) 70%,transparent);margin:8px 0;flex-shrink:0;align-self:stretch}
 
 /* ── Stat chips row ────────────────────────────────────── */
-.ov-mc-stats{display:flex;gap:0;margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px}
+.ov-mc-stats{display:flex;gap:0;margin-top:10px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px}
 .ov-mc-stat{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 8px}
 .ov-mc-stat:first-child{padding-left:0}
 .ov-mc-stat:last-child{padding-right:0}
@@ -1203,51 +1208,79 @@ a{color:inherit;text-decoration:none}
 .ov-mc-stat-val{font-family:var(--mono);font-size:11.5px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
 .ov-mc-stat-delta{font-family:var(--mono);font-size:8px;color:var(--faint)}
 
-/* ── Fed Balance Sheet ─────────────────────────────────── */
-.ov-bs-container{display:flex;gap:10px;align-items:stretch;margin:8px 0 6px}
-/* Vertical liquid bar */
-.ov-bs-vbar-wrap{width:22px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px}
-.ov-bs-vbar-track{flex:1;width:14px;border-radius:7px;background:rgba(255,255,255,0.05);overflow:hidden;
-  position:relative;border:1px solid rgba(255,255,255,0.06);min-height:70px}
-.ov-bs-vbar-fill{
-  position:absolute;bottom:0;left:0;right:0;border-radius:6px;
-  transition:height 900ms cubic-bezier(0.16,1,0.3,1);
+/* ── Fed Balance Sheet — horizontal range bar ─────────── */
+.ov-bs-range-wrap{margin:10px 0 8px}
+.ov-bs-range-bar{height:14px;border-radius:7px;background:rgba(255,255,255,0.06);
+  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.08)}
+.ov-bs-range-fill{
+  height:100%;border-radius:5px;
+  transition:width 900ms cubic-bezier(0.16,1,0.3,1);
+  position:relative;
 }
-.ov-bs-vbar-fill::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:4px;
-  border-radius:6px 6px 0 0;
-  background:rgba(255,255,255,0.25);
-  animation:bsLiquidShimmer 2.5s ease-in-out infinite;
+.ov-bs-range-fill::after{
+  content:'';position:absolute;inset:0;border-radius:5px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.22) 0%,transparent 60%);
 }
-@keyframes bsLiquidShimmer{
-  0%,100%{opacity:0.5}50%{opacity:1}
+/* Animated shimmer sweep */
+.ov-bs-range-fill::before{
+  content:'';position:absolute;top:0;bottom:0;width:40%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
+  animation:bsSweep 3s ease-in-out infinite;
 }
-.ov-bs-vbar-peak{position:absolute;top:calc(100% - var(--peak-pct,100%));left:-4px;right:-4px;height:1px;
-  background:rgba(255,255,255,0.15);pointer-events:none}
-/* BS detail panel */
-.ov-bs-detail{flex:1;display:flex;flex-direction:column;gap:6px;justify-content:center}
-.ov-bs-row{display:flex;justify-content:space-between;align-items:center;
-  padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.04)}
-.ov-bs-row-lbl{font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)}
-.ov-bs-row-val{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:-0.01em}
-/* Scale labels below bar */
-.ov-bs-scale{display:flex;flex-direction:column;gap:2px;align-items:center}
-.ov-bs-scale-lbl{font-size:5.5px;color:var(--faint);font-family:var(--mono);text-align:center;line-height:1.2}
+@keyframes bsSweep{0%{left:-40%}100%{left:140%}}
+/* Needle marker at current position */
+.ov-bs-range-needle{
+  position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;
+  background:rgba(255,255,255,0.9);
+  box-shadow:0 0 6px rgba(255,255,255,0.6);
+  transition:left 900ms cubic-bezier(0.16,1,0.3,1);
+}
+.ov-bs-range-labels{display:flex;justify-content:space-between;margin-top:4px}
+.ov-bs-range-lbl{font-size:6.5px;color:var(--faint);font-family:var(--mono)}
+/* BS kpi grid */
+.ov-bs-kpi{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
+.ov-bs-kpi-cell{
+  padding:6px 8px;border-radius:7px;
+  background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);
+}
+.ov-bs-kpi-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
+.ov-bs-kpi-val{font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em}
 
-/* ── Labour metric grid ────────────────────────────────── */
+/* ── Labour — compact arc + NFP block ─────────────────── */
+.ov-lab-top{display:flex;align-items:stretch;gap:10px;margin-bottom:8px}
+.ov-lab-arc-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex-shrink:0;gap:2px}
+.ov-lab-arc-score{font-family:var(--mono);font-size:28px;font-weight:900;letter-spacing:-0.04em;line-height:1;text-align:center}
+.ov-lab-arc-sub{font-size:7px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);text-align:center;margin-top:2px}
+.ov-lab-nfp-block{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;
+  padding-left:10px;border-left:1px solid rgba(255,255,255,0.07)}
+.ov-lab-nfp-val{font-family:var(--mono);font-weight:900;font-size:26px;letter-spacing:-0.03em;line-height:1}
+.ov-lab-nfp-sub{font-family:var(--mono);font-size:7.5px;color:var(--faint)}
+
+/* ── FF consensus table ────────────────────────────────── */
+.ov-ff-table{width:100%;border-collapse:collapse;margin-bottom:6px}
+.ov-ff-thead th{font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;
+  color:var(--faint);padding:0 0 5px;text-align:right}
+.ov-ff-thead th:first-child{text-align:left}
+.ov-ff-row td{padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);font-size:8.5px;vertical-align:middle}
+.ov-ff-row td:first-child{font-weight:700;color:var(--dim);text-align:left;font-size:8px}
+.ov-ff-row td{text-align:right;font-family:var(--mono);font-weight:800}
+.ov-ff-pill{display:inline-block;font-size:6.5px;font-weight:800;letter-spacing:0.07em;
+  padding:2px 6px;border-radius:4px;white-space:nowrap}
+
+/* ── Labour metric grid (no-FF fallback) ──────────────── */
 .ov-lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 4px}
 .ov-lab-cell{
   padding:7px 8px 6px;border-radius:8px;
   background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);
   display:flex;flex-direction:column;gap:3px;
+  overflow:hidden;min-width:0;
 }
-.ov-lab-cell-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
+.ov-lab-cell-lbl{font-size:6.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ov-lab-cell-val{font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em}
 .ov-lab-cell-sub{font-size:6.5px;font-family:var(--mono);color:var(--faint)}
 .ov-lab-mini-bar{height:3px;border-radius:2px;background:rgba(255,255,255,0.05);margin-top:2px;overflow:hidden}
 .ov-lab-mini-fill{height:100%;border-radius:2px;transition:width 800ms cubic-bezier(0.16,1,0.3,1)}
-
-/* FF actual vs consensus table (kept as-is, minor spacing) */
 /* ── Global Climate Panel ── */
 .ov-climate-panel{
   padding:22px 24px 20px;
@@ -4858,71 +4891,71 @@ function renderMacroDataPanels(reg){
   const jcCol   = jobsComp!=null?(jobsComp>=6.5?'#22c97a':jobsComp>=5.5?'#adb8d0':jobsComp>=4.5?'#6e7d80':jobsComp>=3.5?'#f5c842':'#e03a2a'):'#adb8d0';
   const jcLabel = jobsComp!=null?(jobsComp>=6.5?'Strong':jobsComp>=5.5?'Healthy':jobsComp>=4.5?'Neutral':jobsComp>=3.5?'Cooling':'Weak'):'—';
 
-  // ── SVG arc gauge helper (HD — geometricPrecision, crisp paths, sub-pixel coords)
-  // Sweeps a 220° arc. size = viewBox dimension, strokeW = track stroke width.
-  function arcGaugeSVG(pct, col, size=76, strokeW=8){
-    const R    = (size - strokeW * 2 - 2) / 2;
-    const cx   = size / 2;
-    const cy   = size * 0.54;
-    // Arc runs from 200° to 340° (clockwise from bottom-left to bottom-right) = 140° sweep
-    const startDeg = 200, sweepDeg = 140;
-    const toRad = d => (d - 90) * Math.PI / 180;
-    const polar = rad => [+(cx + R * Math.cos(rad)).toFixed(3), +(cy + R * Math.sin(rad)).toFixed(3)];
-
-    const [sx, sy] = polar(toRad(startDeg));
-    const [ex, ey] = polar(toRad(startDeg + sweepDeg));
-    const safePct  = Math.min(Math.max(pct, 0.5), 99.5); // avoid degenerate arcs
-    const [ax, ay] = polar(toRad(startDeg + (safePct / 100) * sweepDeg));
-    const bgLarge  = sweepDeg > 180 ? 1 : 0;
-    const fgLarge  = (safePct / 100) * sweepDeg > 180 ? 1 : 0;
-
-    const uid = 'ag' + (Math.random() * 0xFFFFFF | 0).toString(16);
-    const hexToRgb = h => { const m = (h.replace('#','')).match(/.{2}/g); return m ? m.map(x=>parseInt(x,16)).join(',') : '200,169,110'; };
-    const rgb = hexToRgb(col);
-
-    // Subtle tick marks at 0%, 50%, 100% of the arc
-    const ticks = [0, 50, 100].map(tp => {
-      const [tx, ty] = polar(toRad(startDeg + (tp / 100) * sweepDeg));
-      const innerR = R - strokeW * 0.8;
-      const [ix, iy] = [+(cx + innerR * Math.cos(toRad(startDeg + (tp/100)*sweepDeg))).toFixed(3),
-                        +(cy + innerR * Math.sin(toRad(startDeg + (tp/100)*sweepDeg))).toFixed(3)];
-      return `<line x1="${tx}" y1="${ty}" x2="${ix}" y2="${iy}" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-linecap="round"/>`;
+  // ── SVG arc gauge — semi-circle style, value sits below arc
+  // size = overall width, strokeW = track width. Returns raw SVG string.
+  function arcSVG(pct, col, size=100, strokeW=11){
+    // Classic 220° speedometer gauge
+    // Angles: 0° = 12 o'clock, clockwise positive
+    const startDeg = 220; // degrees clockwise from 12 o'clock
+    const sweepDeg = 220; // total sweep
+    // Convert from "clock degrees" to SVG math (clockwise from 3 o'clock)
+    const toRad = clockDeg => (clockDeg - 90) * (Math.PI / 180);
+    const R  = (size / 2) - strokeW / 2 - 2;
+    const cx = size / 2;
+    const cy = size / 2 + size * 0.05; // slightly below center so more arc is visible
+    const polar = clockDeg => [
+      +(cx + R * Math.cos(toRad(clockDeg))).toFixed(3),
+      +(cy + R * Math.sin(toRad(clockDeg))).toFixed(3)
+    ];
+    const [sx,sy] = polar(startDeg);
+    const [ex,ey] = polar(startDeg + sweepDeg);
+    const safe    = Math.min(Math.max(pct, 0.5), 99.5);
+    const [ax,ay] = polar(startDeg + (safe/100)*sweepDeg);
+    const bgLg    = sweepDeg > 180 ? 1 : 0;
+    const fgLg    = (safe/100)*sweepDeg > 180 ? 1 : 0;
+    const uid     = 'arc' + (Math.random()*0xFFFFF|0).toString(16);
+    // viewBox height: show arc body, clip the very bottom (open gap of gauge)
+    const vbH = +(size * 0.82).toFixed(1);
+    // Tick marks at 0,25,50,75,100%
+    const ticks = [0,25,50,75,100].map(tp=>{
+      const d2 = startDeg + (tp/100)*sweepDeg;
+      const r2 = toRad(d2);
+      const outerR2 = R + strokeW*0.5;
+      const innerR2 = R - strokeW*0.5;
+      const ox = +(cx+outerR2*Math.cos(r2)).toFixed(2);
+      const oy = +(cy+outerR2*Math.sin(r2)).toFixed(2);
+      const ix = +(cx+innerR2*Math.cos(r2)).toFixed(2);
+      const iy = +(cy+innerR2*Math.sin(r2)).toFixed(2);
+      return `<line x1="${ox}" y1="${oy}" x2="${ix}" y2="${iy}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>`;
     }).join('');
-
-    return `<svg width="${size}" height="${(size * 0.72).toFixed(0)}" viewBox="0 0 ${size} ${(size * 0.72).toFixed(0)}"
-      fill="none" xmlns="http://www.w3.org/2000/svg"
-      style="overflow:visible;--arc-glow:rgba(${rgb},0.45)"
-      shape-rendering="geometricPrecision">
+    return `<svg width="${size}" height="${vbH}" viewBox="0 0 ${size} ${vbH}" fill="none"
+      shape-rendering="geometricPrecision" style="overflow:visible;display:block">
       <defs>
-        <filter id="${uid}-glow" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
-          <feComposite in="b" in2="SourceGraphic" operator="over"/>
+        <filter id="${uid}g" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="5" result="b"/><feComposite in="b" in2="SourceGraphic" operator="over"/>
         </filter>
-        <linearGradient id="${uid}-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="${col}" stop-opacity="0.7"/>
+        <linearGradient id="${uid}l" gradientUnits="userSpaceOnUse" x1="${sx}" y1="${sy}" x2="${ax}" y2="${ay}">
+          <stop offset="0%" stop-color="${col}" stop-opacity="0.4"/>
           <stop offset="100%" stop-color="${col}" stop-opacity="1"/>
         </linearGradient>
       </defs>
       <!-- Track -->
-      <path d="M${sx},${sy} A${R},${R} 0 ${bgLarge},1 ${ex},${ey}"
-        stroke="rgba(255,255,255,0.07)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"
-        vector-effect="non-scaling-stroke"/>
-      <!-- Tick marks -->
+      <path d="M${sx},${sy} A${R},${R} 0 ${bgLg},1 ${ex},${ey}"
+        stroke="rgba(255,255,255,0.08)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"/>
       ${ticks}
-      <!-- Active arc — glow halo -->
-      ${pct > 0.5 ? `<path d="M${sx},${sy} A${R},${R} 0 ${fgLarge},1 ${ax},${ay}"
-        stroke="${col}" stroke-width="${strokeW + 4}" stroke-linecap="round" fill="none"
-        opacity="0.18" filter="url(#${uid}-glow)" vector-effect="non-scaling-stroke"/>
-      <!-- Active arc — solid -->
-      <path d="M${sx},${sy} A${R},${R} 0 ${fgLarge},1 ${ax},${ay}"
-        stroke="url(#${uid}-grad)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"
-        vector-effect="non-scaling-stroke"/>
-      <!-- Tip glow halo -->
-      <circle cx="${ax}" cy="${ay}" r="${strokeW * 0.8}" fill="${col}" opacity="0.2"
-        filter="url(#${uid}-glow)"/>
+      ${pct>0.5?`
+      <!-- Glow halo -->
+      <path d="M${sx},${sy} A${R},${R} 0 ${fgLg},1 ${ax},${ay}"
+        stroke="${col}" stroke-width="${strokeW+8}" stroke-linecap="round" fill="none"
+        opacity="0.25" filter="url(#${uid}g)"/>
+      <!-- Main arc -->
+      <path d="M${sx},${sy} A${R},${R} 0 ${fgLg},1 ${ax},${ay}"
+        stroke="url(#${uid}l)" stroke-width="${strokeW}" stroke-linecap="round" fill="none"/>
+      <!-- Tip glow -->
+      <circle cx="${ax}" cy="${ay}" r="${strokeW*1.1}" fill="${col}" opacity="0.22" filter="url(#${uid}g)"/>
       <!-- Tip dot -->
-      <circle cx="${ax}" cy="${ay}" r="${strokeW * 0.45}" fill="${col}" opacity="1"/>` : ''}
-    </svg>`;
+      <circle cx="${ax}" cy="${ay}" r="${strokeW*0.48}" fill="${col}"/>
+      `:''}    </svg>`;
   }
 
   // Stat chip helper
@@ -5018,30 +5051,29 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${crSpreadCol};background:${crSpreadCol}18;border:1px solid ${crSpreadCol}30">${crLabel}</span>
         </div>
 
-        <!-- Dual arc gauges -->
-        <div class="ov-arc-gauge-row">
-          <div class="ov-arc-gauge-wrap">
-            <div style="position:relative;display:inline-block">
-              ${arcGaugeSVG(hyPct, hyCol, 76, 8)}
-              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:6px;pointer-events:none">
-                <div style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${hyCol};line-height:1">${hyOas!=null?hyOas+'':'—'}</div>
-                <div style="font-size:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);margin-top:2px">bp</div>
-              </div>
+        <!-- Two arc gauges side by side, value beneath each arc -->
+        <div class="ov-gauge-pair">
+          <!-- HY -->
+          <div class="ov-gauge-unit">
+            ${arcSVG(hyPct, hyCol, 108, 11)}
+            <div class="ov-gauge-val-row">
+              <div class="ov-gauge-bp" style="color:${hyCol}">${hyOas!=null?hyOas:'—'}</div>
+              <div class="ov-gauge-bp-unit">bp</div>
             </div>
-            <div class="ov-arc-gauge-lbl" style="color:${hyCol}">High Yield</div>
-            ${hyDelta4w!=null?`<div class="ov-arc-gauge-hint" style="color:${hyDelta4w<0?'#22c97a':'#e03a2a'}">${hyDelta4w>=0?'+':''}${hyDelta4w.toFixed(0)}bp 4w</div>`:''}
-            <div class="ov-arc-gauge-hint">${hyOas!=null?(hyOas<250?'Tight':hyOas<350?'Normal':hyOas<500?'Wide':'Stress'):''}</div>
+            <div class="ov-gauge-lbl" style="color:${hyCol}">High Yield</div>
+            <div class="ov-gauge-sub" style="color:${hyDelta4w!=null&&hyDelta4w<0?'#22c97a':'#e03a2a'}">${hyDelta4w!=null?(hyDelta4w>=0?'+':'')+hyDelta4w.toFixed(0)+'bp 4w':''}</div>
+            <div class="ov-gauge-sub" style="color:var(--faint)">${hyOas!=null?(hyOas<250?'Tight \u2014 risk-on':hyOas<350?'Normal':hyOas<500?'Wide \u2014 caution':'Stress'):''}</div>
           </div>
-          <div class="ov-arc-gauge-wrap">
-            <div style="position:relative;display:inline-block">
-              ${arcGaugeSVG(igPct, igCol, 76, 8)}
-              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:6px;pointer-events:none">
-                <div style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${igCol};line-height:1">${igOas!=null?igOas+'':'—'}</div>
-                <div style="font-size:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);margin-top:2px">bp</div>
-              </div>
+          <div class="ov-gauge-divider"></div>
+          <!-- IG -->
+          <div class="ov-gauge-unit">
+            ${arcSVG(igPct, igCol, 108, 11)}
+            <div class="ov-gauge-val-row">
+              <div class="ov-gauge-bp" style="color:${igCol}">${igOas!=null?igOas:'—'}</div>
+              <div class="ov-gauge-bp-unit">bp</div>
             </div>
-            <div class="ov-arc-gauge-lbl" style="color:${igCol}">Inv. Grade</div>
-            <div class="ov-arc-gauge-hint">${igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':'Wide'):''}</div>
+            <div class="ov-gauge-lbl" style="color:${igCol}">Inv. Grade</div>
+            <div class="ov-gauge-sub" style="color:var(--faint)">${igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':'Wide'):''}</div>
           </div>
         </div>
 
@@ -5066,37 +5098,42 @@ function renderMacroDataPanels(reg){
         </div>
 
         <!-- Hero level -->
-        <div class="ov-mc-hero" style="font-size:28px;color:${fbCol}">${fbLevel!=null?`$${fbLevel.toFixed(2)}T`:'—'}</div>
-        <div class="ov-mc-hero-sub">Total assets${fbChg3m!=null?` &nbsp;<span style="color:${fbChg3m>=0?'#adb8d0':'#e03a2a'}">${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T 3m</span>`:''}</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px">
+          <div class="ov-mc-hero" style="font-size:32px;color:${fbCol}">${fbLevel!=null?`$${fbLevel.toFixed(2)}T`:'—'}</div>
+          ${fbChg3m!=null?`<span style="font-size:8.5px;font-family:var(--mono);font-weight:700;color:${fbChg3m>=0?'#adb8d0':'#e03a2a'}">${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T <span style="font-size:7px;color:var(--faint)">3M CHG</span></span>`:''}
+        </div>
+        <div class="ov-mc-hero-sub">Total assets \u00b7 $4T\u2013$9T range</div>
 
-        <!-- Vertical liquid bar + detail rows -->
-        <div class="ov-bs-container">
-          <div class="ov-bs-vbar-wrap">
-            <div style="font-size:5.5px;color:var(--faint);font-family:var(--mono);text-align:center;margin-bottom:3px">$9T</div>
-            <div class="ov-bs-vbar-track">
-              <!-- Peak marker at QE max -->
-              <div class="ov-bs-vbar-peak" style="--peak-pct:${fbPeakPct}%"></div>
-              <div class="ov-bs-vbar-fill" style="height:${fbPct.toFixed(1)}%;background:linear-gradient(180deg,${fbCol} 0%,${fbCol}66 100%)"></div>
-            </div>
-            <div style="font-size:5.5px;color:var(--faint);font-family:var(--mono);text-align:center;margin-top:3px">$4T</div>
+        <!-- Horizontal range bar with needle -->
+        <div class="ov-bs-range-wrap">
+          <div class="ov-bs-range-bar">
+            <div class="ov-bs-range-fill" style="width:${fbPct.toFixed(1)}%;background:linear-gradient(90deg,${fbCol}55 0%,${fbCol} 100%)"></div>
+            <div class="ov-bs-range-needle" style="left:calc(${fbPct.toFixed(1)}% - 1px)"></div>
           </div>
-          <div class="ov-bs-detail">
-            <div class="ov-bs-row">
-              <div class="ov-bs-row-lbl">Level</div>
-              <div class="ov-bs-row-val" style="color:${fbCol}">${fbLevel!=null?`$${fbLevel.toFixed(2)}T`:'—'}</div>
-            </div>
-            <div class="ov-bs-row">
-              <div class="ov-bs-row-lbl">3M Change</div>
-              <div class="ov-bs-row-val" style="color:${fbChg3m!=null?(fbChg3m>=0?'#adb8d0':'#e03a2a'):'var(--faint)'}">${fbChg3m!=null?`${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T`:'—'}</div>
-            </div>
-            <div class="ov-bs-row">
-              <div class="ov-bs-row-lbl">6M Change</div>
-              <div class="ov-bs-row-val" style="color:${(fbChg6mP!=null&&fbLevel!=null)?(fbChg6mP>=0?'#adb8d0':'#e03a2a'):'var(--faint)'}">${(fbChg6mP!=null&&fbLevel!=null)?`${fbChg6mP>=0?'+':''}$${(fbLevel*(fbChg6mP/100)).toFixed(2)}T`:'—'}</div>
-            </div>
-            <div class="ov-bs-row">
-              <div class="ov-bs-row-lbl">vs QE Peak</div>
-              <div class="ov-bs-row-val" style="color:var(--dim)">${fbLevel!=null?`${(((fbLevel-9)/9)*100).toFixed(1)}%`:'—'}</div>
-            </div>
+          <div class="ov-bs-range-labels">
+            <span class="ov-bs-range-lbl">$4T — QT floor</span>
+            <span class="ov-bs-range-lbl" style="color:${fbCol};font-weight:800">${fbLevel!=null?`$${fbLevel.toFixed(1)}T`:'—'}</span>
+            <span class="ov-bs-range-lbl">$9T — QE peak</span>
+          </div>
+        </div>
+
+        <!-- 2×2 KPI grid -->
+        <div class="ov-bs-kpi">
+          <div class="ov-bs-kpi-cell">
+            <div class="ov-bs-kpi-lbl">3M Change</div>
+            <div class="ov-bs-kpi-val" style="color:${fbChg3m!=null?(fbChg3m>=0?'#adb8d0':'#e03a2a'):'var(--faint)'}">${fbChg3m!=null?`${fbChg3m>=0?'+':''}$${fbChg3m.toFixed(2)}T`:'—'}</div>
+          </div>
+          <div class="ov-bs-kpi-cell">
+            <div class="ov-bs-kpi-lbl">6M Change</div>
+            <div class="ov-bs-kpi-val" style="color:${(fbChg6mP!=null&&fbLevel!=null)?(fbChg6mP>=0?'#adb8d0':'#e03a2a'):'var(--faint)'}">${(fbChg6mP!=null&&fbLevel!=null)?`${fbChg6mP>=0?'+':''}$${(fbLevel*(fbChg6mP/100)).toFixed(2)}T`:'—'}</div>
+          </div>
+          <div class="ov-bs-kpi-cell">
+            <div class="ov-bs-kpi-lbl">vs QE Peak</div>
+            <div class="ov-bs-kpi-val" style="color:var(--dim)">${fbLevel!=null?`${(((fbLevel-9)/9)*100).toFixed(1)}%`:'—'}</div>
+          </div>
+          <div class="ov-bs-kpi-cell">
+            <div class="ov-bs-kpi-lbl">10Y Yield</div>
+            <div class="ov-bs-kpi-val">${t10!=null?t10.toFixed(2)+'%':'—'}</div>
           </div>
         </div>
       </div>
@@ -5114,75 +5151,86 @@ function renderMacroDataPanels(reg){
           ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}18;border:1px solid ${jcCol}30">${jcLabel}</span>`:''}
         </div>
 
-        <!-- Composite arc gauge + NFP hero row -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-          <div style="position:relative;display:inline-block;flex-shrink:0">
-            ${arcGaugeSVG(jobsComp!=null?jobsComp*10:50, jcCol, 74, 8)}
-            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:4px;pointer-events:none">
-              <div style="font-family:var(--mono);font-size:15px;font-weight:900;color:${jcCol};line-height:1;letter-spacing:-0.02em">${jobsComp!=null?jobsComp.toFixed(1):'—'}</div>
-              <div style="font-size:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);margin-top:2px">/ 10</div>
-            </div>
+        <!-- Top block: arc gauge (composite score) + NFP hero side by side -->
+        <div class="ov-lab-top">
+          <div class="ov-lab-arc-wrap">
+            ${arcSVG(jobsComp!=null?jobsComp*10:50, jcCol, 110, 12)}
+            <div class="ov-lab-arc-score" style="color:${jcCol}">${jobsComp!=null?jobsComp.toFixed(1):'—'}</div>
+            <div class="ov-lab-arc-sub">composite / 10</div>
           </div>
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:baseline;gap:6px">
-              <div style="font-family:var(--mono);font-weight:900;font-size:22px;color:${nfpCol};letter-spacing:-0.03em;line-height:1">${nfpMom!=null?`${nfpMom>=0?'+':''}${nfpMom.toFixed(0)}K`:'\u2014'}</div>
+          <div class="ov-lab-nfp-block">
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+              <div class="ov-lab-nfp-val" style="color:${nfpCol}">${nfpMom!=null?`${nfpMom>=0?'+':''}${nfpMom.toFixed(0)}K`:'\u2014'}</div>
               ${surprisePill(nfpSurpL, surpCol)}
             </div>
-            <div style="font-family:var(--mono);font-size:7.5px;color:var(--faint);margin-top:2px">NFP${nfpDate?` \u00b7 ${nfpDate}`:''}</div>
-            ${nfp6mAvg!=null?`<div style="font-family:var(--mono);font-size:7px;color:var(--faint)">6m avg ${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</div>`:''}
+            <div class="ov-lab-nfp-sub">NFP${nfpDate?` \u00b7 ${nfpDate}`:''}</div>
+            ${nfp6mAvg!=null?`<div class="ov-lab-nfp-sub" style="margin-top:1px">6m avg ${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</div>`:''}
           </div>
         </div>
 
-        <!-- FF actual vs consensus (when available) -->
+        <!-- FF consensus table (styled rows) -->
         ${ffHasData ? `
-        <div style="margin-bottom:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 3px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:2px">
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);flex:1">Indicator</span>
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);width:36px;text-align:right">Exp</span>
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);width:36px;text-align:right;margin:0 4px">Act</span>
-            <span style="font-size:7px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);width:52px;text-align:right">Signal</span>
-          </div>
-          ${ffRow('ADP Payrolls',ffAdp,'K',true)}
-          ${ffRow('Unemp. Rate',ffUr,'%',false)}
-          ${ffRow('Init. Claims',ffCl,'K',false)}
-          ${ffRow('JOLTS Openings',ffJolts,'M',true)}
-          ${ffRow('Hrly Earnings',ffWages,'%',true)}
-        </div>
+        <table class="ov-ff-table">
+          <thead class="ov-ff-thead">
+            <tr>
+              <th>Indicator</th>
+              <th>Exp</th>
+              <th>Act</th>
+              <th>Signal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${[
+              ['ADP','K',ffAdp,true],
+              ['Unemployment','%',ffUr,false],
+              ['Init. Claims','K',ffCl,false],
+              ['JOLTS','M',ffJolts,true],
+              ['Hrly Earnings','%',ffWages,true]
+            ].filter(r=>r[2]&&r[2].actual!=null&&r[2].forecast!=null).map(([lbl,unit,d,hg])=>{
+              const sCol=d.beat?'#22c97a':'#e03a2a';
+              const surpStr=d.surprise!=null?(d.surprise>0?'+':'')+d.surprise+unit:'';
+              return `<tr class="ov-ff-row">
+                <td style="color:var(--dim)">${lbl}</td>
+                <td style="color:var(--faint)">${d.forecast}${unit}</td>
+                <td style="color:${sCol};font-weight:900">${d.actual}${unit}</td>
+                <td><span class="ov-ff-pill" style="background:${sCol}18;border:1px solid ${sCol}30;color:${sCol}">${d.beat?'BEAT':'MISS'}${surpStr?' '+surpStr:''}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
         ` : `
-        <!-- 2x2 metric grid -->
         <div class="ov-lab-grid">
           <div class="ov-lab-cell">
             <div class="ov-lab-cell-lbl">Unemployment</div>
-            <div class="ov-lab-cell-val" style="color:${urCol}">${unrate!=null?unrate+'%':'\u2014'}<span style="font-size:10px;margin-left:4px;color:${urTCol}">${urTrend==='Rising'?'\u25b2':urTrend==='Falling'?'\u25bc':'\u2192'}</span></div>
+            <div class="ov-lab-cell-val" style="color:${urCol}">${unrate!=null?unrate+'%':'\u2014'} <span style="font-size:10px;color:${urTCol}">${urTrend==='Rising'?'\u25b2':urTrend==='Falling'?'\u25bc':'\u2192'}</span></div>
             <div class="ov-lab-cell-sub">${urDate||(urTrend!=='Stable'?urTrend:'—')}</div>
-            ${miniBar(unrate!=null?((unrate-3)/(7-3))*100:0, `linear-gradient(90deg,#22c97a 0%,#f5c842 55%,#e03a2a 100%)`)}
+            ${miniBar(unrate!=null?((unrate-3)/(7-3))*100:0,'linear-gradient(90deg,#22c97a 0%,#f5c842 55%,#e03a2a 100%)')}
           </div>
           <div class="ov-lab-cell">
             <div class="ov-lab-cell-lbl">Init. Claims</div>
             <div class="ov-lab-cell-val" style="color:${clCol}">${claims!=null?(claims/1000).toFixed(0)+'K':'\u2014'}</div>
             <div class="ov-lab-cell-sub">${clChg4w!=null?`chg: ${clChg4w>=0?'+':''}${(clChg4w/1000).toFixed(0)}K 4w`:clDate||'—'}</div>
-            ${miniBar(claims!=null?((claims-150000)/(350000-150000))*100:0, `linear-gradient(90deg,#22c97a 0%,#f5c842 55%,#e03a2a 100%)`)}
+            ${miniBar(claims!=null?((claims-150000)/(350000-150000))*100:0,'linear-gradient(90deg,#22c97a 0%,#f5c842 55%,#e03a2a 100%)')}
           </div>
-          ${jolts!=null?`
-          <div class="ov-lab-cell">
+          ${jolts!=null?`<div class="ov-lab-cell">
             <div class="ov-lab-cell-lbl">Job Openings</div>
             <div class="ov-lab-cell-val" style="color:${joltsCol}">${jolts.toFixed(1)}M</div>
-            <div class="ov-lab-cell-sub">${joltsChg!=null?`${joltsChg>=0?'+':''}${joltsChg.toFixed(1)}M`:'JOLTS'}</div>
-            ${miniBar(((jolts-4)/(12-4))*100, `linear-gradient(90deg,#e03a2a 0%,#f5c842 40%,#22c97a 100%)`)}
-          </div>`:`<div class="ov-lab-cell" style="opacity:0.35"><div class="ov-lab-cell-lbl">JOLTS</div><div class="ov-lab-cell-val" style="color:var(--faint)">\u2014</div></div>`}
+            <div class="ov-lab-cell-sub">${joltsChg!=null?(joltsChg>=0?'+':'')+joltsChg.toFixed(1)+'M':''}</div>
+            ${miniBar(((jolts-4)/(12-4))*100,'linear-gradient(90deg,#e03a2a 0%,#f5c842 40%,#22c97a 100%)')}
+          </div>`:''}
           <div class="ov-lab-cell">
             <div class="ov-lab-cell-lbl">NFP Score</div>
             <div class="ov-lab-cell-val" style="color:${nfpCol}">${nfpScore.toFixed(1)}</div>
             <div class="ov-lab-cell-sub">/ 10</div>
-            ${miniBar(nfpScore*10, nfpCol)}
+            ${miniBar(nfpScore*10,nfpCol)}
           </div>
         </div>
         `}
 
-        <div class="ov-mc-stats" style="padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">
+        <div class="ov-mc-stats" style="padding-top:8px;border-top:1px solid rgba(255,255,255,0.07)">
           ${chip('Composite', jobsComp!=null?jobsComp.toFixed(1)+'/10':'\u2014', jcCol)}
           ${chip('NFP Score', nfpScore.toFixed(1)+'/10', nfpCol)}
-          ${chip(ffHasData?'Source':'Source', ffHasData?'Live FF':'FRED', ffHasData?'#22c97a':'var(--faint)')}
+          ${chip('Source', ffHasData?'Live FF':'FRED', ffHasData?'#22c97a':'var(--faint)')}
         </div>
       </div>
 
