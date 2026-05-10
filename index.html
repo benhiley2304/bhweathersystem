@@ -6551,6 +6551,47 @@ function resetNewsCtxCache(force=false){
 
 // ── AI Brief loader
 let _aiBriefLoaded=false;
+async function loadClimateNarrative(){
+  const bodyEl=document.getElementById('ov-cp-narr-body');
+  const tsEl=document.getElementById('ov-cp-narr-ts');
+  if(!bodyEl)return;
+  try{
+    const data=await getNewsContext();
+    const narrative=data.global_narrative;
+    const updAt=data.updated_at;
+    // Age label
+    let ageStr='';
+    if(updAt){
+      const ageMin=Math.round((Date.now()/1000-updAt)/60);
+      ageStr=ageMin<2?'Updated just now':ageMin<60?'Updated '+ageMin+'m ago':'Updated '+(Math.round(ageMin/60))+'h ago';
+    }
+    if(tsEl&&ageStr)tsEl.textContent=ageStr;
+    if(narrative&&narrative!='null'){
+      bodyEl.innerHTML=`<div class="ov-cp-narr-text">${narrative}</div>`;
+    } else {
+      // Fallback: synthesise from macro_composites + regime
+      const reg=DATA.regime||{};
+      const md=reg.macro_dashboard||{};
+      const mc=md.macro_composites||{};
+      const regLabel=reg.regime||reg.label||'Unknown';
+      const topCat=Object.entries(mc).filter(([k])=>k!=='default')
+        .sort(([,a],[,b])=>(b.composite_10??5)-(a.composite_10??5))[0];
+      const botCat=Object.entries(mc).filter(([k])=>k!=='default')
+        .sort(([,a],[,b])=>(a.composite_10??5)-(b.composite_10??5))[0];
+      const topName={'equity':'Equities','bond':'Bonds','gold':'Gold','commodity':'Commodities',
+        'fx_usd':'USD','fx_foreign':'FX (foreign)','crypto':'Crypto'};
+      const fallback=`Current macro environment signals a ${regLabel.toLowerCase()} backdrop. `
+        +(topCat?`${topName[topCat[0]]||topCat[0]} sees the most supportive macro composite at ${topCat[1].composite_10?.toFixed(1)}/10. `:'') 
+        +(botCat?`${topName[botCat[0]]||botCat[0]} faces the most macro headwinds at ${botCat[1].composite_10?.toFixed(1)}/10.`:'');
+      bodyEl.innerHTML=`<div class="ov-cp-narr-text" style="color:var(--dim)">${fallback}</div>`;
+    }
+    _climateNarrLoaded=true;
+  }catch(e){
+    if(bodyEl)bodyEl.innerHTML='<div style="font-size:10px;color:var(--faint)">Narrative unavailable.</div>';
+  }
+}
+
+
 async function loadAiBrief(){
   const el=document.getElementById('ov-ai-brief');
   if(!el)return;
