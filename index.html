@@ -5686,7 +5686,7 @@ function renderMacroDataPanels(reg){
         <!-- Full Yield Curve Chart (async) -->
         <div style="margin-top:2px">
           <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="width:100%;height:104px;display:flex;align-items:center;justify-content:center">
+          <div id="ov-yc-chart" style="width:100%">
             <span style="font-size:9px;color:var(--faint);font-family:var(--mono)">Loading...</span>
           </div>
         </div>
@@ -6009,7 +6009,7 @@ function renderMacroDataPanels(reg){
 }
 
 /* ── Full Yield Curve Chart ─────────────────────────────────────────────── */
-async function loadYieldCurveChart(nowCol) {
+async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, clean labels
   const el = document.getElementById('ov-yc-chart');
   if (!el) return;
 
@@ -6170,50 +6170,58 @@ async function loadYieldCurveChart(nowCol) {
     });
   });
 
-  // Rate value labels on Now curve at key tenors
+  // Rate value labels on Now curve — only 4 non-crowding tenors
+  // Fixed placement: alternate above/below to prevent overlap
   if (nowSnap) {
-    // Label tenors that matter most, avoid crowding
-    const labelTenors = ['1M','3M','6M','2Y','5Y','10Y','30Y'];
-    labelTenors.forEach(t => {
+    // [tenor, above=true/false]
+    const labelCfg = [
+      ['3M',  true ],   // above
+      ['2Y',  false],   // below
+      ['5Y',  true ],   // above
+      ['10Y', false],   // below (key)
+      ['30Y', true ],   // above
+    ];
+    labelCfg.forEach(([t, above]) => {
       if (nowSnap.tenors[t] == null || xPosLog(t) == null) return;
       const x = xPosLog(t), y = yPos(nowSnap.tenors[t]);
       const isKey = t === '10Y';
-      const isMed = ['2Y','5Y'].includes(t);
-      // Smart label placement: put above if in lower half of chart
-      const lblY = y > padT + gH * 0.52 ? y - 4 : y + 9;
-      curveSvg += `<text x="${x.toFixed(1)}" y="${lblY.toFixed(1)}" text-anchor="middle"
-        fill="${isKey ? nowCol : isMed ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.42)'}"
-        font-family="var(--mono)" font-size="${isKey?6.5:isMed?5.5:5}"
-        font-weight="${isKey?900:700}">${nowSnap.tenors[t].toFixed(2)}%</text>`;
+      const lblY = above ? y - 5 : y + 10;
+      // Clamp so labels don't escape chart bounds
+      const clampedY = Math.max(padT + 7, Math.min(padT + gH - 2, lblY));
+      curveSvg += `<text x="${x.toFixed(1)}" y="${clampedY.toFixed(1)}" text-anchor="middle"
+        fill="${isKey ? nowCol : 'rgba(255,255,255,0.6)'}"
+        font-family="var(--mono)" font-size="${isKey ? 6.5 : 5.5}"
+        font-weight="${isKey ? 900 : 700}">${nowSnap.tenors[t].toFixed(2)}%</text>`;
     });
   }
-
-  // Legend — top-right corner, stacked vertically, compact
-  const lgX = W - padR - 2;
-  const lgY0 = padT + 2;
-  const lgStep = 8;
-  let legendSvg = '';
-  [...CURVES].reverse().forEach((c, i) => {
-    if (!data[c.key]) return;
-    const ly = lgY0 + i * lgStep;
-    const dashAttr = c.dash ? ` stroke-dasharray="${c.dash}"` : '';
-    legendSvg += `<line x1="${lgX-18}" y1="${ly}" x2="${lgX-8}" y2="${ly}"
-      stroke="${c.color}" stroke-width="${c.width}"${dashAttr} stroke-linecap="round"/>`;
-    legendSvg += `<text x="${lgX-20}" y="${(ly+2.2).toFixed(1)}" text-anchor="end"
-      fill="${c.color}" font-family="var(--mono)" font-size="5.5" font-weight="700">${c.label}</text>`;
-  });
 
   const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block"
     preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
     ${grids}
     ${curveSvg}
     ${xAxis}
-    ${legendSvg}
   </svg>`;
 
-  el.style.height = H + 'px';
+  // HTML legend row — below chart, clear and readable
+  const legendHTML = `<div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:5px">
+    ${[...CURVES].reverse().filter(c => data[c.key]).map(c => {
+      const dash = c.dash
+        ? `repeating-linear-gradient(90deg,${c.color} 0,${c.color} 5px,transparent 5px,transparent 9px)`
+        : 'none';
+      const solid = c.dash ? 'none' : c.color;
+      return `<div style="display:flex;align-items:center;gap:4px">
+        <div style="width:18px;height:2px;background:${solid};
+          ${c.dash ? `background-image:${dash};background-color:transparent;` : ''}
+          border-radius:1px"></div>
+        <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.06em;
+          color:${c.color};text-transform:uppercase">${c.label}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  el.style.height = 'auto';
   el.style.display = 'block';
-  el.innerHTML = svg;
+  el.innerHTML = svg + legendHTML;
 }
 
 function _drawMacroParticles(canvasId, accentCol){
