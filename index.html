@@ -4395,85 +4395,6 @@ function renderSmartMoney(markets){
   el.classList.add('loaded');
 }
 
-// ── Shared news-context fetch (prevents duplicate requests) ────────────────
-let _newsCtxPromise=null;
-let _newsCtxFetchedAt=0;
-function getNewsContext(){
-  if(!_newsCtxPromise){
-    _newsCtxFetchedAt=Date.now();
-    _newsCtxPromise=fetch(API+'/api/news-context').then(r=>r.json()).catch(()=>({}));
-  }
-  return _newsCtxPromise;
-}
-function resetNewsCtxCache(force=false){
-  const age=(Date.now()-_newsCtxFetchedAt)/60000;
-  if(force||age>90){_newsCtxPromise=null;_newsCtxFetchedAt=0;}
-  _climateNarrLoaded=false;
-  _aiBriefLoaded=false;
-}
-let _climateNarrLoaded=false;
-let _aiBriefLoaded=false;
-async function loadClimateNarrative(){
-  const bodyEl=document.getElementById('ov-cp-narr-body');
-  const tsEl=document.getElementById('ov-cp-narr-ts');
-  if(!bodyEl)return;
-  try{
-    const data=await getNewsContext();
-    const narrative=data.global_narrative;
-    const updAt=data.updated_at;
-    let ageStr='';
-    if(updAt){const ageMin=Math.round((Date.now()/1000-updAt)/60);ageStr=ageMin<2?'Updated just now':ageMin<60?'Updated '+ageMin+'m ago':'Updated '+(Math.round(ageMin/60))+'h ago';}
-    if(tsEl&&ageStr)tsEl.textContent=ageStr;
-    if(narrative&&narrative!='null'){
-      bodyEl.innerHTML=`<div class="ov-cp-narr-text">${narrative}</div>`;
-    } else {
-      const reg=DATA.regime||{};const md=reg.macro_dashboard||{};const mc=md.macro_composites||{};const regLabel=reg.regime||reg.label||'Unknown';
-      const topCat=Object.entries(mc).filter(([k])=>k!=='default').sort(([,a],[,b])=>(b.composite_10??5)-(a.composite_10??5))[0];
-      const botCat=Object.entries(mc).filter(([k])=>k!=='default').sort(([,a],[,b])=>(a.composite_10??5)-(b.composite_10??5))[0];
-      const topName={'equity':'Equities','bond':'Bonds','gold':'Gold','commodity':'Commodities','fx_usd':'USD','fx_foreign':'FX (foreign)','crypto':'Crypto'};
-      const fallback=`Current macro environment signals a ${regLabel.toLowerCase()} backdrop. `+(topCat?`${topName[topCat[0]]||topCat[0]} sees the most supportive macro composite at ${topCat[1].composite_10?.toFixed(1)}/10. `:'')
-        +(botCat?`${topName[botCat[0]]||botCat[0]} faces the most macro headwinds at ${botCat[1].composite_10?.toFixed(1)}/10.`:'');
-      bodyEl.innerHTML=`<div class="ov-cp-narr-text" style="color:var(--dim)">${fallback}</div>`;
-    }
-    _climateNarrLoaded=true;
-  }catch(e){
-    if(bodyEl)bodyEl.innerHTML='<div style="font-size:10px;color:var(--faint)">Narrative unavailable.</div>';
-  }
-}
-async function loadAiBrief(){
-  const el=document.getElementById('ov-ai-brief');
-  if(!el)return;
-  el.innerHTML=`<div class="ov-ai-brief-header"><div class="ov-ai-brief-title"><div class="ov-ai-brief-label">Breaking News</div></div><div class="ov-ai-brief-header-line"></div><div class="ov-ai-brief-sub" id="ai-brief-sub">High &amp; Medium impact · 48h</div></div><div class="ov-ai-brief-body open" id="ai-brief-body"><div class="skel" style="height:12px;width:92%;border-radius:4px;margin-bottom:5px"></div><div class="skel" style="height:12px;width:78%;border-radius:4px;margin-bottom:5px"></div><div class="skel" style="height:34px;border-radius:6px;margin-bottom:6px"></div><div class="skel" style="height:34px;border-radius:6px"></div></div>`;
-  el.classList.add('loaded');
-  try{
-    const data=await getNewsContext();
-    const newsItems=data.news_items||[];
-    const updAt=data.updated_at;
-    let ageStr='';
-    if(updAt){const ageMin=Math.round((Date.now()/1000-updAt)/60);ageStr=ageMin<2?'just now':ageMin<60?ageMin+'m ago':(Math.round(ageMin/60))+'h ago';}
-    const groups={};
-    for(const n of newsItems){const k=n.date_label||'';if(!groups[k])groups[k]=[];groups[k].push(n);}
-    const sortedKeys=Object.keys(groups).sort((a,b)=>{const ta=groups[a][0]?.dateline||0;const tb=groups[b][0]?.dateline||0;return tb-ta;});
-    const newsListHtml=sortedKeys.map(dayKey=>{
-      const items=groups[dayKey].sort((a,b)=>(b.dateline||0)-(a.dateline||0));
-      const rows=items.map(n=>{
-        const isHigh=n.impact==='high';const tag=isHigh?'HIGH':'MED';const tagCls=isHigh?'':'medium';
-        return `<div class="ov-news-row"><div class="ov-news-row-left"><div class="ov-ai-news-tag ${tagCls}">${tag}</div><div class="ov-news-row-info"><div class="ov-news-row-title">${n.title}</div>${n.preview?`<div class="ov-news-row-preview">${n.preview}</div>`:''}</div></div><div class="ov-news-row-right"><div class="ov-news-row-time">${n.time_label}</div>${n.source?`<div style="font-size:7.5px;color:var(--faint);text-align:right;margin-top:1px">${n.source}</div>`:''}</div></div>`;
-      }).join('');
-      return `<div class="ov-news-day-group"><div class="ov-news-day-label">${dayKey}</div><div class="ov-ai-news">${rows}</div></div>`;
-    }).join('');
-    const bodyEl=document.getElementById('ai-brief-body');
-    if(bodyEl)bodyEl.innerHTML=newsListHtml||'<div style="color:var(--faint);font-size:10px;padding:8px 0">No news available.</div>';
-    const subEl=document.getElementById('ai-brief-sub');
-    if(subEl&&ageStr)subEl.textContent='High & Medium impact · '+ageStr;
-    _aiBriefLoaded=true;
-  }catch(e){
-    const bodyEl=document.getElementById('ai-brief-body');
-    if(bodyEl)bodyEl.innerHTML='<div style="color:var(--faint);font-size:10px;padding:8px 0">News unavailable.</div>';
-  }
-}
-function toggleAiBrief(){const body=document.getElementById('ai-brief-body');if(!body)return;body.classList.toggle('open');}
-
 function renderOverview(){
   if(!DATA)return;
   // Stop detail header canvas if navigating back to overview
@@ -6606,6 +6527,1340 @@ function _drawFedBSArc(fbLevel, fbPct, fbCol){
     });
   }
 }
+
+// ── Score history chart loader
+
+function getNewsContext(){
+  if(!_newsCtxPromise){
+    _newsCtxFetchedAt = Date.now();
+    _newsCtxPromise=fetch(API+'/api/news-context').then(r=>r.json()).catch(()=>({}));
+  }
+  return _newsCtxPromise;
+}
+// Reset news context cache — only bust if explicitly forced or cache is stale (>90min)
+let _newsCtxFetchedAt = 0;
+function resetNewsCtxCache(force=false){
+  const age = (Date.now() - _newsCtxFetchedAt) / 60000;
+  if(force || age > 90){
+    _newsCtxPromise=null;
+    _newsCtxFetchedAt=0;
+  }
+  _climateNarrLoaded=false;
+  _aiBriefLoaded=false;
+}
+
+// ── AI Brief loader
+let _aiBriefLoaded=false;
+async function loadAiBrief(){
+  const el=document.getElementById('ov-ai-brief');
+  if(!el)return;
+  // Immediate skeleton
+  el.innerHTML=`
+    <div class="ov-ai-brief-header">
+      <div class="ov-ai-brief-title">
+        <div class="ov-ai-brief-icon">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="rgba(200,169,110,0.8)" stroke-width="1.5" stroke-linecap="round">
+            <path d="M6 1v1M6 10v1M1 6h1M10 6h1M2.5 2.5l.7.7M8.8 8.8l.7.7M2.5 9.5l.7-.7M8.8 3.2l.7-.7"/>
+            <circle cx="6" cy="6" r="2"/>
+          </svg>
+        </div>
+        <div class="ov-ai-brief-label">Breaking News</div>
+      </div>
+      <div class="ov-ai-brief-header-line"></div>
+      <div class="ov-ai-brief-sub" id="ai-brief-sub">High &amp; Medium impact · 48h</div>
+    </div>
+    <div class="ov-ai-brief-body open" id="ai-brief-body">
+      <div style="margin-bottom:14px">
+        <div class="skel" style="height:12px;width:92%;border-radius:4px;margin-bottom:5px"></div>
+        <div class="skel" style="height:12px;width:78%;border-radius:4px;margin-bottom:5px"></div>
+        <div class="skel" style="height:12px;width:61%;border-radius:4px"></div>
+      </div>
+      <div class="skel" style="height:34px;border-radius:6px;margin-bottom:6px"></div>
+      <div class="skel" style="height:34px;border-radius:6px;margin-bottom:6px"></div>
+      <div class="skel" style="height:34px;border-radius:6px"></div>
+    </div>`;
+  el.classList.add('loaded');
+
+  try{
+    const data = await getNewsContext();
+    const newsItems = data.news_items || [];
+    const updAt = data.updated_at;
+
+    // Age string
+    let ageStr = '';
+    if(updAt){
+      const ageMin = Math.round((Date.now()/1000 - updAt)/60);
+      ageStr = ageMin < 2 ? 'just now' : ageMin < 60 ? ageMin+'m ago' : (Math.round(ageMin/60))+'h ago';
+    }
+
+    // ── AI narrative block removed — narrative now lives in Market Narrative card above ──
+
+    // ── News items list ──────────────────────────────────────────
+    // Group by date label for a clean feed layout
+    const groups = {};
+    for(const n of newsItems){
+      const k = n.date_label || '';
+      if(!groups[k]) groups[k] = [];
+      groups[k].push(n);
+    }
+    // Sort groups newest first
+    const sortedKeys = Object.keys(groups).sort((a,b)=>{
+      const ta = groups[a][0]?.dateline||0;
+      const tb = groups[b][0]?.dateline||0;
+      return tb - ta;
+    });
+
+    const newsListHtml = sortedKeys.map(dayKey => {
+      const items = groups[dayKey].sort((a,b)=>(b.dateline||0)-(a.dateline||0));
+      const rows = items.map(n => {
+        const isHigh = n.impact === 'high';
+        const tagCls = isHigh ? '' : 'medium';
+        const tag = isHigh ? 'HIGH' : 'MED';
+        const previewTxt = n.preview || '';
+        return `<div class="ov-news-row">
+          <div class="ov-news-row-left">
+            <div class="ov-ai-news-tag ${tagCls}">${tag}</div>
+            <div class="ov-news-row-info">
+              <div class="ov-news-row-title">${n.title}</div>
+              ${previewTxt?`<div class="ov-news-row-preview">${previewTxt}</div>`:''}
+            </div>
+          </div>
+          <div class="ov-news-row-right">
+            <div class="ov-news-row-time">${n.time_label}</div>
+            ${n.source?`<div style="font-size:7.5px;color:var(--faint);text-align:right;margin-top:1px">${n.source}</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="ov-news-day-group">
+        <div class="ov-news-day-label">${dayKey}</div>
+        <div class="ov-ai-news">${rows}</div>
+      </div>`;
+    }).join('');
+
+    const bodyEl = document.getElementById('ai-brief-body');
+    if(bodyEl){
+      bodyEl.innerHTML = newsListHtml || '<div style="color:var(--faint);font-size:10px;padding:8px 0">No news available.</div>';
+    }
+    // Update sub-label with age
+    const subEl = document.getElementById('ai-brief-sub');
+    if(subEl && ageStr) subEl.textContent = 'High & Medium impact · '+ageStr;
+    _aiBriefLoaded = true;
+  } catch(e){
+    const bodyEl = document.getElementById('ai-brief-body');
+    if(bodyEl) bodyEl.innerHTML = '<div style="color:var(--faint);font-size:10px;padding:8px 0">News unavailable.</div>';
+  }
+}
+
+function toggleAiBrief(){
+  const body = document.getElementById('ai-brief-body');
+  if(!body) return;
+  body.classList.toggle('open');
+}
+
+// ── Donut SVG helper
+// ═════════════════════════════════════════════════════
+// COUNT-UP ANIMATION
+// ═════════════════════════════════════════════════════
+// Animate a number element from 0 to target, easing out
+function countUp(el, target, decimals=1, duration=700, delay=0){
+  if(!el)return;
+  const start=performance.now()+delay;
+  const fmt=v=>v.toFixed(decimals);
+  function step(now){
+    if(now<start){requestAnimationFrame(step);return;}
+    const t=Math.min((now-start)/duration,1);
+    const ease=1-Math.pow(1-t,3); // ease-out cubic
+    el.textContent=fmt(ease*target);
+    if(t<1)requestAnimationFrame(step);
+    else{
+      el.textContent=fmt(target);
+      el.classList.add('popped');
+    }
+  }
+  el.textContent='0.0';
+  requestAnimationFrame(step);
+}
+// Trigger count-ups on all overview score numbers after render
+function triggerOvCountUps(){
+  // Avg score in banner
+  const avgEl=document.querySelector('.ov-stat-val[data-countup]');
+  if(avgEl)countUp(avgEl,parseFloat(avgEl.dataset.countup),1,600);
+  // Chart cells scores
+  document.querySelectorAll('.ov-chart-num[data-countup]').forEach((el,i)=>{
+    countUp(el,parseFloat(el.dataset.countup),1,550,i*80);
+  });
+}
+
+function ovDonutSvg(bull,neut,bear,total,avg){
+  const R=34,cx=42,cy=42,sw=8;
+  const circ=2*Math.PI*R;
+  const bA=(bull/total)*circ;
+  const nA=(neut/total)*circ;
+  const rA=(bear/total)*circ;
+  function seg(col,off,len){
+    return `<circle r="${R}" cx="${cx}" cy="${cy}" fill="none" stroke="${col}" stroke-width="${sw}"
+      stroke-dasharray="${len.toFixed(2)} ${(circ-len).toFixed(2)}"
+      stroke-dashoffset="${(circ/4-off).toFixed(2)}" stroke-linecap="butt"/>`;
+  }
+  return `<svg width="84" height="84" viewBox="0 0 84 84">
+    <circle r="${R}" cx="${cx}" cy="${cy}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="${sw}"/>
+    ${seg('#22c97a',0,bA)}${seg('#4a5268',bA,nA)}${seg('#e03a2a',bA+nA,rA)}
+    <text x="${cx}" y="${cy-5}" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="7" font-family="IBM Plex Mono,monospace" font-weight="600">AVG</text>
+    <text x="${cx}" y="${cy+8}" text-anchor="middle" fill="#f0f4ff" font-size="13" font-family="IBM Plex Mono,monospace" font-weight="800">${avg}</text>
+  </svg>`;
+}
+
+// ── Climate Arc: 12-month global regime visualisation ──────────────────────
+let _arcData = null;
+let _arcAnimId = null;     // draw-on animation RAF id
+let _arcPulseId = null;    // live dot pulse RAF id
+let _arcPulsePhase = 0;    // pulse animation phase
+let _arcTickAngle = 0;     // slow rotating tick ring angle
+
+async function loadClimateArc(live={}) {
+  const canvas = document.getElementById('ov-arc-canvas');
+  if (!canvas) return;
+
+  // Draw shimmer skeleton while loading
+  _drawArcSkeleton(canvas);
+
+  try {
+    const res = await fetch(API + '/api/regime_history');
+    const data = await res.json();
+    if (data.error || !data.scores || !data.scores.length) {
+      document.getElementById('ov-arc-foot-note').textContent = 'Climate history unavailable';
+      return;
+    }
+    _arcData = data;
+    _renderClimateArcAnimated(canvas, data, 1, live);
+    _setupArcTooltip(canvas, data);
+  } catch (e) {
+    console.warn('Climate arc load failed:', e);
+    document.getElementById('ov-arc-foot-note').textContent = 'Climate history unavailable';
+  }
+}
+
+function _drawArcSkeleton(canvas) {
+  const W = canvas.offsetWidth || 800;
+  const H = window.innerWidth <= 700 ? 200 : Math.max(280, Math.min(460, Math.round(W * 0.295)));
+  const DPR = Math.max(2, window.devicePixelRatio || 2);
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = '#020509';
+  ctx.fillRect(0, 0, W, H);
+  // Jarvis init line
+  ctx.strokeStyle = 'rgba(200,169,110,0.12)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 8]);
+  ctx.beginPath();
+  ctx.moveTo(20, H * 0.5);
+  ctx.lineTo(W - 20, H * 0.5);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Init label
+  ctx.font = '700 7px monospace';
+  ctx.fillStyle = 'rgba(200,169,110,0.18)';
+  ctx.textAlign = 'left';
+  ctx.fillText('RISK CLIMATE SYSTEM  //  INITIALIZING…', 20, 15);
+}
+
+// Animated draw-on: reveal the chart left-to-right over ~900ms
+function _renderClimateArcAnimated(canvas, data, _unused, live={}) {
+  if (_arcAnimId) cancelAnimationFrame(_arcAnimId);
+  if (_arcPulseId) cancelAnimationFrame(_arcPulseId);
+  if (_arcOrbRedrawId) cancelAnimationFrame(_arcOrbRedrawId);
+
+  const DURATION = 1100; // ms — slightly slower for cinematic feel
+  const start = performance.now();
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function frame(now) {
+    const elapsed = now - start;
+    const progress = Math.min(1, easeOut(elapsed / DURATION));
+    _renderClimateArc(canvas, data, progress, live);
+    if (progress < 1) {
+      _arcAnimId = requestAnimationFrame(frame);
+    } else {
+      _arcAnimId = null;
+      // Start the live-dot pulse loop
+      _startArcPulse(canvas, data);
+      // Render footer/phases (only once fully drawn)
+      // _buildPhaseSummary removed per user request
+      const lastScore = data.scores[data.scores.length - 1];
+      const lastLabel = data.labels[data.labels.length - 1];
+      const scoreStr  = lastScore.toFixed(1);
+      const lastCol   = _scoreToColor(lastScore);
+      const note = document.getElementById('ov-arc-foot-note');
+      if (note) {
+        // Footnote: clearly identifies this as history context, not the live reading
+        const _hiStr = Math.max(...data.scores).toFixed(1);
+        const _loStr = Math.min(...data.scores).toFixed(1);
+        note.textContent = `52W CLIMATE HISTORY  ·  HI ${_hiStr}  ·  LO ${_loStr}  ·  ${data.scores.length} BARS`;
+        note.style.color = 'rgba(255,255,255,0.28)';
+      }
+    }
+  }
+
+  _arcAnimId = requestAnimationFrame(frame);
+}
+
+// Live dot pulsing animation + slow orb-redraw for tick rotation
+let _arcOrbRedrawId = null;
+function _startArcPulse(canvas, data) {
+  if (_arcPulseId) cancelAnimationFrame(_arcPulseId);
+  if (_arcOrbRedrawId) cancelAnimationFrame(_arcOrbRedrawId);
+  const PULSE_SPEED = 0.012; // slower, more measured breathing
+
+  // Breathing pulse overlay only — no full redraw needed (bezel is static)
+  function pulse() {
+    _arcPulsePhase = (_arcPulsePhase + PULSE_SPEED) % (Math.PI * 2);
+    _drawLiveDot(canvas, data, _arcPulsePhase);
+    _arcPulseId = requestAnimationFrame(pulse);
+  }
+  _arcPulseId = requestAnimationFrame(pulse);
+
+  // Now that banner has full height (text + arc), resize particle canvas to cover it
+  setTimeout(() => {
+    const lastCol = data.scores ? data.scores[data.scores.length - 1] : 0;
+    if (typeof initOvCanvas === 'function' && typeof _scoreToColor === 'function') {
+      const col = _scoreToColor(lastCol);
+      const hex = '#' + col.map(v => v.toString(16).padStart(2,'0')).join('');
+      initOvCanvas(hex);
+    }
+  }, 80);
+}
+
+// Draw only the live dot (called by pulse loop without redrawing everything)
+function _drawLiveDot(canvas, data, phase) {
+  // Overlay canvas — pulses around the Reactor Core Orb rim, not old linear chart
+  let dotCanvas = document.getElementById('ov-arc-dot-canvas');
+  if (!dotCanvas) {
+    dotCanvas = document.createElement('canvas');
+    dotCanvas.id = 'ov-arc-dot-canvas';
+    dotCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;';
+    canvas.parentNode.insertBefore(dotCanvas, canvas.nextSibling);
+  }
+  const DPR = Math.max(2, window.devicePixelRatio || 2);
+  const W = parseFloat(canvas.style.width)  || canvas.offsetWidth  || 800;
+  const H = parseFloat(canvas.style.height) || canvas.offsetHeight || 260;
+  dotCanvas.width  = W * DPR;
+  dotCanvas.height = H * DPR;
+  dotCanvas.style.width  = W + 'px';
+  dotCanvas.style.height = H + 'px';
+  const ctx = dotCanvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+  ctx.clearRect(0, 0, W, H);
+
+  const scores  = data.scores;
+  const curScore = scores[scores.length - 1];
+  const lastCol  = _scoreToColor(curScore);
+
+  // Pulse ring at the live needle tip — gentle breathing beacon
+  const PAD_L = 20;
+  const LEFT_W = 108;
+  const ARC_X  = PAD_L + LEFT_W;
+  const PAD_R  = 20;
+  const ARC_CX = ARC_X + (W - ARC_X - PAD_R) * 0.38;
+  const ARC_CY = H * 0.56;
+  const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+  const ARC_IR = ARC_OR * 0.30;
+  const MIN_S = 0, MAX_S = 10;
+  const SWEEP = 210 * Math.PI / 180;
+  const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
+  const N = scores.length;
+  const angPerBar = SWEEP / N;
+  const needleA = START_A + (N - 1) * angPerBar + angPerBar * 0.5;
+  const needleR = ARC_IR + (ARC_OR - ARC_IR) * ((curScore - MIN_S) / (MAX_S - MIN_S));
+  const nx = ARC_CX + Math.cos(needleA) * needleR;
+  const ny = ARC_CY + Math.sin(needleA) * needleR;
+
+  // Breathing ring expanding outward from needle tip
+  const breathe = (Math.sin(phase) + 1) / 2;
+  const pr = 7 + breathe * 14;
+  const pa = (1 - breathe) * 0.35;
+  ctx.beginPath();
+  ctx.arc(nx, ny, pr, 0, Math.PI * 2);
+  ctx.strokeStyle = _rgbStr(lastCol, pa);
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+}
+
+// Shared 8-stop climate colour ramp (0-10, 5=neutral)
+// 0=deep crimson · 1.5=vivid red · 3=warm red · 4=red-amber · 5=slate · 6=steel blue · 7.5=teal · 10=mint
+const _ARC_PALETTE = [
+  [0,   [175, 15,  32 ]],  // deep crimson
+  [1.5, [218, 38,  28 ]],  // vivid red
+  [3,   [224, 44,  32 ]],  // warm red       (was red-orange — G reduced 80→44)
+  [4,   [212, 62,  36 ]],  // red-amber      (was orange     — G reduced 110→62)
+  [5,   [88,  90,  112]],  // neutral slate
+  [6,   [52,  118, 185]],  // steel blue     (lean bull, slightly muted)
+  [7.5, [34,  201, 122]],  // teal-green
+  [10,  [0,   240, 154]],  // vivid mint
+];
+function _arcPaletteColor(score) {
+  const sc = Math.max(0, Math.min(10, score));
+  for (let i = 0; i < _ARC_PALETTE.length - 1; i++) {
+    const [s0, c0] = _ARC_PALETTE[i];
+    const [s1, c1] = _ARC_PALETTE[i + 1];
+    if (sc >= s0 && sc <= s1) {
+      const u = (sc - s0) / (s1 - s0);
+      return [
+        Math.round(c0[0] + (c1[0] - c0[0]) * u),
+        Math.round(c0[1] + (c1[1] - c0[1]) * u),
+        Math.round(c0[2] + (c1[2] - c0[2]) * u),
+      ];
+    }
+  }
+  return _ARC_PALETTE[_ARC_PALETTE.length - 1][1];
+}
+function _scoreToColor(score) { return _arcPaletteColor(score); }
+
+function _rgbStr(rgb, alpha) {
+  return alpha != null
+    ? `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`
+    : `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
+
+// Builds a catmull-rom spline through points, returns array of {x,y}
+function _catmullRomPoints(pts) {
+  if (pts.length < 2) return pts;
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const steps = 5;
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const t2 = t * t, t3 = t2 * t;
+      const x = 0.5 * ((2*p1.x) + (-p0.x+p2.x)*t + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t2 + (-p0.x+3*p1.x-3*p2.x+p3.x)*t3);
+      const y = 0.5 * ((2*p1.y) + (-p0.y+p2.y)*t + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t2 + (-p0.y+3*p1.y-3*p2.y+p3.y)*t3);
+      out.push({ x, y, s: p1.s });
+    }
+  }
+  const last = pts[pts.length - 1];
+  out.push({ x: last.x, y: last.y, s: last.s });
+  return out;
+}
+
+function _renderClimateArc(canvas, data, progress, live={}) {
+  progress = (progress === undefined) ? 1 : progress;
+  const DPR = Math.max(2, window.devicePixelRatio || 2);
+  const W   = canvas.offsetWidth || 900;
+  const H   = window.innerWidth <= 700 ? 200 : Math.max(280, Math.min(460, Math.round(W * 0.295)));
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+  ctx.clearRect(0, 0, W, H);
+
+  const scores = data.scores;
+  const dates  = data.dates;
+  const labels = data.labels || [];
+  const N      = scores.length;
+  if (N < 2) return;
+
+  const PAD_L = 20, PAD_R = 20;
+
+  // ── Score-adaptive colour system ─────────────────────────────────────
+  // Strong bull: electric cyan-to-mint, neutral: steel, bear: vivid crimson
+  function scoreColor(s) { return _arcPaletteColor(s); }
+
+  // Segment colour: full-range -4→+4, richer palette
+  function segColor(s) { return _arcPaletteColor(s); }
+
+  function rgb(c, a) {
+    return a === undefined
+      ? `rgb(${c[0]},${c[1]},${c[2]})`
+      : `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  }
+
+  const visN     = Math.max(2, Math.ceil(progress * N));
+  const curScore = scores[visN - 1];
+  const curLabel = labels[visN - 1] || '';
+  const curC     = scoreColor(curScore);
+
+  // ── Layout constants ─────────────────────────────────────────────────
+  const LEFT_W = 145;                      // jarvis data panel width
+  const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
+  const ARC_CX = ARC_X + (W - ARC_X - PAD_R) * 0.38;
+  const ARC_CY = H * 0.56;
+  const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+  const ARC_IR = ARC_OR * 0.30;
+  const MIN_S  = 0, MAX_S = 10;
+  const SWEEP  = 210 * Math.PI / 180;
+  const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
+  const scoreToR = s => ARC_IR + (ARC_OR - ARC_IR) * ((s - MIN_S) / (MAX_S - MIN_S));
+
+  // ── 0. Rich background ───────────────────────────────────────────────
+  // Base: deep space navy (not pure black)
+  // Background: very subtle dark tint — let parent particle canvas show through
+  ctx.fillStyle = 'rgba(1, 3, 9, 0.38)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Radial atmosphere: two layers — warm colour bloom + dark inner void
+  // Layer 1: subtle colour atmosphere around the arc
+  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.4, ARC_CX, ARC_CY, ARC_OR * 2.0);
+  vigGrd.addColorStop(0,   rgb(curC, 0.07));
+  vigGrd.addColorStop(0.4, rgb(curC, 0.04));
+  vigGrd.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = vigGrd;
+  ctx.fillRect(0, 0, W, H);
+  // Layer 2: frosted dark void disc — makes bars pop; fills inner arc area
+  const voidGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_IR * 1.05);
+  voidGrd.addColorStop(0,   'rgba(1,2,8,0.78)');
+  voidGrd.addColorStop(0.65,'rgba(1,2,8,0.40)');
+  voidGrd.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = voidGrd;
+  ctx.fillRect(0, 0, W, H);
+  // Etched concentric rings inside the void — architectural / precision instrument feel
+  [0.68, 0.45, 0.22].forEach((frac, idx) => {
+    const er = ARC_IR * frac;
+    ctx.beginPath();
+    ctx.arc(ARC_CX, ARC_CY, er, 0, Math.PI * 2);
+    const etchA = [0.10, 0.07, 0.05][idx];
+    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${etchA})`;
+    ctx.lineWidth = 0.5;
+    if (idx === 1) ctx.setLineDash([2, 6]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Subtle horizontal scan bands (HUD effect)
+  ctx.save();
+  for (let y = 0; y < H; y += 8) {
+    ctx.fillStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.012)`;  // regime-tinted scan bands
+    ctx.fillRect(0, y, W, 1);
+  }
+  ctx.restore();
+
+  // Fine star field
+  ctx.save();
+  for (let i = 0; i < 100; i++) {
+    const rx = ((i * 9301 + 49297) % 233280) / 233280;
+    const ry = ((i * 6271  + 12345) % 233280) / 233280;
+    const rr = ((i * 1103  + 7691)  % 233280) / 233280;
+    const sz = 0.3 + rr * 0.5;
+    ctx.beginPath();
+    ctx.arc(rx * W, ry * H, sz, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${120 + Math.round(rr*135)},${180 + Math.round(rr*60)},255,${0.02 + rr * 0.05})`;
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // LEFT PANEL — JARVIS CLIMATE READOUT
+  // Premium holographic data spine: vertical energy bar, score hero, stats
+  // ═══════════════════════════════════════════════════════════════════════
+  {
+    const lx  = PAD_L + 2;
+    const lW  = LEFT_W - 6;
+    const lCX = lx + lW / 2;
+
+    // ── Resolve live data (banner-synced)
+    const scoreMax  = Math.max(...scores);
+    const scoreMin  = Math.min(...scores);
+    const scoreAvg  = scores.reduce((a,b) => a+b, 0) / scores.length;
+    const _liveScore = live.liveScore != null ? live.liveScore : curScore;
+    const _liveLabel = live.liveLabel || curLabel;
+    let _lC = curC;
+    if (live.liveCol && live.liveCol.startsWith('#') && live.liveCol.length === 7) {
+      _lC = [
+        parseInt(live.liveCol.slice(1,3),16),
+        parseInt(live.liveCol.slice(3,5),16),
+        parseInt(live.liveCol.slice(5,7),16),
+      ];
+    }
+
+    ctx.save();
+
+    // ── Panel background: deep glass panel with subtle border
+    const panelGrd = ctx.createLinearGradient(lx, 0, lx + lW, 0);
+    panelGrd.addColorStop(0, 'rgba(0,0,0,0)');
+    panelGrd.addColorStop(0.1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.04)`);
+    panelGrd.addColorStop(0.9, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.02)`);
+    panelGrd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = panelGrd;
+    ctx.fillRect(lx, 0, lW, H);
+
+    // Right-edge divider with glow
+    const dvG = ctx.createLinearGradient(0, 0, 0, H);
+    dvG.addColorStop(0,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+    dvG.addColorStop(0.15, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.40)`);
+    dvG.addColorStop(0.5,  `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`);
+    dvG.addColorStop(0.85, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.40)`);
+    dvG.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+    ctx.beginPath(); ctx.moveTo(ARC_X - 1, 0); ctx.lineTo(ARC_X - 1, H);
+    ctx.strokeStyle = dvG; ctx.lineWidth = 0.75; ctx.stroke();
+
+    // ── Section 1: HEADER AREA (top 26% of H)
+    const headerH = Math.round(H * 0.26);
+
+    // Eyebrow label: "CLIMATE SCORE"
+    ctx.font = '700 6px "SF Mono",monospace';
+    ctx.letterSpacing = '0.20em';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.60)`;
+    ctx.fillText('CLIMATE SCORE', lCX, 13);
+    ctx.letterSpacing = '0';
+
+    // Top rule: thin line under eyebrow with fade-in
+    const topR = ctx.createLinearGradient(lx+4,0,lx+lW-4,0);
+    topR.addColorStop(0,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+    topR.addColorStop(0.5, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.28)`);
+    topR.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+    ctx.beginPath(); ctx.moveTo(lx+4, 16); ctx.lineTo(lx+lW-4, 16);
+    ctx.strokeStyle = topR; ctx.lineWidth = 0.5; ctx.stroke();
+
+    // Hero number: live score — large, glowing, white
+    const heroSz = Math.round(Math.min(lW * 0.36, 38));
+    const dispScore = _liveScore.toFixed(1);
+    ctx.save();
+    ctx.font = `100 ${heroSz}px "SF Pro Display","Helvetica Neue",sans-serif`;
+    ctx.textAlign = 'center';
+    // Hero number: white core + colour halo — single clean pass
+    ctx.shadowBlur = 14; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.50)`;
+    ctx.fillStyle = 'rgba(255,255,255,0.98)';
+    ctx.fillText(dispScore, lCX, 18 + heroSz);
+    ctx.shadowBlur = 0;
+    // Thin colour underline beneath score — premium accent
+    const ulY = 20 + heroSz + 3;
+    const ulW = Math.min(heroSz * 1.1, lW * 0.65);
+    const ulGrd = ctx.createLinearGradient(lCX - ulW/2, 0, lCX + ulW/2, 0);
+    ulGrd.addColorStop(0,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+    ulGrd.addColorStop(0.5, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`);
+    ulGrd.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+    ctx.beginPath(); ctx.moveTo(lCX - ulW/2, ulY); ctx.lineTo(lCX + ulW/2, ulY);
+    ctx.strokeStyle = ulGrd; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.restore();
+
+    // Scale denom — tiny, positioned just below hero
+    ctx.font = '400 6.5px "SF Mono",monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.32)`;
+    ctx.fillText('/ 10', lCX, 20 + heroSz + 10);
+
+    // Regime label — bold, coloured, glowing
+    const labelFull = _liveLabel
+      .replace('Strong Risk-On','S.RISK-ON').replace('Strong Risk-Off','S.RISK-OFF')
+      .replace('Lean Risk-On','L.RISK-ON').replace('Lean Risk-Off','L.RISK-OFF')
+      .toUpperCase();
+    ctx.save();
+    ctx.font = `700 8px "SF Mono",monospace`;
+    ctx.letterSpacing = '0.08em';
+    ctx.textAlign = 'center';
+    // Regime label: tight single glow for legibility
+    ctx.shadowBlur = 8; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.60)`;
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.92)`;
+    ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
+    ctx.shadowBlur = 0;
+    ctx.letterSpacing = '0';
+    ctx.restore();
+
+    // ── Section 2: VERTICAL ENERGY BAR (central column, ~45% of H)
+    // This is the key Jarvis element — a tall vertical gauge
+    const barY1     = 20 + heroSz + 36;         // top of bar area
+    const barY2     = H - 46;                     // bottom of bar area
+    const barTotalH = barY2 - barY1;
+    const barCX     = lCX;                        // centered
+    const barW      = 14;                          // bar width
+    const barX0     = barCX - barW / 2;
+
+    // ── Live position fraction (0=bottom=-4, 1=top=+4)
+    const liveFrac = Math.max(0, Math.min(1, _liveScore / 10));
+
+    // ── Bar background track (gradient, top=bull, bot=bear)
+    const trackGrd = ctx.createLinearGradient(0, barY1, 0, barY2);
+    trackGrd.addColorStop(0,   'rgba(48,217,136,0.22)');   // bull green at top
+    trackGrd.addColorStop(0.5, 'rgba(60,70,100,0.12)');    // neutral
+    trackGrd.addColorStop(1,   'rgba(240,64,64,0.22)');    // bear red at bottom
+    ctx.beginPath(); ctx.roundRect(barX0, barY1, barW, barTotalH, 2);
+    ctx.fillStyle = trackGrd; ctx.fill();
+
+    // Track border
+    ctx.beginPath(); ctx.roundRect(barX0, barY1, barW, barTotalH, 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
+
+    // ── Filled portion: from neutral midpoint to live score
+    const neutralY   = barY1 + (1 - 0.5) * barTotalH;      // mid of bar (score=0)
+    const liveY      = barY1 + (1 - liveFrac) * barTotalH;  // live position
+    const fillTop    = Math.min(neutralY, liveY);
+    const fillH      = Math.abs(neutralY - liveY);
+    const isBull     = _liveScore >= 5;
+    const fillGrd    = ctx.createLinearGradient(0, fillTop, 0, fillTop + fillH);
+    if (isBull) {
+      fillGrd.addColorStop(0, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.85)`);
+      fillGrd.addColorStop(1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.20)`);
+    } else {
+      fillGrd.addColorStop(0, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.20)`);
+      fillGrd.addColorStop(1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.85)`);
+    }
+    ctx.beginPath(); ctx.roundRect(barX0, fillTop, barW, Math.max(1, fillH), 1);
+    ctx.fillStyle = fillGrd; ctx.fill();
+
+    // ── Scale ticks on left side of bar — architectural / HUD style
+    // 9 ticks: -4, -3, -2, -1, 0, +1, +2, +3, +4
+    for (let tick = -4; tick <= 4; tick++) {
+      const ty   = barY1 + (1 - (tick + 4) / 8) * barTotalH;
+      const isZero = tick === 0;
+      const tickW  = isZero ? 18 : (tick % 2 === 0 ? 12 : 6);
+      const tickX0 = barX0 - tickW - 1;
+      const alpha  = isZero ? 0.50 : (tick % 2 === 0 ? 0.28 : 0.13);
+      ctx.beginPath(); ctx.moveTo(tickX0, ty); ctx.lineTo(barX0 - 1, ty);
+      ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = isZero ? 0.8 : 0.5; ctx.stroke();
+      // Tick labels: only even values + 0 on far-left side
+      if (tick % 2 === 0) {
+        ctx.font = isZero ? '600 5.5px "SF Mono",monospace' : '400 5px "SF Mono",monospace';
+        ctx.textAlign = 'right';
+        const lColor = tick > 0 ? `rgba(48,217,136,${isZero?0.65:0.42})` :
+                       tick < 0 ? `rgba(240,80,80,${isZero?0.65:0.42})` :
+                       `rgba(255,255,255,${isZero?0.72:0.42})`;
+        ctx.fillStyle = lColor;
+        ctx.fillText(tick === 0 ? '0' : (tick > 0 ? '+'+tick : tick), tickX0 - 1, ty + 1.5);
+      }
+    }
+
+    // ── Live needle: horizontal line across the whole panel width
+    // This is the key linking element — same height as the energy bar needle
+    const needleY = barY1 + (1 - liveFrac) * barTotalH;
+    ctx.save();
+    // Full-width glow scan line
+    const scanGrd = ctx.createLinearGradient(lx, 0, lx + lW, 0);
+    scanGrd.addColorStop(0,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+    scanGrd.addColorStop(0.25, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.45)`);
+    scanGrd.addColorStop(0.75, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.45)`);
+    scanGrd.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+    ctx.beginPath(); ctx.moveTo(lx, needleY); ctx.lineTo(lx + lW, needleY);
+    ctx.strokeStyle = scanGrd; ctx.lineWidth = 0.8; ctx.stroke();
+    // Needle dot on bar
+    ctx.beginPath(); ctx.arc(barCX, needleY, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fill();
+    // Outer ring on needle dot
+    ctx.beginPath(); ctx.arc(barCX, needleY, 5.5, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`;
+    ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.restore();
+
+    // ── 52W range band on right side of bar — show hi/lo as bracket
+    if (progress > 0.6) {
+      const fadeIn = Math.min(1, (progress - 0.6) / 0.3);
+      ctx.save(); ctx.globalAlpha = fadeIn;
+
+      const hiT  = (scoreMax + 4) / 8;
+      const loT  = (scoreMin + 4) / 8;
+      const hiY  = barY1 + (1 - hiT) * barTotalH;
+      const loY  = barY1 + (1 - loT) * barTotalH;
+      const brkX = barX0 + barW + 3;
+      const tickL = 5;
+
+      // Bracket lines
+      ctx.strokeStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.42)`;
+      ctx.lineWidth = 0.6;
+      // Vertical connector
+      ctx.beginPath(); ctx.moveTo(brkX, hiY); ctx.lineTo(brkX, loY); ctx.stroke();
+      // Horizontal ticks at hi/lo
+      ctx.beginPath(); ctx.moveTo(brkX, hiY); ctx.lineTo(brkX + tickL, hiY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(brkX, loY); ctx.lineTo(brkX + tickL, loY); ctx.stroke();
+
+      // HI label
+      ctx.font = '400 4.5px "SF Mono",monospace';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(48,217,136,0.70)';
+      ctx.fillText(scoreMax.toFixed(1), brkX + tickL + 2, hiY + 1.5);
+
+      // LO label
+      ctx.fillStyle = scoreMin < 0 ? 'rgba(240,80,80,0.70)' : 'rgba(48,217,136,0.70)';
+      ctx.fillText(scoreMin.toFixed(1), brkX + tickL + 2, loY + 1.5);
+
+      // AVG dashed tick
+      const avgT = (scoreAvg + 4) / 8;
+      const avgY = barY1 + (1 - avgT) * barTotalH;
+      ctx.setLineDash([1.5, 2]);
+      ctx.beginPath(); ctx.moveTo(barX0, avgY); ctx.lineTo(barX0 + barW, avgY);
+      ctx.strokeStyle = 'rgba(92,158,255,0.35)'; ctx.lineWidth = 0.6; ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = '400 4.5px "SF Mono",monospace';
+      ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(92,158,255,0.55)';
+      ctx.fillText('AVG', barX0 - tickL - 2, avgY + 1.5);
+
+      ctx.restore();
+    }
+
+    // ── Section 3: BOTTOM STAT ROW — compact 2-col grid
+    if (progress > 0.75) {
+      const fadeIn = Math.min(1, (progress - 0.75) / 0.2);
+      ctx.save(); ctx.globalAlpha = fadeIn;
+
+      const botY = barY2 + 8;
+      const colW = lW / 2;
+
+      const stats = [
+        { lbl:'52W HI', val:scoreMax.toFixed(1), col:[0,200,130] },
+        { lbl:'52W LO', val:scoreMin.toFixed(1), col: scoreMin < 3.5 ? [240,80,80] : [0,200,120] },
+      ];
+
+      stats.forEach((st, i) => {
+        const sx = lx + i * colW + colW * 0.5;
+        ctx.font = '400 4.5px "SF Mono",monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.35)`;
+        ctx.fillText(st.lbl, sx, botY);
+        ctx.font = '700 7.5px "SF Mono",monospace';
+        ctx.shadowBlur = 4; ctx.shadowColor = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.5)`;
+        ctx.fillStyle = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.90)`;
+        ctx.fillText(st.val, sx, botY + 11);
+        ctx.shadowBlur = 0;
+      });
+
+      // Bottom separator
+      const botSepGrd = ctx.createLinearGradient(lx+4,0,lx+lW-4,0);
+      botSepGrd.addColorStop(0, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+      botSepGrd.addColorStop(0.5, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.15)`);
+      botSepGrd.addColorStop(1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
+      ctx.beginPath(); ctx.moveTo(lx+4, botY-4); ctx.lineTo(lx+lW-4, botY-4);
+      ctx.strokeStyle = botSepGrd; ctx.lineWidth = 0.5; ctx.stroke();
+
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+
+      // ═══════════════════════════════════════════════════════════════════════
+  // RIGHT PANEL: POLAR HISTORY ARC
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Arc section — full canvas width (no clip needed)
+  ctx.save();
+
+  // Arc background — minimal, no heavy glow
+
+  // Guide rings: inner, mid-ghost, outer, outer-halo
+  [
+    { r: ARC_IR,                           a: 0.28, lw: 0.9,  dash: [] },
+    { r: ARC_IR + (ARC_OR - ARC_IR)*0.5,  a: 0.05, lw: 0.4,  dash: [2,8] },
+    { r: ARC_OR,                           a: 0.32, lw: 1.0,  dash: [] },
+    { r: ARC_OR + 3,                       a: 0.08, lw: 1.2,  dash: [] },  // soft halo ring
+  ].forEach(({ r, a, lw, dash }) => {
+    ctx.beginPath();
+    ctx.arc(ARC_CX, ARC_CY, r, START_A, START_A + SWEEP);
+    ctx.strokeStyle = rgb(curC, a);
+    ctx.lineWidth = lw;
+    if (dash.length) ctx.setLineDash(dash);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // JARVIS targeting reticle — 3 concentric rings + crosshair at arc centre
+  ctx.save();
+  const INNER_CLR = `rgba(${curC[0]},${curC[1]},${curC[2]},`;
+  // Cross lines
+  const crossLen = ARC_IR * 0.65;
+  for (let a = 0; a < 4; a++) {
+    const ang = a * Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(ARC_CX + Math.cos(ang) * (ARC_IR * 0.18), ARC_CY + Math.sin(ang) * (ARC_IR * 0.18));
+    ctx.lineTo(ARC_CX + Math.cos(ang) * crossLen, ARC_CY + Math.sin(ang) * crossLen);
+    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.15)`;
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }
+  // Corner bracket ticks at ARC_IR
+  for (let a = 0; a < 8; a++) {
+    const ang = a * Math.PI / 4;
+    const isDiag = a % 2 === 1;
+    if (isDiag) continue; // only at cardinal directions
+    ctx.beginPath();
+    ctx.arc(ARC_CX, ARC_CY, ARC_IR * 0.85, ang - 0.07, ang + 0.07);
+    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.28)`;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+  // Inner focus ring
+  ctx.beginPath();
+  ctx.arc(ARC_CX, ARC_CY, ARC_IR * 0.38, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.25)`;
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([3, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Centre pip
+  ctx.beginPath();
+  ctx.arc(ARC_CX, ARC_CY, 3, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.5)`;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(ARC_CX, ARC_CY, 1.2, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fill();
+  ctx.restore();
+
+  // Draw 52 weekly radial segments — rich gradient fills
+  const visNArc  = Math.max(2, Math.ceil(progress * N));
+  const angPerBar = SWEEP / N;
+
+  for (let i = 0; i < visNArc; i++) {
+    const s    = scores[i];
+    const sc   = segColor(s);
+    const a0   = START_A + i * angPerBar;
+    const a1   = START_A + (i + 1) * angPerBar - 0.008; // crisp gap
+    const rOut = scoreToR(s);
+    const isLast = i === visNArc - 1;
+    const isCurrent = i >= N - 3; // last 3 bars are "recent"
+
+    ctx.save();
+
+    // Radial gradient fill: dark inside → vivid outside
+    const midA   = (a0 + a1) / 2;
+    const innerX = ARC_CX + Math.cos(midA) * ARC_IR;
+    const innerY = ARC_CY + Math.sin(midA) * ARC_IR;
+    const outerX = ARC_CX + Math.cos(midA) * rOut;
+    const outerY = ARC_CY + Math.sin(midA) * rOut;
+    // Score-adaptive alpha: bearish bars punch harder visually
+    const isBull  = s >= 5.5;
+    const isBear  = s < 4.5;
+    const aInner  = isBear ? 0.28 : 0.16;
+    const aMid    = isLast ? 0.80 : (isBear ? 0.65 : isBull ? 0.45 : 0.38);
+    const aOuter  = isLast ? 1.00 : (isBear ? 0.90 : isBull ? 0.78 : 0.62);
+    const segGrd = ctx.createLinearGradient(innerX, innerY, outerX, outerY);
+    segGrd.addColorStop(0,   rgb(sc, aInner));
+    segGrd.addColorStop(0.5, rgb(sc, aMid));
+    segGrd.addColorStop(1,   rgb(sc, aOuter));
+
+    ctx.beginPath();
+    ctx.moveTo(ARC_CX + Math.cos(a0) * ARC_IR, ARC_CY + Math.sin(a0) * ARC_IR);
+    ctx.arc(ARC_CX, ARC_CY, ARC_IR, a0, a1);
+    ctx.arc(ARC_CX, ARC_CY, rOut, a1, a0, true);
+    ctx.closePath();
+
+    // Subtle bloom: last 8 bars get a recency fade-in, giving depth without a wall of glow
+    const recF = Math.max(0, (i - (visNArc - 8)) / 8);
+    if (isLast) { ctx.shadowBlur = 10; ctx.shadowColor = rgb(sc, 0.55); }
+    else if (recF > 0) { ctx.shadowBlur = 6 * recF; ctx.shadowColor = rgb(sc, 0.30 * recF); }
+    ctx.fillStyle = segGrd;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Outer specular rim — bright edge catching "light" — the key depth cue
+    ctx.beginPath();
+    ctx.arc(ARC_CX, ARC_CY, rOut - 0.5, a0, a1);
+    if (isLast) {
+      ctx.strokeStyle = rgb(sc, 1.0);
+      ctx.lineWidth = 1.8;
+      ctx.shadowBlur = 8; ctx.shadowColor = rgb(sc, 0.50);
+    } else {
+      // Specular alpha: stronger on taller (more extreme) bars
+      const specA = 0.55 + Math.abs(s - 5) / 5 * 0.30;
+      ctx.strokeStyle = rgb(sc, specA);
+      ctx.lineWidth = isBear ? 1.2 : 0.85;
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Gloss pass: a thin white-tinted highlight at 85% of bar height — glass feel
+    const glossR = ARC_IR + (rOut - ARC_IR) * 0.82;
+    ctx.beginPath();
+    ctx.arc(ARC_CX, ARC_CY, glossR, a0, a1);
+    ctx.strokeStyle = `rgba(255,255,255,${isLast ? 0.14 : 0.06})`;
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    // Inner dark rim — separation line at base of each bar
+    ctx.beginPath();
+    ctx.arc(ARC_CX, ARC_CY, ARC_IR + 0.8, a0, a1);
+    ctx.strokeStyle = 'rgba(0,0,0,0.40)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Zero / neutral dashed reference ring
+  ctx.save();
+  const zeroR = scoreToR(5);
+  ctx.beginPath();
+  ctx.arc(ARC_CX, ARC_CY, zeroR, START_A, START_A + SWEEP);
+  const zG = ctx.createLinearGradient(
+    ARC_CX + Math.cos(START_A) * zeroR, ARC_CY + Math.sin(START_A) * zeroR,
+    ARC_CX + Math.cos(START_A + SWEEP) * zeroR, ARC_CY + Math.sin(START_A + SWEEP) * zeroR);
+  zG.addColorStop(0,   'rgba(120,160,220,0.1)');
+  zG.addColorStop(0.5, 'rgba(120,160,220,0.45)');
+  zG.addColorStop(1,   'rgba(120,160,220,0.1)');
+  ctx.strokeStyle = zG;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 7]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // NEUTRAL label at zero ring top
+  ctx.save();
+  const midArc = START_A + SWEEP * 0.5;
+  const nlx = ARC_CX + Math.cos(midArc) * (zeroR + 12);
+  const nly = ARC_CY + Math.sin(midArc) * (zeroR + 12);
+  if (nlx > ARC_X && nlx < W - 20 && nly > 5 && nly < H - 5) {
+    ctx.font = '600 7px "SF Mono",monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(140,180,240,0.65)';
+    ctx.fillText('NEUTRAL', nlx, nly);
+  }
+  ctx.restore();
+
+  // Live needle — from centre to current bar tip
+  if (visNArc >= N * 0.97) {
+    const needleA = START_A + (N - 1) * angPerBar + angPerBar * 0.5;
+    const needleR = scoreToR(curScore);
+    const nx = ARC_CX + Math.cos(needleA) * needleR;
+    const ny = ARC_CY + Math.sin(needleA) * needleR;
+
+    ctx.save();
+    // Needle glow trail
+    const nG = ctx.createLinearGradient(ARC_CX, ARC_CY, nx, ny);
+    nG.addColorStop(0,   rgb(curC, 0));
+    nG.addColorStop(0.4, rgb(curC, 0.15));
+    nG.addColorStop(0.85, rgb(curC, 0.6));
+    nG.addColorStop(1,   rgb(curC, 1));
+    ctx.beginPath(); ctx.moveTo(ARC_CX, ARC_CY); ctx.lineTo(nx, ny);
+    ctx.strokeStyle = nG;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Needle tip
+    ctx.beginPath(); ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+    ctx.fillStyle = rgb(curC, 0.25);
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(nx, ny, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = rgb(curC, 1);
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(nx, ny, 1, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Month spoke labels
+  ctx.save();
+  ctx.font = '500 7px "SF Mono",monospace';
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let lastMo = -1;
+  dates.slice(0, visNArc).forEach((d, i) => {
+    const dt = new Date(d);
+    const mo = dt.getMonth();
+    const yr = dt.getFullYear();
+    if (mo !== lastMo) {
+      lastMo = mo;
+      const a      = START_A + i * angPerBar;
+      const isJan  = mo === 0;
+      const rLabel = ARC_OR + (isJan ? 22 : 15);
+      const lx = ARC_CX + Math.cos(a) * rLabel;
+      const ly = ARC_CY + Math.sin(a) * rLabel;
+      if (lx > ARC_X - 5 && lx < W - 5 && ly > 0 && ly < H + 5) {
+        ctx.textAlign = 'center';
+        ctx.shadowBlur = isJan ? 8 : 0;
+        ctx.shadowColor = 'rgba(200,169,110,0.65)';
+        ctx.fillStyle = isJan
+          ? 'rgba(200,180,120,0.85)'
+          : 'rgba(160,140,100,0.4)';
+        ctx.font = isJan
+          ? `700 7.5px "SF Mono",monospace`
+          : `400 7px "SF Mono",monospace`;
+        ctx.fillText(isJan ? `Jan '${String(yr).slice(2)}` : MONTHS[mo], lx, ly);
+        ctx.shadowBlur = 0;
+        // Spoke tick at outer edge
+        ctx.beginPath();
+        ctx.moveTo(ARC_CX + Math.cos(a) * ARC_OR, ARC_CY + Math.sin(a) * ARC_OR);
+        ctx.lineTo(ARC_CX + Math.cos(a) * (ARC_OR + (isJan ? 10 : 6)), ARC_CY + Math.sin(a) * (ARC_OR + (isJan ? 10 : 6)));
+        ctx.strokeStyle = isJan ? 'rgba(200,175,110,0.50)' : 'rgba(150,130,90,0.22)';
+        ctx.lineWidth = isJan ? 1 : 0.5;
+        ctx.stroke();
+      }
+    }
+  });
+  ctx.restore();
+
+  // LIVE label near needle tip
+  if (visNArc >= N * 0.97) {
+    const needleA = START_A + (N - 1) * angPerBar + angPerBar * 0.5;
+    const needleR = scoreToR(curScore);
+    const nx = ARC_CX + Math.cos(needleA) * needleR;
+    const ny = ARC_CY + Math.sin(needleA) * needleR;
+    const lx = nx + 8, ly = ny - 12;
+    ctx.save();
+    ctx.font = '700 6.5px "SF Mono",monospace';
+    const lw = ctx.measureText('LIVE').width + 10;
+    // Badge bg
+    ctx.fillStyle = rgb(curC, 0.18);
+    ctx.strokeStyle = rgb(curC, 0.6);
+    ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.roundRect(lx, ly - 8, lw, 10, 2); ctx.fill(); ctx.stroke();
+    // Text
+    ctx.fillStyle = rgb(curC, 0.95);
+    ctx.textAlign = 'left';
+    ctx.fillText('LIVE', lx + 5, ly);
+    ctx.restore();
+  }
+
+  // Phase distribution pills removed per user request
+
+
+  ctx.restore(); // end right-zone clip
+}
+
+function _drawPhaseLabels(ctx, scores, dates, sx, sy, W, PAD_T, chartH, PAD_B, H, PAD_L, PAD_R) {
+  if (PAD_L === undefined) PAD_L = 20;
+  if (PAD_R === undefined) PAD_R = 20;
+  // Detect regime phases: blocks where the label stays the same
+  // Only label the dominant phase within each visually-distinct block
+  const labels = scores.map(s =>
+    s >= 8.5 ? 'Strong Risk-On' :
+    s >= 7.25 ? 'Risk-On' :
+    s >= 5.9 ? 'Lean Risk-On' :
+    s <= 1.5 ? 'Strong Risk-Off' :
+    s <= 2.75 ? 'Risk-Off' :
+    s <= 4.1 ? 'Lean Risk-Off' : 'Neutral'
+  );
+  const N = scores.length;
+
+  // Build runs
+  const runs = [];
+  let runStart = 0;
+  for (let i = 1; i <= N; i++) {
+    if (i === N || labels[i] !== labels[runStart]) {
+      runs.push({ label: labels[runStart], start: runStart, end: i - 1 });
+      runStart = i;
+    }
+  }
+
+  // Only label runs that are >= 3 bars wide and have clear visual space
+  // Pre-measure text width at 8px to compute right-edge boundary
+  const RIGHT_GUARD = W - PAD_R - 105; // keep labels away from the score bracket
+  const LEFT_GUARD  = PAD_L + 10;
+  ctx.save();
+  ctx.font = '700 8px var(--mono, monospace)';
+
+  const lastRunIdx = runs.length - 1;
+  runs.forEach((run, runIdx) => {
+    if (run.end - run.start < 2) return; // too short
+    // Skip the last (current) run — it's already shown in the HUD score readout
+    if (runIdx === lastRunIdx) return;
+    const midIdx = Math.round((run.start + run.end) / 2);
+    let x = sx(midIdx);
+    const avgScore = scores.slice(run.start, run.end + 1).reduce((a, b) => a + b, 0) / (run.end - run.start + 1);
+    const rgb = _scoreToColor(avgScore);
+
+    // Position label above the line if risk-on, below if risk-off
+    const lineY = sy(avgScore);
+    const isPositive = avgScore >= 5;
+    const labelY = isPositive
+      ? Math.max(PAD_T + 10, lineY - 9)
+      : Math.min(H - PAD_B - 3, lineY + 14);
+
+    // Clamp to boundaries: right edge → right-align, left edge → left-align
+    const shortL = run.label.replace('Strong ', 'S.').replace('Lean ', 'L.').toUpperCase();
+    const measured = ctx.measureText(shortL).width;
+    if (x + measured / 2 > RIGHT_GUARD) {
+      ctx.textAlign = 'right';
+      x = Math.min(x + measured / 2, RIGHT_GUARD);
+    } else if (x - measured / 2 < LEFT_GUARD) {
+      ctx.textAlign = 'left';
+      x = Math.max(x - measured / 2, LEFT_GUARD);
+    } else {
+      ctx.textAlign = 'center';
+    }
+
+    ctx.fillStyle = _rgbStr(rgb, 0.75);
+    ctx.letterSpacing = '0.06em';
+    ctx.fillText(shortL, x, labelY);
+  });
+  ctx.restore();
+}
+
+function _drawMonthLabels(ctx, dates, scores, sx, H, PAD_B) {
+  if (!dates || !dates.length) return;
+  const N = dates.length;
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let lastMonth = -1;
+  ctx.save();
+  dates.forEach((d, i) => {
+    const dt = new Date(d);
+    const mo = dt.getMonth();
+    const yr = dt.getFullYear();
+    if (mo !== lastMonth) {
+      lastMonth = mo;
+      const x = sx(i);
+      const isYear = mo === 0;
+      const label  = isYear ? `${MONTHS[mo]} ’${String(yr).slice(2)}` : MONTHS[mo];
+      // Tick
+      const tkAlpha = isYear ? 0.55 : 0.25;
+      ctx.strokeStyle = `rgba(0,180,220,${tkAlpha})`;
+      ctx.lineWidth = isYear ? 1 : 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x, H - PAD_B);
+      ctx.lineTo(x, H - PAD_B + (isYear ? 5 : 3));
+      ctx.stroke();
+      // Label
+      ctx.font = isYear
+        ? '700 8px var(--mono,monospace)'
+        : '500 7.5px var(--mono,monospace)';
+      ctx.textAlign  = 'center';
+      ctx.fillStyle  = isYear ? 'rgba(0,200,240,0.75)' : 'rgba(0,180,220,0.42)';
+      if (isYear) { ctx.shadowBlur = 6; ctx.shadowColor = 'rgba(0,200,240,0.4)'; }
+      ctx.fillText(label, x, H - 4);
+      ctx.shadowBlur = 0;
+    }
+  });
+  ctx.restore();
+}
+
+function _buildPhaseSummary(data) {
+  const el = document.getElementById('ov-arc-phases');
+  if (!el) return;
+  // Count bars in each phase
+  const counts = {};
+  data.labels.forEach(l => { counts[l] = (counts[l] || 0) + 1; });
+  // Build pill summary sorted by count desc
+  const order = ['Strong Risk-On','Risk-On','Lean Risk-On','Neutral','Lean Risk-Off','Risk-Off','Strong Risk-Off'];
+  const PHASE_COLS = {
+    'Strong Risk-On': '#00f09a', 'Risk-On': '#22c97a', 'Lean Risk-On': '#3b82c4',
+    'Neutral': '#4a5268',
+    'Lean Risk-Off': '#e07a5f', 'Risk-Off': '#e03a2a', 'Strong Risk-Off': '#cc2020'
+  };
+  const pills = order
+    .filter(l => counts[l])
+    .map(l => {
+      const pct = Math.round((counts[l] / data.labels.length) * 100);
+      const col = PHASE_COLS[l] || '#4a5268';
+      const shortL = l.replace('Strong ','S.').replace('Lean ','L.');
+      return `<div style="display:flex;align-items:center;gap:4px;font-size:8px;font-weight:700;color:${col};font-family:var(--mono);letter-spacing:0.06em;text-transform:uppercase;opacity:0.9;">
+        <div style="width:4px;height:4px;border-radius:50%;background:${col};flex-shrink:0;box-shadow:0 0 5px ${col}"></div>
+        ${shortL} <span style="opacity:0.5">${pct}%</span>
+      </div>`;
+    }).join('');
+  el.innerHTML = pills;
+}
+
+function _setupArcTooltip(canvas, data) {
+  const tooltip = document.getElementById('ov-arc-tooltip');
+  const crosshair = document.getElementById('ov-arc-crosshair');
+  if (!tooltip || !canvas) return;
+
+  const N = data.scores.length;
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Polar arc geometry — must mirror _renderClimateArc exactly
+  function getIndex(mouseX, mouseY) {
+    const rect = canvas.getBoundingClientRect();
+    // Map screen coords to canvas-space coords
+    const cW = parseFloat(canvas.style.width)  || canvas.offsetWidth  || 800;
+    const cH = parseFloat(canvas.style.height) || canvas.offsetHeight || 260;
+    const mx = (mouseX - rect.left) * (cW / rect.width);
+    const my = (mouseY - rect.top)  * (cH / rect.height);
+
+    // Arc geometry — must mirror _renderClimateArc exactly
+    const PAD_L = 20, PAD_R = 20;
+    const H = cH;
+    const W = cW;
+    const LEFT_W2 = 108;
+    // Arc geometry
+    const ARC_X  = PAD_L + LEFT_W2;
+    const ARC_CX = ARC_X + (W - ARC_X - PAD_R) * 0.38;
+    const ARC_CY = H * 0.56;
+    const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+    const ARC_IR = ARC_OR * 0.30;
+    const SWEEP  = 210 * Math.PI / 180;
+    const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
+
+    // Angle from arc centre to mouse
+    const dx = mx - ARC_CX;
+    const dy = my - ARC_CY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Only respond when mouse is within the arc band
+    if (dist < ARC_IR * 0.7 || dist > ARC_OR * 1.15) return -1;
+
+    let ang = Math.atan2(dy, dx);
+    // Normalise angle relative to START_A, clamped to [0, SWEEP]
+    let rel = ang - START_A;
+    // Wrap into [0, 2PI)
+    rel = ((rel % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    if (rel > SWEEP) return -1; // outside sweep
+    const idx = Math.round((rel / SWEEP) * (N - 1));
+    return Math.max(0, Math.min(N - 1, idx));
+  }
+
+  function showTip(e) {
+    const idx = getIndex(e.clientX, e.clientY);
+    if (idx === -1) {
+      // Mouse not over any arc segment — hide tooltip
+      tooltip.classList.remove('visible');
+      if (crosshair) crosshair.classList.remove('visible');
+      return;
+    }
+    const score = data.scores[idx];
+    const label = data.labels[idx];
+    const sig   = data.signals ? data.signals[idx] : null;
+    const dt    = new Date(data.dates[idx]);
+    const dateStr = MONTHS[dt.getMonth()] + ' ' + dt.getDate() + ', ' + dt.getFullYear();
+    const rgb   = _scoreToColor(score);
+    const col   = _rgbStr(rgb, 1.0);
+    // Hide old crosshair — doesn't apply to polar layout
+    if (crosshair) crosshair.classList.remove('visible');
+
+    const scoreStr = score.toFixed(1);
+
+    document.getElementById('ov-arc-tt-date').textContent  = dateStr;
+    document.getElementById('ov-arc-tt-label').textContent = label;
+    document.getElementById('ov-arc-tt-label').style.color = col;
+    document.getElementById('ov-arc-tt-score').textContent = `Score: ${scoreStr} / 10`;
+
+    if (sig) {
+      const fmtPct = v => (v > 0 ? '+' : '') + (v || 0).toFixed(1) + '%';
+      const sigRows = [
+        ['S&P 500', fmtPct(sig.spx_1m)],
+        ['Russell 2000', fmtPct(sig.rut_1m)],
+        ['VIX', (sig.vix || 0).toFixed(1)],
+        ['HY Spread', fmtPct(sig.credit)],
+        ['USD/JPY 1m', fmtPct(sig.usdjpy_1m)],
+        sig.tnx != null ? ['10Y Yield', sig.tnx.toFixed(2) + '%'] : null,
+        sig.term_spread != null ? ['Yield Curve', sig.term_spread.toFixed(2) + 'pp'] : null,
+      ].filter(Boolean);
+      document.getElementById('ov-arc-tt-sigs').innerHTML = sigRows.map(([k, v]) =>
+        `<div class="ov-arc-tt-sig"><span>${k}</span><span>${v}</span></div>`
+      ).join('');
+    } else {
+      document.getElementById('ov-arc-tt-sigs').innerHTML = '';
+    }
+
+    // Position tooltip near the mouse cursor, clamped within the canvas
+    const rect = canvas.getBoundingClientRect();
+    const tipW = tooltip.offsetWidth || 190;
+    const tipH = tooltip.offsetHeight || 120;
+    // Follow mouse in canvas-relative coords
+    let tipLeft = (e.clientX - rect.left) + 14;
+    let tipTop  = (e.clientY - rect.top)  - tipH - 8;
+    // Clamp so tooltip stays inside canvas bounds
+    tipLeft = Math.max(4, Math.min(tipLeft, rect.width - tipW - 4));
+    tipTop  = Math.max(4, tipTop);
+    tooltip.style.left = tipLeft + 'px';
+    tooltip.style.top  = tipTop  + 'px';
+    tooltip.classList.add('visible');
+  }
+
+  canvas.addEventListener('mousemove', showTip);
+  canvas.addEventListener('mouseleave', () => { tooltip.classList.remove('visible'); if(crosshair) crosshair.classList.remove('visible'); });
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); showTip(e.touches[0]); }, { passive: false });
+  canvas.addEventListener('touchmove',  e => { e.preventDefault(); showTip(e.touches[0]); }, { passive: false });
+  canvas.addEventListener('touchend',   () => tooltip.classList.remove('visible'));
+}
+
 
 // ── Score history chart loader
 async function loadOvChart(marketId,accent){
