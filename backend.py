@@ -26,6 +26,22 @@ import orjson
 import gc, os, pathlib, re
 DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
+def _memory_mb() -> float:
+    """Return current process RSS in MB. Returns 0 if psutil not available."""
+    try:
+        import psutil as _ps
+        return _ps.Process().memory_info().rss / 1024 / 1024
+    except Exception:
+        return 0.0
+
+def _gc_if_heavy(label: str = ""):
+    """Run gc.collect() and log memory before/after for heavy operations."""
+    before = _memory_mb()
+    gc.collect()
+    after = _memory_mb()
+    if before > 0:
+        print(f"[GC] {label}: {before:.0f}MB → {after:.0f}MB (freed {before-after:.0f}MB)")
+
 # Custom JSON encoder that replaces NaN/Inf with None so the response never crashes
 class _SafeJSONResponse(JSONResponse):
     """
@@ -62,11 +78,17 @@ app = FastAPI(title="COT Weather Station v2", default_response_class=_SafeJSONRe
 # Dedicated thread pool — large enough to avoid deadlocks when heavy sync functions
 # (compute_macro_all, compute_risk_regime, _fetch_ff_months_parallel etc.) run concurrently.
 import concurrent.futures as _cf
-_APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=8, thread_name_prefix="bh-worker")
+# FIX: Reduced from 8→5 workers. On a 2GB Render instance, 8 concurrent
+# sync threads (each loading COT/yfinance/FRED data) easily exceeds memory.
+# 5 is enough for the 3 main score functions + 2 slack.
+_APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=5, thread_name_prefix="bh-worker")
 # Dedicated low-priority executor for score_history heavy yfinance prefetch.
 # Capped at 2 workers so concurrent history requests cannot OOM by competing
 # with the main scores/FRED/COT executor on the 2GB Render instance.
 _SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bh-sh")
+# Concurrency lock for score_history — prevents two simultaneous requests
+# for the same market from each running a full prefetch, doubling memory use.
+_SH_MARKET_LOCKS: dict = {}
 _photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 if os.path.isdir(_photos_dir):
     app.mount("/photos", StaticFiles(directory=_photos_dir), name="photos")
@@ -79,6 +101,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global exception handler: ensures score_history in-progress locks are always
+# released even when an unhandled exception escapes the endpoint.
+from fastapi import Request
+from fastapi.responses import JSONResponse as _FJR
+@app.exception_handler(Exception)
+async def _global_exception_handler(request: Request, exc: Exception):
+    # Release any score_history lock that may be stuck
+    path = request.url.path
+    if "/api/score_history" in path:
+        mkt_param = request.query_params.get("market", "").upper()
+        if mkt_param:
+            _SH_MARKET_LOCKS.pop(mkt_param, None)
+    print(f"[GLOBAL ERROR] {path}: {type(exc).__name__}: {exc}")
+    return _FJR({"error": "Internal server error", "detail": str(exc)}, status_code=500)
 
 # ============================================================
 # MARKET DEFINITIONS
@@ -1317,7 +1354,7 @@ def fetch_pcr_history() -> Optional[pd.DataFrame]:
                 pass
             return None
 
-        with _TPE(max_workers=8) as ex:
+        with _TPE(max_workers=4) as ex:  # FIX: reduced from 8
             fetch_results = list(ex.map(_fetch_day, all_dates))
 
         new_rows = [row for row in fetch_results if row is not None]
@@ -1873,7 +1910,9 @@ def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     # Parallel fetch — all years downloaded concurrently, each file fetched once
     years = list(range(START_YEAR, current_year + 1))
     all_rows: list = []
-    with _cf.ThreadPoolExecutor(max_workers=8) as _pool:
+    # FIX: Use shared executor instead of creating a new 8-thread pool per call.
+    # Inline ThreadPoolExecutors add to the total thread count unpredictably.
+    with _cf.ThreadPoolExecutor(max_workers=4) as _pool:
         year_results = list(_pool.map(_fetch_ice_annual_rows, years))
     for year_rows in year_results:
         matched = [r for r in year_rows if r.get("CFTC_Commodity_Code", "").strip() == ice_market_code]
@@ -2988,7 +3027,7 @@ def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
     Uses the shared app executor to avoid thread pool deadlocks.
     """
     flat_events = []
-    with _cf.ThreadPoolExecutor(max_workers=6) as ex:
+    with _cf.ThreadPoolExecutor(max_workers=4) as ex:  # FIX: reduced from 6
         futs = {ex.submit(_fetch_ff_month, y, m): (y, m) for y, m in year_month_pairs}
         for fut in _cf.as_completed(futs):
             try:
@@ -4404,6 +4443,7 @@ def compute_risk_regime() -> dict:
                     hy_pct = round(below / len(sorted_vals) * 100, 0)
                     hy_pct_min = round(sorted_vals[0] * 100, 0)
                     hy_pct_max = round(sorted_vals[-1] * 100, 0)
+                    del sorted_vals  # free large list
                 # Boost/dampen regime score based on OAS level
                 if hy_oas_bps < 250:   regime_score += 0.5
                 elif hy_oas_bps > 500: regime_score -= 0.5
@@ -4430,6 +4470,7 @@ def compute_risk_regime() -> dict:
                     ig_pct = round(below_ig / len(sorted_ig) * 100, 0)
                     ig_pct_min = round(sorted_ig[0] * 100, 0)
                     ig_pct_max = round(sorted_ig[-1] * 100, 0)
+                    del sorted_ig  # free large list
     except Exception: pass
 
     # Blend HYG/LQD price signal with OAS level signal
@@ -6364,8 +6405,11 @@ async def get_all_scores(force: bool = False):
     # Each function is cache-backed (TTL 2h) so the sequential cost is trivial
     # on warm hits. On a cold start only the first call is expensive per function.
     macro    = await _loop.run_in_executor(_APP_EXECUTOR, compute_macro_all)
+    _gc_if_heavy("post-macro-all")
     regime   = await _loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime)
+    _gc_if_heavy("post-risk-regime")
     ff_macro = await _loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro)
+    _gc_if_heavy("post-ff-macro")
     # News context — pull from cache if warm; trigger background fetch if cold.
     # compute_news_context() runs the Sonar call in a thread to avoid blocking.
     _news_now = time.time()
@@ -8061,16 +8105,22 @@ _SH_PREFETCH_TTL = 3600 * 12  # 12h prefetch cache
 
 @app.get("/api/score_history")
 async def get_score_history(market: str):
-    """Walk-forward composite score history (result-cached 30 min)."""
+    """Walk-forward composite score history (result-cached 1h)."""
     m_upper = market.upper()
     mkt = next((x for x in MARKETS if x["id"] == m_upper), None)
     if not mkt:
         return {"error": f"Unknown market: {market}", "dates": [], "scores": [], "prices": []}
-    # ── Result cache check (30 min) ──────────────────────────────────────────
+    # ── Result cache check ────────────────────────────────────────────────────
     _rn = time.time()
     _rc = _SH_RESULT_CACHE.get(m_upper)
     if _rc and (_rn - _rc["ts"]) < _SH_RESULT_TTL:
         return _SafeJSONResponse(_rc["data"])
+    # ── Per-market in-progress guard: prevents two concurrent prefetches ──────────
+    # Without this, simultaneous requests each run full _do_prefetch(), doubling
+    # peak memory and reliably causing OOM on the 2GB Render instance.
+    if _SH_MARKET_LOCKS.get(m_upper):
+        return JSONResponse({"status": "computing", "message": "Score history computing, retry in 30s"}, status_code=202)
+    _SH_MARKET_LOCKS[m_upper] = True
 
     # ── Pre-fetch all historical data (cached per market, 2h TTL) ──────────────
     _now_ts = time.time()
@@ -8445,6 +8495,8 @@ async def get_score_history(market: str):
         ),
     }
     _SH_RESULT_CACHE[m_upper] = {"ts": time.time(), "data": _sh_result}
+    _SH_MARKET_LOCKS.pop(m_upper, None)  # release in-progress guard
+    gc.collect()  # free memory after heavy history computation
     return _SafeJSONResponse(_sh_result)
 
 # ── GLOBAL REGIME HISTORY endpoint ─────────────────────────────────────────
@@ -9072,6 +9124,7 @@ async def warmup_cache():
             print("[startup] Pre-warm complete — ALL_DATA_CACHE populated")
         except Exception as e:
             print(f"[startup] Pre-warm error (non-fatal): {e}")
+        _gc_if_heavy("post-startup-warmup")
         _WARMING["done"] = True
     _astart.ensure_future(_warm())
     print("[startup] Backend ready — full cache pre-warming in background")
