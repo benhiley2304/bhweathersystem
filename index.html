@@ -5686,7 +5686,7 @@ function renderMacroDataPanels(reg){
         <!-- Full Yield Curve Chart (async) -->
         <div style="margin-top:2px">
           <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="width:100%;height:96px;display:flex;align-items:center;justify-content:center">
+          <div id="ov-yc-chart" style="width:100%;height:104px;display:flex;align-items:center;justify-content:center">
             <span style="font-size:9px;color:var(--faint);font-family:var(--mono)">Loading...</span>
           </div>
         </div>
@@ -6027,20 +6027,28 @@ async function loadYieldCurveChart(nowCol) {
     return;
   }
 
-  // 4 curves: now, -3m, -6m, -12m — each distinct colour
+  // 4 curves oldest→newest so Now renders on top
   const CURVES = [
-    { key: '12m', label: '−12M', color: '#5c7a9f', width: 1.2, dash: '5,4',   opacity: 1 },
-    { key: '6m',  label: '−6M',  color: '#7b9e87', width: 1.3, dash: '5,3',   opacity: 1 },
-    { key: '3m',  label: '−3M',  color: '#c8a030', width: 1.5, dash: '5,3',   opacity: 1 },
-    { key: 'now', label: 'Now',  color: nowCol,    width: 2.2, dash: '',       opacity: 1 },
+    { key: '12m', label: '−12M', color: '#4a6d9c', width: 1.2, dash: '4,3' },
+    { key: '6m',  label: '−6M',  color: '#5e9e78', width: 1.4, dash: '4,3' },
+    { key: '3m',  label: '−3M',  color: '#c4922a', width: 1.6, dash: '4,3' },
+    { key: 'now', label: 'Now',  color: nowCol,    width: 2.4, dash: ''    },
   ];
 
   const TENORS = data.tenor_labels || ['1M','3M','6M','1Y','2Y','3Y','5Y','7Y','10Y','20Y','30Y'];
-  // X positions are non-uniform — use approximate duration mapping
-  const TENOR_X = { '1M':0, '3M':3, '6M':6, '1Y':12, '2Y':24, '3Y':36, '5Y':60, '7Y':84, '10Y':120, '20Y':240, '30Y':360 };
-  const xDomain = [0, 360];
 
-  // Collect all values for y scale
+  // Log-scale X: map tenor → months, then log₂ so short end is highly expanded
+  // 1M→1, 3M→3, 6M→6, 1Y→12, 2Y→24 ... 30Y→360
+  const TENOR_MO = { '1M':1,'3M':3,'6M':6,'1Y':12,'2Y':24,'3Y':36,'5Y':60,'7Y':84,'10Y':120,'20Y':240,'30Y':360 };
+  const logMin = Math.log2(1);    // 1M
+  const logMax = Math.log2(360);  // 30Y
+  const xPosLog = t => {
+    const mo = TENOR_MO[t];
+    if (mo == null) return null;
+    return padL + ((Math.log2(mo) - logMin) / (logMax - logMin)) * gW;
+  };
+
+  // Collect all yield values for Y scale
   const allVals = [];
   CURVES.forEach(c => {
     const snap = data[c.key];
@@ -6052,16 +6060,16 @@ async function loadYieldCurveChart(nowCol) {
     return;
   }
 
-  const W = 280, H = 96;
-  const padL = 26, padR = 6, padT = 8, padB = 20;
+  const W = 280, H = 104;
+  const padL = 28, padR = 6, padT = 8, padB = 18;
   const gW = W - padL - padR, gH = H - padT - padB;
 
-  const vMin = Math.min(...allVals) - 0.08;
-  const vMax = Math.max(...allVals) + 0.08;
-  const xPos = t => padL + ((TENOR_X[t] - xDomain[0]) / (xDomain[1] - xDomain[0])) * gW;
+  const vPad = (Math.max(...allVals) - Math.min(...allVals)) * 0.12;
+  const vMin = Math.min(...allVals) - vPad;
+  const vMax = Math.max(...allVals) + vPad;
   const yPos = v => padT + (1 - (v - vMin) / (vMax - vMin)) * gH;
 
-  // Catmull-Rom spline
+  // Catmull-Rom spline — smooth curve through all tenor points
   const catmull = pts => {
     if (pts.length < 2) return '';
     let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
@@ -6074,95 +6082,129 @@ async function loadYieldCurveChart(nowCol) {
     return d;
   };
 
-  // Y-axis gridlines — 4 evenly spaced
-  const gridStep = (vMax - vMin) / 3;
-  const gridVals = [0,1,2,3].map(i => +(vMin + i * gridStep).toFixed(2));
   const uid = 'yc' + (Math.random() * 0xFFFFF | 0).toString(16);
 
-  const grids = gridVals.map(v => {
+  // Y-axis: 5 rate gridlines at round 0.25% steps
+  const yGridStep = 0.25;
+  const yGridStart = Math.ceil(vMin / yGridStep) * yGridStep;
+  const yGridVals = [];
+  for (let v = yGridStart; v <= vMax + 0.001; v += yGridStep) yGridVals.push(+v.toFixed(2));
+
+  const grids = yGridVals.map(v => {
     const y = yPos(v).toFixed(1);
-    return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="2,4"/>
-      <text x="${padL-3}" y="${(+y+2.5).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,0.22)" font-family="var(--mono)" font-size="5">${v.toFixed(1)}</text>`;
+    const isRound = Math.round(v * 4) % 4 === 0; // whole % lines brighter
+    return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}"
+      stroke="rgba(255,255,255,${isRound?0.08:0.04})" stroke-width="0.8" stroke-dasharray="2,5"/>
+      <text x="${padL-3}" y="${(+y+2.2).toFixed(1)}" text-anchor="end"
+        fill="rgba(255,255,255,${isRound?0.35:0.18})" font-family="var(--mono)" font-size="5">${v.toFixed(2)}</text>`;
   }).join('');
 
-  // X-axis tenor labels (selective)
-  const xLabels = ['1M','3M','1Y','2Y','5Y','10Y','30Y'];
-  const xAxis = xLabels.map(t => {
-    const x = xPos(t).toFixed(1);
-    const y = (padT + gH + 9).toFixed(1);
-    return `<text x="${x}" y="${y}" text-anchor="middle" fill="rgba(255,255,255,0.28)" font-family="var(--mono)" font-size="5.5">${t}</text>`;
+  // X-axis: show every tenor on the short end, thin out on the long end
+  const xAxisTenors = ['1M','3M','6M','1Y','2Y','3Y','5Y','7Y','10Y','20Y','30Y'];
+  // Vertical tick + label
+  const xAxis = xAxisTenors.map(t => {
+    const x = xPosLog(t);
+    if (x == null) return '';
+    const yTick = padT + gH;
+    const short = ['20Y','30Y'].includes(t); // de-emphasise long end
+    return `<line x1="${x.toFixed(1)}" y1="${yTick}" x2="${x.toFixed(1)}" y2="${(yTick+3).toFixed(1)}"
+        stroke="rgba(255,255,255,${short?0.12:0.2})" stroke-width="0.8"/>
+      <text x="${x.toFixed(1)}" y="${(yTick+9).toFixed(1)}" text-anchor="middle"
+        fill="rgba(255,255,255,${short?0.22:0.38})" font-family="var(--mono)" font-size="${short?4.5:5.5}">${t}</text>`;
   }).join('');
 
-  // Build curve paths
+  // Build SVG content
   let curveSvg = '';
+
+  // Gradient area fill + glow defs for Now curve
   const nowSnap = data.now;
   if (nowSnap) {
-    // Gradient area fill under Now curve
-    const nowPts = TENORS.filter(t => nowSnap.tenors[t] != null).map(t => [xPos(t), yPos(nowSnap.tenors[t])]);
+    const nowPts = TENORS.filter(t => nowSnap.tenors[t] != null && xPosLog(t) != null)
+      .map(t => [xPosLog(t), yPos(nowSnap.tenors[t])]);
     if (nowPts.length >= 2) {
-      const areaPath = catmull(nowPts) + ` L${xPos(TENORS.filter(t=>nowSnap.tenors[t]!=null).at(-1)).toFixed(1)},${(padT+gH).toFixed(1)} L${padL},${(padT+gH).toFixed(1)} Z`;
-      curveSvg += `
-        <defs>
-          <linearGradient id="${uid}fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${nowCol}" stop-opacity="0.2"/>
-            <stop offset="100%" stop-color="${nowCol}" stop-opacity="0"/>
-          </linearGradient>
-          <filter id="${uid}glow">
-            <feGaussianBlur stdDeviation="2" result="b"/>
-            <feComposite in="b" in2="SourceGraphic" operator="over"/>
-          </filter>
-        </defs>
-        <path d="${areaPath}" fill="url(#${uid}fill)"/>`;
+      const lastX = nowPts[nowPts.length-1][0];
+      const areaPath = catmull(nowPts) + ` L${lastX.toFixed(1)},${(padT+gH).toFixed(1)} L${padL},${(padT+gH).toFixed(1)} Z`;
+      curveSvg += `<defs>
+        <linearGradient id="${uid}fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${nowCol}" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="${nowCol}" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="${uid}glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feComposite in="b" in2="SourceGraphic" operator="over"/>
+        </filter>
+      </defs>
+      <path d="${areaPath}" fill="url(#${uid}fill)"/>`;
     }
   }
 
-  // Draw in order: oldest first (Now on top)
+  // Draw curves oldest→newest
   CURVES.forEach(c => {
     const snap = data[c.key];
     if (!snap) return;
-    const pts = TENORS.filter(t => snap.tenors[t] != null).map(t => [xPos(t), yPos(snap.tenors[t])]);
+    const pts = TENORS
+      .filter(t => snap.tenors[t] != null && xPosLog(t) != null)
+      .map(t => [xPosLog(t), yPos(snap.tenors[t])]);
     if (pts.length < 2) return;
     const dashAttr = c.dash ? ` stroke-dasharray="${c.dash}"` : '';
     const isNow = c.key === 'now';
+
     if (isNow) {
-      // Glow layer for Now
-      curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="5" fill="none" opacity="0.15" filter="url(#${uid}glow)"/>`;
+      curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="6"
+        fill="none" opacity="0.12" filter="url(#${uid}glow)"/>`;
     }
-    curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="${c.width}" fill="none"${dashAttr}/>` ;
-    // Dot on 10Y for each curve
-    const t10Idx = TENORS.indexOf('10Y');
-    if (t10Idx >= 0 && snap.tenors['10Y'] != null) {
-      const dx = xPos('10Y').toFixed(1), dy = yPos(snap.tenors['10Y']).toFixed(1);
-      curveSvg += `<circle cx="${dx}" cy="${dy}" r="${isNow?3:1.8}" fill="${isNow?c.color:'var(--bg2)'}" stroke="${c.color}" stroke-width="1.2"/>`;
-    }
+    curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="${c.width}"
+      fill="none"${dashAttr} stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    // Node dots on key tenors for every curve
+    const nodeTenors = isNow
+      ? ['1M','3M','6M','1Y','2Y','5Y','10Y','30Y']
+      : ['2Y','10Y'];
+    nodeTenors.forEach(t => {
+      if (snap.tenors[t] == null || xPosLog(t) == null) return;
+      const nx = xPosLog(t).toFixed(1), ny = yPos(snap.tenors[t]).toFixed(1);
+      const r = isNow ? (t==='10Y'?3.5:2.2) : 1.5;
+      curveSvg += `<circle cx="${nx}" cy="${ny}" r="${r}"
+        fill="${isNow&&t==='10Y'?c.color:'var(--bg2)'}"
+        stroke="${c.color}" stroke-width="${isNow?1.5:1}"/>`;
+    });
   });
 
-  // Now curve: label all tenor nodes
+  // Rate value labels on Now curve at key tenors
   if (nowSnap) {
-    const keyTenors = ['1M','2Y','5Y','10Y','30Y'];
-    keyTenors.forEach(t => {
-      if (nowSnap.tenors[t] == null) return;
-      const x = xPos(t), y = yPos(nowSnap.tenors[t]);
+    // Label tenors that matter most, avoid crowding
+    const labelTenors = ['1M','3M','6M','2Y','5Y','10Y','30Y'];
+    labelTenors.forEach(t => {
+      if (nowSnap.tenors[t] == null || xPosLog(t) == null) return;
+      const x = xPosLog(t), y = yPos(nowSnap.tenors[t]);
       const isKey = t === '10Y';
-      // Position value label above or below depending on space
-      const lblY = y > padT + gH * 0.55 ? y - 5 : y + 10;
-      curveSvg += `<text x="${x.toFixed(1)}" y="${lblY.toFixed(1)}" text-anchor="middle" fill="${isKey ? nowCol : 'rgba(255,255,255,0.5)'}" font-family="var(--mono)" font-size="${isKey?6.5:5.5}" font-weight="${isKey?900:700}">${nowSnap.tenors[t].toFixed(2)}%</text>`;
+      const isMed = ['2Y','5Y'].includes(t);
+      // Smart label placement: put above if in lower half of chart
+      const lblY = y > padT + gH * 0.52 ? y - 4 : y + 9;
+      curveSvg += `<text x="${x.toFixed(1)}" y="${lblY.toFixed(1)}" text-anchor="middle"
+        fill="${isKey ? nowCol : isMed ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.42)'}"
+        font-family="var(--mono)" font-size="${isKey?6.5:isMed?5.5:5}"
+        font-weight="${isKey?900:700}">${nowSnap.tenors[t].toFixed(2)}%</text>`;
     });
   }
 
-  // Legend — bottom right, horizontal, compact
-  const legendX = W - padR - 2;
-  const legendY = padT + gH + 18;
+  // Legend — top-right corner, stacked vertically, compact
+  const lgX = W - padR - 2;
+  const lgY0 = padT + 2;
+  const lgStep = 8;
   let legendSvg = '';
   [...CURVES].reverse().forEach((c, i) => {
     if (!data[c.key]) return;
-    const lx = legendX - i * 42;
+    const ly = lgY0 + i * lgStep;
     const dashAttr = c.dash ? ` stroke-dasharray="${c.dash}"` : '';
-    legendSvg += `<line x1="${lx-14}" y1="${legendY}" x2="${lx-5}" y2="${legendY}" stroke="${c.color}" stroke-width="${c.width}"${dashAttr}/>`;
-    legendSvg += `<text x="${lx-16}" y="${legendY+3}" text-anchor="end" fill="${c.color}" font-family="var(--mono)" font-size="5.5" font-weight="700">${c.label}</text>`;
+    legendSvg += `<line x1="${lgX-18}" y1="${ly}" x2="${lgX-8}" y2="${ly}"
+      stroke="${c.color}" stroke-width="${c.width}"${dashAttr} stroke-linecap="round"/>`;
+    legendSvg += `<text x="${lgX-20}" y="${(ly+2.2).toFixed(1)}" text-anchor="end"
+      fill="${c.color}" font-family="var(--mono)" font-size="5.5" font-weight="700">${c.label}</text>`;
   });
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block" preserveAspectRatio="xMidYMid meet">
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block"
+    preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
     ${grids}
     ${curveSvg}
     ${xAxis}
