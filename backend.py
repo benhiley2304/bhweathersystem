@@ -4371,9 +4371,13 @@ def compute_risk_regime() -> dict:
     hy_oas_score = 0.0
     hy_delta_4w = None
     hy_delta_3m = None
+    hy_delta_6m = None
     hy_ig_ratio = None
+    ig_delta_4w = None
+    ig_delta_3m = None
+    ig_delta_6m = None
     try:
-        hy_data = fetch_fred_series("HYOAS", 70)   # ~70 business days = 14 weeks
+        hy_data = fetch_fred_series("HYOAS", 135)   # ~135 business days = ~27 weeks covers 6m
         if hy_data and len(hy_data) >= 4:
             vals = [row["value"] for row in hy_data if row.get("value") is not None]
             if vals:
@@ -4389,18 +4393,26 @@ def compute_risk_regime() -> dict:
                     hy_delta_4w = round((vals[-1] - vals[-20]) * 100, 0)
                 if len(vals) >= 65:
                     hy_delta_3m = round((vals[-1] - vals[-65]) * 100, 0)
+                if len(vals) >= 130:
+                    hy_delta_6m = round((vals[-1] - vals[-130]) * 100, 0)
                 # Boost/dampen regime score based on OAS level
                 if hy_oas_bps < 250:   regime_score += 0.5
                 elif hy_oas_bps > 500: regime_score -= 0.5
     except Exception: pass
     try:
-        ig_data = fetch_fred_series("IGOAS", 70)
+        ig_data = fetch_fred_series("IGOAS", 135)
         if ig_data and len(ig_data) >= 2:
             ig_vals = [row["value"] for row in ig_data if row.get("value") is not None]
             if ig_vals:
                 ig_oas_bps = round(ig_vals[-1] * 100, 0)  # % -> bps
                 if hy_oas_bps is not None and ig_oas_bps > 0:
                     hy_ig_ratio = round(hy_oas_bps / ig_oas_bps, 2)
+                if len(ig_vals) >= 20:
+                    ig_delta_4w = round((ig_vals[-1] - ig_vals[-20]) * 100, 0)
+                if len(ig_vals) >= 65:
+                    ig_delta_3m = round((ig_vals[-1] - ig_vals[-65]) * 100, 0)
+                if len(ig_vals) >= 130:
+                    ig_delta_6m = round((ig_vals[-1] - ig_vals[-130]) * 100, 0)
     except Exception: pass
 
     # Blend HYG/LQD price signal with OAS level signal
@@ -4504,10 +4516,28 @@ def compute_risk_regime() -> dict:
             else:
                 curve_regime = "Inverted"
             if steepening_3m > 0.25:  curve_regime = "Steepening"
+            # Bull/Bear steepener/flattener: determined by which end moves more
+            # Bull: long end falls more (or short end rises less) → rates generally down
+            # Bear: short end falls more (or long end rises more) → rates generally up
+            yc_move_type = "Neutral"
+            if abs(steepening_3m) > 0.05:
+                # Use 3M T-bill as proxy for short end if available
+                short_end_chg = t10y3m_3m_chg if t10y3m_3m_chg is not None else 0
+                long_end_chg  = macro_dashboard.get("dgs10", {}).get("chg_3m", 0) or 0
+                is_steepening = steepening_3m > 0
+                if is_steepening:
+                    # Steepening: long end rising more than short end = Bear Steepener
+                    #             short end falling more = Bull Steepener
+                    yc_move_type = "Bear Steepener" if long_end_chg > 0 and long_end_chg > (short_end_chg or 0) else "Bull Steepener"
+                else:
+                    # Flattening: short end rising more = Bear Flattener
+                    #             long end falling more = Bull Flattener
+                    yc_move_type = "Bear Flattener" if (short_end_chg or 0) > long_end_chg else "Bull Flattener"
             macro_dashboard["yield_curve"] = {
                 "t10y2y":         round(t10y2y, 3),
                 "t10y3m":         round(t10y3m, 3) if t10y3m is not None else None,
                 "curve_regime":   curve_regime,
+                "move_type":      yc_move_type,
                 "steepening_3m":  round(steepening_3m, 3),
                 "steepening_6m":  round(steepening_6m, 3),
                 "t10y2y_3m_chg":  t10y2y_3m_chg,
@@ -4534,13 +4564,33 @@ def compute_risk_regime() -> dict:
 
     try:
         # Individual tenor yields for yield curve visualisation: 2Y, 5Y, 30Y
-        dgs2_raw  = fetch_fred_series("DGS2",  6)
-        dgs5_raw  = fetch_fred_series("DGS5",  6)
-        dgs30_raw = fetch_fred_series("DGS30", 6)
+        # Fetch 270 days so we can extract 6m (~130 trading days) and 12m (~260 trading days) snapshots
+        dgs2_raw  = fetch_fred_series("DGS2",  270)
+        dgs5_raw  = fetch_fred_series("DGS5",  270)
+        dgs10_raw = fetch_fred_series("DGS10", 270)
+        dgs30_raw = fetch_fred_series("DGS30", 270)
         tenors = {}
-        if dgs2_raw  and dgs2_raw[-1].get("value")  is not None: tenors["t2y"]  = round(dgs2_raw[-1]["value"],  3)
-        if dgs5_raw  and dgs5_raw[-1].get("value")  is not None: tenors["t5y"]  = round(dgs5_raw[-1]["value"],  3)
-        if dgs30_raw and dgs30_raw[-1].get("value") is not None: tenors["t30y"] = round(dgs30_raw[-1]["value"], 3)
+        def _tenor_snapshot(series, idx):
+            """Get value at index from end (-1=latest, -130=6m ago, -260=12m ago)"""
+            vals = [x for x in series if x.get("value") is not None] if series else []
+            if not vals: return None
+            try: return round(vals[idx]["value"], 3)
+            except IndexError: return round(vals[0]["value"], 3)
+        if dgs2_raw:
+            tenors["t2y"]     = _tenor_snapshot(dgs2_raw, -1)
+            tenors["t2y_6m"]  = _tenor_snapshot(dgs2_raw, -130)
+            tenors["t2y_12m"] = _tenor_snapshot(dgs2_raw, -260)
+        if dgs5_raw:
+            tenors["t5y"]     = _tenor_snapshot(dgs5_raw, -1)
+            tenors["t5y_6m"]  = _tenor_snapshot(dgs5_raw, -130)
+            tenors["t5y_12m"] = _tenor_snapshot(dgs5_raw, -260)
+        if dgs10_raw:
+            tenors["t10y_6m"]  = _tenor_snapshot(dgs10_raw, -130)
+            tenors["t10y_12m"] = _tenor_snapshot(dgs10_raw, -260)
+        if dgs30_raw:
+            tenors["t30y"]     = _tenor_snapshot(dgs30_raw, -1)
+            tenors["t30y_6m"]  = _tenor_snapshot(dgs30_raw, -130)
+            tenors["t30y_12m"] = _tenor_snapshot(dgs30_raw, -260)
         if tenors:
             macro_dashboard["yield_curve"] = {**macro_dashboard.get("yield_curve", {}), **tenors}
     except Exception: pass
@@ -4577,23 +4627,38 @@ def compute_risk_regime() -> dict:
     except Exception: pass
 
     try:
-        # Fed balance sheet: WALCL (trillions)
-        walcl_data = fetch_fred_series("WALCL", 60)
+        # Fed balance sheet: WALCL (trillions) — fetch 160 weeks (~3 years) for chart + 12m changes
+        walcl_data = fetch_fred_series("WALCL", 160)
         if walcl_data and len(walcl_data) >= 4:
             bs_vals = [x["value"] / 1e6 for x in walcl_data if x.get("value") is not None]
             bs_now  = bs_vals[-1]
-            # 3m ≈ 13 weekly observations; 6m ≈ 26
+            # 3m ≈ 13 weekly; 6m ≈ 26; 12m ≈ 52
             bs_3m   = bs_vals[-13] if len(bs_vals) >= 13 else bs_vals[0]
             bs_6m   = bs_vals[-26] if len(bs_vals) >= 26 else bs_vals[0]
+            bs_12m  = bs_vals[-52] if len(bs_vals) >= 52 else bs_vals[0]
             bs_trend = "Expanding" if bs_now > bs_3m * 1.005 else "QT (Contracting)" if bs_now < bs_3m * 0.995 else "Flat / Stable"
+            chg_3m     = round(bs_now - bs_3m, 2)
             chg_3m_pct = round((bs_now / bs_3m - 1.0) * 100, 2) if bs_3m else 0
             chg_6m_pct = round((bs_now / bs_6m - 1.0) * 100, 2) if bs_6m else 0
+            chg_12m    = round(bs_now - bs_12m, 2)
+            chg_12m_pct= round((bs_now / bs_12m - 1.0) * 100, 2) if bs_12m else 0
+            chg_6m = round(bs_now - bs_6m, 2)
+            # Build history array for frontend chart: date + value (T), sampled weekly
+            bs_history = [
+                {"d": x["date"], "v": round(x["value"] / 1e6, 3)}
+                for x in walcl_data if x.get("value") is not None and x.get("date")
+            ]
             macro_dashboard["fed_balance"] = {
-                "level":      round(bs_now, 2),
-                "trend":      bs_trend,
-                "chg_3m":     round(bs_now - bs_3m, 2),
-                "chg_3m_pct": chg_3m_pct,
-                "chg_6m_pct": chg_6m_pct,
+                "level":       round(bs_now, 2),
+                "trend":       bs_trend,
+                "pct":         round((bs_now / 9.0) * 100, 1),  # % of QE peak $9T
+                "chg_3m":      chg_3m,
+                "chg_3m_pct":  chg_3m_pct,
+                "chg_6m":      chg_6m,
+                "chg_6m_pct":  chg_6m_pct,
+                "chg_12m":     chg_12m,
+                "chg_12m_pct": chg_12m_pct,
+                "history":     bs_history,
             }
     except Exception: pass
 
@@ -4613,6 +4678,10 @@ def compute_risk_regime() -> dict:
             "hy_score": round(hy_oas_score, 2),
             "hy_delta_4w": hy_delta_4w,
             "hy_delta_3m": hy_delta_3m,
+            "hy_delta_6m": hy_delta_6m,
+            "ig_delta_4w": ig_delta_4w,
+            "ig_delta_3m": ig_delta_3m,
+            "ig_delta_6m": ig_delta_6m,
             "hy_ig_ratio": hy_ig_ratio,
         }
     except Exception: pass
