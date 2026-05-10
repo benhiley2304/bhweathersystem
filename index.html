@@ -5652,7 +5652,6 @@ function renderMacroDataPanels(reg){
         <div>
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
             <div style="font-family:var(--mono);font-size:38px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
-            ${yc_move_type?`<span class="mc-regime-pill" style="color:${moveCol};border-color:${moveCol}30;background:${moveCol}10;font-size:7px">${yc_move_type}</span>`:''}
           </div>
           <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y SPREAD</div>
         </div>
@@ -5672,15 +5671,8 @@ function renderMacroDataPanels(reg){
           <div style="padding:8px 8px;border-radius:7px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">3M/10Y</div>
             <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.03em;color:${t3t10Col}">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</div>
-            <div style="font-family:var(--mono);font-size:6.5px;color:var(--faint);margin-top:2px">Recession</div>
+            <div style="font-family:var(--mono);font-size:6.5px;color:var(--faint);margin-top:2px">${t3t10Bps!=null?(t3t10Bps<0?'Inverted':t3t10Bps<50?'Flat':'Uninverted'):'—'}</div>
           </div>
-        </div>
-
-        <!-- Momentum -->
-        <div>
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Momentum</div><div class="mc-sect-line"></div></div>
-          ${momRow('3M Change', sChg3m, sCol3m)}
-          ${momRow('6M Change', sChg6m, sCol6m)}
         </div>
 
         <!-- Full Yield Curve Chart (async) -->
@@ -6060,8 +6052,8 @@ async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, c
     return;
   }
 
-  const W = 280, H = 104;
-  const padL = 28, padR = 6, padT = 8, padB = 18;
+  const W = 280, H = 160;
+  const padL = 28, padR = 6, padT = 8, padB = 22;
   const gW = W - padL - padR, gH = H - padT - padB;
 
   const vPad = (Math.max(...allVals) - Math.min(...allVals)) * 0.12;
