@@ -4376,15 +4376,16 @@ def compute_risk_regime() -> dict:
     ig_delta_4w = None
     ig_delta_3m = None
     ig_delta_6m = None
+    hy_pct = None; hy_pct_min = None; hy_pct_max = None
+    ig_pct = None; ig_pct_min = None; ig_pct_max = None
     try:
-        hy_data = fetch_fred_series("HYOAS", 135)   # ~135 business days = ~27 weeks covers 6m
+        hy_data = fetch_fred_series("HYOAS", 780)   # ~3 years of daily data for percentile
         if hy_data and len(hy_data) >= 4:
             vals = [row["value"] for row in hy_data if row.get("value") is not None]
             if vals:
                 # BAMLH0A0HYM2 is in % (e.g. 2.85 = 285 bps) — convert to bps
                 hy_oas_bps = round(vals[-1] * 100, 0)
                 # Score: tight=bullish (+1), wide=bearish (-1)
-                # Context: <250=tight, 250-350=normal, 350-500=elevated, >500=stress
                 hy_oas_score = (1.0 if hy_oas_bps < 250 else
                                 0.5 if hy_oas_bps < 300 else
                                -0.5 if hy_oas_bps < 450 else
@@ -4395,12 +4396,20 @@ def compute_risk_regime() -> dict:
                     hy_delta_3m = round((vals[-1] - vals[-65]) * 100, 0)
                 if len(vals) >= 130:
                     hy_delta_6m = round((vals[-1] - vals[-130]) * 100, 0)
+                # Percentile vs 3yr history (tight end = low % = bullish)
+                if len(vals) >= 20:
+                    sorted_vals = sorted(vals)
+                    cur = vals[-1]
+                    below = sum(1 for v in sorted_vals if v <= cur)
+                    hy_pct = round(below / len(sorted_vals) * 100, 0)
+                    hy_pct_min = round(sorted_vals[0] * 100, 0)
+                    hy_pct_max = round(sorted_vals[-1] * 100, 0)
                 # Boost/dampen regime score based on OAS level
                 if hy_oas_bps < 250:   regime_score += 0.5
                 elif hy_oas_bps > 500: regime_score -= 0.5
     except Exception: pass
     try:
-        ig_data = fetch_fred_series("IGOAS", 135)
+        ig_data = fetch_fred_series("IGOAS", 780)   # ~3 years
         if ig_data and len(ig_data) >= 2:
             ig_vals = [row["value"] for row in ig_data if row.get("value") is not None]
             if ig_vals:
@@ -4413,6 +4422,14 @@ def compute_risk_regime() -> dict:
                     ig_delta_3m = round((ig_vals[-1] - ig_vals[-65]) * 100, 0)
                 if len(ig_vals) >= 130:
                     ig_delta_6m = round((ig_vals[-1] - ig_vals[-130]) * 100, 0)
+                # Percentile vs 3yr history
+                if len(ig_vals) >= 20:
+                    sorted_ig = sorted(ig_vals)
+                    cur_ig = ig_vals[-1]
+                    below_ig = sum(1 for v in sorted_ig if v <= cur_ig)
+                    ig_pct = round(below_ig / len(sorted_ig) * 100, 0)
+                    ig_pct_min = round(sorted_ig[0] * 100, 0)
+                    ig_pct_max = round(sorted_ig[-1] * 100, 0)
     except Exception: pass
 
     # Blend HYG/LQD price signal with OAS level signal
@@ -4683,6 +4700,12 @@ def compute_risk_regime() -> dict:
             "ig_delta_3m": ig_delta_3m,
             "ig_delta_6m": ig_delta_6m,
             "hy_ig_ratio": hy_ig_ratio,
+            "hy_pct": hy_pct,
+            "hy_pct_min": hy_pct_min,
+            "hy_pct_max": hy_pct_max,
+            "ig_pct": ig_pct,
+            "ig_pct_min": ig_pct_min,
+            "ig_pct_max": ig_pct_max,
         }
     except Exception: pass
 
@@ -9057,4 +9080,3 @@ async def warmup_cache():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
-

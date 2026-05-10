@@ -5446,6 +5446,13 @@ function renderMacroDataPanels(reg){
   const hyMax=700,igMax=250;
   const hyPct    = hyOas!=null?Math.min(100,(hyOas/hyMax)*100):0;
   const igPct    = igOas!=null?Math.min(100,(igOas/igMax)*100):0;
+  // 3yr historical percentiles from backend
+  const hyHistPct = cr.hy_pct??null;   // 0=tightest ever, 100=widest ever (3yr)
+  const igHistPct = cr.ig_pct??null;
+  const hyPctMin  = cr.hy_pct_min??null;
+  const hyPctMax  = cr.hy_pct_max??null;
+  const igPctMin  = cr.ig_pct_min??null;
+  const igPctMax  = cr.ig_pct_max??null;
   const hyCol    = hyOas!=null?(hyOas<250?'#22c97a':hyOas<350?'#adb8d0':hyOas<500?'#f5c842':'#e03a2a'):'#5a6480';
   const igCol    = igOas!=null?(igOas<80?'#22c97a':igOas<120?'#adb8d0':igOas<170?'#f5c842':'#e03a2a'):'#5a6480';
   const crSpreadCol = hyTrend==='Widening'?'#e03a2a':hyTrend==='Tightening'?'#c8a96e':'#adb8d0';
@@ -5763,15 +5770,41 @@ function renderMacroDataPanels(reg){
           ${momRow2('6M', hyDelta6m, igDelta6m)}
         </div>
 
-        <!-- HY/IG Ratio stress gauge -->
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
-          <div>
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px">HY ÷ IG Spread Ratio</div>
-            <div style="font-family:var(--mono);font-size:6.5px;color:var(--faint);opacity:0.8;line-height:1.5">Low-quality vs high-quality credit</div>
-            <div style="font-family:var(--mono);font-size:6px;color:var(--faint);opacity:0.55;margin-top:2px">Normal &lt;2.8x · Elevated &gt;3.5x</div>
-          </div>
-          <div style="font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;color:${hyIgRatioCol}">${hyIgRatio!=null?hyIgRatio.toFixed(2)+'x':'—'}</div>
-        </div>
+        <!-- Historical Percentile Gauges -->
+        ${(()=>{
+          const pctLabel = p => p==null?'—':p<=20?'Tight':p<=40?'Below Avg':p<=60?'Average':p<=80?'Above Avg':'Wide';
+          const pctCol   = p => p==null?'var(--faint)':p<=20?'#22c97a':p<=40?'#5ec47a':p<=60?'#adb8d0':p<=80?'#f5c842':'#e03a2a';
+          const gauge = (label, val, bps, pctMin, pctMax) => {
+            const safeP = val??50;
+            const col = pctCol(val);
+            const lbl = pctLabel(val);
+            const rangeStr = (pctMin!=null&&pctMax!=null)?`${pctMin}–${pctMax}bp range`:'';
+            return `<div style="margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+                <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint)">${label}</span>
+                <div style="display:flex;align-items:baseline;gap:5px">
+                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${col}">${lbl}</span>
+                  <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">${val!=null?Math.round(val)+'th %ile':'—'}</span>
+                </div>
+              </div>
+              <div style="position:relative;height:5px;border-radius:3px;background:linear-gradient(to right,#22c97a 0%,#22c97a 20%,#5ec47a 20%,#5ec47a 40%,#adb8d0 40%,#adb8d0 60%,#f5c842 60%,#f5c842 80%,#e03a2a 80%,#e03a2a 100%);opacity:0.35">
+              </div>
+              <div style="position:relative;height:5px;border-radius:3px;margin-top:-5px">
+                <div style="position:absolute;top:-3px;width:11px;height:11px;border-radius:50%;background:${col};border:2px solid var(--bg2);box-shadow:0 0 6px ${col}80;left:calc(${safeP}% - 5.5px);transition:left 0.4s ease"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:6px">
+                <span style="font-family:var(--mono);font-size:6px;color:var(--faint);opacity:0.6">Tight (0th)</span>
+                <span style="font-family:var(--mono);font-size:6px;color:var(--faint);opacity:0.6">${rangeStr}</span>
+                <span style="font-family:var(--mono);font-size:6px;color:var(--faint);opacity:0.6">Wide (100th)</span>
+              </div>
+            </div>`;
+          };
+          return `<div style="padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
+            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px">3yr Spread Percentile</div>
+            ${gauge('HY OAS', hyHistPct, hyOas, hyPctMin, hyPctMax)}
+            ${gauge('IG OAS', igHistPct, igOas, igPctMin, igPctMax)}
+          </div>`;
+        })()}
 
         <!-- Rate context footer: 3-col grid -->
         <div>
