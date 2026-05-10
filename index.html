@@ -4395,6 +4395,85 @@ function renderSmartMoney(markets){
   el.classList.add('loaded');
 }
 
+// ── Shared news-context fetch (prevents duplicate requests) ────────────────
+let _newsCtxPromise=null;
+let _newsCtxFetchedAt=0;
+function getNewsContext(){
+  if(!_newsCtxPromise){
+    _newsCtxFetchedAt=Date.now();
+    _newsCtxPromise=fetch(API+'/api/news-context').then(r=>r.json()).catch(()=>({}));
+  }
+  return _newsCtxPromise;
+}
+function resetNewsCtxCache(force=false){
+  const age=(Date.now()-_newsCtxFetchedAt)/60000;
+  if(force||age>90){_newsCtxPromise=null;_newsCtxFetchedAt=0;}
+  _climateNarrLoaded=false;
+  _aiBriefLoaded=false;
+}
+let _climateNarrLoaded=false;
+let _aiBriefLoaded=false;
+async function loadClimateNarrative(){
+  const bodyEl=document.getElementById('ov-cp-narr-body');
+  const tsEl=document.getElementById('ov-cp-narr-ts');
+  if(!bodyEl)return;
+  try{
+    const data=await getNewsContext();
+    const narrative=data.global_narrative;
+    const updAt=data.updated_at;
+    let ageStr='';
+    if(updAt){const ageMin=Math.round((Date.now()/1000-updAt)/60);ageStr=ageMin<2?'Updated just now':ageMin<60?'Updated '+ageMin+'m ago':'Updated '+(Math.round(ageMin/60))+'h ago';}
+    if(tsEl&&ageStr)tsEl.textContent=ageStr;
+    if(narrative&&narrative!='null'){
+      bodyEl.innerHTML=`<div class="ov-cp-narr-text">${narrative}</div>`;
+    } else {
+      const reg=DATA.regime||{};const md=reg.macro_dashboard||{};const mc=md.macro_composites||{};const regLabel=reg.regime||reg.label||'Unknown';
+      const topCat=Object.entries(mc).filter(([k])=>k!=='default').sort(([,a],[,b])=>(b.composite_10??5)-(a.composite_10??5))[0];
+      const botCat=Object.entries(mc).filter(([k])=>k!=='default').sort(([,a],[,b])=>(a.composite_10??5)-(b.composite_10??5))[0];
+      const topName={'equity':'Equities','bond':'Bonds','gold':'Gold','commodity':'Commodities','fx_usd':'USD','fx_foreign':'FX (foreign)','crypto':'Crypto'};
+      const fallback=`Current macro environment signals a ${regLabel.toLowerCase()} backdrop. `+(topCat?`${topName[topCat[0]]||topCat[0]} sees the most supportive macro composite at ${topCat[1].composite_10?.toFixed(1)}/10. `:'')
+        +(botCat?`${topName[botCat[0]]||botCat[0]} faces the most macro headwinds at ${botCat[1].composite_10?.toFixed(1)}/10.`:'');
+      bodyEl.innerHTML=`<div class="ov-cp-narr-text" style="color:var(--dim)">${fallback}</div>`;
+    }
+    _climateNarrLoaded=true;
+  }catch(e){
+    if(bodyEl)bodyEl.innerHTML='<div style="font-size:10px;color:var(--faint)">Narrative unavailable.</div>';
+  }
+}
+async function loadAiBrief(){
+  const el=document.getElementById('ov-ai-brief');
+  if(!el)return;
+  el.innerHTML=`<div class="ov-ai-brief-header"><div class="ov-ai-brief-title"><div class="ov-ai-brief-label">Breaking News</div></div><div class="ov-ai-brief-header-line"></div><div class="ov-ai-brief-sub" id="ai-brief-sub">High &amp; Medium impact · 48h</div></div><div class="ov-ai-brief-body open" id="ai-brief-body"><div class="skel" style="height:12px;width:92%;border-radius:4px;margin-bottom:5px"></div><div class="skel" style="height:12px;width:78%;border-radius:4px;margin-bottom:5px"></div><div class="skel" style="height:34px;border-radius:6px;margin-bottom:6px"></div><div class="skel" style="height:34px;border-radius:6px"></div></div>`;
+  el.classList.add('loaded');
+  try{
+    const data=await getNewsContext();
+    const newsItems=data.news_items||[];
+    const updAt=data.updated_at;
+    let ageStr='';
+    if(updAt){const ageMin=Math.round((Date.now()/1000-updAt)/60);ageStr=ageMin<2?'just now':ageMin<60?ageMin+'m ago':(Math.round(ageMin/60))+'h ago';}
+    const groups={};
+    for(const n of newsItems){const k=n.date_label||'';if(!groups[k])groups[k]=[];groups[k].push(n);}
+    const sortedKeys=Object.keys(groups).sort((a,b)=>{const ta=groups[a][0]?.dateline||0;const tb=groups[b][0]?.dateline||0;return tb-ta;});
+    const newsListHtml=sortedKeys.map(dayKey=>{
+      const items=groups[dayKey].sort((a,b)=>(b.dateline||0)-(a.dateline||0));
+      const rows=items.map(n=>{
+        const isHigh=n.impact==='high';const tag=isHigh?'HIGH':'MED';const tagCls=isHigh?'':'medium';
+        return `<div class="ov-news-row"><div class="ov-news-row-left"><div class="ov-ai-news-tag ${tagCls}">${tag}</div><div class="ov-news-row-info"><div class="ov-news-row-title">${n.title}</div>${n.preview?`<div class="ov-news-row-preview">${n.preview}</div>`:''}</div></div><div class="ov-news-row-right"><div class="ov-news-row-time">${n.time_label}</div>${n.source?`<div style="font-size:7.5px;color:var(--faint);text-align:right;margin-top:1px">${n.source}</div>`:''}</div></div>`;
+      }).join('');
+      return `<div class="ov-news-day-group"><div class="ov-news-day-label">${dayKey}</div><div class="ov-ai-news">${rows}</div></div>`;
+    }).join('');
+    const bodyEl=document.getElementById('ai-brief-body');
+    if(bodyEl)bodyEl.innerHTML=newsListHtml||'<div style="color:var(--faint);font-size:10px;padding:8px 0">No news available.</div>';
+    const subEl=document.getElementById('ai-brief-sub');
+    if(subEl&&ageStr)subEl.textContent='High & Medium impact · '+ageStr;
+    _aiBriefLoaded=true;
+  }catch(e){
+    const bodyEl=document.getElementById('ai-brief-body');
+    if(bodyEl)bodyEl.innerHTML='<div style="color:var(--faint);font-size:10px;padding:8px 0">News unavailable.</div>';
+  }
+}
+function toggleAiBrief(){const body=document.getElementById('ai-brief-body');if(!body)return;body.classList.toggle('open');}
+
 function renderOverview(){
   if(!DATA)return;
   // Stop detail header canvas if navigating back to overview
