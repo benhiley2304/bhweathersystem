@@ -5683,13 +5683,92 @@ function renderMacroDataPanels(reg){
           ${momRow('6M Change', sChg6m, sCol6m)}
         </div>
 
-        <!-- Tenor strip -->
-        <div>
-          <div class="mc-sect" style="margin:2px 0 4px"><div class="mc-sect-lbl">Yields</div><div class="mc-sect-line"></div></div>
-          <div class="ov-yc-tenor-pill-bar" style="margin-top:0">
-            ${[[`3M`,t3m,false],[`2Y`,t2,false],[`5Y`,t5,false],[`10Y`,t10,true],[`30Y`,t30,false]].filter(p=>p[1]!=null).map(([lbl,val,key])=>`<span class="ov-yc-tpill${key?' key':''}"><span class="ov-yc-tpill-lbl">${lbl}</span><span class="ov-yc-tpill-val" style="color:${key?'var(--accent)':tenorDotCol(val)}">${val.toFixed(2)}%</span></span>`).join('')}
+        <!-- Yield Curve SVG graphic -->
+        ${(()=>{
+          // Tenor points: [label, current, 6m, 12m]
+          const ycPts = [
+            ['3M', t3m,    null,      null     ],
+            ['2Y', t2,     t2_6m,    t2_12m   ],
+            ['5Y', t5,     t5_6m,    t5_12m   ],
+            ['10Y',t10,    t10_6m,   t10_12m  ],
+            ['30Y',t30,    t30_6m,   t30_12m  ],
+          ].filter(p=>p[1]!=null);
+          if(ycPts.length<2) return '';
+          const W=280, H=78, padL=22, padR=8, padT=8, padB=18;
+          const gW=W-padL-padR, gH=H-padT-padB;
+          const n=ycPts.length;
+          const xPos = i => padL + (i/(n-1))*gW;
+          // y scale: all known values
+          const allVals=[...ycPts.map(p=>p[1]),...ycPts.filter(p=>p[2]!=null).map(p=>p[2]),...ycPts.filter(p=>p[3]!=null).map(p=>p[3])];
+          const vMin=Math.min(...allVals)-0.05, vMax=Math.max(...allVals)+0.05;
+          const yPos = v => padT + (1-(v-vMin)/(vMax-vMin))*gH;
+          // Smooth catmull-rom path builder
+          const catmull = pts => {
+            if(pts.length<2) return '';
+            let d=`M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+            for(let i=0;i<pts.length-1;i++){
+              const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+              const cp1x=+(p1[0]+(p2[0]-p0[0])/6).toFixed(1), cp1y=+(p1[1]+(p2[1]-p0[1])/6).toFixed(1);
+              const cp2x=+(p2[0]-(p3[0]-p1[0])/6).toFixed(1), cp2y=+(p2[1]-(p3[1]-p1[1])/6).toFixed(1);
+              d+=` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+            }
+            return d;
+          };
+          const curPts  = ycPts.map((p,i)=>[xPos(i),yPos(p[1])]);
+          const hist6Pts= ycPts.filter(p=>p[2]!=null).map((p,_,arr)=>[xPos(ycPts.indexOf(p)),yPos(p[2])]);
+          const hist12Pts=ycPts.filter(p=>p[3]!=null).map((p,_,arr)=>[xPos(ycPts.indexOf(p)),yPos(p[3])]);
+          // Gradient area fill under current curve
+          const areaPath = catmull(curPts)+` L${xPos(n-1).toFixed(1)},${(padT+gH).toFixed(1)} L${padL.toFixed(1)},${(padT+gH).toFixed(1)} Z`;
+          const uid2='yc'+(Math.random()*0xFFFFF|0).toString(16);
+          // Y-axis gridlines at round values
+          const gridVals=[...new Set([vMin,vMax,(vMin+vMax)/2].map(v=>+(Math.round(v*4)/4).toFixed(2)))];
+          const grids=gridVals.map(v=>{
+            const y=yPos(v).toFixed(1);
+            return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="3,3"/><text x="${padL-3}" y="${(parseFloat(y)+2.5).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,0.2)" font-family="var(--mono)" font-size="5">${v.toFixed(1)}</text>`;
+          }).join('');
+          return `
+        <div style="margin-top:2px">
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Yield Curve</div><div class="mc-sect-line"></div></div>
+          <div style="width:100%;overflow:hidden">
+          <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="${uid2}fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="${crCol}" stop-opacity="0.28"/>
+                <stop offset="100%" stop-color="${crCol}" stop-opacity="0"/>
+              </linearGradient>
+              <filter id="${uid2}glow">
+                <feGaussianBlur stdDeviation="2.5" result="b"/>
+                <feComposite in="b" in2="SourceGraphic" operator="over"/>
+              </filter>
+            </defs>
+            <!-- Grid -->
+            ${grids}
+            <!-- 12m historical — faintest -->
+            ${hist12Pts.length>=2?`<path d="${catmull(hist12Pts)}" stroke="rgba(255,255,255,0.13)" stroke-width="1" fill="none" stroke-dasharray="4,3"/>`:''}            <!-- 6m historical — dim -->
+            ${hist6Pts.length>=2?`<path d="${catmull(hist6Pts)}" stroke="rgba(255,255,255,0.28)" stroke-width="1.2" fill="none" stroke-dasharray="5,3"/>`:''}            <!-- Area fill -->
+            <path d="${areaPath}" fill="url(#${uid2}fill)"/>
+            <!-- Current line glow -->
+            <path d="${catmull(curPts)}" stroke="${crCol}" stroke-width="5" fill="none" opacity="0.18" filter="url(#${uid2}glow)"/>
+            <!-- Current line -->
+            <path d="${catmull(curPts)}" stroke="${crCol}" stroke-width="1.8" fill="none"/>
+            <!-- Tenor nodes + labels -->
+            ${ycPts.map((p,i)=>{
+              const x=xPos(i).toFixed(1), y=yPos(p[1]).toFixed(1);
+              const isKey=(p[0]==='10Y');
+              const lblY=(parseFloat(y)>padT+gH*0.6)?parseFloat(y)-7:parseFloat(y)+11;
+              return `<circle cx="${x}" cy="${y}" r="${isKey?3.5:2.5}" fill="${isKey?crCol:'var(--bg2)'}" stroke="${crCol}" stroke-width="${isKey?0:1.5}"/>
+              <text x="${x}" y="${lblY.toFixed(1)}" text-anchor="middle" fill="${isKey?crCol:'rgba(255,255,255,0.45)'}" font-family="var(--mono)" font-size="6" font-weight="${isKey?800:600}">${p[0]}</text>
+              <text x="${x}" y="${(lblY+(isKey?8:7)).toFixed(1)}" text-anchor="middle" fill="${isKey?crCol:'rgba(255,255,255,0.55)'}" font-family="var(--mono)" font-size="${isKey?7:6}" font-weight="${isKey?900:700}">${p[1].toFixed(2)}%</text>`;
+            }).join('')}
+            <!-- Legend -->
+            <line x1="${(W-padR-60).toFixed(0)}" y1="${(padT+1).toFixed(0)}" x2="${(W-padR-50).toFixed(0)}" y2="${(padT+1).toFixed(0)}" stroke="${crCol}" stroke-width="1.8"/>
+            <text x="${(W-padR-48).toFixed(0)}" y="${(padT+4).toFixed(0)}" fill="${crCol}" font-family="var(--mono)" font-size="5.5" font-weight="700">Now</text>
+            ${hist6Pts.length>=2?`<line x1="${(W-padR-60).toFixed(0)}" y1="${(padT+8).toFixed(0)}" x2="${(W-padR-50).toFixed(0)}" y2="${(padT+8).toFixed(0)}" stroke="rgba(255,255,255,0.28)" stroke-width="1.2" stroke-dasharray="5,3"/><text x="${(W-padR-48).toFixed(0)}" y="${(padT+11).toFixed(0)}" fill="rgba(255,255,255,0.4)" font-family="var(--mono)" font-size="5.5">6M</text>`:''}
+            ${hist12Pts.length>=2?`<line x1="${(W-padR-60).toFixed(0)}" y1="${(padT+15).toFixed(0)}" x2="${(W-padR-50).toFixed(0)}" y2="${(padT+15).toFixed(0)}" stroke="rgba(255,255,255,0.13)" stroke-width="1" stroke-dasharray="4,3"/><text x="${(W-padR-48).toFixed(0)}" y="${(padT+18).toFixed(0)}" fill="rgba(255,255,255,0.28)" font-family="var(--mono)" font-size="5.5">12M</text>`:''}
+          </svg>
           </div>
-        </div>
+        </div>`;
+        })()}
       </div>`;
       })()}
 
