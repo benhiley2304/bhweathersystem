@@ -5453,10 +5453,28 @@ function renderMacroDataPanels(reg){
   const hyPctMax  = cr.hy_pct_max??null;
   const igPctMin  = cr.ig_pct_min??null;
   const igPctMax  = cr.ig_pct_max??null;
-  const hyCol    = hyOas!=null?(hyOas<250?'#22c97a':hyOas<350?'#adb8d0':hyOas<500?'#f5c842':'#e03a2a'):'#5a6480';
-  const igCol    = igOas!=null?(igOas<80?'#22c97a':igOas<120?'#adb8d0':igOas<170?'#f5c842':'#e03a2a'):'#5a6480';
-  const crSpreadCol = hyTrend==='Widening'?'#e03a2a':hyTrend==='Tightening'?'#c8a96e':'#adb8d0';
-  const crLabel  = hyTrend==='Tightening'?'Tightening':hyTrend==='Widening'?'Widening':'Neutral';
+  // ── Credit environment: derive from percentile level (primary) + momentum (secondary)
+  // Percentile-based zone helper — same buckets used in gauge labels below
+  const _pctZone = p => p==null?'—':p<=20?'Tight':p<=40?'Below Avg':p<=60?'Average':p<=80?'Above Avg':'Wide';
+  const _pctZoneCol = p => p==null?'#5a6480':p<=20?'#22c97a':p<=40?'#5ec47a':p<=60?'#adb8d0':p<=80?'#f5c842':'#e03a2a';
+  // Hero zone labels: percentile-based, with absolute fallback if percentile not yet available
+  const _hyZoneFallback = hyOas!=null?(hyOas<250?'Tight':hyOas<350?'Normal':hyOas<500?'Wide':'Stress'):'—';
+  const _igZoneFallback = igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':igOas<170?'Wide':'Stress'):'—';
+  const _hyColFallback  = hyOas!=null?(hyOas<250?'#22c97a':hyOas<350?'#adb8d0':hyOas<500?'#f5c842':'#e03a2a'):'#5a6480';
+  const _igColFallback  = igOas!=null?(igOas<80?'#22c97a':igOas<120?'#adb8d0':igOas<170?'#f5c842':'#e03a2a'):'#5a6480';
+  const hyZoneLabel = hyHistPct!=null?_pctZone(hyHistPct):_hyZoneFallback;
+  const igZoneLabel = igHistPct!=null?_pctZone(igHistPct):_igZoneFallback;
+  const hyCol = hyHistPct!=null?_pctZoneCol(hyHistPct):_hyColFallback;
+  const igCol = igHistPct!=null?_pctZoneCol(igHistPct):_igColFallback;
+  // Badge: reflects spread LEVEL (where are we historically?) + momentum direction
+  // avgPct = mean of HY + IG percentiles; if only one available, use that
+  const _avgPct = (hyHistPct!=null&&igHistPct!=null)?(hyHistPct+igHistPct)/2:(hyHistPct??igHistPct);
+  const _levelLabel = _pctZone(_avgPct);   // e.g. 'Tight', 'Average', 'Wide'
+  const _levelCol   = _pctZoneCol(_avgPct);
+  // Momentum suffix: only show direction if meaningfully different from level label
+  const _momSuffix = (hyTrend==='Widening'&&_avgPct!=null&&_avgPct<=40)?' ↑':(hyTrend==='Tightening'&&_avgPct!=null&&_avgPct>=60)?' ↓':'';
+  const crLabel     = _levelLabel + _momSuffix;
+  const crSpreadCol = _levelCol;
   const ryVal    = ry.value??null;
   const ryCol    = ryVal!=null?(ryVal<0?'#22c97a':ryVal>2.5?'#e03a2a':ryVal>1.0?'#f5c842':'#adb8d0'):'#5a6480';
   const effr     = rs.effr??null;
@@ -5696,8 +5714,9 @@ function renderMacroDataPanels(reg){
       ${(()=>{
         const dFmt = v => v!=null?(v>0?'+':'')+v.toFixed(0)+'bp':'—';
         const dCol = v => v!=null?(v<0?'#22c97a':v>0?'#e03a2a':'var(--faint)'):'var(--faint)';
-        const hyZone = hyOas!=null?(hyOas<250?'Tight':hyOas<350?'Normal':hyOas<500?'Wide':'Stress'):'—';
-        const igZone = igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':igOas<180?'Wide':'Stress'):'—';
+        // Zone labels: use outer-scope percentile-based labels (consistent with gauge + badge)
+        const hyZone = hyZoneLabel;
+        const igZone = igZoneLabel;
         const hyIgRatio = (hyOas!=null&&igOas!=null&&igOas>0)?(hyOas/igOas):null;
         const hyIgRatioCol = hyIgRatio!=null?(hyIgRatio>3.5?'#e03a2a':hyIgRatio>2.8?'#f5c842':'#22c97a'):'var(--faint)';
         // Aligned momentum row: period | HY bar | HY val | IG bar | IG val
