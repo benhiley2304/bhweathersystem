@@ -5683,92 +5683,13 @@ function renderMacroDataPanels(reg){
           ${momRow('6M Change', sChg6m, sCol6m)}
         </div>
 
-        <!-- Yield Curve SVG graphic -->
-        ${(()=>{
-          // Tenor points: [label, current, 6m, 12m]
-          const ycPts = [
-            ['3M', t3m,    null,      null     ],
-            ['2Y', t2,     t2_6m,    t2_12m   ],
-            ['5Y', t5,     t5_6m,    t5_12m   ],
-            ['10Y',t10,    t10_6m,   t10_12m  ],
-            ['30Y',t30,    t30_6m,   t30_12m  ],
-          ].filter(p=>p[1]!=null);
-          if(ycPts.length<2) return '';
-          const W=280, H=78, padL=22, padR=8, padT=8, padB=18;
-          const gW=W-padL-padR, gH=H-padT-padB;
-          const n=ycPts.length;
-          const xPos = i => padL + (i/(n-1))*gW;
-          // y scale: all known values
-          const allVals=[...ycPts.map(p=>p[1]),...ycPts.filter(p=>p[2]!=null).map(p=>p[2]),...ycPts.filter(p=>p[3]!=null).map(p=>p[3])];
-          const vMin=Math.min(...allVals)-0.05, vMax=Math.max(...allVals)+0.05;
-          const yPos = v => padT + (1-(v-vMin)/(vMax-vMin))*gH;
-          // Smooth catmull-rom path builder
-          const catmull = pts => {
-            if(pts.length<2) return '';
-            let d=`M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
-            for(let i=0;i<pts.length-1;i++){
-              const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
-              const cp1x=+(p1[0]+(p2[0]-p0[0])/6).toFixed(1), cp1y=+(p1[1]+(p2[1]-p0[1])/6).toFixed(1);
-              const cp2x=+(p2[0]-(p3[0]-p1[0])/6).toFixed(1), cp2y=+(p2[1]-(p3[1]-p1[1])/6).toFixed(1);
-              d+=` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
-            }
-            return d;
-          };
-          const curPts  = ycPts.map((p,i)=>[xPos(i),yPos(p[1])]);
-          const hist6Pts= ycPts.filter(p=>p[2]!=null).map((p,_,arr)=>[xPos(ycPts.indexOf(p)),yPos(p[2])]);
-          const hist12Pts=ycPts.filter(p=>p[3]!=null).map((p,_,arr)=>[xPos(ycPts.indexOf(p)),yPos(p[3])]);
-          // Gradient area fill under current curve
-          const areaPath = catmull(curPts)+` L${xPos(n-1).toFixed(1)},${(padT+gH).toFixed(1)} L${padL.toFixed(1)},${(padT+gH).toFixed(1)} Z`;
-          const uid2='yc'+(Math.random()*0xFFFFF|0).toString(16);
-          // Y-axis gridlines at round values
-          const gridVals=[...new Set([vMin,vMax,(vMin+vMax)/2].map(v=>+(Math.round(v*4)/4).toFixed(2)))];
-          const grids=gridVals.map(v=>{
-            const y=yPos(v).toFixed(1);
-            return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="3,3"/><text x="${padL-3}" y="${(parseFloat(y)+2.5).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,0.2)" font-family="var(--mono)" font-size="5">${v.toFixed(1)}</text>`;
-          }).join('');
-          return `
+        <!-- Full Yield Curve Chart (async) -->
         <div style="margin-top:2px">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div style="width:100%;overflow:hidden">
-          <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              <linearGradient id="${uid2}fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="${crCol}" stop-opacity="0.28"/>
-                <stop offset="100%" stop-color="${crCol}" stop-opacity="0"/>
-              </linearGradient>
-              <filter id="${uid2}glow">
-                <feGaussianBlur stdDeviation="2.5" result="b"/>
-                <feComposite in="b" in2="SourceGraphic" operator="over"/>
-              </filter>
-            </defs>
-            <!-- Grid -->
-            ${grids}
-            <!-- 12m historical — faintest -->
-            ${hist12Pts.length>=2?`<path d="${catmull(hist12Pts)}" stroke="rgba(255,255,255,0.13)" stroke-width="1" fill="none" stroke-dasharray="4,3"/>`:''}            <!-- 6m historical — dim -->
-            ${hist6Pts.length>=2?`<path d="${catmull(hist6Pts)}" stroke="rgba(255,255,255,0.28)" stroke-width="1.2" fill="none" stroke-dasharray="5,3"/>`:''}            <!-- Area fill -->
-            <path d="${areaPath}" fill="url(#${uid2}fill)"/>
-            <!-- Current line glow -->
-            <path d="${catmull(curPts)}" stroke="${crCol}" stroke-width="5" fill="none" opacity="0.18" filter="url(#${uid2}glow)"/>
-            <!-- Current line -->
-            <path d="${catmull(curPts)}" stroke="${crCol}" stroke-width="1.8" fill="none"/>
-            <!-- Tenor nodes + labels -->
-            ${ycPts.map((p,i)=>{
-              const x=xPos(i).toFixed(1), y=yPos(p[1]).toFixed(1);
-              const isKey=(p[0]==='10Y');
-              const lblY=(parseFloat(y)>padT+gH*0.6)?parseFloat(y)-7:parseFloat(y)+11;
-              return `<circle cx="${x}" cy="${y}" r="${isKey?3.5:2.5}" fill="${isKey?crCol:'var(--bg2)'}" stroke="${crCol}" stroke-width="${isKey?0:1.5}"/>
-              <text x="${x}" y="${lblY.toFixed(1)}" text-anchor="middle" fill="${isKey?crCol:'rgba(255,255,255,0.45)'}" font-family="var(--mono)" font-size="6" font-weight="${isKey?800:600}">${p[0]}</text>
-              <text x="${x}" y="${(lblY+(isKey?8:7)).toFixed(1)}" text-anchor="middle" fill="${isKey?crCol:'rgba(255,255,255,0.55)'}" font-family="var(--mono)" font-size="${isKey?7:6}" font-weight="${isKey?900:700}">${p[1].toFixed(2)}%</text>`;
-            }).join('')}
-            <!-- Legend -->
-            <line x1="${(W-padR-60).toFixed(0)}" y1="${(padT+1).toFixed(0)}" x2="${(W-padR-50).toFixed(0)}" y2="${(padT+1).toFixed(0)}" stroke="${crCol}" stroke-width="1.8"/>
-            <text x="${(W-padR-48).toFixed(0)}" y="${(padT+4).toFixed(0)}" fill="${crCol}" font-family="var(--mono)" font-size="5.5" font-weight="700">Now</text>
-            ${hist6Pts.length>=2?`<line x1="${(W-padR-60).toFixed(0)}" y1="${(padT+8).toFixed(0)}" x2="${(W-padR-50).toFixed(0)}" y2="${(padT+8).toFixed(0)}" stroke="rgba(255,255,255,0.28)" stroke-width="1.2" stroke-dasharray="5,3"/><text x="${(W-padR-48).toFixed(0)}" y="${(padT+11).toFixed(0)}" fill="rgba(255,255,255,0.4)" font-family="var(--mono)" font-size="5.5">6M</text>`:''}
-            ${hist12Pts.length>=2?`<line x1="${(W-padR-60).toFixed(0)}" y1="${(padT+15).toFixed(0)}" x2="${(W-padR-50).toFixed(0)}" y2="${(padT+15).toFixed(0)}" stroke="rgba(255,255,255,0.13)" stroke-width="1" stroke-dasharray="4,3"/><text x="${(W-padR-48).toFixed(0)}" y="${(padT+18).toFixed(0)}" fill="rgba(255,255,255,0.28)" font-family="var(--mono)" font-size="5.5">12M</text>`:''}
-          </svg>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
+          <div id="ov-yc-chart" style="width:100%;height:96px;display:flex;align-items:center;justify-content:center">
+            <span style="font-size:9px;color:var(--faint);font-family:var(--mono)">Loading...</span>
           </div>
-        </div>`;
-        })()}
+        </div>
       </div>`;
       })()}
 
@@ -6083,7 +6004,174 @@ function renderMacroDataPanels(reg){
     _drawMacroParticles('ov-mc-p2', crSpreadCol);
     _drawMacroParticles('ov-mc-p3', fbCol);
     _drawMacroParticles('ov-mc-p4', jcCol);
+    loadYieldCurveChart(crCol);
   });
+}
+
+/* ── Full Yield Curve Chart ─────────────────────────────────────────────── */
+async function loadYieldCurveChart(nowCol) {
+  const el = document.getElementById('ov-yc-chart');
+  if (!el) return;
+
+  let data;
+  try {
+    const r = await fetch('/api/yield-curve-history');
+    if (!r.ok) throw new Error('fetch failed');
+    data = await r.json();
+  } catch(e) {
+    el.innerHTML = '<span style="font-size:9px;color:var(--faint);font-family:var(--mono)">Unavailable</span>';
+    return;
+  }
+  if (data.error || !data.now) {
+    el.innerHTML = '<span style="font-size:9px;color:var(--faint);font-family:var(--mono)">No data</span>';
+    return;
+  }
+
+  // 4 curves: now, -3m, -6m, -12m — each distinct colour
+  const CURVES = [
+    { key: '12m', label: '−12M', color: '#5c7a9f', width: 1.2, dash: '5,4',   opacity: 1 },
+    { key: '6m',  label: '−6M',  color: '#7b9e87', width: 1.3, dash: '5,3',   opacity: 1 },
+    { key: '3m',  label: '−3M',  color: '#c8a030', width: 1.5, dash: '5,3',   opacity: 1 },
+    { key: 'now', label: 'Now',  color: nowCol,    width: 2.2, dash: '',       opacity: 1 },
+  ];
+
+  const TENORS = data.tenor_labels || ['1M','3M','6M','1Y','2Y','3Y','5Y','7Y','10Y','20Y','30Y'];
+  // X positions are non-uniform — use approximate duration mapping
+  const TENOR_X = { '1M':0, '3M':3, '6M':6, '1Y':12, '2Y':24, '3Y':36, '5Y':60, '7Y':84, '10Y':120, '20Y':240, '30Y':360 };
+  const xDomain = [0, 360];
+
+  // Collect all values for y scale
+  const allVals = [];
+  CURVES.forEach(c => {
+    const snap = data[c.key];
+    if (!snap) return;
+    TENORS.forEach(t => { const v = snap.tenors[t]; if (v != null) allVals.push(v); });
+  });
+  if (allVals.length < 4) {
+    el.innerHTML = '<span style="font-size:9px;color:var(--faint);font-family:var(--mono)">Insufficient data</span>';
+    return;
+  }
+
+  const W = 280, H = 96;
+  const padL = 26, padR = 6, padT = 8, padB = 20;
+  const gW = W - padL - padR, gH = H - padT - padB;
+
+  const vMin = Math.min(...allVals) - 0.08;
+  const vMax = Math.max(...allVals) + 0.08;
+  const xPos = t => padL + ((TENOR_X[t] - xDomain[0]) / (xDomain[1] - xDomain[0])) * gW;
+  const yPos = v => padT + (1 - (v - vMin) / (vMax - vMin)) * gH;
+
+  // Catmull-Rom spline
+  const catmull = pts => {
+    if (pts.length < 2) return '';
+    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0=pts[Math.max(0,i-1)], p1=pts[i], p2=pts[i+1], p3=pts[Math.min(pts.length-1,i+2)];
+      const cp1x = +(p1[0]+(p2[0]-p0[0])/6).toFixed(1), cp1y = +(p1[1]+(p2[1]-p0[1])/6).toFixed(1);
+      const cp2x = +(p2[0]-(p3[0]-p1[0])/6).toFixed(1), cp2y = +(p2[1]-(p3[1]-p1[1])/6).toFixed(1);
+      d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+  };
+
+  // Y-axis gridlines — 4 evenly spaced
+  const gridStep = (vMax - vMin) / 3;
+  const gridVals = [0,1,2,3].map(i => +(vMin + i * gridStep).toFixed(2));
+  const uid = 'yc' + (Math.random() * 0xFFFFF | 0).toString(16);
+
+  const grids = gridVals.map(v => {
+    const y = yPos(v).toFixed(1);
+    return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="2,4"/>
+      <text x="${padL-3}" y="${(+y+2.5).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,0.22)" font-family="var(--mono)" font-size="5">${v.toFixed(1)}</text>`;
+  }).join('');
+
+  // X-axis tenor labels (selective)
+  const xLabels = ['1M','3M','1Y','2Y','5Y','10Y','30Y'];
+  const xAxis = xLabels.map(t => {
+    const x = xPos(t).toFixed(1);
+    const y = (padT + gH + 9).toFixed(1);
+    return `<text x="${x}" y="${y}" text-anchor="middle" fill="rgba(255,255,255,0.28)" font-family="var(--mono)" font-size="5.5">${t}</text>`;
+  }).join('');
+
+  // Build curve paths
+  let curveSvg = '';
+  const nowSnap = data.now;
+  if (nowSnap) {
+    // Gradient area fill under Now curve
+    const nowPts = TENORS.filter(t => nowSnap.tenors[t] != null).map(t => [xPos(t), yPos(nowSnap.tenors[t])]);
+    if (nowPts.length >= 2) {
+      const areaPath = catmull(nowPts) + ` L${xPos(TENORS.filter(t=>nowSnap.tenors[t]!=null).at(-1)).toFixed(1)},${(padT+gH).toFixed(1)} L${padL},${(padT+gH).toFixed(1)} Z`;
+      curveSvg += `
+        <defs>
+          <linearGradient id="${uid}fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${nowCol}" stop-opacity="0.2"/>
+            <stop offset="100%" stop-color="${nowCol}" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="${uid}glow">
+            <feGaussianBlur stdDeviation="2" result="b"/>
+            <feComposite in="b" in2="SourceGraphic" operator="over"/>
+          </filter>
+        </defs>
+        <path d="${areaPath}" fill="url(#${uid}fill)"/>`;
+    }
+  }
+
+  // Draw in order: oldest first (Now on top)
+  CURVES.forEach(c => {
+    const snap = data[c.key];
+    if (!snap) return;
+    const pts = TENORS.filter(t => snap.tenors[t] != null).map(t => [xPos(t), yPos(snap.tenors[t])]);
+    if (pts.length < 2) return;
+    const dashAttr = c.dash ? ` stroke-dasharray="${c.dash}"` : '';
+    const isNow = c.key === 'now';
+    if (isNow) {
+      // Glow layer for Now
+      curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="5" fill="none" opacity="0.15" filter="url(#${uid}glow)"/>`;
+    }
+    curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="${c.width}" fill="none"${dashAttr}/>` ;
+    // Dot on 10Y for each curve
+    const t10Idx = TENORS.indexOf('10Y');
+    if (t10Idx >= 0 && snap.tenors['10Y'] != null) {
+      const dx = xPos('10Y').toFixed(1), dy = yPos(snap.tenors['10Y']).toFixed(1);
+      curveSvg += `<circle cx="${dx}" cy="${dy}" r="${isNow?3:1.8}" fill="${isNow?c.color:'var(--bg2)'}" stroke="${c.color}" stroke-width="1.2"/>`;
+    }
+  });
+
+  // Now curve: label all tenor nodes
+  if (nowSnap) {
+    const keyTenors = ['1M','2Y','5Y','10Y','30Y'];
+    keyTenors.forEach(t => {
+      if (nowSnap.tenors[t] == null) return;
+      const x = xPos(t), y = yPos(nowSnap.tenors[t]);
+      const isKey = t === '10Y';
+      // Position value label above or below depending on space
+      const lblY = y > padT + gH * 0.55 ? y - 5 : y + 10;
+      curveSvg += `<text x="${x.toFixed(1)}" y="${lblY.toFixed(1)}" text-anchor="middle" fill="${isKey ? nowCol : 'rgba(255,255,255,0.5)'}" font-family="var(--mono)" font-size="${isKey?6.5:5.5}" font-weight="${isKey?900:700}">${nowSnap.tenors[t].toFixed(2)}%</text>`;
+    });
+  }
+
+  // Legend — bottom right, horizontal, compact
+  const legendX = W - padR - 2;
+  const legendY = padT + gH + 18;
+  let legendSvg = '';
+  [...CURVES].reverse().forEach((c, i) => {
+    if (!data[c.key]) return;
+    const lx = legendX - i * 42;
+    const dashAttr = c.dash ? ` stroke-dasharray="${c.dash}"` : '';
+    legendSvg += `<line x1="${lx-14}" y1="${legendY}" x2="${lx-5}" y2="${legendY}" stroke="${c.color}" stroke-width="${c.width}"${dashAttr}/>`;
+    legendSvg += `<text x="${lx-16}" y="${legendY+3}" text-anchor="end" fill="${c.color}" font-family="var(--mono)" font-size="5.5" font-weight="700">${c.label}</text>`;
+  });
+
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block" preserveAspectRatio="xMidYMid meet">
+    ${grids}
+    ${curveSvg}
+    ${xAxis}
+    ${legendSvg}
+  </svg>`;
+
+  el.style.height = H + 'px';
+  el.style.display = 'block';
+  el.innerHTML = svg;
 }
 
 function _drawMacroParticles(canvasId, accentCol){

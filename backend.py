@@ -8685,6 +8685,105 @@ async def get_candles(market: str, period: str = "6mo", ema_period: int = 50):
         return {"error": str(e), "candles": [], "ema": []}
 
 
+# ── Yield Curve History ───────────────────────────────────────────────────────
+_YC_CACHE: dict = {"data": None, "date": None}
+
+FRED_TENORS = [
+    ("1M",  "DGS1MO"),
+    ("3M",  "DGS3MO"),
+    ("6M",  "DGS6MO"),
+    ("1Y",  "DGS1"),
+    ("2Y",  "DGS2"),
+    ("3Y",  "DGS3"),
+    ("5Y",  "DGS5"),
+    ("7Y",  "DGS7"),
+    ("10Y", "DGS10"),
+    ("20Y", "DGS20"),
+    ("30Y", "DGS30"),
+]
+
+async def _fetch_yield_curve_history_async() -> dict:
+    """Fetch FRED daily yield data for all 11 tenors in parallel.
+    Returns snapshots for 'now', '3m', '6m', '12m' keys."""
+    today = date.today()
+    cached_date = _YC_CACHE.get("date")
+    if cached_date == today.isoformat() and _YC_CACHE["data"]:
+        return _YC_CACHE["data"]
+
+    HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+
+    async def _fetch_series(client: httpx.AsyncClient, label: str, series_id: str) -> tuple[str, list]:
+        """Fetch one FRED series CSV, return (label, [(date, value), ...])."""
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+        try:
+            r = await client.get(url, headers=HEADERS, timeout=25)
+            r.raise_for_status()
+            pairs = []
+            for line in r.text.strip().split("\n")[1:]:
+                parts = line.split(",")
+                if len(parts) != 2:
+                    continue
+                try:
+                    d = date.fromisoformat(parts[0].strip())
+                    v = float(parts[1].strip())
+                    pairs.append((d, v))
+                except (ValueError, IndexError):
+                    continue
+            return label, pairs
+        except Exception:
+            return label, []
+
+    try:
+        async with httpx.AsyncClient() as client:
+            tasks = [_fetch_series(client, label, sid) for label, sid in FRED_TENORS]
+            results = await asyncio.gather(*tasks)
+
+        # Build date-keyed dict: {date: {label: value}}
+        by_date: dict[date, dict] = {}
+        for label, pairs in results:
+            for d, v in pairs:
+                by_date.setdefault(d, {})[label] = v
+
+        all_labels = [label for label, _ in FRED_TENORS]
+        rows = sorted([
+            {"date": d, "tenors": {lbl: by_date[d].get(lbl) for lbl in all_labels}}
+            for d in by_date
+        ], key=lambda r: r["date"])
+
+        def _snap(target_date: date) -> dict | None:
+            for row in reversed(rows):
+                if row["date"] <= target_date:
+                    non_null = sum(1 for v in row["tenors"].values() if v is not None)
+                    if non_null >= 6:
+                        return row
+            return None
+
+        def _fmt(snap) -> dict | None:
+            if snap is None:
+                return None
+            return {"date": snap["date"].isoformat(), "tenors": snap["tenors"]}
+
+        result = {
+            "now":  _fmt(_snap(today)),
+            "3m":   _fmt(_snap(today - timedelta(days=91))),
+            "6m":   _fmt(_snap(today - timedelta(days=182))),
+            "12m":  _fmt(_snap(today - timedelta(days=365))),
+            "tenor_labels": all_labels,
+        }
+        _YC_CACHE["data"] = result
+        _YC_CACHE["date"] = today.isoformat()
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/yield-curve-history")
+async def yield_curve_history():
+    """Full 11-tenor yield curve snapshots: now, -3m, -6m, -12m."""
+    result = await _fetch_yield_curve_history_async()
+    return _SafeJSONResponse(content=result)
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
