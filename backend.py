@@ -5974,7 +5974,12 @@ def generate_global_narrative(regime_data: dict, news_items: list) -> str | None
         ur_str  = f" | Unemployment {unrate}%" if unrate is not None else ""
         lines.append(f"LABOUR: composite {jobs_comp:.1f}/10{nfp_str}{ur_str}")
     if effr is not None:
-        cuts_str = f" | market pricing {cuts_12m*100:+.0f}bp cuts over 12m" if cuts_12m else ""
+        if cuts_12m:
+            _path_bp = round(-cuts_12m * 25)  # positive = hike, negative = cut
+            _direction = "hike" if _path_bp > 2 else "cut" if _path_bp < -2 else "hold"
+            cuts_str = f" | market pricing {_path_bp:+d}bp ({_direction}) over 12m"
+        else:
+            cuts_str = ""
         lines.append(f"FED POLICY: EFFR {effr:.2f}% | stance {rate_label}{cuts_str}")
     if fb_level is not None:
         lines.append(f"FED BALANCE SHEET: ${fb_level:.2f}T ({fb_trend})")
