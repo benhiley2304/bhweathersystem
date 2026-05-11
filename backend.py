@@ -2406,10 +2406,15 @@ def _classify_cot_phase(comm_idx: float, lspec_idx: float, sspec_idx: float):
 
 def compute_crypto_cot_score(df: Optional[pd.DataFrame], market_id: str = "") -> dict:
     """
-    Crypto-specific COT scoring.
-    Primary signal: Large Specs (fund managers) positioning, treated as:
-      - Momentum signal in the direction of trend (below 60, rising = bullish)
-      - Contrarian signal at extremes (above 80 = bearish, below 20 = bullish)
+    Crypto-specific COT scoring — simplified trend-following approach.
+
+    Large Specs (non-commercials / fund managers) are the primary signal.
+    Logic: follow the TREND of large spec net positioning.
+    - Bullish while large specs are trending higher or holding elevated levels.
+    - Only turn bearish on a SUSTAINED, MATERIAL reversal (not a single-week dip).
+    - No contrarian penalty for elevated readings — in crypto, high spec longs
+      during a bull trend is normal and should not be faded.
+    - Commercials ignored for direction (structurally short via basis trades / ETF hedging).
     """
     EMPTY = {"score": 5.0, "label": "No data", "detail": {}}
     if df is None or len(df) < 10:
@@ -2438,51 +2443,72 @@ def compute_crypto_cot_score(df: Optional[pd.DataFrame], market_id: str = "") ->
     comm_briese  = briese_index(comm_net)
     sspec_briese = briese_index(sspec_net)
 
+    lspec_range  = float(lspec_net.max() - lspec_net.min()) or 1.0
+
     score = 5.0
     detail_parts = []
 
-    # Momentum: direction of fund manager positioning over last 7 weeks
-    # Rising = accumulation (bullish), falling = de-risking
-    # Note: for crypto, momentum FROM extreme highs (normalisation) is NOT a strong bear signal —
-    # it just means the crowded peak is unwinding. True bear = sustained fall below 50.
-    n = min(7, len(lspec_net))
-    sh = lspec_net[-n:]
-    w2 = np.polyfit(np.arange(n), sh, 1)[0] if n >= 3 else 0
-    lspec_momentum = round(float(w2), 1)
-    if lspec_momentum > 0:
-        score += min(1.8, lspec_momentum * 0.0001 * len(lspec_net))
-        detail_parts.append(f"Fund mgr momentum +{lspec_momentum:.0f} — {'accelerating accumulation' if lspec_momentum > 1000 else 'gradual accumulation'}")
-    elif lspec_momentum < 0:
-        # Only penalise falling momentum if lspec_briese is also below neutral (genuine de-risking).
-        # Normalising FROM extreme highs (briese still >60) is not a bear signal.
-        if lspec_briese < 60:
-            score += max(-1.8, lspec_momentum * 0.0001 * len(lspec_net))
-            detail_parts.append(f"Fund mgr momentum {lspec_momentum:.0f} — {'accelerating de-risking' if lspec_momentum < -1000 else 'gradual de-risking'}")
+    # ── 1. TREND: 12-week slope of large spec net positioning ─────────────
+    # Bullish while trend is up or flat at elevated levels.
+    # Only bearish signal when trend is DOWN and level has also fallen materially.
+    n_trend = min(12, len(lspec_net))
+    trend_slope = np.polyfit(np.arange(n_trend), lspec_net[-n_trend:], 1)[0] if n_trend >= 3 else 0
+    trend_slope = round(float(trend_slope), 1)
+
+    # Normalise slope as % of full historical range per week, then scale to score points
+    # e.g. gaining 1% of range per week over 12w = meaningful trend = +0.75 pts
+    _slope_pct_per_wk = (trend_slope / lspec_range) * 100.0  # % of range per week
+    if trend_slope > 0:
+        score += min(1.5, _slope_pct_per_wk * 0.75)
+        detail_parts.append(f"Large spec trend rising (+{trend_slope:.0f}/wk, +{_slope_pct_per_wk:.1f}%/wk) — bullish")
+    else:
+        # Only penalise if briese has also fallen materially below 50 (sustained reversal)
+        if lspec_briese < 45:
+            score += max(-1.5, _slope_pct_per_wk * 0.75)
+            detail_parts.append(f"Large spec trend falling, briese {lspec_briese:.0f} — bearish reversal")
+        elif lspec_briese < 65:
+            score -= 0.3
+            detail_parts.append(f"Large spec trend softening (briese {lspec_briese:.0f}) — mild caution")
         else:
-            detail_parts.append(f"Fund mgr normalising from elevated ({lspec_briese:.0f}) — constructive unwind")
+            detail_parts.append(f"Large spec normalising from highs (briese {lspec_briese:.0f}) — still constructive")
 
-    # Level extremes (contrarian at true extremes only)
-    # >95 = dangerously crowded long → bearish. <20 = washed out → bullish.
-    # 80-95 range after normalisation = no longer penalised (healthy unwind in progress).
-    if lspec_briese >= 95:   score -= 1.6; detail_parts.append("Fund Mgr EXTREME long — contrarian bearish")
-    elif lspec_briese <= 5:  score += 1.4; detail_parts.append("Fund Mgr EXTREME short — contrarian bullish")
-    elif lspec_briese <= 20: score += 0.8; detail_parts.append("Fund Mgr deeply depressed — contrarian bullish")
-    # 20-95: no contrarian penalty — let momentum/level do the work
+    # ── 2. LEVEL: where are specs positioned in their historical range ─────
+    # High level = trend in place = constructive. Low = bearish until reversal.
+    if lspec_briese >= 65:
+        score += 1.0
+        detail_parts.append(f"Spec net long — elevated ({lspec_briese:.0f}/100)")
+    elif lspec_briese >= 45:
+        score += 0.3
+        detail_parts.append(f"Spec net long — moderate ({lspec_briese:.0f}/100)")
+    elif lspec_briese >= 25:
+        score -= 0.5
+        detail_parts.append(f"Spec net light ({lspec_briese:.0f}/100) — cautious")
+    else:
+        score -= 1.5
+        detail_parts.append(f"Spec net short/depressed ({lspec_briese:.0f}/100) — bearish")
 
-    # Absolute level: above 50 = specs net long = constructive baseline for crypto
-    if lspec_briese >= 60 and lspec_briese < 95:
-        score += 0.5  # specs remain constructively positioned
-        detail_parts.append(f"Fund Mgr net long (briese {lspec_briese:.0f}) — constructive")
-    elif lspec_briese < 40:
-        score -= 0.4
-        detail_parts.append(f"Fund Mgr net short/light (briese {lspec_briese:.0f}) — cautious")
+    # ── 3. MATERIAL REVERSAL CHECK: 4-week momentum ───────────────────────
+    # Only flag a reversal if the last 4 weeks show a sharp drop from a high base.
+    n_short = min(4, len(lspec_net))
+    short_slope = np.polyfit(np.arange(n_short), lspec_net[-n_short:], 1)[0] if n_short >= 3 else 0
+    short_slope = round(float(short_slope), 1)
+    lspec_4w_chg = float(lspec_net[-1] - lspec_net[-min(4, len(lspec_net))])
+    reversal_pct = abs(lspec_4w_chg) / lspec_range  # fraction of full range moved in 4w
 
-    # Label
-    if lspec_briese >= 80:    stance = "elevated long — normalising"
-    elif lspec_briese >= 60:  stance = "above neutral — constructive"
-    elif lspec_briese >= 40:  stance = "near neutral"
-    elif lspec_briese >= 20:  stance = "below neutral — cautious"
-    else:                     stance = "deeply short — contrarian bullish"
+    if short_slope < 0 and reversal_pct > 0.35 and lspec_briese > 60:
+        # Sharp 4-week drop from elevated = material reversal warning
+        score -= 1.0
+        detail_parts.append(f"Sharp 4w unwind ({lspec_4w_chg:+.0f} contracts, {reversal_pct*100:.0f}% of range) — reversal watch")
+    elif short_slope < 0 and lspec_briese < 45:
+        # Falling from already-low base = sustained bearish
+        score -= 0.5
+        detail_parts.append(f"Continued de-risking from low base — bearish")
+
+    # ── Stance label ──────────────────────────────────────────────────────
+    if lspec_briese >= 70:    stance = "elevated & trending — bullish"
+    elif lspec_briese >= 50:  stance = "constructive — above neutral"
+    elif lspec_briese >= 30:  stance = "below neutral — cautious"
+    else:                     stance = "depressed — bearish"
 
     score = round(max(0.0, min(10.0, score)), 1)
     label = "Bullish Crypto COT" if score >= 6 else "Bearish Crypto COT" if score <= 4 else "Neutral Crypto COT"
