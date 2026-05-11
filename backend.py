@@ -6493,16 +6493,21 @@ async def get_all_scores(force: bool = False):
         _gc_if_heavy("post-risk-regime")
         ff_macro = await _loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro)
         _gc_if_heavy("post-ff-macro")
-        # News context — pull from cache if warm; trigger background fetch if cold.
-        # compute_news_context() runs the Sonar call in a thread to avoid blocking.
+        # News context — always use whatever is in cache right now (may be stale/empty).
+        # Narrative generation (40 Sonar AI calls, ~22s) is fired in a background thread
+        # BEFORE the market scoring loop so it warms in parallel. It never blocks
+        # the scores lock — clients get scores immediately after market computation.
         _news_now = time.time()
         _news_cold = not NEWS_CACHE["data"] or (_news_now - NEWS_CACHE["time"]) >= NEWS_CACHE_TTL
         _narr_cold = not NARR_CACHE["data"] or (_news_now - NARR_CACHE["time"]) >= NARR_CACHE_TTL
         if _news_cold or _narr_cold:
-            # Fire-and-forget: populate caches in background without blocking scores
-            import asyncio as _anews
-            _loop_news = _anews.get_event_loop()
-            _loop_news.run_in_executor(_APP_EXECUTOR, compute_news_context)
+            # Fire-and-forget in background — does NOT block market scoring below
+            _bg_narr_thread = threading.Thread(
+                target=compute_news_context, daemon=True, name="narr-bg-refresh"
+            )
+            _bg_narr_thread.start()
+            print("[narr] Background narrative refresh started (non-blocking)", flush=True)
+        # Serve whatever is already cached — frontend fetches /api/news-context separately
         _cached_items  = NEWS_CACHE["data"] if (NEWS_CACHE["data"] and (_news_now - NEWS_CACHE["time"]) < NEWS_CACHE_TTL) else []
         _raw_narrs     = NARR_CACHE["data"] if (NARR_CACHE["data"] and (_news_now - NARR_CACHE["time"]) < NARR_CACHE_TTL) else {}
         _narr_text     = {k: v["text"]     for k, v in _raw_narrs.items() if isinstance(v, dict)}
