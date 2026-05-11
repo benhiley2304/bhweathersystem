@@ -4247,16 +4247,10 @@ function renderList(){
       background:${col};opacity:0.9;
       pointer-events:none"></div>` : '';
 
-    // COT vs Momentum divergence badge
-    const _cotSc  = m.scores?.cot?.score ?? 5;
-    const _momSc  = m.scores?.momentum?.score ?? 5;
-    const _cotDiv = Math.abs(_cotSc - _momSc) > 3 && ((_cotSc > 5.5 && _momSc < 4.5) || (_cotSc < 4.5 && _momSc > 5.5));
-    const _divBadge = _cotDiv ? `<span style="font-size:6px;font-weight:700;letter-spacing:0.08em;color:#f5a623;border:1px solid rgba(245,164,35,0.35);border-radius:3px;padding:1px 4px;margin-left:4px;vertical-align:middle" title="COT vs Momentum divergence: COT ${_cotSc.toFixed(1)} vs Mom ${_momSc.toFixed(1)}">DIV</span>` : '';
-
     return `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id">${m.id}</span>
       <div class="mr-body">
-        <div class="mr-name">${m.name}${_divBadge}</div>
+        <div class="mr-name">${m.name}</div>
         <div class="mr-bar" style="background:${trackBg}">
           <div class="mr-bar-f" style="${fillStyle}"></div>
           ${centreNotch}
