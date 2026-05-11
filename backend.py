@@ -232,9 +232,10 @@ MARKETS = [
      "ice_code": "B", "cot_format": "disagg",
      "cot_note": "ICE Europe. Brent commercial positioning diverges meaningfully from CFTC WTI (spec correlation 0.12) — genuinely independent signal reflecting North Sea/European physical market."},
 
-    # Gas Oil — European diesel/heating oil benchmark (equivalent of CFTC HO)
+    # Low Sulphur Gasoil — European diesel benchmark (ARA region), ICE ticker G
+    # TradingView: ULS1! (rebranded from QS1! when ICE renamed contract ~2019)
     # 329 weeks of data. Commercials currently 99th %ile — historically extreme.
-    {"id": "GO", "name": "Gas Oil",      "ticker": "QS1!",  "yf": "HO=F",    "category": "commodity",  # HO=F = NYMEX Heating Oil, best YF proxy for Gas Oil
+    {"id": "GO", "name": "LS Gas Oil",   "ticker": "ULS1!", "yf": "HO=F",    "category": "commodity",  # HO=F = NYMEX Heating Oil, best YF proxy for LS Gas Oil
      "ice_code": "G", "cot_format": "disagg",
      "cot_note": "ICE Europe. GO commercials are buyer-dominated (airlines, distributors, European petroleum buyers) — not producer-hedgers. Extreme commercial longs = buyers aggressively locking in forward supply = scarcity signal, NOT overvalued hedging. Confirmed by: ARA diesel stocks at 18-month lows, crack spreads 80% above pre-war levels, curve in backwardation."},
 
