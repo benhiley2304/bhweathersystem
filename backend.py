@@ -2548,7 +2548,7 @@ def compute_crypto_cot_score(df: Optional[pd.DataFrame], market_id: str = "") ->
             "lspec_briese": round(lspec_briese, 1),
             "comm_briese":  round(comm_briese,  1),
             "sspec_briese": round(sspec_briese, 1),
-            "lspec_momentum": lspec_momentum,
+            "lspec_momentum": round(float(trend_slope), 1),
             "cot_phase": 0, "cot_phase_dir": "neutral",
             "cot_phase_label": "Crypto COT", "cot_phase_desc": "",
         },
