@@ -1910,9 +1910,9 @@ def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     # Parallel fetch — all years downloaded concurrently, each file fetched once
     years = list(range(START_YEAR, current_year + 1))
     all_rows: list = []
-    # FIX: Use shared executor instead of creating a new 8-thread pool per call.
-    # Inline ThreadPoolExecutors add to the total thread count unpredictably.
-    with _cf.ThreadPoolExecutor(max_workers=4) as _pool:
+    # Inline pool: short-lived, fetches ICE annual CSVs in parallel.
+    # Capped at 3 to avoid thread spike when called for multiple markets simultaneously.
+    with _cf.ThreadPoolExecutor(max_workers=3) as _pool:
         year_results = list(_pool.map(_fetch_ice_annual_rows, years))
     for year_rows in year_results:
         matched = [r for r in year_rows if r.get("CFTC_Commodity_Code", "").strip() == ice_market_code]
@@ -2705,6 +2705,18 @@ def compute_cross_cot_score(market_id: str, base_leg: str, quote_leg: str, cot_c
 
 PRICE_CACHE     = {}
 PRICE_CACHE_TTL = 3600 * 2  # 2h
+PRICE_CACHE_MAX = 80         # max entries (each ~1-5MB DataFrame) — evict oldest on overflow
+
+def _price_cache_evict():
+    """Evict oldest half of PRICE_CACHE entries if over the max limit."""
+    data_keys = [k for k in PRICE_CACHE if not k.endswith('_t')]
+    if len(data_keys) > PRICE_CACHE_MAX:
+        # Sort by timestamp, remove oldest half
+        oldest = sorted(data_keys, key=lambda k: PRICE_CACHE.get(k + '_t', 0))
+        for k in oldest[:len(oldest)//2]:
+            PRICE_CACHE.pop(k, None)
+            PRICE_CACHE.pop(k + '_t', None)
+        print(f"[PRICE_CACHE] evicted {len(oldest)//2} entries, {len(data_keys)-len(oldest)//2} remain")
 
 
 def fetch_price_data(yf_ticker: str) -> Optional[pd.DataFrame]:
@@ -2714,10 +2726,12 @@ def fetch_price_data(yf_ticker: str) -> Optional[pd.DataFrame]:
     try:
         tk = yf.Ticker(yf_ticker)
         df = tk.history(period="1y", interval="1d")
+        _price_cache_evict()
         PRICE_CACHE[yf_ticker]          = df
         PRICE_CACHE[yf_ticker + "_t"]   = now
         return df
-    except Exception:
+    except Exception as _e:
+        print(f"[fetch_price_data] {yf_ticker}: {_e}")
         return None
 
 
@@ -2730,10 +2744,12 @@ def fetch_price_data_long(yf_ticker: str) -> Optional[pd.DataFrame]:
     try:
         tk = yf.Ticker(yf_ticker)
         df = tk.history(period="5y", interval="1d")
+        _price_cache_evict()
         PRICE_CACHE[cache_key]          = df
         PRICE_CACHE[cache_key + "_t"]   = now
         return df
-    except Exception:
+    except Exception as _e:
+        print(f"[fetch_price_data_long] {yf_ticker}: {_e}")
         return None
 
 
@@ -3071,7 +3087,7 @@ def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
     Uses the shared app executor to avoid thread pool deadlocks.
     """
     flat_events = []
-    with _cf.ThreadPoolExecutor(max_workers=4) as ex:  # FIX: reduced from 6
+    with _cf.ThreadPoolExecutor(max_workers=3) as ex:  # capped: FF month fetches, each makes HTTP calls
         futs = {ex.submit(_fetch_ff_month, y, m): (y, m) for y, m in year_month_pairs}
         for fut in _cf.as_completed(futs):
             try:
@@ -4496,7 +4512,7 @@ def compute_risk_regime() -> dict:
                 # Boost/dampen regime score based on OAS level
                 if hy_oas_bps < 250:   regime_score += 0.5
                 elif hy_oas_bps > 500: regime_score -= 0.5
-    except Exception: pass
+    except Exception as _e: print(f"[credit_signal] {_e}")
     try:
         ig_data = fetch_fred_series("IGOAS", 780)   # ~3 years
         if ig_data and len(ig_data) >= 2:
@@ -4520,7 +4536,7 @@ def compute_risk_regime() -> dict:
                     ig_pct_min = round(sorted_ig[0] * 100, 0)
                     ig_pct_max = round(sorted_ig[-1] * 100, 0)
                     del sorted_ig  # free large list
-    except Exception: pass
+    except Exception as _e: print(f"[credit_percentile] {_e}")
 
     # Blend HYG/LQD price signal with OAS level signal
     if hy_oas_bps is not None:
@@ -4655,7 +4671,7 @@ def compute_risk_regime() -> dict:
                 "value": f"{t10y2y:+.2f}%",
                 "label": curve_regime,
             }
-    except Exception: pass
+    except Exception as _e: print(f"[macro_dashboard] {_e}")
 
     try:
         # DGS10 (10Y yield)
@@ -5004,7 +5020,7 @@ def compute_risk_regime() -> dict:
             "credit":     round(credit_sig_norm, 2),
             "yield_curve": round((macro_dashboard.get("yield_curve", {}).get("t10y2y", 0) or 0) / 2, 2),
         }
-    except Exception: pass
+    except Exception as _e: print(f"[macro_composites] {_e}")
 
     try:
         # ── Rate signal: Fed Funds Futures (CME ZQ contracts) ────────────────
@@ -8182,393 +8198,392 @@ async def get_score_history(market: str):
     _rc = _SH_RESULT_CACHE.get(m_upper)
     if _rc and (_rn - _rc["ts"]) < _SH_RESULT_TTL:
         return _SafeJSONResponse(_rc["data"])
-    # FIX: Per-market guard — duplicate concurrent requests each ran full prefetch, doubling memory
+    # Per-market guard — prevents duplicate concurrent prefetches (OOM risk)
     if _SH_MARKET_LOCKS.get(m_upper):
         return JSONResponse({"status": "computing", "message": "Score history computing, retry in 30s"}, status_code=202)
     _SH_MARKET_LOCKS[m_upper] = True
-    # ── Per-market in-progress guard: prevents two concurrent prefetches ──────────
-    # Without this, simultaneous requests each run full _do_prefetch(), doubling
-    # peak memory and reliably causing OOM on the 2GB Render instance.
-    if _SH_MARKET_LOCKS.get(m_upper):
-        return JSONResponse({"status": "computing", "message": "Score history computing, retry in 30s"}, status_code=202)
-    _SH_MARKET_LOCKS[m_upper] = True
-
-    # ── Pre-fetch all historical data (cached per market, 2h TTL) ──────────────
-    _now_ts = time.time()
-    _cached = _SH_PREFETCH_CACHE.get(m_upper)
-    if _cached and (_now_ts - _cached["ts"]) < _SH_PREFETCH_TTL:
-        all_ff_events       = _cached["ff_events"]
-        regime_px           = _cached["regime_px"]
-        relval_self_series  = _cached["relval_self"]
-        relval_peer_map     = _cached["relval_peer_map"]
-        relval_periods      = _cached["relval_periods"]
-        pcr_s_const         = _cached["pcr_s_const"]
-        print(f"score_history[{m_upper}]: using prefetch cache ({len(all_ff_events)} FF events)")
-    else:
-        # Run the entire prefetch block in a thread executor — it makes ~60 FF HTTP
-        # calls + multiple yfinance calls, all synchronous. Blocking the event loop
-        # here would prevent /api/health from responding for minutes.
-        def _do_prefetch():
-            _pf_ts = time.time()
-            # 1. FF macro: fetch 5 years of monthly calendar data in parallel
-            _months_to_fetch = 60  # ~5 years
-            _today_d = date.today()
-            _year_month_pairs = []
-            for _i in range(_months_to_fetch):
-                _m_back = _today_d.month - _i
-                _y_back = _today_d.year
-                while _m_back <= 0:
-                    _m_back += 12
-                    _y_back -= 1
-                _year_month_pairs.append((_y_back, _m_back))
-            _all_ff = _fetch_ff_months_parallel(_year_month_pairs)
-            print(f"score_history[{m_upper}]: fetched {len(_all_ff)} FF events over {_months_to_fetch} months")
-
-            # 2. Regime: fetch max weekly closes for all regime tickers
-            _regime_px: dict = {}
-            for _rn, _rticker in RISK_ASSETS.items():
-                try:
-                    _df = yf.Ticker(_rticker).history(period="max", interval="1wk", auto_adjust=True)
-                    if not _df.empty:
-                        _s = _df["Close"].copy()
-                        _s.index = pd.to_datetime(_s.index).tz_localize(None).normalize()
-                        _s.index = _s.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
-                        _regime_px[_rn] = _s
-                except Exception:
-                    pass
-
-            # 3. Rel-val: fetch max weekly closes for self + all configured peers
-            _relval_self: pd.Series = None
-            _relval_peer_map: dict = {}
-            _relval_periods: list = []
-            _rv_cfg = REL_VAL_CONFIG.get(m_upper)
-            if _rv_cfg:
-                _relval_periods = _rv_cfg.get("periods", [13, 26])
-                try:
-                    _df_s = yf.Ticker(mkt["yf"]).history(period="max", interval="1wk", auto_adjust=True)
-                    if not _df_s.empty:
-                        _ss = _df_s["Close"].copy()
-                        _ss.index = pd.to_datetime(_ss.index).tz_localize(None).normalize()
-                        _ss.index = _ss.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
-                        _relval_self = _ss
-                except Exception:
-                    pass
-                for _peer in _rv_cfg.get("peers", []):
+    try:
+    
+        # ── Pre-fetch all historical data (cached per market, 2h TTL) ──────────────
+        _now_ts = time.time()
+        _cached = _SH_PREFETCH_CACHE.get(m_upper)
+        if _cached and (_now_ts - _cached["ts"]) < _SH_PREFETCH_TTL:
+            all_ff_events       = _cached["ff_events"]
+            regime_px           = _cached["regime_px"]
+            relval_self_series  = _cached["relval_self"]
+            relval_peer_map     = _cached["relval_peer_map"]
+            relval_periods      = _cached["relval_periods"]
+            pcr_s_const         = _cached["pcr_s_const"]
+            print(f"score_history[{m_upper}]: using prefetch cache ({len(all_ff_events)} FF events)")
+        else:
+            # Run the entire prefetch block in a thread executor — it makes ~60 FF HTTP
+            # calls + multiple yfinance calls, all synchronous. Blocking the event loop
+            # here would prevent /api/health from responding for minutes.
+            def _do_prefetch():
+                _pf_ts = time.time()
+                # 1. FF macro: fetch 5 years of monthly calendar data in parallel
+                _months_to_fetch = 60  # ~5 years
+                _today_d = date.today()
+                _year_month_pairs = []
+                for _i in range(_months_to_fetch):
+                    _m_back = _today_d.month - _i
+                    _y_back = _today_d.year
+                    while _m_back <= 0:
+                        _m_back += 12
+                        _y_back -= 1
+                    _year_month_pairs.append((_y_back, _m_back))
+                _all_ff = _fetch_ff_months_parallel(_year_month_pairs)
+                print(f"score_history[{m_upper}]: fetched {len(_all_ff)} FF events over {_months_to_fetch} months")
+    
+                # 2. Regime: fetch max weekly closes for all regime tickers
+                _regime_px: dict = {}
+                for _rn, _rticker in RISK_ASSETS.items():
                     try:
-                        _df_p = yf.Ticker(_peer["yf"]).history(period="max", interval="1wk", auto_adjust=True)
-                        if not _df_p.empty:
-                            _sp = _df_p["Close"].copy()
-                            _sp.index = pd.to_datetime(_sp.index).tz_localize(None).normalize()
-                            _sp.index = _sp.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
-                            _relval_peer_map[_peer["yf"]] = _sp
+                        _df = yf.Ticker(_rticker).history(period="max", interval="1wk", auto_adjust=True)
+                        if not _df.empty:
+                            _s = _df["Close"].copy()
+                            _s.index = pd.to_datetime(_s.index).tz_localize(None).normalize()
+                            _s.index = _s.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
+                            _regime_px[_rn] = _s
                     except Exception:
                         pass
-
-            # 4. PCR — held constant
-            _live_pcr = score_pcr(m_upper)
-            _pcr_s = _live_pcr.get("score", 5.0) if _live_pcr else 5.0
-
-            # Store in prefetch cache
-            _SH_PREFETCH_CACHE[m_upper] = {
-                "ff_events":      _all_ff,
-                "regime_px":      _regime_px,
-                "relval_self":    _relval_self,
-                "relval_peer_map": _relval_peer_map,
-                "relval_periods": _relval_periods,
-                "pcr_s_const":    _pcr_s,
-                "ts":             _pf_ts,
-            }
-            return _SH_PREFETCH_CACHE[m_upper]
-
-        # Run the heavy IO in a thread so the event loop stays responsive
-        _pf = await asyncio.get_event_loop().run_in_executor(_SH_EXECUTOR, _do_prefetch)
-        all_ff_events      = _pf["ff_events"]
-        regime_px          = _pf["regime_px"]
-        relval_self_series = _pf["relval_self"]
-        relval_peer_map    = _pf["relval_peer_map"]
-        relval_periods     = _pf["relval_periods"]
-        pcr_s_const        = _pf["pcr_s_const"]
-
-    # ── Determine weights ────────────────────────────────────────────────────
-    cat = mkt.get("category", "")
-    _SH_FX_MKTS = {"6E","6J","6B","6A","6C","6N","6S","6M","DX",
-                   "EURJPY","EURGBP","EURAUD","EURCAD","EURNZD","EURCHF",
-                   "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
-                   "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
-                   "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
-    if m_upper in {"Z", "R"}:
-        w_map = WEIGHTS_ICE_THIN
-    elif cat == "equity":
-        w_map = WEIGHTS_EQUITY
-    elif m_upper in {"GC", "CL"}:
-        w_map = WEIGHTS_PCR_TIER2
-    elif m_upper == "SI":
-        w_map = WEIGHTS_PCR_TIER4
-    elif cat == "crypto":
-        w_map = WEIGHTS_PCR_TIER3
-    elif m_upper in _SH_FX_MKTS or cat in ("fx", "fx_cross"):
-        w_map = WEIGHTS_FX
-    else:
-        w_map = WEIGHTS
-
-    # ── CROSS PAIR: walk-forward Briese differential ─────────────────────────
-    if mkt.get("cross"):
-        base_id   = mkt["base_leg"]
-        quote_id  = mkt["quote_leg"]
-        base_mkt  = next((x for x in MARKETS if x["id"] == base_id),  None)
-        quote_mkt = next((x for x in MARKETS if x["id"] == quote_id), None)
-        if not base_mkt or not quote_mkt:
-            return {"error": "Leg markets not found", "dates": [], "scores": [], "prices": []}
-
-        df_base  = await fetch_cot_history(base_mkt["cftc_code"],  base_mkt["name"])
-        df_quote = await fetch_cot_history(quote_mkt["cftc_code"], quote_mkt["name"])
-        if df_base is None or len(df_base) < 30 or df_quote is None or len(df_quote) < 30:
-            return {"error": "Insufficient leg COT data", "dates": [], "scores": [], "prices": []}
-
-        n_common = min(len(df_base), len(df_quote))
-        df_base  = df_base.tail(n_common).reset_index(drop=True)
-        df_quote = df_quote.tail(n_common).reset_index(drop=True)
-
-        px_df_cross = fetch_price_data_long(mkt["yf"])
-        price_lookup: dict = {}
-        if px_df_cross is not None and not px_df_cross.empty:
-            for dt, cl in zip(pd.to_datetime(px_df_cross.index).tz_localize(None).normalize(),
-                               px_df_cross["Close"].values):
-                price_lookup[dt] = float(cl)
-
-        # Price arrays for momentum
-        px_closes_arr  = np.array(list(price_lookup.values()), dtype=float)
-        px_dates_arr   = np.array(list(price_lookup.keys()))
-        if len(px_dates_arr) > 0:
-            sort_idx       = np.argsort(px_dates_arr)
-            px_dates_arr   = px_dates_arr[sort_idx]
-            px_closes_arr  = px_closes_arr[sort_idx]
-            px_dates_norm  = np.array([np.datetime64(pd.Timestamp(d).date().isoformat(), 'D')
-                                        for d in px_dates_arr])
+    
+                # 3. Rel-val: fetch max weekly closes for self + all configured peers
+                _relval_self: pd.Series = None
+                _relval_peer_map: dict = {}
+                _relval_periods: list = []
+                _rv_cfg = REL_VAL_CONFIG.get(m_upper)
+                if _rv_cfg:
+                    _relval_periods = _rv_cfg.get("periods", [13, 26])
+                    try:
+                        _df_s = yf.Ticker(mkt["yf"]).history(period="max", interval="1wk", auto_adjust=True)
+                        if not _df_s.empty:
+                            _ss = _df_s["Close"].copy()
+                            _ss.index = pd.to_datetime(_ss.index).tz_localize(None).normalize()
+                            _ss.index = _ss.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
+                            _relval_self = _ss
+                    except Exception:
+                        pass
+                    for _peer in _rv_cfg.get("peers", []):
+                        try:
+                            _df_p = yf.Ticker(_peer["yf"]).history(period="max", interval="1wk", auto_adjust=True)
+                            if not _df_p.empty:
+                                _sp = _df_p["Close"].copy()
+                                _sp.index = pd.to_datetime(_sp.index).tz_localize(None).normalize()
+                                _sp.index = _sp.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
+                                _relval_peer_map[_peer["yf"]] = _sp
+                        except Exception:
+                            pass
+    
+                # 4. PCR — held constant
+                _live_pcr = score_pcr(m_upper)
+                _pcr_s = _live_pcr.get("score", 5.0) if _live_pcr else 5.0
+    
+                # Store in prefetch cache
+                _SH_PREFETCH_CACHE[m_upper] = {
+                    "ff_events":      _all_ff,
+                    "regime_px":      _regime_px,
+                    "relval_self":    _relval_self,
+                    "relval_peer_map": _relval_peer_map,
+                    "relval_periods": _relval_periods,
+                    "pcr_s_const":    _pcr_s,
+                    "ts":             _pf_ts,
+                }
+                return _SH_PREFETCH_CACHE[m_upper]
+    
+            # Run the heavy IO in a thread so the event loop stays responsive
+            _pf = await asyncio.get_event_loop().run_in_executor(_SH_EXECUTOR, _do_prefetch)
+            all_ff_events      = _pf["ff_events"]
+            regime_px          = _pf["regime_px"]
+            relval_self_series = _pf["relval_self"]
+            relval_peer_map    = _pf["relval_peer_map"]
+            relval_periods     = _pf["relval_periods"]
+            pcr_s_const        = _pf["pcr_s_const"]
+    
+        # ── Determine weights ────────────────────────────────────────────────────
+        cat = mkt.get("category", "")
+        _SH_FX_MKTS = {"6E","6J","6B","6A","6C","6N","6S","6M","DX",
+                       "EURJPY","EURGBP","EURAUD","EURCAD","EURNZD","EURCHF",
+                       "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
+                       "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
+                       "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
+        if m_upper in {"Z", "R"}:
+            w_map = WEIGHTS_ICE_THIN
+        elif cat == "equity":
+            w_map = WEIGHTS_EQUITY
+        elif m_upper in {"GC", "CL"}:
+            w_map = WEIGHTS_PCR_TIER2
+        elif m_upper == "SI":
+            w_map = WEIGHTS_PCR_TIER4
+        elif cat == "crypto":
+            w_map = WEIGHTS_PCR_TIER3
+        elif m_upper in _SH_FX_MKTS or cat in ("fx", "fx_cross"):
+            w_map = WEIGHTS_FX
         else:
-            px_dates_norm = np.array([], dtype="datetime64[D]")
-
-        MIN_BARS = 26
-        MAX_RETURN = 260
-        dates: list = []; scores: list = []; prices: list = []
-
-        for i in range(MIN_BARS, n_common):
-            sl_base  = df_base.iloc[:i + 1].copy()
-            sl_quote = df_quote.iloc[:i + 1].copy()
-            window   = min(156, len(sl_base), len(sl_quote))
-
-            def _briese(df):
-                arr    = df["comm_net"].values.astype(float)
-                recent = arr[-window:]
-                lo, hi = recent.min(), recent.max()
-                if hi == lo: return 50.0
-                return round((arr[-1] - lo) / (hi - lo) * 100, 1)
-
-            diff   = _briese(sl_base) - _briese(sl_quote)
-            cot_s  = round(max(0.0, min(10.0, (diff / 100.0) * 5.0 + 5.0)), 1)
-
-            if "date" in df_base.columns:
-                bar_date = pd.to_datetime(df_base["date"].iloc[i])
+            w_map = WEIGHTS
+    
+        # ── CROSS PAIR: walk-forward Briese differential ─────────────────────────
+        if mkt.get("cross"):
+            base_id   = mkt["base_leg"]
+            quote_id  = mkt["quote_leg"]
+            base_mkt  = next((x for x in MARKETS if x["id"] == base_id),  None)
+            quote_mkt = next((x for x in MARKETS if x["id"] == quote_id), None)
+            if not base_mkt or not quote_mkt:
+                return {"error": "Leg markets not found", "dates": [], "scores": [], "prices": []}
+    
+            df_base  = await fetch_cot_history(base_mkt["cftc_code"],  base_mkt["name"])
+            df_quote = await fetch_cot_history(quote_mkt["cftc_code"], quote_mkt["name"])
+            if df_base is None or len(df_base) < 30 or df_quote is None or len(df_quote) < 30:
+                return {"error": "Insufficient leg COT data", "dates": [], "scores": [], "prices": []}
+    
+            n_common = min(len(df_base), len(df_quote))
+            df_base  = df_base.tail(n_common).reset_index(drop=True)
+            df_quote = df_quote.tail(n_common).reset_index(drop=True)
+    
+            px_df_cross = fetch_price_data_long(mkt["yf"])
+            price_lookup: dict = {}
+            if px_df_cross is not None and not px_df_cross.empty:
+                for dt, cl in zip(pd.to_datetime(px_df_cross.index).tz_localize(None).normalize(),
+                                   px_df_cross["Close"].values):
+                    price_lookup[dt] = float(cl)
+    
+            # Price arrays for momentum
+            px_closes_arr  = np.array(list(price_lookup.values()), dtype=float)
+            px_dates_arr   = np.array(list(price_lookup.keys()))
+            if len(px_dates_arr) > 0:
+                sort_idx       = np.argsort(px_dates_arr)
+                px_dates_arr   = px_dates_arr[sort_idx]
+                px_closes_arr  = px_closes_arr[sort_idx]
+                px_dates_norm  = np.array([np.datetime64(pd.Timestamp(d).date().isoformat(), 'D')
+                                            for d in px_dates_arr])
             else:
-                bar_date = pd.to_datetime(df_base.index[i])
+                px_dates_norm = np.array([], dtype="datetime64[D]")
+    
+            MIN_BARS = 26
+            MAX_RETURN = 260
+            dates: list = []; scores: list = []; prices: list = []
+    
+            for i in range(MIN_BARS, n_common):
+                sl_base  = df_base.iloc[:i + 1].copy()
+                sl_quote = df_quote.iloc[:i + 1].copy()
+                window   = min(156, len(sl_base), len(sl_quote))
+    
+                def _briese(df):
+                    arr    = df["comm_net"].values.astype(float)
+                    recent = arr[-window:]
+                    lo, hi = recent.min(), recent.max()
+                    if hi == lo: return 50.0
+                    return round((arr[-1] - lo) / (hi - lo) * 100, 1)
+    
+                diff   = _briese(sl_base) - _briese(sl_quote)
+                cot_s  = round(max(0.0, min(10.0, (diff / 100.0) * 5.0 + 5.0)), 1)
+    
+                if "date" in df_base.columns:
+                    bar_date = pd.to_datetime(df_base["date"].iloc[i])
+                else:
+                    bar_date = pd.to_datetime(df_base.index[i])
+                bar_date = bar_date.tz_localize(None) if bar_date.tzinfo else bar_date
+                bar_date_norm = np.datetime64(str(bar_date.date()), 'D')
+                bar_ts = bar_date.timestamp()
+    
+                seas_s   = _score_seasonality_at(m_upper, bar_date)
+                mom_s    = _score_momentum_at(px_closes_arr, px_dates_norm, bar_date_norm) \
+                           if len(px_closes_arr) > 20 else 5.0
+                macro_s  = _score_macro_at(m_upper, bar_ts, all_ff_events,
+                                            US_MACRO_INDICATOR_MAP, _parse_ff_value)
+                regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px)
+                # Cross pairs: rel-val uses trend-gated scoring (same as regular markets)
+                # Trend gate prevents false cheapness signals (e.g. cheap but in downtrend = neutral)
+                relval_s = 5.0  # Cross pairs don't have peer-ratio config — neutral by default
+    
+                composite = round(max(0.0, min(10.0,
+                    cot_s    * w_map["cot"]      +
+                    seas_s   * w_map["seasonal"] +
+                    mom_s    * w_map["momentum"] +
+                    macro_s  * w_map["macro"]    +
+                    regime_s * w_map["regime"]   +
+                    relval_s * w_map["relval"]
+                )), 1)
+    
+                dates.append(str(bar_date.date()))
+                scores.append(composite)
+    
+                price_date = bar_date.normalize()
+                close = price_lookup.get(price_date)
+                if close is None:
+                    cands = {k: v for k, v in price_lookup.items() if abs((k - price_date).days) <= 5}
+                    close = next(iter(sorted(cands.values(), key=lambda x: abs(x - list(cands.values())[0]))), None) if cands else None
+                prices.append(round(float(close), 4) if close is not None else None)
+    
+            dates  = dates[-MAX_RETURN:]
+            scores = scores[-MAX_RETURN:]
+            prices = prices[-MAX_RETURN:]
+    
+            return {
+                "market": m_upper, "name": mkt["name"],
+                "dates": dates, "scores": scores, "prices": prices,
+                "note": (
+                    f"Full composite walk-forward: COT ({base_id}\u2212{quote_id}), seasonality, momentum, "
+                    f"macro, regime, rel-val \u2014 all reconstructed at each bar with zero lookahead. "
+                    f"PCR held at today\u2019s reading (no historical snapshots available)."
+                ),
+            }
+    
+        # ── REGULAR MARKET ───────────────────────────────────────────────────────
+        if mkt.get("ice_code"):
+            df_full = await fetch_ice_cot_history(mkt["ice_code"])
+        else:
+            df_full = await fetch_cot_history(mkt["cftc_code"], mkt["name"])
+        if df_full is None or len(df_full) < 20:  # ICE markets have shorter history (57-329w)
+            return {"error": "Insufficient COT data", "dates": [], "scores": [], "prices": []}
+    
+        # Build price arrays
+        px_df_long = fetch_price_data_long(mkt["yf"])
+        px_closes_all      = np.array([], dtype=float)
+        px_dates_norm_all  = np.array([], dtype="datetime64[D]")
+        price_lookup_daily: dict = {}
+    
+        if px_df_long is not None and not px_df_long.empty:
+            _px_idx   = pd.to_datetime(px_df_long.index).tz_localize(None).normalize()
+            _px_close = px_df_long["Close"].values.astype(float)
+            _sort     = np.argsort(_px_idx)
+            _px_idx   = np.array(_px_idx)[_sort]
+            _px_close = _px_close[_sort]
+            px_closes_all     = _px_close
+            px_dates_norm_all = np.array([np.datetime64(pd.Timestamp(d).date().isoformat(), 'D')
+                                           for d in _px_idx])
+            for d, c in zip(_px_idx, _px_close):
+                price_lookup_daily[pd.Timestamp(d).normalize()] = float(c)
+    
+        # Merge price into COT df
+        df_merged = df_full.copy()
+        if price_lookup_daily:
+            try:
+                px_idx_s   = pd.to_datetime(list(price_lookup_daily.keys())).normalize().astype("datetime64[us]")
+                px_close_s = list(price_lookup_daily.values())
+                price_lkp_df = pd.DataFrame({"_cot_date": px_idx_s, "close": px_close_s}).sort_values("_cot_date")
+                if "date" in df_merged.columns:
+                    cot_idx = pd.to_datetime(df_merged["date"]).dt.tz_localize(None).dt.normalize().astype("datetime64[us]")
+                else:
+                    cot_idx = pd.to_datetime(df_merged.index).tz_localize(None).normalize().astype("datetime64[us]")
+                df_merged["_cot_date"] = cot_idx.values
+                merged = pd.merge_asof(
+                    df_merged.sort_values("_cot_date"), price_lkp_df,
+                    on="_cot_date", direction="nearest", tolerance=pd.Timedelta(days=7),
+                )
+                df_merged = merged.drop(columns=["_cot_date"])
+            except Exception as _e:
+                print(f"score_history price merge error for {m_upper}: {_e}")
+    
+        MIN_BARS   = 26
+        MAX_RETURN = 260
+        dates:  list = []
+        scores: list = []
+        prices: list = []
+    
+        n = len(df_merged)
+        is_crypto_mkt = (cat == "crypto")
+        is_fx_mkt     = (cat in ("fx", "fx_cross"))
+    
+        # Per-component lists for the frontend to show breakdown
+        cot_scores:    list = []
+        mom_scores:    list = []
+        macro_scores:  list = []
+        seas_scores:   list = []
+        regime_scores: list = []
+        relval_scores: list = []
+    
+        for i in range(MIN_BARS, n):
+            slice_df = df_merged.iloc[:i + 1].copy()
+            if is_crypto_mkt:
+                cot_result = compute_crypto_cot_score(slice_df, market_id=m_upper)
+            else:
+                cot_result = compute_cot_score(slice_df, market_id=m_upper)
+            cot_s = cot_result["score"]
+    
+            if "date" in slice_df.columns:
+                bar_date = pd.to_datetime(slice_df["date"].iloc[-1])
+            else:
+                bar_date = pd.to_datetime(slice_df.index[-1])
             bar_date = bar_date.tz_localize(None) if bar_date.tzinfo else bar_date
             bar_date_norm = np.datetime64(str(bar_date.date()), 'D')
             bar_ts = bar_date.timestamp()
-
+    
             seas_s   = _score_seasonality_at(m_upper, bar_date)
-            mom_s    = _score_momentum_at(px_closes_arr, px_dates_norm, bar_date_norm) \
-                       if len(px_closes_arr) > 20 else 5.0
+            mom_s    = _score_momentum_at(px_closes_all, px_dates_norm_all, bar_date_norm) \
+                       if len(px_closes_all) > 20 else 5.0
             macro_s  = _score_macro_at(m_upper, bar_ts, all_ff_events,
                                         US_MACRO_INDICATOR_MAP, _parse_ff_value)
             regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px)
-            # Cross pairs: rel-val uses trend-gated scoring (same as regular markets)
-            # Trend gate prevents false cheapness signals (e.g. cheap but in downtrend = neutral)
-            relval_s = 5.0  # Cross pairs don't have peer-ratio config — neutral by default
-
+    
+            # Rel-val now uses trend-gated logic (Bernd philosophy):
+            # cheap + uptrend = bullish; cheap + downtrend = neutral (avoids 2022 JPY trap);
+            # expensive + downtrend = bearish; expensive + uptrend = neutral.
+            # This makes it safe to use for FX as well — trend gate prevents false signals.
+            relval_s = _score_relval_at(m_upper, bar_date_norm,
+                                         relval_self_series, relval_peer_map, relval_periods) \
+                       if relval_self_series is not None else 5.0
+    
             composite = round(max(0.0, min(10.0,
                 cot_s    * w_map["cot"]      +
                 seas_s   * w_map["seasonal"] +
                 mom_s    * w_map["momentum"] +
                 macro_s  * w_map["macro"]    +
                 regime_s * w_map["regime"]   +
-                relval_s * w_map["relval"]
+                relval_s * w_map["relval"]   +
+                pcr_s_const * w_map.get("pcr", 0.0)
             )), 1)
-
+    
             dates.append(str(bar_date.date()))
             scores.append(composite)
-
-            price_date = bar_date.normalize()
-            close = price_lookup.get(price_date)
-            if close is None:
-                cands = {k: v for k, v in price_lookup.items() if abs((k - price_date).days) <= 5}
-                close = next(iter(sorted(cands.values(), key=lambda x: abs(x - list(cands.values())[0]))), None) if cands else None
-            prices.append(round(float(close), 4) if close is not None else None)
-
-        dates  = dates[-MAX_RETURN:]
-        scores = scores[-MAX_RETURN:]
-        prices = prices[-MAX_RETURN:]
-
-        return {
+            cot_scores.append(cot_s)
+            mom_scores.append(round(mom_s, 1))
+            macro_scores.append(round(macro_s, 1))
+            seas_scores.append(round(seas_s, 1))
+            regime_scores.append(round(regime_s, 1))
+            relval_scores.append(round(relval_s, 1))
+    
+            close = slice_df["close"].iloc[-1] if "close" in slice_df.columns else None
+            prices.append(round(float(close), 4) if close is not None and not np.isnan(float(close)) else None)
+    
+        dates         = dates[-MAX_RETURN:]
+        scores        = scores[-MAX_RETURN:]
+        prices        = prices[-MAX_RETURN:]
+        cot_scores    = cot_scores[-MAX_RETURN:]
+        mom_scores    = mom_scores[-MAX_RETURN:]
+        macro_scores  = macro_scores[-MAX_RETURN:]
+        seas_scores   = seas_scores[-MAX_RETURN:]
+        regime_scores = regime_scores[-MAX_RETURN:]
+        relval_scores = relval_scores[-MAX_RETURN:]
+    
+        relval_note = (" Rel-val uses trend-gated scoring — valuation only signals when trend confirms."
+                       if is_fx_mkt else " Rel-val uses trend-gated scoring — valuation only signals when trend confirms.")
+    
+        _sh_result = {
             "market": m_upper, "name": mkt["name"],
             "dates": dates, "scores": scores, "prices": prices,
+            "cot_scores":    cot_scores,
+            "mom_scores":    mom_scores,
+            "macro_scores":  macro_scores,
+            "seas_scores":   seas_scores,
+            "regime_scores": regime_scores,
+            "relval_scores": relval_scores,
             "note": (
-                f"Full composite walk-forward: COT ({base_id}\u2212{quote_id}), seasonality, momentum, "
-                f"macro, regime, rel-val \u2014 all reconstructed at each bar with zero lookahead. "
-                f"PCR held at today\u2019s reading (no historical snapshots available)."
+                "Full composite walk-forward: COT, seasonality, momentum, macro (FF calendar, 5yr), "
+                "regime (VIX/yields/credit/DXY, max history), rel-val (max history) \u2014 "
+                "all reconstructed at each bar with zero lookahead. "
+                "PCR held at today\u2019s reading (no historical snapshots available)."
+                + relval_note
             ),
         }
-
-    # ── REGULAR MARKET ───────────────────────────────────────────────────────
-    if mkt.get("ice_code"):
-        df_full = await fetch_ice_cot_history(mkt["ice_code"])
-    else:
-        df_full = await fetch_cot_history(mkt["cftc_code"], mkt["name"])
-    if df_full is None or len(df_full) < 20:  # ICE markets have shorter history (57-329w)
-        return {"error": "Insufficient COT data", "dates": [], "scores": [], "prices": []}
-
-    # Build price arrays
-    px_df_long = fetch_price_data_long(mkt["yf"])
-    px_closes_all      = np.array([], dtype=float)
-    px_dates_norm_all  = np.array([], dtype="datetime64[D]")
-    price_lookup_daily: dict = {}
-
-    if px_df_long is not None and not px_df_long.empty:
-        _px_idx   = pd.to_datetime(px_df_long.index).tz_localize(None).normalize()
-        _px_close = px_df_long["Close"].values.astype(float)
-        _sort     = np.argsort(_px_idx)
-        _px_idx   = np.array(_px_idx)[_sort]
-        _px_close = _px_close[_sort]
-        px_closes_all     = _px_close
-        px_dates_norm_all = np.array([np.datetime64(pd.Timestamp(d).date().isoformat(), 'D')
-                                       for d in _px_idx])
-        for d, c in zip(_px_idx, _px_close):
-            price_lookup_daily[pd.Timestamp(d).normalize()] = float(c)
-
-    # Merge price into COT df
-    df_merged = df_full.copy()
-    if price_lookup_daily:
-        try:
-            px_idx_s   = pd.to_datetime(list(price_lookup_daily.keys())).normalize().astype("datetime64[us]")
-            px_close_s = list(price_lookup_daily.values())
-            price_lkp_df = pd.DataFrame({"_cot_date": px_idx_s, "close": px_close_s}).sort_values("_cot_date")
-            if "date" in df_merged.columns:
-                cot_idx = pd.to_datetime(df_merged["date"]).dt.tz_localize(None).dt.normalize().astype("datetime64[us]")
-            else:
-                cot_idx = pd.to_datetime(df_merged.index).tz_localize(None).normalize().astype("datetime64[us]")
-            df_merged["_cot_date"] = cot_idx.values
-            merged = pd.merge_asof(
-                df_merged.sort_values("_cot_date"), price_lkp_df,
-                on="_cot_date", direction="nearest", tolerance=pd.Timedelta(days=7),
-            )
-            df_merged = merged.drop(columns=["_cot_date"])
-        except Exception as _e:
-            print(f"score_history price merge error for {m_upper}: {_e}")
-
-    MIN_BARS   = 26
-    MAX_RETURN = 260
-    dates:  list = []
-    scores: list = []
-    prices: list = []
-
-    n = len(df_merged)
-    is_crypto_mkt = (cat == "crypto")
-    is_fx_mkt     = (cat in ("fx", "fx_cross"))
-
-    # Per-component lists for the frontend to show breakdown
-    cot_scores:    list = []
-    mom_scores:    list = []
-    macro_scores:  list = []
-    seas_scores:   list = []
-    regime_scores: list = []
-    relval_scores: list = []
-
-    for i in range(MIN_BARS, n):
-        slice_df = df_merged.iloc[:i + 1].copy()
-        if is_crypto_mkt:
-            cot_result = compute_crypto_cot_score(slice_df, market_id=m_upper)
-        else:
-            cot_result = compute_cot_score(slice_df, market_id=m_upper)
-        cot_s = cot_result["score"]
-
-        if "date" in slice_df.columns:
-            bar_date = pd.to_datetime(slice_df["date"].iloc[-1])
-        else:
-            bar_date = pd.to_datetime(slice_df.index[-1])
-        bar_date = bar_date.tz_localize(None) if bar_date.tzinfo else bar_date
-        bar_date_norm = np.datetime64(str(bar_date.date()), 'D')
-        bar_ts = bar_date.timestamp()
-
-        seas_s   = _score_seasonality_at(m_upper, bar_date)
-        mom_s    = _score_momentum_at(px_closes_all, px_dates_norm_all, bar_date_norm) \
-                   if len(px_closes_all) > 20 else 5.0
-        macro_s  = _score_macro_at(m_upper, bar_ts, all_ff_events,
-                                    US_MACRO_INDICATOR_MAP, _parse_ff_value)
-        regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px)
-
-        # Rel-val now uses trend-gated logic (Bernd philosophy):
-        # cheap + uptrend = bullish; cheap + downtrend = neutral (avoids 2022 JPY trap);
-        # expensive + downtrend = bearish; expensive + uptrend = neutral.
-        # This makes it safe to use for FX as well — trend gate prevents false signals.
-        relval_s = _score_relval_at(m_upper, bar_date_norm,
-                                     relval_self_series, relval_peer_map, relval_periods) \
-                   if relval_self_series is not None else 5.0
-
-        composite = round(max(0.0, min(10.0,
-            cot_s    * w_map["cot"]      +
-            seas_s   * w_map["seasonal"] +
-            mom_s    * w_map["momentum"] +
-            macro_s  * w_map["macro"]    +
-            regime_s * w_map["regime"]   +
-            relval_s * w_map["relval"]   +
-            pcr_s_const * w_map.get("pcr", 0.0)
-        )), 1)
-
-        dates.append(str(bar_date.date()))
-        scores.append(composite)
-        cot_scores.append(cot_s)
-        mom_scores.append(round(mom_s, 1))
-        macro_scores.append(round(macro_s, 1))
-        seas_scores.append(round(seas_s, 1))
-        regime_scores.append(round(regime_s, 1))
-        relval_scores.append(round(relval_s, 1))
-
-        close = slice_df["close"].iloc[-1] if "close" in slice_df.columns else None
-        prices.append(round(float(close), 4) if close is not None and not np.isnan(float(close)) else None)
-
-    dates         = dates[-MAX_RETURN:]
-    scores        = scores[-MAX_RETURN:]
-    prices        = prices[-MAX_RETURN:]
-    cot_scores    = cot_scores[-MAX_RETURN:]
-    mom_scores    = mom_scores[-MAX_RETURN:]
-    macro_scores  = macro_scores[-MAX_RETURN:]
-    seas_scores   = seas_scores[-MAX_RETURN:]
-    regime_scores = regime_scores[-MAX_RETURN:]
-    relval_scores = relval_scores[-MAX_RETURN:]
-
-    relval_note = (" Rel-val uses trend-gated scoring — valuation only signals when trend confirms."
-                   if is_fx_mkt else " Rel-val uses trend-gated scoring — valuation only signals when trend confirms.")
-
-    _sh_result = {
-        "market": m_upper, "name": mkt["name"],
-        "dates": dates, "scores": scores, "prices": prices,
-        "cot_scores":    cot_scores,
-        "mom_scores":    mom_scores,
-        "macro_scores":  macro_scores,
-        "seas_scores":   seas_scores,
-        "regime_scores": regime_scores,
-        "relval_scores": relval_scores,
-        "note": (
-            "Full composite walk-forward: COT, seasonality, momentum, macro (FF calendar, 5yr), "
-            "regime (VIX/yields/credit/DXY, max history), rel-val (max history) \u2014 "
-            "all reconstructed at each bar with zero lookahead. "
-            "PCR held at today\u2019s reading (no historical snapshots available)."
-            + relval_note
-        ),
-    }
-    _SH_RESULT_CACHE[m_upper] = {"ts": time.time(), "data": _sh_result}
-    _SH_MARKET_LOCKS.pop(m_upper, None)  # release in-progress guard
-    gc.collect()  # free memory after heavy history computation
-    return _SafeJSONResponse(_sh_result)
+        _SH_RESULT_CACHE[m_upper] = {"ts": time.time(), "data": _sh_result}
+        return _SafeJSONResponse(_sh_result)
+    except Exception as _sh_exc:
+        print(f"[score_history] ERROR for {m_upper}: {type(_sh_exc).__name__}: {_sh_exc}")
+        return JSONResponse({"error": "Score history computation failed", "detail": str(_sh_exc)}, status_code=500)
+    finally:
+        _SH_MARKET_LOCKS.pop(m_upper, None)  # always release — even on exception
+        gc.collect()
 
 # ── GLOBAL REGIME HISTORY endpoint ─────────────────────────────────────────
 # Returns the raw global regime score (-4..+4) for each weekly bar over the
