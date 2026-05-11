@@ -5838,8 +5838,20 @@ function renderMacroDataPanels(reg){
               <div style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--text)">${effr!=null?effr.toFixed(2)+'%':'—'}</div>
             </div>
             <div style="text-align:center;padding:5px 4px">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">Path 12M</div>
-              <div style="font-family:var(--mono);font-size:13px;font-weight:800;color:${cuts12m!=null&&cuts12m<0?'#22c97a':cuts12m!=null&&cuts12m>0?'#e03a2a':'var(--text)'}">${cuts12m!=null?(cuts12m<0?'−'+(Math.abs(cuts12m)*100).toFixed(0)+'bp':'+'+(Math.abs(cuts12m)*100).toFixed(0)+'bp'):'—'}</div>
+              ${(()=>{
+                // path_bp: actual implied rate change in bp over 12m
+                // cuts_12m>0 = cuts priced (rate falls), cuts_12m<0 = hikes priced (rate rises)
+                // path_bp = -cuts_12m * 25  (so +11bp = hike, -25bp = cut)
+                const path_bp = cuts12m!=null ? Math.round(-cuts12m * 25) : null;
+                const isHike  = path_bp!=null && path_bp > 2;
+                const isCut   = path_bp!=null && path_bp < -2;
+                const pathCol = isHike ? '#e03a2a' : isCut ? '#22c97a' : 'var(--text)';
+                const pathDir = isHike ? 'HIKE' : isCut ? 'CUT' : 'HOLD';
+                const pathStr = path_bp!=null ? (path_bp>=0?'+':'')+path_bp+'bp' : '—';
+                return `<div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">Path 12M</div>
+                <div style="font-family:var(--mono);font-size:13px;font-weight:800;color:${pathCol}">${pathStr}</div>
+                <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${pathCol};letter-spacing:0.08em;margin-top:2px">${pathDir}</div>`;
+              })()}
             </div>
           </div>
         </div>
@@ -13019,20 +13031,36 @@ function regimeTab(m){
         </div>
         <div style="font-size:8px;color:var(--faint);margin-bottom:8px">Source: FRED IUDSOIA (daily SONIA). Rate path scored from 6m + 3m trend — cuts are bullish for ${m.id==='R'?'Gilt prices':'FTSE via discount rate relief'}.</div>`;
       } else {
+        // Convert internal cuts_12m/cuts_18m units → actual bp
+        // cuts_12m > 0 = cuts priced (rate falls), cuts_12m < 0 = hikes priced (rate rises)
+        // path_bp = -cuts_12m * 25  →  positive = rate rising (hike), negative = rate falling (cut)
+        const path12bp = cuts12m!==null ? Math.round(-cuts12m * 25) : null;
+        const path18bp = cuts18m!==null ? Math.round(-(cuts18m||0) * 25) : null;
+        const p12IsHike = path12bp!=null && path12bp > 2;
+        const p12IsCut  = path12bp!=null && path12bp < -2;
+        const p18IsHike = path18bp!=null && path18bp > 2;
+        const p18IsCut  = path18bp!=null && path18bp < -2;
+        const p12Col  = p12IsHike ? '#e03a2a' : p12IsCut ? '#22c97a' : 'var(--dim)';
+        const p18Col  = p18IsHike ? '#e03a2a' : p18IsCut ? '#22c97a' : 'var(--dim)';
+        const p12Dir  = p12IsHike ? 'HIKE' : p12IsCut ? 'CUT' : 'HOLD';
+        const p18Dir  = p18IsHike ? 'HIKE' : p18IsCut ? 'CUT' : 'HOLD';
+        const p12Str  = path12bp!=null ? (path12bp>0?'+':'')+path12bp+'bp' : '—';
+        const p18Str  = path18bp!=null ? (path18bp>0?'+':'')+path18bp+'bp' : '—';
         return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
           ${effr!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">EFFR</div>
             <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:var(--text)">${effr.toFixed(2)}%</div>
+            <div style="font-size:7px;color:var(--faint);margin-top:2px">current rate</div>
           </div>`:''}
-          ${cuts12m!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
-            <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">${cuts12m>0?'CUTS PRICED 12M':'HIKE RISK 12M'}</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#3b82c4':'#adb8d0'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</div>
-            <div style="font-size:7px;color:var(--faint);margin-top:2px">${cuts12m>0?cuts12m.toFixed(2)+' = cuts priced':cuts12m<0?Math.abs(cuts12m).toFixed(2)+' = hike priced':'flat path'}</div>
+          ${path12bp!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+            <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">12M PATH</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${p12Col}">${p12Str}</div>
+            <div style="font-size:7px;font-weight:700;color:${p12Col};margin-top:2px;letter-spacing:0.06em">${p12Dir}</div>
           </div>`:''}
-          ${cuts18m!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
-            <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">${(cuts18m||0)>0?'CUTS PRICED 18M':'HIKE PRICED 18M'}</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#3b82c4':'#adb8d0'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</div>
-            <div style="font-size:7px;color:var(--faint);margin-top:2px">${(cuts18m||0)>0?(cuts18m||0).toFixed(2)+' = cuts priced':(cuts18m||0)<0?Math.abs(cuts18m||0).toFixed(2)+' = hike priced':'flat path'}</div>
+          ${path18bp!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+            <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">18M PATH</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${p18Col}">${p18Str}</div>
+            <div style="font-size:7px;font-weight:700;color:${p18Col};margin-top:2px;letter-spacing:0.06em">${p18Dir}</div>
           </div>`:''}
         </div>`;
       }
@@ -13046,6 +13074,7 @@ function regimeTab(m){
         <div style="height:100%;width:${rateBarPct}%;background:${rateBarCol};border-radius:2px;transition:width 600ms var(--ease)"></div>
       </div>
     </div>
+    <div style="font-size:7px;color:var(--faint);margin-bottom:8px">Source: CME ZQ Fed Funds futures &mdash; bp = implied rate change vs current EFFR</div>
     <div style="font-size:9px;color:var(--dim);line-height:1.45;font-style:italic">${rateInterp}</div>
   </div>`;
 
