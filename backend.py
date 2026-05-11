@@ -2441,30 +2441,48 @@ def compute_crypto_cot_score(df: Optional[pd.DataFrame], market_id: str = "") ->
     score = 5.0
     detail_parts = []
 
-    # Momentum: rising managers = bullish crypto (they are the primary signal in crypto)
+    # Momentum: direction of fund manager positioning over last 7 weeks
+    # Rising = accumulation (bullish), falling = de-risking
+    # Note: for crypto, momentum FROM extreme highs (normalisation) is NOT a strong bear signal —
+    # it just means the crowded peak is unwinding. True bear = sustained fall below 50.
     n = min(7, len(lspec_net))
     sh = lspec_net[-n:]
     w2 = np.polyfit(np.arange(n), sh, 1)[0] if n >= 3 else 0
     lspec_momentum = round(float(w2), 1)
     if lspec_momentum > 0:
         score += min(1.8, lspec_momentum * 0.0001 * len(lspec_net))
-        detail_parts.append(f"Fund mgr momentum +{lspec_momentum:.0f} pts — {'accelerating accumulation' if lspec_momentum > 1000 else 'gradual accumulation'}")
+        detail_parts.append(f"Fund mgr momentum +{lspec_momentum:.0f} — {'accelerating accumulation' if lspec_momentum > 1000 else 'gradual accumulation'}")
     elif lspec_momentum < 0:
-        score += max(-1.8, lspec_momentum * 0.0001 * len(lspec_net))
-        detail_parts.append(f"Fund mgr momentum {lspec_momentum:.0f} pts — {'accelerating de-risking' if lspec_momentum < -1000 else 'gradual de-risking'}")
+        # Only penalise falling momentum if lspec_briese is also below neutral (genuine de-risking).
+        # Normalising FROM extreme highs (briese still >60) is not a bear signal.
+        if lspec_briese < 60:
+            score += max(-1.8, lspec_momentum * 0.0001 * len(lspec_net))
+            detail_parts.append(f"Fund mgr momentum {lspec_momentum:.0f} — {'accelerating de-risking' if lspec_momentum < -1000 else 'gradual de-risking'}")
+        else:
+            detail_parts.append(f"Fund mgr normalising from elevated ({lspec_briese:.0f}) — constructive unwind")
 
-    # Level extremes (contrarian at extremes)
-    if lspec_briese >= 95: score -= 1.6; detail_parts.append("Fund Mgr Normalisation BEAR — extreme longs")
-    elif lspec_briese >= 80: score -= 0.8; detail_parts.append("Fund Mgr Normalisation BEAR — elevated")
-    elif lspec_briese <= 5: score += 1.4; detail_parts.append("Fund Mgr Normalisation BULL — extreme shorts")
-    elif lspec_briese <= 20: score += 0.8; detail_parts.append("Fund Mgr Normalisation BULL — depressed")
+    # Level extremes (contrarian at true extremes only)
+    # >95 = dangerously crowded long → bearish. <20 = washed out → bullish.
+    # 80-95 range after normalisation = no longer penalised (healthy unwind in progress).
+    if lspec_briese >= 95:   score -= 1.6; detail_parts.append("Fund Mgr EXTREME long — contrarian bearish")
+    elif lspec_briese <= 5:  score += 1.4; detail_parts.append("Fund Mgr EXTREME short — contrarian bullish")
+    elif lspec_briese <= 20: score += 0.8; detail_parts.append("Fund Mgr deeply depressed — contrarian bullish")
+    # 20-95: no contrarian penalty — let momentum/level do the work
+
+    # Absolute level: above 50 = specs net long = constructive baseline for crypto
+    if lspec_briese >= 60 and lspec_briese < 95:
+        score += 0.5  # specs remain constructively positioned
+        detail_parts.append(f"Fund Mgr net long (briese {lspec_briese:.0f}) — constructive")
+    elif lspec_briese < 40:
+        score -= 0.4
+        detail_parts.append(f"Fund Mgr net short/light (briese {lspec_briese:.0f}) — cautious")
 
     # Label
-    phase_str = "early ride" if lspec_briese < 40 else "mid ride" if lspec_briese < 65 else "late ride"
-    if lspec_briese >= 80:    stance = "heavily long — bearish"
-    elif lspec_briese >= 65:  stance = "above neutral — bullish lean"
-    elif lspec_briese <= 35:  stance = "below neutral — bearish lean"
-    else:                     stance = "heavily short — bearish"
+    if lspec_briese >= 80:    stance = "elevated long — normalising"
+    elif lspec_briese >= 60:  stance = "above neutral — constructive"
+    elif lspec_briese >= 40:  stance = "near neutral"
+    elif lspec_briese >= 20:  stance = "below neutral — cautious"
+    else:                     stance = "deeply short — contrarian bullish"
 
     score = round(max(0.0, min(10.0, score)), 1)
     label = "Bullish Crypto COT" if score >= 6 else "Bearish Crypto COT" if score <= 4 else "Neutral Crypto COT"
