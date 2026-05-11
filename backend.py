@@ -86,8 +86,7 @@ _APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=5, thread_name_prefix="bh-wor
 # Capped at 2 workers so concurrent history requests cannot OOM by competing
 # with the main scores/FRED/COT executor on the 2GB Render instance.
 _SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bh-sh")
-# Concurrency lock for score_history — prevents two simultaneous requests
-# for the same market from each running a full prefetch, doubling memory use.
+# Per-market in-progress guard: prevents concurrent score_history prefetches doubling memory
 _SH_MARKET_LOCKS: dict = {}
 _photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 if os.path.isdir(_photos_dir):
@@ -3572,8 +3571,7 @@ def fetch_fred_series(series_id: str, periods: int = 24) -> Optional[list]:
                 except Exception:
                     pass
         recent = data[-periods:] if len(data) >= periods else data
-        # FIX: Cap FRED_CACHE at 60 entries — evict oldest when full.
-        # Without this, every unique (series_id, periods) combo accumulates forever.
+        # FIX: Cap FRED_CACHE at 60 entries — evict oldest to prevent unbounded growth
         if len(FRED_CACHE) >= 60:
             oldest_key = min(FRED_CACHE_TIME_MAP, key=FRED_CACHE_TIME_MAP.get)
             FRED_CACHE.pop(oldest_key, None)
@@ -4203,7 +4201,7 @@ RISK_ASSETS = {
 }
 
 RISK_REGIME_CACHE: dict = {"data": None, "time": 0}
-RISK_REGIME_CACHE_TTL = 3600 * 4  # FIX: 2h→4h — halves overnight FRED 780-row fetches (27 series × 780 rows = large alloc)
+RISK_REGIME_CACHE_TTL = 3600 * 4  # FIX: 2h→4h — halves overnight FRED fetches
 
 
 
@@ -8107,7 +8105,7 @@ def _score_regime_at(market_id: str, bar_date_norm,
 _SH_RESULT_CACHE: dict = {}
 _SH_RESULT_TTL = 3600 * 2  # 2 hours
 _SH_PREFETCH_CACHE: dict = {}
-_SH_PREFETCH_TTL = 3600 * 3   # FIX: reduced 12h→3h — 12h held max-history yfinance pandas frames for 8 markets in RAM overnight, causing OOM
+_SH_PREFETCH_TTL = 3600 * 3   # FIX: 12h→3h — prevents pandas yfinance frames accumulating overnight
 
 @app.get("/api/score_history")
 async def get_score_history(market: str):
@@ -8121,6 +8119,10 @@ async def get_score_history(market: str):
     _rc = _SH_RESULT_CACHE.get(m_upper)
     if _rc and (_rn - _rc["ts"]) < _SH_RESULT_TTL:
         return _SafeJSONResponse(_rc["data"])
+    # FIX: Per-market guard — duplicate concurrent requests each ran full prefetch, doubling memory
+    if _SH_MARKET_LOCKS.get(m_upper):
+        return JSONResponse({"status": "computing", "message": "Score history computing, retry in 30s"}, status_code=202)
+    _SH_MARKET_LOCKS[m_upper] = True
     # ── Per-market in-progress guard: prevents two concurrent prefetches ──────────
     # Without this, simultaneous requests each run full _do_prefetch(), doubling
     # peak memory and reliably causing OOM on the 2GB Render instance.
@@ -8919,9 +8921,7 @@ async def debug_ice(market: str = "B"):
 
 @app.post("/api/inject-ice-cache")
 async def inject_ice_cache(payload: dict):
-    """
-    Accepts pre-fetched ICE COT CSV rows (fetched externally, bypassing Render's
-    rate-limited IP) and injects them directly into _ICE_MEM_CACHE + disk cache.
+    """Accepts pre-fetched ICE COT CSV rows and injects them into memory + disk cache.
     FIX: pandas work runs in thread executor so event loop stays responsive.
     """
     market = payload.get("market", "")
@@ -8930,11 +8930,10 @@ async def inject_ice_cache(payload: dict):
     if not market or not rows:
         return {"ok": False, "error": "Missing market or rows"}
     _loop = asyncio.get_event_loop()
-    result = await _loop.run_in_executor(_APP_EXECUTOR, _inject_ice_sync, market, rows, fmt)
-    return result
+    return await _loop.run_in_executor(_APP_EXECUTOR, _inject_ice_sync, market, rows, fmt)
 
 def _inject_ice_sync(market: str, rows: list, fmt: str) -> dict:
-    """CPU-bound ICE inject — runs in thread executor, not on event loop."""
+    """CPU-bound ICE inject — runs in thread executor, not the async event loop."""
     import time as _time
     try:
         df = pd.DataFrame(rows)
@@ -9017,3 +9016,127 @@ def _inject_ice_sync(market: str, rows: list, fmt: str) -> dict:
         print(f"[INJECT ICE] {market}: error — {e}")
         return {"ok": False, "error": str(e)}
 
+
+@app.get("/api/tunnel-url")
+async def tunnel_url():
+    """Returns the current live Cloudflare tunnel URL.
+    The watchdog writes this to /tmp/cloudflare_tunnel_url.txt on every (re)start.
+    The frontend fetches this on load so it always uses the right URL.
+    """
+    url_file = '/tmp/cloudflare_tunnel_url.txt'
+    try:
+        with open(url_file) as f:
+            url = f.read().strip()
+        if url:
+            return {"url": url}
+    except Exception:
+        pass
+    return {"url": None}
+
+@app.get("/")
+async def serve_index():
+    idx = os.path.join(os.path.dirname(__file__), "index.html")
+    if not os.path.exists(idx):
+        return JSONResponse({"status": "BH Weather System API", "docs": "/docs"})
+    return FileResponse(idx, media_type="text/html", headers={"Cache-Control": "no-store, must-revalidate"})
+
+# Startup warmup disabled — caches populate on first request to avoid OOM
+# The keepalive cron handles backend health and restarts if needed
+_WARMING = {"done": False, "started": False}
+
+
+async def _startup_load_ice_data():
+    """
+    Called once at startup. For each ICE market:
+      1. Try disk cache (written by the Friday cron injection) — fast, always works
+         as long as a deploy hasn’t wiped the disk.
+      2. If disk is cold, attempt a live HTTP fetch from ICE.com.
+         Render’s shared egress IP may 429 — we swallow all errors silently.
+
+    Runs BEFORE the main scores pre-warm so ICE COT data is available
+    immediately for get_all_scores() on the first startup.
+    """
+    import asyncio as _ice_loop
+    import time as _ice_time
+
+    ICE_DISAGG_MARKETS = ["B", "G", "RC"]   # Brent, Gas Oil, Robusta
+    ICE_TFF_MARKETS    = ["Z", "R"]          # FTSE 100, Long Gilt
+
+    loaded = []
+    cold   = []
+
+    # Step 1: Load from disk cache (near-instant)
+    for mkt in ICE_DISAGG_MARKETS + ICE_TFF_MARKETS:
+        if mkt in _ICE_MEM_CACHE:
+            loaded.append(mkt)
+            continue
+        disk_df = _load_ice_from_disk(mkt)
+        if disk_df is not None and not disk_df.empty:
+            _ICE_MEM_CACHE[mkt] = {"df": disk_df, "ts": _ice_time.time()}
+            loaded.append(mkt)
+            print(f"[startup-ice] {mkt}: loaded {len(disk_df)} rows from disk cache")
+        else:
+            cold.append(mkt)
+
+    if not cold:
+        print(f"[startup-ice] All ICE markets loaded from disk: {loaded}")
+        return
+
+    print(f"[startup-ice] Cold markets (attempting live fetch): {cold}")
+
+    # Step 2: For cold markets, try a live fetch in a thread pool
+    # _fetch_ice_cot_raw handles HTTP, CSV parsing, mem+disk caching
+    loop = _ice_loop.get_event_loop()
+    for mkt in cold:
+        try:
+            df = await loop.run_in_executor(_APP_EXECUTOR, _fetch_ice_cot_raw, mkt)
+            if df is not None and not df.empty:
+                loaded.append(mkt)
+                print(f"[startup-ice] {mkt}: live-fetched {len(df)} rows")
+            else:
+                print(f"[startup-ice] {mkt}: live fetch returned no data (429 or empty) — will populate via Friday cron")
+        except Exception as _e:
+            print(f"[startup-ice] {mkt}: live fetch failed ({_e}) — non-fatal")
+
+    print(f"[startup-ice] Done. Loaded: {loaded}, still cold: {[m for m in cold if m not in loaded]}")
+
+@app.get("/api/warmup-status")
+async def warmup_status():
+    return {"ready": _WARMING["done"], "warming": _WARMING["started"]}
+
+@app.on_event("startup")
+async def warmup_cache():
+    """Fully pre-warm all caches on startup — calls get_all_scores() directly so
+    ALL_DATA_CACHE is fully populated before any user request arrives."""
+    import asyncio as _astart
+    async def _warm():
+        await _astart.sleep(2)
+        _WARMING["started"] = True
+
+        # ── ICE COT startup fetch ────────────────────────────────────────────
+        # Attempt to load ICE data before the main pre-warm so COT scores for
+        # ICE markets (B/G/RC/Z/R) are correct from the first request.
+        # Strategy: disk cache (from previous cron injection) loads instantly.
+        # If disk is cold (first deploy), attempt a live fetch from ICE.com.
+        # Render's shared IP may 429 on live fetch — that's fine, the Friday
+        # cron will inject within the week.
+        await _startup_load_ice_data()
+
+        print("[startup] Pre-warming all caches (full scores run)...")
+        try:
+            # Call the full scores endpoint directly (not HTTP) — this populates
+            # ALL_DATA_CACHE, MACRO_CACHE, REGIME_CACHE, FF_MACRO_CACHE in one shot.
+            # force=True skips the 202 guard so we don't get stuck in warming loop.
+            await get_all_scores(force=True)
+            print("[startup] Pre-warm complete — ALL_DATA_CACHE populated")
+        except Exception as e:
+            print(f"[startup] Pre-warm error (non-fatal): {e}")
+        _gc_if_heavy("post-startup-warmup")
+        _WARMING["done"] = True
+    _astart.ensure_future(_warm())
+    print("[startup] Backend ready — full cache pre-warming in background")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5000)
