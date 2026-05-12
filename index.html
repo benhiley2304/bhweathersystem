@@ -5864,21 +5864,16 @@ function renderMacroDataPanels(reg){
             <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">3M/10Y</span>
           </div>
         </div>
-        <div id="ov-yc-canvas-wrap" class="ov-yc-canvas-wrap">
-          <canvas id="ov-yc-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:block"></canvas>
+        <!-- Full multi-tenor historical yield curve chart — dominant visual -->
+        <div style="flex:1;min-height:160px;display:flex;flex-direction:column">
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
+          <div id="ov-yc-chart" style="flex:1;min-height:150px;position:relative"></div>
         </div>
-        <div>
-          <div class="mc-sect" style="margin:4px 0 3px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="height:56px;position:relative"></div>
-        </div>
-        <div>
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Momentum (2s10s)</div><div class="mc-sect-line"></div></div>
-          ${momRow('3M change', sChg3m, sCol3m)}
-          ${momRow('6M change', sChg6m, sCol6m)}
-          ${yc_move_type?`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-            <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Move type</span>
-            <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${moveCol}">${yc_move_type}</span>
-          </div>`:''}
+        <!-- Momentum strip -->
+        <div style="display:flex;gap:10px;align-items:center;padding:3px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:2px">
+          ${sChg3m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
+          ${sChg6m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
+          ${yc_move_type?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${moveCol};margin-left:auto">${yc_move_type}</span>`:''}
         </div>
         <!-- Rate Context row -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
@@ -6170,7 +6165,7 @@ async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, c
     return;
   }
 
-  const W = 280, H = 160;
+  const W = 280, H = Math.max(160, el.offsetHeight||160);
   const padL = 28, padR = 6, padT = 8, padB = 22;
   const gW = W - padL - padR, gH = H - padT - padB;
 
