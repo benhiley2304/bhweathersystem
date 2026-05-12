@@ -5964,7 +5964,7 @@ function renderMacroDataPanels(reg){
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
         <div style="flex:1;min-height:160px;display:flex;flex-direction:column">
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="flex:1;min-height:150px;position:relative"></div>
+          <div id="ov-yc-chart" style="position:relative;min-height:10px"></div>
         </div>
         <!-- Momentum strip -->
         <div style="display:flex;gap:10px;align-items:center;padding:3px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:auto">
@@ -6213,8 +6213,7 @@ function renderMacroDataPanels(reg){
     _drawVixGauge('ov-sc-vix-gauge', vixNum2, vixCol2);
     // SPX sparkline
     _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a');
-    // Small delay to ensure flex layout has settled before reading offsetHeight
-    setTimeout(()=>loadYieldCurveChart(crCol), 80);
+    loadYieldCurveChart(crCol);
   }));
 }
 
@@ -6280,7 +6279,7 @@ async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, c
     return;
   }
 
-  const W = 280, H = Math.max(180, el.getBoundingClientRect().height||180);
+  const W = 280, H = 180;
   const padL = 28, padR = 6, padT = 8, padB = 22;
   const gW = W - padL - padR, gH = H - padT - padB;
 
@@ -6415,7 +6414,7 @@ async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, c
     });
   }
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%;min-height:${H}px;display:block"
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block"
     preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
     ${grids}
     ${curveSvg}
@@ -6440,6 +6439,7 @@ async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, c
   </div>`;
 
   el.style.height = 'auto';
+  el.style.minHeight = '0';
   el.style.display = 'block';
   el.innerHTML = svg + legendHTML;
 }
