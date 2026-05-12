@@ -6205,26 +6205,30 @@ function renderMacroDataPanels(reg){
 
   // Draw canvases after DOM update — double RAF to ensure layout is complete
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    _drawFedBSArc(fbLevel, fbPct, fbCol); // arc now hidden, but call kept for safety
-    _drawMacroParticles('ov-mc-p1', jcCol);
-    _drawMacroParticles('ov-mc-p2', inflBadgeCol||'#adb8d0');
-    _drawMacroParticles('ov-mc-p3', lineCol);
-    _drawMacroParticles('ov-mc-p4', crCol);
-    _drawMacroParticles('ov-mc-p5', crSpreadCol);
-    _drawMacroParticles('ov-mc-p6', scArcCol||'#adb8d0');
+    try { _drawFedBSArc(fbLevel, fbPct, fbCol); } catch(e){} // arc canvas may be hidden
+    try { _drawMacroParticles('ov-mc-p1', jcCol); } catch(e){}
+    try { _drawMacroParticles('ov-mc-p2', inflBadgeCol||'#adb8d0'); } catch(e){}
+    try { _drawMacroParticles('ov-mc-p3', lineCol); } catch(e){}
+    try { _drawMacroParticles('ov-mc-p4', crCol); } catch(e){}
+    try { _drawMacroParticles('ov-mc-p5', crSpreadCol); } catch(e){}
+    try { _drawMacroParticles('ov-mc-p6', scArcCol||'#adb8d0'); } catch(e){}
     // VIX semicircle gauge
-    const vixNum2 = parseFloat(scSignals['VIX']?.value||'0')||0;
-    const vixCol2 = vixNum2>0?(vixNum2<17?'#22c97a':vixNum2<25?'#f5c842':'#e03a2a'):'#adb8d0';
-    _drawVixGauge('ov-sc-vix-gauge', vixNum2, vixCol2);
+    try {
+      const vixNum2 = parseFloat(scSignals['VIX']?.value||'0')||0;
+      const vixCol2 = vixNum2>0?(vixNum2<17?'#22c97a':vixNum2<25?'#f5c842':'#e03a2a'):'#adb8d0';
+      _drawVixGauge('ov-sc-vix-gauge', vixNum2, vixCol2);
+    } catch(e){}
     // SPX sparkline
-    _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a');
+    try { _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a'); } catch(e){}
     // Build YC chart from data already in scope — no extra fetch needed
-    _drawYieldCurveInline(crCol, {
-      now:  { '3M': t3m,    '2Y': t2,     '5Y': t5,    '10Y': t10,   '30Y': t30   },
-      m3:   { '3M': null,   '2Y': t2_3m,  '5Y': t5_3m, '10Y': t10_3m,'30Y': t30_3m},
-      m6:   { '3M': null,   '2Y': t2_6m,  '5Y': t5_6m, '10Y': t10_6m,'30Y': t30_6m},
-      m12:  { '3M': null,   '2Y': t2_12m, '5Y': t5_12m,'10Y': t10_12m,'30Y': t30_12m},
-    });
+    try {
+      _drawYieldCurveInline(crCol, {
+        now:  { '3M': t3m,    '2Y': t2,     '5Y': t5,    '10Y': t10,   '30Y': t30   },
+        m3:   { '3M': null,   '2Y': t2_3m,  '5Y': t5_3m, '10Y': t10_3m,'30Y': t30_3m},
+        m6:   { '3M': null,   '2Y': t2_6m,  '5Y': t5_6m, '10Y': t10_6m,'30Y': t30_6m},
+        m12:  { '3M': null,   '2Y': t2_12m, '5Y': t5_12m,'10Y': t10_12m,'30Y': t30_12m},
+      });
+    } catch(e){ console.error('YC draw error:', e); }
   }));
 }
 
