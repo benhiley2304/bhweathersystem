@@ -5848,10 +5848,21 @@ function renderMacroDataPanels(reg){
           </div>
           <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y SPREAD</div>
         </div>
-        <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:4px">
-          <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">2Y <span style="color:${tenorDotCol(t2)};font-weight:900">${t2!=null?t2.toFixed(2)+'%':'—'}</span></span>
-          <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">10Y <span style="color:${tenorDotCol(t10)};font-weight:900">${t10!=null?t10.toFixed(2)+'%':'—'}</span></span>
-          <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">3M/10Y <span style="color:${t3t10Col};font-weight:900">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</span></span>
+        <div style="display:flex;gap:10px;align-items:stretch;margin-bottom:4px">
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t2)};line-height:1">${t2!=null?t2.toFixed(2)+'%':'—'}</span>
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">2Y Front End</span>
+          </div>
+          <div style="width:1px;background:rgba(255,255,255,0.08);align-self:stretch;margin:1px 4px"></div>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t10)};line-height:1">${t10!=null?t10.toFixed(2)+'%':'—'}</span>
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">10Y Long End</span>
+          </div>
+          <div style="width:1px;background:rgba(255,255,255,0.08);align-self:stretch;margin:1px 4px"></div>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${t3t10Col};line-height:1">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</span>
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">3M/10Y</span>
+          </div>
         </div>
         <div id="ov-yc-canvas-wrap" class="ov-yc-canvas-wrap">
           <canvas id="ov-yc-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:block"></canvas>
@@ -5864,11 +5875,37 @@ function renderMacroDataPanels(reg){
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Momentum (2s10s)</div><div class="mc-sect-line"></div></div>
           ${momRow('3M change', sChg3m, sCol3m)}
           ${momRow('6M change', sChg6m, sCol6m)}
-          ${yc_move_type?`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0">
+          ${yc_move_type?`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
             <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Move type</span>
             <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${moveCol}">${yc_move_type}</span>
           </div>`:''}
         </div>
+        <!-- Rate Context row -->
+        ${(ryVal!=null||effr!=null||cuts12m!=null)?`
+        <div>
+          <div class="mc-sect" style="margin:4px 0 4px"><div class="mc-sect-lbl">Rate Context</div><div class="mc-sect-line"></div></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+            ${ryVal!=null?`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:7px;padding:7px 8px;text-align:center">
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Real Yield</div>
+              <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</div>
+            </div>`:''}
+            ${effr!=null?`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:7px;padding:7px 8px;text-align:center">
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">EFFR</div>
+              <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:var(--text)">${effr.toFixed(2)}%</div>
+            </div>`:''}
+            ${cuts12m!=null?(()=>{
+              const path_bp = -cuts12m * 25;
+              const pathCol = path_bp>0?'#e03a2a':path_bp<0?'#22c97a':'#adb8d0';
+              const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
+              const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
+              return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:7px;padding:7px 8px;text-align:center">
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Path 12M</div>
+              <div style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${pathCol}">${pathStr}</div>
+              <div style="font-family:var(--mono);font-size:6px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:${pathCol};margin-top:2px">${pathLbl} · FED FWD</div>
+            </div>`;
+            })():''}
+          </div>
+        </div>`:''}
       </div>`;
       })()}
 
@@ -5898,55 +5935,56 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${_igNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
           </div>
         </div>
-        <!-- Spread distribution bars — blue accent fill -->
-        <div style="flex:1;min-height:80px;display:flex;flex-direction:column;gap:12px;justify-content:center">
-          ${hyOas!=null?`
-          <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">HY 3yr range</span>
-              ${hyHistPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${_hyNumCol}">${hyHistPct.toFixed(0)}th pct</span>`:''}
-            </div>
-            <div style="position:relative;height:9px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:visible">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,hyPct).toFixed(1)}%;background:linear-gradient(90deg,${CREDIT_BLUE}33,${CREDIT_BLUE}99);border-radius:4px"></div>
-              ${hyHistPct!=null?`<div style="position:absolute;top:-3.5px;height:16px;width:3px;background:${CREDIT_BLUE};border-radius:2px;left:${Math.min(99,hyHistPct).toFixed(1)}%;box-shadow:0 0 8px ${CREDIT_BLUE}cc"></div>`:''}
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:3px">
-              <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${hyPctMin!=null?hyPctMin+'bp':'tight'}</span>
-              <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${hyPctMax!=null?hyPctMax+'bp':'wide'}</span>
-            </div>
-          </div>`:''}
-          ${igOas!=null?`
-          <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">IG 3yr range</span>
-              ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${_igNumCol}">${igHistPct.toFixed(0)}th pct</span>`:''}
-            </div>
-            <div style="position:relative;height:9px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:visible">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,igPct).toFixed(1)}%;background:linear-gradient(90deg,${CREDIT_BLUE}33,${CREDIT_BLUE}99);border-radius:4px"></div>
-              ${igHistPct!=null?`<div style="position:absolute;top:-3.5px;height:16px;width:3px;background:${CREDIT_BLUE};border-radius:2px;left:${Math.min(99,igHistPct).toFixed(1)}%;box-shadow:0 0 8px ${CREDIT_BLUE}cc"></div>`:''}
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:3px">
-              <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${igPctMin!=null?igPctMin+'bp':'tight'}</span>
-              <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${igPctMax!=null?igPctMax+'bp':'wide'}</span>
-            </div>
-          </div>`:''}
-        </div>
-        <!-- Delta footer — progress bars -->
+        <!-- 3YR Spread Percentile zone bars -->
         <div>
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">HY Changes</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">3YR Spread Percentile</div><div class="mc-sect-line"></div></div>
           ${(()=>{
-            const deltaBar = (label, val, maxVal=50) => {
-              const col = val==null?'#5a6480':val<0?'#22c97a':val>0?'#e03a2a':'#adb8d0';
-              const pct = val!=null?Math.min(100,(Math.abs(val)/maxVal)*100):0;
-              return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-                <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);width:22px;flex-shrink:0">${label}</span>
-                <div style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden">
-                  <div style="height:100%;width:${pct.toFixed(1)}%;background:${col};border-radius:2px;transition:width 0.6s ease"></div>
+            const zoneBar = (label, oas, histPct, pctMin, pctMax, levelLabel, numCol) => {
+              const pct = histPct??0;
+              const markerLeft = Math.min(99, Math.max(1, pct));
+              const statusCol = pct<=20?'#22c97a':pct<=45?'#5aaa7a':pct<=65?'#adb8d0':pct<=80?'#f5c842':'#e03a2a';
+              return `<div style="margin-bottom:9px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                  <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">${label}</span>
+                  ${histPct!=null?`<span style="font-family:var(--mono);font-size:7.5px;font-weight:800;color:${statusCol}">${levelLabel} &nbsp;<span style="font-size:6.5px;opacity:0.7">${histPct.toFixed(0)}th pct</span></span>`:''}
                 </div>
-                <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${col};min-width:44px;text-align:right">${val!=null?(val>0?'+':'')+val+'bp':'—'}</span>
+                <div style="position:relative;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.05)">
+                  <div style="position:absolute;inset:0;background:linear-gradient(90deg,#22c97a 0%,#22c97a 20%,#5aaa7a 35%,#adb8d0 50%,#f5c842 70%,#e03a2a 85%,#c02020 100%);opacity:0.55;border-radius:4px"></div>
+                  ${histPct!=null?`<div style="position:absolute;top:-2px;bottom:-2px;width:3px;margin-left:-1.5px;background:#fff;border-radius:2px;left:${markerLeft.toFixed(1)}%;box-shadow:0 0 6px rgba(255,255,255,0.7)"></div>`:''}
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:3px">
+                  <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">Tight ${pctMin!=null?pctMin+'bp':''}</span>
+                  <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${pctMax!=null?pctMax+'bp':''} Wide</span>
+                </div>
               </div>`;
             };
-            return deltaBar('4W', hyDelta4w) + deltaBar('3M', hyDelta3m) + deltaBar('6M', hyDelta6m);
+            return (hyOas!=null?zoneBar('HY OAS', hyOas, hyHistPct, hyPctMin, hyPctMax, hyZoneLabel, _hyNumCol):'')
+                 + (igOas!=null?zoneBar('IG OAS', igOas, igHistPct, igPctMin, igPctMax, igZoneLabel, _igNumCol):'');
+          })()}
+        </div>
+        <!-- Delta rows — HY + IG side by side -->
+        <div style="margin-top:auto">
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Spread Changes</div><div class="mc-sect-line"></div></div>
+          ${(()=>{
+            const deltaRow = (period, hyVal, igVal) => {
+              const hyC = hyVal==null?'#5a6480':hyVal<0?'#22c97a':hyVal>0?'#e03a2a':'#adb8d0';
+              const igC = igVal==null?'#5a6480':igVal<0?'#22c97a':igVal>0?'#e03a2a':'#adb8d0';
+              const fmt = v => v!=null?(v>0?'+':'')+v+'bp':'—';
+              return `<div style="display:grid;grid-template-columns:22px 1fr 1fr;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${period}</span>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <span style="font-family:var(--mono);font-size:7px;color:var(--faint);opacity:0.6">HY</span>
+                  <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden"><div style="height:100%;width:${hyVal!=null?Math.min(100,(Math.abs(hyVal)/60)*100).toFixed(0):0}%;background:${hyC};border-radius:2px"></div></div>
+                  <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${hyC};min-width:38px;text-align:right">${fmt(hyVal)}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <span style="font-family:var(--mono);font-size:7px;color:var(--faint);opacity:0.6">IG</span>
+                  <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden"><div style="height:100%;width:${igVal!=null?Math.min(100,(Math.abs(igVal)/25)*100).toFixed(0):0}%;background:${igC};border-radius:2px"></div></div>
+                  <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${igC};min-width:28px;text-align:right">${fmt(igVal)}</span>
+                </div>
+              </div>`;
+            };
+            return deltaRow('4W', hyDelta4w, igDelta4w) + deltaRow('3M', hyDelta3m, igDelta3m) + deltaRow('6M', hyDelta6m, igDelta6m);
           })()}
         </div>
       </div>`;
