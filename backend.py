@@ -2908,10 +2908,10 @@ FF_CACHE: dict = {"data": None, "time": 0}
 FF_CACHE_TTL = 3600 * 3  # 3h
 
 FF_MACRO_CACHE: dict = {"data": None, "time": 0}
-FF_MACRO_CACHE_TTL = 3600 * 3
+FF_MACRO_CACHE_TTL = 3600  # 1 hour — keeps macro data fresh within one cache cycle
 
 US_MACRO_CACHE: dict = {"data": None, "time": 0}
-US_MACRO_TTL = 3600 * 3
+US_MACRO_TTL = 3600  # 1 hour — aligns with main scores cache TTL
 
 _FF_MONTH_CACHE: dict = {}
 
@@ -3143,7 +3143,7 @@ def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
 # Cache TTL 4h — refreshed automatically on each get_all_scores() cycle.
 
 _FF_LABOUR_CACHE: dict = {"data": None, "time": 0}
-_FF_LABOUR_CACHE_TTL = 3600 * 4  # 4 hours
+_FF_LABOUR_CACHE_TTL = 3600  # 1 hour — aligns with main scores cache TTL
 
 # Key labour event names as they appear on ForexFactory
 _FF_LABOUR_EVENTS = {
@@ -3407,7 +3407,7 @@ _FRED_CCY_SERIES = {
 
 # Cache: {currency: {"data": ..., "time": ...}}
 _FRED_CCY_CACHE: dict = {}
-_FRED_CCY_TTL = 3600 * 4  # 4h
+_FRED_CCY_TTL = 3600  # 1 hour — aligns with main scores cache TTL
 
 
 def compute_fred_economy_score(currency: str) -> dict:
@@ -4283,7 +4283,7 @@ RISK_ASSETS = {
 }
 
 RISK_REGIME_CACHE: dict = {"data": None, "time": 0}
-RISK_REGIME_CACHE_TTL = 3600 * 4  # FIX: 2h→4h — halves overnight FRED fetches
+RISK_REGIME_CACHE_TTL = 3600  # 1h — aligns with main scores cache TTL
 
 
 
