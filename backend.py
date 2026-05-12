@@ -9229,7 +9229,9 @@ async def warmup_cache():
 import logging as _logging
 class _NoHealthFilter(_logging.Filter):
     def filter(self, record: _logging.LogRecord) -> bool:
-        return "/api/health" not in record.getMessage()
+        msg = record.getMessage()
+        # Suppress healthy keepalive pings only — still log errors (non-200)
+        return not ("/api/health" in msg and "200" in msg)
 _logging.getLogger("uvicorn.access").addFilter(_NoHealthFilter())
 
 if __name__ == "__main__":
