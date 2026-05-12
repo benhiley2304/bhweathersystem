@@ -6460,17 +6460,49 @@ ALL_DATA_TTL = 3600  # 60 min — data sources (COT, macro, prices) change at mo
 # parallel threads, multiplying memory usage by N and causing OOM.
 _SCORES_LOCK = asyncio.Lock()
 
+_SCORES_BG_RUNNING = False  # True while a background refresh is in flight
+
+async def _refresh_scores_background():
+    """Run the full score refresh in the background without blocking any request."""
+    global _SCORES_BG_RUNNING
+    if _SCORES_BG_RUNNING:
+        return  # Already running — don't double-up
+    _SCORES_BG_RUNNING = True
+    try:
+        async with _SCORES_LOCK:
+            # Re-check inside lock — another coroutine may have just refreshed
+            if ALL_DATA_CACHE["data"] and (time.time() - ALL_DATA_CACHE["time"]) < ALL_DATA_TTL:
+                return
+            await _do_scores_refresh()
+    except Exception as _e:
+        print(f"[scores] Background refresh error: {_e}", flush=True)
+    finally:
+        _SCORES_BG_RUNNING = False
+
 @app.get("/api/scores")
 async def get_all_scores(force: bool = False):
     now = time.time()
-    # Fast path: cache hit — no lock needed, just return immediately
-    if not force and ALL_DATA_CACHE["data"] and (now - ALL_DATA_CACHE["time"]) < ALL_DATA_TTL:
+    cache_age = now - ALL_DATA_CACHE["time"]
+    cache_exists = bool(ALL_DATA_CACHE["data"])
+
+    # Fast path: fresh cache — return immediately
+    if not force and cache_exists and cache_age < ALL_DATA_TTL:
         return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+
+    # Stale-while-revalidate: if we have ANY cached data (even expired), serve it
+    # immediately and kick off a background refresh so the user never waits
+    if not force and cache_exists:
+        print(f"[scores] Cache stale ({cache_age:.0f}s old) — serving stale, refreshing in background", flush=True)
+        asyncio.ensure_future(_refresh_scores_background())
+        return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+
     # If cache is cold and still warming up, return 202 so frontend can poll
     if _WARMING["started"] and not _WARMING["done"] and not force:
         from fastapi.responses import JSONResponse as _JR
         return _JR({"status": "warming", "message": "Cache warming — retry in 10s"}, status_code=202)
-    # Slow path: need to recompute — acquire lock so only one caller does the work
+
+    # True cold start (no data at all) — must wait for first result
+    print(f"[scores] Cold start — must compute synchronously (no stale data available)", flush=True)
     async with _SCORES_LOCK:
         # Re-check cache inside lock: a previous waiter may have already recomputed
         now = time.time()
@@ -6480,485 +6512,490 @@ async def get_all_scores(force: bool = False):
             ALL_DATA_CACHE["data"] = None
             FF_CACHE["data"] = None
             FF_MACRO_CACHE["data"] = None
-        _refresh_start = time.time()
-        print(f"[scores] Cache refresh START", flush=True)
+        await _do_scores_refresh()
+    return _SafeJSONResponse(ALL_DATA_CACHE["data"])
 
-        # Run all sync blocking data-fetch functions in thread executors
-        # so the async event loop (and /api/health) remain responsive
-        _loop = asyncio.get_event_loop()
-        # Run sequentially (not concurrently) to avoid OOM on 2GB instance.
-        # Each function is cache-backed (TTL 2h) so the sequential cost is trivial
-        # on warm hits. On a cold start only the first call is expensive per function.
-        macro    = await _loop.run_in_executor(_APP_EXECUTOR, compute_macro_all)
-        _gc_if_heavy("post-macro-all")
-        regime   = await _loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime)
-        _gc_if_heavy("post-risk-regime")
-        ff_macro = await _loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro)
-        _gc_if_heavy("post-ff-macro")
-        # News context — always use whatever is in cache right now (may be stale/empty).
-        # Narrative generation (40 Sonar AI calls, ~22s) is fired in a background thread
-        # BEFORE the market scoring loop so it warms in parallel. It never blocks
-        # the scores lock — clients get scores immediately after market computation.
-        _news_now = time.time()
-        _news_cold = not NEWS_CACHE["data"] or (_news_now - NEWS_CACHE["time"]) >= NEWS_CACHE_TTL
-        _narr_cold = not NARR_CACHE["data"] or (_news_now - NARR_CACHE["time"]) >= NARR_CACHE_TTL
-        if _news_cold or _narr_cold:
-            # Fire-and-forget in background — does NOT block market scoring below
-            _bg_narr_thread = threading.Thread(
-                target=compute_news_context, daemon=True, name="narr-bg-refresh"
+async def _do_scores_refresh(force: bool = False):
+    """Core refresh logic — must be called with _SCORES_LOCK already held."""
+    _refresh_start = time.time()
+    now = time.time()
+    print(f"[scores] Cache refresh START", flush=True)
+
+    # Run all sync blocking data-fetch functions in thread executors
+    # so the async event loop (and /api/health) remain responsive
+    _loop = asyncio.get_event_loop()
+    # Run sequentially (not concurrently) to avoid OOM on 2GB instance.
+    # Each function is cache-backed (TTL 2h) so the sequential cost is trivial
+    # on warm hits. On a cold start only the first call is expensive per function.
+    macro    = await _loop.run_in_executor(_APP_EXECUTOR, compute_macro_all)
+    _gc_if_heavy("post-macro-all")
+    regime   = await _loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime)
+    _gc_if_heavy("post-risk-regime")
+    ff_macro = await _loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro)
+    _gc_if_heavy("post-ff-macro")
+    # News context — always use whatever is in cache right now (may be stale/empty).
+    # Narrative generation (40 Sonar AI calls, ~22s) is fired in a background thread
+    # BEFORE the market scoring loop so it warms in parallel. It never blocks
+    # the scores lock — clients get scores immediately after market computation.
+    _news_now = time.time()
+    _news_cold = not NEWS_CACHE["data"] or (_news_now - NEWS_CACHE["time"]) >= NEWS_CACHE_TTL
+    _narr_cold = not NARR_CACHE["data"] or (_news_now - NARR_CACHE["time"]) >= NARR_CACHE_TTL
+    if _news_cold or _narr_cold:
+        # Fire-and-forget in background — does NOT block market scoring below
+        _bg_narr_thread = threading.Thread(
+            target=compute_news_context, daemon=True, name="narr-bg-refresh"
+        )
+        _bg_narr_thread.start()
+        print("[narr] Background narrative refresh started (non-blocking)", flush=True)
+    # Serve whatever is already cached — frontend fetches /api/news-context separately
+    _cached_items  = NEWS_CACHE["data"] if (NEWS_CACHE["data"] and (_news_now - NEWS_CACHE["time"]) < NEWS_CACHE_TTL) else []
+    _raw_narrs     = NARR_CACHE["data"] if (NARR_CACHE["data"] and (_news_now - NARR_CACHE["time"]) < NARR_CACHE_TTL) else {}
+    _narr_text     = {k: v["text"]     for k, v in _raw_narrs.items() if isinstance(v, dict)}
+    _narr_scores   = {k: v["score_10"] for k, v in _raw_narrs.items() if isinstance(v, dict) and v.get("score_10") is not None}
+    news_ctx = {
+        "narratives":       _narr_text,
+        "narrative_scores": _narr_scores,
+        "news_items":       _cached_items[:20],
+        "global_narrative": None,
+        "price_context":    {},
+        "updated_at":       NEWS_CACHE["time"] if _cached_items else _news_now,
+        "ff_event_count":   len(_cached_items),
+    }
+    # Separate regular markets from cross pairs
+    regular_markets = [m for m in MARKETS if not m.get("cross")]
+    cross_markets   = [m for m in MARKETS if m.get("cross")]
+    
+    # Fetch COT only for regular markets (cross pairs derive from legs)
+    # ICE markets use fetch_ice_cot_history; CFTC markets use fetch_cot_history
+    async def _fetch_cot_for_market(m):
+        if m.get("ice_code"):
+            return await fetch_ice_cot_history(m["ice_code"])
+        else:
+            return await fetch_cot_history(m["cftc_code"], m["name"])
+    
+    # Also pre-fetch supplementary ICE datasets for cross-market COT blending:
+    # CC (NY Cocoa) <- supplemented by ICE London Cocoa ("Cocoa")
+    # KC (Arabica)  <- supplemented by ICE Robusta RC
+    async def _fetch_ice_london_cocoa():
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(_APP_EXECUTOR, _fetch_ice_cot_raw, "Cocoa")
+    
+    async def _fetch_ice_robusta():
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(_APP_EXECUTOR, _fetch_ice_cot_raw, "RC")
+    
+    async with httpx.AsyncClient(timeout=20):
+        cot_results, ice_london_cocoa_df, ice_robusta_df = await asyncio.gather(
+            asyncio.gather(*[_fetch_cot_for_market(m) for m in regular_markets], return_exceptions=True),
+            _fetch_ice_london_cocoa(),
+            _fetch_ice_robusta(),
+        )
+    
+    def _zscore_blend_cot(primary_df: pd.DataFrame, secondary_df: pd.DataFrame,
+                          primary_weight: float = 0.60) -> pd.DataFrame:
+        """
+        Z-score normalized blend of two COT DataFrames.
+    
+        Raw contract blending is INVALID when the two exchanges have different:
+          - OI scales (NY Cocoa ~200k lots vs London ~100k lots)
+          - Participant composition (London 65-73% commercial vs NY 48-50%)
+          - Currency denomination (USD vs GBP)
+    
+        Correct approach (per research):
+          1. For each exchange, compute z-scores of comm_net and lspec_net
+             within their own full history (rolling 260w / 5yr window).
+          2. Blend the NORMALIZED scores (not raw contracts).
+          3. Back-convert to synthetic contract counts so downstream code is unaffected.
+    
+        primary_weight: fraction assigned to primary exchange (e.g. 0.60 for NY Cocoa).
+        """
+        if secondary_df is None or secondary_df.empty:
+            return primary_df
+        if primary_df is None or primary_df.empty:
+            return secondary_df
+        try:
+            p = primary_df.copy()
+            s = secondary_df.copy()
+            p["date"] = pd.to_datetime(p["date"])
+            s["date"] = pd.to_datetime(s["date"])
+            sw = 1.0 - primary_weight
+    
+            # ── Z-score each series within its own history ──────────────────
+            def rolling_zscore(series: pd.Series, window: int = 260) -> pd.Series:
+                """Rolling z-score; min_periods=52 (1yr) for stability."""
+                mu  = series.rolling(window, min_periods=52).mean()
+                sig = series.rolling(window, min_periods=52).std()
+                return (series - mu) / sig.replace(0, 1)
+    
+            p = p.sort_values("date").reset_index(drop=True)
+            s = s.sort_values("date").reset_index(drop=True)
+    
+            p["comm_z"]  = rolling_zscore(p["comm_net"].astype(float))
+            p["lspec_z"] = rolling_zscore(p["lspec_net"].astype(float))
+            p["sspec_z"] = rolling_zscore(p["sspec_net"].astype(float))
+            s["comm_z"]  = rolling_zscore(s["comm_net"].astype(float))
+            s["lspec_z"] = rolling_zscore(s["lspec_net"].astype(float))
+            s["sspec_z"] = rolling_zscore(s["sspec_net"].astype(float))
+    
+            # ── Merge on matching dates ─────────────────────────────────────
+            merged = pd.merge(
+                p[["date","comm_z","lspec_z","sspec_z","comm_net","open_interest_all"]],
+                s[["date","comm_z","lspec_z","sspec_z"]],
+                on="date", suffixes=("_p","_s"), how="inner"
             )
-            _bg_narr_thread.start()
-            print("[narr] Background narrative refresh started (non-blocking)", flush=True)
-        # Serve whatever is already cached — frontend fetches /api/news-context separately
-        _cached_items  = NEWS_CACHE["data"] if (NEWS_CACHE["data"] and (_news_now - NEWS_CACHE["time"]) < NEWS_CACHE_TTL) else []
-        _raw_narrs     = NARR_CACHE["data"] if (NARR_CACHE["data"] and (_news_now - NARR_CACHE["time"]) < NARR_CACHE_TTL) else {}
-        _narr_text     = {k: v["text"]     for k, v in _raw_narrs.items() if isinstance(v, dict)}
-        _narr_scores   = {k: v["score_10"] for k, v in _raw_narrs.items() if isinstance(v, dict) and v.get("score_10") is not None}
-        news_ctx = {
-            "narratives":       _narr_text,
-            "narrative_scores": _narr_scores,
-            "news_items":       _cached_items[:20],
-            "global_narrative": None,
-            "price_context":    {},
-            "updated_at":       NEWS_CACHE["time"] if _cached_items else _news_now,
-            "ff_event_count":   len(_cached_items),
+            if len(merged) < 52:
+                print(f"[COT ZBLEND] only {len(merged)} overlapping dates — skipping blend")
+                return primary_df
+    
+            # ── Blend z-scores ──────────────────────────────────────────────
+            merged["comm_z_blended"]  = merged["comm_z_p"]  * primary_weight + merged["comm_z_s"]  * sw
+            merged["lspec_z_blended"] = merged["lspec_z_p"] * primary_weight + merged["lspec_z_s"] * sw
+            merged["sspec_z_blended"] = merged["sspec_z_p"] * primary_weight + merged["sspec_z_s"] * sw
+    
+            # ── Back-convert to synthetic contract counts ───────────────────
+            # Use primary's own rolling stats so downstream percentile logic is unaffected.
+            # blended_z * primary_std + primary_mean ≈ "what primary would look like"
+            # if it had the blended signal embedded.
+            def zscore_to_contracts(z_blend: pd.Series, raw_primary: pd.Series) -> pd.Series:
+                window = 260
+                mu  = raw_primary.rolling(window, min_periods=52).mean()
+                sig = raw_primary.rolling(window, min_periods=52).std().replace(0, 1)
+                result = (z_blend * sig + mu).round(0)
+                # Replace any NaN/inf with the raw primary value (safe fallback)
+                fallback = raw_primary.round(0)
+                result = result.where(result.notna() & np.isfinite(result), other=fallback)
+                return result.fillna(0).astype(int)
+    
+            # Align indices for rolling stats (use primary df aligned to merged dates)
+            p_aligned = p[p["date"].isin(merged["date"])].reset_index(drop=True)
+            merged = merged.reset_index(drop=True)
+    
+            merged["comm_net_blended"]  = zscore_to_contracts(merged["comm_z_blended"],  p_aligned["comm_net"].astype(float))
+            merged["lspec_net_blended"] = zscore_to_contracts(merged["lspec_z_blended"], p_aligned["lspec_net"].astype(float))
+            merged["sspec_net_blended"] = zscore_to_contracts(merged["sspec_z_blended"], p_aligned["sspec_net"].astype(float))
+    
+            # ── Write blended values back into primary df ───────────────────
+            out = primary_df.copy()
+            out["date"] = pd.to_datetime(out["date"])
+            for _, row in merged.iterrows():
+                mask = out["date"] == row["date"]
+                if mask.any():
+                    out.loc[mask, "comm_net"]  = row["comm_net_blended"]
+                    out.loc[mask, "lspec_net"] = row["lspec_net_blended"]
+                    out.loc[mask, "sspec_net"] = row["sspec_net_blended"]
+    
+            print(f"[COT ZBLEND] {len(merged)} dates blended via z-score normalization "
+                  f"({primary_weight:.0%} primary / {sw:.0%} secondary)")
+            return out
+        except Exception as _be:
+            print(f"[COT ZBLEND] blend failed: {_be}")
+            return primary_df
+    
+    # Build COT cache dict: market_id -> DataFrame (for cross pair derivation)
+    cot_df_cache: dict = {}
+    for i, market in enumerate(regular_markets):
+        df = cot_results[i] if not isinstance(cot_results[i], Exception) else None
+        mid = market["id"]
+    
+        # ── Cross-market COT blending ──────────────────────────────────────
+        # CC (NY Cocoa): z-score normalized blend — 60% CFTC NY + 40% ICE London.
+        # Raw contract blending is INVALID: London is GBP-denominated, different OI scale
+        # (~100k lots vs NY ~200k), different participant composition (London 65-73%
+        # commercial vs NY 48-50%). Z-score normalization makes each exchange's signal
+        # comparable on a unit-free basis before blending.
+        if mid == "CC" and ice_london_cocoa_df is not None:
+            df = _zscore_blend_cot(df, ice_london_cocoa_df, primary_weight=0.60)
+    
+        # KC (Arabica Coffee): NO blending with Robusta.
+        # Arabica and Robusta are structurally different commodities with separate commercial
+        # bases, supply chains, and participant profiles. Blending raw or even z-scored
+        # positions conflates independent supply/demand signals and adds noise, not signal.
+        # KC uses pure CFTC Arabica data only.
+        # (ice_robusta_df is fetched above and used only for the standalone RC market)
+    
+        cot_df_cache[market["id"]] = df
+    
+    def _merge_price_into_cot(cot_df, yf_ticker, mid):
+        """Merge weekly price closes into COT df for divergence signals."""
+        if cot_df is None or len(cot_df) < 10:
+            return cot_df
+        try:
+            px_df = fetch_price_data(yf_ticker)
+            if px_df is None or px_df.empty:
+                return cot_df
+            px_idx = pd.to_datetime(px_df.index).tz_localize(None).normalize().astype("datetime64[us]")
+            px_close = px_df["Close"].values.astype(float)
+            price_lookup = pd.DataFrame({"_cot_date": px_idx, "close": px_close})
+            price_lookup = price_lookup.sort_values("_cot_date").reset_index(drop=True)
+            if "date" in cot_df.columns:
+                cot_idx = pd.to_datetime(cot_df["date"]).dt.tz_localize(None).dt.normalize().astype("datetime64[us]")
+            else:
+                cot_idx = pd.to_datetime(cot_df.index).tz_localize(None).normalize().astype("datetime64[us]")
+            cot_df = cot_df.copy()
+            cot_df["_cot_date"] = cot_idx.values
+            merged = pd.merge_asof(
+                cot_df.sort_values("_cot_date"),
+                price_lookup,
+                on="_cot_date",
+                direction="nearest",
+                tolerance=pd.Timedelta(days=7),
+            )
+            if "close" in merged.columns:
+                return merged.drop(columns=["_cot_date"])
+            else:
+                return cot_df.drop(columns=["_cot_date"])
+        except Exception as _px_err:
+            print(f"Price merge warning for {mid}: {_px_err}")
+            return cot_df
+    
+    # Run the synchronous per-market scoring loop in a thread executor so it
+    # doesn't block the async event loop. Each market calls yfinance (momentum,
+    # relval, price merge) which are synchronous I/O — cannot run in the event loop.
+    def _compute_all_market_scores():
+      _results = []
+      for market in MARKETS:
+        mid      = market["id"]
+        is_cross = market.get("cross", False)
+    
+        # ── COT scoring ──────────────────────────────────────────────────────────
+        if is_cross:
+            cot_data = compute_cross_cot_score(
+                mid,
+                market["base_leg"],
+                market["quote_leg"],
+                cot_df_cache,
+            )
+        elif market.get("crypto_cot_mode"):
+            cot_df = cot_df_cache.get(mid)
+            cot_df = _merge_price_into_cot(cot_df, market["yf"], mid)
+            cot_data = compute_crypto_cot_score(cot_df, market_id=mid)
+        else:
+            cot_df = cot_df_cache.get(mid)
+            cot_df = _merge_price_into_cot(cot_df, market["yf"], mid)
+            cot_data = compute_cot_score(cot_df, market_id=mid)
+        # ────────────────────────────────────────────────────────────────────────
+    
+        seasonal_data = score_seasonality(mid)
+        momentum_data = score_momentum(market["yf"])
+        import gc as _gc; _gc.collect()  # release yfinance buffers between markets
+        macro_data    = get_macro_score_for_market(mid, macro, ff_macro=ff_macro)
+        _news_sent    = news_ctx.get("narrative_scores", {}).get(mid)
+        regime_data   = get_regime_score_for_market(mid, regime, news_sentiment=_news_sent)
+        relval_data   = compute_rel_val_score(mid)
+        pcr_data      = score_pcr(mid)  # returns neutral for unsupported markets
+    
+        scores = {
+            "cot":      cot_data["score"],
+            "seasonal": seasonal_data["score"],
+            "momentum": momentum_data["score"],
+            "macro":    macro_data["score"],
+            "regime":   regime_data["score"],
+            "relval":   relval_data["score"],
         }
-        # Separate regular markets from cross pairs
-        regular_markets = [m for m in MARKETS if not m.get("cross")]
-        cross_markets   = [m for m in MARKETS if m.get("cross")]
+        # PCR only active for equity index markets
+        if mid in PCR_EQUITY_SYMBOLS:
+            scores["pcr"] = pcr_data["score"]
     
-        # Fetch COT only for regular markets (cross pairs derive from legs)
-        # ICE markets use fetch_ice_cot_history; CFTC markets use fetch_cot_history
-        async def _fetch_cot_for_market(m):
-            if m.get("ice_code"):
-                return await fetch_ice_cot_history(m["ice_code"])
-            else:
-                return await fetch_cot_history(m["cftc_code"], m["name"])
+        bias = compute_weighted_bias(scores, market_id=mid, cot_detail=cot_data)
     
-        # Also pre-fetch supplementary ICE datasets for cross-market COT blending:
-        # CC (NY Cocoa) <- supplemented by ICE London Cocoa ("Cocoa")
-        # KC (Arabica)  <- supplemented by ICE Robusta RC
-        async def _fetch_ice_london_cocoa():
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(_APP_EXECUTOR, _fetch_ice_cot_raw, "Cocoa")
-    
-        async def _fetch_ice_robusta():
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(_APP_EXECUTOR, _fetch_ice_cot_raw, "RC")
-    
-        async with httpx.AsyncClient(timeout=20):
-            cot_results, ice_london_cocoa_df, ice_robusta_df = await asyncio.gather(
-                asyncio.gather(*[_fetch_cot_for_market(m) for m in regular_markets], return_exceptions=True),
-                _fetch_ice_london_cocoa(),
-                _fetch_ice_robusta(),
-            )
-    
-        def _zscore_blend_cot(primary_df: pd.DataFrame, secondary_df: pd.DataFrame,
-                              primary_weight: float = 0.60) -> pd.DataFrame:
-            """
-            Z-score normalized blend of two COT DataFrames.
-    
-            Raw contract blending is INVALID when the two exchanges have different:
-              - OI scales (NY Cocoa ~200k lots vs London ~100k lots)
-              - Participant composition (London 65-73% commercial vs NY 48-50%)
-              - Currency denomination (USD vs GBP)
-    
-            Correct approach (per research):
-              1. For each exchange, compute z-scores of comm_net and lspec_net
-                 within their own full history (rolling 260w / 5yr window).
-              2. Blend the NORMALIZED scores (not raw contracts).
-              3. Back-convert to synthetic contract counts so downstream code is unaffected.
-    
-            primary_weight: fraction assigned to primary exchange (e.g. 0.60 for NY Cocoa).
-            """
-            if secondary_df is None or secondary_df.empty:
-                return primary_df
-            if primary_df is None or primary_df.empty:
-                return secondary_df
-            try:
-                p = primary_df.copy()
-                s = secondary_df.copy()
-                p["date"] = pd.to_datetime(p["date"])
-                s["date"] = pd.to_datetime(s["date"])
-                sw = 1.0 - primary_weight
-    
-                # ── Z-score each series within its own history ──────────────────
-                def rolling_zscore(series: pd.Series, window: int = 260) -> pd.Series:
-                    """Rolling z-score; min_periods=52 (1yr) for stability."""
-                    mu  = series.rolling(window, min_periods=52).mean()
-                    sig = series.rolling(window, min_periods=52).std()
-                    return (series - mu) / sig.replace(0, 1)
-    
-                p = p.sort_values("date").reset_index(drop=True)
-                s = s.sort_values("date").reset_index(drop=True)
-    
-                p["comm_z"]  = rolling_zscore(p["comm_net"].astype(float))
-                p["lspec_z"] = rolling_zscore(p["lspec_net"].astype(float))
-                p["sspec_z"] = rolling_zscore(p["sspec_net"].astype(float))
-                s["comm_z"]  = rolling_zscore(s["comm_net"].astype(float))
-                s["lspec_z"] = rolling_zscore(s["lspec_net"].astype(float))
-                s["sspec_z"] = rolling_zscore(s["sspec_net"].astype(float))
-    
-                # ── Merge on matching dates ─────────────────────────────────────
-                merged = pd.merge(
-                    p[["date","comm_z","lspec_z","sspec_z","comm_net","open_interest_all"]],
-                    s[["date","comm_z","lspec_z","sspec_z"]],
-                    on="date", suffixes=("_p","_s"), how="inner"
-                )
-                if len(merged) < 52:
-                    print(f"[COT ZBLEND] only {len(merged)} overlapping dates — skipping blend")
-                    return primary_df
-    
-                # ── Blend z-scores ──────────────────────────────────────────────
-                merged["comm_z_blended"]  = merged["comm_z_p"]  * primary_weight + merged["comm_z_s"]  * sw
-                merged["lspec_z_blended"] = merged["lspec_z_p"] * primary_weight + merged["lspec_z_s"] * sw
-                merged["sspec_z_blended"] = merged["sspec_z_p"] * primary_weight + merged["sspec_z_s"] * sw
-    
-                # ── Back-convert to synthetic contract counts ───────────────────
-                # Use primary's own rolling stats so downstream percentile logic is unaffected.
-                # blended_z * primary_std + primary_mean ≈ "what primary would look like"
-                # if it had the blended signal embedded.
-                def zscore_to_contracts(z_blend: pd.Series, raw_primary: pd.Series) -> pd.Series:
-                    window = 260
-                    mu  = raw_primary.rolling(window, min_periods=52).mean()
-                    sig = raw_primary.rolling(window, min_periods=52).std().replace(0, 1)
-                    result = (z_blend * sig + mu).round(0)
-                    # Replace any NaN/inf with the raw primary value (safe fallback)
-                    fallback = raw_primary.round(0)
-                    result = result.where(result.notna() & np.isfinite(result), other=fallback)
-                    return result.fillna(0).astype(int)
-    
-                # Align indices for rolling stats (use primary df aligned to merged dates)
-                p_aligned = p[p["date"].isin(merged["date"])].reset_index(drop=True)
-                merged = merged.reset_index(drop=True)
-    
-                merged["comm_net_blended"]  = zscore_to_contracts(merged["comm_z_blended"],  p_aligned["comm_net"].astype(float))
-                merged["lspec_net_blended"] = zscore_to_contracts(merged["lspec_z_blended"], p_aligned["lspec_net"].astype(float))
-                merged["sspec_net_blended"] = zscore_to_contracts(merged["sspec_z_blended"], p_aligned["sspec_net"].astype(float))
-    
-                # ── Write blended values back into primary df ───────────────────
-                out = primary_df.copy()
-                out["date"] = pd.to_datetime(out["date"])
-                for _, row in merged.iterrows():
-                    mask = out["date"] == row["date"]
-                    if mask.any():
-                        out.loc[mask, "comm_net"]  = row["comm_net_blended"]
-                        out.loc[mask, "lspec_net"] = row["lspec_net_blended"]
-                        out.loc[mask, "sspec_net"] = row["sspec_net_blended"]
-    
-                print(f"[COT ZBLEND] {len(merged)} dates blended via z-score normalization "
-                      f"({primary_weight:.0%} primary / {sw:.0%} secondary)")
-                return out
-            except Exception as _be:
-                print(f"[COT ZBLEND] blend failed: {_be}")
-                return primary_df
-    
-        # Build COT cache dict: market_id -> DataFrame (for cross pair derivation)
-        cot_df_cache: dict = {}
-        for i, market in enumerate(regular_markets):
-            df = cot_results[i] if not isinstance(cot_results[i], Exception) else None
-            mid = market["id"]
-    
-            # ── Cross-market COT blending ──────────────────────────────────────
-            # CC (NY Cocoa): z-score normalized blend — 60% CFTC NY + 40% ICE London.
-            # Raw contract blending is INVALID: London is GBP-denominated, different OI scale
-            # (~100k lots vs NY ~200k), different participant composition (London 65-73%
-            # commercial vs NY 48-50%). Z-score normalization makes each exchange's signal
-            # comparable on a unit-free basis before blending.
-            if mid == "CC" and ice_london_cocoa_df is not None:
-                df = _zscore_blend_cot(df, ice_london_cocoa_df, primary_weight=0.60)
-    
-            # KC (Arabica Coffee): NO blending with Robusta.
-            # Arabica and Robusta are structurally different commodities with separate commercial
-            # bases, supply chains, and participant profiles. Blending raw or even z-scored
-            # positions conflates independent supply/demand signals and adds noise, not signal.
-            # KC uses pure CFTC Arabica data only.
-            # (ice_robusta_df is fetched above and used only for the standalone RC market)
-    
-            cot_df_cache[market["id"]] = df
-    
-        def _merge_price_into_cot(cot_df, yf_ticker, mid):
-            """Merge weekly price closes into COT df for divergence signals."""
-            if cot_df is None or len(cot_df) < 10:
-                return cot_df
-            try:
-                px_df = fetch_price_data(yf_ticker)
-                if px_df is None or px_df.empty:
-                    return cot_df
-                px_idx = pd.to_datetime(px_df.index).tz_localize(None).normalize().astype("datetime64[us]")
-                px_close = px_df["Close"].values.astype(float)
-                price_lookup = pd.DataFrame({"_cot_date": px_idx, "close": px_close})
-                price_lookup = price_lookup.sort_values("_cot_date").reset_index(drop=True)
-                if "date" in cot_df.columns:
-                    cot_idx = pd.to_datetime(cot_df["date"]).dt.tz_localize(None).dt.normalize().astype("datetime64[us]")
-                else:
-                    cot_idx = pd.to_datetime(cot_df.index).tz_localize(None).normalize().astype("datetime64[us]")
-                cot_df = cot_df.copy()
-                cot_df["_cot_date"] = cot_idx.values
-                merged = pd.merge_asof(
-                    cot_df.sort_values("_cot_date"),
-                    price_lookup,
-                    on="_cot_date",
-                    direction="nearest",
-                    tolerance=pd.Timedelta(days=7),
-                )
-                if "close" in merged.columns:
-                    return merged.drop(columns=["_cot_date"])
-                else:
-                    return cot_df.drop(columns=["_cot_date"])
-            except Exception as _px_err:
-                print(f"Price merge warning for {mid}: {_px_err}")
-                return cot_df
-    
-        # Run the synchronous per-market scoring loop in a thread executor so it
-        # doesn't block the async event loop. Each market calls yfinance (momentum,
-        # relval, price merge) which are synchronous I/O — cannot run in the event loop.
-        def _compute_all_market_scores():
-          _results = []
-          for market in MARKETS:
-            mid      = market["id"]
-            is_cross = market.get("cross", False)
-    
-            # ── COT scoring ──────────────────────────────────────────────────────────
-            if is_cross:
-                cot_data = compute_cross_cot_score(
-                    mid,
-                    market["base_leg"],
-                    market["quote_leg"],
-                    cot_df_cache,
-                )
-            elif market.get("crypto_cot_mode"):
-                cot_df = cot_df_cache.get(mid)
-                cot_df = _merge_price_into_cot(cot_df, market["yf"], mid)
-                cot_data = compute_crypto_cot_score(cot_df, market_id=mid)
-            else:
-                cot_df = cot_df_cache.get(mid)
-                cot_df = _merge_price_into_cot(cot_df, market["yf"], mid)
-                cot_data = compute_cot_score(cot_df, market_id=mid)
-            # ────────────────────────────────────────────────────────────────────────
-    
-            seasonal_data = score_seasonality(mid)
-            momentum_data = score_momentum(market["yf"])
-            import gc as _gc; _gc.collect()  # release yfinance buffers between markets
-            macro_data    = get_macro_score_for_market(mid, macro, ff_macro=ff_macro)
-            _news_sent    = news_ctx.get("narrative_scores", {}).get(mid)
-            regime_data   = get_regime_score_for_market(mid, regime, news_sentiment=_news_sent)
-            relval_data   = compute_rel_val_score(mid)
-            pcr_data      = score_pcr(mid)  # returns neutral for unsupported markets
-    
-            scores = {
-                "cot":      cot_data["score"],
-                "seasonal": seasonal_data["score"],
-                "momentum": momentum_data["score"],
-                "macro":    macro_data["score"],
-                "regime":   regime_data["score"],
-                "relval":   relval_data["score"],
+        scores_out = {
+            "cot":      {"score": cot_data["score"],      "label": cot_data["label"],      "detail": cot_data.get("detail", cot_data)},
+            "seasonal": {"score": seasonal_data["score"], "label": seasonal_data["label"], "detail": seasonal_data.get("detail", seasonal_data)},
+            "momentum": {"score": momentum_data["score"], "label": momentum_data["label"], "detail": momentum_data.get("detail", {})},
+            "macro":    {"score": macro_data["score"],    "label": macro_data["label"],    "detail": macro_data},
+            "regime":   {"score": regime_data["score"],   "label": regime_data["label"],   "detail": regime_data},
+            "relval":   {"score": relval_data["score"],   "label": relval_data["label"],   "detail": {k: v for k, v in relval_data.items() if k != "lines"}},
+        }
+        if mid in PCR_ALL_SYMBOLS:
+            scores_out["pcr"] = {
+                "score": pcr_data["score"],
+                "label": pcr_data["label"],
+                "tier":  pcr_data.get("tier", 0),
+                "detail": pcr_data.get("detail", {}),
             }
-            # PCR only active for equity index markets
-            if mid in PCR_EQUITY_SYMBOLS:
-                scores["pcr"] = pcr_data["score"]
     
-            bias = compute_weighted_bias(scores, market_id=mid, cot_detail=cot_data)
-    
-            scores_out = {
-                "cot":      {"score": cot_data["score"],      "label": cot_data["label"],      "detail": cot_data.get("detail", cot_data)},
-                "seasonal": {"score": seasonal_data["score"], "label": seasonal_data["label"], "detail": seasonal_data.get("detail", seasonal_data)},
-                "momentum": {"score": momentum_data["score"], "label": momentum_data["label"], "detail": momentum_data.get("detail", {})},
-                "macro":    {"score": macro_data["score"],    "label": macro_data["label"],    "detail": macro_data},
-                "regime":   {"score": regime_data["score"],   "label": regime_data["label"],   "detail": regime_data},
-                "relval":   {"score": relval_data["score"],   "label": relval_data["label"],   "detail": {k: v for k, v in relval_data.items() if k != "lines"}},
-            }
-            if mid in PCR_ALL_SYMBOLS:
-                scores_out["pcr"] = {
-                    "score": pcr_data["score"],
-                    "label": pcr_data["label"],
-                    "tier":  pcr_data.get("tier", 0),
-                    "detail": pcr_data.get("detail", {}),
-                }
-    
-            # Determine the actual weight map used for this market (mirrors compute_weighted_bias routing)
-            # This is exposed per-market so the frontend can render the correct weight mini-bars
-            _ICE_THIN_MKTS = {"Z", "R"}
-            _FX_MKTS = {"6E","6J","6B","6A","6C","6N","6S","6M","DX",
-                        "EURJPY","EURGBP","EURAUD","EURCAD","EURNZD","EURCHF",
-                        "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
-                        "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
-                        "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
-            if mid in _ICE_THIN_MKTS:
-                mkt_weights = WEIGHTS_ICE_THIN
-            elif mid in PCR_ALL_SYMBOLS:
-                _tier = PCR_TIERS.get(mid, {}).get("tier", 0)
-                if _tier == 1:
-                    mkt_weights = WEIGHTS_EQUITY
-                elif _tier == 2:
-                    mkt_weights = WEIGHTS_PCR_TIER2
-                elif _tier == 3:
-                    mkt_weights = WEIGHTS_PCR_TIER3
-                elif _tier == 4:
-                    mkt_weights = WEIGHTS_PCR_TIER4
-                else:
-                    mkt_weights = WEIGHTS
-            elif mid in _FX_MKTS:
-                mkt_weights = WEIGHTS_FX
+        # Determine the actual weight map used for this market (mirrors compute_weighted_bias routing)
+        # This is exposed per-market so the frontend can render the correct weight mini-bars
+        _ICE_THIN_MKTS = {"Z", "R"}
+        _FX_MKTS = {"6E","6J","6B","6A","6C","6N","6S","6M","DX",
+                    "EURJPY","EURGBP","EURAUD","EURCAD","EURNZD","EURCHF",
+                    "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
+                    "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
+                    "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
+        if mid in _ICE_THIN_MKTS:
+            mkt_weights = WEIGHTS_ICE_THIN
+        elif mid in PCR_ALL_SYMBOLS:
+            _tier = PCR_TIERS.get(mid, {}).get("tier", 0)
+            if _tier == 1:
+                mkt_weights = WEIGHTS_EQUITY
+            elif _tier == 2:
+                mkt_weights = WEIGHTS_PCR_TIER2
+            elif _tier == 3:
+                mkt_weights = WEIGHTS_PCR_TIER3
+            elif _tier == 4:
+                mkt_weights = WEIGHTS_PCR_TIER4
             else:
                 mkt_weights = WEIGHTS
-            # Only expose weights for factors actually present in this market's scores
-            active_weights = {k: v for k, v in mkt_weights.items() if k in scores_out}
+        elif mid in _FX_MKTS:
+            mkt_weights = WEIGHTS_FX
+        else:
+            mkt_weights = WEIGHTS
+        # Only expose weights for factors actually present in this market's scores
+        active_weights = {k: v for k, v in mkt_weights.items() if k in scores_out}
     
-            _results.append({
-                "id":                mid,
-                "name":              market["name"],
-                "ticker":            market["ticker"],
-                "category":          market["category"],
-                "cross":             is_cross,
-                "base_leg":          market.get("base_leg"),
-                "quote_leg":         market.get("quote_leg"),
-                "cot_note":          market.get("cot_note", None),
-                "ice_source":        bool(market.get("ice_code")),
-                "ice_limited_history": bool(market.get("ice_limited_history", False)),
-                "cot_format":        market.get("cot_format", "legacy"),
-                "bias":              bias["bias"],
-                "weighted_score":    bias["weighted"],
-                "color":             bias["color"],
-                "confluence_bonus":  bias.get("confluence_bonus", 0.0),
-                "confluence_reason": bias.get("confluence_reason"),
-                "scores":            scores_out,
-                "weights":           active_weights,  # Per-market weight map (varies by data quality + PCR tier)
-            })
-          return _results
-        # end _compute_all_market_scores
+        _results.append({
+            "id":                mid,
+            "name":              market["name"],
+            "ticker":            market["ticker"],
+            "category":          market["category"],
+            "cross":             is_cross,
+            "base_leg":          market.get("base_leg"),
+            "quote_leg":         market.get("quote_leg"),
+            "cot_note":          market.get("cot_note", None),
+            "ice_source":        bool(market.get("ice_code")),
+            "ice_limited_history": bool(market.get("ice_limited_history", False)),
+            "cot_format":        market.get("cot_format", "legacy"),
+            "bias":              bias["bias"],
+            "weighted_score":    bias["weighted"],
+            "color":             bias["color"],
+            "confluence_bonus":  bias.get("confluence_bonus", 0.0),
+            "confluence_reason": bias.get("confluence_reason"),
+            "scores":            scores_out,
+            "weights":           active_weights,  # Per-market weight map (varies by data quality + PCR tier)
+        })
+      return _results
+    # end _compute_all_market_scores
     
-        # Run the loop in a thread — it contains sync yfinance calls (momentum, relval, price merge)
-        _loop = asyncio.get_event_loop()
-        results = await _loop.run_in_executor(_APP_EXECUTOR, _compute_all_market_scores)
-        print(f"[scores] Market scoring done in {time.time()-_refresh_start:.1f}s", flush=True)
+    # Run the loop in a thread — it contains sync yfinance calls (momentum, relval, price merge)
+    _loop = asyncio.get_event_loop()
+    results = await _loop.run_in_executor(_APP_EXECUTOR, _compute_all_market_scores)
+    print(f"[scores] Market scoring done in {time.time()-_refresh_start:.1f}s", flush=True)
     
-        # ── DX REGIME FEEDBACK LOOP ───────────────────────────────────────────────────
-        # When DX (US Dollar Index) has a strong composite signal, apply a
-        # calibrated cross-asset tilt to correlated markets via their regime score.
-        #
-        # Logic:
-        #   DX score ≥ 7.0 (bullish dollar) → bearish tilt on: GC, SI, CL, HG, 6E, 6B, 6A, 6C, 6J
-        #   DX score ≤ 3.0 (bearish dollar) → bullish tilt on: same set
-        #
-        # Magnitude:
-        #   Tilt applied to the *regime* component score only (keeps other factors clean)
-        #   Max tilt: ±0.4 on a 0-10 scale (modest — dollar is one factor among many)
-        #   Scaled by how far DX is from 5.0: a 7.0 DX applies less tilt than a 9.0 DX
-        #   FX pairs: full tilt. Commodities: 70% (supply factors dilute dollar effect).
-        #   Yen (6J): inverted — strong dollar = yen weakness IS the signal, already in COT
-        #
-        # Rationale:
-        #   The dollar’s inverse relationship with commodities and non-USD FX is well-established
-        #   (DXY vs GC 1Y correlation ~-0.75, vs CL ~-0.45, vs 6E ~-0.90).
-        #   This is not double-counting: the individual FX regime score uses CB differentials,
-        #   not the DX composite. The DX composite score incorporates COT + seasonality +
-        #   momentum + macro, giving a richer signal than rates alone.
-        # ────────────────────────────────────────────────────────────────
-        dx_market = next((r for r in results if r["id"] == "DX"), None)
-        dx_score  = dx_market["weighted_score"] if dx_market else None
+    # ── DX REGIME FEEDBACK LOOP ───────────────────────────────────────────────────
+    # When DX (US Dollar Index) has a strong composite signal, apply a
+    # calibrated cross-asset tilt to correlated markets via their regime score.
+    #
+    # Logic:
+    #   DX score ≥ 7.0 (bullish dollar) → bearish tilt on: GC, SI, CL, HG, 6E, 6B, 6A, 6C, 6J
+    #   DX score ≤ 3.0 (bearish dollar) → bullish tilt on: same set
+    #
+    # Magnitude:
+    #   Tilt applied to the *regime* component score only (keeps other factors clean)
+    #   Max tilt: ±0.4 on a 0-10 scale (modest — dollar is one factor among many)
+    #   Scaled by how far DX is from 5.0: a 7.0 DX applies less tilt than a 9.0 DX
+    #   FX pairs: full tilt. Commodities: 70% (supply factors dilute dollar effect).
+    #   Yen (6J): inverted — strong dollar = yen weakness IS the signal, already in COT
+    #
+    # Rationale:
+    #   The dollar’s inverse relationship with commodities and non-USD FX is well-established
+    #   (DXY vs GC 1Y correlation ~-0.75, vs CL ~-0.45, vs 6E ~-0.90).
+    #   This is not double-counting: the individual FX regime score uses CB differentials,
+    #   not the DX composite. The DX composite score incorporates COT + seasonality +
+    #   momentum + macro, giving a richer signal than rates alone.
+    # ────────────────────────────────────────────────────────────────
+    dx_market = next((r for r in results if r["id"] == "DX"), None)
+    dx_score  = dx_market["weighted_score"] if dx_market else None
     
-        # Only apply feedback when DX signal is clear (outside neutral zone 4.0–6.0)
-        if dx_score is not None and (dx_score >= 6.5 or dx_score <= 3.5):
-            dx_deviation = dx_score - 5.0   # +ve = dollar bullish, -ve = dollar bearish
-            # Scale tilt: each full point beyond neutral = 0.08 tilt (capped at 0.40)
-            base_tilt = round(max(-0.40, min(0.40, dx_deviation * 0.08)), 3)
+    # Only apply feedback when DX signal is clear (outside neutral zone 4.0–6.0)
+    if dx_score is not None and (dx_score >= 6.5 or dx_score <= 3.5):
+        dx_deviation = dx_score - 5.0   # +ve = dollar bullish, -ve = dollar bearish
+        # Scale tilt: each full point beyond neutral = 0.08 tilt (capped at 0.40)
+        base_tilt = round(max(-0.40, min(0.40, dx_deviation * 0.08)), 3)
     
-            # Markets affected + their tilt multiplier
-            # Sign of tilt: inverse to DX direction
-            #   DX bullish (positive deviation) → bearish tilt (negative) on these assets
-            DX_CORRELATED = {
-                # Precious metals — strong DX inverse
-                "GC":  -0.95,   # gold: strongest correlation
-                "SI":  -0.85,   # silver: strong but diluted by industrial
-                # Base metals — moderate DX inverse (growth channel dominates)
-                "HG":  -0.60,
-                # Energy — moderate DX inverse
-                "CL":  -0.55,
-                "RB":  -0.50,
-                "HO":  -0.50,
-                # FX (non-USD) — near-perfect inverse of DX
-                "6E":  -0.90,
-                "6B":  -0.80,
-                "6A":  -0.75,
-                "6C":  -0.70,
-                "6N":  -0.70,
-                "6S":  -0.75,
-                "6M":  -0.65,
-                # Yen: usually inverse DX, but COT/macro already captures BoJ dynamic well
-                # Apply a reduced weight to avoid double-counting
-                "6J":  -0.45,
-                # Crypto: mild dollar inverse (especially at extremes)
-                "BTC": -0.40,
-                "ETH": -0.40,
-                # ICE Europe: Brent and Gas Oil follow crude inverse-dollar pattern
-                "B":   -0.50,   # Brent: ~-0.50 inverse with DXY (slightly less than WTI)
-                "GO":  -0.45,   # Gas Oil: European diesel, moderate dollar inverse
-                # FTSE 100: USD strength = GBP weakness = higher FTSE EPS in GBP terms
-                # So FTSE has a POSITIVE correlation with strong USD (FX translation tailwind)
-                # This partially offsets risk-off pressure. Net: mild positive DX correlation
-                "Z":   +0.30,   # FTSE 100: weak pound = overseas earnings boost
-            }
-    
-            for mkt in results:
-                mid = mkt["id"]
-                if mid not in DX_CORRELATED or mid == "DX":
-                    continue
-                corr_mult = DX_CORRELATED[mid]
-                # Tilt direction: base_tilt is signed by DX direction
-                # corr_mult is negative (inverse relationship) so:
-                # DX bullish (+ve base_tilt) * corr_mult (-ve) = negative tilt on correlated asset
-                raw_tilt = base_tilt * corr_mult   # e.g. DX=8 → base_tilt=+0.24, GC: 0.24*-0.95=-0.228
-                regime_detail = mkt["scores"].get("regime", {})
-                old_regime_score = regime_detail.get("score", 5.0)
-                new_regime_score = round(max(0.0, min(10.0, old_regime_score + raw_tilt)), 2)
-    
-                # Recompute weighted score with adjusted regime score
-                factor_scores = {
-                    k: mkt["scores"][k]["score"]
-                    for k in mkt["scores"] if "score" in mkt["scores"][k]
-                }
-                factor_scores["regime"] = new_regime_score
-                cot_detail_for_mid = mkt["scores"].get("cot", {}).get("detail", {})
-                new_bias = compute_weighted_bias(factor_scores, market_id=mid, cot_detail=cot_detail_for_mid)
-    
-                # Update the result in place
-                mkt["scores"]["regime"]["score"]  = new_regime_score
-                mkt["scores"]["regime"]["dx_tilt"] = round(raw_tilt, 3)
-                mkt["scores"]["regime"]["dx_tilt_source"] = f"DX {dx_score:.1f}/10 → {'bull' if dx_deviation > 0 else 'bear'} dollar feedback"
-                mkt["weighted_score"]  = new_bias["weighted"]
-                mkt["bias"]            = new_bias["bias"]
-                mkt["color"]           = new_bias["color"]
-                mkt["confluence_bonus"]= new_bias.get("confluence_bonus", 0.0)
-    
-        results.sort(key=lambda x: x["weighted_score"], reverse=True)
-    
-        # Strip nulls from cot.detail for every market — saves ~15KB from the payload
-        for mkt in results:
-            cot_detail = mkt.get("scores", {}).get("cot", {}).get("detail")
-            if isinstance(cot_detail, dict):
-                mkt["scores"]["cot"]["detail"] = {k: v for k, v in cot_detail.items() if v is not None}
-    
-        output = {
-            "updated_at":    datetime.utcnow().isoformat() + "Z",
-            "regime":        regime,
-            "macro_all":     macro,
-            "ff_macro":      ff_macro,  # per-currency FF economy scores
-            "markets":       results,
-            "weights":           WEIGHTS,
-            "weights_equity":    WEIGHTS_EQUITY,
-            "weights_fx":        WEIGHTS_FX,
-            "weights_pcr_tier2": WEIGHTS_PCR_TIER2,
-            "weights_pcr_tier3": WEIGHTS_PCR_TIER3,
-            "weights_pcr_tier4": WEIGHTS_PCR_TIER4,
-            "weights_ice_thin":  WEIGHTS_ICE_THIN,  # Applied to Z (FTSE100) and R (Long Gilt) — thin COT history
-            # news_context intentionally excluded — frontend fetches /api/news-context separately
+        # Markets affected + their tilt multiplier
+        # Sign of tilt: inverse to DX direction
+        #   DX bullish (positive deviation) → bearish tilt (negative) on these assets
+        DX_CORRELATED = {
+            # Precious metals — strong DX inverse
+            "GC":  -0.95,   # gold: strongest correlation
+            "SI":  -0.85,   # silver: strong but diluted by industrial
+            # Base metals — moderate DX inverse (growth channel dominates)
+            "HG":  -0.60,
+            # Energy — moderate DX inverse
+            "CL":  -0.55,
+            "RB":  -0.50,
+            "HO":  -0.50,
+            # FX (non-USD) — near-perfect inverse of DX
+            "6E":  -0.90,
+            "6B":  -0.80,
+            "6A":  -0.75,
+            "6C":  -0.70,
+            "6N":  -0.70,
+            "6S":  -0.75,
+            "6M":  -0.65,
+            # Yen: usually inverse DX, but COT/macro already captures BoJ dynamic well
+            # Apply a reduced weight to avoid double-counting
+            "6J":  -0.45,
+            # Crypto: mild dollar inverse (especially at extremes)
+            "BTC": -0.40,
+            "ETH": -0.40,
+            # ICE Europe: Brent and Gas Oil follow crude inverse-dollar pattern
+            "B":   -0.50,   # Brent: ~-0.50 inverse with DXY (slightly less than WTI)
+            "GO":  -0.45,   # Gas Oil: European diesel, moderate dollar inverse
+            # FTSE 100: USD strength = GBP weakness = higher FTSE EPS in GBP terms
+            # So FTSE has a POSITIVE correlation with strong USD (FX translation tailwind)
+            # This partially offsets risk-off pressure. Net: mild positive DX correlation
+            "Z":   +0.30,   # FTSE 100: weak pound = overseas earnings boost
         }
-        # Always store with full TTL — narratives have their own endpoint and cache
-        ALL_DATA_CACHE["data"] = output
-        ALL_DATA_CACHE["time"] = now
-        print(f"[scores] Cache populated, lock released — total {time.time()-_refresh_start:.1f}s", flush=True)
-    return _SafeJSONResponse(output)
+    
+        for mkt in results:
+            mid = mkt["id"]
+            if mid not in DX_CORRELATED or mid == "DX":
+                continue
+            corr_mult = DX_CORRELATED[mid]
+            # Tilt direction: base_tilt is signed by DX direction
+            # corr_mult is negative (inverse relationship) so:
+            # DX bullish (+ve base_tilt) * corr_mult (-ve) = negative tilt on correlated asset
+            raw_tilt = base_tilt * corr_mult   # e.g. DX=8 → base_tilt=+0.24, GC: 0.24*-0.95=-0.228
+            regime_detail = mkt["scores"].get("regime", {})
+            old_regime_score = regime_detail.get("score", 5.0)
+            new_regime_score = round(max(0.0, min(10.0, old_regime_score + raw_tilt)), 2)
+    
+            # Recompute weighted score with adjusted regime score
+            factor_scores = {
+                k: mkt["scores"][k]["score"]
+                for k in mkt["scores"] if "score" in mkt["scores"][k]
+            }
+            factor_scores["regime"] = new_regime_score
+            cot_detail_for_mid = mkt["scores"].get("cot", {}).get("detail", {})
+            new_bias = compute_weighted_bias(factor_scores, market_id=mid, cot_detail=cot_detail_for_mid)
+    
+            # Update the result in place
+            mkt["scores"]["regime"]["score"]  = new_regime_score
+            mkt["scores"]["regime"]["dx_tilt"] = round(raw_tilt, 3)
+            mkt["scores"]["regime"]["dx_tilt_source"] = f"DX {dx_score:.1f}/10 → {'bull' if dx_deviation > 0 else 'bear'} dollar feedback"
+            mkt["weighted_score"]  = new_bias["weighted"]
+            mkt["bias"]            = new_bias["bias"]
+            mkt["color"]           = new_bias["color"]
+            mkt["confluence_bonus"]= new_bias.get("confluence_bonus", 0.0)
+    
+    results.sort(key=lambda x: x["weighted_score"], reverse=True)
+    
+    # Strip nulls from cot.detail for every market — saves ~15KB from the payload
+    for mkt in results:
+        cot_detail = mkt.get("scores", {}).get("cot", {}).get("detail")
+        if isinstance(cot_detail, dict):
+            mkt["scores"]["cot"]["detail"] = {k: v for k, v in cot_detail.items() if v is not None}
+    
+    output = {
+        "updated_at":    datetime.utcnow().isoformat() + "Z",
+        "regime":        regime,
+        "macro_all":     macro,
+        "ff_macro":      ff_macro,  # per-currency FF economy scores
+        "markets":       results,
+        "weights":           WEIGHTS,
+        "weights_equity":    WEIGHTS_EQUITY,
+        "weights_fx":        WEIGHTS_FX,
+        "weights_pcr_tier2": WEIGHTS_PCR_TIER2,
+        "weights_pcr_tier3": WEIGHTS_PCR_TIER3,
+        "weights_pcr_tier4": WEIGHTS_PCR_TIER4,
+        "weights_ice_thin":  WEIGHTS_ICE_THIN,  # Applied to Z (FTSE100) and R (Long Gilt) — thin COT history
+        # news_context intentionally excluded — frontend fetches /api/news-context separately
+    }
+    # Always store with full TTL — narratives have their own endpoint and cache
+    ALL_DATA_CACHE["data"] = output
+    ALL_DATA_CACHE["time"] = time.time()
+    print(f"[scores] Cache populated — total {time.time()-_refresh_start:.1f}s", flush=True)
 
 # ============================================================
 # NEWS CONTEXT ENDPOINT
