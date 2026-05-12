@@ -9502,6 +9502,12 @@ async def warmup_cache():
             print("[startup] Pre-warm complete — ALL_DATA_CACHE populated")
         except Exception as e:
             print(f"[startup] Pre-warm error (non-fatal): {e}")
+        # Pre-warm yield curve history cache (separate FRED fetch, not in scores)
+        try:
+            await _fetch_yield_curve_history_async()
+            print("[startup] Yield curve history cache pre-warmed")
+        except Exception as e:
+            print(f"[startup] Yield curve pre-warm error (non-fatal): {e}")
         _gc_if_heavy("post-startup-warmup")
         _WARMING["done"] = True
     _astart.ensure_future(_warm())

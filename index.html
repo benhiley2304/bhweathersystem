@@ -5780,7 +5780,8 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:${inflBadgeCol};background:${inflBadgeCol}18;border:1px solid ${inflBadgeCol}30">${inflBadgeLabel}</span>
         </div>
-        <!-- Arc + CPI hero -->
+
+        <!-- Hero: Arc + CPI reading -->
         <div style="display:flex;align-items:center;gap:10px">
           <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0">
             ${arcSVG(inflArcPct, inflArcCol, 88, 10)}
@@ -5788,21 +5789,73 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:6px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-top:2px">composite /10</div>
           </div>
           <div style="flex:1;padding-left:10px;border-left:1px solid rgba(255,255,255,0.08)">
-            <div style="font-family:var(--mono);font-size:34px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
-            <div style="font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:3px">CPI YoY</div>
-            <div style="font-family:var(--mono);font-size:7.5px;color:var(--faint);margin-top:1px">vs Fed 2% target</div>
+            <div style="font-family:var(--mono);font-size:38px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
+            <div style="font-family:var(--mono);font-size:7.5px;color:var(--faint);margin-top:3px">CPI YoY · Fed target 2.0%</div>
+            ${(()=>{
+              const cpiNum = parseFloat(cpiVal);
+              const gap = cpiNum&&!isNaN(cpiNum) ? +(cpiNum - 2.0).toFixed(2) : null;
+              const gapCol = gap==null?'#adb8d0':gap>2?'#e03a2a':gap>0.5?'#f5c842':gap>-0.2?'#adb8d0':'#22c97a';
+              return gap!=null?`<div style="font-family:var(--mono);font-size:9px;font-weight:800;color:${gapCol};margin-top:2px">${gap>=0?'+':''}${gap}% vs target</div>`:""
+            })()}
           </div>
         </div>
-        <!-- 5-row data table -->
-        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end">
-          <div class="mc-sect" style="margin:6px 0 3px"><div class="mc-sect-lbl">Price Indicators</div><div class="mc-sect-line"></div></div>
-          ${inflRows.map(r=>`
-          <div style="display:grid;grid-template-columns:64px 1fr auto auto;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-            <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">${r.label}</span>
-            <div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden"><div style="height:100%;width:${Math.min(100,(r.score/10)*100).toFixed(1)}%;background:${r.col};border-radius:2px;transition:width 0.6s ease"></div></div>
-            <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${r.col};text-align:right;min-width:34px">${r.val}</span>
-            <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${r.col};min-width:16px;text-align:right">${r.score.toFixed(1)}</span>
-          </div>`).join('')}
+
+        <!-- Fed Target Deviation Bar -->
+        ${(()=>{
+          const cpiNum = parseFloat(cpiVal);
+          if(!cpiNum||isNaN(cpiNum)) return '';
+          // Scale: 0% = 0bp, full bar = 8% CPI. Target pin at 2/8 = 25%
+          const MAX_CPI = 8.0;
+          const targetPct = (2.0 / MAX_CPI) * 100;
+          const currentPct = Math.min(100, Math.max(0, (cpiNum / MAX_CPI) * 100));
+          const aboveTarget = cpiNum > 2.0;
+          const fillStart = aboveTarget ? targetPct : currentPct;
+          const fillWidth = Math.abs(currentPct - targetPct);
+          const fillCol = aboveTarget ? '#e03a2a' : '#22c97a';
+          return `
+          <div style="margin:2px 0 4px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">CPI vs Fed Target</span>
+              <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">0% → 8%</span>
+            </div>
+            <div style="position:relative;height:10px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:visible">
+              <!-- Background track: green zone below 2%, red above -->
+              <div style="position:absolute;left:0;top:0;height:100%;width:${targetPct.toFixed(1)}%;background:linear-gradient(90deg,rgba(34,201,122,0.12),rgba(34,201,122,0.06));border-radius:5px 0 0 5px"></div>
+              <div style="position:absolute;left:${targetPct.toFixed(1)}%;top:0;height:100%;width:${(100-targetPct).toFixed(1)}%;background:linear-gradient(90deg,rgba(224,58,42,0.06),rgba(224,58,42,0.18));border-radius:0 5px 5px 0"></div>
+              <!-- Deviation fill -->
+              <div style="position:absolute;top:1px;bottom:1px;left:${fillStart.toFixed(1)}%;width:${fillWidth.toFixed(1)}%;background:${fillCol};border-radius:3px;opacity:0.75"></div>
+              <!-- Current CPI marker -->
+              <div style="position:absolute;top:-3px;bottom:-3px;width:2px;left:${currentPct.toFixed(1)}%;background:${cpiCol};border-radius:2px;box-shadow:0 0 6px ${cpiCol}aa;transform:translateX(-50%)"></div>
+              <!-- 2% target pin -->
+              <div style="position:absolute;top:-4px;bottom:-4px;width:1.5px;left:${targetPct.toFixed(1)}%;background:rgba(255,255,255,0.4);border-radius:1px;transform:translateX(-50%)"></div>
+            </div>
+            <div style="position:relative;height:10px">
+              <div style="position:absolute;left:${targetPct.toFixed(1)}%;transform:translateX(-50%);font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.35);white-space:nowrap">2% target</div>
+              <div style="position:absolute;left:${Math.min(96,Math.max(4,currentPct)).toFixed(1)}%;transform:translateX(-50%);font-family:var(--mono);font-size:6px;font-weight:800;color:${cpiCol};white-space:nowrap">${cpiNum.toFixed(2)}%</div>
+            </div>
+          </div>`;
+        })()}
+
+        <!-- Price Indicators: 2-col metric tiles -->
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div class="mc-sect" style="margin:2px 0 5px"><div class="mc-sect-lbl">Price Indicators</div><div class="mc-sect-line"></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;flex:1">
+            ${inflRows.map(r=>{
+              const trendArrow = r.trend==='Rising'?'↗':r.trend==='Falling'?'↘':r.trend==='Stable'?'→':'';
+              const trendCol = r.trend==='Rising'?'#e03a2a':r.trend==='Falling'?'#22c97a':'#adb8d0';
+              const barW = Math.min(100, (parseFloat(r.val)||0) / 8 * 100).toFixed(0);
+              return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-left:2px solid ${r.col}55;border-radius:8px;padding:7px 9px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+                  <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);white-space:nowrap">${r.label}</span>
+                  ${trendArrow?`<span style="font-size:9px;color:${trendCol};line-height:1">${trendArrow}</span>`:''}
+                </div>
+                <div style="font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${r.col}">${r.val}</div>
+                <div style="height:2px;border-radius:1px;background:rgba(255,255,255,0.06);margin-top:4px;overflow:hidden">
+                  <div style="height:100%;width:${barW}%;background:${r.col};border-radius:1px;opacity:0.7"></div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
         </div>
       </div>`;
       })()}
@@ -6171,17 +6224,26 @@ async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, c
   const el = document.getElementById('ov-yc-chart');
   if (!el) return;
 
+  // Retry up to 4 times with increasing delay — backend may be cold-starting
   let data;
-  try {
-    const r = await fetch(API + '/api/yield-curve-history');
-    if (!r.ok) throw new Error('fetch failed');
-    data = await r.json();
-  } catch(e) {
-    el.innerHTML = '<span style="font-size:9px;color:var(--faint);font-family:var(--mono)">Unavailable</span>';
-    return;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 2500));
+      const r = await fetch(API + '/api/yield-curve-history');
+      if (!r.ok) throw new Error('fetch failed');
+      data = await r.json();
+      if (!data.error && data.now) break; // got good data
+    } catch(e) {
+      if (attempt === 3) {
+        el.innerHTML = '<span style="font-size:9px;color:var(--faint);font-family:var(--mono)">Unavailable</span>';
+        return;
+      }
+    }
   }
-  if (data.error || !data.now) {
-    el.innerHTML = '<span style="font-size:9px;color:var(--faint);font-family:var(--mono)">No data</span>';
+  if (!data || data.error || !data.now) {
+    el.innerHTML = '<span style="font-size:9px;color:var(--faint);font-family:var(--mono)">Loading…</span>';
+    // Schedule one more attempt in 8s
+    setTimeout(() => loadYieldCurveChart(nowCol), 8000);
     return;
   }
 
