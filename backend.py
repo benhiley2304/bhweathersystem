@@ -4603,6 +4603,9 @@ def compute_stock_climate() -> dict:
                         "score": mom_score,
                         "category": "momentum",
                     }
+                    # Store last 26 weekly closes for frontend sparkline
+                    n_spark = min(26, len(closes))
+                    signals["_spx_closes"] = [round(float(v), 2) for v in closes.iloc[-n_spark:].tolist()]
         except Exception:
             pass
 

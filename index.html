@@ -5428,7 +5428,8 @@ function renderMacroDataPanels(reg){
   const t10y2y      = yc.t10y2y;
   const spreadStr   = t10y2y!=null?`${t10y2y>=0?'+':''}${t10y2y.toFixed(2)}%`:'—';
 
-  // ── Credit vars
+  // ── Credit vars — always blue-accented (user preference)
+  const CREDIT_BLUE = '#5c9eff';
   const hyOas    = cr.hy_oas_bps??null;
   const igOas    = cr.ig_oas_bps??null;
   const hyTrend  = cr.hy_trend||'';
@@ -5448,21 +5449,23 @@ function renderMacroDataPanels(reg){
   const igPctMin  = cr.ig_pct_min??null;
   const igPctMax  = cr.ig_pct_max??null;
   const _pctZone = p => p==null?'—':p<=20?'Tight':p<=40?'Below Avg':p<=60?'Average':p<=80?'Above Avg':'Wide';
-  const _pctZoneCol = p => p==null?'#5a6480':p<=20?'#22c97a':p<=40?'#5ec47a':p<=60?'#adb8d0':p<=80?'#f5c842':'#e03a2a';
+  // Delta colours: green = spreads tightening (good), red = widening (bad)
+  const _deltaCol = v => v==null?'#5a6480':v<0?'#22c97a':v>0?'#e03a2a':'#adb8d0';
   const _hyZoneFallback = hyOas!=null?(hyOas<250?'Tight':hyOas<350?'Normal':hyOas<500?'Wide':'Stress'):'—';
   const _igZoneFallback = igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':igOas<170?'Wide':'Stress'):'—';
-  const _hyColFallback  = hyOas!=null?(hyOas<250?'#22c97a':hyOas<350?'#adb8d0':hyOas<500?'#f5c842':'#e03a2a'):'#5a6480';
-  const _igColFallback  = igOas!=null?(igOas<80?'#22c97a':igOas<120?'#adb8d0':igOas<170?'#f5c842':'#e03a2a'):'#5a6480';
   const hyZoneLabel = hyHistPct!=null?_pctZone(hyHistPct):_hyZoneFallback;
   const igZoneLabel = igHistPct!=null?_pctZone(igHistPct):_igZoneFallback;
-  const hyCol = hyHistPct!=null?_pctZoneCol(hyHistPct):_hyColFallback;
-  const igCol = igHistPct!=null?_pctZoneCol(igHistPct):_igColFallback;
+  // HY/IG OAS level colours (green=tight, red=stressed) — used on numbers only
+  const _hyNumCol = hyOas!=null?(hyOas<250?'#22c97a':hyOas<350?'#adb8d0':hyOas<500?'#f5c842':'#e03a2a'):'#5a6480';
+  const _igNumCol = igOas!=null?(igOas<80?'#22c97a':igOas<120?'#adb8d0':igOas<170?'#f5c842':'#e03a2a'):'#5a6480';
+  // Card accent always blue
+  const crSpreadCol = CREDIT_BLUE;
+  // Status label
   const _avgPct = (hyHistPct!=null&&igHistPct!=null)?(hyHistPct+igHistPct)/2:(hyHistPct??igHistPct);
   const _levelLabel = _pctZone(_avgPct);
-  const _levelCol   = _pctZoneCol(_avgPct);
-  const _momSuffix = (hyTrend==='Widening'&&_avgPct!=null&&_avgPct<=40)?' ↑':(hyTrend==='Tightening'&&_avgPct!=null&&_avgPct>=60)?' ↓':'';
+  const _momSuffix = (hyTrend==='Widening')?' ↑':(hyTrend==='Tightening')?' ↓':'';
   const crLabel     = _levelLabel + _momSuffix;
-  const crSpreadCol = _levelCol;
+
   const ryVal    = ry.value??null;
   const ryCol    = ryVal!=null?(ryVal<0?'#22c97a':ryVal>2.5?'#e03a2a':ryVal>1.0?'#f5c842':'#adb8d0'):'#5a6480';
   const effr     = rs.effr??null;
@@ -5479,7 +5482,7 @@ function renderMacroDataPanels(reg){
   const fbChg12mP = fb.chg_12m_pct??null;
   const fbMin=4.0,fbMax=9.0;
   const fbPct    = fbLevel!=null?Math.min(100,Math.max(0,((fbLevel-fbMin)/(fbMax-fbMin))*100)):50;
-  const fbCol    = fbTrend.includes('Contract')||fbTrend.includes('QT')?'#e03a2a':fbTrend.includes('Expand')?'#adb8d0':'#5a6480';
+  const fbCol    = fbTrend.includes('Contract')||fbTrend.includes('QT')?'#e03a2a':fbTrend.includes('Expand')?'#22c97a':'#5a6480';
   const lineCol  = fbChg3m!=null?(fbChg3m<0?'#e03a2a':fbChg3m>0?'#22c97a':'#5a6480'):fbCol;
 
   // ── Labour vars
@@ -5524,6 +5527,26 @@ function renderMacroDataPanels(reg){
   const joltsCol= jolts!=null?(jolts>8?'#22c97a':jolts>7?'#adb8d0':jolts>6?'#f5c842':'#e03a2a'):'#5a6480';
   const jcCol   = jobsComp!=null?(jobsComp>=7?'#22c97a':jobsComp>=5.5?'#5aaa7a':jobsComp>=4.5?'#f5c842':jobsComp>=3.5?'#e07a2a':'#e03a2a'):'#adb8d0';
   const jcLabel = jobsComp!=null?(jobsComp>=7?'Strong':jobsComp>=5.5?'Healthy':jobsComp>=4.5?'Neutral':jobsComp>=3.5?'Cooling':'Weak'):'—';
+
+  // ── Inflation: hoist badge colour so RAF block can reference it
+  const inflComps = ['CPI','CORE_CPI','PPI','PCE','CORE_PCE'];
+  const inflLabels = {CPI:'CPI YoY',CORE_CPI:'Core CPI',PPI:'PPI YoY',PCE:'PCE YoY',CORE_PCE:'Core PCE'};
+  const inflRows = inflComps.map(k=>{
+    const c = macroComps[k];
+    if(!c) return null;
+    const val = c.actual||c.display||'—';
+    const score = c.score??5;
+    const col = score>=7?'#e03a2a':score>=5.5?'#f5c842':score>=4.5?'#adb8d0':score>=3?'#5aaa7a':'#22c97a';
+    const trend = c.trend_label||'';
+    return {k, label:inflLabels[k]||k, val, score, col, trend};
+  }).filter(Boolean);
+  const inflScores = inflRows.map(r=>r.score).filter(v=>v!=null);
+  const inflAvg = inflScores.length?inflScores.reduce((a,b)=>a+b,0)/inflScores.length:5;
+  const inflBadgeLabel = inflAvg>=7?'Hot':inflAvg>=6?'Elevated':inflAvg>=4.5?'Moderate':inflAvg>=3?'Subdued':'Anchored';
+  const inflBadgeCol   = inflAvg>=7?'#e03a2a':inflAvg>=6?'#f5c842':inflAvg>=4.5?'#adb8d0':inflAvg>=3?'#5aaa7a':'#22c97a';
+  const inflArcCol     = inflBadgeCol;
+  // Arc: show "calm" = full arc. Invert: anchored (low score) = high arc fill
+  const inflArcPct     = Math.max(0, Math.min(100, (1 - inflAvg/10) * 100));
 
   // ── SVG arc gauge
   function arcSVG(pct, col, size=100, strokeW=11){
@@ -5572,39 +5595,11 @@ function renderMacroDataPanels(reg){
       `:''}    </svg>`;
   }
 
-  // Stat chip helper
-  function chip(label,val,col=''){
-    return `<div class="ov-mc-stat">
-      <div class="ov-mc-stat-lbl">${label}</div>
-      <div class="ov-mc-stat-val" ${col?`style="color:${col}"`:''}>${val}</div>
-    </div>`;
-  }
-
   // Surprise pill helper
   function surprisePill(label,col){
     if(!label)return'';
     return `<span style="font-size:7px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;
       padding:2px 7px;border-radius:20px;background:${col}18;border:1px solid ${col}35;color:${col};white-space:nowrap">${label}</span>`;
-  }
-
-  // FF row helper
-  function ffRow(label, ffData, unit, higherGood){
-    if(!ffData) return '';
-    const act=ffData.actual, fct=ffData.forecast, surp=ffData.surprise, beat=ffData.beat;
-    if(act==null||fct==null) return '';
-    const sCol=beat?'#22c97a':'#e03a2a';
-    const surpStr=surp!=null?(surp>0?'+':'')+surp+unit:'';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-      <span style="font-size:9px;font-weight:600;color:var(--dim);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</span>
-      <span style="font-size:9px;font-weight:700;color:var(--dim);margin:0 6px">${fct}${unit}</span>
-      <span style="font-size:9px;font-weight:800;color:${sCol};margin:0 6px">${act}${unit}</span>
-      <span style="font-size:7px;font-weight:800;letter-spacing:0.06em;padding:1px 5px;border-radius:3px;background:${sCol}18;border:1px solid ${sCol}30;color:${sCol};white-space:nowrap">${beat?'BEAT':'MISS'}${surpStr?` ${surpStr}`:''}</span>
-    </div>`;
-  }
-
-  // Mini bar helper
-  function miniBar(pct, col){
-    return `<div class="ov-lab-mini-bar"><div class="ov-lab-mini-fill" style="width:${Math.min(100,Math.max(0,pct)).toFixed(1)}%;background:${col}"></div></div>`;
   }
 
   // ── Tenor dot colour
@@ -5639,7 +5634,7 @@ function renderMacroDataPanels(reg){
   const vsPeak = fbLevel!=null?Math.round((fbLevel/8.97)*100):null;
 
   el.innerHTML=`
-    <div class="ov-macro-sect-header">Economy & Markets</div>
+    <div class="ov-macro-sect-header">Economy &amp; Markets</div>
     <div class="ov-macro-panels">
 
       <!-- ══ ROW 1: FUNDAMENTALS ═══════════════════════════════════════════ -->
@@ -5686,7 +5681,7 @@ function renderMacroDataPanels(reg){
             </div>
           </div>
           <div style="margin-top:auto">
-            <div class="mc-sect" style="margin:0 0 3px"><div class="mc-sect-lbl">${ffHasData?'Latest Actuals':'Indicators'}</div><div class="mc-sect-line"></div></div>
+            <div class="mc-sect" style="margin:4px 0 3px"><div class="mc-sect-lbl">${ffHasData?'Latest Actuals':'Indicators'}</div><div class="mc-sect-line"></div></div>
             ${ffHasData ? ffRows.map(r=>{
               const sCol=r.d.beat?'#22c97a':'#e03a2a';
               const surpStr=r.d.surprise!=null?(r.d.surprise>0?'+':'')+r.d.surprise+r.unit:'';
@@ -5724,39 +5719,12 @@ function renderMacroDataPanels(reg){
 
       <!-- PANEL 2: INFLATION ══════════════════════════════════════════════ -->
       ${(()=>{
-        // Pull 5 inflation components from macro_all.components
-        const inflComps = ['CPI','CORE_CPI','PPI','PCE','CORE_PCE'];
-        const inflLabels = {CPI:'CPI YoY',CORE_CPI:'Core CPI',PPI:'PPI YoY',PCE:'PCE YoY',CORE_PCE:'Core PCE'};
-        const inflRows = inflComps.map(k=>{
-          const c = macroComps[k];
-          if(!c) return null;
-          const val = c.actual||c.display||'—';
-          const score = c.score??5;
-          // For inflation: higher = worse for markets (bearish), so invert colour logic
-          const col = score>=7?'#e03a2a':score>=5.5?'#f5c842':score>=4.5?'#adb8d0':score>=3?'#5aaa7a':'#22c97a';
-          const trend = c.trend_label||'';
-          return {k, label:inflLabels[k]||k, val, score, col, trend};
-        }).filter(Boolean);
-
-        // Composite inflation score (avg of available)
-        const inflScores = inflRows.map(r=>r.score).filter(v=>v!=null);
-        const inflAvg = inflScores.length?inflScores.reduce((a,b)=>a+b,0)/inflScores.length:5;
-        // Inflation: high score = high/rising inflation = bearish (red). Invert for display.
-        const inflArcPct = inflAvg*10;
-        // Badge: high inflation = Hot/Elevated, low = Subdued/Anchored
-        const inflBadgeLabel = inflAvg>=7?'Hot':inflAvg>=6?'Elevated':inflAvg>=4.5?'Moderate':inflAvg>=3?'Subdued':'Anchored';
-        const inflBadgeCol   = inflAvg>=7?'#e03a2a':inflAvg>=6?'#f5c842':inflAvg>=4.5?'#adb8d0':inflAvg>=3?'#5aaa7a':'#22c97a';
-        // Arc colour tracks how inflationary the environment is
-        const inflArcCol = inflBadgeCol;
-
-        // Hero: CPI YoY as primary number
         const cpiComp = macroComps['CPI'];
         const cpiVal = cpiComp?.actual||cpiComp?.display||'—';
         const cpiCol = (()=>{
           const s = cpiComp?.score??5;
           return s>=7?'#e03a2a':s>=6?'#f5c842':s>=4?'#adb8d0':'#22c97a';
         })();
-
         return `
       <div class="ov-macro-card" id="ov-macro-inflation">
         <div class="ov-macro-card-glow" style="background:${inflArcCol}"></div>
@@ -5814,8 +5782,8 @@ function renderMacroDataPanels(reg){
           <div style="font-family:var(--mono);font-size:36px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${lineCol}">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
           ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent)">${vsPeak}% of QE peak</span>`:''}
         </div>
-        <div style="flex:1;min-height:0;padding:6px 4px 2px;background:rgba(255,255,255,0.02);border-radius:7px;border:1px solid rgba(255,255,255,0.05);display:flex;align-items:stretch">
-          <div style="width:100%">${svgChart}</div>
+        <div class="ov-bs-arc-wrap" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 0">
+          <canvas id="ov-bs-arc-canvas" style="width:100%;max-width:260px;display:block"></canvas>
         </div>
         <div>
           <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Period Changes</div><div class="mc-sect-line"></div></div>
@@ -5890,7 +5858,13 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:15px;font-weight:900;color:${t3t10Col}">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</div>
           </div>
         </div>
-        <div id="ov-yc-canvas-wrap" class="ov-yc-canvas-wrap" style="flex:1;min-height:90px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.05);overflow:hidden"></div>
+        <div id="ov-yc-canvas-wrap" class="ov-yc-canvas-wrap" style="flex:1;min-height:90px;height:90px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.05);overflow:hidden;position:relative">
+          <canvas id="ov-yc-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:block"></canvas>
+        </div>
+        <div>
+          <div class="mc-sect" style="margin:4px 0 3px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
+          <div id="ov-yc-chart" style="height:56px;position:relative"></div>
+        </div>
         <div>
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Momentum (2s10s)</div><div class="mc-sect-line"></div></div>
           ${momRow('3M change', sChg3m, sCol3m)}
@@ -5920,43 +5894,43 @@ function renderMacroDataPanels(reg){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
           <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:10px 12px">
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">HY OAS</div>
-            <div class="ov-cs-num-val is-hy" style="font-family:var(--mono);font-size:36px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${hyCol}">${hyOas!=null?hyOas+'bp':'—'}</div>
-            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${hyCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${hyZoneLabel}</div>
+            <div style="font-family:var(--mono);font-size:36px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_hyNumCol}">${hyOas!=null?hyOas+'bp':'—'}</div>
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${_hyNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${hyZoneLabel}</div>
           </div>
           <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:10px 12px">
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">IG OAS</div>
-            <div class="ov-cs-num-val is-ig" style="font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${igCol}">${igOas!=null?igOas+'bp':'—'}</div>
-            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${igCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
+            <div style="font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_igNumCol}">${igOas!=null?igOas+'bp':'—'}</div>
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${_igNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
           </div>
         </div>
-        <!-- Spread distribution bars -->
-        <div class="ov-cs-dist-wrap" style="flex:1;min-height:80px;display:flex;flex-direction:column;gap:10px;justify-content:center">
+        <!-- Spread distribution bars — blue accent fill -->
+        <div style="flex:1;min-height:80px;display:flex;flex-direction:column;gap:12px;justify-content:center">
           ${hyOas!=null?`
           <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
               <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">HY 3yr range</span>
-              ${hyHistPct!=null?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${hyCol}">${hyHistPct.toFixed(0)}th pct</span>`:''}
+              ${hyHistPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${_hyNumCol}">${hyHistPct.toFixed(0)}th pct</span>`:''}
             </div>
-            <div style="position:relative;height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:visible">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,hyPct).toFixed(1)}%;background:linear-gradient(90deg,${hyCol}55,${hyCol});border-radius:3px"></div>
-              ${hyHistPct!=null?`<div style="position:absolute;top:-2px;height:10px;width:2px;background:${hyCol};border-radius:1px;left:${Math.min(99,hyHistPct).toFixed(1)}%;box-shadow:0 0 4px ${hyCol}"></div>`:''}
+            <div style="position:relative;height:7px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:visible">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,hyPct).toFixed(1)}%;background:linear-gradient(90deg,${CREDIT_BLUE}33,${CREDIT_BLUE}99);border-radius:4px"></div>
+              ${hyHistPct!=null?`<div style="position:absolute;top:-3px;height:13px;width:2.5px;background:${CREDIT_BLUE};border-radius:2px;left:${Math.min(99,hyHistPct).toFixed(1)}%;box-shadow:0 0 6px ${CREDIT_BLUE}99"></div>`:''}
             </div>
-            <div style="display:flex;justify-content:space-between;margin-top:2px">
+            <div style="display:flex;justify-content:space-between;margin-top:3px">
               <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${hyPctMin!=null?hyPctMin+'bp':'tight'}</span>
               <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${hyPctMax!=null?hyPctMax+'bp':'wide'}</span>
             </div>
           </div>`:''}
           ${igOas!=null?`
           <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
               <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">IG 3yr range</span>
-              ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${igCol}">${igHistPct.toFixed(0)}th pct</span>`:''}
+              ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${_igNumCol}">${igHistPct.toFixed(0)}th pct</span>`:''}
             </div>
-            <div style="position:relative;height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:visible">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,igPct).toFixed(1)}%;background:linear-gradient(90deg,${igCol}55,${igCol});border-radius:3px"></div>
-              ${igHistPct!=null?`<div style="position:absolute;top:-2px;height:10px;width:2px;background:${igCol};border-radius:1px;left:${Math.min(99,igHistPct).toFixed(1)}%;box-shadow:0 0 4px ${igCol}"></div>`:''}
+            <div style="position:relative;height:7px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:visible">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,igPct).toFixed(1)}%;background:linear-gradient(90deg,${CREDIT_BLUE}33,${CREDIT_BLUE}99);border-radius:4px"></div>
+              ${igHistPct!=null?`<div style="position:absolute;top:-3px;height:13px;width:2.5px;background:${CREDIT_BLUE};border-radius:2px;left:${Math.min(99,igHistPct).toFixed(1)}%;box-shadow:0 0 6px ${CREDIT_BLUE}99"></div>`:''}
             </div>
-            <div style="display:flex;justify-content:space-between;margin-top:2px">
+            <div style="display:flex;justify-content:space-between;margin-top:3px">
               <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${igPctMin!=null?igPctMin+'bp':'tight'}</span>
               <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${igPctMax!=null?igPctMax+'bp':'wide'}</span>
             </div>
@@ -5965,18 +5939,18 @@ function renderMacroDataPanels(reg){
         <!-- Delta footer -->
         <div>
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">HY Changes</div><div class="mc-sect-line"></div></div>
-          <div class="ov-cs-footer" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;text-align:center">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;text-align:center">
             <div style="padding:4px 2px;border-right:1px solid rgba(255,255,255,0.06)">
               <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;color:var(--faint);margin-bottom:3px">4W</div>
-              <div class="ov-cs-foot-val" style="font-family:var(--mono);font-size:14px;font-weight:900;color:${hyDelta4w!=null?(hyDelta4w>0?'#e03a2a':'#22c97a'):'#5a6480'}">${hyDelta4w!=null?(hyDelta4w>0?'+':'')+hyDelta4w+'bp':'—'}</div>
+              <div style="font-family:var(--mono);font-size:14px;font-weight:900;color:${_deltaCol(hyDelta4w)}">${hyDelta4w!=null?(hyDelta4w>0?'+':'')+hyDelta4w+'bp':'—'}</div>
             </div>
             <div style="padding:4px 2px;border-right:1px solid rgba(255,255,255,0.06)">
               <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;color:var(--faint);margin-bottom:3px">3M</div>
-              <div class="ov-cs-foot-val" style="font-family:var(--mono);font-size:14px;font-weight:900;color:${hyDelta3m!=null?(hyDelta3m>0?'#e03a2a':'#22c97a'):'#5a6480'}">${hyDelta3m!=null?(hyDelta3m>0?'+':'')+hyDelta3m+'bp':'—'}</div>
+              <div style="font-family:var(--mono);font-size:14px;font-weight:900;color:${_deltaCol(hyDelta3m)}">${hyDelta3m!=null?(hyDelta3m>0?'+':'')+hyDelta3m+'bp':'—'}</div>
             </div>
             <div style="padding:4px 2px">
               <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;color:var(--faint);margin-bottom:3px">6M</div>
-              <div class="ov-cs-foot-val" style="font-family:var(--mono);font-size:14px;font-weight:900;color:${hyDelta6m!=null?(hyDelta6m>0?'#e03a2a':'#22c97a'):'#5a6480'}">${hyDelta6m!=null?(hyDelta6m>0?'+':'')+hyDelta6m+'bp':'—'}</div>
+              <div style="font-family:var(--mono);font-size:14px;font-weight:900;color:${_deltaCol(hyDelta6m)}">${hyDelta6m!=null?(hyDelta6m>0?'+':'')+hyDelta6m+'bp':'—'}</div>
             </div>
           </div>
         </div>
@@ -5996,9 +5970,10 @@ function renderMacroDataPanels(reg){
         const vixSig  = scSignals['VIX']||{};
         const vixVal  = vixSig.value||'—';
         const vixLbl  = vixSig.label||'—';
-        const vixCol  = (vixSig.score??0)>=1?'#22c97a':(vixSig.score??0)<=-1?'#e03a2a':'#adb8d0';
+        const vixNum  = parseFloat(vixVal)||0;
+        const vixCol  = vixNum>0?(vixNum<17?'#22c97a':vixNum<25?'#f5c842':'#e03a2a'):'#adb8d0';
 
-        // CAPE
+        // CAPE / Forward PE
         const capeSig = scSignals['FORWARD_PE']||{};
         const capeVal = capeSig.value||'—';
         const capeLbl = capeSig.label||'—';
@@ -6010,27 +5985,12 @@ function renderMacroDataPanels(reg){
         const brLbl   = brSig.label||'—';
         const brCol   = (brSig.score??0)>=1?'#22c97a':(brSig.score??0)<=-1?'#e03a2a':'#adb8d0';
 
-        // Momentum
+        // Momentum + SPX closes for sparkline
         const momSig  = scSignals['SPX_MOM']||{};
         const momVal  = momSig.value||'—';
         const momLbl  = momSig.label||'—';
         const momCol  = (momSig.score??0)>=1?'#22c97a':(momSig.score??0)<=-1?'#e03a2a':'#adb8d0';
-
-        // Score bar helper
-        const scoreBar = (score) => {
-          const pct = Math.min(100,Math.max(0,((score+2)/4)*100));
-          const col = score>=1?'#22c97a':score<=-1?'#e03a2a':'#adb8d0';
-          return `<div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;flex:1"><div style="height:100%;width:${pct.toFixed(1)}%;background:${col};border-radius:2px;transition:width 0.6s ease"></div></div>`;
-        };
-
-        const sigRow = (icon, label, val, lbl, score, col) => `
-          <div style="display:grid;grid-template-columns:16px 60px 1fr auto auto;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-            <span style="font-size:10px;opacity:0.7">${icon}</span>
-            <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">${label}</span>
-            ${scoreBar(score??0)}
-            <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${col};min-width:36px;text-align:right">${val}</span>
-            <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${col};min-width:52px;text-align:right;opacity:0.8">${lbl}</span>
-          </div>`;
+        const spxCloses = scSignals['_spx_closes']||[];
 
         return `
       <div class="ov-macro-card" id="ov-macro-stock-climate">
@@ -6044,58 +6004,64 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:${scBadgeCol};background:${scBadgeCol}18;border:1px solid ${scBadgeCol}30">${scBadgeLabel}</span>
         </div>
-        <!-- Arc + composite hero -->
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0">
-            ${arcSVG(scArcPct, scArcCol, 88, 10)}
-            <div style="font-family:var(--mono);font-size:20px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${scArcCol};margin-top:-22px">${scComposite!=null?scComposite.toFixed(2):'—'}</div>
-            <div style="font-family:var(--mono);font-size:6px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-top:2px">composite</div>
+        <!-- VIX gauge + SPX chart row -->
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start">
+          <!-- VIX semicircle gauge -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0">
+            <canvas id="ov-sc-vix-gauge" width="120" height="68" style="width:120px;height:68px;display:block"></canvas>
+            <div style="font-family:var(--mono);font-size:19px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${vixCol};margin-top:-6px">${vixVal}</div>
+            <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-top:2px">VIX · ${vixLbl}</div>
           </div>
-          <div style="flex:1;padding-left:10px;border-left:1px solid rgba(255,255,255,0.08)">
-            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px">4 Pillars</div>
-            <div style="display:flex;flex-direction:column;gap:3px">
-              <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-family:var(--mono);font-size:7px;color:var(--faint);width:52px">Volatility</span>
-                <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06)"><div style="height:100%;width:${Math.min(100,Math.max(0,(((vixSig.score??0)+2)/4)*100)).toFixed(0)}%;background:${vixCol};border-radius:2px"></div></div>
-                <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${vixCol};width:28px;text-align:right">${vixVal}</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-family:var(--mono);font-size:7px;color:var(--faint);width:52px">Valuation</span>
-                <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06)"><div style="height:100%;width:${Math.min(100,Math.max(0,(((capeSig.score??0)+2)/4)*100)).toFixed(0)}%;background:${capeCol};border-radius:2px"></div></div>
-                <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${capeCol};width:28px;text-align:right">${capeVal}</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-family:var(--mono);font-size:7px;color:var(--faint);width:52px">Breadth</span>
-                <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06)"><div style="height:100%;width:${Math.min(100,Math.max(0,(((brSig.score??0)+2)/4)*100)).toFixed(0)}%;background:${brCol};border-radius:2px"></div></div>
-                <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${brCol};width:28px;text-align:right">${brVal}</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-family:var(--mono);font-size:7px;color:var(--faint);width:52px">Momentum</span>
-                <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06)"><div style="height:100%;width:${Math.min(100,Math.max(0,(((momSig.score??0)+2)/4)*100)).toFixed(0)}%;background:${momCol};border-radius:2px"></div></div>
-                <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${momCol};width:28px;text-align:right">${momVal}</span>
-              </div>
+          <!-- SPX mini price sparkline -->
+          <div style="display:flex;flex-direction:column;gap:3px;padding-top:2px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 6M</span>
+              <span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${momCol}">${momVal}</span>
             </div>
+            <canvas id="ov-sc-spx-chart" width="160" height="56" style="width:100%;height:56px;display:block;border-radius:5px"></canvas>
+            <div style="font-family:var(--mono);font-size:6.5px;color:var(--faint);text-align:right">${momLbl}</div>
           </div>
         </div>
-        <!-- Detailed signal rows -->
-        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end">
-          <div class="mc-sect" style="margin:6px 0 3px"><div class="mc-sect-lbl">Signal Detail</div><div class="mc-sect-line"></div></div>
-          ${sigRow('~', 'VIX',      vixVal,  vixLbl,  vixSig.score??0,  vixCol)}
-          ${sigRow('~', 'CAPE',     capeVal, capeLbl, capeSig.score??0, capeCol)}
-          ${sigRow('~', 'Breadth',  brVal,   brLbl,   brSig.score??0,   brCol)}
-          ${sigRow('~', 'Momentum', momVal,  momLbl,  momSig.score??0,  momCol)}
+        <!-- 2×2 pillar tiles -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+          ${[
+            {lbl:'Volatility', sig:vixSig, col:vixCol, val:vixVal},
+            {lbl:'Valuation',  sig:capeSig,col:capeCol,val:capeVal},
+            {lbl:'Breadth',    sig:brSig,  col:brCol,  val:brVal},
+            {lbl:'Momentum',   sig:momSig, col:momCol, val:momVal},
+          ].map(p=>`
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:7px 9px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+              <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${p.lbl}</span>
+              <span style="font-family:var(--mono);font-size:9.5px;font-weight:900;color:${p.col}">${p.val}</span>
+            </div>
+            <div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06)">
+              <div style="height:100%;width:${Math.min(100,Math.max(0,(((p.sig.score??0)+2)/4)*100)).toFixed(0)}%;background:${p.col};border-radius:2px;transition:width 0.8s ease"></div>
+            </div>
+            <div style="font-family:var(--mono);font-size:6px;color:${p.col};margin-top:2px;opacity:0.8">${p.sig.label||'—'}</div>
+          </div>`).join('')}
+        </div>
+        <!-- Composite score footer -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;margin-top:auto">
+          <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Composite Score</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:64px;height:3px;border-radius:2px;background:rgba(255,255,255,0.06)">
+              <div style="height:100%;width:${scArcPct.toFixed(0)}%;background:${scArcCol};border-radius:2px"></div>
+            </div>
+            <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${scArcCol}">${scComposite!=null?scComposite.toFixed(2):'—'}</span>
+          </div>
         </div>
       </div>`;
       })()}
 
     </div>`;
 
-  // Draw canvases after DOM update
-  requestAnimationFrame(()=>{
-    const pts6m  = [[`3M`,null],[`2Y`,t2_6m],[`5Y`,t5_6m],[`10Y`,t10_6m],[`30Y`,t30_6m]];
-    const pts12m = [[`3M`,null],[`2Y`,t2_12m],[`5Y`,t5_12m],[`10Y`,t10_12m],[`30Y`,t30_12m]];
+  // Draw canvases after DOM update — double RAF to ensure layout is complete
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const pts6m  = [['3M',null],['2Y',t2_6m],['5Y',t5_6m],['10Y',t10_6m],['30Y',t30_6m]];
+    const pts12m = [['3M',null],['2Y',t2_12m],['5Y',t5_12m],['10Y',t10_12m],['30Y',t30_12m]];
     _drawYieldCurve(crCol, cr_regime,
-      [[`3M`,t3m],[`2Y`,t2],[`5Y`,t5],[`10Y`,t10],[`30Y`,t30]],
+      [['3M',t3m],['2Y',t2],['5Y',t5],['10Y',t10],['30Y',t30]],
       pts6m, pts12m
     );
     _drawFedBSArc(fbLevel, fbPct, fbCol);
@@ -6105,8 +6071,14 @@ function renderMacroDataPanels(reg){
     _drawMacroParticles('ov-mc-p4', crCol);
     _drawMacroParticles('ov-mc-p5', crSpreadCol);
     _drawMacroParticles('ov-mc-p6', scArcCol||'#adb8d0');
+    // VIX semicircle gauge
+    const vixNum2 = parseFloat(scSignals['VIX']?.value||'0')||0;
+    const vixCol2 = vixNum2>0?(vixNum2<17?'#22c97a':vixNum2<25?'#f5c842':'#e03a2a'):'#adb8d0';
+    _drawVixGauge('ov-sc-vix-gauge', vixNum2, vixCol2);
+    // SPX sparkline
+    _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a');
     loadYieldCurveChart(crCol);
-  });
+  }));
 }
 
 
@@ -6845,6 +6817,197 @@ function _drawFedBSArc(fbLevel, fbPct, fbCol){
       c.restore();
     });
   }
+}
+
+/* ── VIX Semicircle Needle Gauge ─────────────────────────────────────────── */
+function _drawVixGauge(canvasId, vixLevel, col){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const W = 120, H = 68;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const c = canvas.getContext('2d');
+  c.scale(dpr, dpr);
+  c.clearRect(0,0,W,H);
+
+  const toRad = d => d * Math.PI / 180;
+  const cx = W/2, cy = H - 8;
+  const R = Math.min(cx, cy) - 4;
+  const startA = Math.PI, sweepA = Math.PI; // 180° semicircle, left→right
+
+  // Zones (left=calm, right=fear): <17 green, 17-25 amber, 25-35 red, >35 deep red
+  const zones = [
+    {v0:0,  v1:17, col:'#22c97a44'},
+    {v0:17, v1:25, col:'#f5c84244'},
+    {v0:25, v1:40, col:'#e03a2a55'},
+    {v0:40, v1:80, col:'#e03a2a77'},
+  ];
+  const vixMax = 80;
+  const vToDeg = v => 180 + (Math.min(v,vixMax)/vixMax)*180; // maps 0→180deg, max→360deg
+  // Track background
+  c.save();
+  c.strokeStyle = 'rgba(255,255,255,0.07)';
+  c.lineWidth = 9;
+  c.lineCap = 'butt';
+  c.beginPath();
+  c.arc(cx, cy, R, Math.PI, 0, false);
+  c.stroke();
+  c.restore();
+  // Coloured zone segments
+  zones.forEach(z=>{
+    const a0 = toRad(vToDeg(z.v0) - 180); // relative to standard canvas angles
+    const a1 = toRad(vToDeg(z.v1) - 180);
+    c.save();
+    c.strokeStyle = z.col;
+    c.lineWidth = 9;
+    c.lineCap = 'butt';
+    c.beginPath();
+    c.arc(cx, cy, R, Math.PI + a0, Math.PI + a1, false);
+    c.stroke();
+    c.restore();
+  });
+  // Zone tick marks + labels
+  [17, 25, 40].forEach(v=>{
+    const ang = Math.PI + toRad((v/vixMax)*180);
+    const nx = Math.cos(ang), ny = Math.sin(ang);
+    c.save();
+    c.strokeStyle = 'rgba(255,255,255,0.3)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(cx+(R-6)*nx, cy+(R-6)*ny);
+    c.lineTo(cx+(R+2)*nx, cy+(R+2)*ny);
+    c.stroke();
+    c.restore();
+    const lx = cx+(R+10)*nx, ly = cy+(R+10)*ny;
+    if(ly < cy+2){
+      c.save();
+      c.font = '500 5.5px "JetBrains Mono",monospace';
+      c.textAlign = 'center';
+      c.fillStyle = 'rgba(138,152,184,0.6)';
+      c.fillText(String(v), lx, ly+2);
+      c.restore();
+    }
+  });
+  // Needle
+  if(vixLevel>0){
+    const needleAng = Math.PI + toRad((Math.min(vixLevel,vixMax)/vixMax)*180);
+    const nx = Math.cos(needleAng), ny = Math.sin(needleAng);
+    const toRgb = h=>({'#22c97a':'34,201,122','#f5c842':'245,200,66','#e03a2a':'224,58,42','#adb8d0':'173,184,208'}[h]||'173,184,208');
+    const rgb = toRgb(col);
+    // Glow
+    c.save();
+    c.strokeStyle = `rgba(${rgb},0.25)`;
+    c.lineWidth = 5;
+    c.lineCap = 'round';
+    c.shadowBlur = 8;
+    c.shadowColor = col;
+    c.beginPath();
+    c.moveTo(cx - 5*nx, cy - 5*ny);
+    c.lineTo(cx + (R-2)*nx, cy + (R-2)*ny);
+    c.stroke();
+    c.restore();
+    // Needle line
+    c.save();
+    c.strokeStyle = col;
+    c.lineWidth = 2;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(cx - 5*nx, cy - 5*ny);
+    c.lineTo(cx + (R-3)*nx, cy + (R-3)*ny);
+    c.stroke();
+    c.restore();
+    // Needle tip dot
+    c.save();
+    c.fillStyle = col;
+    c.shadowBlur = 6;
+    c.shadowColor = col;
+    c.beginPath();
+    c.arc(cx + (R-3)*nx, cy + (R-3)*ny, 2.5, 0, Math.PI*2);
+    c.fill();
+    c.restore();
+  }
+  // Centre pivot
+  c.save();
+  c.fillStyle = 'rgba(255,255,255,0.2)';
+  c.beginPath();
+  c.arc(cx, cy, 3.5, 0, Math.PI*2);
+  c.fill();
+  c.restore();
+}
+
+/* ── SPX Mini Sparkline ───────────────────────────────────────────────────── */
+function _drawSpxMiniChart(canvasId, closes, col){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const W = canvas.offsetWidth||160;
+  const H = 56;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.height = H+'px';
+  const c = canvas.getContext('2d');
+  c.scale(dpr, dpr);
+  c.clearRect(0,0,W,H);
+
+  if(!closes || closes.length < 2){
+    c.fillStyle = 'rgba(255,255,255,0.03)';
+    c.fillRect(0,0,W,H);
+    c.fillStyle = 'rgba(138,152,184,0.3)';
+    c.font = '500 8px "JetBrains Mono",monospace';
+    c.textAlign = 'center';
+    c.fillText('Loading…', W/2, H/2+3);
+    return;
+  }
+  const pad = 4;
+  const vals = closes;
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = max-min||1;
+  const sx = (i) => pad + (i/(vals.length-1))*(W-2*pad);
+  const sy = (v) => H-pad - ((v-min)/range)*(H-2*pad);
+
+  const toRgb = h=>({'#22c97a':'34,201,122','#e03a2a':'224,58,42','#adb8d0':'173,184,208'}[h]||'173,184,208');
+  const rgb = toRgb(col);
+
+  // Background tint
+  c.fillStyle = 'rgba(255,255,255,0.02)';
+  c.roundRect?c.roundRect(0,0,W,H,5):c.fillRect(0,0,W,H);
+  c.fill();
+
+  // Gradient fill under line
+  const grad = c.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, `rgba(${rgb},0.22)`);
+  grad.addColorStop(1, `rgba(${rgb},0.01)`);
+  c.beginPath();
+  c.moveTo(sx(0), H);
+  vals.forEach((v,i) => c.lineTo(sx(i), sy(v)));
+  c.lineTo(sx(vals.length-1), H);
+  c.closePath();
+  c.fillStyle = grad;
+  c.fill();
+
+  // Line
+  c.save();
+  c.strokeStyle = col;
+  c.lineWidth = 1.8;
+  c.lineJoin = 'round';
+  c.lineCap = 'round';
+  c.shadowBlur = 5;
+  c.shadowColor = col;
+  c.beginPath();
+  vals.forEach((v,i) => i===0?c.moveTo(sx(i),sy(v)):c.lineTo(sx(i),sy(v)));
+  c.stroke();
+  c.restore();
+
+  // Last price dot
+  const lx = sx(vals.length-1), ly = sy(vals[vals.length-1]);
+  c.save();
+  c.fillStyle = col;
+  c.shadowBlur = 8;
+  c.shadowColor = col;
+  c.beginPath();
+  c.arc(lx, ly, 3, 0, Math.PI*2);
+  c.fill();
+  c.restore();
 }
 
 // ── Score history chart loader
