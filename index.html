@@ -1155,9 +1155,9 @@ a{color:inherit;text-decoration:none}
   padding:18px 18px 16px;
   position:relative;
   overflow:hidden;
-  display:flex;flex-direction:column;gap:0;
+  display:flex;flex-direction:column;gap:6px;
   height:100%;box-sizing:border-box;
-  justify-content:space-between;
+  justify-content:flex-start;
   transition:border-color 280ms,box-shadow 280ms,transform 280ms var(--ease);
   box-shadow:0 8px 40px rgba(0,0,0,0.65),0 1px 0 rgba(255,255,255,0.05) inset,0 -1px 0 rgba(0,0,0,0.35) inset;
 }
@@ -5914,7 +5914,7 @@ function renderMacroDataPanels(reg){
           <div id="ov-yc-chart" style="flex:1;min-height:150px;position:relative"></div>
         </div>
         <!-- Momentum strip -->
-        <div style="display:flex;gap:10px;align-items:center;padding:3px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:2px">
+        <div style="display:flex;gap:10px;align-items:center;padding:3px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:auto">
           ${sChg3m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
           ${sChg6m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
           ${yc_move_type?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${moveCol};margin-left:auto">${yc_move_type}</span>`:''}
@@ -6160,7 +6160,8 @@ function renderMacroDataPanels(reg){
     _drawVixGauge('ov-sc-vix-gauge', vixNum2, vixCol2);
     // SPX sparkline
     _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a');
-    loadYieldCurveChart(crCol);
+    // Small delay to ensure flex layout has settled before reading offsetHeight
+    setTimeout(()=>loadYieldCurveChart(crCol), 80);
   }));
 }
 
@@ -6217,7 +6218,7 @@ async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, c
     return;
   }
 
-  const W = 280, H = Math.max(160, el.offsetHeight||160);
+  const W = 280, H = Math.max(180, el.getBoundingClientRect().height||180);
   const padL = 28, padR = 6, padT = 8, padB = 22;
   const gW = W - padL - padR, gH = H - padT - padB;
 
@@ -6352,7 +6353,7 @@ async function loadYieldCurveChart(nowCol) { // v2 — log scale, HTML legend, c
     });
   }
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block"
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%;min-height:${H}px;display:block"
     preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
     ${grids}
     ${curveSvg}
