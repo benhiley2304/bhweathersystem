@@ -3613,7 +3613,10 @@ FRED_SERIES = {
     "GDP":      "A191RL1Q225SBEA",
     "INDPRO":   "INDPRO",
     "CPI":      "CPIAUCSL",
+    "CORE_CPI": "CPILFESL",
+    "PPI":      "PPIACO",
     "PCE":      "PCEPI",
+    "CORE_PCE": "PCEPILFE",
     "CFNAI":    "CFNAI",
     "NFP":      "PAYEMS",
     "UNEMP":    "UNRATE",
@@ -3624,6 +3627,7 @@ FRED_SERIES = {
     "T10Y3M":   "T10Y3M",
     "DFII10":   "DFII10",
     "FEDFUNDS": "FEDFUNDS",
+    # CAPE not available via FRED — computed via yfinance fallback in compute_stock_climate
     "WALCL":    "WALCL",
     # Credit spreads (ICE BofA)
     "HYOAS":    "BAMLH0A0HYM2",   # US HY OAS (bps)
@@ -3790,11 +3794,23 @@ def compute_macro_all() -> dict:
         components["RETAIL"] = {**r, "title": "Retail Sales", "category": "growth",
                                 "display": r.get("display", "—")}
 
-    # ── INFLATION ─────────────────────────────────────────────────────────────
+    # ── INFLATION ─────────────────────────────────────────────────────────────────────────
     cpi_data = fetch_fred_series("CPI", 24)
     if cpi_data:
         r = compute_macro_surprise(cpi_data, higher_is_good=True, transform="yoy", scale=0.3)
         components["CPI"] = {**r, "title": "CPI YoY", "category": "inflation",
+                              "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
+
+    core_cpi_data = fetch_fred_series("CORE_CPI", 24)
+    if core_cpi_data:
+        r = compute_macro_surprise(core_cpi_data, higher_is_good=True, transform="yoy", scale=0.3)
+        components["CORE_CPI"] = {**r, "title": "Core CPI YoY", "category": "inflation",
+                                   "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
+
+    ppi_data = fetch_fred_series("PPI", 24)
+    if ppi_data:
+        r = compute_macro_surprise(ppi_data, higher_is_good=True, transform="yoy", scale=0.4)
+        components["PPI"] = {**r, "title": "PPI YoY", "category": "inflation",
                               "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
 
     pce_data = fetch_fred_series("PCE", 24)
@@ -3802,6 +3818,13 @@ def compute_macro_all() -> dict:
         r = compute_macro_surprise(pce_data, higher_is_good=True, transform="yoy", scale=0.3)
         components["PCE"] = {**r, "title": "PCE YoY", "category": "inflation",
                               "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
+
+    core_pce_data = fetch_fred_series("CORE_PCE", 24)
+    if core_pce_data:
+        r = compute_macro_surprise(core_pce_data, higher_is_good=True, transform="yoy", scale=0.3)
+        components["CORE_PCE"] = {**r, "title": "Core PCE YoY", "category": "inflation",
+                                   "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
+
 
     # ── JOBS ──────────────────────────────────────────────────────────────────
     nfp_data = fetch_fred_series("NFP", 12)
@@ -3842,7 +3865,7 @@ def compute_macro_all() -> dict:
 
     # ── Category aggregation ──────────────────────────────────────────────────
     growth_scores    = [components[k]["score"] for k in ["GDP", "MFG_PMI", "SVC_PMI", "RETAIL"] if k in components]
-    inflation_scores = [components[k]["score"] for k in ["CPI", "PCE"] if k in components]
+    inflation_scores = [components[k]["score"] for k in ["CPI", "CORE_CPI", "PPI", "PCE", "CORE_PCE"] if k in components]
     jobs_scores      = [components[k]["score"] for k in ["JOBS", "UNEMP", "CLAIMS"] if k in components]
     rates_scores     = [components[k]["score"] for k in ["DGS2", "YLDCRV"] if k in components]
 
@@ -4280,10 +4303,16 @@ RISK_ASSETS = {
     # Treasury yields — needed for yield curve signal in historical regime scoring
     "TNX":    "^TNX",   # 10-year Treasury yield (term spread numerator)
     "IRX":    "^IRX",   # 13-week T-bill (term spread denominator + rate path proxy)
+    # Equal-weight breadth
+    "SPY":    "SPY",    # S&P 500 cap-weight
+    "RSP":    "RSP",    # S&P 500 equal-weight
 }
 
 RISK_REGIME_CACHE: dict = {"data": None, "time": 0}
 RISK_REGIME_CACHE_TTL = 3600  # 1h — aligns with main scores cache TTL
+
+STOCK_CLIMATE_CACHE: dict = {"data": None, "time": 0}
+STOCK_CLIMATE_CACHE_TTL = 3600  # 1h
 
 
 
@@ -4412,6 +4441,197 @@ def _compute_intl_rates() -> dict:
     _INTL_RATES_CACHE["data"] = result
     _INTL_RATES_CACHE["time"] = now
     return result
+
+
+# ============================================================
+# STOCK MARKET CLIMATE
+# ============================================================
+
+def compute_stock_climate() -> dict:
+    """
+    Compute a Stock Market Climate panel with four pillars:
+      VIX           — fear / volatility regime
+      Forward PE    — valuation (Shiller CAPE via FRED)
+      SPY/RSP       — breadth (equal-weight vs cap-weight divergence)
+      S&P Momentum  — 3m price momentum on SPX
+    Returns a dict ready for the frontend macro panel.
+    """
+    now = time.time()
+    if STOCK_CLIMATE_CACHE["data"] and (now - STOCK_CLIMATE_CACHE["time"]) < STOCK_CLIMATE_CACHE_TTL:
+        return STOCK_CLIMATE_CACHE["data"]
+
+    result = {}
+    signals = {}
+
+    try:
+        # ── 1. VIX ──────────────────────────────────────────────────────────
+        try:
+            _vix_ticker = yf.Ticker("^VIX")
+            vix_tk = _yf_with_timeout(_vix_ticker.history, period="5d", interval="1d", label="VIX")
+            vix_level = float(vix_tk["Close"].dropna().iloc[-1]) if vix_tk is not None and not vix_tk.empty else None
+        except Exception:
+            vix_level = None
+
+        if vix_level is not None:
+            if vix_level < 13:
+                vix_score, vix_label = 2, "Very Low"
+            elif vix_level < 17:
+                vix_score, vix_label = 1, "Low"
+            elif vix_level < 21:
+                vix_score, vix_label = 0, "Moderate"
+            elif vix_level < 27:
+                vix_score, vix_label = -1, "Elevated"
+            else:
+                vix_score, vix_label = -2, "High Stress"
+            signals["VIX"] = {
+                "title": "VIX",
+                "value": f"{vix_level:.1f}",
+                "label": vix_label,
+                "score": vix_score,
+                "category": "volatility",
+            }
+
+        # ── 2. Shiller CAPE via FRED (series: CAPE = cyclically adjusted PE)
+        cape_val = None
+        try:
+            # FRED series for Shiller CAPE is "CAPE" — fetch last 3 months
+            cape_raw = fetch_fred_series("CAPE", 3)
+            if cape_raw and len(cape_raw) >= 1:
+                # fetch_fred_series returns list of {"date":..., "value":...} dicts
+                last = cape_raw[-1]
+                v = last.get("value") if isinstance(last, dict) else (last[1] if len(last) > 1 else None)
+                if v is not None:
+                    cape_val = float(v)
+        except Exception:
+            pass
+
+        # Fallback: try yfinance for a PE-like metric
+        if cape_val is None:
+            try:
+                _spx_tk = yf.Ticker("^GSPC")
+                _spx_info = _spx_tk.info
+                _pe = _spx_info.get("trailingPE") or _spx_info.get("forwardPE")
+                if _pe:
+                    cape_val = float(_pe)
+            except Exception:
+                pass
+
+        if cape_val is not None and cape_val > 0:
+            # Historical CAPE: avg ~16, elevated >25, extreme >35
+            if cape_val < 18:
+                pe_score, pe_label = 2, "Cheap"
+            elif cape_val < 22:
+                pe_score, pe_label = 1, "Fair Value"
+            elif cape_val < 28:
+                pe_score, pe_label = 0, "Moderate"
+            elif cape_val < 35:
+                pe_score, pe_label = -1, "Expensive"
+            else:
+                pe_score, pe_label = -2, "Very Expensive"
+            signals["FORWARD_PE"] = {
+                "title": "Shiller CAPE",
+                "value": f"{cape_val:.1f}x",
+                "label": pe_label,
+                "score": pe_score,
+                "category": "valuation",
+            }
+
+        # ── 3. SPY/RSP Breadth ──────────────────────────────────────────────
+        try:
+            prices = {}
+            for tk_key, tk_sym in [("SPY", "SPY"), ("RSP", "RSP")]:
+                _tk = yf.Ticker(tk_sym)
+                d = _yf_with_timeout(_tk.history, period="6mo", interval="1wk", label=tk_sym)
+                if d is not None and not d.empty:
+                    prices[tk_key] = d["Close"].dropna()
+
+            if "SPY" in prices and "RSP" in prices:
+                # Align on common dates
+                spy = prices["SPY"]
+                rsp = prices["RSP"]
+                common = spy.index.intersection(rsp.index)
+                if len(common) >= 12:
+                    spy_c = spy.loc[common]
+                    rsp_c = rsp.loc[common]
+                    ratio_now  = rsp_c.iloc[-1] / spy_c.iloc[-1]
+                    ratio_12w  = rsp_c.iloc[-12] / spy_c.iloc[-12]
+                    breadth_chg = (ratio_now - ratio_12w) / ratio_12w  # fractional change
+
+                    if breadth_chg > 0.03:
+                        br_score, br_label = 2, "Broad Rally"
+                    elif breadth_chg > 0.01:
+                        br_score, br_label = 1, "Improving"
+                    elif breadth_chg > -0.01:
+                        br_score, br_label = 0, "Neutral"
+                    elif breadth_chg > -0.03:
+                        br_score, br_label = -1, "Narrowing"
+                    else:
+                        br_score, br_label = -2, "Thin Breadth"
+
+                    signals["BREADTH"] = {
+                        "title": "SPY/RSP Breadth",
+                        "value": f"{breadth_chg*100:+.1f}%",
+                        "label": br_label,
+                        "score": br_score,
+                        "category": "breadth",
+                    }
+        except Exception:
+            pass
+
+        # ── 4. S&P 500 Momentum (3m) ─────────────────────────────────────────
+        try:
+            _spx_tk2 = yf.Ticker("^GSPC")
+            spx = _yf_with_timeout(_spx_tk2.history, period="6mo", interval="1wk", label="SPX_MOM")
+            if spx is not None and not spx.empty:
+                closes = spx["Close"].dropna()
+                if len(closes) >= 13:
+                    mom_3m = (closes.iloc[-1] / closes.iloc[-13] - 1) * 100
+                    if mom_3m > 8:
+                        mom_score, mom_label = 2, "Strong Uptrend"
+                    elif mom_3m > 3:
+                        mom_score, mom_label = 1, "Positive"
+                    elif mom_3m > -3:
+                        mom_score, mom_label = 0, "Neutral"
+                    elif mom_3m > -8:
+                        mom_score, mom_label = -1, "Negative"
+                    else:
+                        mom_score, mom_label = -2, "Downtrend"
+                    signals["SPX_MOM"] = {
+                        "title": "S&P 3m Momentum",
+                        "value": f"{mom_3m:+.1f}%",
+                        "label": mom_label,
+                        "score": mom_score,
+                        "category": "momentum",
+                    }
+        except Exception:
+            pass
+
+        # ── Composite score ──────────────────────────────────────────────────
+        weights = {"VIX": 0.30, "FORWARD_PE": 0.20, "BREADTH": 0.25, "SPX_MOM": 0.25}
+        composite = 0.0
+        total_w = 0.0
+        for k, w in weights.items():
+            if k in signals:
+                composite += signals[k]["score"] * w
+                total_w += w
+        composite = composite / total_w if total_w > 0 else 0
+
+        overall = (2 if composite > 1.2 else 1 if composite > 0.4 else
+                   -2 if composite < -1.2 else -1 if composite < -0.4 else 0)
+
+        result = {
+            "signals": signals,
+            "composite": round(composite, 2),
+            "overall": overall,
+        }
+
+    except Exception as e:
+        result = {"signals": {}, "composite": 0, "overall": 0, "error": str(e)}
+
+    STOCK_CLIMATE_CACHE["data"] = result
+    STOCK_CLIMATE_CACHE["time"] = now
+    return result
+
 
 def compute_risk_regime() -> dict:
     now = time.time()
@@ -6552,6 +6772,8 @@ async def _do_scores_refresh(force: bool = False):
     _gc_if_heavy("post-macro-all")
     regime   = await _loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime)
     _gc_if_heavy("post-risk-regime")
+    stock_climate = await _loop.run_in_executor(_APP_EXECUTOR, compute_stock_climate)
+    _gc_if_heavy("post-stock-climate")
     ff_macro = await _loop.run_in_executor(_APP_EXECUTOR, compute_all_ff_macro)
     _gc_if_heavy("post-ff-macro")
     # News context — always use whatever is in cache right now (may be stale/empty).
@@ -6999,10 +7221,11 @@ async def _do_scores_refresh(force: bool = False):
             mkt["scores"]["cot"]["detail"] = {k: v for k, v in cot_detail.items() if v is not None}
     
     output = {
-        "updated_at":    datetime.utcnow().isoformat() + "Z",
-        "regime":        regime,
-        "macro_all":     macro,
-        "ff_macro":      ff_macro,  # per-currency FF economy scores
+        "updated_at":      datetime.utcnow().isoformat() + "Z",
+        "regime":          regime,
+        "macro_all":       macro,
+        "stock_climate":   stock_climate,
+        "ff_macro":        ff_macro,  # per-currency FF economy scores
         "markets":       results,
         "weights":           WEIGHTS,
         "weights_equity":    WEIGHTS_EQUITY,
