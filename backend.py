@@ -2719,13 +2719,32 @@ def _price_cache_evict():
         print(f"[PRICE_CACHE] evicted {len(oldest)//2} entries, {len(data_keys)-len(oldest)//2} remain")
 
 
+_YF_TIMEOUT = 20  # seconds — hard cap per yfinance call to prevent scoring loop hangs
+
+def _yf_with_timeout(fn, *args, timeout=_YF_TIMEOUT, label="yf", **kwargs):
+    """Run a yfinance callable in a thread with a hard timeout.
+    Returns None and logs a warning if it exceeds the timeout."""
+    import concurrent.futures as _cf
+    with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+        _fut = _ex.submit(fn, *args, **kwargs)
+        try:
+            return _fut.result(timeout=timeout)
+        except _cf.TimeoutError:
+            print(f"[yf_timeout] {label} exceeded {timeout}s — skipping", flush=True)
+            return None
+        except Exception as _e:
+            print(f"[yf_error] {label}: {_e}", flush=True)
+            return None
+
 def fetch_price_data(yf_ticker: str) -> Optional[pd.DataFrame]:
     now = time.time()
     if yf_ticker in PRICE_CACHE and (now - PRICE_CACHE.get(yf_ticker + "_t", 0)) < PRICE_CACHE_TTL:
         return PRICE_CACHE[yf_ticker]
     try:
         tk = yf.Ticker(yf_ticker)
-        df = tk.history(period="1y", interval="1d")
+        df = _yf_with_timeout(tk.history, period="1y", interval="1d", label=yf_ticker)
+        if df is None:
+            return None
         _price_cache_evict()
         PRICE_CACHE[yf_ticker]          = df
         PRICE_CACHE[yf_ticker + "_t"]   = now
@@ -2743,7 +2762,9 @@ def fetch_price_data_long(yf_ticker: str) -> Optional[pd.DataFrame]:
         return PRICE_CACHE[cache_key]
     try:
         tk = yf.Ticker(yf_ticker)
-        df = tk.history(period="5y", interval="1d")
+        df = _yf_with_timeout(tk.history, period="5y", interval="1d", label=yf_ticker+"_long")
+        if df is None:
+            return None
         _price_cache_evict()
         PRICE_CACHE[cache_key]          = df
         PRICE_CACHE[cache_key + "_t"]   = now
@@ -4402,8 +4423,8 @@ def compute_risk_regime() -> dict:
     for name, ticker in RISK_ASSETS.items():
         try:
             tk = yf.Ticker(ticker)
-            hist = tk.history(period="3mo", interval="1wk")
-            if not hist.empty and len(hist) >= 4:
+            hist = _yf_with_timeout(tk.history, period="3mo", interval="1wk", label=f"regime/{ticker}")
+            if hist is not None and not hist.empty and len(hist) >= 4:
                 close = hist["Close"].values.astype(float)
                 ret_1w = (close[-1] / close[-2] - 1) * 100 if len(close) >= 2 else 0
                 ret_1m = (close[-1] / close[-4] - 1) * 100 if len(close) >= 4 else 0
