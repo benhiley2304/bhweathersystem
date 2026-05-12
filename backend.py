@@ -9224,16 +9224,14 @@ async def warmup_cache():
     print("[startup] Backend ready — full cache pre-warming in background")
 
 
+# Suppress /api/health from access logs — keepalives flood the log stream
+# Applied at module level so it works whether started via __main__ or Procfile uvicorn
+import logging as _logging
+class _NoHealthFilter(_logging.Filter):
+    def filter(self, record: _logging.LogRecord) -> bool:
+        return "/api/health" not in record.getMessage()
+_logging.getLogger("uvicorn.access").addFilter(_NoHealthFilter())
+
 if __name__ == "__main__":
     import uvicorn
-    import logging
-
-    # Suppress /api/health from access logs — keepalives flood the log stream
-    class _NoHealthFilter(logging.Filter):
-        def filter(self, record: logging.LogRecord) -> bool:
-            msg = record.getMessage()
-            return "/api/health" not in msg
-
-    logging.getLogger("uvicorn.access").addFilter(_NoHealthFilter())
-
     uvicorn.run(app, host="0.0.0.0", port=5000)
