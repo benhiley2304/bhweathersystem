@@ -1207,7 +1207,7 @@ a{color:inherit;text-decoration:none}
 /* ── Header ────────────────────────────────────────────── */
 .ov-mc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
 .ov-mc-eyebrow{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--faint);margin-bottom:3px;opacity:0.75}
-.ov-mc-title{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
+.ov-mc-title{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
 .ov-mc-badge{
   font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;
   padding:3px 8px;border-radius:4px;flex-shrink:0;white-space:nowrap;margin-top:2px;
@@ -1231,11 +1231,10 @@ a{color:inherit;text-decoration:none}
 ════════════════════════════════════════════ */
 /* Canvas fills flex space */
 .ov-yc-canvas-wrap{
-  flex:1;min-height:100px;position:relative;border-radius:8px;overflow:hidden;
+  flex:1;min-height:140px;position:relative;border-radius:8px;overflow:hidden;
   margin:8px 0 0;
-  background:transparent;
-  border:none;
-  border-top:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.05);
 }
 /* No bottom fade — canvas stands on its own */
 .ov-yc-canvas-wrap::after{
@@ -5844,21 +5843,12 @@ function renderMacroDataPanels(reg){
           </div>
           <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y SPREAD</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-          <div style="padding:8px 8px;border-radius:7px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">2Y</div>
-            <div style="font-family:var(--mono);font-size:15px;font-weight:900;color:${tenorDotCol(t2)}">${t2!=null?t2.toFixed(2)+'%':'—'}</div>
-          </div>
-          <div style="padding:8px 8px;border-radius:7px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">10Y</div>
-            <div style="font-family:var(--mono);font-size:15px;font-weight:900;color:${tenorDotCol(t10)}">${t10!=null?t10.toFixed(2)+'%':'—'}</div>
-          </div>
-          <div style="padding:8px 8px;border-radius:7px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">3M/10Y</div>
-            <div style="font-family:var(--mono);font-size:15px;font-weight:900;color:${t3t10Col}">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</div>
-          </div>
+        <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:4px">
+          <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">2Y <span style="color:${tenorDotCol(t2)};font-weight:900">${t2!=null?t2.toFixed(2)+'%':'—'}</span></span>
+          <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">10Y <span style="color:${tenorDotCol(t10)};font-weight:900">${t10!=null?t10.toFixed(2)+'%':'—'}</span></span>
+          <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">3M/10Y <span style="color:${t3t10Col};font-weight:900">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</span></span>
         </div>
-        <div id="ov-yc-canvas-wrap" class="ov-yc-canvas-wrap" style="flex:1;min-height:90px;height:90px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.05);overflow:hidden;position:relative">
+        <div id="ov-yc-canvas-wrap" class="ov-yc-canvas-wrap">
           <canvas id="ov-yc-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:block"></canvas>
         </div>
         <div>
@@ -5911,9 +5901,9 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">HY 3yr range</span>
               ${hyHistPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${_hyNumCol}">${hyHistPct.toFixed(0)}th pct</span>`:''}
             </div>
-            <div style="position:relative;height:7px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:visible">
+            <div style="position:relative;height:9px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:visible">
               <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,hyPct).toFixed(1)}%;background:linear-gradient(90deg,${CREDIT_BLUE}33,${CREDIT_BLUE}99);border-radius:4px"></div>
-              ${hyHistPct!=null?`<div style="position:absolute;top:-3px;height:13px;width:2.5px;background:${CREDIT_BLUE};border-radius:2px;left:${Math.min(99,hyHistPct).toFixed(1)}%;box-shadow:0 0 6px ${CREDIT_BLUE}99"></div>`:''}
+              ${hyHistPct!=null?`<div style="position:absolute;top:-3.5px;height:16px;width:3px;background:${CREDIT_BLUE};border-radius:2px;left:${Math.min(99,hyHistPct).toFixed(1)}%;box-shadow:0 0 8px ${CREDIT_BLUE}cc"></div>`:''}
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:3px">
               <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${hyPctMin!=null?hyPctMin+'bp':'tight'}</span>
@@ -5926,9 +5916,9 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">IG 3yr range</span>
               ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${_igNumCol}">${igHistPct.toFixed(0)}th pct</span>`:''}
             </div>
-            <div style="position:relative;height:7px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:visible">
+            <div style="position:relative;height:9px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:visible">
               <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,igPct).toFixed(1)}%;background:linear-gradient(90deg,${CREDIT_BLUE}33,${CREDIT_BLUE}99);border-radius:4px"></div>
-              ${igHistPct!=null?`<div style="position:absolute;top:-3px;height:13px;width:2.5px;background:${CREDIT_BLUE};border-radius:2px;left:${Math.min(99,igHistPct).toFixed(1)}%;box-shadow:0 0 6px ${CREDIT_BLUE}99"></div>`:''}
+              ${igHistPct!=null?`<div style="position:absolute;top:-3.5px;height:16px;width:3px;background:${CREDIT_BLUE};border-radius:2px;left:${Math.min(99,igHistPct).toFixed(1)}%;box-shadow:0 0 8px ${CREDIT_BLUE}cc"></div>`:''}
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:3px">
               <span style="font-family:var(--mono);font-size:6px;color:var(--faint)">${igPctMin!=null?igPctMin+'bp':'tight'}</span>
@@ -5936,23 +5926,23 @@ function renderMacroDataPanels(reg){
             </div>
           </div>`:''}
         </div>
-        <!-- Delta footer -->
+        <!-- Delta footer — progress bars -->
         <div>
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">HY Changes</div><div class="mc-sect-line"></div></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;text-align:center">
-            <div style="padding:4px 2px;border-right:1px solid rgba(255,255,255,0.06)">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;color:var(--faint);margin-bottom:3px">4W</div>
-              <div style="font-family:var(--mono);font-size:14px;font-weight:900;color:${_deltaCol(hyDelta4w)}">${hyDelta4w!=null?(hyDelta4w>0?'+':'')+hyDelta4w+'bp':'—'}</div>
-            </div>
-            <div style="padding:4px 2px;border-right:1px solid rgba(255,255,255,0.06)">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;color:var(--faint);margin-bottom:3px">3M</div>
-              <div style="font-family:var(--mono);font-size:14px;font-weight:900;color:${_deltaCol(hyDelta3m)}">${hyDelta3m!=null?(hyDelta3m>0?'+':'')+hyDelta3m+'bp':'—'}</div>
-            </div>
-            <div style="padding:4px 2px">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;color:var(--faint);margin-bottom:3px">6M</div>
-              <div style="font-family:var(--mono);font-size:14px;font-weight:900;color:${_deltaCol(hyDelta6m)}">${hyDelta6m!=null?(hyDelta6m>0?'+':'')+hyDelta6m+'bp':'—'}</div>
-            </div>
-          </div>
+          ${(()=>{
+            const deltaBar = (label, val, maxVal=50) => {
+              const col = val==null?'#5a6480':val<0?'#22c97a':val>0?'#e03a2a':'#adb8d0';
+              const pct = val!=null?Math.min(100,(Math.abs(val)/maxVal)*100):0;
+              return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);width:22px;flex-shrink:0">${label}</span>
+                <div style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden">
+                  <div style="height:100%;width:${pct.toFixed(1)}%;background:${col};border-radius:2px;transition:width 0.6s ease"></div>
+                </div>
+                <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${col};min-width:44px;text-align:right">${val!=null?(val>0?'+':'')+val+'bp':'—'}</span>
+              </div>`;
+            };
+            return deltaBar('4W', hyDelta4w) + deltaBar('3M', hyDelta3m) + deltaBar('6M', hyDelta6m);
+          })()}
         </div>
       </div>`;
       })()}
@@ -6030,25 +6020,28 @@ function renderMacroDataPanels(reg){
             {lbl:'Breadth',    sig:brSig,  col:brCol,  val:brVal},
             {lbl:'Momentum',   sig:momSig, col:momCol, val:momVal},
           ].map(p=>`
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:7px 9px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-              <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${p.lbl}</span>
-              <span style="font-family:var(--mono);font-size:9.5px;font-weight:900;color:${p.col}">${p.val}</span>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="display:flex;align-items:center;gap:5px">
+                <span style="font-size:7px;color:${p.col};line-height:1">&#9679;</span>
+                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${p.lbl}</span>
+              </div>
+              <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${p.col}">${p.val}</span>
             </div>
-            <div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06)">
-              <div style="height:100%;width:${Math.min(100,Math.max(0,(((p.sig.score??0)+2)/4)*100)).toFixed(0)}%;background:${p.col};border-radius:2px;transition:width 0.8s ease"></div>
+            <div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.06);margin-bottom:4px">
+              <div style="height:100%;width:${Math.min(100,Math.max(0,(((p.sig.score??0)+2)/4)*100)).toFixed(0)}%;background:${p.col};border-radius:3px;transition:width 0.8s ease;box-shadow:0 0 6px ${p.col}66"></div>
             </div>
-            <div style="font-family:var(--mono);font-size:6px;color:${p.col};margin-top:2px;opacity:0.8">${p.sig.label||'—'}</div>
+            <div style="font-family:var(--mono);font-size:6px;color:${p.col};opacity:0.85">${p.sig.label||'—'}</div>
           </div>`).join('')}
         </div>
         <!-- Composite score footer -->
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;margin-top:auto">
-          <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Composite Score</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:64px;height:3px;border-radius:2px;background:rgba(255,255,255,0.06)">
-              <div style="height:100%;width:${scArcPct.toFixed(0)}%;background:${scArcCol};border-radius:2px"></div>
-            </div>
-            <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${scArcCol}">${scComposite!=null?scComposite.toFixed(2):'—'}</span>
+        <div style="padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid ${scArcCol}28;border-radius:8px;margin-top:auto">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Composite Score</span>
+            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:${scArcCol};letter-spacing:-0.03em">${scComposite!=null?scComposite.toFixed(2):'—'}</span>
+          </div>
+          <div style="width:100%;height:5px;border-radius:3px;background:rgba(255,255,255,0.06)">
+            <div style="height:100%;width:${scArcPct.toFixed(0)}%;background:${scArcCol};border-radius:3px;box-shadow:0 0 8px ${scArcCol}88;transition:width 0.8s ease"></div>
           </div>
         </div>
       </div>`;
