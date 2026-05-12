@@ -1231,7 +1231,7 @@ a{color:inherit;text-decoration:none}
 ════════════════════════════════════════════ */
 /* Canvas fills flex space */
 .ov-yc-canvas-wrap{
-  flex:1;min-height:140px;position:relative;border-radius:8px;overflow:hidden;
+  flex:1;min-height:180px;position:relative;border-radius:8px;overflow:hidden;
   margin:8px 0 0;
   background:rgba(255,255,255,0.02);
   border:1px solid rgba(255,255,255,0.05);
@@ -5662,7 +5662,7 @@ function renderMacroDataPanels(reg){
           ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}18;border:1px solid ${jcCol}30">${jcLabel}</span>`:''}
         </div>
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div style="display:flex;align-items:center;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
             <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0">
               ${arcSVG(arcPct, jcCol, 88, 10)}
               <div style="font-family:var(--mono);font-size:24px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${jcCol};margin-top:-22px">${jobsComp!=null?jobsComp.toFixed(1):'—'}</div>
@@ -5781,7 +5781,12 @@ function renderMacroDataPanels(reg){
           <div style="font-family:var(--mono);font-size:36px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${lineCol}">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
           ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent)">${vsPeak}% of QE peak</span>`:''}
         </div>
-        <div class="ov-bs-arc-wrap" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 0">
+        <!-- Full-width SVG area chart — hero visual matching old design -->
+        <div style="flex:1;min-height:100px;margin:6px 0 4px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05)">
+          ${svgChart}
+        </div>
+        <!-- Compact arc gauge strip below chart -->
+        <div style="display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;opacity:0;pointer-events:none">
           <canvas id="ov-bs-arc-canvas" style="width:100%;max-width:260px;display:block"></canvas>
         </div>
         <div>
@@ -5998,7 +6003,7 @@ function renderMacroDataPanels(reg){
         <div style="display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start">
           <!-- VIX semicircle gauge -->
           <div style="display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0">
-            <canvas id="ov-sc-vix-gauge" width="120" height="68" style="width:120px;height:68px;display:block"></canvas>
+            <canvas id="ov-sc-vix-gauge" width="160" height="90" style="width:160px;height:90px;display:block"></canvas>
             <div style="font-family:var(--mono);font-size:19px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${vixCol};margin-top:-6px">${vixVal}</div>
             <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-top:2px">VIX · ${vixLbl}</div>
           </div>
@@ -6817,7 +6822,7 @@ function _drawVixGauge(canvasId, vixLevel, col){
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
   const dpr = Math.min(window.devicePixelRatio||1, 2);
-  const W = 120, H = 68;
+  const W = 160, H = 90;
   canvas.width = W*dpr; canvas.height = H*dpr;
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
   const c = canvas.getContext('2d');
