@@ -6480,6 +6480,8 @@ async def get_all_scores(force: bool = False):
             ALL_DATA_CACHE["data"] = None
             FF_CACHE["data"] = None
             FF_MACRO_CACHE["data"] = None
+        _refresh_start = time.time()
+        print(f"[scores] Cache refresh START", flush=True)
 
         # Run all sync blocking data-fetch functions in thread executors
         # so the async event loop (and /api/health) remain responsive
@@ -6829,6 +6831,7 @@ async def get_all_scores(force: bool = False):
         # Run the loop in a thread — it contains sync yfinance calls (momentum, relval, price merge)
         _loop = asyncio.get_event_loop()
         results = await _loop.run_in_executor(_APP_EXECUTOR, _compute_all_market_scores)
+        print(f"[scores] Market scoring done in {time.time()-_refresh_start:.1f}s", flush=True)
     
         # ── DX REGIME FEEDBACK LOOP ───────────────────────────────────────────────────
         # When DX (US Dollar Index) has a strong composite signal, apply a
@@ -6954,6 +6957,7 @@ async def get_all_scores(force: bool = False):
         # Always store with full TTL — narratives have their own endpoint and cache
         ALL_DATA_CACHE["data"] = output
         ALL_DATA_CACHE["time"] = now
+        print(f"[scores] Cache populated, lock released — total {time.time()-_refresh_start:.1f}s", flush=True)
     return _SafeJSONResponse(output)
 
 # ============================================================
@@ -9222,4 +9226,14 @@ async def warmup_cache():
 
 if __name__ == "__main__":
     import uvicorn
+    import logging
+
+    # Suppress /api/health from access logs — keepalives flood the log stream
+    class _NoHealthFilter(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            msg = record.getMessage()
+            return "/api/health" not in msg
+
+    logging.getLogger("uvicorn.access").addFilter(_NoHealthFilter())
+
     uvicorn.run(app, host="0.0.0.0", port=5000)
