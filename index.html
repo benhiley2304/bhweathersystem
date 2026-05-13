@@ -2162,10 +2162,10 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 .ov-rate-section-hdr{
   display:flex;align-items:center;gap:10px;
-  margin-bottom:9px;
+  margin-bottom:10px;
 }
 .ov-rate-section-title{
-  font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);
   flex-shrink:0;
 }
 .ov-rate-section-line{
@@ -2173,23 +2173,23 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   background:linear-gradient(90deg,rgba(255,255,255,0.06) 0%,transparent 100%);
 }
 .ov-rate-badge{
-  font-size:7.5px;font-weight:700;border-radius:4px;
-  padding:2px 8px;letter-spacing:0.04em;flex-shrink:0;
+  font-size:8px;font-weight:800;border-radius:5px;
+  padding:3px 10px;letter-spacing:0.05em;flex-shrink:0;
 }
 .ov-rate-stats{
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;
 }
 .ov-rate-stat{
-  display:flex;align-items:baseline;gap:4px;
+  display:flex;align-items:baseline;gap:5px;
 }
 .ov-rate-stat-label{
-  font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);
+  font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);
 }
 .ov-rate-stat-val{
-  font-family:var(--mono);font-size:12px;font-weight:800;color:var(--text);
+  font-family:var(--mono);font-size:14px;font-weight:900;color:var(--text);
 }
 .ov-rate-bar-wrap{
-  height:2px;background:var(--surf3);border-radius:2px;overflow:hidden;margin-bottom:3px;
+  height:3px;background:var(--surf3);border-radius:2px;overflow:hidden;margin-bottom:4px;
 }
 .ov-rate-bar-fill{
   height:100%;border-radius:2px;transition:width 600ms var(--ease);
@@ -2198,28 +2198,31 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   display:flex;justify-content:space-between;
 }
 .ov-rate-bar-lbl{
-  font-size:7px;color:var(--faint);
+  font-size:7.5px;color:var(--faint);
 }
-/* G10 CB table */
+/* G10 CB table — enlarged */
 .ov-cb-table-wrap{
   margin-top:12px;padding-top:10px;
   border-top:1px solid rgba(255,255,255,0.06);
 }
 .ov-cb-table-hdr{
   display:flex;align-items:center;gap:10px;
-  margin-bottom:6px;
+  margin-bottom:8px;
 }
 .ov-cb-col-head{
-  font-size:6.5px;color:var(--faint);letter-spacing:0.07em;text-transform:uppercase;opacity:0.8;
+  font-size:7.5px;color:var(--faint);letter-spacing:0.07em;text-transform:uppercase;opacity:0.8;font-weight:700;
 }
 .ov-cb-row{
-  display:flex;align-items:center;gap:7px;padding:3px 0;
+  display:grid;grid-template-columns:34px 42px 1fr auto;
+  align-items:center;gap:8px;padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
 }
-.ov-cb-name{font-family:var(--mono);font-size:8px;font-weight:700;color:var(--dim);width:30px;flex-shrink:0}
-.ov-cb-rate{font-family:var(--mono);font-size:8.5px;color:var(--text);width:38px;flex-shrink:0;font-weight:700}
-.ov-cb-bar-wrap{flex:1;height:2px;background:var(--surf3);border-radius:2px;overflow:hidden;position:relative}
-.ov-cb-bias{font-size:7.5px;font-weight:700;width:36px;text-align:right;flex-shrink:0}
-.ov-cb-chg{font-family:var(--mono);font-size:7.5px;width:32px;text-align:right;flex-shrink:0}
+.ov-cb-row:last-child{border-bottom:none}
+.ov-cb-name{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--dim)}
+.ov-cb-rate{font-family:var(--mono);font-size:12px;font-weight:900;color:var(--text)}
+.ov-cb-bar-wrap{flex:1;height:3px;background:var(--surf3);border-radius:2px;overflow:hidden;position:relative}
+.ov-cb-bias{font-size:8.5px;font-weight:800}
+.ov-cb-chg{font-family:var(--mono);font-size:9px;font-weight:700;text-align:right}
 
 /* ── AI Brief ── */
 .ov-ai-brief{
@@ -4908,21 +4911,138 @@ function renderOverview(){
     const cuts12m = rateSig.cuts_12m;
     const cuts18m = rateSig.cuts_18m;
     const rateNorm = rateSig.rate_norm??0.5;
-    const rateBarCol = rateNorm>=0.7?'#3b82c4':rateNorm<=0.3?'#e03a2a':'#adb8d0';
+    const hikeProbNext = rateSig.hike_prob_next??0;
+    const cutProbNext  = rateSig.cut_prob_next??0;
+    const totalBp12m   = rateSig.total_bp_12m??0;
+    const pathMonthly  = rateSig.path_monthly||[];
+    // Colour scheme: hike=red, cut=blue, hold=dim
+    const isHiking = totalBp12m > 8;
+    const isCutting = totalBp12m < -8;
+    const rateBarCol = isHiking?'#e03a2a':isCutting?'#5c9eff':'#adb8d0';
     const ratePct = Math.round(rateNorm*100);
+    // Month abbreviations for step chart
+    const _MABBR = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // Build inline SVG step-chart of implied rate path
+    const _buildRatePathChart = (path, spotRate) => {
+      if(!path||path.length<2) return '';
+      const pts = [{rate:spotRate,label:'Now'}, ...path.slice(1,13).map(p=>({rate:p.rate,label:_MABBR[p.month]+"'"+String(p.year).slice(2)}))];
+      const rates = pts.map(p=>p.rate);
+      const minR = Math.min(...rates) - 0.1;
+      const maxR = Math.max(...rates) + 0.1;
+      const rng = maxR - minR || 0.5;
+      const W=280, H=52, PL=2, PR=4, PT=4, PB=14;
+      const cw=W-PL-PR, ch=H-PT-PB;
+      const x = i => PL + (i/(pts.length-1))*cw;
+      const y = r => PT + ch - ((r-minR)/rng)*ch;
+      // Step path: horizontal then vertical
+      let d='M'+x(0)+','+y(pts[0].rate);
+      for(let i=1;i<pts.length;i++){
+        d+=' L'+x(i)+','+y(pts[i-1].rate)+' L'+x(i)+','+y(pts[i].rate);
+      }
+      // Gradient area fill
+      let da='M'+x(0)+','+H+' L'+x(0)+','+y(pts[0].rate);
+      for(let i=1;i<pts.length;i++){
+        da+=' L'+x(i)+','+y(pts[i-1].rate)+' L'+x(i)+','+y(pts[i].rate);
+      }
+      da+=' L'+x(pts.length-1)+','+H+' Z';
+      const pathCol = isHiking?'#e03a2a':isCutting?'#5c9eff':'#adb8d0';
+      // Labels at every 3rd point
+      const labels = pts.map((p,i)=>{
+        if(i===0||i===pts.length-1||(i%3===0)) {
+          const labelY = y(p.rate)-5;
+          return `<text x="${x(i).toFixed(1)}" y="${(H-3).toFixed(0)}" font-family="monospace" font-size="5" fill="rgba(173,184,208,0.55)" text-anchor="middle">${p.label}</text>`;
+        }
+        return '';
+      }).join('');
+      // Dots at each point
+      const dots = pts.map((p,i)=>{
+        const dotCol = p.rate>spotRate?'#e03a2a':p.rate<spotRate-0.01?'#5c9eff':'#adb8d0';
+        return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="${i===0?3:2}" fill="${i===0?pathCol:dotCol}" opacity="${i===0?1:0.7}"/>`;
+      }).join('');
+      // Rate level text at first and last
+      const firstY = y(pts[0].rate);
+      const lastY = y(pts[pts.length-1].rate);
+      const lastRate = pts[pts.length-1].rate;
+      const deltaTotal = lastRate - spotRate;
+      const deltaBp = Math.round(deltaTotal*100);
+      const deltaStr = (deltaBp>=0?'+':'')+deltaBp+'bp';
+      const deltaCol = deltaBp>5?'#e03a2a':deltaBp<-5?'#5c9eff':'#adb8d0';
+      return `<svg width="${W}" height="${H}" style="width:100%;height:${H}px;display:block;overflow:visible">
+        <defs>
+          <linearGradient id="rp-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        <path d="${da}" fill="url(#rp-fill)"/>
+        <path d="${d}" fill="none" stroke="${pathCol}" stroke-width="1.5" stroke-linejoin="round" opacity="0.85"/>
+        ${dots}
+        ${labels}
+        <text x="${x(pts.length-1).toFixed(1)}" y="${Math.max(PT+8,lastY-3).toFixed(0)}" font-family="monospace" font-size="6.5" font-weight="bold" fill="${deltaCol}" text-anchor="end">${deltaStr}</text>
+      </svg>`;
+    };
+
     const rateCardHtml = (effr!=null||cuts12m!=null) ? `
       <div class="ov-rate-section-hdr">
         <div class="ov-rate-section-title">US Rate Path</div>
         <div class="ov-rate-section-line"></div>
         <div class="ov-rate-badge" style="color:${rateBarCol};background:${rateBarCol}18;border:1px solid ${rateBarCol}28">${rateLabel}</div>
       </div>
-      <div class="ov-rate-stats">
-        ${effr!=null?`<div class="ov-rate-stat"><span class="ov-rate-stat-label">EFFR</span><span class="ov-rate-stat-val">${effr.toFixed(2)}%</span></div>`:''}
-        ${cuts12m!=null?`<div class="ov-rate-stat"><span class="ov-rate-stat-label">${cuts12m>0?'Cuts 12M':'Hike Risk 12M'}</span><span class="ov-rate-stat-val" style="color:${cuts12m<0.5?'var(--text)':cuts12m>=2?'#3b82c4':'#adb8d0'}">${cuts12m>=0?'+':''}${cuts12m.toFixed(2)}</span></div>`:''}
-        ${cuts18m!=null?`<div class="ov-rate-stat"><span class="ov-rate-stat-label">${(cuts18m||0)>0?'Cuts 18M':'Hike 18M'}</span><span class="ov-rate-stat-val" style="color:${(cuts18m||0)<1?'var(--text)':(cuts18m||0)>=2?'#3b82c4':'#adb8d0'}">${(cuts18m||0)>=0?'+':''}${(cuts18m||0).toFixed(2)}</span></div>`:''}
+      <!-- Hero: EFFR + prob pills -->
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;gap:8px">
+        <div>
+          <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px">Fed Funds Rate</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span style="font-family:var(--mono);font-size:clamp(28px,4vw,34px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text)">${effr!=null?effr.toFixed(2)+'%':'—'}</span>
+            ${totalBp12m!==0?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${rateBarCol};opacity:0.85">${totalBp12m>0?'+':''}${Math.round(totalBp12m)}bp / 12M</span>`:'<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint)">Flat path</span>'}
+          </div>
+        </div>
+        <!-- Next meeting probability pills -->
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0">
+          ${hikeProbNext>5?`<div style="display:flex;align-items:center;gap:5px;background:rgba(224,58,42,0.1);border:1px solid rgba(224,58,42,0.25);border-radius:6px;padding:4px 9px">
+            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#e03a2a">Hike</span>
+            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:#e03a2a;line-height:1">${hikeProbNext.toFixed(0)}%</span>
+          </div>`:''}
+          ${cutProbNext>5?`<div style="display:flex;align-items:center;gap:5px;background:rgba(92,158,255,0.1);border:1px solid rgba(92,158,255,0.25);border-radius:6px;padding:4px 9px">
+            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5c9eff">Cut</span>
+            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:#5c9eff;line-height:1">${cutProbNext.toFixed(0)}%</span>
+          </div>`:''}
+          ${(hikeProbNext<=5&&cutProbNext<=5)?`<div style="display:flex;align-items:center;gap:5px;background:rgba(173,184,208,0.08);border:1px solid rgba(173,184,208,0.18);border-radius:6px;padding:4px 9px">
+            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Hold</span>
+            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:var(--dim);line-height:1">&gt;95%</span>
+          </div>`:''}
+          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.35);text-align:right;letter-spacing:0.04em">Next meeting</div>
+        </div>
       </div>
-      <div class="ov-rate-bar-wrap"><div class="ov-rate-bar-fill" style="width:${ratePct}%;background:${rateBarCol}"></div></div>
-      <div class="ov-rate-bar-labels"><div class="ov-rate-bar-lbl">Hawkish</div><div class="ov-rate-bar-lbl">Dovish</div></div>` : '';
+      <!-- Implied rate step chart -->
+      ${pathMonthly.length>1?`<div style="margin-bottom:8px">
+        <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">Implied Rate Path · FFF Priced</div>
+        <div style="border-radius:7px;overflow:hidden;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.06);padding:8px 10px 4px">
+          ${_buildRatePathChart(pathMonthly, effr??rateSig.effr_spot??4.33)}
+        </div>
+      </div>`:''}
+      <!-- Cuts/Hikes summary stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
+        <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:6px 10px">
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">12M Path</div>
+          ${cuts12m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
+            <span style="font-family:var(--mono);font-size:18px;font-weight:900;line-height:1;color:${isHiking?'#e03a2a':isCutting?'#5c9eff':'var(--dim)'}">${cuts12m>0?'+':''}${cuts12m.toFixed(1)}</span>
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint)">${Math.abs(cuts12m)<0.4?'cuts':'cuts'}</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);margin-top:1px">${isHiking?'Hikes priced':isCutting?'Cuts priced':'No move priced'}</div>`:
+          '<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</div>'}
+        </div>
+        <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:6px 10px">
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">18M Path</div>
+          ${cuts18m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
+            <span style="font-family:var(--mono);font-size:18px;font-weight:900;line-height:1;color:${(cuts18m||0)>0.5?'#5c9eff':(cuts18m||0)<-0.5?'#e03a2a':'var(--dim)'}">${(cuts18m||0)>0?'+':''}${(cuts18m||0).toFixed(1)}</span>
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint)">cuts</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);margin-top:1px">${Math.abs(cuts18m||0)<0.4?'Flat':((cuts18m||0)>0?'Easing path':'Tightening')}</div>`:
+          '<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</div>'}
+        </div>
+      </div>` : '';
 
     // ── G10 CB rates section ──
     const intlRates = reg.intl_rates||{};
@@ -4931,26 +5051,31 @@ function renderOverview(){
     const cbRows = CB_ORDER_OV.filter(cb=>intlRates[cb]).map(cb=>{
       const d=intlRates[cb];
       const bias=d.bias||0;
-      const _cbLabel=d.label||'';
-      const _cbPaused=_cbLabel==='Paused'||_cbLabel==='Flat';
-      const bc=_cbPaused?'#4a5268':bias===1?'#22c97a':bias===-1?'#e03a2a':'#4a5268';
-      const biasTxt=_cbLabel||( bias===1?'Hiking':bias===-1?'Cutting':'Flat');
-      // For Paused/Flat CBs use t3 (recent action) not t6 (stale history) for the bar
-      const t6=d.trend_6m??0;
-      const _barVal=_cbPaused?(d.trend_3m??0):t6;
-      const barW=_cbPaused?0:Math.min(100,Math.abs(t6)/0.8*100);
-      const barCol=_cbPaused?'#4a5268':t6>0?'#22c97a':t6<0?'#e03a2a':'#4a5268';
-      const chgCol=_cbPaused?'var(--faint)':t6>0?'#22c97a':t6<0?'#e03a2a':'#4a5268';
-      const staleStr=(d.stale_days||0)>14?` · ${d.stale_days}d old`:'';
+      const _lbl=d.label||'';
+      const _isFlat=_lbl==='Flat'||_lbl==='Paused'||_lbl==='On Hold';
+      const _isHike=_lbl==='Hiking'||_lbl==='Tightening';
+      const _isCut=_lbl==='Cutting'||_lbl==='Easing';
+      // Stance colour and pill
+      const stanceCol=_isHike?'#e03a2a':_isCut?'#5c9eff':'#6e7d90';
+      const stanceTxt=_lbl||(_isHike?'Hiking':_isCut?'Cutting':'Hold');
+      // Next-move arrow from bias + label combo
+      // +1 = next move likely hike, -1 = likely cut, 0 = hold
+      const t3=d.trend_3m??0; const t6=d.trend_6m??0;
+      const _nextDir=_isHike?1:_isCut?-1:(bias!==0?bias:0);
+      const nextArrow=_nextDir>0?'▲':_nextDir<0?'▼':'—';
+      const nextArrowCol=_nextDir>0?'#e03a2a':_nextDir<0?'#5c9eff':'#6e7d90';
+      // 6m change in bps
+      const chgBp=Math.round(t6*100);
+      const chgStr=chgBp===0?'—':(chgBp>0?'+':'')+chgBp+'bp';
+      const chgCol=_isFlat?'#6e7d90':t6>0?'#e03a2a':t6<0?'#5c9eff':'#6e7d90';
       return `<div class="ov-cb-row">
         <div class="ov-cb-name">${CB_NAMES_OV[cb]||cb}</div>
         <div class="ov-cb-rate">${(d.rate??0).toFixed(2)}%</div>
-        <div class="ov-cb-bar-wrap">
-          <div style="position:absolute;${t6>=0?'left:50%':'right:50%'};height:100%;width:${barW/2}%;background:${barCol};border-radius:1px"></div>
-          <div style="position:absolute;left:50%;top:-1px;width:1px;height:4px;background:var(--bdr3)"></div>
+        <div class="ov-cb-bias" style="color:${stanceCol};background:${stanceCol}14;border:1px solid ${stanceCol}28;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:800;letter-spacing:0.04em;width:auto;text-align:center">${stanceTxt}</div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+          <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${chgCol}">${chgStr}</span>
+          <span style="font-size:10px;color:${nextArrowCol};line-height:1">${nextArrow}</span>
         </div>
-        <div class="ov-cb-bias" style="color:${bc}">${biasTxt}</div>
-        <div class="ov-cb-chg" style="color:${chgCol}">${_cbPaused?'\u2014':((t6>0?'+':'')+t6.toFixed(2)+'%')}</div>
       </div>`;
     }).join('');
 
@@ -4960,12 +5085,11 @@ function renderOverview(){
           <div class="ov-rate-section-title">G10 Central Banks</div>
           <div class="ov-rate-section-line"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:7px;padding:0 0 4px 0;margin-bottom:1px;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <div class="ov-cb-col-head" style="width:30px">CB</div>
-          <div class="ov-cb-col-head" style="width:38px">Rate</div>
-          <div class="ov-cb-col-head" style="flex:1">6m Trend</div>
-          <div class="ov-cb-col-head" style="width:36px;text-align:right">Bias</div>
-          <div class="ov-cb-col-head" style="width:32px;text-align:right">Chg</div>
+        <div style="display:grid;grid-template-columns:34px 42px 1fr auto;align-items:center;gap:8px;padding:0 0 5px 0;margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.07)">
+          <div class="ov-cb-col-head">CB</div>
+          <div class="ov-cb-col-head">Rate</div>
+          <div class="ov-cb-col-head">Stance</div>
+          <div class="ov-cb-col-head" style="text-align:right">6M / Dir</div>
         </div>
         ${cbRows}
       </div>` : '';

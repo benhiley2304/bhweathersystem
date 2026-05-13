@@ -5544,18 +5544,53 @@ def compute_risk_regime() -> dict:
             except Exception:
                 pass
             effr_val = _effr_fred if _effr_fred is not None else _effr_spot
+            # Build full monthly path array for frontend step-chart
+            _path_monthly = []
+            for _pk in _fff_keys[:18]:
+                _py, _pm = _pk
+                _implied = _fff_results[_pk]
+                # Change vs spot (positive = hike, negative = cut)
+                _delta_bp = round((_implied - _effr_spot) * 100, 0)
+                _path_monthly.append({
+                    "year": _py, "month": _pm,
+                    "rate": round(_implied, 4),
+                    "delta_bp": _delta_bp,
+                })
+
+            # Hike probability at next FOMC meeting
+            # Use month 1 vs month 2 implied rates; each 25bp = one hike
+            # Probability = fractional 25bp move above current rate
+            _hike_prob_next = 0.0
+            _cut_prob_next  = 0.0
+            if len(_fff_keys) >= 2:
+                _next_delta = _fff_results[_fff_keys[1]] - _effr_spot
+                if _next_delta < 0:
+                    # Cut expected
+                    _cut_prob_next = round(min(100, abs(_next_delta) / 0.25 * 100), 1)
+                elif _next_delta > 0:
+                    # Hike expected
+                    _hike_prob_next = round(min(100, _next_delta / 0.25 * 100), 1)
+
+            # Total bp change across 12 months (negative = cuts)
+            _total_bp_12m = round((_effr_12m - _effr_spot) * 100, 1)
+
             rate_signal = {
-                "effr":       round(effr_val, 3),
-                "effr_spot":  round(_effr_spot, 3),
-                "effr_12m":   round(_effr_12m, 3),
-                "effr_18m":   round(_effr_18m, 3),
-                "cuts_12m":   cuts_12m,
-                "cuts_18m":   cuts_18m,
-                "rate_norm":  rate_norm_val,
-                "source":     "fff",  # fed funds futures
+                "effr":           round(effr_val, 3),
+                "effr_spot":      round(_effr_spot, 3),
+                "effr_12m":       round(_effr_12m, 3),
+                "effr_18m":       round(_effr_18m, 3),
+                "cuts_12m":       cuts_12m,
+                "cuts_18m":       cuts_18m,
+                "rate_norm":      rate_norm_val,
+                "source":         "fff",  # fed funds futures
+                "path_monthly":   _path_monthly,
+                "hike_prob_next": _hike_prob_next,
+                "cut_prob_next":  _cut_prob_next,
+                "total_bp_12m":   _total_bp_12m,
             }
             print(f"[rate_signal] FFF: spot={_effr_spot}% 12m={_effr_12m}% "
-                  f"cuts_12m={cuts_12m} cuts_18m={cuts_18m} label={rate_label}")
+                  f"cuts_12m={cuts_12m} hike_prob={_hike_prob_next}% cut_prob={_cut_prob_next}% "
+                  f"total_bp_12m={_total_bp_12m}bp label={rate_label}")
         else:
             # Fallback: FEDFUNDS historical (lagging but better than nothing)
             _fred_ff = fetch_fred_series("FEDFUNDS", 6)
