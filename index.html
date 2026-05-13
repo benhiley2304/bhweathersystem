@@ -4895,8 +4895,8 @@ function renderOverview(){
     // ── Rate path section ──
     const rateSig = reg.rate_signal||{};
     const rateLabel = reg.rate_label||'';
-    const effr = rateSig.effr;                       // FFF month-0 implied rate
-    const effrActual = (reg.intl_rates||{}).US?.rate ?? 4.33;  // actual FEDFUNDS from fallback
+    const effr = rateSig.effr;                       // FFF month-0 implied (market pricing)
+    const effrActual = (reg.intl_rates||{}).US?.rate ?? 3.64;  // actual FEDFUNDS effective rate
     const cuts12m = rateSig.cuts_12m;
     const cuts18m = rateSig.cuts_18m;
     const rateNorm = rateSig.rate_norm??0.5;
@@ -4907,342 +4907,279 @@ function renderOverview(){
     const isHiking = totalBp12m > 8;
     const isCutting = totalBp12m < -8;
     const rateBarCol = isHiking?'#e03a2a':isCutting?'#5c9eff':'#adb8d0';
-    const ratePct = Math.round(rateNorm*100);
     const _MABBR = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── Helpers
     const _bpLabel = (bp) => {
-      if(Math.abs(bp)<8) return 'Flat / no move priced';
+      if(Math.abs(bp)<8) return 'No move priced';
       const n=Math.abs(Math.round(bp/25));
       const word=bp>0?'hike'+(n!==1?'s':''):'cut'+(n!==1?'s':'');
-      return `${n} × 25bp ${word} priced`;
+      return `${n}×25bp ${word} priced`;
     };
     const _bpCol = (bp) => bp>8?'#e03a2a':bp<-8?'#5c9eff':'var(--dim)';
     const _bpStr = (bp) => (bp>=0?'+':'')+Math.round(bp)+'bp';
-
-    // Format next meeting date as "Jun 11"
     const _fmtMtg = (d) => {
       if(!d) return null;
-      try{
-        const dt=new Date(d+'T12:00:00Z');
-        return dt.toLocaleDateString('en-GB',{month:'short',day:'numeric'});
-      }catch(e){return null;}
+      try{ const dt=new Date(d+'T12:00:00Z'); return dt.toLocaleDateString('en-GB',{month:'short',day:'numeric'}); }catch(e){return null;}
     };
-    // Days until next meeting
     const _daysTo = (d) => {
       if(!d) return null;
-      try{
-        const dt=new Date(d+'T12:00:00Z');
-        const diff=Math.round((dt-Date.now())/86400000);
-        return diff;
-      }catch(e){return null;}
+      try{ const dt=new Date(d+'T12:00:00Z'); return Math.round((dt-Date.now())/86400000); }catch(e){return null;}
     };
 
-    // ── SVG Rate Path Chart ──────────────────────────────────────────────────
+    // ── Premium SVG Rate Path Chart ───────────────────────────────────────────
+    // Uses FFF spot as starting point. Smooth step line, large gradient fill,
+    // glowing start dot, subtle glassmorphic container.
     const _buildRatePathChart = (path, spotRate) => {
       if(!path||path.length<2) return '';
       const pts = [{rate:spotRate,label:'Now'}, ...path.slice(1,13).map(p=>({rate:p.rate,label:_MABBR[p.month]+"'"+String(p.year).slice(2)}))];
       const rates = pts.map(p=>p.rate);
-      const minR = Math.min(...rates) - 0.15;
-      const maxR = Math.max(...rates) + 0.15;
-      const rng = maxR - minR || 0.5;
-      const W=300, H=88, PL=30, PR=8, PT=14, PB=18;
+      const minR = Math.min(...rates) - 0.18;
+      const maxR = Math.max(...rates) + 0.18;
+      const rng  = maxR - minR || 0.5;
+      const W=320, H=110, PL=34, PR=10, PT=16, PB=22;
       const cw=W-PL-PR, ch=H-PT-PB;
-      const x = i => PL + (i/(pts.length-1))*cw;
-      const y = r => PT + ch - ((r-minR)/rng)*ch;
+      const x  = i => PL+(i/(pts.length-1))*cw;
+      const y  = r => PT+ch-((r-minR)/rng)*ch;
       const pathCol = isHiking?'#e03a2a':isCutting?'#5c9eff':'#adb8d0';
-      let d='M'+x(0).toFixed(1)+','+y(pts[0].rate).toFixed(1);
+      const glowCol = isHiking?'rgba(224,58,42,0.35)':isCutting?'rgba(92,158,255,0.35)':'rgba(173,184,208,0.25)';
+      // Step path
+      let dLine='M'+x(0).toFixed(1)+','+y(pts[0].rate).toFixed(1);
       for(let i=1;i<pts.length;i++){
-        d+=' L'+x(i).toFixed(1)+','+y(pts[i-1].rate).toFixed(1)+' L'+x(i).toFixed(1)+','+y(pts[i].rate).toFixed(1);
+        dLine+=' L'+x(i).toFixed(1)+','+y(pts[i-1].rate).toFixed(1)+' L'+x(i).toFixed(1)+','+y(pts[i].rate).toFixed(1);
       }
-      let da='M'+x(0).toFixed(1)+','+(H-PB+2).toFixed(0)+' L'+x(0).toFixed(1)+','+y(pts[0].rate).toFixed(1);
+      // Area fill
+      let dArea='M'+x(0).toFixed(1)+','+(PT+ch+2)+' L'+x(0).toFixed(1)+','+y(pts[0].rate).toFixed(1);
       for(let i=1;i<pts.length;i++){
-        da+=' L'+x(i).toFixed(1)+','+y(pts[i-1].rate).toFixed(1)+' L'+x(i).toFixed(1)+','+y(pts[i].rate).toFixed(1);
+        dArea+=' L'+x(i).toFixed(1)+','+y(pts[i-1].rate).toFixed(1)+' L'+x(i).toFixed(1)+','+y(pts[i].rate).toFixed(1);
       }
-      da+=' L'+x(pts.length-1).toFixed(1)+','+(H-PB+2).toFixed(0)+' Z';
+      dArea+=' L'+x(pts.length-1).toFixed(1)+','+(PT+ch+2)+' Z';
+      // Gridlines at 25bp
       let gridSvg='';
-      const gridStep=0.25;
-      const gStart=Math.ceil(minR/gridStep)*gridStep;
-      for(let gv=gStart;gv<=maxR+0.01;gv=+(gv+gridStep).toFixed(3)){
+      const gStep=0.25, gStart=Math.ceil(minR/gStep)*gStep;
+      for(let gv=gStart;gv<=maxR+0.01;gv=+(gv+gStep).toFixed(3)){
         const gy=y(gv);
         if(gy<PT-2||gy>PT+ch+2) continue;
-        gridSvg+=`<line x1="${PL}" y1="${gy.toFixed(1)}" x2="${W-PR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,0.055)" stroke-width="0.7"/>`;
-        gridSvg+=`<text x="${(PL-3).toFixed(0)}" y="${(gy+2.5).toFixed(1)}" font-family="monospace" font-size="5.5" fill="rgba(173,184,208,0.45)" text-anchor="end">${gv.toFixed(2)}</text>`;
+        gridSvg+=`<line x1="${PL}" y1="${gy.toFixed(1)}" x2="${W-PR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>`;
+        gridSvg+=`<text x="${(PL-4)}" y="${(gy+2.5).toFixed(1)}" font-family="monospace" font-size="6" fill="rgba(173,184,208,0.38)" text-anchor="end">${gv.toFixed(2)}</text>`;
       }
-      const labels = pts.map((p,i)=>{
-        if(i===0||i===pts.length-1||(i>0&&i%3===0)){
-          const isFirst=i===0, isLast=i===pts.length-1;
-          const anchor=isFirst?'start':isLast?'end':'middle';
-          const fill=isFirst?pathCol:'rgba(173,184,208,0.45)';
-          const fw=isFirst?'700':'normal';
-          return `<text x="${x(i).toFixed(1)}" y="${(H-3).toFixed(0)}" font-family="monospace" font-size="6" fill="${fill}" font-weight="${fw}" text-anchor="${anchor}">${p.label}</text>`;
-        }
-        return '';
+      // X-axis labels: Now + every 3rd + last
+      const xLabels=pts.map((p,i)=>{
+        if(i===0||i===pts.length-1||(i%3===0&&i>0)){
+          const anchor=i===0?'start':i===pts.length-1?'end':'middle';
+          const fill=i===0?pathCol:'rgba(173,184,208,0.40)';
+          const fw=i===0?'700':'400';
+          return `<text x="${x(i).toFixed(1)}" y="${H-4}" font-family="monospace" font-size="6.5" fill="${fill}" font-weight="${fw}" text-anchor="${anchor}">${p.label}</text>`;
+        } return '';
       }).join('');
-      const dots = pts.map((p,i)=>{
-        const dotCol=p.rate>(spotRate+0.01)?'#e03a2a':p.rate<(spotRate-0.01)?'#5c9eff':pathCol;
-        const r=i===0?3.5:1.8;
-        return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="${r}" fill="${i===0?pathCol:'#030508'}" stroke="${dotCol}" stroke-width="${i===0?0:1.2}" opacity="${i===0?1:0.85}"/>`;
+      // Dots: glow on first, small on rest
+      const dots=pts.map((p,i)=>{
+        const dc=p.rate>(spotRate+0.01)?'#e03a2a':p.rate<(spotRate-0.01)?'#5c9eff':pathCol;
+        if(i===0) return `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="5" fill="${pathCol}" opacity="0.18"/>`+
+                         `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="3" fill="${pathCol}"/>`;
+        return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="2" fill="#0a0d14" stroke="${dc}" stroke-width="1.2" opacity="0.8"/>`;
       }).join('');
-      const lastY=y(pts[pts.length-1].rate);
-      const firstY=y(pts[0].rate);
+      // Rate annotations
       const lastRate=pts[pts.length-1].rate;
       const deltaBp=Math.round((lastRate-spotRate)*100);
       const deltaStr=(deltaBp>=0?'+':'')+deltaBp+'bp';
-      const deltaCol=deltaBp>5?'#e03a2a':deltaBp<-5?'#5c9eff':'rgba(173,184,208,0.7)';
+      const deltaCol=deltaBp>5?'#e03a2a':deltaBp<-5?'#5c9eff':'rgba(173,184,208,0.65)';
+      const firstY=y(pts[0].rate), lastY=y(lastRate);
       const annots=[
-        `<text x="${x(0).toFixed(1)}" y="${Math.max(PT+9,firstY-6).toFixed(1)}" font-family="monospace" font-size="7.5" font-weight="700" fill="${pathCol}" text-anchor="start">${spotRate.toFixed(2)}%</text>`,
-        `<text x="${x(pts.length-1).toFixed(1)}" y="${Math.max(PT+9,lastY-6).toFixed(1)}" font-family="monospace" font-size="7.5" font-weight="700" fill="${deltaCol}" text-anchor="end">${deltaStr}</text>`,
+        `<text x="${x(0).toFixed(1)}" y="${Math.max(PT+10,firstY-7).toFixed(1)}" font-family="monospace" font-size="8.5" font-weight="800" fill="${pathCol}" text-anchor="start">${spotRate.toFixed(2)}%</text>`,
+        `<text x="${x(pts.length-1).toFixed(1)}" y="${Math.max(PT+10,lastY-7).toFixed(1)}" font-family="monospace" font-size="8" font-weight="700" fill="${deltaCol}" text-anchor="end">${deltaStr}</text>`,
       ].join('');
-      const uid2='rpf'+((Math.random()*0xFFFFF|0).toString(16));
+      const uid='rpc'+((Math.random()*0xFFFFF|0).toString(16));
+      const uid2='rpg'+((Math.random()*0xFFFFF|0).toString(16));
       return `<svg width="${W}" height="${H}" style="width:100%;height:${H}px;display:block;overflow:visible" shape-rendering="crispEdges">
         <defs>
-          <linearGradient id="${uid2}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.22"/>
-            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0.01"/>
+          <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.28"/>
+            <stop offset="85%" stop-color="${pathCol}" stop-opacity="0.03"/>
+            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0"/>
           </linearGradient>
+          <filter id="${uid2}" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
         </defs>
         ${gridSvg}
-        <path d="${da}" fill="url(#${uid2})"/>
-        <path d="${d}" fill="none" stroke="${pathCol}" stroke-width="1.8" stroke-linejoin="round"/>
-        ${dots}${labels}${annots}
+        <path d="${dArea}" fill="url(#${uid})"/>
+        <path d="${dLine}" fill="none" stroke="${pathCol}" stroke-width="2.2" stroke-linejoin="miter" opacity="0.9"/>
+        <path d="${dLine}" fill="none" stroke="${glowCol}" stroke-width="5" stroke-linejoin="miter" filter="url(#${uid2})"/>
+        ${dots}${xLabels}${annots}
       </svg>`;
     };
 
-    // ── G10 rate cycle divergence bar chart (SVG) ─────────────────────────────
-    // Sorted descending by rate. Shows each CB as a horizontal bar from trough to peak,
-    // with current rate marker — visually shows where each CB sits in its cycle.
-    const _buildCycleDivChart = (intlRates, cbOrder) => {
-      const CB_NAMES = {US:'Fed',ECB:'ECB',BOE:'BoE',BOJ:'BoJ',RBA:'RBA',BOC:'BoC',SNB:'SNB',RBNZ:'RBNZ'};
-      const CB_FLAGS = {US:'🇺🇸',ECB:'🇪🇺',BOE:'🇬🇧',BOJ:'🇯🇵',RBA:'🇦🇺',BOC:'🇨🇦',SNB:'🇨🇭',RBNZ:'🇳🇿'};
-      const cbs = cbOrder.filter(cb=>intlRates[cb]);
-      if(!cbs.length) return '';
-      // Sort by current rate descending
-      cbs.sort((a,b)=>(intlRates[b].rate??0)-(intlRates[a].rate??0));
-      const ROW_H=22, LABEL_W=36, PAD_R=8, PAD_T=4, PAD_B=4;
-      const W=300, H=cbs.length*ROW_H+PAD_T+PAD_B;
-      // Rate domain: use global min/max across all cycle troughs/peaks + current
-      let domMin=0, domMax=6;
-      cbs.forEach(cb=>{
-        const d=intlRates[cb];
-        domMin=Math.min(domMin,d.cycle_trough??0,d.rate??0);
-        domMax=Math.max(domMax,d.cycle_peak??0,d.rate??0);
-      });
-      domMin=Math.min(domMin-0.1,-0.2);
-      domMax=domMax+0.2;
-      const barW=W-LABEL_W-PAD_R;
-      const rx=(r)=>LABEL_W+(r-domMin)/(domMax-domMin)*barW;
-      const rows=cbs.map((cb,i)=>{
-        const d=intlRates[cb];
-        const r=d.rate??0;
-        const pk=d.cycle_peak??r;
-        const tr=d.cycle_trough??0;
-        const _lbl=d.label||'';
-        const _isHike=_lbl==='Hiking'||_lbl==='Tightening';
-        const _isCut=_lbl==='Cutting'||_lbl==='Easing';
-        const _isPaused=_lbl==='Paused';
-        const col=_isHike?'#e03a2a':_isCut?'#5c9eff':_isPaused?'#8c9fb5':'#6e7d90';
-        const cy=PAD_T+i*ROW_H+ROW_H/2;
-        // Track from trough to peak (full cycle range)
-        const x1=rx(tr), x2=rx(pk);
-        const xCur=rx(r);
-        // Change from peak annotation
-        const cfp=d.change_from_peak;
-        const cfpStr=cfp!=null?(cfp>=0?'+':'')+cfp.toFixed(2)+'%':'';
-        const cfpCol=cfp!=null&&cfp<-0.5?'#5c9eff':cfp!=null&&cfp>0.5?'#e03a2a':'rgba(173,184,208,0.45)';
-        return [
-          // Track background (trough → peak range)
-          `<rect x="${x1.toFixed(1)}" y="${(cy-3).toFixed(1)}" width="${(x2-x1).toFixed(1)}" height="6" rx="3" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>`,
-          // Filled track from trough to current
-          `<rect x="${x1.toFixed(1)}" y="${(cy-3).toFixed(1)}" width="${Math.max(0,xCur-x1).toFixed(1)}" height="6" rx="3" fill="${col}" opacity="0.28"/>`,
-          // Current rate marker line
-          `<rect x="${(xCur-1).toFixed(1)}" y="${(cy-5).toFixed(1)}" width="2.5" height="10" rx="1.2" fill="${col}"/>`,
-          // Peak marker
-          `<line x1="${x2.toFixed(1)}" y1="${(cy-5).toFixed(1)}" x2="${x2.toFixed(1)}" y2="${(cy+5).toFixed(1)}" stroke="rgba(255,255,255,0.15)" stroke-width="0.8" stroke-dasharray="1.5,1.5"/>`,
-          // Label (left side)
-          `<text x="${(LABEL_W-4).toFixed(0)}" y="${(cy+3).toFixed(1)}" font-family="monospace" font-size="8" font-weight="700" fill="rgba(173,184,208,0.75)" text-anchor="end">${CB_NAMES[cb]||cb}</text>`,
-          // Rate value (right of marker)
-          `<text x="${(xCur+5).toFixed(1)}" y="${(cy+3).toFixed(1)}" font-family="monospace" font-size="7.5" font-weight="800" fill="${col}">${r.toFixed(2)}%</text>`,
-        ].join('');
-      }).join('');
-      // X-axis rate scale
-      const scaleSteps=[0,1,2,3,4,5];
-      const scale=scaleSteps.filter(v=>v>=domMin&&v<=domMax).map(v=>{
-        const sx=rx(v);
-        return `<text x="${sx.toFixed(1)}" y="${(H).toFixed(0)}" font-family="monospace" font-size="5.5" fill="rgba(173,184,208,0.30)" text-anchor="middle">${v}%</text>`+
-               `<line x1="${sx.toFixed(1)}" y1="${PAD_T}" x2="${sx.toFixed(1)}" y2="${(H-8).toFixed(0)}" stroke="rgba(255,255,255,0.04)" stroke-width="0.7"/>`;
-      }).join('');
-      return `<svg width="${W}" height="${H+10}" style="width:100%;height:${H+10}px;display:block;overflow:visible">
-        ${scale}${rows}
-      </svg>`;
-    };
-
-    // ── US Rate Card ──────────────────────────────────────────────────────────
-    const usData = (reg.intl_rates||{}).US || {};
-    const usNextMtg = _fmtMtg(usData.next_meeting);
-    const usDaysTo  = _daysTo(usData.next_meeting);
-    const usNextStr = usNextMtg ? `${usNextMtg}${usDaysTo!=null?' · '+usDaysTo+'d':''}` : 'Next meeting';
-
-    const rateCardHtml = (effr!=null||cuts12m!=null) ? `
-      <!-- Section header -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);flex-shrink:0">US Rate Path</div>
-        <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.07) 0%,transparent 100%)"></div>
-        <div style="font-family:var(--mono);font-size:8px;font-weight:800;border-radius:5px;padding:3px 10px;letter-spacing:0.05em;flex-shrink:0;color:${rateBarCol};background:${rateBarCol}18;border:1px solid ${rateBarCol}30">${rateLabel||'—'}</div>
-      </div>
-      <!-- Hero row: actual FEDFUNDS left, next-meeting + FFF pill right -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
-        <div>
-          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Fed Funds · Effective</div>
-          <div style="display:flex;align-items:baseline;gap:8px">
-            <span style="font-family:var(--mono);font-size:clamp(28px,4vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text)">${effrActual.toFixed(2)}%</span>
-          </div>
-          ${effr!=null?`<div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:rgba(173,184,208,0.45);margin-top:3px">FFF implied: ${effr.toFixed(2)}% · <span style="color:${rateBarCol}">${totalBp12m!==0?_bpStr(totalBp12m)+'/12M':'Flat path'}</span></div>`:''}
-        </div>
-        <!-- Next meeting + probabilities -->
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;padding-top:2px">
-          ${hikeProbNext>5?`
-          <div style="display:flex;align-items:center;gap:5px;background:rgba(224,58,42,0.12);border:1px solid rgba(224,58,42,0.28);border-radius:7px;padding:5px 10px">
-            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#e03a2a">Hike</span>
-            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e03a2a;line-height:1">${hikeProbNext.toFixed(0)}%</span>
-          </div>`:''}
-          ${cutProbNext>5?`
-          <div style="display:flex;align-items:center;gap:5px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.28);border-radius:7px;padding:5px 10px">
-            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#5c9eff">Cut</span>
-            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:#5c9eff;line-height:1">${cutProbNext.toFixed(0)}%</span>
-          </div>`:''}
-          ${(hikeProbNext<=5&&cutProbNext<=5)?`
-          <div style="display:flex;align-items:center;gap:5px;background:rgba(173,184,208,0.07);border:1px solid rgba(173,184,208,0.16);border-radius:7px;padding:5px 10px">
-            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">Hold</span>
-            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:var(--dim);line-height:1">&gt;95%</span>
-          </div>`:''}
-          <span style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.35);letter-spacing:0.04em;text-align:right">${usNextStr}</span>
-        </div>
-      </div>
-      <!-- Implied rate chart -->
-      ${pathMonthly.length>1?`
-      <div style="margin-bottom:10px">
-        <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);margin-bottom:6px">Implied Rate Path · Fed Funds Futures</div>
-        <div style="border-radius:8px;background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.07);padding:10px 10px 2px;overflow:visible">
-          ${_buildRatePathChart(pathMonthly, effr??rateSig.effr_spot??4.33)}
-        </div>
-      </div>`:''}
-      <!-- 12M / 18M stat tiles -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div style="background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
-          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">12M Priced</div>
-          ${totalBp12m!=null?`
-          <div style="font-family:var(--mono);font-size:20px;font-weight:900;line-height:1;color:${_bpCol(totalBp12m)};margin-bottom:3px">${_bpStr(totalBp12m)}</div>
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint)">${_bpLabel(totalBp12m)}</div>`
-          :'<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</div>'}
-        </div>
-        <div style="background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
-          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">18M Priced</div>
-          ${cuts18m!=null?`
-          <div style="font-family:var(--mono);font-size:20px;font-weight:900;line-height:1;color:${_bpCol((cuts18m||0)*-25)};margin-bottom:3px">${_bpStr((cuts18m||0)*-25)}</div>
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint)">${_bpLabel((cuts18m||0)*-25)}</div>`
-          :'<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</div>'}
-        </div>
-      </div>` : '';
-
-    // ── G10 CB table — redesigned with cycle position, next meeting, change-from-peak ──
+    // ── G10 CB Unified Section: one row per CB with premium pill-slider ────────
+    // Each CB row: flag+name | rate number | wide cycle track slider | stance | vs peak | next mtg
+    // The slider shows position between trough (left) and peak (right).
+    // Sorted by current rate descending. US is included here too.
     const intlRates = reg.intl_rates||{};
     const CB_NAMES_OV = {US:'Fed',ECB:'ECB',BOE:'BoE',BOJ:'BoJ',RBA:'RBA',BOC:'BoC',SNB:'SNB',RBNZ:'RBNZ'};
     const CB_FLAGS_OV = {US:'🇺🇸',ECB:'🇪🇺',BOE:'🇬🇧',BOJ:'🇯🇵',RBA:'🇦🇺',BOC:'🇨🇦',SNB:'🇨🇭',RBNZ:'🇳🇿'};
     const CB_ORDER_OV = ['US','ECB','BOE','BOJ','RBA','BOC','SNB','RBNZ'];
 
-    const cbRows = CB_ORDER_OV.filter(cb=>intlRates[cb]&&cb!=='US').map(cb=>{
+    // Sort all available CBs by rate descending for the unified table
+    const cbsSorted = CB_ORDER_OV.filter(cb=>intlRates[cb])
+      .sort((a,b)=>(intlRates[b].rate??0)-(intlRates[a].rate??0));
+
+    const cbUnifiedRows = cbsSorted.map(cb=>{
       const d=intlRates[cb];
       const _lbl=d.label||'';
       const _isHike=_lbl==='Hiking'||_lbl==='Tightening';
       const _isCut=_lbl==='Cutting'||_lbl==='Easing';
       const _isPaused=_lbl==='Paused';
-      const stanceCol=_isHike?'#e03a2a':_isCut?'#5c9eff':_isPaused?'#8c9fb5':'#6e7d90';
-      const stanceTxt=_lbl||'Flat';
-      // Cycle position bar: from trough to peak, marker at current rate
+      const col=_isHike?'#e03a2a':_isCut?'#5c9eff':_isPaused?'#8c9fb5':'#6e7d90';
+      const glowRgb=_isHike?'224,58,42':_isCut?'92,158,255':_isPaused?'140,159,181':'110,125,144';
       const r=d.rate??0;
       const pk=d.cycle_peak??r;
       const tr=d.cycle_trough??0;
       const cycleRange=pk-tr||1;
-      const cyclePct=Math.min(100,Math.max(0,(r-tr)/cycleRange*100));
-      // Change from peak
+      const pct=Math.min(100,Math.max(0,(r-tr)/cycleRange*100));
       const cfp=d.change_from_peak;
-      const cfpStr=cfp!=null?(cfp>=0?'+':'')+cfp.toFixed(2)+'%':'';
-      const cfpCol=cfp!=null&&cfp<-0.50?'#5c9eff':cfp!=null&&cfp>0.50?'#e03a2a':'rgba(173,184,208,0.5)';
-      // Next meeting
+      const cfpStr=cfp!=null?(cfp>=0?'+':'')+cfp.toFixed(2)+'%':'—';
+      const cfpCol=cfp!=null&&cfp<-0.50?'#5c9eff':cfp!=null&&cfp>0.50?'#e03a2a':'rgba(173,184,208,0.45)';
       const nmFmt=_fmtMtg(d.next_meeting);
       const nmDays=_daysTo(d.next_meeting);
-      const name=CB_NAMES_OV[cb]||cb;
-      const flag=CB_FLAGS_OV[cb]||'';
-      return `<div style="display:grid;grid-template-columns:42px 46px 1fr 48px 44px;align-items:center;gap:5px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-        <!-- CB flag + name -->
-        <div style="display:flex;align-items:center;gap:3px">
-          <span style="font-size:10px;line-height:1">${flag}</span>
-          <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;color:var(--dim)">${name}</span>
-        </div>
-        <!-- Rate + cycle bar -->
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:var(--text);line-height:1">${r.toFixed(2)}%</span>
-          <div style="position:relative;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden">
-            <div style="position:absolute;left:0;top:0;height:100%;width:${cyclePct.toFixed(1)}%;background:${stanceCol};opacity:0.5;border-radius:2px"></div>
-            <div style="position:absolute;left:calc(${cyclePct.toFixed(1)}% - 1px);top:0;width:2px;height:100%;background:${stanceCol};border-radius:1px"></div>
+      const isUS=cb==='US';
+      // Trough/peak endpoint labels: only show on first and last row to avoid clutter
+      const trLbl=tr<0?tr.toFixed(2)+'%':tr.toFixed(2)+'%';
+      const pkLbl=pk.toFixed(2)+'%';
+      return `
+      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.045);">
+        <!-- Top row: flag+name | rate | stance | vs peak | next mtg -->
+        <div style="display:grid;grid-template-columns:44px 46px 1fr 50px 44px;align-items:center;gap:6px;margin-bottom:6px">
+          <!-- Flag + name -->
+          <div style="display:flex;align-items:center;gap:3px">
+            <span style="font-size:11px;line-height:1">${CB_FLAGS_OV[cb]||''}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;color:${isUS?'var(--text)':'var(--dim)'}">${CB_NAMES_OV[cb]||cb}</span>
+          </div>
+          <!-- Rate -->
+          <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${isUS?col:'var(--text)'};letter-spacing:-0.02em;line-height:1">${r.toFixed(2)}%</div>
+          <!-- Stance pill -->
+          <div style="display:flex;align-items:center">
+            <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:${col};background:rgba(${glowRgb},0.10);border:1px solid rgba(${glowRgb},0.28);border-radius:5px;padding:2px 7px;white-space:nowrap">${_lbl||'Flat'}</span>
+          </div>
+          <!-- vs peak -->
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:9px;font-weight:800;color:${cfpCol}">${cfpStr}</div>
+            <div style="font-family:var(--mono);font-size:5.5px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.28);margin-top:1px">vs peak</div>
+          </div>
+          <!-- next meeting -->
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(173,184,208,0.55)">${nmFmt||'—'}</div>
+            ${nmDays!=null?`<div style="font-family:var(--mono);font-size:5.5px;letter-spacing:0.05em;color:rgba(173,184,208,0.28);margin-top:1px">${nmDays}d</div>`:''}
           </div>
         </div>
-        <!-- Stance pill -->
-        <div style="display:flex;align-items:center">
-          <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.04em;color:${stanceCol};background:${stanceCol}16;border:1px solid ${stanceCol}30;border-radius:4px;padding:2px 6px;white-space:nowrap">${stanceTxt}</span>
+        <!-- Slider track: pill-style, trough → peak, current position glowing marker -->
+        <div style="position:relative;height:6px;background:rgba(255,255,255,0.06);border-radius:6px;overflow:visible;margin:0 0 2px">
+          <!-- Filled portion from left to current -->
+          <div style="position:absolute;left:0;top:0;height:100%;width:${pct.toFixed(2)}%;background:linear-gradient(90deg,rgba(${glowRgb},0.12) 0%,rgba(${glowRgb},0.35) 100%);border-radius:6px;"></div>
+          <!-- Glowing marker thumb -->
+          <div style="position:absolute;top:50%;left:${pct.toFixed(2)}%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:${col};box-shadow:0 0 8px 2px rgba(${glowRgb},0.55),0 0 0 2px rgba(${glowRgb},0.20);z-index:2"></div>
+          <!-- Peak marker: dashed vertical at 100% -->
+          <div style="position:absolute;top:-3px;right:0;width:1px;height:12px;background:rgba(255,255,255,0.18);border-radius:1px"></div>
         </div>
-        <!-- Change from cycle peak -->
-        <div style="text-align:right">
-          <span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${cfpCol}">${cfpStr||'—'}</span>
-          <div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28);letter-spacing:0.03em">from peak</div>
-        </div>
-        <!-- Next meeting -->
-        <div style="text-align:right">
-          <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(173,184,208,0.55)">${nmFmt||'—'}</span>
-          ${nmDays!=null?`<div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28);letter-spacing:0.03em">${nmDays}d</div>`:''}
+        <!-- Slider axis labels -->
+        <div style="display:flex;justify-content:space-between;margin-top:2px">
+          <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.25)">${trLbl}</span>
+          <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.25)">Peak ${pkLbl}</span>
         </div>
       </div>`;
     }).join('');
 
-    // ── Cycle divergence visual (SVG bar chart, all 8 CBs) ────────────────────
-    const cycleDivHtml = Object.keys(intlRates).length>=2 ? `
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);flex-shrink:0">Rate Cycle Positioning</div>
-          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.07) 0%,transparent 100%)"></div>
-          <div style="font-family:var(--mono);font-size:7px;color:rgba(173,184,208,0.30);flex-shrink:0">trough → peak</div>
+    // ── US Rate Card (hero section before CB table) ───────────────────────────
+    const usData = (reg.intl_rates||{}).US || {};
+    const usNextMtg = _fmtMtg(usData.next_meeting);
+    const usDaysTo  = _daysTo(usData.next_meeting);
+    const usNextStr = usNextMtg ? `${usNextMtg}${usDaysTo!=null?' · '+usDaysTo+'d':''}` : null;
+
+    const rateCardHtml = (effr!=null||cuts12m!=null) ? `
+      <!-- US Rate Path header -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);flex-shrink:0">US Rate Path</div>
+        <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%)"></div>
+        <div style="font-family:var(--mono);font-size:7.5px;font-weight:800;border-radius:5px;padding:3px 10px;letter-spacing:0.06em;flex-shrink:0;color:${rateBarCol};background:${rateBarCol}18;border:1px solid ${rateBarCol}30">${rateLabel||'—'}</div>
+      </div>
+      <!-- Hero: target range left, probability right -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+        <div>
+          <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.11em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">Target Range</div>
+          <div style="font-family:var(--mono);font-size:clamp(30px,4vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text)">${usData.target_low!=null&&usData.target_high!=null?usData.target_low.toFixed(2)+'\u2013'+usData.target_high.toFixed(2):effrActual.toFixed(2)}<span style="font-size:0.55em;font-weight:700;opacity:0.7">%</span></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+            <span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.45)">Effective: <span style="color:rgba(173,184,208,0.75);font-weight:700">${effrActual.toFixed(2)}%</span></span>
+            ${effr!=null?`<span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.35)">·</span><span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.38)">Mkt priced: <span style="color:${rateBarCol};font-weight:700">${effr.toFixed(2)}%</span></span>`:''}
+          </div>
         </div>
-        <div style="padding:4px 0 0">
-          ${_buildCycleDivChart(intlRates, CB_ORDER_OV)}
+        <!-- Probability + next meeting -->
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;padding-top:2px">
+          ${hikeProbNext>5?`
+          <div style="display:flex;align-items:center;gap:6px;background:rgba(224,58,42,0.10);border:1px solid rgba(224,58,42,0.25);border-radius:8px;padding:6px 11px">
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:#e03a2a">Hike</span>
+            <span style="font-family:var(--mono);font-size:18px;font-weight:900;color:#e03a2a;line-height:1">${hikeProbNext.toFixed(0)}%</span>
+          </div>`:''}
+          ${cutProbNext>5?`
+          <div style="display:flex;align-items:center;gap:6px;background:rgba(92,158,255,0.10);border:1px solid rgba(92,158,255,0.25);border-radius:8px;padding:6px 11px">
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:#5c9eff">Cut</span>
+            <span style="font-family:var(--mono);font-size:18px;font-weight:900;color:#5c9eff;line-height:1">${cutProbNext.toFixed(0)}%</span>
+          </div>`:''}
+          ${(hikeProbNext<=5&&cutProbNext<=5)?`
+          <div style="display:flex;align-items:center;gap:6px;background:rgba(173,184,208,0.06);border:1px solid rgba(173,184,208,0.15);border-radius:8px;padding:6px 11px">
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:var(--faint)">Hold</span>
+            <span style="font-family:var(--mono);font-size:18px;font-weight:900;color:var(--dim);line-height:1">&gt;95%</span>
+          </div>`:''}
+          ${usNextStr?`<span style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.32);letter-spacing:0.04em;text-align:right">${usNextStr}</span>`:''}
+        </div>
+      </div>
+      <!-- Implied rate chart -->
+      ${pathMonthly.length>1?`
+      <div style="margin-bottom:12px">
+        <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:7px">Implied Rate Path — Fed Funds Futures</div>
+        <div style="border-radius:10px;background:rgba(255,255,255,0.016);border:1px solid rgba(255,255,255,0.07);padding:12px 10px 4px;overflow:visible">
+          ${_buildRatePathChart(pathMonthly, effr??rateSig.effr_spot??effrActual)}
+        </div>
+      </div>`:''}
+      <!-- 12M / 18M tiles -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.065);border-radius:9px;padding:9px 11px">
+          <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:5px">12M Priced</div>
+          <div style="font-family:var(--mono);font-size:22px;font-weight:900;line-height:1;color:${_bpCol(totalBp12m)};margin-bottom:3px">${_bpStr(totalBp12m)}</div>
+          <div style="font-family:var(--mono);font-size:7.5px;font-weight:600;color:var(--faint)">${_bpLabel(totalBp12m)}</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.065);border-radius:9px;padding:9px 11px">
+          <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:5px">18M Priced</div>
+          <div style="font-family:var(--mono);font-size:22px;font-weight:900;line-height:1;color:${_bpCol((cuts18m||0)*-25)};margin-bottom:3px">${_bpStr((cuts18m||0)*-25)}</div>
+          <div style="font-family:var(--mono);font-size:7.5px;font-weight:600;color:var(--faint)">${_bpLabel((cuts18m||0)*-25)}</div>
         </div>
       </div>` : '';
 
-    const cbSectionHtml = cbRows ? `
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);flex-shrink:0">G10 Central Banks</div>
-          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.07) 0%,transparent 100%)"></div>
+    // ── Unified G10 CB section HTML ───────────────────────────────────────────
+    const cbSectionHtml = cbUnifiedRows ? `
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);flex-shrink:0">G10 Central Banks</div>
+          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%)"></div>
+          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.28);flex-shrink:0;letter-spacing:0.05em">cycle position trough — peak</div>
         </div>
         <!-- Column headers -->
-        <div style="display:grid;grid-template-columns:42px 46px 1fr 48px 44px;gap:5px;padding:0 0 4px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:1px">
-          <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.40)">CB</div>
-          <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.40)">Rate</div>
-          <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.40)">Stance</div>
-          <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.40);text-align:right">vs Peak</div>
-          <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.40);text-align:right">Next Mtg</div>
+        <div style="display:grid;grid-template-columns:44px 46px 1fr 50px 44px;gap:6px;padding:5px 0 6px;border-bottom:1px solid rgba(255,255,255,0.06)">
+          <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.30)">CB</div>
+          <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.30)">Rate</div>
+          <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.30)">Stance</div>
+          <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.30);text-align:right">vs Peak</div>
+          <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.30);text-align:right">Next</div>
         </div>
-        ${cbRows}
+        ${cbUnifiedRows}
       </div>` : '';
 
-    // ── Inject into climate panel ─────────────────────────────────────────────
+    // ── Inject ────────────────────────────────────────────────────────────────
     const cpSignalSlot=document.getElementById('ov-cp-signal-slot');
     if(cpSignalSlot){
-      const hasRateOrCB = (effr!=null||cuts12m!=null) || !!cbRows;
-      cpSignalSlot.innerHTML = hasRateOrCB ? `
+      const hasContent = (effr!=null||cuts12m!=null)||cbUnifiedRows.length>0;
+      cpSignalSlot.innerHTML = hasContent ? `
         <div class="ov-rate-cb-wrap">
           ${rateCardHtml}
-          ${cycleDivHtml}
           ${cbSectionHtml}
         </div>` : '';
     }

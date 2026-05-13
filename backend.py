@@ -4547,8 +4547,10 @@ _CB_RATE_SERIES = {
 #                     "prev_rate": float, "cycle_peak": float, "cycle_trough": float } }
 _CB_POLICY_FALLBACK = {
     # US: FEDFUNDS actual effective rate (not FFF-implied)
-    "US":    {"rate": 4.33,  "date": "2025-01-29", "next_meeting": "2026-06-11",
-              "prev_rate": 4.58, "cycle_peak": 5.33, "cycle_trough": 0.08},
+    # Updated May 2026: Fed cut rates through late 2025; current target 3.50-3.75% (midpoint 3.625%)
+    "US":    {"rate": 3.64,  "date": "2026-04-30", "next_meeting": "2026-06-11",
+              "prev_rate": 4.33, "cycle_peak": 5.33, "cycle_trough": 0.08,
+              "target_low": 3.50, "target_high": 3.75},
     # BoE: Bank Rate 3.75% held April 30 2026
     "BOE":   {"rate": 3.75,  "date": "2026-04-30", "next_meeting": "2026-06-18",
               "prev_rate": 4.50, "cycle_peak": 5.25, "cycle_trough": 0.10},
@@ -4709,6 +4711,8 @@ def _compute_intl_rates() -> dict:
                 "cycle_peak":     fallback.get("cycle_peak"),
                 "cycle_trough":   fallback.get("cycle_trough"),
                 "change_from_peak": round(actual_rate - fallback.get("cycle_peak", actual_rate), 2) if fallback.get("cycle_peak") is not None else None,
+                "target_low":     fallback.get("target_low"),
+                "target_high":    fallback.get("target_high"),
             }
         except Exception:
             # FRED fetch failed entirely — use fallback-only if available
@@ -4739,6 +4743,8 @@ def _compute_intl_rates() -> dict:
                     "cycle_peak":     fallback.get("cycle_peak"),
                     "cycle_trough":   fallback.get("cycle_trough"),
                     "change_from_peak": round(fb_rate - fallback.get("cycle_peak", fb_rate), 2) if fallback.get("cycle_peak") is not None else None,
+                    "target_low":     fallback.get("target_low"),
+                    "target_high":    fallback.get("target_high"),
                 }
             continue
 
