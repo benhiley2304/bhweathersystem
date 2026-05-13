@@ -4943,7 +4943,7 @@ function renderOverview(){
         const gy=y(gv);
         if(gy<PT-2||gy>PT+ch+2) continue;
         gridSvg+=`<line x1="${PL}" y1="${gy.toFixed(1)}" x2="${W-PR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="0.7"/>`;
-        gridSvg+=`<text x="${(PL-3).toFixed(0)}" y="${(gy+2).toFixed(1)}" font-family="monospace" font-size="5.5" fill="rgba(173,184,208,0.38)" text-anchor="end">${gv.toFixed(2)}</text>`;
+        gridSvg+=`<text x="${(PL-3).toFixed(0)}" y="${(gy+2).toFixed(1)}" font-family="monospace" font-size="5.5" fill="rgba(173,184,208,0.50)" text-anchor="end">${gv.toFixed(2)}</text>`;
       }
       // Labels: Now + every 3rd month + last
       const labels = pts.map((p,i)=>{
@@ -5039,7 +5039,7 @@ function renderOverview(){
       ${pathMonthly.length>1?`
       <div style="margin-bottom:10px">
         <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);margin-bottom:6px">Implied Rate Path · FFF Priced</div>
-        <div style="border-radius:8px;background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.07);padding:10px 10px 2px">
+        <div style="border-radius:8px;background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.07);padding:10px 10px 2px;overflow:visible">
           ${_buildRatePathChart(pathMonthly, effr??rateSig.effr_spot??4.33)}
         </div>
       </div>`:''}
