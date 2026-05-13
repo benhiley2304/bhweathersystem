@@ -1108,10 +1108,11 @@ a{color:inherit;text-decoration:none}
 }
 @media(max-width:1200px){.ov-macro-panels{grid-template-columns:1fr 1fr;grid-template-rows:none;align-items:stretch;margin:0 14px 14px}}
 @media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr 1fr;grid-template-rows:none;gap:8px;margin:0 10px 12px;align-items:stretch}}
-@media(max-width:380px){.ov-macro-panels{grid-template-columns:1fr;gap:8px}}
+@media(max-width:480px){.ov-macro-panels{grid-template-columns:1fr!important;gap:8px;margin:0 10px 12px}}
+/* 480px breakpoint handles single-col — 380px rule kept for safety */
 /* Mobile tweaks */
 @media(max-width:600px){
-  .ov-macro-panels{grid-auto-rows:380px}
+  .ov-macro-panels{grid-auto-rows:auto}
   .ov-macro-card{padding:12px 12px 10px;border-radius:12px;min-height:unset;height:100%}
   .ov-mc-hero{font-size:22px!important}
   .ov-yc-canvas-wrap{min-height:80px}
@@ -1125,6 +1126,9 @@ a{color:inherit;text-decoration:none}
   .ov-cs-foot-lbl{font-size:6.5px!important}
   /* BS arc mobile */
   .ov-bs-arc-wrap canvas{max-width:220px!important;height:auto!important}
+  /* Radar + VIX on narrow mobile */
+  #ov-macro-stock-climate svg[width="140"]{width:110px!important;height:86px!important}
+  #ov-sc-vix-gauge{width:100px!important;height:56px!important}
   .ov-bs-stat-val{font-size:14px!important}
   /* Labour arc + NFP mobile: constrain to fit 380px card */
   .ov-lab-arc-wrap svg{max-width:72px!important;width:72px!important}
@@ -1141,6 +1145,11 @@ a{color:inherit;text-decoration:none}
   /* Tenor mobile */
   .ov-tenor-val{font-size:11px!important}
   .ov-tenor-lbl{font-size:6px!important}
+  /* YC rate context mobile: tighter tiles */
+  #ov-macro-yc [style*="grid-template-columns:repeat(3,1fr)"]{gap:3px}
+  #ov-macro-yc [style*="padding:6px 8px"]{padding:4px 5px!important}
+  #ov-macro-yc [style*="font-size:5.5px"]{font-size:5px!important}
+  #ov-macro-yc [style*="font-size:11px;font-weight:900"]{font-size:9px!important}
   /* FF table mobile: tighten rows */
   .ov-ff-table{font-size:8px}
   .ov-ff-pill{font-size:6.5px;padding:2px 5px}
@@ -1205,7 +1214,8 @@ a{color:inherit;text-decoration:none}
 .ov-macro-card>*{position:relative;z-index:1}
 
 /* ── Header ────────────────────────────────────────────── */
-.ov-mc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.ov-mc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:6px;min-width:0}
+.ov-mc-header>div:first-child{min-width:0;flex:1;overflow:hidden}
 .ov-mc-eyebrow{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--faint);margin-bottom:3px;opacity:0.75}
 .ov-mc-title{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
 .ov-mc-badge{
@@ -5762,7 +5772,7 @@ function renderMacroDataPanels(reg){
           </div>
           <div style="flex:1;padding-left:10px;border-left:1px solid rgba(255,255,255,0.08)">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:1px">
-              <div style="font-family:var(--mono);font-size:30px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${nfpCol}">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—'}</div>
+              <div style="font-family:var(--mono);font-size:clamp(22px,5vw,30px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${nfpCol}">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—'}</div>
               ${ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null
                 ? surprisePill(ffNfp.beat?'BEAT':'MISS', ffNfp.beat?'#22c97a':'#e03a2a')
                 : (nfpSurpL?surprisePill(nfpSurpL, surpCol):'')}
@@ -5876,7 +5886,7 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:6px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-top:2px">composite /10</div>
           </div>
           <div style="flex:1;padding-left:10px;border-left:1px solid rgba(255,255,255,0.08)">
-            <div style="font-family:var(--mono);font-size:36px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
+            <div style="font-family:var(--mono);font-size:clamp(24px,6vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
             <div style="font-family:var(--mono);font-size:7px;color:var(--faint);margin-top:2px">CPI YoY · Fed target 2.0%</div>
             ${gap!=null?`<div style="font-family:var(--mono);font-size:9px;font-weight:800;color:${gapCol};margin-top:2px">${gap>=0?'+':''}${gap}% vs target</div>`:''}
           </div>
@@ -5954,7 +5964,7 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${lineCol};background:${lineCol}18;border:1px solid ${lineCol}30">${fbTrend}</span>
         </div>
         <div style="display:flex;align-items:baseline;gap:10px">
-          <div style="font-family:var(--mono);font-size:36px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${lineCol}">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
+          <div style="font-family:var(--mono);font-size:clamp(24px,6vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${lineCol}">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
           ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent)">${vsPeak}% of QE peak</span>`:''}
         </div>
         <!-- Full-width SVG area chart — hero visual matching old design -->
@@ -6023,7 +6033,7 @@ function renderMacroDataPanels(reg){
         </div>
         <div>
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
-            <div style="font-family:var(--mono);font-size:38px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
+            <div style="font-family:var(--mono);font-size:clamp(26px,6vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
           </div>
           <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase;margin-top:1px">10Y − 2Y SPREAD</div>
         </div>
@@ -6052,7 +6062,7 @@ function renderMacroDataPanels(reg){
         <div style="display:flex;gap:8px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;flex-shrink:0">
           ${sChg3m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
           ${sChg6m!=null?`<span style="color:rgba(255,255,255,0.1);font-size:8px">·</span><div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
-          ${yc_move_type?`<span style="font-family:var(--mono);font-size:7.5px;font-weight:800;color:${moveCol};margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%;padding:2px 6px;background:${moveCol}18;border-radius:4px">${yc_move_type}</span>`:''}
+          ${yc_move_type?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${moveCol};margin-left:auto;white-space:nowrap;padding:2px 5px;background:${moveCol}18;border-radius:4px;flex-shrink:0;max-width:none">${yc_move_type}</span>`:''}
         </div>
         <!-- Rate Context row -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
@@ -6097,7 +6107,7 @@ function renderMacroDataPanels(reg){
           <div style="background:rgba(255,255,255,0.03);border:1px solid ${_hyNumCol}22;border-top:2px solid ${_hyNumCol}55;border-radius:9px;padding:10px 12px">
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">High Yield OAS</div>
             <div style="display:flex;align-items:baseline;gap:3px">
-              <span style="font-family:var(--mono);font-size:32px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_hyNumCol}">${hyOas!=null?hyOas:'—'}</span>
+              <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_hyNumCol}">${hyOas!=null?hyOas:'—'}</span>
               ${hyOas!=null?`<span style="font-family:var(--mono);font-size:10px;color:${_hyNumCol};opacity:0.7">bp</span>`:''}
             </div>
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${_hyNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${hyZoneLabel}</div>
@@ -6105,7 +6115,7 @@ function renderMacroDataPanels(reg){
           <div style="background:rgba(255,255,255,0.03);border:1px solid ${_igNumCol}22;border-top:2px solid ${_igNumCol}55;border-radius:9px;padding:10px 12px">
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Invest. Grade OAS</div>
             <div style="display:flex;align-items:baseline;gap:3px">
-              <span style="font-family:var(--mono);font-size:32px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_igNumCol}">${igOas!=null?igOas:'—'}</span>
+              <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_igNumCol}">${igOas!=null?igOas:'—'}</span>
               ${igOas!=null?`<span style="font-family:var(--mono);font-size:10px;color:${_igNumCol};opacity:0.7">bp</span>`:''}
             </div>
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${_igNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
