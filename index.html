@@ -2200,29 +2200,17 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .ov-rate-bar-lbl{
   font-size:7.5px;color:var(--faint);
 }
-/* G10 CB table — enlarged */
-.ov-cb-table-wrap{
-  margin-top:12px;padding-top:10px;
-  border-top:1px solid rgba(255,255,255,0.06);
-}
-.ov-cb-table-hdr{
-  display:flex;align-items:center;gap:10px;
-  margin-bottom:8px;
-}
-.ov-cb-col-head{
-  font-size:7.5px;color:var(--faint);letter-spacing:0.07em;text-transform:uppercase;opacity:0.8;font-weight:700;
-}
-.ov-cb-row{
-  display:grid;grid-template-columns:34px 42px 1fr auto;
-  align-items:center;gap:8px;padding:5px 0;
-  border-bottom:1px solid rgba(255,255,255,0.04);
-}
-.ov-cb-row:last-child{border-bottom:none}
-.ov-cb-name{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--dim)}
-.ov-cb-rate{font-family:var(--mono);font-size:12px;font-weight:900;color:var(--text)}
-.ov-cb-bar-wrap{flex:1;height:3px;background:var(--surf3);border-radius:2px;overflow:hidden;position:relative}
-.ov-cb-bias{font-size:8.5px;font-weight:800}
-.ov-cb-chg{font-family:var(--mono);font-size:9px;font-weight:700;text-align:right}
+/* G10 CB table — inline grid rows, no legacy classes needed */
+.ov-cb-table-wrap{ margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06); }
+.ov-cb-table-hdr{ display:flex;align-items:center;gap:10px;margin-bottom:8px; }
+.ov-cb-col-head{ font-size:7px;color:rgba(173,184,208,0.45);letter-spacing:0.08em;text-transform:uppercase;font-weight:700; }
+.ov-cb-row{ display:grid;grid-template-columns:52px 44px 1fr 52px;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04); }
+.ov-cb-row:last-child{ border-bottom:none }
+.ov-cb-name{ font-family:var(--mono);font-size:10px;font-weight:800;color:var(--dim) }
+.ov-cb-rate{ font-family:var(--mono);font-size:12px;font-weight:900;color:var(--text) }
+.ov-cb-bar-wrap{ flex:1;height:2px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden }
+.ov-cb-bias{ font-size:8px;font-weight:800 }
+.ov-cb-chg{ font-family:var(--mono);font-size:10px;font-weight:800;text-align:right }
 
 /* ── AI Brief ── */
 .ov-ai-brief{
@@ -4928,126 +4916,158 @@ function renderOverview(){
       if(!path||path.length<2) return '';
       const pts = [{rate:spotRate,label:'Now'}, ...path.slice(1,13).map(p=>({rate:p.rate,label:_MABBR[p.month]+"'"+String(p.year).slice(2)}))];
       const rates = pts.map(p=>p.rate);
-      const minR = Math.min(...rates) - 0.1;
-      const maxR = Math.max(...rates) + 0.1;
+      const minR = Math.min(...rates) - 0.12;
+      const maxR = Math.max(...rates) + 0.12;
       const rng = maxR - minR || 0.5;
-      const W=280, H=52, PL=2, PR=4, PT=4, PB=14;
+      const W=300, H=80, PL=28, PR=8, PT=12, PB=18;
       const cw=W-PL-PR, ch=H-PT-PB;
       const x = i => PL + (i/(pts.length-1))*cw;
       const y = r => PT + ch - ((r-minR)/rng)*ch;
-      // Step path: horizontal then vertical
-      let d='M'+x(0)+','+y(pts[0].rate);
+      const pathCol = isHiking?'#e03a2a':isCutting?'#5c9eff':'#adb8d0';
+      // Step path
+      let d='M'+x(0).toFixed(1)+','+y(pts[0].rate).toFixed(1);
       for(let i=1;i<pts.length;i++){
-        d+=' L'+x(i)+','+y(pts[i-1].rate)+' L'+x(i)+','+y(pts[i].rate);
+        d+=' L'+x(i).toFixed(1)+','+y(pts[i-1].rate).toFixed(1)+' L'+x(i).toFixed(1)+','+y(pts[i].rate).toFixed(1);
       }
       // Gradient area fill
-      let da='M'+x(0)+','+H+' L'+x(0)+','+y(pts[0].rate);
+      let da='M'+x(0).toFixed(1)+','+(H-PB+2).toFixed(0)+' L'+x(0).toFixed(1)+','+y(pts[0].rate).toFixed(1);
       for(let i=1;i<pts.length;i++){
-        da+=' L'+x(i)+','+y(pts[i-1].rate)+' L'+x(i)+','+y(pts[i].rate);
+        da+=' L'+x(i).toFixed(1)+','+y(pts[i-1].rate).toFixed(1)+' L'+x(i).toFixed(1)+','+y(pts[i].rate).toFixed(1);
       }
-      da+=' L'+x(pts.length-1)+','+H+' Z';
-      const pathCol = isHiking?'#e03a2a':isCutting?'#5c9eff':'#adb8d0';
-      // Labels at every 3rd point
+      da+=' L'+x(pts.length-1).toFixed(1)+','+(H-PB+2).toFixed(0)+' Z';
+      // Y-axis gridlines at 25bp intervals
+      let gridSvg='';
+      const gridStep=0.25;
+      const gStart=Math.ceil(minR/gridStep)*gridStep;
+      for(let gv=gStart;gv<=maxR+0.01;gv=+(gv+gridStep).toFixed(3)){
+        const gy=y(gv);
+        if(gy<PT-2||gy>PT+ch+2) continue;
+        gridSvg+=`<line x1="${PL}" y1="${gy.toFixed(1)}" x2="${W-PR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="0.7"/>`;
+        gridSvg+=`<text x="${(PL-3).toFixed(0)}" y="${(gy+2).toFixed(1)}" font-family="monospace" font-size="5.5" fill="rgba(173,184,208,0.38)" text-anchor="end">${gv.toFixed(2)}</text>`;
+      }
+      // Labels: Now + every 3rd month + last
       const labels = pts.map((p,i)=>{
-        if(i===0||i===pts.length-1||(i%3===0)) {
-          const labelY = y(p.rate)-5;
-          return `<text x="${x(i).toFixed(1)}" y="${(H-3).toFixed(0)}" font-family="monospace" font-size="5" fill="rgba(173,184,208,0.55)" text-anchor="middle">${p.label}</text>`;
+        if(i===0||i===pts.length-1||(i>0&&i%3===0)){
+          const isFirst=i===0, isLast=i===pts.length-1;
+          const anchor=isFirst?'start':isLast?'end':'middle';
+          const lx=isFirst?x(0):isLast?x(i):x(i);
+          const fill=isFirst?pathCol:'rgba(173,184,208,0.50)';
+          const fw=isFirst?'bold':'normal';
+          return `<text x="${lx.toFixed(1)}" y="${(H-4).toFixed(0)}" font-family="monospace" font-size="6" fill="${fill}" font-weight="${fw}" text-anchor="${anchor}">${p.label}</text>`;
         }
         return '';
       }).join('');
-      // Dots at each point
+      // Dots — open circles on historicals, solid for Now
       const dots = pts.map((p,i)=>{
-        const dotCol = p.rate>spotRate?'#e03a2a':p.rate<spotRate-0.01?'#5c9eff':'#adb8d0';
-        return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="${i===0?3:2}" fill="${i===0?pathCol:dotCol}" opacity="${i===0?1:0.7}"/>`;
+        const dotCol=p.rate>(spotRate+0.01)?'#e03a2a':p.rate<(spotRate-0.01)?'#5c9eff':pathCol;
+        const r=i===0?3.5:1.8;
+        return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="${r}" fill="${i===0?pathCol:'#030508'}" stroke="${dotCol}" stroke-width="${i===0?0:1.2}" opacity="${i===0?1:0.85}"/>`;
       }).join('');
-      // Rate level text at first and last
-      const firstY = y(pts[0].rate);
-      const lastY = y(pts[pts.length-1].rate);
-      const lastRate = pts[pts.length-1].rate;
-      const deltaTotal = lastRate - spotRate;
-      const deltaBp = Math.round(deltaTotal*100);
-      const deltaStr = (deltaBp>=0?'+':'')+deltaBp+'bp';
-      const deltaCol = deltaBp>5?'#e03a2a':deltaBp<-5?'#5c9eff':'#adb8d0';
-      return `<svg width="${W}" height="${H}" style="width:100%;height:${H}px;display:block;overflow:visible">
+      // Rate annotations: current level left, delta right
+      const lastY=y(pts[pts.length-1].rate);
+      const firstY=y(pts[0].rate);
+      const lastRate=pts[pts.length-1].rate;
+      const deltaBp=Math.round((lastRate-spotRate)*100);
+      const deltaStr=(deltaBp>=0?'+':'')+deltaBp+'bp';
+      const deltaCol=deltaBp>5?'#e03a2a':deltaBp<-5?'#5c9eff':'rgba(173,184,208,0.7)';
+      const annots=[
+        `<text x="${x(0).toFixed(1)}" y="${Math.max(PT+8,firstY-5).toFixed(1)}" font-family="monospace" font-size="7" font-weight="bold" fill="${pathCol}" text-anchor="start">${spotRate.toFixed(2)}%</text>`,
+        `<text x="${x(pts.length-1).toFixed(1)}" y="${Math.max(PT+8,lastY-5).toFixed(1)}" font-family="monospace" font-size="7" font-weight="bold" fill="${deltaCol}" text-anchor="end">${deltaStr}</text>`,
+      ].join('');
+      const uid2='rpf'+((Math.random()*0xFFFFF|0).toString(16));
+      return `<svg width="${W}" height="${H}" style="width:100%;height:${H}px;display:block;overflow:visible" shape-rendering="crispEdges">
         <defs>
-          <linearGradient id="rp-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.18"/>
-            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0.02"/>
+          <linearGradient id="${uid2}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.20"/>
+            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0.01"/>
           </linearGradient>
         </defs>
-        <path d="${da}" fill="url(#rp-fill)"/>
-        <path d="${d}" fill="none" stroke="${pathCol}" stroke-width="1.5" stroke-linejoin="round" opacity="0.85"/>
-        ${dots}
-        ${labels}
-        <text x="${x(pts.length-1).toFixed(1)}" y="${Math.max(PT+8,lastY-3).toFixed(0)}" font-family="monospace" font-size="6.5" font-weight="bold" fill="${deltaCol}" text-anchor="end">${deltaStr}</text>
+        ${gridSvg}
+        <path d="${da}" fill="url(#${uid2})"/>
+        <path d="${d}" fill="none" stroke="${pathCol}" stroke-width="2" stroke-linejoin="round"/>
+        ${dots}${labels}${annots}
       </svg>`;
     };
 
+    // Helper: signed bp text with correct move label
+    const _bpLabel = (bp) => {
+      if(Math.abs(bp)<8) return 'No move priced';
+      const n=Math.abs(Math.round(bp/25));
+      const word=bp>0?'hike'+(n!==1?'s':''):'cut'+(n!==1?'s':'');
+      return `${n} × 25bp ${word} priced`;
+    };
+    const _bpCol = (bp) => bp>8?'#e03a2a':bp<-8?'#5c9eff':'var(--dim)';
+    const _bpStr = (bp) => (bp>=0?'+':'')+Math.round(bp)+'bp';
+
     const rateCardHtml = (effr!=null||cuts12m!=null) ? `
-      <div class="ov-rate-section-hdr">
-        <div class="ov-rate-section-title">US Rate Path</div>
-        <div class="ov-rate-section-line"></div>
-        <div class="ov-rate-badge" style="color:${rateBarCol};background:${rateBarCol}18;border:1px solid ${rateBarCol}28">${rateLabel}</div>
+      <!-- Section header -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);flex-shrink:0">US Rate Path</div>
+        <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.07) 0%,transparent 100%)"></div>
+        <div style="font-family:var(--mono);font-size:8px;font-weight:800;border-radius:5px;padding:3px 10px;letter-spacing:0.05em;flex-shrink:0;color:${rateBarCol};background:${rateBarCol}18;border:1px solid ${rateBarCol}30">${rateLabel||'—'}</div>
       </div>
-      <!-- Hero: EFFR + prob pills -->
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;gap:8px">
+      <!-- Hero row: big EFFR left, next-meeting pill right -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
         <div>
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px">Fed Funds Rate</div>
-          <div style="display:flex;align-items:baseline;gap:6px">
-            <span style="font-family:var(--mono);font-size:clamp(28px,4vw,34px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text)">${effr!=null?effr.toFixed(2)+'%':'—'}</span>
-            ${totalBp12m!==0?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${rateBarCol};opacity:0.85">${totalBp12m>0?'+':''}${Math.round(totalBp12m)}bp / 12M</span>`:'<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint)">Flat path</span>'}
+          <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Fed Funds Rate</div>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-family:var(--mono);font-size:clamp(28px,4vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text)">${effr!=null?effr.toFixed(2)+'%':'—'}</span>
+            ${totalBp12m!==0?`<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${rateBarCol}">${_bpStr(totalBp12m)} / 12M</span>`:'<span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--faint)">Flat path</span>'}
           </div>
         </div>
-        <!-- Next meeting probability pills -->
-        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0">
-          ${hikeProbNext>5?`<div style="display:flex;align-items:center;gap:5px;background:rgba(224,58,42,0.1);border:1px solid rgba(224,58,42,0.25);border-radius:6px;padding:4px 9px">
-            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#e03a2a">Hike</span>
-            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:#e03a2a;line-height:1">${hikeProbNext.toFixed(0)}%</span>
+        <!-- Next-meeting probability -->
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;padding-top:2px">
+          ${hikeProbNext>5?`
+          <div style="display:flex;align-items:center;gap:5px;background:rgba(224,58,42,0.12);border:1px solid rgba(224,58,42,0.28);border-radius:7px;padding:5px 10px">
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#e03a2a">Hike</span>
+            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e03a2a;line-height:1">${hikeProbNext.toFixed(0)}%</span>
           </div>`:''}
-          ${cutProbNext>5?`<div style="display:flex;align-items:center;gap:5px;background:rgba(92,158,255,0.1);border:1px solid rgba(92,158,255,0.25);border-radius:6px;padding:4px 9px">
-            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5c9eff">Cut</span>
-            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:#5c9eff;line-height:1">${cutProbNext.toFixed(0)}%</span>
+          ${cutProbNext>5?`
+          <div style="display:flex;align-items:center;gap:5px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.28);border-radius:7px;padding:5px 10px">
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#5c9eff">Cut</span>
+            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:#5c9eff;line-height:1">${cutProbNext.toFixed(0)}%</span>
           </div>`:''}
-          ${(hikeProbNext<=5&&cutProbNext<=5)?`<div style="display:flex;align-items:center;gap:5px;background:rgba(173,184,208,0.08);border:1px solid rgba(173,184,208,0.18);border-radius:6px;padding:4px 9px">
-            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Hold</span>
-            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:var(--dim);line-height:1">&gt;95%</span>
+          ${(hikeProbNext<=5&&cutProbNext<=5)?`
+          <div style="display:flex;align-items:center;gap:5px;background:rgba(173,184,208,0.07);border:1px solid rgba(173,184,208,0.16);border-radius:7px;padding:5px 10px">
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">Hold</span>
+            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:var(--dim);line-height:1">&gt;95%</span>
           </div>`:''}
-          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.35);text-align:right;letter-spacing:0.04em">Next meeting</div>
+          <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.3);letter-spacing:0.04em;text-align:right">Next meeting</span>
         </div>
       </div>
-      <!-- Implied rate step chart -->
-      ${pathMonthly.length>1?`<div style="margin-bottom:8px">
-        <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">Implied Rate Path · FFF Priced</div>
-        <div style="border-radius:7px;overflow:hidden;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.06);padding:8px 10px 4px">
+      <!-- Implied rate chart — taller, with gridlines -->
+      ${pathMonthly.length>1?`
+      <div style="margin-bottom:10px">
+        <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint);margin-bottom:6px">Implied Rate Path · FFF Priced</div>
+        <div style="border-radius:8px;background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.07);padding:10px 10px 2px">
           ${_buildRatePathChart(pathMonthly, effr??rateSig.effr_spot??4.33)}
         </div>
       </div>`:''}
-      <!-- Cuts/Hikes summary stats -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
-        <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:6px 10px">
-          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">12M Path</div>
-          ${cuts12m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-family:var(--mono);font-size:18px;font-weight:900;line-height:1;color:${isHiking?'#e03a2a':isCutting?'#5c9eff':'var(--dim)'}">${cuts12m>0?'+':''}${cuts12m.toFixed(1)}</span>
-            <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint)">${Math.abs(cuts12m)<0.4?'cuts':'cuts'}</span>
-          </div>
-          <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);margin-top:1px">${isHiking?'Hikes priced':isCutting?'Cuts priced':'No move priced'}</div>`:
-          '<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</div>'}
+      <!-- 12M / 18M stat tiles — side by side, using bp not "cuts" -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">12M Outlook</div>
+          ${totalBp12m!=null?`
+          <div style="font-family:var(--mono);font-size:20px;font-weight:900;line-height:1;color:${_bpCol(totalBp12m)};margin-bottom:3px">${_bpStr(totalBp12m)}</div>
+          <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint)">${_bpLabel(totalBp12m)}</div>`
+          :'<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</div>'}
         </div>
-        <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:6px 10px">
-          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">18M Path</div>
-          ${cuts18m!=null?`<div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-family:var(--mono);font-size:18px;font-weight:900;line-height:1;color:${(cuts18m||0)>0.5?'#5c9eff':(cuts18m||0)<-0.5?'#e03a2a':'var(--dim)'}">${(cuts18m||0)>0?'+':''}${(cuts18m||0).toFixed(1)}</span>
-            <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint)">cuts</span>
-          </div>
-          <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);margin-top:1px">${Math.abs(cuts18m||0)<0.4?'Flat':((cuts18m||0)>0?'Easing path':'Tightening')}</div>`:
-          '<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</div>'}
+        <div style="background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">18M Outlook</div>
+          ${cuts18m!=null?`
+          <div style="font-family:var(--mono);font-size:20px;font-weight:900;line-height:1;color:${_bpCol((cuts18m||0)*-25)};margin-bottom:3px">${_bpStr((cuts18m||0)*-25)}</div>
+          <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint)">${_bpLabel((cuts18m||0)*-25)}</div>`
+          :'<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</div>'}
         </div>
       </div>` : '';
 
     // ── G10 CB rates section ──
     const intlRates = reg.intl_rates||{};
     const CB_NAMES_OV = {US:'Fed',ECB:'ECB',BOE:'BoE',BOJ:'BoJ',RBA:'RBA',BOC:'BoC',SNB:'SNB',RBNZ:'RBNZ'};
+    const CB_FLAGS_OV = {US:'🇺🇸',ECB:'🇪🇺',BOE:'🇬🇧',BOJ:'🇯🇵',RBA:'🇦🇺',BOC:'🇨🇦',SNB:'🇨🇭',RBNZ:'🇳🇿'};
     const CB_ORDER_OV = ['US','ECB','BOE','BOJ','RBA','BOC','SNB','RBNZ'];
+    // Rate range for mini bar (low: -0.5, high: 6.5)
+    const CB_RATE_MIN=0, CB_RATE_MAX=6.0;
     const cbRows = CB_ORDER_OV.filter(cb=>intlRates[cb]).map(cb=>{
       const d=intlRates[cb];
       const bias=d.bias||0;
@@ -5055,41 +5075,56 @@ function renderOverview(){
       const _isFlat=_lbl==='Flat'||_lbl==='Paused'||_lbl==='On Hold';
       const _isHike=_lbl==='Hiking'||_lbl==='Tightening';
       const _isCut=_lbl==='Cutting'||_lbl==='Easing';
-      // Stance colour and pill
       const stanceCol=_isHike?'#e03a2a':_isCut?'#5c9eff':'#6e7d90';
       const stanceTxt=_lbl||(_isHike?'Hiking':_isCut?'Cutting':'Hold');
-      // Next-move arrow from bias + label combo
-      // +1 = next move likely hike, -1 = likely cut, 0 = hold
-      const t3=d.trend_3m??0; const t6=d.trend_6m??0;
-      const _nextDir=_isHike?1:_isCut?-1:(bias!==0?bias:0);
-      const nextArrow=_nextDir>0?'▲':_nextDir<0?'▼':'—';
-      const nextArrowCol=_nextDir>0?'#e03a2a':_nextDir<0?'#5c9eff':'#6e7d90';
-      // 6m change in bps
+      const t6=d.trend_6m??0;
       const chgBp=Math.round(t6*100);
       const chgStr=chgBp===0?'—':(chgBp>0?'+':'')+chgBp+'bp';
       const chgCol=_isFlat?'#6e7d90':t6>0?'#e03a2a':t6<0?'#5c9eff':'#6e7d90';
-      return `<div class="ov-cb-row">
-        <div class="ov-cb-name">${CB_NAMES_OV[cb]||cb}</div>
-        <div class="ov-cb-rate">${(d.rate??0).toFixed(2)}%</div>
-        <div class="ov-cb-bias" style="color:${stanceCol};background:${stanceCol}14;border:1px solid ${stanceCol}28;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:800;letter-spacing:0.04em;width:auto;text-align:center">${stanceTxt}</div>
-        <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
-          <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${chgCol}">${chgStr}</span>
-          <span style="font-size:10px;color:${nextArrowCol};line-height:1">${nextArrow}</span>
+      const _nextDir=_isHike?1:_isCut?-1:0;
+      const nextArrow=_nextDir>0?'▲':_nextDir<0?'▼':'–';
+      const nextArrowCol=_nextDir>0?'#e03a2a':_nextDir<0?'#5c9eff':'rgba(110,125,144,0.5)';
+      const ratePct=Math.min(100,Math.max(0,((d.rate??0)-CB_RATE_MIN)/(CB_RATE_MAX-CB_RATE_MIN)*100));
+      const name=CB_NAMES_OV[cb]||cb;
+      const flag=CB_FLAGS_OV[cb]||'';
+      return `<div style="display:grid;grid-template-columns:52px 44px 1fr 52px;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <!-- CB name + flag -->
+        <div style="display:flex;align-items:center;gap:4px">
+          <span style="font-size:10px;line-height:1">${flag}</span>
+          <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:var(--dim)">${name}</span>
+        </div>
+        <!-- Rate + mini bar -->
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:var(--text);line-height:1">${(d.rate??0).toFixed(2)}%</span>
+          <div style="height:2px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${ratePct.toFixed(1)}%;background:${stanceCol};border-radius:2px;opacity:0.75"></div>
+          </div>
+        </div>
+        <!-- Stance pill -->
+        <div style="display:flex;align-items:center">
+          <span style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.04em;color:${stanceCol};background:${stanceCol}16;border:1px solid ${stanceCol}30;border-radius:4px;padding:2px 7px;white-space:nowrap">${stanceTxt}</span>
+        </div>
+        <!-- 6M change + arrow -->
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:5px">
+          <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${chgCol};text-align:right">${chgStr}</span>
+          <span style="font-size:9px;color:${nextArrowCol};line-height:1;flex-shrink:0">${nextArrow}</span>
         </div>
       </div>`;
     }).join('');
 
     const cbSectionHtml = cbRows ? `
-      <div class="ov-cb-table-wrap">
-        <div class="ov-cb-table-hdr">
-          <div class="ov-rate-section-title">G10 Central Banks</div>
-          <div class="ov-rate-section-line"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)">
+        <!-- Section header -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);flex-shrink:0">G10 Central Banks</div>
+          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.07) 0%,transparent 100%)"></div>
         </div>
-        <div style="display:grid;grid-template-columns:34px 42px 1fr auto;align-items:center;gap:8px;padding:0 0 5px 0;margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.07)">
-          <div class="ov-cb-col-head">CB</div>
-          <div class="ov-cb-col-head">Rate</div>
-          <div class="ov-cb-col-head">Stance</div>
-          <div class="ov-cb-col-head" style="text-align:right">6M / Dir</div>
+        <!-- Column headers -->
+        <div style="display:grid;grid-template-columns:52px 44px 1fr 52px;gap:6px;padding:0 0 4px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:1px">
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.45)">CB</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.45)">Rate</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.45)">Stance</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.45);text-align:right">6M</div>
         </div>
         ${cbRows}
       </div>` : '';
