@@ -3760,6 +3760,8 @@ FRED_SERIES = {
     "WALCL":    "WALCL",
     # Credit spreads (ICE BofA)
     "HYOAS":    "BAMLH0A0HYM2",   # US HY OAS (bps)
+    "NFCI":     "NFCI",             # Chicago Fed Financial Conditions Index (weekly, -=loose)
+    "STLFSI4":  "STLFSI4",          # St. Louis Fed Stress Index (weekly, +=stress)
     "IGOAS":    "BAMLC0A0CM",     # US IG OAS (bps)
     # Labour
     "JOLTS":    "JTSJOL",         # JOLTS job openings (thousands)
@@ -4813,8 +4815,136 @@ def compute_stock_climate() -> dict:
         except Exception:
             pass
 
+        # ── 5. VIX Term Structure (VIX3M/VIX ratio) ─────────────────────────
+        try:
+            _vix3m_tk = yf.Ticker("^VIX3M")
+            vix3m_hist = _yf_with_timeout(_vix3m_tk.history, period="5d", interval="1d", label="VIX3M_SC")
+            vix3m_level = float(vix3m_hist["Close"].dropna().iloc[-1]) if vix3m_hist is not None and not vix3m_hist.empty else None
+            if vix3m_level is not None and vix_level is not None and vix_level > 0:
+                ts_ratio = vix3m_level / vix_level
+                if ts_ratio > 1.10:
+                    ts_score, ts_label = 2, "Steep Contango"
+                elif ts_ratio > 1.02:
+                    ts_score, ts_label = 1, "Contango"
+                elif ts_ratio > 0.95:
+                    ts_score, ts_label = 0, "Flat"
+                elif ts_ratio > 0.88:
+                    ts_score, ts_label = -1, "Backwardation"
+                else:
+                    ts_score, ts_label = -2, "Deep Backwardation"
+                signals["VIX_TS"] = {
+                    "title": "VIX Term Structure",
+                    "value": f"{ts_ratio:.3f}",
+                    "label": ts_label,
+                    "score": ts_score,
+                    "category": "volatility",
+                    "vix3m": round(vix3m_level, 1),
+                }
+        except Exception:
+            pass
+
+        # ── 6. NFCI (Chicago Fed Financial Conditions) ───────────────────────
+        try:
+            nfci_raw = fetch_fred_series("NFCI", 8)  # 8 weekly obs
+            if nfci_raw and len(nfci_raw) >= 1:
+                nfci_vals = [r["value"] for r in nfci_raw if r.get("value") is not None]
+                if nfci_vals:
+                    nfci_now = nfci_vals[-1]
+                    nfci_4w  = nfci_vals[-4] if len(nfci_vals) >= 4 else nfci_now
+                    nfci_delta = round(nfci_now - nfci_4w, 3)
+                    # Negative = loose (good), positive = tight (bad)
+                    if nfci_now < -0.5:
+                        nfci_score, nfci_label = 2, "Very Loose"
+                    elif nfci_now < -0.1:
+                        nfci_score, nfci_label = 1, "Loose"
+                    elif nfci_now < 0.2:
+                        nfci_score, nfci_label = 0, "Neutral"
+                    elif nfci_now < 0.6:
+                        nfci_score, nfci_label = -1, "Tightening"
+                    else:
+                        nfci_score, nfci_label = -2, "Stressed"
+                    signals["NFCI"] = {
+                        "title": "Fin. Conditions (NFCI)",
+                        "value": f"{nfci_now:+.2f}",
+                        "label": nfci_label,
+                        "score": nfci_score,
+                        "category": "conditions",
+                        "delta_4w": round(nfci_delta, 3),
+                    }
+        except Exception:
+            pass
+
+        # ── 7. Equity Risk Premium (ERP = earnings yield − 10Y yield) ────────
+        # ERP = 1/CAPE − DGS10. Negative = stocks expensive vs bonds.
+        try:
+            dgs10_raw = fetch_fred_series("DGS10", 5)
+            dgs10_now = None
+            if dgs10_raw:
+                dgs10_vals = [r["value"] for r in dgs10_raw if r.get("value") is not None]
+                if dgs10_vals:
+                    dgs10_now = dgs10_vals[-1]
+            if cape_val and cape_val > 0 and dgs10_now:
+                erp = round((1.0 / cape_val * 100) - dgs10_now, 2)  # both in %
+                if erp > 2.0:
+                    erp_score, erp_label = 2, "Cheap vs Bonds"
+                elif erp > 0.5:
+                    erp_score, erp_label = 1, "Fair vs Bonds"
+                elif erp > -0.5:
+                    erp_score, erp_label = 0, "Neutral"
+                elif erp > -2.0:
+                    erp_score, erp_label = -1, "Expensive"
+                else:
+                    erp_score, erp_label = -2, "Very Expensive"
+                signals["ERP"] = {
+                    "title": "Equity Risk Premium",
+                    "value": f"{erp:+.1f}%",
+                    "label": erp_label,
+                    "score": erp_score,
+                    "category": "valuation",
+                    "erp_raw": erp,
+                    "dgs10": round(dgs10_now, 2),
+                }
+        except Exception:
+            pass
+
+        # ── 8. HY Spread Quadrant (level + direction) ────────────────────────
+        # Use the already-fetched HYOAS data from FRED for a secondary signal
+        try:
+            hy_raw = fetch_fred_series("HYOAS", 130)  # 6mo for direction
+            if hy_raw and len(hy_raw) >= 20:
+                hy_vals = [r["value"] for r in hy_raw if r.get("value") is not None]
+                if hy_vals and len(hy_vals) >= 20:
+                    hy_now  = hy_vals[-1] * 100   # convert % → bps
+                    hy_4w   = hy_vals[-20] * 100
+                    hy_dir  = hy_now - hy_4w       # positive=widening, negative=tightening
+                    hy_wide = hy_now > 400          # wide = above 400bps
+                    # Verdad quadrant: wide+falling=Recovery, wide+rising=Recession,
+                    #                  narrow+falling=Growth, narrow+rising=Overheating
+                    if not hy_wide and hy_dir < -10:
+                        hy_quad, hy_qs, hy_ql = "Growth", 2, "Narrow & Tightening"
+                    elif not hy_wide and hy_dir > 10:
+                        hy_quad, hy_qs, hy_ql = "Overheating", 1, "Narrow & Widening"
+                    elif not hy_wide:
+                        hy_quad, hy_qs, hy_ql = "Stable", 1, "Narrow & Stable"
+                    elif hy_wide and hy_dir < -15:
+                        hy_quad, hy_qs, hy_ql = "Recovery", 1, "Wide & Tightening"
+                    else:
+                        hy_quad, hy_qs, hy_ql = "Stress", -2, "Wide & Widening"
+                    signals["HY_QUAD"] = {
+                        "title": "HY Credit Regime",
+                        "value": f"{round(hy_now)}bp",
+                        "label": hy_ql,
+                        "score": hy_qs,
+                        "category": "credit",
+                        "quadrant": hy_quad,
+                        "dir_4w": round(hy_dir),
+                    }
+        except Exception:
+            pass
+
         # ── Composite score ──────────────────────────────────────────────────
-        weights = {"VIX": 0.30, "FORWARD_PE": 0.20, "BREADTH": 0.25, "SPX_MOM": 0.25}
+        weights = {"VIX": 0.20, "VIX_TS": 0.15, "BREADTH": 0.15, "SPX_MOM": 0.20,
+                   "HY_QUAD": 0.15, "NFCI": 0.10, "ERP": 0.05}
         composite = 0.0
         total_w = 0.0
         for k, w in weights.items():

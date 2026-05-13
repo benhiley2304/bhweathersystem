@@ -6521,283 +6521,189 @@ function renderMacroDataPanels(reg){
         </div>
       </div>`;
       })()}
-      <!-- PANEL 6: STOCK MARKET CLIMATE ══════════════════════════════════ -->
+      <!-- PANEL 6: EQUITY CONDITIONS ════════════════════════════════════ -->
       ${(()=>{
         const ret = reg.returns||{};
+        const sc         = (typeof DATA!=='undefined'&&DATA.stock_climate)||{};
+        const scSignals  = sc.signals||{};
         const scComp     = sc.composite??null;
-        const scOverall   = sc.overall??0;
-        const scBadgeLabel= scOverall>=2?'Risk-On':scOverall>=1?'Lean Bull':scOverall<=-2?'Risk-Off':scOverall<=-1?'Lean Bear':'Neutral';
-        const scBadgeCol  = scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#c8a96e';
-        const scArcCol    = scBadgeCol;
+        const scOverall  = sc.overall??0;
 
-        // Signal accessors
-        const vixSig  = scSignals['VIX']||{};
-        const momSig  = scSignals['SPX_MOM']||{};
-        const brSig   = scSignals['BREADTH']||{};
-        const capeSig = scSignals['FORWARD_PE']||{};
+        // ── Signal accessors ─────────────────────────────────────────────
+        const vixSig   = scSignals['VIX']||{};
+        const vtsSig   = scSignals['VIX_TS']||{};
+        const momSig   = scSignals['SPX_MOM']||{};
+        const brSig    = scSignals['BREADTH']||{};
+        const nfciSig  = scSignals['NFCI']||{};
+        const erpSig   = scSignals['ERP']||{};
+        const hyqSig   = scSignals['HY_QUAD']||{};
 
-        const sig4 = [
-          {lbl:'Volatility', key:'VIX',        s:vixSig,  val:vixSig.value||'—',  sub:vixSig.label||'—'},
-          {lbl:'Momentum',   key:'SPX_MOM',    s:momSig,  val:momSig.value||'—',  sub:momSig.label||'—'},
-          {lbl:'Breadth',    key:'BREADTH',    s:brSig,   val:brSig.value||'—',   sub:brSig.label||'—'},
-          {lbl:'Valuation',  key:'FORWARD_PE', s:capeSig, val:capeSig.value||'—', sub:capeSig.label||'—'},
-        ].map(x=>{
-          const score = x.s.score??0;
-          const col = score>=1?'#22c97a':score<=-1?'#e03a2a':'#c8a96e';
-          return {...x, score, col};
-        });
+        const vixNum   = parseFloat(vixSig.value||'0')||0;
+        const vix3mNum = parseFloat(vtsSig.vix3m||'0')||parseFloat(reg.levels?.VIX3M||'0')||0;
+        const tsRatio  = vix3mNum>0&&vixNum>0 ? (vix3mNum/vixNum) : null;
+        const tsLabel  = tsRatio!=null?(tsRatio>1.05?'Contango':tsRatio<0.95?'Backwardation':'Flat'):'—';
+        const tsCol    = tsRatio!=null?(tsRatio>1.02?'#22c97a':tsRatio<0.95?'#e03a2a':'#adb8d0'):'#adb8d0';
 
-        // Cross-asset returns matrix
-        const assetRows = [
-          {lbl:'S&P 500', key:'SPX'},
-          {lbl:'Nasdaq',  key:'NDX'},
-          {lbl:'Gold',    key:'GLD'},
-          {lbl:'Bonds',   key:'TLT'},
-          {lbl:'Oil',     key:'OIL'},
-          {lbl:'USD',     key:'DXY'},
-        ].map(m=>{
-          const r = ret[m.key]||{};
-          const r1w = r.return_1w??null;
-          const r1m = r.return_1m??null;
-          const r3m = r.return_3m??null;
-          const fmtR = v => v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
-          const colR = v => v==null?'var(--faint)':v>0?'#22c97a':v<0?'#e03a2a':'var(--dim)';
-          const bPct = r1m!=null ? Math.min(50, Math.max(-50, r1m*3)) : 0;  // 3x scale: ±16% fills bar
-          const bDir = bPct>=0?'right':'left';
-          const bW   = Math.abs(bPct).toFixed(1);
-          const bCol = colR(r1m);
-          return {...m, r1w, r1m, r3m, fmtR, colR, bPct, bDir, bW, bCol};
-        });
+        // ── Overall badge ─────────────────────────────────────────────────
+        const scBadgeLabel = scOverall>=2?'Risk-On':scOverall>=1?'Lean Bull':scOverall<=-2?'Risk-Off':scOverall<=-1?'Lean Bear':'Neutral';
+        const scBadgeCol   = scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#c8a96e';
 
-        // ── P6 computed values ─────────────────────────────────────────
-        const vixNum    = parseFloat(vixSig.value||'0')||0;
-        const vix3mNum  = parseFloat(reg.levels?.VIX3M||'0')||0;
-        const vixTermStr= vix3mNum>0&&vixNum>0?(vix3mNum>vixNum?'Contango':'Backwardation'):'';
-        const vixTermCol= vix3mNum>vixNum?'#adb8d0':'#e03a2a';
-        const fwdPE     = parseFloat(capeSig.value||'0')||0;
-        const breadthVal= parseFloat(brSig.value||'0')||0;
-        const spxMomVal = parseFloat(momSig.value||'0')||0;
-
-        // Valuation hero: use score from capeSig (−2→+2) since numeric P/E not always in API
-        // Score: +2=cheap, +1=fair, 0=neutral, −1=elevated, −2=expensive
-        const peScore = capeSig.score??null;
-        // Also try numeric value — if present use it, if absent fall back to score-based display
-        const peScoreNum = peScore??0;
-        // Score→colour: negative score = expensive = red, positive = cheap = green
-        // Use composite to set colour when score is null (avoids neutral amber when market is stretched)
-        const _peFallbackCol = scComp<-0.5?'#e03a2a':scComp<0?'#f5a442':scComp<0.5?'#c8a96e':'#22c97a';
-        const peCol = peScoreNum<=-2?'#e03a2a':peScoreNum<=-1?'#f5a442':peScoreNum>=2?'#22c97a':peScoreNum>=1?'#5ec97a':peScore===null?_peFallbackCol:'#c8a96e';
-        // Score→label (score=0 neutral/no data → show ELEVATED as equities are historically high)
-        // If no score data, estimate from composite: negative composite = stretched market
-        const _peEstFromComp = peScore===null?(scComp<-0.5?'EXPENSIVE':scComp<0?'ELEVATED':scComp<0.5?'FAIR':'CHEAP'):null;
-        const peLabel = peScoreNum<=-2?'EXPENSIVE':peScoreNum<=-1?'ELEVATED':peScoreNum>=2?'CHEAP':peScoreNum>=1?'FAIR':_peEstFromComp||'ELEVATED';
-        // Gauge norm: map score −2→+2 to 0→100% (left=cheap, right=expensive — inverted for intuition)
-        // At score=−2 → expensive → needle right (100%). At score=+2 → cheap → needle left (0%)
-        const _peEffScore = peScore!==null?peScoreNum:(-scComp*2); // composite proxy when PE score absent
-        const peNorm = Math.min(100, Math.max(0, ((-_peEffScore + 2) / 4) * 100));
-        // Display value: prefer raw fwdPE if available
-        // When absent, derive a rough estimate from composite score (scComp \u2248 \u22120.31 \u2192 ~21x historical)
-        // Score\u2212based estimate: neutral=21x, each \u22121 point \u2248 +2x premium (stretched market)
-        const _peEstX = fwdPE>0 ? fwdPE : Math.max(10, Math.round((21 - _peEffScore*2)*2)/2); // nearest 0.5x
-        const peHeroTxt = fwdPE > 0 ? fwdPE.toFixed(1)+'x' : (capeSig.label || peLabel);
-
-        // VIX gauge: low VIX = complacent green, high = fear red
-        // VIX colour: \u226420=green (calm), 20\u201330=amber (caution), 30+=red (fear)
-        const vixCol = vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a';
-        const vixLabel = vixNum>=30?'FEAR':vixNum>=20?'CAUTION':vixNum>=15?'NORMAL':'COMPLACENT';
-        // VIX gauge: piecewise scale — 0-15 compressed (calm), 15-25 medium, 25+ expanded (fear)
-        const vixNorm = Math.min(100, Math.max(0, vixNum<=15?(vixNum/15)*30:vixNum<=25?30+((vixNum-15)/10)*40:70+((vixNum-25)/20)*30));
-
-        // Breadth: use score (−2→+2) for gauge since raw % can be negative or > 100
-        const brScore = brSig.score??0;
-        const brCol = brScore>=2?'#22c97a':brScore>=1?'#5ec97a':brScore>=0?'#c8a96e':brScore>=-1?'#f5a442':'#e03a2a';
-        const brNorm = Math.min(100, Math.max(0, ((brScore+2)/4)*100));
-        // Also keep raw value display (can be negative → show as signed %)
-        const brDispVal = breadthVal!==0 ? (breadthVal>0?'':'')+breadthVal.toFixed(1)+'%' : '—';
-
-        // SPX momentum colour
-        const momCol = (momSig.score??0)>=1?'#22c97a':(momSig.score??0)<=-1?'#e03a2a':'#c8a96e';
-
-        // Gauge bar SVG helper (horizontal, gradient fill, needle)
-        const gaugeBar = (normPct, col, label, leftLbl, rightLbl, h=10) => {
-          const p = normPct.toFixed(1);
-          return `<div style="position:relative;height:${h}px;background:rgba(255,255,255,0.06);border-radius:${h/2}px;overflow:visible;margin:3px 0 1px">
-            <div style="position:absolute;inset:0;border-radius:${h/2}px;overflow:hidden">
-              <div style="width:${p}%;height:100%;background:linear-gradient(90deg,${col}22,${col}bb,${col});border-radius:${h/2}px;opacity:0.95"></div>
+        // ── Signal row builder ────────────────────────────────────────────
+        // score: -2→+2 → colour: red→green. Contrarian signals NOT inverted here —
+        // backend already handles inversion in score assignment.
+        const sigCol = s => s>=2?'#22c97a':s>=1?'#5ec97a':s<=-2?'#e03a2a':s<=-1?'#f5a442':'#adb8d0';
+        const dotCol = s => s>=1?'#22c97a':s<=-1?'#e03a2a':'#c8a96e';
+        const sigRow = (eyebrow, value, label, score, note) => {
+          const sc = score??0;
+          const dc = dotCol(sc);
+          const vc = sigCol(sc);
+          return `<div style="display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div style="width:7px;height:7px;border-radius:50%;background:${dc};flex-shrink:0;box-shadow:0 0 5px ${dc}88"></div>
+            <div>
+              <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.6);margin-bottom:1px">${eyebrow}</div>
+              ${note?`<div style="font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:1px">${note}</div>`:''}
             </div>
-            <div style="position:absolute;top:-4px;bottom:-4px;left:${p}%;width:3px;background:${col};border-radius:2px;box-shadow:0 0 8px ${col},0 0 4px ${col}cc;transform:translateX(-50%)"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.3)">${leftLbl}</span>
-            <span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.3)">${rightLbl}</span>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${vc};line-height:1;letter-spacing:-0.01em">${value}</div>
+              <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:${vc};letter-spacing:0.04em;text-transform:uppercase;opacity:0.85;margin-top:1px">${label}</div>
+            </div>
           </div>`;
         };
 
+        // ── Cross-asset mini returns ──────────────────────────────────────
+        const miniAssets = [
+          {lbl:'SPX', key:'SPX'},{lbl:'NDX', key:'NDX'},
+          {lbl:'Gold', key:'GLD'},{lbl:'Bonds', key:'TLT'},
+          {lbl:'Oil', key:'OIL'},{lbl:'USD', key:'DXY'},
+        ].map(m=>{
+          const r = ret[m.key]||{};
+          const r1m = r.return_1m??null;
+          const r3m = r.return_3m??null;
+          const fmtR = v => v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
+          const colR = v => v==null?'var(--faint)':v>0.2?'#22c97a':v<-0.2?'#e03a2a':'var(--dim)';
+          return {...m, r1m, r3m, fmtR, colR};
+        });
+
+        // ── Composite strength bar ────────────────────────────────────────
+        const compNorm = scComp!=null ? Math.min(100,Math.max(0,((scComp+2)/4)*100)) : 50;
+        const compCol  = scComp!=null?(scComp>=1?'#22c97a':scComp>=-1?'#c8a96e':'#e03a2a'):'#adb8d0';
+        const compLbl  = scComp!=null?(scComp>=1.2?'STRONG':scComp>=0.3?'HEALTHY':scComp>=-0.3?'NEUTRAL':scComp>=-1.2?'WEAK':'STRESSED'):'—';
+
         return `
       <div class="ov-macro-card" id="ov-macro-stock-climate">
-        <div class="ov-macro-card-glow" style="background:${scArcCol}"></div>
-        <div class="ov-macro-card-wash" style="background:${scArcCol}"></div>
+        <div class="ov-macro-card-glow" style="background:${scBadgeCol}"></div>
+        <div class="ov-macro-card-wash" style="background:${scBadgeCol}"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
         <!-- Header -->
-        <div class="ov-mc-header" style="margin-bottom:8px">
+        <div class="ov-mc-header" style="margin-bottom:10px">
           <div>
             <div class="ov-mc-eyebrow">Equities</div>
-            <div class="ov-mc-title">Market Climate</div>
+            <div class="ov-mc-title">Equity Conditions</div>
           </div>
-          <span class="ov-mc-badge" style="color:${scArcCol};background:${scArcCol}1a;border:1px solid ${scArcCol}38">${scBadgeLabel}</span>
+          <span class="ov-mc-badge" style="color:${scBadgeCol};background:${scBadgeCol}1a;border:1px solid ${scBadgeCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- Market Health: composite SPX health bar + sparkline -->
-        <div style="margin-bottom:8px;padding:8px 10px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:10px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div>
-              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px">S&amp;P 500 · Market Health</div>
-              <div style="display:flex;align-items:baseline;gap:6px">
-                <span style="font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${momCol}">${spxMomVal>=0?'+':''}${spxMomVal.toFixed(1)}%</span>
-                <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${momCol};padding:2px 7px;border-radius:5px;background:${momCol}18;border:1px solid ${momCol}30;letter-spacing:0.06em">${momSig.label||''}</span>
-              </div>
+        <!-- Composite strength bar -->
+        <div style="margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:9px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <div style="display:flex;align-items:baseline;gap:7px">
+              <span style="font-family:var(--mono);font-size:clamp(24px,4vw,30px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${compCol}">${scComp!=null?scComp.toFixed(2):'—'}</span>
+              <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${compCol};padding:2px 7px;border-radius:5px;background:${compCol}18;border:1px solid ${compCol}28;letter-spacing:0.06em">${compLbl}</span>
             </div>
-            <canvas id="ov-sc-spx-chart" width="120" height="48" style="width:110px;height:48px;display:block;border-radius:6px;background:rgba(255,255,255,0.01);flex-shrink:0"></canvas>
+            <canvas id="ov-sc-spx-chart" width="100" height="36" style="width:90px;height:36px;display:block;border-radius:5px;flex-shrink:0"></canvas>
           </div>
-          <!-- Composite health bar — gradient green→red, needle at composite position -->
-          ${(()=>{
-            // scComp: -2=very bearish → +2=very bullish. Map to 0-100 for gauge.
-            const hNorm = Math.min(100, Math.max(0, ((scComp + 2) / 4) * 100));
-            const hCol = scComp >= 1 ? '#22c97a' : scComp >= 0 ? '#5aaa7a' : scComp >= -1 ? '#f5a442' : '#e03a2a';
-            const hLabel = scComp >= 1.2 ? 'STRONG' : scComp >= 0.3 ? 'HEALTHY' : scComp >= -0.3 ? 'NEUTRAL' : scComp >= -1.2 ? 'WEAK' : 'RISK-OFF';
-            return `<div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-                <span style="font-family:var(--mono);font-size:7px;color:var(--faint);letter-spacing:0.08em;text-transform:uppercase">Market Strength</span>
-                <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${hCol};letter-spacing:0.06em">${hLabel}</span>
-              </div>
-              <div style="position:relative;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.06)">
-                <div style="position:absolute;inset:0;background:linear-gradient(90deg,#e03a2a 0%,#f5a442 30%,#c8a96e 50%,#5aaa7a 70%,#22c97a 100%);opacity:0.35;border-radius:4px"></div>
-                <div style="position:absolute;top:1px;bottom:1px;left:2px;width:${(hNorm*0.01*(100-4)).toFixed(0)}%;background:linear-gradient(90deg,${hCol}44,${hCol}cc);border-radius:3px;transition:width 0.5s ease"></div>
-              </div>
-              <div style="position:relative;height:0">
-                <div style="position:absolute;top:-12px;bottom:-4px;width:2px;left:${hNorm.toFixed(1)}%;background:${hCol};border-radius:1px;box-shadow:0 0 6px ${hCol};transform:translateX(-50%)"></div>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:3px">
-                <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.25)">Risk-Off</span>
-                <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.25)">Risk-On</span>
-              </div>
-            </div>`;
-          })()}
+          <!-- Composite bar -->
+          <div style="position:relative;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.06)">
+            <div style="position:absolute;inset:0;background:linear-gradient(90deg,#e03a2a 0%,#f5a442 30%,#c8a96e 50%,#5aaa7a 70%,#22c97a 100%);opacity:0.3;border-radius:3px"></div>
+            <div style="position:absolute;top:0;bottom:0;width:2px;left:${compNorm.toFixed(1)}%;background:${compCol};border-radius:1px;box-shadow:0 0 6px ${compCol};transform:translateX(-50%)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:3px">
+            <span style="font-family:var(--mono);font-size:6px;color:rgba(255,255,255,0.2)">Stressed</span>
+            <span style="font-family:var(--mono);font-size:6px;color:rgba(255,255,255,0.2)">Risk-On</span>
+          </div>
         </div>
 
-        <!-- 3 Market Condition Gauges: VIX · Forward P/E · Breadth
-             Each shows value + semantic label + gradient percentile bar with needle.
-             Gradient direction shows semantic orientation:
-               VIX:     green(low/calm) → red(high/fear)       — low = good
-               Fwd P/E: green(cheap) → red(expensive)          — low = good
-               Breadth: red(thin/narrow) → green(broad)        — high = good
-        -->
-        <div style="display:flex;flex-direction:column;gap:0;border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;margin-bottom:8px">
-          ${(()=>{
-            // Redesigned gauge row — semantic gradient bar showing position vs history
-            // gradLeft/gradRight: colour at left and right end of gradient
-            // needleNorm: 0-100 position of the needle
-            // invert: if true, low reading = good (needle left = calm)
-            const gaugeRow = (eyebrow, valueStr, labelStr, labelCol, needleNorm, gradLeft, gradRight, contextNote) => {
-              const safeNorm = Math.min(98, Math.max(2, needleNorm));
-              return `<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">
-                <div style="display:grid;grid-template-columns:1fr auto;align-items:start;gap:8px;margin-bottom:5px">
-                  <div>
-                    <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.7);margin-bottom:2px">${eyebrow}</div>
-                    <div style="display:flex;align-items:baseline;gap:5px">
-                      <span style="font-family:var(--mono);font-size:18px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${labelCol}">${valueStr}</span>
-                      <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:${labelCol};letter-spacing:0.05em">${labelStr}</span>
-                    </div>
-                    ${contextNote?`<div style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.5);margin-top:2px">${contextNote}</div>`:''}
-                  </div>
-                </div>
-                <!-- Gradient percentile bar with needle -->
-                <div style="position:relative;height:10px;border-radius:5px;overflow:visible;background:rgba(255,255,255,0.05)">
-                  <div style="position:absolute;inset:0;background:linear-gradient(90deg,${gradLeft},${gradRight});border-radius:5px;opacity:0.55"></div>
-                  <!-- Needle: white tick, full height + overflow -->
-                  <div style="position:absolute;top:-3px;bottom:-3px;width:2px;left:${safeNorm.toFixed(1)}%;background:#ffffff;border-radius:1px;box-shadow:0 0 6px rgba(255,255,255,0.9);transform:translateX(-50%);z-index:2"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;margin-top:3px">
-                  <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.28)">${gradLeft==='#22c97a'?'Low':'Cheap'}</span>
-                  <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.28)">${gradRight==='#e03a2a'?'High':'Expensive'}</span>
-                </div>
-              </div>`;
-            };
+        <!-- Signal rows — 2-column grid of traffic-light rows -->
+        <div style="margin-bottom:10px">
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Market Signals</div><div class="mc-sect-line"></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">
 
-            // ── VIX gauge ──────────────────────────────────────────────────────
-            // Scale: 0=10, 100=40. Historical avg ~19. VIX 18.1 → pct ~(18-10)/(40-10)=27%
-            const vixGaugeNorm = Math.min(100, Math.max(0, ((vixNum - 10) / 30) * 100));
-            const vixNote = vix3mNum>0?`3M ago: ${vix3mNum.toFixed(1)}  ·  ${vixTermStr}`:'Historical range: 10 – 40';
-            const vixRow = gaugeRow(
-              'VIX · Volatility Index',
-              vixNum>0?vixNum.toFixed(1):'—',
-              vixLabel,
-              vixCol,
-              vixGaugeNorm,
-              '#22c97a',   // left: low VIX = calm = green
-              '#e03a2a',   // right: high VIX = fear = red
-              vixNote
-            );
+            <!-- LEFT COLUMN: Volatility + Conditions -->
+            <div>
+              ${sigRow('VIX · Volatility',
+                vixNum>0?vixNum.toFixed(1):'—',
+                vixSig.label||'—',
+                vixSig.score,
+                null
+              )}
+              ${sigRow('VIX Term Structure',
+                tsRatio!=null?tsRatio.toFixed(3):'—',
+                tsLabel,
+                vtsSig.score??(tsRatio!=null?tsRatio>1.02?1:tsRatio<0.95?-1:0:null),
+                vix3mNum>0?`3M: ${vix3mNum.toFixed(1)}`:null
+              )}
+              ${sigRow('Fin. Conditions',
+                nfciSig.value||'—',
+                nfciSig.label||'—',
+                nfciSig.score,
+                nfciSig.delta_4w!=null?`4W Δ ${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:null
+              )}
+            </div>
 
-            // ── Forward P/E gauge ──────────────────────────────────────────────
-            // Scale: cheap=14x, expensive=28x. Historical avg ~18-19x
-            const peDisplayVal = fwdPE > 0 ? fwdPE : _peEstX;
-            const peGaugeNorm = Math.min(100, Math.max(0, ((peDisplayVal - 14) / 14) * 100));
-            const peNote = fwdPE > 0 ? 'Historical range: 14x – 28x' : `~${_peEstX.toFixed(1)}x estimated · Historical range: 14x – 28x`;
-            const peRow = gaugeRow(
-              'Forward P/E · Valuation',
-              fwdPE > 0 ? fwdPE.toFixed(1)+'x' : `~${_peEstX.toFixed(1)}x`,
-              peLabel,
-              peCol,
-              peGaugeNorm,
-              '#22c97a',   // left: cheap = green
-              '#e03a2a',   // right: expensive = red
-              peNote
-            );
+            <!-- RIGHT COLUMN: Credit + Breadth + Momentum -->
+            <div>
+              ${sigRow('HY Credit Regime',
+                hyqSig.value||'—',
+                hyqSig.label||'—',
+                hyqSig.score,
+                hyqSig.quadrant||null
+              )}
+              ${sigRow('Market Breadth',
+                brSig.value||'—',
+                brSig.label||'—',
+                brSig.score,
+                null
+              )}
+              ${sigRow('SPX Momentum',
+                momSig.value||'—',
+                momSig.label||'—',
+                momSig.score,
+                null
+              )}
+            </div>
+          </div>
 
-            // ── Breadth gauge ──────────────────────────────────────────────────
-            // SPY/RSP ratio — negative = narrow/bad, positive = broad/good
-            // Scale: -8% = very narrow (left), +4% = very broad (right)
-            const brGaugeNorm = Math.min(100, Math.max(0, ((breadthVal + 8) / 12) * 100));
-            const brNote = `SPY/RSP spread · Narrow breadth = large-cap dominance`;
-            const brRow = gaugeRow(
-              'Market Breadth · SPY/RSP',
-              breadthVal!==0?(breadthVal>0?'+':'')+breadthVal.toFixed(1)+'%':'—',
-              brSig.label||'',
-              brCol,
-              brGaugeNorm,
-              '#e03a2a',   // left: narrow = bad = red
-              '#22c97a',   // right: broad = good = green
-              brNote
-            );
-
-            return vixRow + peRow + brRow;
-          })()}
+          <!-- ERP row — full width, prominent -->
+          <div style="margin-top:2px">
+            ${sigRow('Equity Risk Premium (EY − 10Y)',
+              erpSig.value||'—',
+              erpSig.label||'—',
+              erpSig.score,
+              erpSig.dgs10!=null?`10Y: ${erpSig.dgs10}%`:null
+            )}
+          </div>
         </div>
 
-        <!-- Cross-Asset Returns — compact 3-col strip (1M / 3M only, 1W dropped) -->
+        <!-- Cross-Asset Returns — compact -->
         <div style="flex:1;min-height:0">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Cross-Asset Performance</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">
-            ${assetRows.map(m=>`<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:5px 7px">
-              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.03em;color:var(--dim);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.lbl}</div>
-              <div style="display:flex;flex-direction:column;gap:3px">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint)">1M</span>
-                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${m.colR(m.r1m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint)">3M</span>
-                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${m.colR(m.r3m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
-                </div>
+            ${miniAssets.map(m=>`<div style="background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:5px 8px">
+              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--dim);margin-bottom:4px">${m.lbl}</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
+                <span style="font-family:var(--mono);font-size:6.5px;color:var(--faint)">1M</span>
+                <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${m.colR(m.r1m)}">${m.fmtR(m.r1m)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:var(--mono);font-size:6.5px;color:var(--faint)">3M</span>
+                <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${m.colR(m.r3m)}">${m.fmtR(m.r3m)}</span>
               </div>
             </div>`).join('')}
           </div>
         </div>
       </div>`;
-      })()}
-    </div>
+      })()}    </div>
   `;
   // Draw canvases after DOM update — double RAF to ensure layout is complete
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
