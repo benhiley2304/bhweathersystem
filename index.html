@@ -6012,7 +6012,7 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">Price Stability</div>
             <div class="ov-mc-title">Inflation</div>
           </div>
-          <span class="ov-mc-badge" style="color:${inflBadgeCol};background:${inflBadgeCol}1a;border:1px solid ${inflBadgeCol}38">${inflBadgeLabel}${_inflSurprises.length?` ${_hotCount}H/${_coolCount}C`:''}</span>
+          <span class="ov-mc-badge" style="color:${inflBadgeCol};background:${inflBadgeCol}1a;border:1px solid ${inflBadgeCol}38">${inflBadgeLabel}${_inflSurprises.length?` · ${_hotCount}H / ${_coolCount}C`:''}</span>
         </div>
         <!-- Hero: CPI reading only — no arc ring -->
         <div style="margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.07)">
@@ -6097,7 +6097,7 @@ function renderMacroDataPanels(reg){
                       ${r.expected!=null?`<span style="font-family:var(--mono);font-size:9.5px;color:rgba(173,184,208,0.55);white-space:nowrap">exp&nbsp;${r.expected.toFixed(2)}%</span>`:''}
                       <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.03em;color:#f2f6ff;line-height:1.1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
                     </div>
-                    ${r.beat!==null?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;padding:1.5px 5px;border-radius:3px;background:${col}1a;border:1px solid ${col}30;color:${col};letter-spacing:0.05em">${r.beat?'▼ COOL':'▲ HOT'}${surpStr?' '+surpStr:''}</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
+                    ${r.beat!==null&&r.surprise!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${col};letter-spacing:0.02em">${r.beat?'−':'＋'}${Math.abs(r.surprise).toFixed(2)}pp</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
                   </div>
                 </div>`;
               }).join('');
@@ -6199,7 +6199,7 @@ function renderMacroDataPanels(reg){
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
-            <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y Spread</div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y</div>
             ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.1);border:1px solid rgba(34,201,122,0.2);letter-spacing:0.06em">POSITIVE ↑</span>`:''}
             ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.1);border:1px solid rgba(224,58,42,0.2);letter-spacing:0.06em">INVERTED ↓</span>`:''}
           </div>
@@ -6496,84 +6496,131 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${scArcCol};background:${scArcCol}1a;border:1px solid ${scArcCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- SPX Price Chart — dominant visual, set the tone -->
-        <div style="margin-bottom:8px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 3-Month</span>
-            <div style="display:flex;align-items:baseline;gap:5px">
-              <span style="font-family:var(--mono);font-size:18px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${momCol};font-variant-numeric:tabular-nums">${spxMomVal>=0?'+':''}${spxMomVal.toFixed(1)}%</span>
-              <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${momCol};padding:1px 6px;border-radius:8px;background:${momCol}15;border:1px solid ${momCol}28">${momSig.label||''}</span>
+        <!-- Market Health: composite SPX health bar + sparkline -->
+        <div style="margin-bottom:8px;padding:8px 10px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div>
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px">S&amp;P 500 · Market Health</div>
+              <div style="display:flex;align-items:baseline;gap:6px">
+                <span style="font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${momCol}">${spxMomVal>=0?'+':''}${spxMomVal.toFixed(1)}%</span>
+                <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${momCol};padding:2px 7px;border-radius:5px;background:${momCol}18;border:1px solid ${momCol}30;letter-spacing:0.06em">${momSig.label||''}</span>
+              </div>
             </div>
+            <canvas id="ov-sc-spx-chart" width="120" height="48" style="width:110px;height:48px;display:block;border-radius:6px;background:rgba(255,255,255,0.01);flex-shrink:0"></canvas>
           </div>
-          <canvas id="ov-sc-spx-chart" width="200" height="56" style="width:100%;height:56px;display:block;border-radius:6px;background:rgba(255,255,255,0.015)"></canvas>
+          <!-- Composite health bar — gradient green→red, needle at composite position -->
+          ${(()=>{
+            // scComp: -2=very bearish → +2=very bullish. Map to 0-100 for gauge.
+            const hNorm = Math.min(100, Math.max(0, ((scComp + 2) / 4) * 100));
+            const hCol = scComp >= 1 ? '#22c97a' : scComp >= 0 ? '#5aaa7a' : scComp >= -1 ? '#f5a442' : '#e03a2a';
+            const hLabel = scComp >= 1.2 ? 'STRONG' : scComp >= 0.3 ? 'HEALTHY' : scComp >= -0.3 ? 'NEUTRAL' : scComp >= -1.2 ? 'WEAK' : 'RISK-OFF';
+            return `<div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+                <span style="font-family:var(--mono);font-size:7px;color:var(--faint);letter-spacing:0.08em;text-transform:uppercase">Market Strength</span>
+                <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${hCol};letter-spacing:0.06em">${hLabel}</span>
+              </div>
+              <div style="position:relative;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.06)">
+                <div style="position:absolute;inset:0;background:linear-gradient(90deg,#e03a2a 0%,#f5a442 30%,#c8a96e 50%,#5aaa7a 70%,#22c97a 100%);opacity:0.35;border-radius:4px"></div>
+                <div style="position:absolute;top:1px;bottom:1px;left:2px;width:${(hNorm*0.01*(100-4)).toFixed(0)}%;background:linear-gradient(90deg,${hCol}44,${hCol}cc);border-radius:3px;transition:width 0.5s ease"></div>
+              </div>
+              <div style="position:relative;height:0">
+                <div style="position:absolute;top:-12px;bottom:-4px;width:2px;left:${hNorm.toFixed(1)}%;background:${hCol};border-radius:1px;box-shadow:0 0 6px ${hCol};transform:translateX(-50%)"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:3px">
+                <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.25)">Risk-Off</span>
+                <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.25)">Risk-On</span>
+              </div>
+            </div>`;
+          })()}
         </div>
 
-        <!-- 4 Signal Rows: VIX · Forward P/E · Breadth · Momentum -->
-        <div style="display:flex;flex-direction:column;gap:0;border:1px solid rgba(255,255,255,0.07);border-radius:9px;overflow:hidden;margin-bottom:8px">
+        <!-- 3 Market Condition Gauges: VIX · Forward P/E · Breadth
+             Each shows value + semantic label + gradient percentile bar with needle.
+             Gradient direction shows semantic orientation:
+               VIX:     green(low/calm) → red(high/fear)       — low = good
+               Fwd P/E: green(cheap) → red(expensive)          — low = good
+               Breadth: red(thin/narrow) → green(broad)        — high = good
+        -->
+        <div style="display:flex;flex-direction:column;gap:0;border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;margin-bottom:8px">
           ${(()=>{
-            // Each row: label | value+label | inline gauge bar
-            const sigRow = (eyebrow, valueStr, labelStr, labelCol, gaugeNorm, gaugeCol, subNote) => `
-              <div class="ov-sc-sig-row" style="display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.05)">
-                <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">${eyebrow}</span>
-                <div style="min-width:0">
-                  <div style="display:flex;align-items:baseline;gap:4px">
-                    <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;line-height:1;color:${labelCol};font-variant-numeric:tabular-nums">${valueStr}</span>
-                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${labelCol};letter-spacing:0.04em">${labelStr}</span>
+            // Redesigned gauge row — semantic gradient bar showing position vs history
+            // gradLeft/gradRight: colour at left and right end of gradient
+            // needleNorm: 0-100 position of the needle
+            // invert: if true, low reading = good (needle left = calm)
+            const gaugeRow = (eyebrow, valueStr, labelStr, labelCol, needleNorm, gradLeft, gradRight, contextNote) => {
+              const safeNorm = Math.min(98, Math.max(2, needleNorm));
+              return `<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div style="display:grid;grid-template-columns:1fr auto;align-items:start;gap:8px;margin-bottom:5px">
+                  <div>
+                    <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.7);margin-bottom:2px">${eyebrow}</div>
+                    <div style="display:flex;align-items:baseline;gap:5px">
+                      <span style="font-family:var(--mono);font-size:18px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${labelCol}">${valueStr}</span>
+                      <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:${labelCol};letter-spacing:0.05em">${labelStr}</span>
+                    </div>
+                    ${contextNote?`<div style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.5);margin-top:2px">${contextNote}</div>`:''}
                   </div>
-                  ${subNote?`<div style="font-family:var(--mono);font-size:7px;color:var(--faint);margin-top:2px;opacity:0.75">${subNote}</div>`:''}
                 </div>
-                <div style="width:60px">
-                  <div style="position:relative;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
-                    <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,Math.max(2,gaugeNorm)).toFixed(0)}%;background:${gaugeCol};border-radius:3px;opacity:0.9;box-shadow:0 0 6px ${gaugeCol}55"></div>
-                  </div>
+                <!-- Gradient percentile bar with needle -->
+                <div style="position:relative;height:10px;border-radius:5px;overflow:visible;background:rgba(255,255,255,0.05)">
+                  <div style="position:absolute;inset:0;background:linear-gradient(90deg,${gradLeft},${gradRight});border-radius:5px;opacity:0.55"></div>
+                  <!-- Needle: white tick, full height + overflow -->
+                  <div style="position:absolute;top:-3px;bottom:-3px;width:2px;left:${safeNorm.toFixed(1)}%;background:#ffffff;border-radius:1px;box-shadow:0 0 6px rgba(255,255,255,0.9);transform:translateX(-50%);z-index:2"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:3px">
+                  <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.28)">${gradLeft==='#22c97a'?'Low':'Cheap'}</span>
+                  <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.28)">${gradRight==='#e03a2a'?'High':'Expensive'}</span>
                 </div>
               </div>`;
+            };
 
-            // VIX row — low is good (green), high is bad (red). Gauge: left=calm, right=fear
-            const vixRow = sigRow('VIX · Volatility',
+            // ── VIX gauge ──────────────────────────────────────────────────────
+            // Scale: 0=10, 100=40. Historical avg ~19. VIX 18.1 → pct ~(18-10)/(40-10)=27%
+            const vixGaugeNorm = Math.min(100, Math.max(0, ((vixNum - 10) / 30) * 100));
+            const vixNote = vix3mNum>0?`3M ago: ${vix3mNum.toFixed(1)}  ·  ${vixTermStr}`:'Historical range: 10 – 40';
+            const vixRow = gaugeRow(
+              'VIX · Volatility Index',
               vixNum>0?vixNum.toFixed(1):'—',
               vixLabel,
               vixCol,
-              vixNorm,
-              vixCol,
-              vix3mNum>0?`3M: ${vix3mNum.toFixed(1)} · ${vixTermStr}`:null
+              vixGaugeNorm,
+              '#22c97a',   // left: low VIX = calm = green
+              '#e03a2a',   // right: high VIX = fear = red
+              vixNote
             );
 
-            // Forward P/E row — left=cheap, right=expensive. Needle towards expensive = bad
-            // Always show estimated P/E number dimly alongside the label
-            const _peHasNum = fwdPE > 0;
-            // Sub note: dim estimated P/E (est.) when no real number in API
-            const _peSubNote = !_peHasNum ? `~${_peEstX.toFixed(1)}x est. (composite-derived)` : null;
-            const peRow = sigRow('Forward P/E',
-              _peHasNum ? fwdPE.toFixed(1)+'x' : `~${_peEstX.toFixed(1)}x`,
+            // ── Forward P/E gauge ──────────────────────────────────────────────
+            // Scale: cheap=14x, expensive=28x. Historical avg ~18-19x
+            const peDisplayVal = fwdPE > 0 ? fwdPE : _peEstX;
+            const peGaugeNorm = Math.min(100, Math.max(0, ((peDisplayVal - 14) / 14) * 100));
+            const peNote = fwdPE > 0 ? 'Historical range: 14x – 28x' : `~${_peEstX.toFixed(1)}x estimated · Historical range: 14x – 28x`;
+            const peRow = gaugeRow(
+              'Forward P/E · Valuation',
+              fwdPE > 0 ? fwdPE.toFixed(1)+'x' : `~${_peEstX.toFixed(1)}x`,
               peLabel,
               peCol,
-              peNorm,
-              peCol,
-              _peSubNote
+              peGaugeNorm,
+              '#22c97a',   // left: cheap = green
+              '#e03a2a',   // right: expensive = red
+              peNote
             );
 
-            // Breadth row — left=thin (bad), right=broad (good). Inverted vs other rows.
-            const brRow = sigRow('Breadth · SPY/RSP',
+            // ── Breadth gauge ──────────────────────────────────────────────────
+            // SPY/RSP ratio — negative = narrow/bad, positive = broad/good
+            // Scale: -8% = very narrow (left), +4% = very broad (right)
+            const brGaugeNorm = Math.min(100, Math.max(0, ((breadthVal + 8) / 12) * 100));
+            const brNote = `SPY/RSP spread · Narrow breadth = large-cap dominance`;
+            const brRow = gaugeRow(
+              'Market Breadth · SPY/RSP',
               breadthVal!==0?(breadthVal>0?'+':'')+breadthVal.toFixed(1)+'%':'—',
               brSig.label||'',
               brCol,
-              brNorm,
-              brCol,
-              null
+              brGaugeNorm,
+              '#e03a2a',   // left: narrow = bad = red
+              '#22c97a',   // right: broad = good = green
+              brNote
             );
 
-            // Momentum row — SPX 3M
-            const momRow = sigRow('SPX Momentum 3M',
-              (spxMomVal>=0?'+':'')+spxMomVal.toFixed(1)+'%',
-              momSig.label||'',
-              momCol,
-              Math.min(100,Math.max(0,((spxMomVal+20)/40)*100)),
-              momCol,
-              null
-            );
-
-            return vixRow + peRow + brRow + momRow;
+            return vixRow + peRow + brRow;
           })()}
         </div>
 
@@ -6700,19 +6747,19 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // Curve styles — opacity-stacked so depth is immediately readable
   // NOW: full opacity, thick solid | older = progressively faded + lighter dash
   const CURVES = [
-    { key: 'm12', label: '−12M', color: 'rgba(90,140,210,0.30)',  width: 1.2, dash: '8,6'  },
-    { key: 'm6',  label: '−6M',  color: 'rgba(60,190,160,0.50)',  width: 1.4, dash: '6,4'  },
-    { key: 'm3',  label: '−3M',  color: 'rgba(220,150,50,0.75)',  width: 1.8, dash: '4,3'  },
-    { key: 'now', label: 'Now',  color: nowCol,                   width: 3.2, dash: ''     },
+    { key: 'm12', label: '12M ago', color: 'rgba(92,158,255,0.50)',  width: 1.5, dash: '6,5'  },
+    { key: 'm6',  label: '6M ago',  color: 'rgba(80,200,170,0.68)',  width: 1.9, dash: '4,4'  },
+    { key: 'm3',  label: '3M ago',  color: 'rgba(245,164,66,0.88)',  width: 2.3, dash: '3,3'  },
+    { key: 'now', label: 'Now',     color: nowCol,                   width: 3.5, dash: ''     },
   ];
   // Tenors used for plot points — include all for smooth curves
-  const ALL_TENORS = ['EFFR','1M','3M','6M','1Y','2Y','5Y','10Y','30Y'];
+  const ALL_TENORS = ['3M','6M','1Y','2Y','5Y','10Y','30Y'];
   // X-axis tick labels — only show 6 key tenors to avoid crowding
-  const AXIS_TENORS = ['EFFR','1M','2Y','5Y','10Y','30Y'];
+  const AXIS_TENORS = ['3M','6M','2Y','5Y','10Y','30Y'];
   // EFFR sits just left of 1M on log scale
-  const TENOR_MO = { 'EFFR':0.7,'1M':1,'3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
+  const TENOR_MO = { '3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
   // Log range: 0.7M → 390M
-  const logMin = Math.log2(0.7), logMax = Math.log2(390);
+  const logMin = Math.log2(2.5), logMax = Math.log2(390);
 
   // Use container's actual rendered dimensions
   const elRect = el.getBoundingClientRect();
@@ -6729,7 +6776,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), 150);
   // On mini (mobile half-width), skip y-axis label space
   const _padL = containerW < 220 ? 8 : 36;
-  const padL = _padL, padR = 10, padT = 10, padB = 32;
+  const padL = _padL, padR = 10, padT = 10, padB = 36;
   const gW = W - padL - padR, gH = H - padT - padB;
 
   const xPosLog = t => {
@@ -6770,7 +6817,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   const isMini = padL < 20; // same condition as _padL above
   const fScale = Math.max(0.75, Math.min(1.0, W / 280));
   const fGrid = isMini ? '0' : (5.5 * fScale).toFixed(1);   // hide y-axis labels on mini
-  const fAxis = isMini ? (7.5).toFixed(1) : (6.5 * fScale).toFixed(1);  // bigger x-labels on mini
+  const fAxis = isMini ? (8.5).toFixed(1) : (8.0 * fScale).toFixed(1);  // bigger x-labels on mini
   const fLbl  = isMini ? '0' : (6.0 * fScale).toFixed(1);   // hide rate labels on mini
   const fLblKey = isMini ? '0' : (7.5 * fScale).toFixed(1); // hide key labels on mini
 
@@ -6870,12 +6917,12 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     ${grids}${xAxis}${curveSvg}
   </svg>`;
 
-  // Legend — left-aligned, 32px line samples so dashes are legible
-  const legendHTML = `<div style="display:flex;align-items:center;justify-content:flex-start;gap:12px;margin-top:5px;padding-left:${padL}px">
+  // Legend — left-aligned, clear line swatches + bigger readable text
+  const legendHTML = `<div style="display:flex;align-items:center;justify-content:flex-start;gap:14px;margin-top:6px;padding-left:${padL}px;flex-wrap:wrap">
     ${CURVES.filter(c => ALL_TENORS.some(t => tenorData[c.key]?.[t]!=null)).map(c =>
-      `<div style="display:flex;align-items:center;gap:5px">
-        <svg width="32" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="32" y2="3" stroke="${c.color}" stroke-width="${c.key==='now'?2.5:1.6}" ${c.dash?`stroke-dasharray="${c.dash}"`:''} opacity="${c.key==='now'?1:1}"/></svg>
-        <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${c.key==='now'?nowCol:'rgba(255,255,255,0.60)'}">${c.label}</span>
+      `<div style="display:flex;align-items:center;gap:6px">
+        <svg width="28" height="8" style="flex-shrink:0;overflow:visible"><line x1="0" y1="4" x2="28" y2="4" stroke="${c.color}" stroke-width="${c.key==='now'?3:2}" ${c.dash?`stroke-dasharray="${c.dash}"`:''} stroke-linecap="round"/></svg>
+        <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${c.key==='now'?nowCol:'rgba(255,255,255,0.72)'};white-space:nowrap">${c.label}</span>
       </div>`).join('')}
   </div>`;
 
