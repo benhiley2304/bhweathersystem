@@ -5630,8 +5630,19 @@ function renderMacroDataPanels(reg){
   // Inflation: red=hot, amber=elevated, neutral=on-target, blue=cool/cold
   // inflAvg: 0=deflationary extreme, 5=on target, 10=hyperinflation
   // Score >5 = hotter than trend, <5 = cooler
-  const inflBadgeLabel = inflAvg>=7.5?'Hot':inflAvg>=5.5?'Elevated':inflAvg>=4.5?'On Target':inflAvg>=3?'Cool':'Cold';
-  const inflBadgeCol   = inflAvg>=7.5?'#e03a2a':inflAvg>=5.5?'#f5c842':inflAvg>=4.5?'#adb8d0':inflAvg>=3?'#5c9eff':'#4a90d9';
+  // Inflation badge: use pipeline surprise direction (are readings coming in HOT or COOL vs expectations?)
+  // Count how many inflation measures are above vs below expectations
+  const _inflPipeKeys = ['PPI','CPI','CORE_CPI','PCE','CORE_PCE'];
+  const _inflSurprises = _inflPipeKeys.map(k=>macroComps[k]).filter(Boolean).map(c=>{
+    const a=parseFloat(c.actual??c.display)||null, e=parseFloat(c.expected)||null;
+    return (a!=null&&e!=null)?+(a-e).toFixed(2):(c.surprise??null);
+  }).filter(v=>v!=null);
+  const _avgSurprise = _inflSurprises.length?_inflSurprises.reduce((a,b)=>a+b,0)/_inflSurprises.length:0;
+  const _hotCount = _inflSurprises.filter(v=>v>0).length;
+  const _coolCount = _inflSurprises.filter(v=>v<0).length;
+  // Badge reflects whether readings are coming in HOT or COLD vs expectations
+  const inflBadgeLabel = _avgSurprise > 0.3?'Hot':_avgSurprise > 0.05?'Warm':_avgSurprise < -0.3?'Cold':_avgSurprise < -0.05?'Cool':'On Target';
+  const inflBadgeCol   = _avgSurprise > 0.3?'#e03a2a':_avgSurprise > 0.05?'#f5c842':_avgSurprise < -0.3?'#4a90d9':_avgSurprise < -0.05?'#5c9eff':'#adb8d0';
   const inflArcCol     = inflBadgeCol;
   // Arc fill mirrors heat: hot = high fill (red), cold = low fill (blue)
   const inflArcPct     = Math.max(0, Math.min(100, (inflAvg/10) * 100));
@@ -5699,7 +5710,8 @@ function renderMacroDataPanels(reg){
   };
 
   // ── Fed BS helpers
-  const chgCol = v => v==null?'var(--faint)':v<0?'#e03a2a':v>0?'#22c97a':'#adb8d0';
+  // Neutral (blue-grey) when change is minimal (<0.05T = virtually flat)
+  const chgCol = v => v==null?'var(--faint)':Math.abs(v)<0.05?'#7090c0':v<0?'#e03a2a':v>0?'#22c97a':'#adb8d0';
   const chgFmt = v => v==null?'—':(v>=0?'+':'')+v.toFixed(2)+'T';
   const pctFmt = v => v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
   // Fed BS SVG area chart — adaptive, with year labels + smooth spline
@@ -5742,8 +5754,8 @@ function renderMacroDataPanels(reg){
     };
     // QE/QT phase bands — approximate known Fed BS phases
     const PHASES = [
-      {from:'2020-03',to:'2022-03',col:'rgba(34,201,122,0.07)',label:'COVID QE'},
-      {from:'2022-04',to:'2024-12',col:'rgba(224,58,42,0.07)', label:'QT'},
+      {from:'2020-03',to:'2022-03',col:'rgba(34,201,122,0.06)',label:'QE'},
+      {from:'2022-04',to:'2026-06',col:'rgba(224,58,42,0.04)', label:'QT'},
     ];
     // Catmull-Rom path
     const points=entries.map((d,i)=>[px(i),py(d.v)]);
@@ -5792,14 +5804,21 @@ function renderMacroDataPanels(reg){
     const lv=vals[vals.length-1];
     const lvLabelX = Math.min(W-padR-18, lastPt[0]+4);
     const lvLabel=`<text x="${lvLabelX.toFixed(1)}" y="${(lastPt[1]-4).toFixed(1)}" fill="${lineCol}" font-family="var(--mono)" font-size="7" font-weight="800">$${lv.toFixed(2)}T</text>`;
-    // Dynamic colour-segmented line: green segments = expanding, red = contracting
+    // MA-smoothed colour segmentation: use 5-point MA trend direction
+    // This prevents noisy single-week reversals from flip-flopping colours
+    const maVals = entries.map((d,i)=>{
+      const w = Math.min(5, i+1);
+      const sum = entries.slice(Math.max(0,i-w+1),i+1).reduce((a,b)=>a+b.v,0);
+      return sum/w;
+    });
     const segPaths = [];
     for(let i=0;i<points.length-1;i++){
       const p0=points[Math.max(0,i-1)],p1=points[i],p2=points[i+1],p3=points[Math.min(points.length-1,i+2)];
       const cp1x=+(p1[0]+(p2[0]-p0[0])/6).toFixed(1),cp1y=+(p1[1]+(p2[1]-p0[1])/6).toFixed(1);
       const cp2x=+(p2[0]-(p3[0]-p1[0])/6).toFixed(1),cp2y=+(p2[1]-(p3[1]-p1[1])/6).toFixed(1);
-      // expanding = next value higher, contracting = next value lower
-      const segCol = entries[i+1].v > entries[i].v ? '#22c97a' : '#e03a2a';
+      // Use MA direction over a 3-point window for smooth colour transitions
+      const maTrend = maVals[Math.min(maVals.length-1,i+2)] - maVals[Math.max(0,i-1)];
+      const segCol = maTrend > 0.01 ? '#22c97a' : maTrend < -0.01 ? '#e03a2a' : '#adb8d0';
       segPaths.push({d:`M${p1[0].toFixed(1)},${p1[1].toFixed(1)} C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`,col:segCol});
     }
     const segLines = segPaths.map(s=>`<path d="${s.d}" stroke="${s.col}" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.88"/>`).join('');
@@ -5869,20 +5888,30 @@ function renderMacroDataPanels(reg){
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
           <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Indicator Strength</div><div class="mc-sect-line"></div></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
-          ${zIndicators.map(r=>{
-            const pct = Math.round((r.score/10)*100);
-            const isPos = pct >= 50;
-            const fillStart = isPos ? 50 : pct;
-            const fillW = Math.abs(pct - 50);
-            return `<div style="display:grid;grid-template-columns:80px 1fr 58px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-              <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
-              <div style="position:relative;height:10px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden">
-                <div style="position:absolute;left:50%;top:-1px;width:2px;height:calc(100% + 2px);background:rgba(255,255,255,0.28);border-radius:1px"></div>
-                <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(90deg,${r.col}55,${r.col}dd);border-radius:5px;opacity:0.9;box-shadow:0 0 6px ${r.col}44"></div>
-              </div>
-              <span style="font-family:var(--mono);font-size:15px;font-weight:900;color:${r.col};text-align:right;white-space:nowrap;line-height:1">${r.val}</span>
-            </div>`;
-          }).join('')}
+          ${(()=>{
+            // score→colour interpolation: 0=red, 5=amber, 10=green
+            const scoreCol = s => {
+              const t = Math.max(0,Math.min(10,s))/10;
+              if(t<0.5){ const u=t*2; return `rgb(${Math.round(224+(245-224)*u)},${Math.round(58+200*u)},${Math.round(42)})`; }
+              const u=(t-0.5)*2; return `rgb(${Math.round(245+(34-245)*u)},${Math.round(200+(201-200)*u)},${Math.round(42*u)})`;
+            };
+            return zIndicators.map(r=>{
+              const pct = Math.round((r.score/10)*100);
+              const isPos = pct >= 50;
+              const fillStart = isPos ? 50 : pct;
+              const fillW = Math.abs(pct - 50);
+              const gradCol = scoreCol(r.score);
+              const gradCol2 = scoreCol(Math.min(10,r.score+2));
+              return `<div style="display:grid;grid-template-columns:80px 1fr 58px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+                <div style="position:relative;height:10px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden">
+                  <div style="position:absolute;left:50%;top:-1px;width:2px;height:calc(100% + 2px);background:rgba(255,255,255,0.25);border-radius:1px"></div>
+                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(90deg,${gradCol},${gradCol2});border-radius:5px;opacity:0.92;box-shadow:0 0 6px ${gradCol}44"></div>
+                </div>
+                <span style="font-family:var(--mono);font-size:15px;font-weight:900;color:${gradCol};text-align:right;white-space:nowrap;line-height:1">${r.val}</span>
+              </div>`;
+            }).join('');
+          })()}
           </div>
         </div>
       </div>`;
@@ -5988,26 +6017,41 @@ function renderMacroDataPanels(reg){
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
           <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Hotter / Cooler Than Expected</div><div class="mc-sect-line"></div></div>
           <div style="display:flex;flex-direction:column;gap:4px">
-            ${pipeItems.map((r,i)=>{
-              const isFirst = i===0;
-              const surpStr = r.surprise!=null?(r.surprise>0?'+':'')+r.surprise+'%':'';
-              return `<div style="display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:6px;padding:${isFirst?'4px 0 5px':'3px 0'};border-bottom:1px solid rgba(255,255,255,0.04)">
-                <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
-                <div style="display:flex;flex-direction:column;gap:2px">
-                  <div style="position:relative;height:${isFirst?8:6}px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
-                    <!-- centre line = expectation (0 surprise) -->
-                    <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.2);border-radius:1px"></div>
-                    <!-- bar: right of centre = hot (red), left = cool (blue) -->
-                    <div style="position:absolute;top:0;height:100%;${r.beat===false?'left:50%':'right:50%'};width:${r.barW}%;background:${r.sCol};border-radius:3px;opacity:0.82;box-shadow:0 0 4px ${r.sCol}28"></div>
+            ${(()=>{
+              // Gradient colour for inflation surprise: intensity = magnitude of surprise
+              // Hot (positive surprise): orange→red with magnitude
+              // Cool (negative surprise): sky→deep blue with magnitude
+              const surpGradCol = (surprise) => {
+                if(surprise==null) return ['#adb8d0','#adb8d0'];
+                const mag = Math.min(1, Math.abs(surprise)/0.5); // 0→1 at 0.5% surprise
+                if(surprise>0){ // HOT
+                  const r=Math.round(224+31*mag), g=Math.round(90-60*mag), b=42;
+                  return [`rgb(${r},${g},${b})`,`rgb(${Math.min(255,r+20)},${g},${b})`];
+                } else { // COOL
+                  const r=Math.round(74+18*(1-mag)), g=Math.round(144+56*(1-mag)), b=Math.round(217+38*(1-mag));
+                  return [`rgb(${r},${g},${b})`,`rgb(${r},${Math.min(255,g+20)},${Math.min(255,b+10)})`];
+                }
+              };
+              return pipeItems.map((r,i)=>{
+                const isFirst = i===0;
+                const surpStr = r.surprise!=null?(r.surprise>0?'+':'')+r.surprise+'%':'';
+                const [gradC1, gradC2] = surpGradCol(r.surprise);
+                return `<div style="display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:6px;padding:${isFirst?'4px 0 5px':'4px 0'};border-bottom:1px solid rgba(255,255,255,0.04)">
+                  <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+                  <div style="display:flex;flex-direction:column;gap:2px">
+                    <div style="position:relative;height:${isFirst?9:6}px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
+                      <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.22);border-radius:1px"></div>
+                      <div style="position:absolute;top:0;height:100%;${r.beat===false?'left:50%':'right:50%'};width:${r.barW}%;background:linear-gradient(${r.beat===false?'90deg':'270deg'},${gradC1},${gradC2});border-radius:3px;opacity:0.88;box-shadow:0 0 5px ${gradC1}40"></div>
+                    </div>
+                    ${r.expected!=null?`<span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.2)">exp ${r.expected.toFixed(2)}%</span>`:''}
                   </div>
-                  ${r.expected!=null?`<span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.22)">exp ${r.expected.toFixed(2)}%</span>`:''}
-                </div>
-                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
-                  <span style="font-family:var(--mono);font-size:${isFirst?14:12}px;font-weight:900;letter-spacing:-0.02em;color:${r.sCol};line-height:1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
-                  ${r.beat!==null?`<span style="font-family:var(--mono);font-size:5.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:${r.sCol}18;color:${r.sCol}">${r.beat?'▼ COOL':'▲ HOT'}${surpStr?' '+surpStr:''}</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
-                </div>
-              </div>`;
-            }).join('')}
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+                    <span style="font-family:var(--mono);font-size:${isFirst?14:12}px;font-weight:900;letter-spacing:-0.02em;color:${gradC1};line-height:1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
+                    ${r.beat!==null?`<span style="font-family:var(--mono);font-size:5.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:${gradC1}1a;color:${gradC1}">${r.beat?'▼ COOL':'▲ HOT'}${surpStr?' '+surpStr:''}</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
+                  </div>
+                </div>`;
+              }).join('');
+            })()}
           </div>
         </div>
       </div>`;
@@ -6315,75 +6359,50 @@ function renderMacroDataPanels(reg){
           return {...m, r1w, r1m, r3m, fmtR, colR, bPct, bDir, bW, bCol};
         });
 
-        // SPX sparkline
+        // ── P6 computed values ─────────────────────────────────────────
+        const vixNum    = parseFloat(vixSig.value||'0')||0;
+        const fwdPE     = parseFloat(capeSig.value||'0')||0;
+        const breadthVal= parseFloat(brSig.value||'0')||0;
+        const spxMomVal = parseFloat(momSig.value||'0')||0;
+
+        // Valuation hero: Forward P/E with hot/cold
+        const peHot = fwdPE > 22;
+        const peCold = fwdPE < 16;
+        const peCol = fwdPE > 25?'#e03a2a':fwdPE>22?'#f5a442':fwdPE>18?'#f5c842':fwdPE>14?'#adb8d0':'#22c97a';
+        const peLabel = fwdPE>25?'EXTREME':fwdPE>22?'EXPENSIVE':fwdPE>18?'ELEVATED':fwdPE>14?'FAIR':'CHEAP';
+        const peNorm = Math.min(100, Math.max(0, ((fwdPE-10)/25)*100));
+
+        // VIX gauge: low VIX = complacent green, high = fear red
+        const vixCol = vixNum>=30?'#e03a2a':vixNum>=20?'#f5c842':vixNum>=15?'#adb8d0':'#22c97a';
+        const vixLabel = vixNum>=30?'FEAR':vixNum>=20?'CAUTION':vixNum>=15?'NORMAL':'COMPLACENT';
+        const vixNorm = Math.min(100, Math.max(0, ((vixNum-8)/42)*100)); // 8→50+ range
+
+        // Breadth
+        const brCol = breadthVal>=55?'#22c97a':breadthVal>=45?'#adb8d0':breadthVal>=35?'#f5c842':'#e03a2a';
+        const brNorm = Math.min(100, Math.max(0, ((breadthVal-20)/60)*100));
+
+        // SPX momentum colour
         const momCol = (momSig.score??0)>=1?'#22c97a':(momSig.score??0)<=-1?'#e03a2a':'#c8a96e';
 
-        // ── Semicircle arc SVG ─────────────────────────────────────────
-        const arcSVG6 = (()=>{
-          const W=220, H=120, cx=110, cy=108, R=82, stroke=11;
-          const normScore = scComposite!=null?Math.min(1,Math.max(0,(scComposite+2)/4)):0.5;
-          function arcPath6(r, a0, a1){
-            const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0);
-            const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
-            return `M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}`;
-          }
-          const trackD6 = arcPath6(R, Math.PI, 0);
-          const fillD6  = arcPath6(R, Math.PI, Math.PI - normScore*Math.PI);
-          const needleAngle = Math.PI - normScore*Math.PI;
-          const nx = cx + R*Math.cos(needleAngle);
-          const ny = cy + R*Math.sin(needleAngle);
-          const ticks6 = [-2,-1,0,1,2].map(v=>{
-            const a = Math.PI - ((v+2)/4)*Math.PI;
-            const r0=R-stroke*0.7, r1=R+stroke*0.7;
-            return `<line x1="${(cx+r0*Math.cos(a)).toFixed(1)}" y1="${(cy+r0*Math.sin(a)).toFixed(1)}" x2="${(cx+r1*Math.cos(a)).toFixed(1)}" y2="${(cy+r1*Math.sin(a)).toFixed(1)}" stroke="#060810" stroke-width="2.5"/>`;
-          }).join('');
-          const zoneLbls6 = [{v:-2,l:'Risk-Off'},{v:0,l:'Neutral'},{v:2,l:'Risk-On'}].map(z=>{
-            const a = Math.PI - ((z.v+2)/4)*Math.PI;
-            const lx=cx+(R+20)*Math.cos(a), ly=cy+(R+20)*Math.sin(a);
-            return `<text x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="middle" font-family="var(--mono)" font-size="6.5" font-weight="700" fill="rgba(173,184,208,0.4)">${z.l}</text>`;
-          }).join('');
-          const uid6='arc6'+(Math.random()*0xFFFFF|0).toString(16);
-          const ncx2 = cx + (R-stroke)*Math.cos(needleAngle);
-          const ncy2 = cy + (R-stroke)*Math.sin(needleAngle);
-          return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;overflow:visible;margin:0 auto">
-            <defs>
-              <linearGradient id="${uid6}g" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#e03a2a" stop-opacity="0.85"/>
-                <stop offset="40%" stop-color="#c8a96e" stop-opacity="0.85"/>
-                <stop offset="100%" stop-color="#22c97a" stop-opacity="0.85"/>
-              </linearGradient>
-              <filter id="${uid6}glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3.5" result="b6"/><feComposite in="b6" in2="SourceGraphic" operator="over"/></filter>
-            </defs>
-            <path d="${trackD6}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="${stroke}" stroke-linecap="round"/>
-            <path d="${fillD6}" fill="none" stroke="url(#${uid6}g)" stroke-width="${stroke}" stroke-linecap="round" opacity="0.9" filter="url(#${uid6}glow)"/>
-            ${ticks6}
-            ${zoneLbls6}
-            <line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${ncx2.toFixed(1)}" y2="${ncy2.toFixed(1)}" stroke="${scArcCol}" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
-            <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="9" fill="${scArcCol}" opacity="0.2" filter="url(#${uid6}glow)"/>
-            <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="5.5" fill="${scArcCol}" opacity="0.95"/>
-            <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="2.5" fill="#fff" opacity="0.9"/>
-          </svg>`;
-        })();
-
-        // Horizontal score bar for overall composite
-        const scoreBarHtml = (()=>{
-          if(scComposite==null) return '';
-          // scComposite range: -2 (risk off) to +2 (risk on)
-          const normPct = Math.min(100, Math.max(0, ((scComposite + 2) / 4) * 100));
-          const leftOfMid = normPct < 50;
-          const fillW = Math.abs(normPct - 50);
-          return `<div style="position:relative;height:12px;border-radius:6px;background:rgba(255,255,255,0.05);overflow:hidden;margin:4px 0 2px">
-            <div style="position:absolute;top:0;bottom:0;left:0;width:${normPct.toFixed(1)}%;background:linear-gradient(90deg,#e03a2a22,#e03a2a44 25%,#c8a96e55 50%,#22c97a55 75%,#22c97a33);border-radius:6px"></div>
-            <div style="position:absolute;top:0;height:100%;${leftOfMid?'right:50%':'left:50%'};width:${fillW.toFixed(1)}%;background:${scArcCol};border-radius:6px;opacity:0.55;box-shadow:0 0 8px ${scArcCol}55"></div>
-            <div style="position:absolute;top:-2px;bottom:-2px;left:50%;width:2px;background:rgba(255,255,255,0.2);border-radius:1px;transform:translateX(-50%)"></div>
-            <div style="position:absolute;top:-2px;bottom:-2px;left:${normPct.toFixed(1)}%;width:3px;background:${scArcCol};border-radius:2px;box-shadow:0 0 6px ${scArcCol}cc;transform:translateX(-50%)"></div>
+        // Gauge bar SVG helper (horizontal, gradient fill, needle)
+        const gaugeBar = (normPct, col, label, leftLbl, rightLbl, h=10) => {
+          const p = normPct.toFixed(1);
+          return `<div style="position:relative;height:${h}px;background:rgba(255,255,255,0.06);border-radius:${h/2}px;overflow:visible;margin:3px 0 1px">
+            <div style="position:absolute;inset:0;border-radius:${h/2}px;overflow:hidden">
+              <div style="width:${p}%;height:100%;background:linear-gradient(90deg,rgba(255,255,255,0.04),${col}99,${col});border-radius:${h/2}px"></div>
+            </div>
+            <div style="position:absolute;top:-3px;bottom:-3px;left:${p}%;width:3px;background:${col};border-radius:2px;box-shadow:0 0 7px ${col}cc;transform:translateX(-50%)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.2)">${leftLbl}</span>
+            <span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.2)">${rightLbl}</span>
           </div>`;
-        })();
+        };
 
         return `
       <div class="ov-macro-card" id="ov-macro-stock-climate">
-        <div class="ov-macro-card-glow" style="background:${scArcCol}"></div>
-        <div class="ov-macro-card-wash" style="background:${scArcCol}"></div>
+        <div class="ov-macro-card-glow" style="background:${peCol}"></div>
+        <div class="ov-macro-card-wash" style="background:${peCol}"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
         <!-- Header -->
@@ -6395,71 +6414,67 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${scArcCol};background:${scArcCol}1a;border:1px solid ${scArcCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- Hero: Composite score + horizontal bar -->
-        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
-          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1px">
-            <div style="font-family:var(--mono);font-size:clamp(28px,6vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${scArcCol};font-variant-numeric:tabular-nums">${scComposite!=null?scComposite.toFixed(2):'—'}</div>
-            <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.06em;text-transform:uppercase">/ 2.0 composite</span>
+        <!-- HERO: Valuation (Forward P/E) — the most impactful signal -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <!-- Forward P/E tile -->
+          <div style="background:rgba(255,255,255,0.03);border:1px solid ${peCol}22;border-top:2px solid ${peCol}55;border-radius:9px;padding:8px 10px">
+            <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Forward P/E</div>
+            <div style="font-family:var(--mono);font-size:clamp(20px,4.5vw,28px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${peCol}">${fwdPE>0?fwdPE.toFixed(1):'—'}x</div>
+            <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:${peCol};margin-top:3px;letter-spacing:0.06em">${peLabel}</div>
+            ${gaugeBar(peNorm, peCol, peLabel, '10x', '35x', 7)}
           </div>
-          ${scoreBarHtml}
-          <div style="display:flex;justify-content:space-between;margin-top:2px">
-            <span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.22)">Risk-Off</span>
-            <span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.22)">Neutral</span>
-            <span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.22)">Risk-On</span>
-          </div>
-        </div>
-
-        <!-- SPX Sparkline + score -->
-        <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 26-Session</span>
-            <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${momCol};font-variant-numeric:tabular-nums">${momSig.value||'—'}</span>
-          </div>
-          <canvas id="ov-sc-spx-chart" width="200" height="40" style="width:100%;height:40px;display:block;border-radius:5px;background:rgba(255,255,255,0.015)"></canvas>
-        </div>
-
-        <!-- 4-Signal Grid — compact rows -->
-        <div style="flex-shrink:0">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Signal Breakdown</div><div class="mc-sect-line"></div></div>
-          <div style="display:flex;flex-direction:column;gap:3px">
-          ${sig4.map(s=>{
-            const barPct = Math.min(50, Math.abs(s.score)/2*50);
-            const barDir = s.score>=0?'right':'left';
-            return `<div style="display:grid;grid-template-columns:58px 1fr 58px;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${s.lbl}</span>
-              <div style="position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden">
-                <div style="position:absolute;top:0;bottom:0;${barDir==='right'?'left:50%':'right:50%'};width:${barPct.toFixed(1)}%;background:${s.col};border-radius:3px;opacity:0.88;box-shadow:0 0 5px ${s.col}44"></div>
-                <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.12)"></div>
-              </div>
-              <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end">
-                <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${s.col};line-height:1;font-variant-numeric:tabular-nums">${s.val}</span>
-                <span style="font-family:var(--mono);font-size:5.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36px">${s.sub}</span>
-              </div>
-            </div>`;
-          }).join('')}
+          <!-- VIX tile -->
+          <div style="background:rgba(255,255,255,0.03);border:1px solid ${vixCol}22;border-top:2px solid ${vixCol}55;border-radius:9px;padding:8px 10px">
+            <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">VIX</div>
+            <div style="font-family:var(--mono);font-size:clamp(20px,4.5vw,28px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${vixCol}">${vixNum>0?vixNum.toFixed(1):'—'}</div>
+            <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:${vixCol};margin-top:3px;letter-spacing:0.06em">${vixLabel}</div>
+            ${gaugeBar(vixNorm, vixCol, vixLabel, 'Low', 'Fear', 7)}
           </div>
         </div>
 
-        <!-- Cross-Asset Returns Table -->
-        <div style="margin-top:auto;padding-top:6px">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
-          <!-- Header row -->
-          <div style="display:grid;grid-template-columns:46px 1fr 34px 34px 34px;align-items:center;gap:3px;padding-bottom:3px;border-bottom:1px solid rgba(255,255,255,0.08)">
-            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25)">Asset</span>
-            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25)">Momentum</span>
-            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);text-align:right">1W</span>
-            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);text-align:right">1M</span>
-            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);text-align:right">3M</span>
-          </div>
-          ${assetRows.map(m=>`<div style="display:grid;grid-template-columns:46px 1fr 34px 34px 34px;align-items:center;gap:3px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-            <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.02em;color:var(--dim)">${m.lbl}</span>
-            <div style="position:relative;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
-              <div style="position:absolute;top:0;bottom:0;${m.bDir==='right'?'left:50%':'right:50%'};width:${m.bW}%;background:${m.bCol};border-radius:3px;opacity:0.78"></div>
-              <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.14)"></div>
+        <!-- SPX Momentum Chart with MA line -->
+        <div style="margin-bottom:7px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · Momentum</span>
+            <div style="display:flex;align-items:baseline;gap:5px">
+              <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${momCol};font-variant-numeric:tabular-nums">${spxMomVal>0?'+':''}${spxMomVal.toFixed(1)}%</span>
+              <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${momCol};padding:1px 5px;border-radius:8px;background:${momCol}15;border:1px solid ${momCol}30">${momSig.label||''}</span>
             </div>
-            <span style="font-family:var(--mono);font-size:8.5px;font-weight:900;color:${m.colR(m.r1w)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r1w)}</span>
-            <span style="font-family:var(--mono);font-size:8.5px;font-weight:900;color:${m.colR(m.r1m)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
-            <span style="font-family:var(--mono);font-size:8.5px;font-weight:900;color:${m.colR(m.r3m)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
+          </div>
+          <canvas id="ov-sc-spx-chart" width="200" height="46" style="width:100%;height:46px;display:block;border-radius:5px;background:rgba(255,255,255,0.015)"></canvas>
+        </div>
+
+        <!-- Breadth gauge -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Market Breadth</span>
+            <div style="display:flex;align-items:baseline;gap:5px">
+              <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${brCol}">${breadthVal>0?breadthVal.toFixed(1)+'%':'—'}</span>
+              <span style="font-family:var(--mono);font-size:5.5px;color:${brCol};font-weight:700">${brSig.label||''}</span>
+            </div>
+          </div>
+          ${gaugeBar(brNorm, brCol, '', '20% Thin', '80% Broad', 10)}
+        </div>
+
+        <!-- Cross-Asset Returns Table — compact -->
+        <div style="margin-top:auto">
+          <div class="mc-sect" style="margin:0 0 3px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
+          <div style="display:grid;grid-template-columns:44px 1fr 32px 32px 32px;align-items:center;gap:3px;padding-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.08)">
+            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22)">Asset</span>
+            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22)">Momentum</span>
+            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22);text-align:right">1W</span>
+            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22);text-align:right">1M</span>
+            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22);text-align:right">3M</span>
+          </div>
+          ${assetRows.map(m=>`<div style="display:grid;grid-template-columns:44px 1fr 32px 32px 32px;align-items:center;gap:3px;padding:2.5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.02em;color:var(--dim)">${m.lbl}</span>
+            <div style="position:relative;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
+              <div style="position:absolute;top:0;bottom:0;${m.bDir==='right'?'left:50%':'right:50%'};width:${m.bW}%;background:${m.bCol};border-radius:2px;opacity:0.82"></div>
+              <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.15)"></div>
+            </div>
+            <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r1w)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r1w)}</span>
+            <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r1m)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
+            <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r3m)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
           </div>`).join('')}
         </div>
       </div>`;
@@ -6564,10 +6579,11 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   ];
   // Full tenor set — historical snapshots may only have 2Y–30Y
   const ALL_TENORS = ['EFFR','1M','3M','6M','1Y','2Y','5Y','10Y','30Y'];
-  // Log scale: map months → x. EFFR=0.03M equiv, 1M=1M
-  const TENOR_MO = { 'EFFR':0.08,'1M':1,'3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
-  // Extend log range to fit EFFR (0.08M) left-most, up to 390M
-  const logMin = Math.log2(0.06), logMax = Math.log2(390);
+  // EFFR plotted at same x as 1M (leftmost anchor) — avoids huge dead space
+  // Log scale starts at 1M so EFFR and 1M share the leftmost position (EFFR offset slightly left)
+  const TENOR_MO = { 'EFFR':0.7,'1M':1,'3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
+  // Log range: 0.7M → 390M (tight left, plenty of right)
+  const logMin = Math.log2(0.7), logMax = Math.log2(390);
 
   // Use container's actual rendered dimensions
   const elRect = el.getBoundingClientRect();
