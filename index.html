@@ -6768,9 +6768,9 @@ function renderMacroDataPanels(reg){
         const vix3mNum = parseFloat(vtsSig.vix3m||'0')||parseFloat(reg.levels?.VIX3M||'0')||0;
         const tsRatio  = vix3mNum>0&&vixNum>0 ? (vix3mNum/vixNum) : null;
         const skewNum  = parseFloat(skewSig.value||'0')||0;
-        const fpeNum   = fpeSig.raw??parseFloat(fpeSig.value||'0')||0;
+        const fpeNum   = (fpeSig.raw ?? parseFloat(fpeSig.value||'0')) || 0;
         const capeNum  = parseFloat(capeSig.value||'0')||0;
-        const pcrNum   = pcrSig.raw??parseFloat(pcrSig.value||'0')||0;
+        const pcrNum   = (pcrSig.raw ?? parseFloat(pcrSig.value||'0')) || 0;
 
         // ── Overall badge ─────────────────────────────────────────────────
         const scBadgeLabel = scOverall>=2?'Risk-On':scOverall>=1?'Lean Bull':scOverall<=-2?'Risk-Off':scOverall<=-1?'Lean Bear':'Neutral';
