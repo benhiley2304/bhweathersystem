@@ -5363,7 +5363,7 @@ function renderClimatePanel(reg, markets, mktMap){
   const fbTrend=fedbs.trend||'';
   const fbLevel=fedbs.level;
   const inflCol=inflTrend==='Falling'?'#adb8d0':inflTrend==='Rising'?'#e06030':'#5a6480';
-  const fbCol=fbTrend==='Contracting'?'#e03a2a':fbTrend==='Expanding'?'#adb8d0':'#5a6480';
+  const fbCol=fbTrend==='Contracting'?'#7ab8c4':fbTrend==='Expanding'?'#c8a96e':'#6a7a94';
 
   // Risk Appetite
   const vixLevel=lev.VIX;
@@ -5866,7 +5866,8 @@ function renderMacroDataPanels(reg){
   const fbMin=4.0,fbMax=9.0;
   const fbPct    = fbLevel!=null?Math.min(100,Math.max(0,((fbLevel-fbMin)/(fbMax-fbMin))*100)):50;
   const fbCol    = fbTrend.includes('Contract')||fbTrend.includes('QT')?'#e03a2a':fbTrend.includes('Expand')?'#22c97a':'#5a6480';
-  const lineCol  = fbChg3m!=null?(fbChg3m<0?'#e03a2a':fbChg3m>0?'#22c97a':'#5a6480'):fbCol;
+  // lineCol: premium directional tones — warm amber-gold (expanding), cool steel-blue (contracting)
+  const lineCol  = fbChg3m!=null?(fbChg3m<0?'#7ab8c4':fbChg3m>0?'#c8a96e':'#6a7a94'):fbCol;
 
   // ── Labour vars
   const nfpMom    = lab.nfp_mom??null;
@@ -6022,7 +6023,7 @@ function renderMacroDataPanels(reg){
 
   // ── Fed BS helpers
   // Neutral (blue-grey) when change is minimal (<0.05T = virtually flat)
-  const chgCol = v => { if(v==null) return 'var(--faint)'; const n=(v===0||Object.is(v,-0))?0:v; return Math.abs(n)<0.12?'#7090c0':n<0?'#e03a2a':n>0?'#22c97a':'#adb8d0'; };
+  const chgCol = v => { if(v==null) return 'var(--faint)'; const n=(v===0||Object.is(v,-0))?0:v; return Math.abs(n)<0.12?'#6a7a94':n<0?'#7ab8c4':n>0?'#c8a96e':'#8a9ab4'; };
   // Show in billions when < $0.05T to avoid "+0.00T" rounding artefact
   const chgFmt = v => { if(v==null) return '—'; const n=(Object.is(v,-0)||v===0)?0:v; if(Math.abs(n)<0.05){ const b=Math.round(n*1000); return (b>=0?'+':'')+b+'B'; } return (n>=0?'+':'')+n.toFixed(2)+'T'; };
   const pctFmt = v => v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
@@ -6034,42 +6035,32 @@ function renderMacroDataPanels(reg){
     if(entries.length<2) return '';
     const vals = entries.map(d=>d.v);
     const W=320, H=120;
-    const padL=32, padR=10, padT=10, padB=22;
+    const padL=30, padR=12, padT=12, padB=22;
     const gW=W-padL-padR, gH=H-padT-padB;
     const minV=Math.min(...vals), maxV=Math.max(...vals);
     const range=Math.max(0.5,maxV-minV);
-    const vMin=minV-range*0.05, vMax=maxV+range*0.15;
+    const vMin=minV-range*0.04, vMax=maxV+range*0.14;
     const vRange=vMax-vMin;
-    // Non-linear X: exponential weighting toward recent data
-    // Map: older data compressed, recent 2 years expanded
     const n=entries.length;
-    const px=(i)=>{
-      // Square-root weighting: recent data gets ~2x x-axis space
-      const t=i/(n-1); // 0=oldest, 1=newest
-      const compressed = Math.pow(t, 0.55); // <1 expands recent end
-      return padL+compressed*gW;
-    };
+    // Non-linear X: recent 2 years get more horizontal space
+    const px=(i)=>{ const t=i/(n-1); return padL+Math.pow(t,0.55)*gW; };
     const py=(v)=>padT+gH-((v-vMin)/vRange)*gH;
-    // Date → index lookup
+
+    // Date helpers
     const dateToIdx = {};
     entries.forEach((d,i)=>{ if(d.d) dateToIdx[d.d.slice(0,7)]=i; });
     const dateX = (ym) => {
       if(dateToIdx[ym]!==undefined) return px(dateToIdx[ym]);
-      // interpolate
       const [y,m]=ym.split('-').map(Number);
-      const nearest=entries.reduce((best,e,i)=>{
+      const nearest=entries.reduce((b,e,i)=>{
         const [ey,em]=(e.d||'').slice(0,7).split('-').map(Number);
         const dist=Math.abs((y-ey)*12+(m-em));
-        return dist<best.dist?{dist,i}:best;
+        return dist<b.dist?{dist,i}:b;
       },{dist:9999,i:0});
       return px(nearest.i);
     };
-    // QE/QT phase bands — approximate known Fed BS phases
-    const PHASES = [
-      {from:'2020-03',to:'2022-03',col:'rgba(34,201,122,0.06)',label:'QE'},
-      {from:'2022-04',to:'2026-06',col:'rgba(224,58,42,0.025)', label:'QT'},
-    ];
-    // Catmull-Rom path
+
+    // Catmull-Rom smooth path
     const points=entries.map((d,i)=>[px(i),py(d.v)]);
     let pathD=`M${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
     for(let i=0;i<points.length-1;i++){
@@ -6081,75 +6072,134 @@ function renderMacroDataPanels(reg){
     const lastPt=points[points.length-1];
     const firstPt=points[0];
     const areaD=pathD+` L${lastPt[0].toFixed(1)},${(padT+gH).toFixed(1)} L${firstPt[0].toFixed(1)},${(padT+gH).toFixed(1)} Z`;
-    // Y gridlines
-    const yStep=0.5,yStart=Math.ceil(vMin/yStep)*yStep;
-    let grids='';
+
+    // Phase boundary X coords for gradient stop positioning
+    const qtStartX = dateX('2022-04');
+    const peakX    = dateX('2022-03'); // QE peak / QT start
+    const totalXRange = (W - padR) - padL;
+    const qtPct  = Math.max(0, Math.min(1, (qtStartX - padL) / totalXRange));
+    // Recent uptick detection (last 6mo trend)
+    const recentSlice = vals.slice(-26);
+    const isExpandingNow = recentSlice.length > 1 && recentSlice[recentSlice.length-1] > recentSlice[0];
+
+    // ── Colour palette ─────────────────────────────────────────────────
+    // QE era (early):  warm gold-amber  → peak: pale ivory-gold
+    // QT era (fall):   cool slate-blue  → trough: deep steel
+    // Recent turn:     end colour = accent gold if expanding, cool teal if flat/falling
+    const recentCol = isExpandingNow ? '#c8a96e' : '#7ab8c4';
+    // X-axis gradient: left=gold, mid-left=ivory, mid=slate, right=recentCol
+    const uid='bs'+(Math.random()*0xFFFFF|0).toString(16);
+
+    // Grid lines — minimal, only whole-number y values
+    const yStep=0.5, yStart=Math.ceil(vMin/yStep)*yStep;
+    let grids='', gridVals=[];
     for(let v=yStart;v<=vMax+0.01;v=+(v+yStep).toFixed(2)){
-      const gy=py(v); if(gy<padT-2||gy>padT+gH+2) continue;
+      const gy=py(v);
+      if(gy<padT-2||gy>padT+gH+2) continue;
       const isWhole=Math.abs(v-Math.round(v))<0.01;
-      grids+=`<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,${isWhole?0.14:0.05})" stroke-width="0.8" stroke-dasharray="2,6"/>`;
-      grids+=`<text x="${padL-3}" y="${(gy+2.2).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,${isWhole?0.35:0.18})" font-family="var(--mono)" font-size="5.5">${v.toFixed(1)}</text>`;
+      if(isWhole) gridVals.push({v,gy});
+      grids+=`<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="${isWhole?'rgba(255,255,255,0.10)':'rgba(255,255,255,0.04)'}" stroke-width="${isWhole?'0.8':'0.6'}" stroke-dasharray="${isWhole?'3,8':'2,10'}"/>`;
+      if(isWhole) grids+=`<text x="${padL-4}" y="${(gy+2.2).toFixed(1)}" text-anchor="end" fill="rgba(200,169,110,0.45)" font-family="var(--mono)" font-size="5.5" font-weight="700">${v.toFixed(0)}</text>`;
     }
-    // Year X-axis labels
-    let yearLabels='';
-    let lastYear='';
+
+    // Year X-axis ticks
+    let yearLabels='', lastYear='';
     entries.forEach((d,i)=>{
       const yr=d.d?d.d.slice(0,4):'';
-      if(yr&&yr!==lastYear&&i>0){ lastYear=yr; const lx=px(i); yearLabels+=`<line x1="${lx.toFixed(1)}" y1="${(padT+gH).toFixed(1)}" x2="${lx.toFixed(1)}" y2="${(padT+gH+3).toFixed(1)}" stroke="rgba(255,255,255,0.15)" stroke-width="0.6"/><text x="${lx.toFixed(1)}" y="${(padT+gH+10).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-family="var(--mono)" font-size="5.5">${yr}</text>`; }
-      else if(!lastYear){lastYear=yr;}
+      if(yr&&yr!==lastYear&&i>0){
+        lastYear=yr;
+        const lx=px(i);
+        yearLabels+=`<line x1="${lx.toFixed(1)}" y1="${(padT+gH).toFixed(1)}" x2="${lx.toFixed(1)}" y2="${(padT+gH+4).toFixed(1)}" stroke="rgba(255,255,255,0.12)" stroke-width="0.6"/>`;
+        yearLabels+=`<text x="${lx.toFixed(1)}" y="${(padT+gH+11).toFixed(1)}" text-anchor="middle" fill="rgba(173,184,208,0.35)" font-family="var(--mono)" font-size="5.5" letter-spacing="0.02em">${yr}</text>`;
+      } else if(!lastYear){lastYear=yr;}
     });
-    // Phase band overlays
-    let phaseBands='';
-    PHASES.forEach(p=>{
-      const x1=Math.max(padL, dateX(p.from));
-      const x2=Math.min(W-padR, dateX(p.to));
-      if(x2<=x1) return;
-      phaseBands+=`<rect x="${x1.toFixed(1)}" y="${padT}" width="${(x2-x1).toFixed(1)}" height="${gH}" fill="${p.col}" rx="0"/>`;
-      // Phase label at top of band
-      const midX=(x1+x2)/2;
-      const labelW=x2-x1;
-      if(labelW>20){
-        phaseBands+=`<text x="${midX.toFixed(1)}" y="${(padT+6).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.28)" font-family="var(--mono)" font-size="4.8" font-weight="700" letter-spacing="0.04em">${p.label}</text>`;
-      }
+
+    // Phase annotation lines — gossamer vertical markers
+    const phaseMarkers = [
+      { x: dateX('2022-04'), label: 'QT', col: 'rgba(180,140,80,0.25)' },
+    ].filter(p=>p.x>padL&&p.x<W-padR);
+    let phaseLines='';
+    phaseMarkers.forEach(p=>{
+      phaseLines+=`<line x1="${p.x.toFixed(1)}" y1="${padT}" x2="${p.x.toFixed(1)}" y2="${(padT+gH).toFixed(1)}" stroke="${p.col}" stroke-width="0.8" stroke-dasharray="2,5"/>`;
+      phaseLines+=`<text x="${(p.x+3).toFixed(1)}" y="${(padT+7).toFixed(1)}" fill="${p.col}" font-family="var(--mono)" font-size="5" font-weight="800" letter-spacing="0.06em">${p.label}</text>`;
     });
-    // Current value label
+
+    // Current value dot + label
     const lv=vals[vals.length-1];
-    const lvLabelX = Math.min(W-padR-18, lastPt[0]+4);
-    const lvLabel=`<text x="${lvLabelX.toFixed(1)}" y="${(lastPt[1]-4).toFixed(1)}" fill="${lineCol}" font-family="var(--mono)" font-size="7" font-weight="800">$${lv.toFixed(2)}T</text>`;
-    // MA-smoothed colour segmentation: use 5-point MA trend direction
-    // This prevents noisy single-week reversals from flip-flopping colours
-    const maVals = entries.map((d,i)=>{
-      const w = Math.min(5, i+1);
-      const sum = entries.slice(Math.max(0,i-w+1),i+1).reduce((a,b)=>a+b.v,0);
-      return sum/w;
-    });
-    const segPaths = [];
-    for(let i=0;i<points.length-1;i++){
-      const p0=points[Math.max(0,i-1)],p1=points[i],p2=points[i+1],p3=points[Math.min(points.length-1,i+2)];
-      const cp1x=+(p1[0]+(p2[0]-p0[0])/6).toFixed(1),cp1y=+(p1[1]+(p2[1]-p0[1])/6).toFixed(1);
-      const cp2x=+(p2[0]-(p3[0]-p1[0])/6).toFixed(1),cp2y=+(p2[1]-(p3[1]-p1[1])/6).toFixed(1);
-      // Use MA direction over a 3-point window for smooth colour transitions
-      const maTrend = maVals[Math.min(maVals.length-1,i+2)] - maVals[Math.max(0,i-1)];
-      const segCol = maTrend > 0.01 ? '#22c97a' : maTrend < -0.01 ? '#e03a2a' : '#adb8d0';
-      segPaths.push({d:`M${p1[0].toFixed(1)},${p1[1].toFixed(1)} C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`,col:segCol});
-    }
-    const segLines = segPaths.map(s=>`<path d="${s.d}" stroke="${s.col}" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.88"/>`).join('');
-    const segGlow  = segPaths.map(s=>`<path d="${s.d}" stroke="${s.col}" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.13"/>`).join('');
-    // Area fill uses overall lineCol gradient
-    const uid='bs'+(Math.random()*0xFFFFF|0).toString(16);
-    const lastSegCol = segPaths.length?segPaths[segPaths.length-1].col:lineCol;
+    const lvLabelX = Math.min(W-padR-20, lastPt[0]+5);
+    // Place label above or below depending on proximity to top
+    const labelAbove = lastPt[1] > padT+20;
+    const lvLabelY = labelAbove ? lastPt[1]-5 : lastPt[1]+11;
+
     return `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" fill="none" style="display:block;width:100%;height:100%">
       <defs>
-        <linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lineCol}" stop-opacity="0.22"/><stop offset="100%" stop-color="${lineCol}" stop-opacity="0.02"/></linearGradient>
-        <filter id="${uid}glow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.5" result="b"/><feComposite in="b" in2="SourceGraphic" operator="over"/></filter>
+        <!-- Horizontal line gradient: gold → ivory-gold → cool slate → recent accent -->
+        <linearGradient id="${uid}line" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"    stop-color="#b8894a" stop-opacity="0.7"/>
+          <stop offset="${(qtPct*0.45*100).toFixed(0)}%" stop-color="#d4b87a" stop-opacity="0.85"/>
+          <stop offset="${(qtPct*100).toFixed(0)}%" stop-color="#8a9ab8" stop-opacity="0.8"/>
+          <stop offset="78%"  stop-color="#4a6080" stop-opacity="0.75"/>
+          <stop offset="100%" stop-color="${recentCol}" stop-opacity="0.95"/>
+        </linearGradient>
+        <!-- Area fill: vertical, using recent colour with atmosphere -->
+        <linearGradient id="${uid}area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="${recentCol}" stop-opacity="0.18"/>
+          <stop offset="55%"  stop-color="#3a5070" stop-opacity="0.08"/>
+          <stop offset="100%" stop-color="#0a0c14"  stop-opacity="0.0"/>
+        </linearGradient>
+        <!-- Soft glow for the endpoint dot -->
+        <filter id="${uid}dot" x="-120%" y="-120%" width="340%" height="340%">
+          <feGaussianBlur stdDeviation="3.5" result="blur"/>
+          <feComposite in="blur" in2="SourceGraphic" operator="over"/>
+        </filter>
+        <!-- Line glow filter -->
+        <filter id="${uid}lglow" x="-5%" y="-50%" width="110%" height="200%">
+          <feGaussianBlur stdDeviation="1.8" result="gb"/>
+          <feMerge><feMergeNode in="gb"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <!-- Clipping mask for gradient stroke trick -->
+        <clipPath id="${uid}clip">
+          <rect x="${padL}" y="${padT-2}" width="${gW+padR}" height="${gH+4}"/>
+        </clipPath>
       </defs>
-      ${phaseBands}${grids}${yearLabels}
-      <path d="${areaD}" fill="url(#${uid}g)"/>
-      ${segGlow}
-      ${segLines}
-      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="4.2" fill="${lastSegCol}" opacity="0.95" filter="url(#${uid}glow)"/>
-      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="8" fill="${lastSegCol}" opacity="0.14"/>
-      ${lvLabel}
+
+      <!-- Subtle chart area bg wash -->
+      <rect x="${padL}" y="${padT}" width="${gW}" height="${gH}" fill="rgba(255,255,255,0.012)" rx="2"/>
+
+      ${grids}
+      ${phaseLines}
+      ${yearLabels}
+
+      <!-- Area fill -->
+      <path d="${areaD}" fill="url(#${uid}area)" clip-path="url(#${uid}clip)"/>
+
+      <!-- Line: outer soft glow layer (wide, very subtle) -->
+      <path d="${pathD}" stroke="url(#${uid}line)" stroke-width="6" fill="none"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.12"
+        clip-path="url(#${uid}clip)"/>
+
+      <!-- Line: inner glow (medium) -->
+      <path d="${pathD}" stroke="url(#${uid}line)" stroke-width="3" fill="none"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.28"
+        clip-path="url(#${uid}clip)"/>
+
+      <!-- Line: crisp foreground stroke -->
+      <path d="${pathD}" stroke="url(#${uid}line)" stroke-width="1.4" fill="none"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.95"
+        clip-path="url(#${uid}clip)"/>
+
+      <!-- Endpoint: outer halo -->
+      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="9" fill="${recentCol}" opacity="0.08"/>
+      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="5.5" fill="${recentCol}" opacity="0.12" filter="url(#${uid}dot)"/>
+      <!-- Endpoint: ring -->
+      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="3.8" fill="none" stroke="${recentCol}" stroke-width="1.2" opacity="0.70"/>
+      <!-- Endpoint: core dot -->
+      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="2.0" fill="${recentCol}" opacity="0.95"/>
+
+      <!-- Value label -->
+      <text x="${lvLabelX.toFixed(1)}" y="${lvLabelY.toFixed(1)}"
+        fill="${recentCol}" font-family="var(--mono)" font-size="7.5" font-weight="800"
+        letter-spacing="-0.01em" opacity="0.90">$${lv.toFixed(2)}T</text>
     </svg>`;
   })();
   const vsPeak = fbLevel!=null?Math.round((fbLevel/8.97)*100):null;
