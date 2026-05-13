@@ -5718,7 +5718,8 @@ function renderMacroDataPanels(reg){
   // ── Fed BS helpers
   // Neutral (blue-grey) when change is minimal (<0.05T = virtually flat)
   const chgCol = v => { if(v==null) return 'var(--faint)'; const n=(v===0||Object.is(v,-0))?0:v; return Math.abs(n)<0.12?'#7090c0':n<0?'#e03a2a':n>0?'#22c97a':'#adb8d0'; };
-  const chgFmt = v => { if(v==null) return '—'; const n = v===0?0:v; return (n>=0?'+':'')+n.toFixed(2)+'T'; };
+  // Show in billions when < $0.05T to avoid "+0.00T" rounding artefact
+  const chgFmt = v => { if(v==null) return '—'; const n=(Object.is(v,-0)||v===0)?0:v; if(Math.abs(n)<0.05){ const b=Math.round(n*1000); return (b>=0?'+':'')+b+'B'; } return (n>=0?'+':'')+n.toFixed(2)+'T'; };
   const pctFmt = v => v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
   // Fed BS SVG area chart — adaptive, with year labels + smooth spline
   const walclHistory = fb.history||[];
@@ -5781,7 +5782,7 @@ function renderMacroDataPanels(reg){
     for(let v=yStart;v<=vMax+0.01;v=+(v+yStep).toFixed(2)){
       const gy=py(v); if(gy<padT-2||gy>padT+gH+2) continue;
       const isWhole=Math.abs(v-Math.round(v))<0.01;
-      grids+=`<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,${isWhole?0.07:0.03})" stroke-width="0.7" stroke-dasharray="2,6"/>`;
+      grids+=`<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,${isWhole?0.14:0.05})" stroke-width="0.8" stroke-dasharray="2,6"/>`;
       grids+=`<text x="${padL-3}" y="${(gy+2.2).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,${isWhole?0.35:0.18})" font-family="var(--mono)" font-size="5.5">${v.toFixed(1)}</text>`;
     }
     // Year X-axis labels
@@ -5834,7 +5835,7 @@ function renderMacroDataPanels(reg){
     const lastSegCol = segPaths.length?segPaths[segPaths.length-1].col:lineCol;
     return `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" fill="none" style="display:block;width:100%;height:100%">
       <defs>
-        <linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lineCol}" stop-opacity="0.10"/><stop offset="100%" stop-color="${lineCol}" stop-opacity="0.01"/></linearGradient>
+        <linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lineCol}" stop-opacity="0.22"/><stop offset="100%" stop-color="${lineCol}" stop-opacity="0.02"/></linearGradient>
         <filter id="${uid}glow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.5" result="b"/><feComposite in="b" in2="SourceGraphic" operator="over"/></filter>
       </defs>
       ${phaseBands}${grids}${yearLabels}
@@ -5892,11 +5893,20 @@ function renderMacroDataPanels(reg){
               ? surprisePill(ffNfp.beat?'BEAT':'MISS', ffNfp.beat?'#22c97a':'#e03a2a')
               : (nfpSurpL?surprisePill(nfpSurpL, surpCol):'')}
           </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span style="font-family:var(--mono);font-size:7.5px;color:var(--faint)">NFP${nfpDate?' · '+nfpDate:''}</span>
-            ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:7px;color:var(--faint)">3m avg <span style="color:var(--dim);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
-            ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:7px;color:var(--faint)">6m <span style="color:var(--dim);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
-            ${unrate!=null?`<span style="font-family:var(--mono);font-size:7px;color:var(--faint)">U-3 <span style="color:${urCol};font-weight:900">${unrate}%</span> <span style="color:${urTCol};font-size:9px">${urTrend==='Rising'?'↑':urTrend==='Falling'?'↓':'→'}</span></span>`:''}
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">NFP${nfpDate?' · '+nfpDate:''}</span>
+              ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:7px;color:var(--faint)">3m <span style="color:var(--dim);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
+              ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:7px;color:var(--faint)">6m <span style="color:var(--dim);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
+            </div>
+            ${unrate!=null?(()=>{
+              const urSlack = unrate<=4.0?'TIGHT':unrate<=4.5?'NORMAL':'SLACK';
+              const urSlackCol = unrate<=4.0?'#22c97a':unrate<=4.5?'#c8a96e':'#e03a2a';
+              return `<div style="display:flex;align-items:center;gap:6px">
+                <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">U-3 <span style="color:${urCol};font-weight:900">${unrate}%</span> <span style="color:${urTCol}">${urTrend==='Rising'?'↑':urTrend==='Falling'?'↓':'→'}</span></span>
+                <span style="font-family:var(--mono);font-size:5.5px;font-weight:800;letter-spacing:0.08em;padding:1px 5px;border-radius:4px;background:${urSlackCol}18;border:1px solid ${urSlackCol}30;color:${urSlackCol}">${urSlack}</span>
+              </div>`;
+            })():''}
           </div>
         </div>
         <!-- Indicator strength: centred z-score bars — fill remaining card height -->
@@ -5904,11 +5914,14 @@ function renderMacroDataPanels(reg){
           <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Indicator Strength</div><div class="mc-sect-line"></div></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
           ${(()=>{
-            // score→colour interpolation: 0=red, 5=amber, 10=green
+            // score→colour: use system palette exactly
+            // 0-3.5 = bear red, 3.5-5 = amber, 5-6.5 = neutral grey, 6.5-8 = soft green, 8-10 = vivid green
             const scoreCol = s => {
-              const t = Math.max(0,Math.min(10,s))/10;
-              if(t<0.5){ const u=t*2; return `rgb(${Math.round(224+(245-224)*u)},${Math.round(58+200*u)},${Math.round(42)})`; }
-              const u=(t-0.5)*2; return `rgb(${Math.round(245+(34-245)*u)},${Math.round(200+(201-200)*u)},${Math.round(42*u)})`;
+              if(s>=8)  return '#22c97a';
+              if(s>=6.5)return '#5aaa7a';
+              if(s>=5)  return '#6e7d90';
+              if(s>=3.5)return '#c8a96e';
+              return '#e03a2a';
             };
             return zIndicators.map(r=>{
               const pct = Math.round((r.score/10)*100);
@@ -6023,10 +6036,10 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${regimeCol};letter-spacing:0.06em">${regimeLabel}</span>
             </div>
             <div style="position:relative;height:10px;border-radius:5px;overflow:visible">
-              <!-- Coloured track: blue below target, amber/red above -->
-              <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(74,144,217,0.2) 0%,rgba(92,158,255,0.08) ${targetPct.toFixed(0)}%,rgba(224,90,42,0.08) ${targetPct.toFixed(0)}%,rgba(224,58,42,0.2) 100%);border-radius:5px"></div>
-              <!-- Deviation fill -->
-              <div style="position:absolute;top:2px;bottom:2px;left:${fillStart.toFixed(1)}%;width:${fillWidth.toFixed(1)}%;background:${fillCol};border-radius:3px;opacity:0.7"></div>
+              <!-- Coloured track: gold below target, red above -->
+              <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(200,169,110,0.15) 0%,rgba(200,169,110,0.08) ${targetPct.toFixed(0)}%,rgba(224,58,42,0.10) ${targetPct.toFixed(0)}%,rgba(224,58,42,0.25) 100%);border-radius:5px"></div>
+              <!-- Deviation fill: gold when below target, red when above -->
+              <div style="position:absolute;top:2px;bottom:2px;left:${fillStart.toFixed(1)}%;width:${fillWidth.toFixed(1)}%;background:${aboveTarget?'#e03a2a':'#c8a96e'};border-radius:3px;opacity:0.85;box-shadow:0 0 6px ${aboveTarget?'#e03a2a66':'#c8a96e44'}"></div>
               <!-- Current marker -->
               <div style="position:absolute;top:-3px;bottom:-3px;width:2.5px;left:${currentPct.toFixed(1)}%;background:${cpiCol};border-radius:2px;box-shadow:0 0 5px ${cpiCol}66;transform:translateX(-50%)"></div>
               <!-- 2% target pin -->
@@ -6043,36 +6056,34 @@ function renderMacroDataPanels(reg){
           <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Hotter / Cooler Than Expected</div><div class="mc-sect-line"></div></div>
           <div style="display:flex;flex-direction:column;gap:4px">
             ${(()=>{
-              // Gradient colour for inflation surprise: intensity = magnitude of surprise
-              // Hot (positive surprise): orange→red with magnitude
-              // Cool (negative surprise): sky→deep blue with magnitude
-              const surpGradCol = (surprise) => {
-                if(surprise==null) return ['#adb8d0','#adb8d0'];
-                const mag = Math.min(1, Math.abs(surprise)/0.5); // 0→1 at 0.5% surprise
-                if(surprise>0){ // HOT
-                  const r=Math.round(224+31*mag), g=Math.round(90-60*mag), b=42;
-                  return [`rgb(${r},${g},${b})`,`rgb(${Math.min(255,r+20)},${g},${b})`];
-                } else { // COOL
-                  const r=Math.round(74+18*(1-mag)), g=Math.round(144+56*(1-mag)), b=Math.round(217+38*(1-mag));
-                  return [`rgb(${r},${g},${b})`,`rgb(${r},${Math.min(255,g+20)},${Math.min(255,b+10)})`];
-                }
+              // Absolute scale: all bars on same 0→4% surprise axis so PPI +2.93 vs CPI +1.01 are visually proportionate
+              const ABS_MAX = 4.0; // pp — full bar = 4pp surprise
+              const surpCol2 = (surprise) => {
+                if(surprise==null) return '#adb8d0';
+                if(surprise > 1.5) return '#e03a2a'; // very hot
+                if(surprise > 0.3) return '#e07a3a'; // hot
+                if(surprise > 0)   return '#c8a96e'; // mild hot
+                if(surprise > -0.3)return '#5c9eff'; // mild cool
+                return '#4a90d9'; // cool
               };
               return pipeItems.map((r,i)=>{
-                const isFirst = i===0;
-                const surpStr = r.surprise!=null?(r.surprise>0?'+':'')+r.surprise+'%':'';
-                const [gradC1, gradC2] = surpGradCol(r.surprise);
-                return `<div style="display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:6px;padding:${isFirst?'4px 0 5px':'4px 0'};border-bottom:1px solid rgba(255,255,255,0.04)">
+                const surpStr = r.surprise!=null?(r.surprise>0?'+':'')+r.surprise.toFixed(2)+'pp':'';
+                const col = surpCol2(r.surprise);
+                // Absolute bar width: surprise / ABS_MAX * 100%, capped at 95%
+                const absBarW = r.surprise!=null ? Math.min(95, Math.max(3, (Math.abs(r.surprise)/ABS_MAX)*100)).toFixed(0) : '3';
+                const barSide = r.beat===false ? 'left:50%' : 'right:50%'; // hot extends right, cool extends left
+                return `<div style="display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
                   <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
                   <div style="display:flex;flex-direction:column;gap:2px">
-                    <div style="position:relative;height:${isFirst?9:6}px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
+                    <div style="position:relative;height:7px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
                       <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.22);border-radius:1px"></div>
-                      <div style="position:absolute;top:0;height:100%;${r.beat===false?'left:50%':'right:50%'};width:${r.barW}%;background:linear-gradient(${r.beat===false?'90deg':'270deg'},${gradC1},${gradC2});border-radius:3px;opacity:0.88;box-shadow:0 0 5px ${gradC1}40"></div>
+                      <div style="position:absolute;top:0;height:100%;${barSide};width:${absBarW}%;background:${col};border-radius:3px;opacity:0.9;box-shadow:0 0 5px ${col}44"></div>
                     </div>
-                    ${r.expected!=null?`<span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.2)">exp ${r.expected.toFixed(2)}%</span>`:''}
+                    ${r.expected!=null?`<span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.22)">exp ${r.expected.toFixed(2)}%</span>`:''}
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
-                    <span style="font-family:var(--mono);font-size:${isFirst?14:12}px;font-weight:900;letter-spacing:-0.02em;color:${gradC1};line-height:1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
-                    ${r.beat!==null?`<span style="font-family:var(--mono);font-size:5.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:${gradC1}1a;color:${gradC1}">${r.beat?'▼ COOL':'▲ HOT'}${surpStr?' '+surpStr:''}</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
+                    <span style="font-family:var(--mono);font-size:12px;font-weight:900;letter-spacing:-0.02em;color:#f2f6ff;line-height:1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
+                    ${r.beat!==null?`<span style="font-family:var(--mono);font-size:5.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:${col}1a;border:1px solid ${col}28;color:${col}">${r.beat?'▼ COOL':'▲ HOT'}${surpStr?' '+surpStr:''}</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
                   </div>
                 </div>`;
               }).join('');
@@ -6096,7 +6107,7 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${lineCol};background:${lineCol}1a;border:1px solid ${lineCol}38">${fbTrend}</span>
         </div>
         <div style="display:flex;align-items:baseline;gap:10px">
-          <div style="font-family:var(--mono);font-size:clamp(24px,6vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${lineCol}">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
+          <div style="font-family:var(--mono);font-size:clamp(24px,6vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
           ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent)">${vsPeak}% of QE peak</span>`:''}
         </div>
         <!-- Full-width SVG area chart — hero visual matching old design -->
@@ -6167,6 +6178,11 @@ function renderMacroDataPanels(reg){
         <div>
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
             <div style="font-family:var(--mono);font-size:clamp(26px,6vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
+            <!-- Spread change deltas inline with hero -->
+            <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:2px">
+              ${sChg3m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
+              ${sChg6m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
+            </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
             <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y SPREAD</div>
@@ -6295,8 +6311,8 @@ function renderMacroDataPanels(reg){
                   <div style="position:absolute;inset:0;background:rgba(255,255,255,0.03);border-radius:5px;border:1px solid rgba(255,255,255,0.08)"></div>
                   <!-- Zone divider lines -->
                   ${[z25,z50,z75].map(z=>`<div style="position:absolute;top:0;bottom:0;left:${z.toFixed(1)}%;width:1px;background:rgba(0,0,0,0.3)"></div>`).join('')}
-                  <!-- Current spread needle -->
-                  <div style="position:absolute;top:-3px;bottom:-3px;width:3px;left:${pos.toFixed(1)}%;background:${numCol};border-radius:2px;box-shadow:0 0 8px ${numCol}cc;transform:translateX(-50%);z-index:2"></div>
+                  <!-- Current spread tick notch — white, full-height, crisp -->
+                  <div style="position:absolute;top:-4px;bottom:-4px;width:2px;left:${pos.toFixed(1)}%;background:#ffffff;border-radius:1px;box-shadow:0 0 6px rgba(255,255,255,0.9),0 0 2px rgba(255,255,255,1);transform:translateX(-50%);z-index:3"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-top:3px">
                   <span style="font-family:var(--mono);font-size:5.5px;color:var(--faint)">Tight ${tight}bp</span>
@@ -6310,24 +6326,27 @@ function renderMacroDataPanels(reg){
           })()}
         </div>
         <!-- Delta rows — HY + IG side by side -->
-        <div style="margin-top:auto">
+        <div style="margin-top:6px">
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Spread Changes</div><div class="mc-sect-line"></div></div>
           ${(()=>{
             const deltaRow = (period, hyVal, igVal) => {
               const hyC = hyVal==null?'#5a6480':hyVal<0?'#22c97a':hyVal>0?'#e03a2a':'#adb8d0';
               const igC = igVal==null?'#5a6480':igVal<0?'#22c97a':igVal>0?'#e03a2a':'#adb8d0';
-              const fmt = v => v!=null?(v>0?'+':'')+v+'bp':'—';
-              return `<div style="display:grid;grid-template-columns:22px 1fr 1fr;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+              // \u25bc=\u25bc (tightening=good=green), \u25b2=\u25b2 (widening=bad=red)
+              const arrow = v => v==null?'':v<0?'\u25bc':v>0?'\u25b2':'=';
+              const fmt = v => v!=null?Math.abs(v)+'bp':'\u2014';
+              const tag = (v, c) => v!=null
+                ? `<span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${c};letter-spacing:0.01em">${arrow(v)}&thinsp;${fmt(v)}</span>`
+                : `<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">&mdash;</span>`;
+              return `<div style="display:grid;grid-template-columns:20px 1fr 1fr;align-items:center;gap:4px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
                 <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${period}</span>
                 <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.35);width:14px">HY</span>
-                  <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative"><div style="position:absolute;top:0;height:100%;width:${hyVal!=null?Math.min(100,(Math.abs(hyVal)/80)*100).toFixed(0):0}%;background:${hyC};border-radius:3px;opacity:0.82;box-shadow:0 0 5px ${hyC}55"></div></div>
-                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${hyC};min-width:40px;text-align:right">${fmt(hyVal)}</span>
+                  <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.3);width:14px">HY</span>
+                  ${tag(hyVal, hyC)}
                 </div>
                 <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.35);width:14px">IG</span>
-                  <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative"><div style="position:absolute;top:0;height:100%;width:${igVal!=null?Math.min(100,(Math.abs(igVal)/30)*100).toFixed(0):0}%;background:${igC};border-radius:3px;opacity:0.82;box-shadow:0 0 5px ${igC}55"></div></div>
-                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${igC};min-width:30px;text-align:right">${fmt(igVal)}</span>
+                  <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.3);width:14px">IG</span>
+                  ${tag(igVal, igC)}
                 </div>
               </div>`;
             };
@@ -6410,11 +6429,15 @@ function renderMacroDataPanels(reg){
         // At score=−2 → expensive → needle right (100%). At score=+2 → cheap → needle left (0%)
         const _peEffScore = peScore!==null?peScoreNum:(-scComp*2); // composite proxy when PE score absent
         const peNorm = Math.min(100, Math.max(0, ((-_peEffScore + 2) / 4) * 100));
-        // Display value: prefer raw fwdPE if available, else show label only
+        // Display value: prefer raw fwdPE if available
+        // When absent, derive a rough estimate from composite score (scComp \u2248 \u22120.31 \u2192 ~21x historical)
+        // Score\u2212based estimate: neutral=21x, each \u22121 point \u2248 +2x premium (stretched market)
+        const _peEstX = fwdPE>0 ? fwdPE : Math.max(10, Math.round((21 - _peEffScore*2)*2)/2); // nearest 0.5x
         const peHeroTxt = fwdPE > 0 ? fwdPE.toFixed(1)+'x' : (capeSig.label || peLabel);
 
         // VIX gauge: low VIX = complacent green, high = fear red
-        const vixCol = vixNum>=30?'#e03a2a':vixNum>=20?'#f5c842':vixNum>=15?'#adb8d0':'#22c97a';
+        // VIX colour: \u226420=green (calm), 20\u201330=amber (caution), 30+=red (fear)
+        const vixCol = vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a';
         const vixLabel = vixNum>=30?'FEAR':vixNum>=20?'CAUTION':vixNum>=15?'NORMAL':'COMPLACENT';
         // VIX gauge: piecewise scale — 0-15 compressed (calm), 15-25 medium, 25+ expanded (fear)
         const vixNorm = Math.min(100, Math.max(0, vixNum<=15?(vixNum/15)*30:vixNum<=25?30+((vixNum-15)/10)*40:70+((vixNum-25)/20)*30));
@@ -6503,15 +6526,17 @@ function renderMacroDataPanels(reg){
             );
 
             // Forward P/E row — left=cheap, right=expensive. Needle towards expensive = bad
-            // When no numeric PE, peHeroTxt === peLabel — show label in value, suppress duplicate
+            // Always show estimated P/E number dimly alongside the label
             const _peHasNum = fwdPE > 0;
+            // Sub note: dim estimated P/E (est.) when no real number in API
+            const _peSubNote = !_peHasNum ? `~${_peEstX.toFixed(1)}x est. (composite-derived)` : null;
             const peRow = sigRow('Forward P/E',
-              _peHasNum ? fwdPE.toFixed(1)+'x' : peLabel,
-              _peHasNum ? peLabel : '',
+              _peHasNum ? fwdPE.toFixed(1)+'x' : `~${_peEstX.toFixed(1)}x`,
+              peLabel,
               peCol,
               peNorm,
               peCol,
-              peScore!==null?null:'Composite-derived est.'
+              _peSubNote
             );
 
             // Breadth row — left=thin (bad), right=broad (good). Inverted vs other rows.
@@ -6538,24 +6563,20 @@ function renderMacroDataPanels(reg){
           })()}
         </div>
 
-        <!-- Cross-Asset Returns — compact 3-col strip (1W / 1M / 3M) -->
+        <!-- Cross-Asset Returns — compact 3-col strip (1M / 3M only, 1W dropped) -->
         <div style="flex:1;min-height:0">
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">
-            ${assetRows.map(m=>`<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:4px 6px">
-              <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.04em;color:var(--dim);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.lbl}</div>
-              <div style="display:flex;flex-direction:column;gap:1px">
+            ${assetRows.map(m=>`<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:5px 7px">
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.04em;color:var(--dim);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.lbl}</div>
+              <div style="display:flex;flex-direction:column;gap:3px">
                 <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-family:var(--mono);font-size:5px;color:var(--faint)">1W</span>
-                  <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r1w)};font-variant-numeric:tabular-nums">${m.fmtR(m.r1w)}</span>
+                  <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;color:var(--faint)">1M</span>
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${m.colR(m.r1m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-family:var(--mono);font-size:5px;color:var(--faint)">1M</span>
-                  <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r1m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-family:var(--mono);font-size:5px;color:var(--faint)">3M</span>
-                  <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r3m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
+                  <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;color:var(--faint)">3M</span>
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${m.colR(m.r3m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
                 </div>
               </div>
             </div>`).join('')}
@@ -6577,7 +6598,8 @@ function renderMacroDataPanels(reg){
     // VIX semicircle gauge
     try {
       const vixNum2 = parseFloat(scSignals['VIX']?.value||'0')||0;
-      const vixCol2 = vixNum2>0?(vixNum2<17?'#22c97a':vixNum2<25?'#f5c842':'#e03a2a'):'#adb8d0';
+      // Align with P6 semantic: \u226420=green, 20\u201330=amber, 30+=red
+      const vixCol2 = vixNum2>0?(vixNum2>=30?'#e03a2a':vixNum2>=20?'#f5a442':vixNum2>=15?'#adb8d0':'#22c97a'):'#adb8d0';
       _drawVixGauge('ov-sc-vix-gauge', vixNum2, vixCol2);
     } catch(e){}
     // SPX sparkline
@@ -6661,12 +6683,12 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   const el = document.getElementById('ov-yc-chart');
   if (!el) return;
 
-  // Curve styles — clearly distinct colour + dash family
-  // NOW: thick solid gold | -3M: amber dashed | -6M: teal dashed | -12M: cool blue dashed
+  // Curve styles — opacity-stacked so depth is immediately readable
+  // NOW: full opacity, thick solid | older = progressively faded + lighter dash
   const CURVES = [
-    { key: 'm12', label: '−12M', color: 'rgba(90,140,210,0.70)',  width: 1.3, dash: '6,5'  },
-    { key: 'm6',  label: '−6M',  color: 'rgba(60,190,160,0.75)',  width: 1.5, dash: '8,4'  },
-    { key: 'm3',  label: '−3M',  color: 'rgba(220,150,50,0.90)',  width: 1.8, dash: '4,3'  },
+    { key: 'm12', label: '−12M', color: 'rgba(90,140,210,0.30)',  width: 1.2, dash: '8,6'  },
+    { key: 'm6',  label: '−6M',  color: 'rgba(60,190,160,0.50)',  width: 1.4, dash: '6,4'  },
+    { key: 'm3',  label: '−3M',  color: 'rgba(220,150,50,0.75)',  width: 1.8, dash: '4,3'  },
     { key: 'now', label: 'Now',  color: nowCol,                   width: 3.2, dash: ''     },
   ];
   // Tenors used for plot points — include all for smooth curves
@@ -6811,16 +6833,16 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // Smart label placement: alternate above/below; key tenors larger + highlighted
   // 3M=start-anchor, 30Y=end-anchor, rest centered; avoid chart boundary clipping
   const KEY_TENORS = new Set(['2Y','10Y']);
-  // Show rate labels only on key tenors — avoids overlap, mirrors reference design
+  // Show rate labels only on key tenors — clean, no overlap
   const labelTenors = isMini
     ? ['2Y','10Y','30Y']
-    : ['1M','2Y','5Y','10Y','30Y'];
+    : ['EFFR','2Y','10Y','30Y'];
   const filteredLabels = labelData.filter(d => labelTenors.includes(d.t));
   filteredLabels.forEach((d, i) => {
     // Alternate above/below starting above for 3M
     const above = (i % 2 === 0);
     const isKey = KEY_TENORS.has(d.t);
-    const isEdgeL = d.t === '1M';
+    const isEdgeL = d.t === 'EFFR';
     const isEdgeR = d.t === '30Y';
     const lx = d.x;
     let ly = above ? d.y - 7 : d.y + 11;
@@ -6834,12 +6856,12 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     ${grids}${xAxis}${curveSvg}
   </svg>`;
 
-  // Legend — left-aligned, clearly readable, colour-coded
-  const legendHTML = `<div style="display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-top:4px;padding-left:${padL}px">
+  // Legend — left-aligned, 32px line samples so dashes are legible
+  const legendHTML = `<div style="display:flex;align-items:center;justify-content:flex-start;gap:12px;margin-top:5px;padding-left:${padL}px">
     ${CURVES.filter(c => ALL_TENORS.some(t => tenorData[c.key]?.[t]!=null)).map(c =>
-      `<div style="display:flex;align-items:center;gap:4px">
-        <svg width="18" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="18" y2="3" stroke="${c.color}" stroke-width="${c.key==='now'?2.5:1.6}" ${c.dash?`stroke-dasharray="${c.dash}"`:''}/></svg>
-        <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${c.key==='now'?c.color:'rgba(255,255,255,0.55)'}">${c.label}</span>
+      `<div style="display:flex;align-items:center;gap:5px">
+        <svg width="32" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="32" y2="3" stroke="${c.color}" stroke-width="${c.key==='now'?2.5:1.6}" ${c.dash?`stroke-dasharray="${c.dash}"`:''} opacity="${c.key==='now'?1:1}"/></svg>
+        <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${c.key==='now'?nowCol:'rgba(255,255,255,0.60)'}">${c.label}</span>
       </div>`).join('')}
   </div>`;
 
