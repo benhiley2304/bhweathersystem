@@ -6099,7 +6099,7 @@ function renderMacroDataPanels(reg){
       const isWhole=Math.abs(v-Math.round(v))<0.01;
       if(isWhole) gridVals.push({v,gy});
       grids+=`<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="${isWhole?'rgba(255,255,255,0.10)':'rgba(255,255,255,0.04)'}" stroke-width="${isWhole?'0.8':'0.6'}" stroke-dasharray="${isWhole?'3,8':'2,10'}"/>`;
-      if(isWhole) grids+=`<text x="${padL-4}" y="${(gy+2.2).toFixed(1)}" text-anchor="end" fill="rgba(200,169,110,0.45)" font-family="var(--mono)" font-size="5.5" font-weight="700">${v.toFixed(0)}</text>`;
+      if(isWhole) grids+=`<text x="${padL-4}" y="${(gy+2.2).toFixed(1)}" text-anchor="end" fill="rgba(200,169,110,0.60)" font-family="var(--mono)" font-size="5.5" font-weight="700">${v.toFixed(0)}</text>`;
     }
 
     // Year X-axis ticks
@@ -6116,12 +6116,12 @@ function renderMacroDataPanels(reg){
 
     // Phase annotation lines — gossamer vertical markers
     const phaseMarkers = [
-      { x: dateX('2022-04'), label: 'QT', col: 'rgba(180,140,80,0.25)' },
+      { x: dateX('2022-04'), label: 'QT', col: 'rgba(210,165,90,0.50)' },
     ].filter(p=>p.x>padL&&p.x<W-padR);
     let phaseLines='';
     phaseMarkers.forEach(p=>{
-      phaseLines+=`<line x1="${p.x.toFixed(1)}" y1="${padT}" x2="${p.x.toFixed(1)}" y2="${(padT+gH).toFixed(1)}" stroke="${p.col}" stroke-width="0.8" stroke-dasharray="2,5"/>`;
-      phaseLines+=`<text x="${(p.x+3).toFixed(1)}" y="${(padT+7).toFixed(1)}" fill="${p.col}" font-family="var(--mono)" font-size="5" font-weight="800" letter-spacing="0.06em">${p.label}</text>`;
+      phaseLines+=`<line x1="${p.x.toFixed(1)}" y1="${padT}" x2="${p.x.toFixed(1)}" y2="${(padT+gH).toFixed(1)}" stroke="${p.col}" stroke-width="1.0" stroke-dasharray="2,4"/>`;
+      phaseLines+=`<text x="${(p.x+3).toFixed(1)}" y="${(padT+7).toFixed(1)}" fill="rgba(220,175,100,0.70)" font-family="var(--mono)" font-size="6" font-weight="800" letter-spacing="0.08em">${p.label}</text>`;
     });
 
     // Current value dot + label
@@ -6135,26 +6135,32 @@ function renderMacroDataPanels(reg){
       <defs>
         <!-- Horizontal line gradient: gold → ivory-gold → cool slate → recent accent -->
         <linearGradient id="${uid}line" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%"    stop-color="#b8894a" stop-opacity="0.7"/>
-          <stop offset="${(qtPct*0.45*100).toFixed(0)}%" stop-color="#d4b87a" stop-opacity="0.85"/>
-          <stop offset="${(qtPct*100).toFixed(0)}%" stop-color="#8a9ab8" stop-opacity="0.8"/>
-          <stop offset="78%"  stop-color="#4a6080" stop-opacity="0.75"/>
-          <stop offset="100%" stop-color="${recentCol}" stop-opacity="0.95"/>
+          <stop offset="0%"    stop-color="#c8974f" stop-opacity="0.92"/>
+          <stop offset="${(qtPct*0.45*100).toFixed(0)}%" stop-color="#e0c88a" stop-opacity="1.0"/>
+          <stop offset="${(qtPct*100).toFixed(0)}%" stop-color="#9aaed0" stop-opacity="0.95"/>
+          <stop offset="78%"  stop-color="#5a78a8" stop-opacity="0.88"/>
+          <stop offset="100%" stop-color="${recentCol}" stop-opacity="1.0"/>
+        </linearGradient>
+        <!-- Glow variant of gradient (slightly brighter) -->
+        <linearGradient id="${uid}glow" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"    stop-color="#e0aa60" stop-opacity="0.6"/>
+          <stop offset="${(qtPct*100).toFixed(0)}%" stop-color="#b0c8e8" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="${recentCol}" stop-opacity="0.65"/>
         </linearGradient>
         <!-- Area fill: vertical, using recent colour with atmosphere -->
         <linearGradient id="${uid}area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="${recentCol}" stop-opacity="0.18"/>
-          <stop offset="55%"  stop-color="#3a5070" stop-opacity="0.08"/>
-          <stop offset="100%" stop-color="#0a0c14"  stop-opacity="0.0"/>
+          <stop offset="0%"   stop-color="${recentCol}" stop-opacity="0.22"/>
+          <stop offset="45%"  stop-color="#3a5070" stop-opacity="0.10"/>
+          <stop offset="100%" stop-color="#060810"  stop-opacity="0.0"/>
         </linearGradient>
         <!-- Soft glow for the endpoint dot -->
-        <filter id="${uid}dot" x="-120%" y="-120%" width="340%" height="340%">
-          <feGaussianBlur stdDeviation="3.5" result="blur"/>
-          <feComposite in="blur" in2="SourceGraphic" operator="over"/>
+        <filter id="${uid}dot" x="-150%" y="-150%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="4.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
         <!-- Line glow filter -->
-        <filter id="${uid}lglow" x="-5%" y="-50%" width="110%" height="200%">
-          <feGaussianBlur stdDeviation="1.8" result="gb"/>
+        <filter id="${uid}lglow" x="-5%" y="-80%" width="110%" height="260%">
+          <feGaussianBlur stdDeviation="2.4" result="gb"/>
           <feMerge><feMergeNode in="gb"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
         <!-- Clipping mask for gradient stroke trick -->
@@ -6173,33 +6179,33 @@ function renderMacroDataPanels(reg){
       <!-- Area fill -->
       <path d="${areaD}" fill="url(#${uid}area)" clip-path="url(#${uid}clip)"/>
 
-      <!-- Line: outer soft glow layer (wide, very subtle) -->
-      <path d="${pathD}" stroke="url(#${uid}line)" stroke-width="6" fill="none"
-        stroke-linecap="round" stroke-linejoin="round" opacity="0.12"
-        clip-path="url(#${uid}clip)"/>
-
-      <!-- Line: inner glow (medium) -->
-      <path d="${pathD}" stroke="url(#${uid}line)" stroke-width="3" fill="none"
+      <!-- Line: wide diffuse glow -->  
+      <path d="${pathD}" stroke="url(#${uid}glow)" stroke-width="8" fill="none"
         stroke-linecap="round" stroke-linejoin="round" opacity="0.28"
         clip-path="url(#${uid}clip)"/>
 
-      <!-- Line: crisp foreground stroke -->
-      <path d="${pathD}" stroke="url(#${uid}line)" stroke-width="1.4" fill="none"
-        stroke-linecap="round" stroke-linejoin="round" opacity="0.95"
+      <!-- Line: medium inner glow -->
+      <path d="${pathD}" stroke="url(#${uid}glow)" stroke-width="4" fill="none"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.45"
         clip-path="url(#${uid}clip)"/>
 
-      <!-- Endpoint: outer halo -->
-      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="9" fill="${recentCol}" opacity="0.08"/>
-      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="5.5" fill="${recentCol}" opacity="0.12" filter="url(#${uid}dot)"/>
+      <!-- Line: crisp foreground stroke -->
+      <path d="${pathD}" stroke="url(#${uid}line)" stroke-width="1.6" fill="none"
+        stroke-linecap="round" stroke-linejoin="round" opacity="1.0"
+        clip-path="url(#${uid}clip)"/>
+
+      <!-- Endpoint: diffuse outer halo -->
+      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="11" fill="${recentCol}" opacity="0.10"/>
+      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="7" fill="${recentCol}" opacity="0.16" filter="url(#${uid}dot)"/>
       <!-- Endpoint: ring -->
-      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="3.8" fill="none" stroke="${recentCol}" stroke-width="1.2" opacity="0.70"/>
+      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="4.2" fill="none" stroke="${recentCol}" stroke-width="1.4" opacity="0.90"/>
       <!-- Endpoint: core dot -->
-      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="2.0" fill="${recentCol}" opacity="0.95"/>
+      <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="2.2" fill="${recentCol}" opacity="1.0"/>
 
       <!-- Value label -->
       <text x="${lvLabelX.toFixed(1)}" y="${lvLabelY.toFixed(1)}"
-        fill="${recentCol}" font-family="var(--mono)" font-size="7.5" font-weight="800"
-        letter-spacing="-0.01em" opacity="0.90">$${lv.toFixed(2)}T</text>
+        fill="${recentCol}" font-family="var(--mono)" font-size="8" font-weight="900"
+        letter-spacing="-0.01em" opacity="1.0">$${lv.toFixed(2)}T</text>
     </svg>`;
   })();
   const vsPeak = fbLevel!=null?Math.round((fbLevel/8.97)*100):null;
