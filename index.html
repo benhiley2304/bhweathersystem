@@ -5780,7 +5780,7 @@ function renderMacroDataPanels(reg){
     const uid='bs'+(Math.random()*0xFFFFF|0).toString(16);
     return `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" fill="none" style="display:block;width:100%;height:100%">
       <defs>
-        <linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lineCol}" stop-opacity="0.3"/><stop offset="100%" stop-color="${lineCol}" stop-opacity="0.02"/></linearGradient>
+        <linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lineCol}" stop-opacity="0.15"/><stop offset="100%" stop-color="${lineCol}" stop-opacity="0.01"/></linearGradient>
         <filter id="${uid}glow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.5" result="b"/><feComposite in="b" in2="SourceGraphic" operator="over"/></filter>
       </defs>
       ${phaseBands}${grids}${yearLabels}
@@ -5828,7 +5828,7 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">Employment</div>
             <div class="ov-mc-title">Labour Market</div>
           </div>
-          ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}18;border:1px solid ${jcCol}30">${jcLabel}</span>`:''}
+          ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}1a;border:1px solid ${jcCol}38">${jcLabel}</span>`:''}
         </div>
         <!-- Hero: Arc + NFP headline -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -5863,7 +5863,7 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
               <div style="position:relative;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
                 <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.25);border-radius:1px"></div>
-                <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(90deg,${r.col}66,${r.col}cc);border-radius:3px;opacity:0.85;box-shadow:0 0 5px ${r.col}33"></div>
+                <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(90deg,${r.col}55,${r.col}aa);border-radius:3px;opacity:0.75;box-shadow:0 0 4px ${r.col}28"></div>
               </div>
               <span style="font-family:var(--mono);font-size:9.5px;font-weight:900;color:${r.col};text-align:right;white-space:nowrap">${r.val}</span>
             </div>`;
@@ -5943,7 +5943,7 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">Price Stability</div>
             <div class="ov-mc-title">Inflation</div>
           </div>
-          <span class="ov-mc-badge" style="color:${inflBadgeCol};background:${inflBadgeCol}18;border:1px solid ${inflBadgeCol}30">${inflBadgeLabel}</span>
+          <span class="ov-mc-badge" style="color:${inflBadgeCol};background:${inflBadgeCol}1a;border:1px solid ${inflBadgeCol}38">${inflBadgeLabel}</span>
         </div>
         <!-- Hero: Arc + CPI reading -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -5983,7 +5983,7 @@ function renderMacroDataPanels(reg){
               <!-- Deviation fill -->
               <div style="position:absolute;top:2px;bottom:2px;left:${fillStart.toFixed(1)}%;width:${fillWidth.toFixed(1)}%;background:${fillCol};border-radius:3px;opacity:0.7"></div>
               <!-- Current marker -->
-              <div style="position:absolute;top:-3px;bottom:-3px;width:2.5px;left:${currentPct.toFixed(1)}%;background:${cpiCol};border-radius:2px;box-shadow:0 0 7px ${cpiCol}bb;transform:translateX(-50%)"></div>
+              <div style="position:absolute;top:-3px;bottom:-3px;width:2.5px;left:${currentPct.toFixed(1)}%;background:${cpiCol};border-radius:2px;box-shadow:0 0 5px ${cpiCol}66;transform:translateX(-50%)"></div>
               <!-- 2% target pin -->
               <div style="position:absolute;top:-4px;bottom:-4px;width:1.5px;left:${targetPct.toFixed(1)}%;background:rgba(255,255,255,0.45);border-radius:1px;transform:translateX(-50%)"></div>
             </div>
@@ -6028,7 +6028,7 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">Federal Reserve</div>
             <div class="ov-mc-title">Balance Sheet</div>
           </div>
-          <span class="ov-mc-badge" style="color:${lineCol};background:${lineCol}18;border:1px solid ${lineCol}30">${fbTrend}</span>
+          <span class="ov-mc-badge" style="color:${lineCol};background:${lineCol}1a;border:1px solid ${lineCol}38">${fbTrend}</span>
         </div>
         <div style="display:flex;align-items:baseline;gap:10px">
           <div style="font-family:var(--mono);font-size:clamp(24px,6vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${lineCol}">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
@@ -6096,7 +6096,7 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">US Treasury</div>
             <div class="ov-mc-title">Yield Curve</div>
           </div>
-          <span class="ov-mc-badge" style="color:${crCol};background:${crCol}18;border:1px solid ${crCol}30">${cr_regime}</span>
+          <span class="ov-mc-badge" style="color:${crCol};background:${crCol}1a;border:1px solid ${crCol}38">${cr_regime}</span>
         </div>
         <div>
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
@@ -6167,7 +6167,7 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">Risk Appetite</div>
             <div class="ov-mc-title">Credit Spreads</div>
           </div>
-          <span class="ov-mc-badge" style="color:${_hyNumCol};background:${_hyNumCol}18;border:1px solid ${_hyNumCol}30">${crLabel}</span>
+          <span class="ov-mc-badge" style="color:${_hyNumCol};background:${_hyNumCol}1a;border:1px solid ${_hyNumCol}38">${crLabel}</span>
         </div>
         <!-- Hero: HY + IG tiles -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -6251,12 +6251,12 @@ function renderMacroDataPanels(reg){
                 <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${period}</span>
                 <div style="display:flex;align-items:center;gap:5px">
                   <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.35);width:14px">HY</span>
-                  <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative"><div style="position:absolute;top:0;height:100%;width:${hyVal!=null?Math.min(100,(Math.abs(hyVal)/80)*100).toFixed(0):0}%;background:${hyC};border-radius:3px;opacity:0.85;box-shadow:0 0 6px ${hyC}55"></div></div>
+                  <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative"><div style="position:absolute;top:0;height:100%;width:${hyVal!=null?Math.min(100,(Math.abs(hyVal)/80)*100).toFixed(0):0}%;background:${hyC};border-radius:3px;opacity:0.65;box-shadow:0 0 4px ${hyC}35"></div></div>
                   <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${hyC};min-width:40px;text-align:right">${fmt(hyVal)}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:5px">
                   <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.35);width:14px">IG</span>
-                  <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative"><div style="position:absolute;top:0;height:100%;width:${igVal!=null?Math.min(100,(Math.abs(igVal)/30)*100).toFixed(0):0}%;background:${igC};border-radius:3px;opacity:0.85;box-shadow:0 0 6px ${igC}55"></div></div>
+                  <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative"><div style="position:absolute;top:0;height:100%;width:${igVal!=null?Math.min(100,(Math.abs(igVal)/30)*100).toFixed(0):0}%;background:${igC};border-radius:3px;opacity:0.65;box-shadow:0 0 4px ${igC}35"></div></div>
                   <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${igC};min-width:30px;text-align:right">${fmt(igVal)}</span>
                 </div>
               </div>`;
