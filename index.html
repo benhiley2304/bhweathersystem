@@ -1105,7 +1105,7 @@ a{color:inherit;text-decoration:none}
 .ov-macro-panels{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  grid-template-rows:repeat(2,390px);
+  grid-template-rows:repeat(2,420px);
   gap:12px;
   margin:0 20px 16px;
   align-items:stretch;
@@ -1267,6 +1267,8 @@ a{color:inherit;text-decoration:none}
     font-size:6px!important;
   }
 }
+/* P6 signal rows: remove bottom border from last row */
+#ov-macro-stock-climate .ov-sc-sig-row:last-child{border-bottom:none!important}
 /* P6 arc mobile: scale down */
 @media(max-width:480px){
   #ov-macro-stock-climate svg[width="220"]{
@@ -5968,7 +5970,10 @@ function renderMacroDataPanels(reg){
           const sCol = beat===true?'#5c9eff':beat===false?'#e03a2a':'#adb8d0';
           const surpAbs = Math.abs(surprise||0);
           // Bar width: scale on 0.5% surprise range being "large"
-          const barW = Math.min(100, Math.max(4, (surpAbs/0.5)*100)).toFixed(0);
+          // Scale: 1x expectation fills ~50% of bar; 2x fills ~100%
+          // This gives meaningful visual range even for large surprises like PPI +2.93 vs exp 3.1
+          const _scaleBase = Math.max(0.3, (expected||0) * 0.3);
+          const barW = Math.min(100, Math.max(4, (surpAbs / _scaleBase) * 50)).toFixed(0);
           const trend = c.trend_label||'';
           const tArrow = trend==='Rising'?'↑':trend==='Falling'?'↓':'→';
           const tCol   = trend==='Rising'?'#e03a2a':trend==='Falling'?'#22c97a':'#adb8d0';
@@ -5994,7 +5999,7 @@ function renderMacroDataPanels(reg){
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">CPI YoY · Fed target 2.0%</span>
-            ${(()=>{ const t=(macroComps['CPI']||{}).trend_label||''; return t?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${t==='Rising'?'#e03a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'↑ Rising':t==='Falling'?'↓ Falling':'→ Stable'}</span>`:''; })()}
+            ${(()=>{ const t=(md.inflation||{}).trend||''; return t?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${t==='Rising'?'#e03a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'↑ Rising':t==='Falling'?'↓ Falling':'→ Stable'}</span>`:''; })()}
           </div>
         </div>
         <!-- Fed Target Deviation Bar -->
@@ -6446,7 +6451,7 @@ function renderMacroDataPanels(reg){
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
         <!-- Header -->
-        <div class="ov-mc-header">
+        <div class="ov-mc-header" style="margin-bottom:8px">
           <div>
             <div class="ov-mc-eyebrow">Equities</div>
             <div class="ov-mc-title">Market Climate</div>
@@ -6454,70 +6459,105 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${scArcCol};background:${scArcCol}1a;border:1px solid ${scArcCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- HERO: Valuation (Forward P/E) — the most impactful signal -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <!-- Forward P/E tile -->
-          <div style="background:rgba(255,255,255,0.03);border:1px solid ${peCol}22;border-top:2px solid ${peCol}55;border-radius:9px;padding:8px 10px">
-            <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Forward P/E</div>
-            <div style="font-family:var(--mono);font-size:clamp(20px,4.5vw,28px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${peCol}">${peHeroTxt}</div>
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:${peCol};margin-top:3px;letter-spacing:0.06em">${peLabel}</div>
-            <div style="font-family:var(--mono);font-size:5.5px;color:var(--faint);opacity:0.7;margin-bottom:2px">${peScore!==null?'Quantitative score':'Composite-derived est.'}</div>
-            ${gaugeBar(peNorm, peCol, peLabel, 'Cheap', 'Expensive', 7)}
-          </div>
-          <!-- VIX tile -->
-          <div style="background:rgba(255,255,255,0.03);border:1px solid ${vixCol}22;border-top:2px solid ${vixCol}55;border-radius:9px;padding:8px 10px">
-            <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">VIX</div>
-            <div style="font-family:var(--mono);font-size:clamp(20px,4.5vw,28px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${vixCol}">${vixNum>0?vixNum.toFixed(1):'—'}</div>
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:${vixCol};margin-top:3px;letter-spacing:0.06em">${vixLabel}</div>
-            ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:5px;color:${vixTermCol};margin-bottom:1px">3M: ${vix3mNum.toFixed(1)} · ${vixTermStr}</div>`:''}
-            ${gaugeBar(vixNorm, vixCol, vixLabel, 'Low', 'Fear', 7)}
-          </div>
-        </div>
-
-        <!-- SPX Momentum Chart with MA line -->
-        <div style="margin-bottom:7px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 3M Momentum</span>
+        <!-- SPX Price Chart — dominant visual, set the tone -->
+        <div style="margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 3-Month Price</span>
             <div style="display:flex;align-items:baseline;gap:5px">
-              <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${momCol};font-variant-numeric:tabular-nums">${spxMomVal>0?'+':''}${spxMomVal.toFixed(1)}%</span>
-              <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${momCol};padding:1px 5px;border-radius:8px;background:${momCol}15;border:1px solid ${momCol}30">${momSig.label||''}</span>
+              <span style="font-family:var(--mono);font-size:18px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${momCol};font-variant-numeric:tabular-nums">${spxMomVal>=0?'+':''}${spxMomVal.toFixed(1)}%</span>
+              <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${momCol};padding:1px 6px;border-radius:8px;background:${momCol}15;border:1px solid ${momCol}28">${momSig.label||''}</span>
             </div>
           </div>
-          <canvas id="ov-sc-spx-chart" width="200" height="46" style="width:100%;height:46px;display:block;border-radius:5px;background:rgba(255,255,255,0.015)"></canvas>
+          <canvas id="ov-sc-spx-chart" width="200" height="56" style="width:100%;height:56px;display:block;border-radius:6px;background:rgba(255,255,255,0.015)"></canvas>
         </div>
 
-        <!-- Breadth gauge -->
-        <div style="margin-bottom:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Market Breadth · SPY/RSP</span>
-            <div style="display:flex;align-items:baseline;gap:5px">
-              <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${brCol}">${breadthVal!==0?(breadthVal>0?'+':'')+breadthVal.toFixed(1)+'%':'—'}</span>
-              <span style="font-family:var(--mono);font-size:5.5px;color:${brCol};font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">${brSig.label||''}</span>
-            </div>
-          </div>
-          ${gaugeBar(brNorm, brCol, '', 'Thin (−2)', 'Broad (+2)', 10)}
+        <!-- 4 Signal Rows: VIX · Forward P/E · Breadth · Momentum -->
+        <div style="display:flex;flex-direction:column;gap:0;border:1px solid rgba(255,255,255,0.07);border-radius:9px;overflow:hidden;margin-bottom:8px">
+          ${(()=>{
+            // Each row: label | value+label | inline gauge bar
+            const sigRow = (eyebrow, valueStr, labelStr, labelCol, gaugeNorm, gaugeCol, subNote) => `
+              <div class="ov-sc-sig-row" style="display:grid;grid-template-columns:68px 1fr auto;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${eyebrow}</span>
+                <div style="min-width:0">
+                  <div style="display:flex;align-items:baseline;gap:4px">
+                    <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;line-height:1;color:${labelCol};font-variant-numeric:tabular-nums">${valueStr}</span>
+                    <span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${labelCol};letter-spacing:0.04em">${labelStr}</span>
+                  </div>
+                  ${subNote?`<div style="font-family:var(--mono);font-size:5px;color:var(--faint);margin-top:1px;opacity:0.7">${subNote}</div>`:''}
+                </div>
+                <div style="width:60px">
+                  <div style="position:relative;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+                    <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,Math.max(2,gaugeNorm)).toFixed(0)}%;background:${gaugeCol};border-radius:3px;opacity:0.9;box-shadow:0 0 6px ${gaugeCol}55"></div>
+                  </div>
+                </div>
+              </div>`;
+
+            // VIX row — low is good (green), high is bad (red). Gauge: left=calm, right=fear
+            const vixRow = sigRow('VIX · Volatility',
+              vixNum>0?vixNum.toFixed(1):'—',
+              vixLabel,
+              vixCol,
+              vixNorm,
+              vixCol,
+              vix3mNum>0?`3M: ${vix3mNum.toFixed(1)} · ${vixTermStr}`:null
+            );
+
+            // Forward P/E row — left=cheap, right=expensive. Needle towards expensive = bad
+            const peRow = sigRow('Forward P/E',
+              fwdPE>0?fwdPE.toFixed(1)+'x':peHeroTxt,
+              peLabel,
+              peCol,
+              peNorm,
+              peCol,
+              peScore!==null?null:'Composite-derived est.'
+            );
+
+            // Breadth row — left=thin (bad), right=broad (good). Inverted vs other rows.
+            const brRow = sigRow('Breadth · SPY/RSP',
+              breadthVal!==0?(breadthVal>0?'+':'')+breadthVal.toFixed(1)+'%':'—',
+              brSig.label||'',
+              brCol,
+              brNorm,
+              brCol,
+              null
+            );
+
+            // Momentum row — SPX 3M
+            const momRow = sigRow('SPX Momentum 3M',
+              (spxMomVal>=0?'+':'')+spxMomVal.toFixed(1)+'%',
+              momSig.label||'',
+              momCol,
+              Math.min(100,Math.max(0,((spxMomVal+20)/40)*100)),
+              momCol,
+              null
+            );
+
+            return vixRow + peRow + brRow + momRow;
+          })()}
         </div>
 
-        <!-- Cross-Asset Returns Table — compact -->
-        <div style="margin-top:4px">
-          <div class="mc-sect" style="margin:0 0 3px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
-          <div style="display:grid;grid-template-columns:44px 1fr 32px 32px 32px;align-items:center;gap:3px;padding-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.08)">
-            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22)">Asset</span>
-            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22)">Momentum</span>
-            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22);text-align:right">1W</span>
-            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22);text-align:right">1M</span>
-            <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22);text-align:right">3M</span>
+        <!-- Cross-Asset Returns — compact 3-col strip (1W / 1M / 3M) -->
+        <div style="flex:1;min-height:0">
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">
+            ${assetRows.map(m=>`<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:4px 6px">
+              <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.04em;color:var(--dim);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.lbl}</div>
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-family:var(--mono);font-size:5px;color:var(--faint)">1W</span>
+                  <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r1w)};font-variant-numeric:tabular-nums">${m.fmtR(m.r1w)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-family:var(--mono);font-size:5px;color:var(--faint)">1M</span>
+                  <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r1m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-family:var(--mono);font-size:5px;color:var(--faint)">3M</span>
+                  <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r3m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
+                </div>
+              </div>
+            </div>`).join('')}
           </div>
-          ${assetRows.map(m=>`<div style="display:grid;grid-template-columns:42px 1fr 30px 30px 30px;align-items:center;gap:2px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.02em;color:var(--dim)">${m.lbl}</span>
-            <div style="position:relative;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
-              <div style="position:absolute;top:0;bottom:0;${m.bDir==='right'?'left:50%':'right:50%'};width:${m.bW}%;background:${m.bCol};border-radius:2px;opacity:0.82"></div>
-              <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.15)"></div>
-            </div>
-            <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r1w)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r1w)}</span>
-            <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r1m)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
-            <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${m.colR(m.r3m)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
-          </div>`).join('')}
         </div>
       </div>`;
       })()}
@@ -6580,11 +6620,17 @@ function renderMacroDataPanels(reg){
           const steepH = (t10h!=null&&base!=null) ? (t10h-base) : 0.1;
           return +(base + (shape6mFrac-0.22)*steepH).toFixed(3);
         };
+        // Historical EFFR: stronger front-end discount than hist3m (EFFR sits below 3M)
+        const histEFFR = (base, t10h) => {
+          if(base==null) return null;
+          const steepH = (t10h!=null&&base!=null) ? (t10h-base) : 0.1;
+          return +(base + (shape6mFrac-0.28)*steepH).toFixed(3);
+        };
         return {
-          now:  { 'EFFR': effr,   '1M': t1m_now, '3M': t3m,    '6M': t6m_now, '1Y': t1y_now, '2Y': t2,     '5Y': t5,     '10Y': t10,    '30Y': t30    },
-          m3:   { 'EFFR': null,   '1M': hist1m(t2_3m,t10_3m),   '3M': hist3m(t2_3m,t10_3m),   '6M': hist6m(t2_3m,t10_3m),  '1Y': hist1y(t2_3m,t10_3m),  '2Y': t2_3m,  '5Y': t5_3m,  '10Y': t10_3m, '30Y': t30_3m },
-          m6:   { 'EFFR': null,   '1M': hist1m(t2_6m,t10_6m),   '3M': hist3m(t2_6m,t10_6m),   '6M': hist6m(t2_6m,t10_6m),  '1Y': hist1y(t2_6m,t10_6m),  '2Y': t2_6m,  '5Y': t5_6m,  '10Y': t10_6m, '30Y': t30_6m  },
-          m12:  { 'EFFR': null,   '1M': hist1m(t2_12m,t10_12m), '3M': hist3m(t2_12m,t10_12m), '6M': hist6m(t2_12m,t10_12m),'1Y': hist1y(t2_12m,t10_12m),'2Y': t2_12m, '5Y': t5_12m, '10Y': t10_12m,'30Y': t30_12m },
+          now:  { 'EFFR': effr,                   '1M': t1m_now,                 '3M': t3m,                    '6M': t6m_now,                '1Y': t1y_now,                '2Y': t2,     '5Y': t5,     '10Y': t10,    '30Y': t30    },
+          m3:   { 'EFFR': histEFFR(t2_3m,t10_3m), '1M': hist1m(t2_3m,t10_3m),   '3M': hist3m(t2_3m,t10_3m),   '6M': hist6m(t2_3m,t10_3m),  '1Y': hist1y(t2_3m,t10_3m),  '2Y': t2_3m,  '5Y': t5_3m,  '10Y': t10_3m, '30Y': t30_3m },
+          m6:   { 'EFFR': histEFFR(t2_6m,t10_6m), '1M': hist1m(t2_6m,t10_6m),   '3M': hist3m(t2_6m,t10_6m),   '6M': hist6m(t2_6m,t10_6m),  '1Y': hist1y(t2_6m,t10_6m),  '2Y': t2_6m,  '5Y': t5_6m,  '10Y': t10_6m, '30Y': t30_6m  },
+          m12:  { 'EFFR': histEFFR(t2_12m,t10_12m),'1M': hist1m(t2_12m,t10_12m), '3M': hist3m(t2_12m,t10_12m), '6M': hist6m(t2_12m,t10_12m),'1Y': hist1y(t2_12m,t10_12m),'2Y': t2_12m, '5Y': t5_12m, '10Y': t10_12m,'30Y': t30_12m },
         };
       })()),
     };
