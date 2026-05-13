@@ -1150,6 +1150,7 @@ a{color:inherit;text-decoration:none}
   /* Radar + VIX on narrow mobile */
   #ov-macro-stock-climate svg[width="140"]{width:110px!important;height:86px!important}
   #ov-sc-vix-gauge{width:100px!important;height:56px!important}
+  #ov-sc-skew-gauge{width:100px!important;height:56px!important}
   .ov-bs-stat-val{font-size:14px!important}
   /* Labour arc + NFP mobile: constrain to fit 380px card */
   .ov-lab-arc-wrap svg{max-width:72px!important;width:72px!important}
@@ -6758,57 +6759,104 @@ function renderMacroDataPanels(reg){
         const nfciSig  = scSignals['NFCI']||{};
         const erpSig   = scSignals['ERP']||{};
         const hyqSig   = scSignals['HY_QUAD']||{};
+        const skewSig  = scSignals['SKEW']||{};
+        const fpeSig   = scSignals['FWD_PE']||{};
+        const capeSig  = scSignals['FORWARD_PE']||{}; // Shiller CAPE (legacy key)
+        const pcrSig   = scSignals['PUT_CALL']||{};
 
         const vixNum   = parseFloat(vixSig.value||'0')||0;
         const vix3mNum = parseFloat(vtsSig.vix3m||'0')||parseFloat(reg.levels?.VIX3M||'0')||0;
         const tsRatio  = vix3mNum>0&&vixNum>0 ? (vix3mNum/vixNum) : null;
-        const tsLabel  = tsRatio!=null?(tsRatio>1.05?'Contango':tsRatio<0.95?'Backwardation':'Flat'):'—';
-        const tsCol    = tsRatio!=null?(tsRatio>1.02?'#22c97a':tsRatio<0.95?'#e03a2a':'#adb8d0'):'#adb8d0';
+        const skewNum  = parseFloat(skewSig.value||'0')||0;
+        const fpeNum   = fpeSig.raw??parseFloat(fpeSig.value||'0')||0;
+        const capeNum  = parseFloat(capeSig.value||'0')||0;
+        const pcrNum   = pcrSig.raw??parseFloat(pcrSig.value||'0')||0;
 
         // ── Overall badge ─────────────────────────────────────────────────
         const scBadgeLabel = scOverall>=2?'Risk-On':scOverall>=1?'Lean Bull':scOverall<=-2?'Risk-Off':scOverall<=-1?'Lean Bear':'Neutral';
         const scBadgeCol   = scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#c8a96e';
 
-        // ── Signal row builder ────────────────────────────────────────────
-        // score: -2→+2 → colour: red→green. Contrarian signals NOT inverted here —
-        // backend already handles inversion in score assignment.
+        // ── Colour helpers ────────────────────────────────────────────────
         const sigCol = s => s>=2?'#22c97a':s>=1?'#5ec97a':s<=-2?'#e03a2a':s<=-1?'#f5a442':'#adb8d0';
         const dotCol = s => s>=1?'#22c97a':s<=-1?'#e03a2a':'#c8a96e';
-        const sigRow = (eyebrow, value, label, score, note) => {
-          const sc = score??0;
-          const dc = dotCol(sc);
-          const vc = sigCol(sc);
-          return `<div style="display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-            <div style="width:7px;height:7px;border-radius:50%;background:${dc};flex-shrink:0;box-shadow:0 0 5px ${dc}88"></div>
-            <div>
-              <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.6);margin-bottom:1px">${eyebrow}</div>
-              ${note?`<div style="font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:1px">${note}</div>`:''}
+
+        // ── Composite score bar ────────────────────────────────────────
+        const compNorm = scComp!=null ? Math.min(100,Math.max(0,((scComp+2)/4)*100)) : 50;
+        const compCol  = scComp!=null?(scComp>=1?'#22c97a':scComp>=-1?'#c8a96e':'#e03a2a'):'#adb8d0';
+        const compLbl  = scComp!=null?(scComp>=1.2?'STRONG':scComp>=0.3?'HEALTHY':scComp>=-0.3?'NEUTRAL':scComp>=-1.2?'WEAK':'STRESSED'):'—';
+
+        // ── Thermostat bar builder ─────────────────────────────────────────
+        // Renders a horizontal spectrum bar with coloured zones + needle + labels
+        // value: current level, min/max: range, zones: [{v, col, label}] breakpoints
+        // leftLabel/rightLabel: end caps
+        const thermoBar = ({
+          id, value, min, max, zones, leftLabel, rightLabel,
+          formatVal = v=>v!=null?v.toFixed(1):'—',
+          needleCol = '#c8a96e', benchmarks = [] // [{v, label, col}]
+        }) => {
+          const clamp = v => Math.min(100, Math.max(0, ((v-min)/(max-min))*100));
+          const pct = value!=null ? clamp(value) : null;
+          // Build gradient from zones
+          const gradStops = zones.map((z,i)=>{
+            const p0 = clamp(z.v0).toFixed(0);
+            const p1 = clamp(z.v1).toFixed(0);
+            return `${z.col} ${p0}%, ${z.col} ${p1}%`;
+          }).join(', ');
+          const ncol = value!=null ? (zones.find(z=>value>=z.v0&&value<z.v1)||zones[zones.length-1]).col : needleCol;
+          return `<div style="position:relative">
+            <!-- Track -->
+            <div style="position:relative;height:8px;border-radius:4px;overflow:visible;background:rgba(255,255,255,0.05)">
+              <!-- Zone gradient fill -->
+              <div style="position:absolute;inset:0;border-radius:4px;background:linear-gradient(90deg,${gradStops});opacity:0.55"></div>
+              <!-- Benchmark markers (e.g. 5yr avg) -->
+              ${benchmarks.map(b=>{
+                const bp = clamp(b.v).toFixed(1);
+                return `<div style="position:absolute;top:-3px;bottom:-3px;width:1.5px;left:${bp}%;transform:translateX(-50%);background:${b.col||'rgba(255,255,255,0.35)'};border-radius:1px" title="${b.label||''}"></div>`;
+              }).join('')}
+              <!-- Needle -->
+              ${pct!=null?`<div style="position:absolute;top:-4px;bottom:-4px;width:2.5px;left:${pct.toFixed(1)}%;transform:translateX(-50%);background:${ncol};border-radius:2px;box-shadow:0 0 6px ${ncol}99;z-index:2"></div>`:''}
             </div>
-            <div style="text-align:right;flex-shrink:0">
-              <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${vc};line-height:1;letter-spacing:-0.01em">${value}</div>
-              <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:${vc};letter-spacing:0.04em;text-transform:uppercase;opacity:0.85;margin-top:1px">${label}</div>
+            <!-- Labels row -->
+            <div style="display:flex;justify-content:space-between;margin-top:2.5px">
+              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.38);letter-spacing:0.06em">${leftLabel||''}</span>
+              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.38);letter-spacing:0.06em">${rightLabel||''}</span>
             </div>
           </div>`;
         };
 
-        // ── Cross-asset mini returns ──────────────────────────────────────
+        // ── Compact stat row builder ───────────────────────────────────────
+        // Minimal single-line row: dot | eyebrow | value + label
+        const statRow = (eyebrow, value, label, score, extra='', last=false) => {
+          const sc2 = score??0;
+          const dc = dotCol(sc2);
+          const vc = sigCol(sc2);
+          return `<div style="display:flex;align-items:center;gap:7px;padding:4.5px 0;${last?'':'border-bottom:1px solid rgba(255,255,255,0.04)'}">
+            <div style="width:5px;height:5px;border-radius:50%;background:${dc};flex-shrink:0;box-shadow:0 0 4px ${dc}88"></div>
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.5);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${eyebrow}</div>
+            <div style="text-align:right;flex-shrink:0;display:flex;align-items:baseline;gap:4px">
+              ${extra?`<span style="font-family:var(--mono);font-size:6.5px;color:var(--faint);opacity:0.7">${extra}</span>`:''}
+              <span style="font-family:var(--mono);font-size:11.5px;font-weight:900;color:${vc};letter-spacing:-0.01em">${value}</span>
+              <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${vc};letter-spacing:0.04em;text-transform:uppercase;opacity:0.85;min-width:0">${label}</span>
+            </div>
+          </div>`;
+        };
+
+        // ── Cross-asset returns ────────────────────────────────────────────
         const miniAssets = [
           {lbl:'SPX', key:'SPX'},{lbl:'NDX', key:'NDX'},
-          {lbl:'Gold', key:'GLD'},{lbl:'Bonds', key:'TLT'},
-          {lbl:'Oil', key:'OIL'},{lbl:'USD', key:'DXY'},
+          {lbl:'Gold', key:'GLD'},{lbl:'Oil', key:'OIL'},
+          {lbl:'Bonds', key:'TLT'},{lbl:'USD', key:'DXY'},
         ].map(m=>{
           const r = ret[m.key]||{};
           const r1m = r.return_1m??null;
           const r3m = r.return_3m??null;
           const fmtR = v => v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
-          const colR = v => v==null?'var(--faint)':v>0.2?'#22c97a':v<-0.2?'#e03a2a':'var(--dim)';
+          const colR = v => v==null?'var(--faint)':v>0.3?'#22c97a':v>0?'#5aaa7a':v<-0.3?'#e03a2a':v<0?'#d06040':'var(--dim)';
           return {...m, r1m, r3m, fmtR, colR};
         });
 
-        // ── Composite strength bar ────────────────────────────────────────
-        const compNorm = scComp!=null ? Math.min(100,Math.max(0,((scComp+2)/4)*100)) : 50;
-        const compCol  = scComp!=null?(scComp>=1?'#22c97a':scComp>=-1?'#c8a96e':'#e03a2a'):'#adb8d0';
-        const compLbl  = scComp!=null?(scComp>=1.2?'STRONG':scComp>=0.3?'HEALTHY':scComp>=-0.3?'NEUTRAL':scComp>=-1.2?'WEAK':'STRESSED'):'—';
+        // VIX/SKEW divergence flag
+        const vixSkewDiv = skewSig.divergence || (vixNum>0&&vixNum<18&&skewNum>135);
 
         return `
       <div class="ov-macro-card" id="ov-macro-stock-climate">
@@ -6816,8 +6864,8 @@ function renderMacroDataPanels(reg){
         <div class="ov-macro-card-wash" style="background:${scBadgeCol}"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
-        <!-- Header -->
-        <div class="ov-mc-header" style="margin-bottom:10px">
+        <!-- ══ HEADER ═══════════════════════════════════════════════════ -->
+        <div class="ov-mc-header" style="margin-bottom:8px">
           <div>
             <div class="ov-mc-eyebrow">Equities</div>
             <div class="ov-mc-title">Equity Conditions</div>
@@ -6825,100 +6873,215 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${scBadgeCol};background:${scBadgeCol}1a;border:1px solid ${scBadgeCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- Composite strength bar -->
-        <div style="margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:9px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <div style="display:flex;align-items:baseline;gap:7px">
-              <span style="font-family:var(--mono);font-size:clamp(24px,4vw,30px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${compCol}">${scComp!=null?scComp.toFixed(2):'—'}</span>
-              <span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${compCol};padding:2px 7px;border-radius:5px;background:${compCol}18;border:1px solid ${compCol}28;letter-spacing:0.06em">${compLbl}</span>
+        <!-- ══ COMPOSITE SCORE + SPX SPARKLINE ═══════════════════════════ -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.07);border-radius:9px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:6px">
+              <span style="font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${compCol}">${scComp!=null?scComp.toFixed(2):'—'}</span>
+              <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;color:${compCol};padding:2px 6px;border-radius:4px;background:${compCol}18;border:1px solid ${compCol}28;letter-spacing:0.06em">${compLbl}</span>
             </div>
-            <canvas id="ov-sc-spx-chart" width="100" height="36" style="width:90px;height:36px;display:block;border-radius:5px;flex-shrink:0"></canvas>
+            <div style="position:relative;height:7px;border-radius:3.5px;overflow:hidden;background:rgba(255,255,255,0.06)">
+              <div style="position:absolute;inset:0;background:linear-gradient(90deg,#e03a2a 0%,#f5a442 28%,#c8a96e 50%,#5aaa7a 72%,#22c97a 100%);opacity:0.28;border-radius:3px"></div>
+              <div style="position:absolute;top:0;bottom:0;width:2.5px;left:${compNorm.toFixed(1)}%;background:${compCol};border-radius:1px;box-shadow:0 0 8px ${compCol};transform:translateX(-50%)"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:2.5px">
+              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.18)">Stressed</span>
+              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.18)">Risk-On</span>
+            </div>
           </div>
-          <!-- Composite bar -->
-          <div style="position:relative;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.06)">
-            <div style="position:absolute;inset:0;background:linear-gradient(90deg,#e03a2a 0%,#f5a442 30%,#c8a96e 50%,#5aaa7a 70%,#22c97a 100%);opacity:0.3;border-radius:3px"></div>
-            <div style="position:absolute;top:0;bottom:0;width:2px;left:${compNorm.toFixed(1)}%;background:${compCol};border-radius:1px;box-shadow:0 0 6px ${compCol};transform:translateX(-50%)"></div>
+          <canvas id="ov-sc-spx-chart" width="100" height="44" style="width:88px;height:44px;display:block;border-radius:5px;flex-shrink:0"></canvas>
+        </div>
+
+        <!-- ══ SECTION 1: VALUATION ═══════════════════════════════════════ -->
+        <div style="margin-bottom:9px">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Valuation</div><div class="mc-sect-line"></div></div>
+
+          <!-- Forward PE thermostat -->
+          <div style="margin-bottom:7px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Forward PE (NTM)</span>
+              <div style="display:flex;align-items:baseline;gap:4px">
+                ${fpeNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(fpeSig.score??0)};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</span>
+                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(fpeSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${fpeSig.label||'—'}</span>`:''}
+                ${fpeNum<=0&&fpeNum===0?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>`:''}
+              </div>
+            </div>
+            ${thermoBar({
+              value: fpeNum>0?fpeNum:null,
+              min: 12, max: 28,
+              zones: [
+                {v0:12, v1:15, col:'rgba(34,201,122,0.75)'},
+                {v0:15, v1:18, col:'rgba(90,170,120,0.60)'},
+                {v0:18, v1:22, col:'rgba(200,169,110,0.65)'},
+                {v0:22, v1:25, col:'rgba(240,140,60,0.70)'},
+                {v0:25, v1:28, col:'rgba(220,60,42,0.80)'},
+              ],
+              leftLabel: '12x Cheap', rightLabel: '28x+ Extreme',
+              benchmarks: [
+                {v:19.9, label:'5yr avg 19.9x', col:'rgba(200,169,110,0.55)'},
+                {v:18.9, label:'10yr avg 18.9x', col:'rgba(173,184,208,0.35)'},
+              ]
+            })}
           </div>
-          <div style="display:flex;justify-content:space-between;margin-top:3px">
-            <span style="font-family:var(--mono);font-size:6px;color:rgba(255,255,255,0.2)">Stressed</span>
-            <span style="font-family:var(--mono);font-size:6px;color:rgba(255,255,255,0.2)">Risk-On</span>
+
+          <!-- CAPE thermostat -->
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Shiller CAPE</span>
+              <div style="display:flex;align-items:baseline;gap:4px">
+                ${capeNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(capeSig.score??0)};letter-spacing:-0.02em">${capeNum.toFixed(1)}x</span>
+                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(capeSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${capeSig.label||'—'}</span>`:''}
+              </div>
+            </div>
+            ${thermoBar({
+              value: capeNum>0?capeNum:null,
+              min: 10, max: 45,
+              zones: [
+                {v0:10, v1:18, col:'rgba(34,201,122,0.75)'},
+                {v0:18, v1:25, col:'rgba(90,170,120,0.55)'},
+                {v0:25, v1:32, col:'rgba(200,169,110,0.65)'},
+                {v0:32, v1:38, col:'rgba(240,120,50,0.70)'},
+                {v0:38, v1:45, col:'rgba(200,40,40,0.80)'},
+              ],
+              leftLabel: '10x Cheap', rightLabel: '45x+ Extreme',
+              benchmarks: [
+                {v:17, label:'LT mean ~17x', col:'rgba(173,184,208,0.45)'},
+                {v:25, label:'Elevated threshold', col:'rgba(200,169,110,0.40)'},
+              ]
+            })}
           </div>
         </div>
 
-        <!-- Signal rows — 2-column grid of traffic-light rows -->
-        <div style="margin-bottom:10px">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Market Signals</div><div class="mc-sect-line"></div></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">
+        <!-- ══ SECTION 2: FEAR & VOLATILITY ══════════════════════════════ -->
+        <div style="margin-bottom:9px">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Fear &amp; Volatility</div><div class="mc-sect-line"></div></div>
 
-            <!-- LEFT COLUMN: Volatility + Conditions -->
-            <div>
-              ${sigRow('VIX · Volatility',
-                vixNum>0?vixNum.toFixed(1):'—',
-                vixSig.label||'—',
-                vixSig.score,
-                null
-              )}
-              ${sigRow('VIX Term Structure',
-                tsRatio!=null?tsRatio.toFixed(3):'—',
-                tsLabel,
-                vtsSig.score??(tsRatio!=null?tsRatio>1.02?1:tsRatio<0.95?-1:0:null),
-                vix3mNum>0?`3M: ${vix3mNum.toFixed(1)}`:null
-              )}
-              ${sigRow('Fin. Conditions',
-                nfciSig.value||'—',
-                nfciSig.label||'—',
-                nfciSig.score,
-                nfciSig.delta_4w!=null?`4W Δ ${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:null
-              )}
+          <!-- VIX + SKEW side-by-side gauges -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px">
+
+            <!-- VIX gauge block -->
+            <div style="background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:7px 8px;text-align:center">
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">VIX</div>
+              <canvas id="ov-sc-vix-gauge" width="100" height="56" style="width:100%;max-width:100px;height:56px;display:block;margin:0 auto"></canvas>
+              <div style="display:flex;justify-content:center;align-items:baseline;gap:4px;margin-top:2px">
+                <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em;color:${vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0'}">${vixNum>0?vixNum.toFixed(1):'—'}</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0'};opacity:0.85;margin-top:1px">${vixSig.label||'—'}</span>
+              ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:6px;color:var(--faint);margin-top:2px">3M: ${vix3mNum.toFixed(1)} &middot; ${tsRatio!=null?(tsRatio>1.02?'Contango':'Backw.'):'—'}</div>`:'<div style="height:10px"></div>'}
             </div>
 
-            <!-- RIGHT COLUMN: Credit + Breadth + Momentum -->
-            <div>
-              ${sigRow('HY Credit Regime',
-                hyqSig.value||'—',
-                hyqSig.label||'—',
-                hyqSig.score,
-                hyqSig.quadrant||null
-              )}
-              ${sigRow('Market Breadth',
-                brSig.value||'—',
-                brSig.label||'—',
-                brSig.score,
-                null
-              )}
-              ${sigRow('SPX Momentum',
-                momSig.value||'—',
-                momSig.label||'—',
-                momSig.score,
-                null
-              )}
+            <!-- SKEW gauge block -->
+            <div style="background:rgba(255,255,255,0.018);border:1px solid ${skewNum>135?'rgba(240,140,60,0.25)':'rgba(255,255,255,0.06)'};border-radius:8px;padding:7px 8px;text-align:center;position:relative">
+              ${vixSkewDiv?`<div style="position:absolute;top:4px;right:6px;font-family:var(--mono);font-size:5px;font-weight:800;letter-spacing:0.08em;color:#f5a442;text-transform:uppercase;opacity:0.9">DIVERGE</div>`:''}
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">CBOE SKEW</div>
+              <canvas id="ov-sc-skew-gauge" width="100" height="56" style="width:100%;max-width:100px;height:56px;display:block;margin:0 auto"></canvas>
+              <div style="display:flex;justify-content:center;align-items:baseline;gap:4px;margin-top:2px">
+                <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em;color:${sigCol(skewSig.score??0)}">${skewNum>0?skewNum.toFixed(0):'—'}</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${sigCol(skewSig.score??0)};opacity:0.85;margin-top:1px">${skewSig.label||'Tail Risk'}</div>
+              <div style="font-family:var(--mono);font-size:6px;color:var(--faint);margin-top:2px">Tail hedge demand</div>
             </div>
           </div>
 
-          <!-- ERP row — full width, prominent -->
-          <div style="margin-top:2px">
-            ${sigRow('Equity Risk Premium (EY − 10Y)',
-              erpSig.value||'—',
-              erpSig.label||'—',
-              erpSig.score,
-              erpSig.dgs10!=null?`10Y: ${erpSig.dgs10}%`:null
-            )}
+          <!-- Put/Call ratio thermostat -->
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Put/Call Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(contrarian)</span></span>
+              <div style="display:flex;align-items:baseline;gap:4px">
+                ${pcrNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(pcrSig.score??0)};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</span>
+                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(pcrSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'—'}</span>`:''}
+              </div>
+            </div>
+            ${thermoBar({
+              value: pcrNum>0?pcrNum:null,
+              min: 0.4, max: 1.2,
+              zones: [
+                {v0:0.4, v1:0.5,  col:'rgba(220,60,42,0.80)'},   // extreme greed
+                {v0:0.5, v1:0.60, col:'rgba(240,120,50,0.70)'},  // greed
+                {v0:0.60,v1:0.75, col:'rgba(200,169,110,0.60)'}, // neutral
+                {v0:0.75,v1:0.85, col:'rgba(90,170,120,0.60)'},  // mildly fearful
+                {v0:0.85,v1:1.2,  col:'rgba(34,201,122,0.70)'},  // fear/buy signal
+              ],
+              leftLabel: '0.4 Extreme Greed', rightLabel: '1.2+ Fear',
+              benchmarks: [{v:0.94, label:'LT avg 0.94', col:'rgba(173,184,208,0.45)'}]
+            })}
           </div>
         </div>
 
-        <!-- Cross-Asset Returns — compact -->
+        <!-- ══ SECTION 3: BREADTH & MOMENTUM ═════════════════════════════ -->
+        <div style="margin-bottom:9px">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
+
+          <!-- SPX 3m Momentum thermostat -->
+          <div style="margin-bottom:7px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">SPX 3M Momentum</span>
+              <div style="display:flex;align-items:baseline;gap:4px">
+                <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(momSig.score??0)};letter-spacing:-0.02em">${momSig.value||'—'}</span>
+                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(momSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${momSig.label||'—'}</span>
+              </div>
+            </div>
+            ${thermoBar({
+              value: (()=>{ const v=parseFloat(momSig.value||'0'); return isNaN(v)?null:v; })(),
+              min: -20, max: 20,
+              zones: [
+                {v0:-20, v1:-8,  col:'rgba(200,40,40,0.80)'},
+                {v0:-8,  v1:-3,  col:'rgba(230,100,50,0.65)'},
+                {v0:-3,  v1:3,   col:'rgba(200,169,110,0.55)'},
+                {v0:3,   v1:8,   col:'rgba(70,160,100,0.65)'},
+                {v0:8,   v1:20,  col:'rgba(34,201,122,0.80)'},
+              ],
+              leftLabel: '-20% Bear', rightLabel: '+20% Bull',
+              benchmarks: [{v:0, label:'Neutral', col:'rgba(255,255,255,0.30)'}]
+            })}
+          </div>
+
+          <!-- RSP/SPY Breadth thermostat -->
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Breadth RSP/SPY 3M Δ</span>
+              <div style="display:flex;align-items:baseline;gap:4px">
+                <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(brSig.score??0)};letter-spacing:-0.02em">${brSig.value||'—'}</span>
+                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(brSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${brSig.label||'—'}</span>
+              </div>
+            </div>
+            ${thermoBar({
+              value: (()=>{ const v=parseFloat(brSig.value||'0'); return isNaN(v)?null:v; })(),
+              min: -8, max: 8,
+              zones: [
+                {v0:-8, v1:-3,  col:'rgba(200,40,40,0.80)'},
+                {v0:-3, v1:-1,  col:'rgba(230,100,50,0.65)'},
+                {v0:-1, v1:1,   col:'rgba(200,169,110,0.55)'},
+                {v0:1,  v1:3,   col:'rgba(70,160,100,0.65)'},
+                {v0:3,  v1:8,   col:'rgba(34,201,122,0.80)'},
+              ],
+              leftLabel: 'Thin/Narrow', rightLabel: 'Broad Rally',
+              benchmarks: [{v:0, label:'Flat', col:'rgba(255,255,255,0.28)'}]
+            })}
+          </div>
+        </div>
+
+        <!-- ══ SECTION 4: CONDITIONS ══════════════════════════════════════ -->
+        <div style="margin-bottom:9px">
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Macro Conditions</div><div class="mc-sect-line"></div></div>
+          ${statRow('Fin. Conditions (NFCI)', nfciSig.value||'—', nfciSig.label||'—', nfciSig.score, nfciSig.delta_4w!=null?`4W:${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:undefined)}
+          ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`10Y:${erpSig.dgs10}%`:undefined)}
+          ${statRow('HY Spreads', hyqSig.value||'—', hyqSig.label||'—', hyqSig.score, hyqSig.quadrant||undefined, true)}
+        </div>
+
+        <!-- ══ SECTION 5: CROSS-ASSET RETURNS ════════════════════════════ -->
         <div style="flex:1;min-height:0">
           <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">
-            ${miniAssets.map(m=>`<div style="background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:5px 8px">
-              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--dim);margin-bottom:4px">${m.lbl}</div>
+            ${miniAssets.map(m=>`<div style="background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.055);border-radius:6px;padding:5px 7px">
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(173,184,208,0.65);margin-bottom:3px;letter-spacing:0.04em">${m.lbl}</div>
               <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
-                <span style="font-family:var(--mono);font-size:6.5px;color:var(--faint)">1M</span>
-                <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${m.colR(m.r1m)}">${m.fmtR(m.r1m)}</span>
+                <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.35)">1M</span>
+                <span style="font-family:var(--mono);font-size:10.5px;font-weight:900;color:${m.colR(m.r1m)}">${m.fmtR(m.r1m)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:baseline">
-                <span style="font-family:var(--mono);font-size:6.5px;color:var(--faint)">3M</span>
-                <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${m.colR(m.r3m)}">${m.fmtR(m.r3m)}</span>
+                <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.35)">3M</span>
+                <span style="font-family:var(--mono);font-size:10.5px;font-weight:900;color:${m.colR(m.r3m)}">${m.fmtR(m.r3m)}</span>
               </div>
             </div>`).join('')}
           </div>
@@ -6941,6 +7104,13 @@ function renderMacroDataPanels(reg){
       // Align with P6 semantic: \u226420=green, 20\u201330=amber, 30+=red
       const vixCol2 = vixNum2>0?(vixNum2>=30?'#e03a2a':vixNum2>=20?'#f5a442':vixNum2>=15?'#adb8d0':'#22c97a'):'#adb8d0';
       _drawVixGauge('ov-sc-vix-gauge', vixNum2, vixCol2);
+    } catch(e){}
+    // SKEW semicircle gauge
+    try {
+      const skewNum2 = parseFloat(scSignals['SKEW']?.value||'0')||0;
+      const skewScore2 = scSignals['SKEW']?.score??0;
+      const skewCol2 = skewScore2>=2?'#22c97a':skewScore2>=1?'#5aaa7a':skewScore2<=-2?'#e03a2a':skewScore2<=-1?'#f5a442':'#adb8d0';
+      _drawSkewGauge('ov-sc-skew-gauge', skewNum2, skewCol2);
     } catch(e){}
     // SPX sparkline
     try { _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a'); } catch(e){}
@@ -8043,6 +8213,129 @@ function _drawVixGauge(canvasId, vixLevel, col){
     const needleAng = Math.PI + toRad((Math.min(vixLevel,vixMax)/vixMax)*180);
     const nx = Math.cos(needleAng), ny = Math.sin(needleAng);
     const toRgb = h=>({'#22c97a':'34,201,122','#f5c842':'245,200,66','#e03a2a':'224,58,42','#adb8d0':'173,184,208'}[h]||'173,184,208');
+    const rgb = toRgb(col);
+    // Glow
+    c.save();
+    c.strokeStyle = `rgba(${rgb},0.25)`;
+    c.lineWidth = 5;
+    c.lineCap = 'round';
+    c.shadowBlur = 8;
+    c.shadowColor = col;
+    c.beginPath();
+    c.moveTo(cx - 5*nx, cy - 5*ny);
+    c.lineTo(cx + (R-2)*nx, cy + (R-2)*ny);
+    c.stroke();
+    c.restore();
+    // Needle line
+    c.save();
+    c.strokeStyle = col;
+    c.lineWidth = 2;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(cx - 5*nx, cy - 5*ny);
+    c.lineTo(cx + (R-3)*nx, cy + (R-3)*ny);
+    c.stroke();
+    c.restore();
+    // Needle tip dot
+    c.save();
+    c.fillStyle = col;
+    c.shadowBlur = 6;
+    c.shadowColor = col;
+    c.beginPath();
+    c.arc(cx + (R-3)*nx, cy + (R-3)*ny, 2.5, 0, Math.PI*2);
+    c.fill();
+    c.restore();
+  }
+  // Centre pivot
+  c.save();
+  c.fillStyle = 'rgba(255,255,255,0.2)';
+  c.beginPath();
+  c.arc(cx, cy, 3.5, 0, Math.PI*2);
+  c.fill();
+  c.restore();
+}
+
+/* ── SKEW Semicircle Gauge ───────────────────────────────────────────────── */
+function _drawSkewGauge(canvasId, skewLevel, col){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const W = canvas.offsetWidth||140, H = canvas.offsetHeight||79;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const c = canvas.getContext('2d');
+  c.scale(dpr, dpr);
+  c.clearRect(0,0,W,H);
+
+  const toRad = d => d * Math.PI / 180;
+  const cx = W/2, cy = H - 8;
+  const R = Math.min(cx, cy) - 4;
+
+  // SKEW range: 100–170 (calm left → tail-risk right)
+  const skewMin = 100, skewMax = 170;
+  const vToDeg = v => 180 + ((Math.min(Math.max(v,skewMin),skewMax)-skewMin)/(skewMax-skewMin))*180;
+
+  // Zones: green=calm, amber=elevated, red=extreme tail risk
+  const zones = [
+    {v0:100, v1:110, col:'#22c97a44'},
+    {v0:110, v1:125, col:'#5aaa7a44'},
+    {v0:125, v1:135, col:'rgba(255,255,255,0.10)'},
+    {v0:135, v1:145, col:'#f5a44244'},
+    {v0:145, v1:170, col:'#e03a2a55'},
+  ];
+
+  // Track background
+  c.save();
+  c.strokeStyle = 'rgba(255,255,255,0.07)';
+  c.lineWidth = 9;
+  c.lineCap = 'butt';
+  c.beginPath();
+  c.arc(cx, cy, R, Math.PI, 0, false);
+  c.stroke();
+  c.restore();
+
+  // Coloured zone segments
+  zones.forEach(z=>{
+    const a0 = toRad(vToDeg(z.v0) - 180);
+    const a1 = toRad(vToDeg(z.v1) - 180);
+    c.save();
+    c.strokeStyle = z.col;
+    c.lineWidth = 9;
+    c.lineCap = 'butt';
+    c.beginPath();
+    c.arc(cx, cy, R, Math.PI + a0, Math.PI + a1, false);
+    c.stroke();
+    c.restore();
+  });
+
+  // Zone tick marks + labels
+  [110, 125, 135, 145].forEach(v=>{
+    const ang = Math.PI + toRad(((v-skewMin)/(skewMax-skewMin))*180);
+    const nx = Math.cos(ang), ny = Math.sin(ang);
+    c.save();
+    c.strokeStyle = 'rgba(255,255,255,0.3)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(cx+(R-6)*nx, cy+(R-6)*ny);
+    c.lineTo(cx+(R+2)*nx, cy+(R+2)*ny);
+    c.stroke();
+    c.restore();
+    const lx = cx+(R+10)*nx, ly = cy+(R+10)*ny;
+    if(ly < cy+2){
+      c.save();
+      c.font = '500 5.5px "JetBrains Mono",monospace';
+      c.textAlign = 'center';
+      c.fillStyle = 'rgba(138,152,184,0.6)';
+      c.fillText(String(v), lx, ly+2);
+      c.restore();
+    }
+  });
+
+  // Needle
+  if(skewLevel>0){
+    const needleAng = Math.PI + toRad(((Math.min(Math.max(skewLevel,skewMin),skewMax)-skewMin)/(skewMax-skewMin))*180);
+    const nx = Math.cos(needleAng), ny = Math.sin(needleAng);
+    const toRgb = h=>({'#22c97a':'34,201,122','#5aaa7a':'90,170,122','#f5a442':'245,164,66','#e03a2a':'224,58,42','#adb8d0':'173,184,208'}[h]||'173,184,208');
     const rgb = toRgb(col);
     // Glow
     c.save();

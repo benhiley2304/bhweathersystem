@@ -5046,6 +5046,106 @@ def compute_stock_climate() -> dict:
         except Exception:
             pass
 
+        # ── 9. CBOE SKEW Index ───────────────────────────────────────────────
+        # SKEW measures tail risk (left-tail demand from OTM puts).
+        # Range typically 100–170; >135 = elevated tail hedging, <120 = complacent.
+        # Useful as a divergence signal: Low VIX + High SKEW = stealth worry.
+        try:
+            _skew_tk = yf.Ticker("^SKEW")
+            skew_hist = _yf_with_timeout(_skew_tk.history, period="5d", interval="1d", label="SKEW")
+            skew_level = float(skew_hist["Close"].dropna().iloc[-1]) if skew_hist is not None and not skew_hist.empty else None
+            if skew_level is not None:
+                # SKEW is a contrarian signal: HIGH skew = protection demand = mildly bearish sentiment
+                if skew_level < 110:
+                    skew_score, skew_label = 2, "Complacent"
+                elif skew_level < 125:
+                    skew_score, skew_label = 1, "Low Hedging"
+                elif skew_level < 135:
+                    skew_score, skew_label = 0, "Neutral"
+                elif skew_level < 145:
+                    skew_score, skew_label = -1, "Elevated"
+                else:
+                    skew_score, skew_label = -2, "Tail Risk"
+                # VIX/SKEW divergence: low VIX + high SKEW = institutional stealth worry
+                vix_skew_div = (
+                    vix_level is not None and vix_level < 18 and skew_level > 135
+                )
+                signals["SKEW"] = {
+                    "title": "CBOE SKEW",
+                    "value": f"{skew_level:.0f}",
+                    "label": skew_label,
+                    "score": skew_score,
+                    "category": "volatility",
+                    "divergence": vix_skew_div,
+                }
+        except Exception:
+            pass
+
+        # ── 10. Forward PE (NTM) via yfinance ───────────────────────────────
+        # Pull forward PE directly from yfinance info; fall back to CAPE-derived EY.
+        # Also store 5yr avg (19.9x) as a reference benchmark.
+        try:
+            _fpe_tk = yf.Ticker("SPY")  # SPY info gives consistent forward PE
+            _fpe_info = _fpe_tk.info
+            fwd_pe = _fpe_info.get("forwardPE") or _fpe_info.get("trailingPE")
+            if fwd_pe:
+                fwd_pe = float(fwd_pe)
+                # Forward PE thresholds vs historical context
+                if fwd_pe < 15:
+                    fpe_score, fpe_label = 2, "Cheap"
+                elif fwd_pe < 18:
+                    fpe_score, fpe_label = 1, "Fair Value"
+                elif fwd_pe < 22:
+                    fpe_score, fpe_label = 0, "Elevated"
+                elif fwd_pe < 25:
+                    fpe_score, fpe_label = -1, "Expensive"
+                else:
+                    fpe_score, fpe_label = -2, "Very Expensive"
+                signals["FWD_PE"] = {
+                    "title": "Forward PE (NTM)",
+                    "value": f"{fwd_pe:.1f}x",
+                    "label": fpe_label,
+                    "score": fpe_score,
+                    "category": "valuation",
+                    "raw": round(fwd_pe, 2),
+                    "avg5yr": 19.9,   # FactSet 5-yr historical average
+                    "avg10yr": 18.9,  # FactSet 10-yr historical average
+                }
+        except Exception:
+            pass
+
+        # ── 11. CBOE Put/Call Ratio ──────────────────────────────────────────
+        # Total equity put/call ratio — contrarian sentiment: high = fear (buy signal), low = greed (caution)
+        # FRED series PUTCALL = CBOE equity P/C ratio (daily)
+        try:
+            pcr_raw = fetch_fred_series("PUTCALL", 5)  # last 5 days
+            if pcr_raw and len(pcr_raw) >= 1:
+                pcr_vals = [r["value"] for r in pcr_raw if r.get("value") is not None]
+                if pcr_vals:
+                    pcr_now = pcr_vals[-1]
+                    pcr_prev = pcr_vals[-5] if len(pcr_vals) >= 5 else pcr_vals[0]
+                    # Contrarian: low P/C = complacency/greed (bearish signal), high = fear (bullish signal)
+                    if pcr_now > 0.85:
+                        pcr_score, pcr_label = 2, "Fear / Buy Signal"
+                    elif pcr_now > 0.75:
+                        pcr_score, pcr_label = 1, "Mildly Fearful"
+                    elif pcr_now > 0.60:
+                        pcr_score, pcr_label = 0, "Neutral"
+                    elif pcr_now > 0.50:
+                        pcr_score, pcr_label = -1, "Greed / Caution"
+                    else:
+                        pcr_score, pcr_label = -2, "Extreme Greed"
+                    signals["PUT_CALL"] = {
+                        "title": "Put/Call Ratio",
+                        "value": f"{pcr_now:.2f}",
+                        "label": pcr_label,
+                        "score": pcr_score,
+                        "category": "sentiment",
+                        "raw": round(pcr_now, 3),
+                    }
+        except Exception:
+            pass
+
         # ── Composite score ──────────────────────────────────────────────────
         weights = {"VIX": 0.20, "VIX_TS": 0.15, "BREADTH": 0.15, "SPX_MOM": 0.20,
                    "HY_QUAD": 0.15, "NFCI": 0.10, "ERP": 0.05}
