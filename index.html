@@ -6047,10 +6047,10 @@ function renderMacroDataPanels(reg){
           <div id="ov-yc-chart" style="position:relative;flex:1;min-height:130px;width:100%"></div>
         </div>
         <!-- Momentum strip -->
-        <div style="display:flex;gap:10px;align-items:center;padding:3px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:6px">
+        <div style="display:flex;gap:10px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.05);margin-top:4px;flex-shrink:0">
           ${sChg3m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
           ${sChg6m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
-          ${yc_move_type?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${moveCol};margin-left:auto">${yc_move_type}</span>`:''}
+          ${yc_move_type?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${moveCol};margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%">${yc_move_type}</span>`:''}
         </div>
         <!-- Rate Context row -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
@@ -6412,7 +6412,9 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // Height: 65% aspect on desktop, taller on narrow mobile
   const aspectH = W < 220 ? 0.75 : 0.62;
   const H = Math.max(Math.round(W * aspectH), 140);
-  const padL = 36, padR = 10, padT = 14, padB = 28;
+  // On mini (mobile half-width), skip y-axis label space
+  const _padL = (el.getBoundingClientRect().width || containerW) < 220 ? 8 : 36;
+  const padL = _padL, padR = 10, padT = 10, padB = 32;
   const gW = W - padL - padR, gH = H - padT - padB;
 
   const xPosLog = t => {
@@ -6449,12 +6451,13 @@ function _drawYieldCurveInline(nowCol, tenorData) {
 
   const uid = 'yci' + (Math.random()*0xFFFFF|0).toString(16);
 
-  // Scale font sizes to chart width
-  const fScale = Math.max(0.7, Math.min(1.0, W / 280));
-  const fGrid = (5.5 * fScale).toFixed(1);
-  const fAxis = (6.5 * fScale).toFixed(1);
-  const fLbl  = (6.0 * fScale).toFixed(1);
-  const fLblKey = (7.5 * fScale).toFixed(1);
+  // Scale font sizes to chart width; on very narrow mobile simplify
+  const isMini = padL < 20; // same condition as _padL above
+  const fScale = Math.max(0.75, Math.min(1.0, W / 280));
+  const fGrid = isMini ? '0' : (5.5 * fScale).toFixed(1);   // hide y-axis labels on mini
+  const fAxis = isMini ? (7.5).toFixed(1) : (6.5 * fScale).toFixed(1);  // bigger x-labels on mini
+  const fLbl  = isMini ? '0' : (6.0 * fScale).toFixed(1);   // hide rate labels on mini
+  const fLblKey = isMini ? '0' : (7.5 * fScale).toFixed(1); // hide key labels on mini
 
   // Adaptive Y gridlines — pick step size based on range
   let yStep = 0.5;
@@ -6540,7 +6543,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     curveSvg += `<text x="${xOff.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" fill="${isKey ? nowCol : 'rgba(255,255,255,0.72)'}" font-family="var(--mono)" font-size="${isKey ? fLblKey : fLbl}" font-weight="${isKey ? 800 : 600}">${d.v.toFixed(2)}%</text>`;
   });
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:hidden" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
     ${grids}${xAxis}${curveSvg}
   </svg>`;
 
