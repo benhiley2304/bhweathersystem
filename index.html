@@ -4527,8 +4527,7 @@ function renderOverview(){
       const neutPct2=Math.round((neut/total)*100);
       const bearPct2=100-bullPct2-neutPct2;
       // Shorten description for mobile
-      const mobDesc=regDesc?regDesc.split('–')[0].trim().substring(0,70):
-        (regLabel.includes('On')?'Broad market positioning is bullish':regLabel.includes('Off')?'Broad market positioning is bearish':'Markets in transitional mode');
+      const mobDesc=(()=>{if(!regDesc)return regLabel.includes('On')?'Broad market positioning is bullish':regLabel.includes('Off')?'Broad market positioning is bearish':'Markets in transitional mode';const base=regDesc.split('–')[0].trim();if(base.length<=54)return base;const cut=base.substring(0,54);const lastSpace=cut.lastIndexOf(' ');return (lastSpace>30?cut.substring(0,lastSpace):cut)+'…';})();
       // Score display
       const regScoreStr=regScore!=null?`${regScore.toFixed(1)} / 10`:`Avg ${avg}`;
       // Updated: of markets, X
