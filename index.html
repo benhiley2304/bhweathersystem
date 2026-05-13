@@ -5627,11 +5627,14 @@ function renderMacroDataPanels(reg){
   }).filter(Boolean);
   const inflScores = inflRows.map(r=>r.score).filter(v=>v!=null);
   const inflAvg = inflScores.length?inflScores.reduce((a,b)=>a+b,0)/inflScores.length:5;
-  const inflBadgeLabel = inflAvg>=7?'Hot':inflAvg>=6?'Elevated':inflAvg>=4.5?'Moderate':inflAvg>=3?'Subdued':'Anchored';
-  const inflBadgeCol   = inflAvg>=7?'#e03a2a':inflAvg>=6?'#f5c842':inflAvg>=4.5?'#adb8d0':inflAvg>=3?'#5aaa7a':'#22c97a';
+  // Inflation: red=hot, amber=elevated, neutral=on-target, blue=cool/cold
+  // inflAvg: 0=deflationary extreme, 5=on target, 10=hyperinflation
+  // Score >5 = hotter than trend, <5 = cooler
+  const inflBadgeLabel = inflAvg>=7.5?'Hot':inflAvg>=5.5?'Elevated':inflAvg>=4.5?'On Target':inflAvg>=3?'Cool':'Cold';
+  const inflBadgeCol   = inflAvg>=7.5?'#e03a2a':inflAvg>=5.5?'#f5c842':inflAvg>=4.5?'#adb8d0':inflAvg>=3?'#5c9eff':'#4a90d9';
   const inflArcCol     = inflBadgeCol;
-  // Arc: show "calm" = full arc. Invert: anchored (low score) = high arc fill
-  const inflArcPct     = Math.max(0, Math.min(100, (1 - inflAvg/10) * 100));
+  // Arc fill mirrors heat: hot = high fill (red), cold = low fill (blue)
+  const inflArcPct     = Math.max(0, Math.min(100, (inflAvg/10) * 100));
 
   // ── SVG arc gauge
   function arcSVG(pct, col, size=100, strokeW=11){
@@ -5706,14 +5709,22 @@ function renderMacroDataPanels(reg){
     const entries = walclHistory.filter(d=>d.v!=null);
     if(entries.length<2) return '';
     const vals = entries.map(d=>d.v);
-    const W=320, H=110;
-    const padL=32, padR=10, padT=8, padB=22;
+    const W=320, H=120;
+    const padL=32, padR=10, padT=10, padB=22;
     const gW=W-padL-padR, gH=H-padT-padB;
     const minV=Math.min(...vals), maxV=Math.max(...vals);
     const range=Math.max(0.5,maxV-minV);
     const vMin=minV-range*0.05, vMax=maxV+range*0.15;
     const vRange=vMax-vMin;
-    const px=(i)=>padL+(i/(entries.length-1))*gW;
+    // Non-linear X: exponential weighting toward recent data
+    // Map: older data compressed, recent 2 years expanded
+    const n=entries.length;
+    const px=(i)=>{
+      // Square-root weighting: recent data gets ~2x x-axis space
+      const t=i/(n-1); // 0=oldest, 1=newest
+      const compressed = Math.pow(t, 0.55); // <1 expands recent end
+      return padL+compressed*gW;
+    };
     const py=(v)=>padT+gH-((v-vMin)/vRange)*gH;
     // Date → index lookup
     const dateToIdx = {};
@@ -5807,14 +5818,6 @@ function renderMacroDataPanels(reg){
       <!-- PANEL 1: LABOUR MARKET ══════════════════════════════════════════ -->
       ${(()=>{
         const arcPct = jobsComp!=null?jobsComp*10:50;
-        const ffRows = [
-          {lbl:'NFP',      unit:'K', d:ffNfp,   higherGood:true},
-          {lbl:'Unemploy.',unit:'%', d:ffUr,    higherGood:false},
-          {lbl:'Claims',   unit:'K', d:ffCl,    higherGood:false},
-          {lbl:'JOLTS',    unit:'M', d:ffJolts, higherGood:true},
-          {lbl:'Wages',    unit:'%', d:ffWages, higherGood:true},
-          {lbl:'ADP',      unit:'K', d:ffAdp,   higherGood:true},
-        ].filter(r=>r.d&&r.d.actual!=null&&r.d.forecast!=null);
         // Z-score style indicator bars — score 5=neutral, 0=bear, 10=bull
         const zIndicators = [
           {lbl:'NFP',          score:nfpScore,  val:nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—', col:nfpCol},
@@ -5863,13 +5866,13 @@ function renderMacroDataPanels(reg){
             const isPos = pct >= 50;
             const fillStart = isPos ? 50 : pct;
             const fillW = Math.abs(pct - 50);
-            return `<div style="display:grid;grid-template-columns:62px 1fr 38px;align-items:center;gap:6px;padding:3.5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-              <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
-              <div style="position:relative;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
+            return `<div style="display:grid;grid-template-columns:72px 1fr 46px;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+              <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+              <div style="position:relative;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden">
                 <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.25);border-radius:1px"></div>
-                <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(90deg,${r.col}55,${r.col}aa);border-radius:3px;opacity:0.75;box-shadow:0 0 4px ${r.col}28"></div>
+                <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(90deg,${r.col}55,${r.col}cc);border-radius:4px;opacity:0.85;box-shadow:0 0 4px ${r.col}28"></div>
               </div>
-              <span style="font-family:var(--mono);font-size:9.5px;font-weight:900;color:${r.col};text-align:right;white-space:nowrap">${r.val}</span>
+              <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${r.col};text-align:right;white-space:nowrap">${r.val}</span>
             </div>`;
           }).join('')}
           ${ffRows.length ? `
@@ -5912,30 +5915,42 @@ function renderMacroDataPanels(reg){
       ${(()=>{
         const cpiComp = macroComps['CPI'];
         const cpiVal = cpiComp?.actual||cpiComp?.display||'—';
+        // CPI absolute level colour: hot=red, on-target=neutral, below-target=blue
         const cpiCol = (()=>{
-          const s = cpiComp?.score??5;
-          return s>=7?'#e03a2a':s>=6?'#f5c842':s>=4?'#adb8d0':'#22c97a';
+          const n = parseFloat(cpiVal)||null;
+          if(n==null) return '#adb8d0';
+          return n>4?'#e03a2a':n>3?'#f5c842':n>1.5?'#adb8d0':n>0?'#5c9eff':'#4a90d9';
         })();
         const cpiNum = parseFloat(cpiVal)||null;
         const gap = cpiNum!=null ? +(cpiNum - 2.0).toFixed(2) : null;
-        const gapCol = gap==null?'#adb8d0':gap>2?'#e03a2a':gap>0.5?'#f5c842':gap>-0.2?'#adb8d0':'#22c97a';
-        // Pipeline pressure cascade: PPI → CPI → PCE
+        // Gap colour: above target = red gradient, below target = blue
+        const gapCol = gap==null?'#adb8d0':gap>2?'#e03a2a':gap>0.5?'#f5c842':gap>-0.5?'#adb8d0':gap>-1.5?'#5c9eff':'#4a90d9';
+        // Pipeline pressure — beat/miss vs expectation (like Labour pane)
+        // For inflation: beat = actual > expected = TOO HOT = red
+        //                miss = actual < expected = COOLER THAN FEARED = green
         const pipeItems = [
-          {lbl:'PPI', key:'PPI', icon:'⬆'},
-          {lbl:'CPI', key:'CPI', icon:'→'},
-          {lbl:'Core CPI', key:'CORE_CPI', icon:'→'},
-          {lbl:'PCE', key:'PCE', icon:'→'},
-          {lbl:'Core PCE', key:'CORE_PCE', icon:'→'},
+          {lbl:'PPI',       key:'PPI'},
+          {lbl:'CPI',       key:'CPI'},
+          {lbl:'Core CPI',  key:'CORE_CPI'},
+          {lbl:'PCE',       key:'PCE'},
+          {lbl:'Core PCE',  key:'CORE_PCE'},
         ].map(p=>{
           const c=macroComps[p.key];
           if(!c) return null;
-          const v=parseFloat(c.actual||c.display)||null;
-          const s=c.score??5;
-          const col=s>=7?'#e03a2a':s>=6?'#f5c842':s>=4?'#adb8d0':s>=3?'#5aaa7a':'#22c97a';
-          const trend=c.trend_label||'';
-          const tCol=trend==='Rising'?'#e03a2a':trend==='Falling'?'#22c97a':'#adb8d0';
-          const tArrow=trend==='Rising'?'↗':trend==='Falling'?'↘':'→';
-          return {...p, v, s, col, trend, tCol, tArrow};
+          const actual   = parseFloat(c.actual??c.display)||null;
+          const expected = parseFloat(c.expected)||null;
+          const surprise = (actual!=null&&expected!=null) ? +(actual-expected).toFixed(2) : (c.surprise!=null?c.surprise:null);
+          // Inflation: positive surprise = too hot = red | negative = cooler = green
+          const beat = surprise!=null ? surprise < 0 : null; // beat = came in BELOW expectations (good)
+          // Inflation colour: hotter than expected = red, cooler than expected = blue
+          const sCol = beat===true?'#5c9eff':beat===false?'#e03a2a':'#adb8d0';
+          const surpAbs = Math.abs(surprise||0);
+          // Bar width: scale on 0.5% surprise range being "large"
+          const barW = Math.min(100, Math.max(4, (surpAbs/0.5)*100)).toFixed(0);
+          const trend = c.trend_label||'';
+          const tArrow = trend==='Rising'?'↑':trend==='Falling'?'↓':'→';
+          const tCol   = trend==='Rising'?'#e03a2a':trend==='Falling'?'#22c97a':'#adb8d0';
+          return {...p, actual, expected, surprise, beat, sCol, barW, tArrow, tCol};
         }).filter(Boolean);
         return `
       <div class="ov-macro-card" id="ov-macro-inflation">
@@ -5971,10 +5986,11 @@ function renderMacroDataPanels(reg){
           const aboveTarget = cpiNum>2.0;
           const fillStart = aboveTarget?targetPct:currentPct;
           const fillWidth = Math.abs(currentPct-targetPct);
-          const fillCol = aboveTarget?'#e03a2a':'#22c97a';
+          // Hot = red, Cool/Cold = blue
+          const fillCol = aboveTarget?'#e03a2a':'#5c9eff';
           // Regime zone labels
-          const regimeLabel = cpiNum<1?'DEFLATION':cpiNum<2.5?'ON TARGET':cpiNum<4?'ELEVATED':cpiNum<6?'HOT':'RUNAWAY';
-          const regimeCol = cpiNum<1?'#5c9eff':cpiNum<2.5?'#22c97a':cpiNum<4?'#f5c842':cpiNum<6?'#e07a2a':'#e03a2a';
+          const regimeLabel = cpiNum<1?'DEFLATION':cpiNum<1.5?'COLD':cpiNum<2.5?'ON TARGET':cpiNum<4?'ELEVATED':cpiNum<6?'HOT':'RUNAWAY';
+          const regimeCol = cpiNum<1?'#4a90d9':cpiNum<1.5?'#5c9eff':cpiNum<2.5?'#adb8d0':cpiNum<4?'#f5c842':cpiNum<6?'#e07a2a':'#e03a2a';
           return `
           <div style="margin:2px 0 6px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
@@ -5982,8 +5998,8 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${regimeCol};letter-spacing:0.06em">${regimeLabel}</span>
             </div>
             <div style="position:relative;height:10px;border-radius:5px;overflow:visible">
-              <!-- Coloured track: green below target, amber/red above -->
-              <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(34,201,122,0.15) 0%,rgba(34,201,122,0.08) ${targetPct.toFixed(0)}%,rgba(224,90,42,0.08) ${targetPct.toFixed(0)}%,rgba(224,58,42,0.2) 100%);border-radius:5px"></div>
+              <!-- Coloured track: blue below target, amber/red above -->
+              <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(74,144,217,0.2) 0%,rgba(92,158,255,0.08) ${targetPct.toFixed(0)}%,rgba(224,90,42,0.08) ${targetPct.toFixed(0)}%,rgba(224,58,42,0.2) 100%);border-radius:5px"></div>
               <!-- Deviation fill -->
               <div style="position:absolute;top:2px;bottom:2px;left:${fillStart.toFixed(1)}%;width:${fillWidth.toFixed(1)}%;background:${fillCol};border-radius:3px;opacity:0.7"></div>
               <!-- Current marker -->
@@ -5997,23 +6013,25 @@ function renderMacroDataPanels(reg){
             </div>
           </div>`;
         })()}
-        <!-- Pipeline Pressure Cascade: PPI → CPI → PCE -->
+        <!-- Pipeline Pressure: beat/miss vs expectation (hot=red, cooler=blue) -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Pipeline Pressure</div><div class="mc-sect-line"></div></div>
-          <!-- Visual cascade: shows the transmission path with relative pressure -->
-          <div style="display:flex;flex-direction:column;gap:3px">
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Hotter / Cooler Than Expected</div><div class="mc-sect-line"></div></div>
+          <div style="display:flex;flex-direction:column;gap:4px">
             ${pipeItems.map((r,i)=>{
-              const barW = Math.min(100, Math.max(0, (parseFloat(r.v||0)/6)*100)).toFixed(0);
               const isFirst = i===0;
-              return `<div style="display:grid;grid-template-columns:54px 1fr auto auto;align-items:center;gap:5px">
-                <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
-                <div style="position:relative;height:${isFirst?8:5}px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;${isFirst?'box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08)':''}">
-                  <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,${r.col}55,${r.col}bb);border-radius:3px;opacity:0.70"></div>
-                  <!-- 2% target line -->
-                  <div style="position:absolute;left:25%;top:0;width:1px;height:100%;background:rgba(255,255,255,0.2)"></div>
+              const surpStr = r.surprise!=null?(r.surprise>0?'+':'')+r.surprise+'%':'';
+              return `<div style="display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:6px;padding:${isFirst?'4px 0 5px':'3px 0'};border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <div style="position:relative;height:${isFirst?8:5}px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
+                    <div style="position:absolute;left:0;top:0;height:100%;width:${r.barW}%;background:${r.sCol};border-radius:3px;opacity:0.80;box-shadow:0 0 4px ${r.sCol}28"></div>
+                  </div>
+                  ${r.expected!=null?`<span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.22)">exp ${r.expected.toFixed(2)}%</span>`:''}
                 </div>
-                <span style="font-family:var(--mono);font-size:${isFirst?14:12}px;font-weight:900;letter-spacing:-0.02em;color:${r.col};white-space:nowrap">${r.v!=null?(typeof r.v==='number'?r.v.toFixed(2)+'%':r.v):'—'}</span>
-                <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${r.tCol};line-height:1;width:14px;text-align:center;text-shadow:0 0 8px ${r.tCol}88">${r.tArrow}</span>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+                  <span style="font-family:var(--mono);font-size:${isFirst?14:12}px;font-weight:900;letter-spacing:-0.02em;color:${r.sCol};line-height:1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
+                  ${r.beat!==null?`<span style="font-family:var(--mono);font-size:5.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:${r.sCol}18;color:${r.sCol}">${r.beat?'▼ COOL':'▲ HOT'}${surpStr?' '+surpStr:''}</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
+                </div>
               </div>`;
             }).join('')}
           </div>
@@ -6039,8 +6057,9 @@ function renderMacroDataPanels(reg){
           ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent)">${vsPeak}% of QE peak</span>`:''}
         </div>
         <!-- Full-width SVG area chart — hero visual matching old design -->
-        <div style="flex:1;min-height:100px;margin:6px 0 4px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05)">
+        <div style="flex:1;min-height:110px;margin:6px 0 4px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);position:relative">
           ${svgChart}
+          <div style="position:absolute;bottom:6px;right:10px;font-family:var(--mono);font-size:5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.2)">← recent</div>
         </div>
         <!-- Compact arc gauge strip below chart -->
         <div style="display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;opacity:0;pointer-events:none">
@@ -6106,7 +6125,11 @@ function renderMacroDataPanels(reg){
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
             <div style="font-family:var(--mono);font-size:clamp(26px,6vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
           </div>
-          <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase;margin-top:1px">10Y − 2Y SPREAD</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+            <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y SPREAD</div>
+            ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.1);border:1px solid rgba(34,201,122,0.2);letter-spacing:0.06em">POSITIVE ↑</span>`:''}
+            ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.1);border:1px solid rgba(224,58,42,0.2);letter-spacing:0.06em">INVERTED ↓</span>`:''}
+          </div>
         </div>
         <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:3px">
           <div style="display:flex;flex-direction:column;gap:1px">
@@ -6133,7 +6156,7 @@ function renderMacroDataPanels(reg){
         <div style="display:flex;gap:8px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;flex-shrink:0">
           ${sChg3m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
           ${sChg6m!=null?`<span style="color:rgba(255,255,255,0.1);font-size:8px">·</span><div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
-          ${yc_move_type?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${moveCol};margin-left:auto;white-space:nowrap;padding:2px 5px;background:${moveCol}18;border-radius:4px;flex-shrink:0;max-width:none">${yc_move_type}</span>`:''}
+
         </div>
         <!-- Rate Context row -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
@@ -6178,7 +6201,7 @@ function renderMacroDataPanels(reg){
           <div style="background:rgba(255,255,255,0.03);border:1px solid ${_hyNumCol}18;border-top:2px solid ${_hyNumCol}40;border-radius:9px;padding:10px 12px">
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">High Yield OAS</div>
             <div style="display:flex;align-items:baseline;gap:3px">
-              <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_hyNumCol}">${hyOas!=null?hyOas:'—'}</span>
+              <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_hyNumCol};text-shadow:0 0 18px ${_hyNumCol}44">${hyOas!=null?hyOas:'—'}</span>
               ${hyOas!=null?`<span style="font-family:var(--mono);font-size:10px;color:${_hyNumCol};opacity:0.7">bp</span>`:''}
             </div>
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${_hyNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${hyZoneLabel}</div>
@@ -6186,7 +6209,7 @@ function renderMacroDataPanels(reg){
           <div style="background:rgba(255,255,255,0.03);border:1px solid ${_igNumCol}18;border-top:2px solid ${_igNumCol}40;border-radius:9px;padding:10px 12px">
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Invest. Grade OAS</div>
             <div style="display:flex;align-items:baseline;gap:3px">
-              <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_igNumCol}">${igOas!=null?igOas:'—'}</span>
+              <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_igNumCol};text-shadow:0 0 18px ${_igNumCol}44">${igOas!=null?igOas:'—'}</span>
               ${igOas!=null?`<span style="font-family:var(--mono);font-size:10px;color:${_igNumCol};opacity:0.7">bp</span>`:''}
             </div>
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${_igNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
@@ -6276,9 +6299,8 @@ function renderMacroDataPanels(reg){
         const scComposite = sc.composite??null;
         const scOverall   = sc.overall??0;
         const scBadgeLabel= scOverall>=2?'Risk-On':scOverall>=1?'Lean Bull':scOverall<=-2?'Risk-Off':scOverall<=-1?'Lean Bear':'Neutral';
-        const scBadgeCol  = scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#f5c842';
-        // Neutral goes gold, not grey
-        const scArcCol    = scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#f5c842';
+        const scBadgeCol  = scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#c8a96e';
+        const scArcCol    = scBadgeCol;
 
         // Signal accessors
         const vixSig  = scSignals['VIX']||{};
@@ -6287,92 +6309,85 @@ function renderMacroDataPanels(reg){
         const capeSig = scSignals['FORWARD_PE']||{};
 
         const sig4 = [
-          {lbl:'Volatility', key:'VIX',        s:vixSig,  val:vixSig.value||'—', sub:vixSig.label||'—'},
-          {lbl:'Momentum',   key:'SPX_MOM',     s:momSig,  val:momSig.value||'—', sub:momSig.label||'—'},
-          {lbl:'Breadth',    key:'BREADTH',     s:brSig,   val:brSig.value||'—',  sub:brSig.label||'—'},
-          {lbl:'Valuation',  key:'FORWARD_PE',  s:capeSig, val:capeSig.value||'—',sub:capeSig.label||'—'},
+          {lbl:'Volatility', key:'VIX',        s:vixSig,  val:vixSig.value||'—',  sub:vixSig.label||'—'},
+          {lbl:'Momentum',   key:'SPX_MOM',    s:momSig,  val:momSig.value||'—',  sub:momSig.label||'—'},
+          {lbl:'Breadth',    key:'BREADTH',    s:brSig,   val:brSig.value||'—',   sub:brSig.label||'—'},
+          {lbl:'Valuation',  key:'FORWARD_PE', s:capeSig, val:capeSig.value||'—', sub:capeSig.label||'—'},
         ].map(x=>{
           const score = x.s.score??0;
-          const col = score>=1?'#22c97a':score<=-1?'#e03a2a':'#f5c842';
+          const col = score>=1?'#22c97a':score<=-1?'#e03a2a':'#c8a96e';
           return {...x, score, col};
         });
 
-        // Cross-asset movers — SPX NDX GLD DXY — use 1m return (most timely)
-        const movers = [
-          {lbl:'S&P 500', key:'SPX', emoji:''},
-          {lbl:'Nasdaq',  key:'NDX', emoji:''},
-          {lbl:'Gold',    key:'GLD', emoji:''},
-          {lbl:'Bonds',   key:'TLT', emoji:''},
+        // Cross-asset returns matrix
+        const assetRows = [
+          {lbl:'S&P 500', key:'SPX'},
+          {lbl:'Nasdaq',  key:'NDX'},
+          {lbl:'Gold',    key:'GLD'},
+          {lbl:'Bonds',   key:'TLT'},
+          {lbl:'Oil',     key:'OIL'},
+          {lbl:'USD',     key:'DXY'},
         ].map(m=>{
-          const r1m = ret[m.key]?.return_1m??null;
-          const r3m = ret[m.key]?.return_3m??null;
-          const col = r1m==null?'var(--faint)':r1m>0?'#22c97a':r1m<0?'#e03a2a':'var(--dim)';
-          const str1m = r1m==null?'—':(r1m>0?'+':'')+r1m.toFixed(1)+'%';
-          const str3m = r3m==null?'—':(r3m>0?'+':'')+r3m.toFixed(1)+'%';
-          return {...m, r1m, r3m, col, str1m, str3m};
+          const r = ret[m.key]||{};
+          const r1w = r.return_1w??null;
+          const r1m = r.return_1m??null;
+          const r3m = r.return_3m??null;
+          const fmtR = v => v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
+          const colR = v => v==null?'var(--faint)':v>0?'#22c97a':v<0?'#e03a2a':'var(--dim)';
+          const bPct = r1m!=null ? Math.min(50, Math.max(-50, r1m*5)) : 0;
+          const bDir = bPct>=0?'right':'left';
+          const bW   = Math.abs(bPct).toFixed(1);
+          const bCol = colR(r1m);
+          return {...m, r1w, r1m, r3m, fmtR, colR, bPct, bDir, bW, bCol};
         });
 
-        // SPX sparkline config
-        const spxCloses = scSignals['_spx_closes']||[];
-        const momCol = (momSig.score??0)>=1?'#22c97a':(momSig.score??0)<=-1?'#e03a2a':'var(--dim)';
+        // SPX sparkline
+        const momCol = (momSig.score??0)>=1?'#22c97a':(momSig.score??0)<=-1?'#e03a2a':'#c8a96e';
 
-        // ── Hero arc SVG (semicircle, -2..+2 range) ──────────────────────
-        const arcSVG = (()=>{
-          const W=220, H=125, cx=110, cy=110, R=88, stroke=10;
-          // Arc from 180° → 0° (left to right), score maps -2→180° +2→0°
+        // ── Semicircle arc SVG ─────────────────────────────────────────
+        const arcSVG6 = (()=>{
+          const W=220, H=120, cx=110, cy=108, R=82, stroke=11;
           const normScore = scComposite!=null?Math.min(1,Math.max(0,(scComposite+2)/4)):0.5;
-          const startAngle = Math.PI; // 180deg
-          const endAngle   = 0;       // 0deg
-          const needleAngle = Math.PI - normScore*Math.PI; // 180° → 0°
-          function arcPath(r, a0, a1){
+          function arcPath6(r, a0, a1){
             const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0);
             const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
             return `M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}`;
           }
-          // Track (full arc, grey)
-          const trackD = arcPath(R, Math.PI, 0);
-          // Fill arc
-          const fillD  = arcPath(R, Math.PI, Math.PI - normScore*Math.PI);
-          // Needle tip coords
-          const nx = cx + (R+1)*Math.cos(needleAngle);
-          const ny = cy + (R+1)*Math.sin(needleAngle);
-          // Zone ticks: -2, -1, 0, +1, +2
-          const ticks = [-2,-1,0,1,2].map(v=>{
+          const trackD6 = arcPath6(R, Math.PI, 0);
+          const fillD6  = arcPath6(R, Math.PI, Math.PI - normScore*Math.PI);
+          const needleAngle = Math.PI - normScore*Math.PI;
+          const nx = cx + R*Math.cos(needleAngle);
+          const ny = cy + R*Math.sin(needleAngle);
+          const ticks6 = [-2,-1,0,1,2].map(v=>{
             const a = Math.PI - ((v+2)/4)*Math.PI;
-            const r0=R-stroke*0.6, r1=R+stroke*0.6;
-            const x0t=cx+r0*Math.cos(a), y0t=cy+r0*Math.sin(a);
-            const x1t=cx+r1*Math.cos(a), y1t=cy+r1*Math.sin(a);
-            return `<line x1="${x0t.toFixed(1)}" y1="${y0t.toFixed(1)}" x2="${x1t.toFixed(1)}" y2="${y1t.toFixed(1)}" stroke="#0d1020" stroke-width="2"/>`;
+            const r0=R-stroke*0.7, r1=R+stroke*0.7;
+            return `<line x1="${(cx+r0*Math.cos(a)).toFixed(1)}" y1="${(cy+r0*Math.sin(a)).toFixed(1)}" x2="${(cx+r1*Math.cos(a)).toFixed(1)}" y2="${(cy+r1*Math.sin(a)).toFixed(1)}" stroke="#060810" stroke-width="2.5"/>`;
           }).join('');
-          // Zone labels below arc
-          const zoneLabels = [
-            {v:-2, label:'Risk-Off'}, {v:0, label:'Neutral'}, {v:2, label:'Risk-On'}
-          ].map(z=>{
+          const zoneLbls6 = [{v:-2,l:'Risk-Off'},{v:0,l:'Neutral'},{v:2,l:'Risk-On'}].map(z=>{
             const a = Math.PI - ((z.v+2)/4)*Math.PI;
-            const lx=cx+(R+22)*Math.cos(a), ly=cy+(R+22)*Math.sin(a);
-            return `<text x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="middle" font-family="var(--mono)" font-size="7" font-weight="700" letter-spacing="0.06em" fill="rgba(173,184,208,0.5)" text-transform="uppercase">${z.label}</text>`;
+            const lx=cx+(R+20)*Math.cos(a), ly=cy+(R+20)*Math.sin(a);
+            return `<text x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="middle" font-family="var(--mono)" font-size="6.5" font-weight="700" fill="rgba(173,184,208,0.4)">${z.l}</text>`;
           }).join('');
-          const uid='arc'+(Math.random()*0xFFFFF|0).toString(16);
+          const uid6='arc6'+(Math.random()*0xFFFFF|0).toString(16);
+          const ncx2 = cx + (R-stroke)*Math.cos(needleAngle);
+          const ncy2 = cy + (R-stroke)*Math.sin(needleAngle);
           return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;overflow:visible;margin:0 auto">
             <defs>
-              <linearGradient id="${uid}g" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#e03a2a" stop-opacity="0.9"/>
-                <stop offset="50%" stop-color="#f5c842" stop-opacity="0.9"/>
-                <stop offset="100%" stop-color="#22c97a" stop-opacity="0.9"/>
+              <linearGradient id="${uid6}g" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#e03a2a" stop-opacity="0.85"/>
+                <stop offset="40%" stop-color="#c8a96e" stop-opacity="0.85"/>
+                <stop offset="100%" stop-color="#22c97a" stop-opacity="0.85"/>
               </linearGradient>
-              <filter id="${uid}glow"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="b" in2="SourceGraphic" operator="over"/></filter>
+              <filter id="${uid6}glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3.5" result="b6"/><feComposite in="b6" in2="SourceGraphic" operator="over"/></filter>
             </defs>
-            <!-- Track -->
-            <path d="${trackD}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${stroke}" stroke-linecap="round"/>
-            <!-- Coloured fill -->
-            <path d="${fillD}" fill="none" stroke="url(#${uid}g)" stroke-width="${stroke}" stroke-linecap="round" filter="url(#${uid}glow)" opacity="0.85"/>
-            <!-- Zone ticks -->
-            ${ticks}
-            <!-- Zone labels -->
-            ${zoneLabels}
-            <!-- Needle dot -->
-            <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="7" fill="${scArcCol}" opacity="0.95" filter="url(#${uid}glow)"/>
-            <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="3.5" fill="#fff" opacity="0.9"/>
+            <path d="${trackD6}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="${stroke}" stroke-linecap="round"/>
+            <path d="${fillD6}" fill="none" stroke="url(#${uid6}g)" stroke-width="${stroke}" stroke-linecap="round" opacity="0.9" filter="url(#${uid6}glow)"/>
+            ${ticks6}
+            ${zoneLbls6}
+            <line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${ncx2.toFixed(1)}" y2="${ncy2.toFixed(1)}" stroke="${scArcCol}" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+            <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="9" fill="${scArcCol}" opacity="0.2" filter="url(#${uid6}glow)"/>
+            <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="5.5" fill="${scArcCol}" opacity="0.95"/>
+            <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="2.5" fill="#fff" opacity="0.9"/>
           </svg>`;
         })();
 
@@ -6388,65 +6403,70 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">Equities</div>
             <div class="ov-mc-title">Market Climate</div>
           </div>
-          <span style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:${scArcCol}1a;border:1px solid ${scArcCol}35;color:${scArcCol}">${scBadgeLabel}</span>
+          <span class="ov-mc-badge" style="color:${scArcCol};background:${scArcCol}1a;border:1px solid ${scArcCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- Hero Arc + Score -->
-        <div style="position:relative;text-align:center;margin:-4px 0 -10px">
-          ${arcSVG}
-          <!-- Composite score overlaid centre of arc -->
-          <div style="position:absolute;bottom:8px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:2px">
-            <div style="font-family:var(--mono);font-size:32px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${scArcCol};font-variant-numeric:tabular-nums">${scComposite!=null?scComposite.toFixed(2):'—'}</div>
-            <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--faint)">Composite Score</div>
+        <!-- Hero: Arc + Score -->
+        <div style="position:relative;text-align:center;margin:-4px 0 -6px">
+          ${arcSVG6}
+          <div style="position:absolute;bottom:12px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:1px">
+            <div style="font-family:var(--mono);font-size:28px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${scArcCol};font-variant-numeric:tabular-nums">${scComposite!=null?scComposite.toFixed(2):'—'}</div>
+            <div style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--faint)">COMPOSITE</div>
           </div>
         </div>
 
-        <!-- 4-Signal Bars -->
-        <div style="display:flex;flex-direction:column;gap:5px;padding:4px 0 6px">
+        <!-- 4-Signal Grid -->
+        <div style="display:flex;flex-direction:column;gap:4px;padding:2px 0 6px">
           ${sig4.map(s=>{
-            // Centre bar: -2..+2 → bar fills from centre
-            const barPct = Math.abs(s.score) / 2 * 50; // max 50% from centre
-            const barDir = s.score >= 0 ? 'right' : 'left';
-            return `<div style="display:grid;grid-template-columns:65px 1fr 56px;align-items:center;gap:5px">
-              <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--dim);text-align:right;line-height:1.2">${s.lbl}</div>
-              <!-- Centre bar -->
-              <div style="position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden">
-                <div style="position:absolute;top:0;bottom:0;${barDir==='right'?'left:50%':'right:50%'};width:${barPct.toFixed(1)}%;background:${s.col};border-radius:3px;box-shadow:0 0 6px ${s.col}66;opacity:0.9"></div>
-                <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.12)"></div>
+            const barPct = Math.min(50, Math.abs(s.score)/2*50);
+            const barDir = s.score>=0?'right':'left';
+            return `<div style="display:grid;grid-template-columns:64px 1fr 52px;align-items:center;gap:5px">
+              <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim);text-align:right">${s.lbl}</div>
+              <div style="position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:hidden">
+                <div style="position:absolute;top:0;bottom:0;${barDir==='right'?'left:50%':'right:50%'};width:${barPct.toFixed(1)}%;background:${s.col};border-radius:3px;opacity:0.85;box-shadow:0 0 4px ${s.col}33"></div>
+                <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.1)"></div>
               </div>
-              <div style="text-align:left">
-                <div style="font-family:var(--mono);font-size:9px;font-weight:900;color:${s.col};font-variant-numeric:tabular-nums;line-height:1">${s.val}</div>
-                <div style="font-family:var(--mono);font-size:5.5px;font-weight:600;color:var(--faint);letter-spacing:0.04em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56px">${s.sub}</div>
+              <div>
+                <div style="font-family:var(--mono);font-size:9.5px;font-weight:900;color:${s.col};line-height:1;font-variant-numeric:tabular-nums">${s.val}</div>
+                <div style="font-family:var(--mono);font-size:5.5px;color:var(--faint);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px">${s.sub}</div>
               </div>
             </div>`;
           }).join('')}
         </div>
 
-        <!-- Separator -->
-        <div style="height:1px;background:rgba(255,255,255,0.05);margin:0 -2px 6px"></div>
+        <div style="height:1px;background:rgba(255,255,255,0.05);margin:0 0 6px"></div>
 
         <!-- SPX Sparkline -->
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="display:flex;align-items:baseline;justify-content:space-between">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 — 26-Session</span>
-            <span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${momCol};font-variant-numeric:tabular-nums">${momSig.value||'—'}</span>
+        <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 26-Session</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:900;color:${momCol};font-variant-numeric:tabular-nums">${momSig.value||'—'}</span>
           </div>
-          <canvas id="ov-sc-spx-chart" width="200" height="40" style="width:100%;height:40px;display:block;border-radius:4px"></canvas>
+          <canvas id="ov-sc-spx-chart" width="200" height="44" style="width:100%;height:44px;display:block;border-radius:4px;background:rgba(255,255,255,0.015)"></canvas>
         </div>
 
-        <!-- Separator -->
-        <div style="height:1px;background:rgba(255,255,255,0.05);margin:6px -2px 5px"></div>
+        <div style="height:1px;background:rgba(255,255,255,0.05);margin:0 0 6px"></div>
 
-        <!-- Cross-Asset Movers -->
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Cross-Asset Returns</div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
-            ${movers.map(m=>`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:5px 4px;text-align:center">
-              <div style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);margin-bottom:3px;line-height:1.2">${m.lbl}</div>
-              <div style="font-family:var(--mono);font-size:10px;font-weight:900;color:${m.col};line-height:1;font-variant-numeric:tabular-nums">${m.str1m}</div>
-              <div style="font-family:var(--mono);font-size:5.5px;font-weight:600;color:rgba(173,184,208,0.45);margin-top:2px;font-variant-numeric:tabular-nums">3M: ${m.str3m}</div>
-            </div>`).join('')}
+        <!-- Cross-Asset Returns Table -->
+        <div>
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
+          <div style="display:grid;grid-template-columns:52px 1fr 36px 36px 36px;align-items:center;gap:4px;margin-bottom:3px;padding-bottom:3px;border-bottom:1px solid rgba(255,255,255,0.06)">
+            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2)">Asset</span>
+            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2)">1M</span>
+            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);text-align:right">1W</span>
+            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);text-align:right">1M</span>
+            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);text-align:right">3M</span>
           </div>
+          ${assetRows.map(m=>`<div style="display:grid;grid-template-columns:52px 1fr 36px 36px 36px;align-items:center;gap:4px;padding:3.5px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+            <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.03em;color:var(--dim)">${m.lbl}</span>
+            <div style="position:relative;height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">
+              <div style="position:absolute;top:0;bottom:0;${m.bDir==='right'?'left:50%':'right:50%'};width:${m.bW}%;background:${m.bCol};border-radius:2px;opacity:0.75"></div>
+              <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.12)"></div>
+            </div>
+            <span style="font-family:var(--mono);font-size:8.5px;font-weight:900;color:${m.colR(m.r1w)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r1w)}</span>
+            <span style="font-family:var(--mono);font-size:8.5px;font-weight:900;color:${m.colR(m.r1m)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
+            <span style="font-family:var(--mono);font-size:8.5px;font-weight:900;color:${m.colR(m.r3m)};text-align:right;font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
+          </div>`).join('')}
         </div>
       </div>`;
       })()}
@@ -6480,12 +6500,32 @@ function renderMacroDataPanels(reg){
         const t1y_now = lerp(t3m, t2, 0.55);
         const shp6m = (t6m_now!=null && t2!=null) ? t6m_now - t2 : null;
         const shp1y = (t1y_now!=null && t2!=null) ? t1y_now - t2 : null;
-        const hist6m = (base, shp) => (base!=null && shp!=null) ? +(base + shp*0.85).toFixed(3) : null;
+        // For historical 6M: 6M yield ≈ 2Y - (10Y-2Y)*0.3 (front end discounts less when curve steep)
+        // Anchored at current 6M-2Y offset but scaled to historical steepness
+        const shape6mFrac = (t6m_now!=null&&t2!=null&&t10!=null&&(t10-t2)!==0) ? (t6m_now-t2)/(t10-t2||0.01) : -0.3;
+        const shape1yFrac = (t1y_now!=null&&t2!=null&&t10!=null&&(t10-t2)!==0) ? (t1y_now-t2)/(t10-t2||0.01) : -0.1;
+        const hist6m = (base, t10h) => {
+          if(base==null) return null;
+          // Use fraction of (10Y-2Y) historical steepness to estimate 6M offset
+          const steepH = (t10h!=null&&base!=null) ? (t10h-base) : 0.1;
+          return +(base + shape6mFrac*steepH).toFixed(3);
+        };
+        const hist1y = (base, t10h) => {
+          if(base==null) return null;
+          const steepH = (t10h!=null&&base!=null) ? (t10h-base) : 0.1;
+          return +(base + shape1yFrac*steepH).toFixed(3);
+        };
+        // Also include 3M for historical: ≈ 2Y adjusted by a larger front-end discount
+        const hist3m = (base, t10h) => {
+          if(base==null) return null;
+          const steepH = (t10h!=null&&base!=null) ? (t10h-base) : 0.1;
+          return +(base + (shape6mFrac-0.15)*steepH).toFixed(3);
+        };
         return {
           now:  { '3M': t3m,    '6M': t6m_now, '1Y': t1y_now, '2Y': t2,     '5Y': t5,     '10Y': t10,    '30Y': t30    },
-          m3:   { '3M': null,   '6M': hist6m(t2_3m,shp6m),  '1Y': hist6m(t2_3m,shp1y),  '2Y': t2_3m,  '5Y': t5_3m,  '10Y': t10_3m, '30Y': t30_3m },
-          m6:   { '3M': null,   '6M': hist6m(t2_6m,shp6m),  '1Y': hist6m(t2_6m,shp1y),  '2Y': t2_6m,  '5Y': t5_6m,  '10Y': t10_6m, '30Y': t30_6m  },
-          m12:  { '3M': null,   '6M': hist6m(t2_12m,shp6m), '1Y': hist6m(t2_12m,shp1y), '2Y': t2_12m, '5Y': t5_12m, '10Y': t10_12m,'30Y': t30_12m },
+          m3:   { '3M': hist3m(t2_3m,t10_3m),   '6M': hist6m(t2_3m,t10_3m),  '1Y': hist1y(t2_3m,t10_3m),  '2Y': t2_3m,  '5Y': t5_3m,  '10Y': t10_3m, '30Y': t30_3m },
+          m6:   { '3M': hist3m(t2_6m,t10_6m),   '6M': hist6m(t2_6m,t10_6m),  '1Y': hist1y(t2_6m,t10_6m),  '2Y': t2_6m,  '5Y': t5_6m,  '10Y': t10_6m, '30Y': t30_6m  },
+          m12:  { '3M': hist3m(t2_12m,t10_12m), '6M': hist6m(t2_12m,t10_12m),'1Y': hist1y(t2_12m,t10_12m),'2Y': t2_12m, '5Y': t5_12m, '10Y': t10_12m,'30Y': t30_12m },
         };
       })()),
     };
@@ -6515,10 +6555,10 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   if (!el) return;
 
   const CURVES = [
-    { key: 'm12', label: '−12M', color: '#4a6d9c', width: 1.1, dash: '4,3' },
-    { key: 'm6',  label: '−6M',  color: '#5e9e78', width: 1.3, dash: '4,3' },
-    { key: 'm3',  label: '−3M',  color: '#c4922a', width: 1.5, dash: '4,3' },
-    { key: 'now', label: 'Now',  color: nowCol,    width: 2.5, dash: ''    },
+    { key: 'm12', label: '−12M', color: 'rgba(100,140,200,0.65)', width: 1.2, dash: '5,4' },
+    { key: 'm6',  label: '−6M',  color: 'rgba(100,180,130,0.75)', width: 1.4, dash: '5,4' },
+    { key: 'm3',  label: '−3M',  color: 'rgba(210,160,60,0.85)',  width: 1.7, dash: '5,4' },
+    { key: 'now', label: 'Now',  color: nowCol,                   width: 3.0, dash: ''    },
   ];
   // Full tenor set — historical snapshots may only have 2Y–30Y
   const ALL_TENORS = ['3M','6M','1Y','2Y','5Y','10Y','30Y'];
