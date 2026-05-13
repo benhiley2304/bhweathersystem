@@ -6042,9 +6042,9 @@ function renderMacroDataPanels(reg){
           </div>
         </div>
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
-        <div style="flex:1;min-height:160px;display:flex;flex-direction:column">
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column">
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="position:relative;min-height:10px"></div>
+          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:130px;width:100%"></div>
         </div>
         <!-- Momentum strip -->
         <div style="display:flex;gap:10px;align-items:center;padding:3px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:auto">
@@ -6357,15 +6357,28 @@ function renderMacroDataPanels(reg){
     } catch(e){}
     // SPX sparkline
     try { _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a'); } catch(e){}
-    // Build YC chart from data already in scope — no extra fetch needed
-    try {
-      _drawYieldCurveInline(crCol, {
-        now:  { '3M': t3m,    '2Y': t2,     '5Y': t5,    '10Y': t10,   '30Y': t30   },
-        m3:   { '3M': null,   '2Y': t2_3m,  '5Y': t5_3m, '10Y': t10_3m,'30Y': t30_3m},
-        m6:   { '3M': null,   '2Y': t2_6m,  '5Y': t5_6m, '10Y': t10_6m,'30Y': t30_6m},
-        m12:  { '3M': null,   '2Y': t2_12m, '5Y': t5_12m,'10Y': t10_12m,'30Y': t30_12m},
-      });
-    } catch(e){ console.error('YC draw error:', e); }
+    // Build YC chart — extra RAF to let flex container settle its width
+    const _ycData = {
+      now:  { '3M': t3m,    '2Y': t2,     '5Y': t5,    '10Y': t10,   '30Y': t30   },
+      m3:   { '3M': null,   '2Y': t2_3m,  '5Y': t5_3m, '10Y': t10_3m,'30Y': t30_3m},
+      m6:   { '3M': null,   '2Y': t2_6m,  '5Y': t5_6m, '10Y': t10_6m,'30Y': t30_6m},
+      m12:  { '3M': null,   '2Y': t2_12m, '5Y': t5_12m,'10Y': t10_12m,'30Y': t30_12m},
+    };
+    const _drawYC = () => { try { _drawYieldCurveInline(crCol, _ycData); } catch(e){ console.error('YC draw error:', e); } };
+    // Triple RAF: double RAF already done above, one more to ensure flex width is measured
+    requestAnimationFrame(() => {
+      _drawYC();
+      // Also attach ResizeObserver so chart redraws if panel resizes (e.g. orientation change)
+      try {
+        const _ycEl = document.getElementById('ov-yc-chart');
+        if (_ycEl && window.ResizeObserver) {
+          let _ycRO = new ResizeObserver(() => _drawYC());
+          _ycRO.observe(_ycEl);
+          // Disconnect after 5s to avoid infinite loops
+          setTimeout(() => _ycRO.disconnect(), 5000);
+        }
+      } catch(e){}
+    });
   }));
 }
 
@@ -6389,8 +6402,13 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // Extend log range: logMin=log2(1)=0, logMax=log2(360) so short end has space
   const logMin = Math.log2(1.5), logMax = Math.log2(390);
 
-  const W = 280, H = 190;
-  const padL = 30, padR = 8, padT = 10, padB = 26;
+  // Use container's actual width for responsive sizing; fall back to 280
+  const containerW = el.getBoundingClientRect().width || el.parentElement?.clientWidth || el.clientWidth || 280;
+  const W = Math.max(containerW - 4, 180);
+  // Height: 65% aspect on desktop, taller on narrow mobile
+  const aspectH = W < 220 ? 0.75 : 0.62;
+  const H = Math.max(Math.round(W * aspectH), 140);
+  const padL = 36, padR = 10, padT = 14, padB = 28;
   const gW = W - padL - padR, gH = H - padT - padB;
 
   const xPosLog = t => {
@@ -6427,6 +6445,13 @@ function _drawYieldCurveInline(nowCol, tenorData) {
 
   const uid = 'yci' + (Math.random()*0xFFFFF|0).toString(16);
 
+  // Scale font sizes to chart width
+  const fScale = Math.max(0.7, Math.min(1.0, W / 280));
+  const fGrid = (5.5 * fScale).toFixed(1);
+  const fAxis = (6.5 * fScale).toFixed(1);
+  const fLbl  = (6.0 * fScale).toFixed(1);
+  const fLblKey = (7.5 * fScale).toFixed(1);
+
   // Adaptive Y gridlines — pick step size based on range
   let yStep = 0.5;
   if (vRange < 0.8) yStep = 0.1;
@@ -6439,8 +6464,8 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     const y = +yPos(v).toFixed(1);
     if (y < padT - 2 || y > padT + gH + 2) continue;
     const isWhole = Math.abs(v - Math.round(v)) < 0.01;
-    grids += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,${isWhole?0.09:0.04})" stroke-width="0.7" stroke-dasharray="2,5"/>`
-           + `<text x="${padL-4}" y="${(y+2.2).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,${isWhole?0.38:0.2})" font-family="var(--mono)" font-size="5.2">${v.toFixed(isWhole?1:2)}</text>`;
+    grids += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,${isWhole?0.1:0.04})" stroke-width="0.7" stroke-dasharray="2,5"/>`
+           + `<text x="${padL-5}" y="${(y+2.2).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,${isWhole?0.45:0.22})" font-family="var(--mono)" font-size="${fGrid}">${v.toFixed(isWhole?1:2)}</text>`;
   }
 
   // X axis ticks + labels
@@ -6448,11 +6473,11 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   ALL_TENORS.forEach(t => {
     const x = xPosLog(t); if (x==null) return;
     const yT = padT + gH;
-    xAxis += `<line x1="${x.toFixed(1)}" y1="${yT}" x2="${x.toFixed(1)}" y2="${(yT+3.5).toFixed(1)}" stroke="rgba(255,255,255,0.22)" stroke-width="0.9"/>`
-           + `<text x="${x.toFixed(1)}" y="${(yT+10).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-family="var(--mono)" font-size="6">${t}</text>`;
+    xAxis += `<line x1="${x.toFixed(1)}" y1="${yT}" x2="${x.toFixed(1)}" y2="${(yT+4).toFixed(1)}" stroke="rgba(255,255,255,0.25)" stroke-width="0.9"/>`
+           + `<text x="${x.toFixed(1)}" y="${(yT+11).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="var(--mono)" font-size="${fAxis}" font-weight="700">${t}</text>`;
   });
   // X axis baseline
-  xAxis += `<line x1="${padL}" y1="${padT+gH}" x2="${W-padR}" y2="${padT+gH}" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>`;
+  xAxis += `<line x1="${padL}" y1="${padT+gH}" x2="${W-padR}" y2="${padT+gH}" stroke="rgba(255,255,255,0.15)" stroke-width="0.8"/>`;
 
   let curveSvg = '';
 
@@ -6508,10 +6533,10 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     // Anchor: 3M left-align, 30Y right-align, rest centered
     const anchor = d.t === '3M' ? 'start' : d.t === '30Y' ? 'end' : 'middle';
     const xOff = d.t === '3M' ? lx - 1 : d.t === '30Y' ? lx + 1 : lx;
-    curveSvg += `<text x="${xOff.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" fill="${isKey ? nowCol : 'rgba(255,255,255,0.72)'}" font-family="var(--mono)" font-size="${isKey ? 6.8 : 5.8}" font-weight="${isKey ? 800 : 600}">${d.v.toFixed(2)}%</text>`;
+    curveSvg += `<text x="${xOff.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" fill="${isKey ? nowCol : 'rgba(255,255,255,0.72)'}" font-family="var(--mono)" font-size="${isKey ? fLblKey : fLbl}" font-weight="${isKey ? 800 : 600}">${d.v.toFixed(2)}%</text>`;
   });
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block;overflow:visible" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
     ${grids}${xAxis}${curveSvg}
   </svg>`;
 
