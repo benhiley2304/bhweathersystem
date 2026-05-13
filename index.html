@@ -1155,7 +1155,7 @@ a{color:inherit;text-decoration:none}
   /* YC rate context mobile: tighter tiles */
   #ov-macro-yc [style*="grid-template-columns:repeat(3,1fr)"]{gap:3px}
   #ov-macro-yc [style*="padding:6px 8px"]{padding:4px 5px!important}
-  #ov-macro-yc [style*="font-size:5.5px"]{font-size:5px!important}
+  /* removed: do not shrink 5.5px tenor labels below legible size on mobile */
   #ov-macro-yc [style*="font-size:11px;font-weight:900"]{font-size:9px!important}
   /* FF table mobile: tighten rows */
   .ov-ff-table{font-size:8px}
@@ -5068,12 +5068,12 @@ function renderOverview(){
           <!-- vs peak -->
           <div style="text-align:right;min-width:42px">
             <div style="font-family:var(--mono);font-size:9.5px;font-weight:800;color:${cfpCol}">${cfpStr}</div>
-            <div style="font-family:var(--mono);font-size:5.5px;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.28);margin-top:1px">vs peak</div>
+            <div style="font-family:var(--mono);font-size:6.5px;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.30);margin-top:1px">vs peak</div>
           </div>
           <!-- Next meeting -->
           <div style="text-align:right;min-width:38px">
             <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(173,184,208,0.50)">${nmFmt || '—'}</div>
-            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:5.5px;letter-spacing:0.05em;color:rgba(173,184,208,0.28);margin-top:1px">${nmDays}d</div>` : ''}
+            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6.5px;letter-spacing:0.05em;color:rgba(173,184,208,0.30);margin-top:1px">${nmDays}d</div>` : ''}
           </div>
         </div>
         <!-- Cycle position slider: trough (left) → peak (right) -->
@@ -5087,8 +5087,8 @@ function renderOverview(){
         </div>
         <!-- Axis labels: trough left, peak right -->
         <div style="display:flex;justify-content:space-between;margin-top:3px">
-          <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.25)">${tr.toFixed(2)}%</span>
-          <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.25)">Peak ${pk.toFixed(2)}%</span>
+          <span style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.28)">${tr.toFixed(2)}%</span>
+          <span style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.28)">Peak ${pk.toFixed(2)}%</span>
         </div>
       </div>`;
     }).join('');
@@ -5175,12 +5175,12 @@ function renderOverview(){
         <!-- 12M / 18M market pricing tiles -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
           <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:9px;padding:10px 12px">
-            <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.32);margin-bottom:5px">12M Market Pricing</div>
+            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:5px">12M Market Pricing</div>
             <div style="font-family:var(--mono);font-size:22px;font-weight:900;line-height:1;color:${_bpCol(totalBp12m)};margin-bottom:3px">${_bpStr(totalBp12m)}</div>
             <div style="font-family:var(--mono);font-size:7.5px;font-weight:600;color:var(--faint)">${_bpLabel(totalBp12m)}</div>
           </div>
           <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:9px;padding:10px 12px">
-            <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.32);margin-bottom:5px">18M Market Pricing</div>
+            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:5px">18M Market Pricing</div>
             <div style="font-family:var(--mono);font-size:22px;font-weight:900;line-height:1;color:${_bpCol(totalBp18m)};margin-bottom:3px">${_bpStr(totalBp18m)}</div>
             <div style="font-family:var(--mono);font-size:7.5px;font-weight:600;color:var(--faint)">${_bpLabel(totalBp18m)}</div>
           </div>
@@ -5194,18 +5194,18 @@ function renderOverview(){
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
           <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);flex-shrink:0">G10 Central Banks</div>
           <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%)"></div>
-          <div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.25);flex-shrink:0;letter-spacing:0.05em">sorted by rate · cycle: trough — peak</div>
+          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.28);flex-shrink:0;letter-spacing:0.05em">sorted by rate · cycle: trough — peak</div>
         </div>
         <!-- Column headers -->
         <div style="display:grid;grid-template-columns:52px 1fr auto auto;gap:8px;padding:4px 0 7px;border-bottom:1px solid rgba(255,255,255,0.055)">
-          <div style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.28)">Central Bank</div>
-          <div style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.28)">Rate · Stance · Cycle Position</div>
-          <div style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.28);text-align:right;min-width:42px">vs Peak</div>
-          <div style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.28);text-align:right;min-width:38px">Next Mtg</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.32)">Central Bank</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.32)">Rate · Stance · Cycle</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.32);text-align:right;min-width:42px">vs Peak</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.32);text-align:right;min-width:38px">Next Mtg</div>
         </div>
         ${cbUnifiedRows}
         <!-- Data attribution -->
-        <div style="margin-top:8px;font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.20);letter-spacing:0.04em">Source: FRED · official central bank releases</div>
+        <div style="margin-top:8px;font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.22);letter-spacing:0.04em">Source: FRED · official central bank releases</div>
       </div>` : '';
 
     // ── Inject into DOM ───────────────────────────────────────────────────────
@@ -6325,7 +6325,7 @@ function renderMacroDataPanels(reg){
         })()}
         <!-- Pipeline Pressure: beat/miss vs expectation (hot=red, cooler=blue) -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Pipeline Pressure</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;overflow:hidden">
             ${(()=>{
               // Absolute scale: all bars on same 0→4% surprise axis so PPI +2.93 vs CPI +1.01 are visually proportionate
@@ -6393,14 +6393,14 @@ function renderMacroDataPanels(reg){
         <!-- Full-width SVG area chart — hero visual matching old design -->
         <div style="flex:1;min-height:110px;margin:6px 0 4px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);position:relative">
           ${svgChart}
-          <div style="position:absolute;bottom:6px;right:10px;font-family:var(--mono);font-size:5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.2)">← recent</div>
+          <div style="position:absolute;bottom:6px;right:10px;font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.22)">← recent</div>
         </div>
         <!-- Compact arc gauge strip below chart -->
         <div style="display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;opacity:0;pointer-events:none">
           <canvas id="ov-bs-arc-canvas" style="width:100%;max-width:260px;display:block"></canvas>
         </div>
         <div>
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Balance Sheet Changes</div><div class="mc-sect-line"></div>${fbChg3m!=null&&Math.abs(fbChg3m)>=0.12?`<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${chgCol(fbChg3m)};letter-spacing:0.06em;text-transform:uppercase;opacity:0.8">${fbChg3m>0?'QE PHASE':'QT PHASE'}</span>`:''}</div>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">QE / QT Activity</div><div class="mc-sect-line"></div>${fbChg3m!=null&&Math.abs(fbChg3m)>=0.12?`<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${chgCol(fbChg3m)};letter-spacing:0.06em;text-transform:uppercase;opacity:0.8">${fbChg3m>0?'QE PHASE':'QT PHASE'}</span>`:''}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
             <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
               <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">3 months</div>
