@@ -1292,11 +1292,11 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 /* ── Header ────────────────────────────────────────────── */
 .ov-mc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:6px;min-width:0}
 .ov-mc-header>div:first-child{min-width:0;flex:1;overflow:hidden}
-.ov-mc-eyebrow{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--faint);margin-bottom:3px;opacity:0.75}
-.ov-mc-title{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--text);letter-spacing:-0.01em;line-height:1.1}
+.ov-mc-eyebrow{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);margin-bottom:3px;opacity:0.95}
+.ov-mc-title{font-family:var(--mono);font-size:17px;font-weight:800;color:var(--text);letter-spacing:-0.02em;line-height:1.1}
 .ov-mc-badge{
-  font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;
-  padding:3px 8px;border-radius:4px;flex-shrink:0;white-space:nowrap;margin-top:2px;
+  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;
+  padding:3px 9px;border-radius:5px;flex-shrink:0;white-space:nowrap;margin-top:2px;
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
   overflow:hidden;max-width:88px;text-overflow:ellipsis;
   display:inline-flex;align-items:center;
@@ -1414,17 +1414,17 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 /* Section divider within a card */
 .mc-sect{
-  flex-shrink:0;margin:8px 0 6px;
+  flex-shrink:0;margin:8px 0 5px;
   display:flex;align-items:center;gap:8px;
 }
 .mc-sect-lbl{
-  font-family:var(--mono);font-size:6.5px;font-weight:800;
+  font-family:var(--mono);font-size:7.5px;font-weight:800;
   letter-spacing:0.12em;text-transform:uppercase;
-  color:var(--dim);opacity:0.65;white-space:nowrap;
+  color:rgba(173,184,208,0.95);white-space:nowrap;
 }
 .mc-sect-line{
   flex:1;height:1px;
-  background:linear-gradient(90deg,rgba(255,255,255,0.06),transparent);
+  background:linear-gradient(90deg,rgba(255,255,255,0.10),transparent);
 }
 /* Hero block */
 .mc-hero-block{flex-shrink:0;display:flex;align-items:baseline;gap:10px;margin-bottom:2px}
@@ -5895,23 +5895,23 @@ function renderMacroDataPanels(reg){
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">NFP${nfpDate?' · '+nfpDate:''}</span>
-              ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:7px;color:var(--faint)">3m <span style="color:var(--dim);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
-              ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:7px;color:var(--faint)">6m <span style="color:var(--dim);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">NFP${nfpDate?' · '+nfpDate:''}</span>
+              ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">3m avg <span style="color:var(--dim);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
+              ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">6m avg <span style="color:var(--dim);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
             </div>
             ${unrate!=null?(()=>{
               const urSlack = unrate<=4.0?'TIGHT':unrate<=4.5?'NORMAL':'SLACK';
               const urSlackCol = unrate<=4.0?'#22c97a':unrate<=4.5?'#c8a96e':'#e03a2a';
               return `<div style="display:flex;align-items:center;gap:6px">
-                <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">U-3 <span style="color:${urCol};font-weight:900">${unrate}%</span> <span style="color:${urTCol}">${urTrend==='Rising'?'↑':urTrend==='Falling'?'↓':'→'}</span></span>
-                <span style="font-family:var(--mono);font-size:5.5px;font-weight:800;letter-spacing:0.08em;padding:1px 5px;border-radius:4px;background:${urSlackCol}18;border:1px solid ${urSlackCol}30;color:${urSlackCol}">${urSlack}</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">Unemployment <span style="color:${urCol};font-weight:900">${unrate}%</span> <span style="color:${urTCol}">${urTrend==='Rising'?'↑':urTrend==='Falling'?'↓':'→'}</span></span>
+                <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.07em;padding:2px 7px;border-radius:4px;background:${urSlackCol}18;border:1px solid ${urSlackCol}30;color:${urSlackCol}">${urSlack}</span>
               </div>`;
             })():''}
           </div>
         </div>
         <!-- Indicator strength: centred z-score bars — fill remaining card height -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Indicator Strength</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Labour Signals</div><div class="mc-sect-line"></div></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
           ${(()=>{
             // score→colour: use system palette exactly
@@ -5934,13 +5934,14 @@ function renderMacroDataPanels(reg){
               const isNeutral = r.score>=4 && r.score<=6;
               const displayCol = isNeutral ? '#6e7d90' : gradCol;
               const displayCol2 = isNeutral ? '#7a8ea0' : gradCol2;
-              return `<div style="display:grid;grid-template-columns:68px 1fr 54px;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-                <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
-                <div style="position:relative;height:10px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden">
-                  <div style="position:absolute;left:50%;top:-1px;width:2px;height:calc(100% + 2px);background:rgba(255,255,255,0.25);border-radius:1px"></div>
-                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(${isPos?'90deg':'270deg'},${displayCol},${displayCol2});border-radius:5px;opacity:${isNeutral?0.55:0.92};box-shadow:0 0 ${isNeutral?3:6}px ${displayCol}${isNeutral?'33':'44'}"></div>
+              const rowIdx = zIndicators.indexOf(r);
+              return `<div style="display:grid;grid-template-columns:82px 1fr 68px;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${rowIdx*55}ms">
+                <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+                <div style="position:relative;height:14px;background:rgba(255,255,255,0.06);border-radius:7px;overflow:hidden">
+                  <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.30);border-radius:1px;z-index:1"></div>
+                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(${isPos?'90deg':'270deg'},${displayCol},${displayCol2});border-radius:7px;opacity:${isNeutral?0.62:0.95};box-shadow:0 0 ${isNeutral?4:10}px ${displayCol}${isNeutral?'44':'88'}"></div>
                 </div>
-                <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${displayCol};text-align:right;white-space:nowrap;line-height:1">${r.val}</span>
+                <span style="font-family:var(--mono);font-size:17px;font-weight:900;color:${displayCol};text-align:right;white-space:nowrap;line-height:1;letter-spacing:-0.03em">${r.val}</span>
               </div>`;
             }).join('');
           })()}
@@ -6011,7 +6012,7 @@ function renderMacroDataPanels(reg){
             ${gap!=null?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${gapCol}">${gap>=0?'+':''}${gap}% vs target</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">CPI YoY · Fed target 2.0%</span>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">CPI YoY · Fed target 2.0%</span>
             ${(()=>{ const t=(md.inflation||{}).trend||''; return t?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${t==='Rising'?'#e03a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'↑ Rising':t==='Falling'?'↓ Falling':'→ Stable'}</span>`:''; })()}
           </div>
         </div>
@@ -6032,8 +6033,8 @@ function renderMacroDataPanels(reg){
           return `
           <div style="margin:2px 0 6px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">CPI vs Fed Target</span>
-              <span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${regimeCol};letter-spacing:0.06em">${regimeLabel}</span>
+              <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">CPI vs 2% Target</span>
+              <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:${regimeCol};letter-spacing:0.06em">${regimeLabel}</span>
             </div>
             <div style="position:relative;height:10px;border-radius:5px;overflow:visible">
               <!-- Coloured track: gold below target, red above -->
@@ -6053,7 +6054,7 @@ function renderMacroDataPanels(reg){
         })()}
         <!-- Pipeline Pressure: beat/miss vs expectation (hot=red, cooler=blue) -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Hotter / Cooler Than Expected</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Pipeline Pressure</div><div class="mc-sect-line"></div></div>
           <div style="display:flex;flex-direction:column;gap:4px">
             ${(()=>{
               // Absolute scale: all bars on same 0→4% surprise axis so PPI +2.93 vs CPI +1.01 are visually proportionate
@@ -6072,18 +6073,19 @@ function renderMacroDataPanels(reg){
                 // Absolute bar width: surprise / ABS_MAX * 100%, capped at 95%
                 const absBarW = r.surprise!=null ? Math.min(95, Math.max(3, (Math.abs(r.surprise)/ABS_MAX)*100)).toFixed(0) : '3';
                 const barSide = r.beat===false ? 'left:50%' : 'right:50%'; // hot extends right, cool extends left
-                return `<div style="display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-                  <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+                const pipeIdx = pipeItems.indexOf(r);
+                return `<div style="display:grid;grid-template-columns:60px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${pipeIdx*50}ms">
+                  <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
                   <div style="display:flex;flex-direction:column;gap:2px">
-                    <div style="position:relative;height:7px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
-                      <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.22);border-radius:1px"></div>
-                      <div style="position:absolute;top:0;height:100%;${barSide};width:${absBarW}%;background:${col};border-radius:3px;opacity:0.9;box-shadow:0 0 5px ${col}44"></div>
+                    <div style="position:relative;height:11px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden">
+                      <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.28);border-radius:1px;z-index:1"></div>
+                      <div style="position:absolute;top:0;height:100%;${barSide};width:${absBarW}%;background:${col};border-radius:5px;opacity:0.94;box-shadow:0 0 8px ${col}66"></div>
                     </div>
-                    ${r.expected!=null?`<span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.22)">exp ${r.expected.toFixed(2)}%</span>`:''}
+                    ${r.expected!=null?`<span style="font-family:var(--mono);font-size:7px;color:rgba(255,255,255,0.35)">exp ${r.expected.toFixed(2)}%</span>`:''}
                   </div>
-                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
-                    <span style="font-family:var(--mono);font-size:12px;font-weight:900;letter-spacing:-0.02em;color:#f2f6ff;line-height:1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
-                    ${r.beat!==null?`<span style="font-family:var(--mono);font-size:5.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:${col}1a;border:1px solid ${col}28;color:${col}">${r.beat?'▼ COOL':'▲ HOT'}${surpStr?' '+surpStr:''}</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                    <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.03em;color:#f2f6ff;line-height:1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
+                    ${r.beat!==null?`<span style="font-family:var(--mono);font-size:7.5px;font-weight:800;padding:2px 6px;border-radius:3px;background:${col}1a;border:1px solid ${col}30;color:${col};letter-spacing:0.05em">${r.beat?'▼ COOL':'▲ HOT'}${surpStr?' '+surpStr:''}</span>`:`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`}
                   </div>
                 </div>`;
               }).join('');
@@ -6120,24 +6122,24 @@ function renderMacroDataPanels(reg){
           <canvas id="ov-bs-arc-canvas" style="width:100%;max-width:260px;display:block"></canvas>
         </div>
         <div>
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Period Changes</div><div class="mc-sect-line"></div>${fbChg3m!=null&&Math.abs(fbChg3m)>=0.12?`<span style="font-family:var(--mono);font-size:5.5px;font-weight:700;color:${chgCol(fbChg3m)};letter-spacing:0.06em;text-transform:uppercase;opacity:0.7">${fbChg3m>0?'QE PHASE':'QT PHASE'}</span>`:''}</div>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Balance Sheet Changes</div><div class="mc-sect-line"></div>${fbChg3m!=null&&Math.abs(fbChg3m)>=0.12?`<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${chgCol(fbChg3m)};letter-spacing:0.06em;text-transform:uppercase;opacity:0.8">${fbChg3m>0?'QE PHASE':'QT PHASE'}</span>`:''}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
             <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">3M</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:900;line-height:1;color:${chgCol(fbChg3m)}">${chgFmt(fbChg3m)}</div>
-              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg3mP)}</div>
+              <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">3 months</div>
+              <div style="font-family:var(--mono);font-size:19px;font-weight:900;line-height:1;color:${chgCol(fbChg3m)}">${chgFmt(fbChg3m)}</div>
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg3mP)}</div>
               <div style="margin:3px auto 0;width:80%;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg3m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg3m)};border-radius:2px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg3m)}66"></div></div>
             </div>
             <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">6M</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:900;line-height:1;color:${chgCol(fbChg6m)}">${chgFmt(fbChg6m)}</div>
-              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg6mP)}</div>
+              <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">6 months</div>
+              <div style="font-family:var(--mono);font-size:19px;font-weight:900;line-height:1;color:${chgCol(fbChg6m)}">${chgFmt(fbChg6m)}</div>
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg6mP)}</div>
               <div style="margin:3px auto 0;width:80%;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg6m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg6m)};border-radius:2px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg6m)}66"></div></div>
             </div>
             <div style="text-align:center;padding:5px 4px">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">12M</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:900;line-height:1;color:${chgCol(fbChg12m)}">${chgFmt(fbChg12m)}</div>
-              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg12mP)}</div>
+              <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">12 months</div>
+              <div style="font-family:var(--mono);font-size:19px;font-weight:900;line-height:1;color:${chgCol(fbChg12m)}">${chgFmt(fbChg12m)}</div>
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg12mP)}</div>
               <div style="margin:3px auto 0;width:80%;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg12m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg12m)};border-radius:2px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg12m)}66"></div></div>
             </div>
           </div>
@@ -6185,30 +6187,30 @@ function renderMacroDataPanels(reg){
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y SPREAD</div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y Spread</div>
             ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.1);border:1px solid rgba(34,201,122,0.2);letter-spacing:0.06em">POSITIVE ↑</span>`:''}
             ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.1);border:1px solid rgba(224,58,42,0.2);letter-spacing:0.06em">INVERTED ↓</span>`:''}
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:3px">
           <div style="display:flex;flex-direction:column;gap:1px">
-            <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t2)};line-height:1">${t2!=null?t2.toFixed(2)+'%':'—'}</span>
-            <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">2Y Front End</span>
+            <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t2)};line-height:1">${t2!=null?t2.toFixed(2)+'%':'—'}</span>
+            <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">2Y Front End</span>
           </div>
           <div style="width:1px;background:rgba(255,255,255,0.08);align-self:stretch;margin:1px 4px"></div>
           <div style="display:flex;flex-direction:column;gap:1px">
-            <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t10)};line-height:1">${t10!=null?t10.toFixed(2)+'%':'—'}</span>
-            <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">10Y Long End</span>
+            <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t10)};line-height:1">${t10!=null?t10.toFixed(2)+'%':'—'}</span>
+            <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">10Y Long End</span>
           </div>
           <div style="width:1px;background:rgba(255,255,255,0.08);align-self:stretch;margin:1px 4px"></div>
           <div style="display:flex;flex-direction:column;gap:1px">
-            <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${t3t10Col};line-height:1">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</span>
-            <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">3M/10Y</span>
+            <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${t3t10Col};line-height:1">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</span>
+            <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">3M/10Y Spread</span>
           </div>
         </div>
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
         <div style="flex:1;min-height:0;display:flex;flex-direction:column">
-          <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Historical Curves</div><div class="mc-sect-line"></div></div>
           <div id="ov-yc-chart" style="position:relative;min-height:140px"></div>
         </div>
         <!-- Momentum + move type row -->
@@ -6221,12 +6223,12 @@ function renderMacroDataPanels(reg){
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:5px 0 2px;border-top:1px solid rgba(255,255,255,0.05)">
           ${ryVal!=null?`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Real Yield</span>
-            <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</span>
+            <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">Real Yield</span>
+            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</span>
           </div>`:''}
           ${effr!=null?`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">EFFR</span>
-            <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:var(--text)">${effr.toFixed(2)}%</span>
+            <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">Fed Funds Rate</span>
+            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:var(--text)">${effr.toFixed(2)}%</span>
           </div>`:''}
           ${cuts12m!=null?(()=>{
               const path_bp = -cuts12m * 25;
@@ -6234,8 +6236,8 @@ function renderMacroDataPanels(reg){
               const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
               const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
               return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Path 12M</span>
-            <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${pathCol}">${pathStr} ${pathLbl}</span>
+            <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">Rate Path 12M</span>
+            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:${pathCol}">${pathStr} ${pathLbl}</span>
           </div>`;})():''}
         </div>`:''}
       </div>`;
@@ -6250,7 +6252,7 @@ function renderMacroDataPanels(reg){
         <canvas class="ov-mc-particles" id="ov-mc-p5"></canvas>
         <div class="ov-mc-header">
           <div>
-            <div class="ov-mc-eyebrow">Risk Appetite</div>
+            <div class="ov-mc-eyebrow">Credit Markets</div>
             <div class="ov-mc-title">Credit Spreads</div>
           </div>
           <span class="ov-mc-badge" style="color:${_hyNumCol};background:${_hyNumCol}1a;border:1px solid ${_hyNumCol}38">${crLabel}</span>
@@ -6258,25 +6260,25 @@ function renderMacroDataPanels(reg){
         <!-- Hero: HY + IG tiles -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <div style="background:rgba(255,255,255,0.03);border:1px solid ${_hyNumCol}18;border-top:2px solid ${_hyNumCol}40;border-radius:9px;padding:10px 12px">
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">High Yield OAS</div>
+            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">High Yield OAS</div>
             <div style="display:flex;align-items:baseline;gap:3px">
               <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_hyNumCol};text-shadow:0 0 18px ${_hyNumCol}44">${hyOas!=null?hyOas:'—'}</span>
               ${hyOas!=null?`<span style="font-family:var(--mono);font-size:10px;color:${_hyNumCol};opacity:0.7">bp</span>`:''}
             </div>
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${_hyNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${hyZoneLabel}</div>
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${_hyNumCol};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${hyZoneLabel}</div>
           </div>
           <div style="background:rgba(255,255,255,0.03);border:1px solid ${_igNumCol}18;border-top:2px solid ${_igNumCol}40;border-radius:9px;padding:10px 12px">
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Invest. Grade OAS</div>
+            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Investment Grade OAS</div>
             <div style="display:flex;align-items:baseline;gap:3px">
               <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_igNumCol};text-shadow:0 0 18px ${_igNumCol}44">${igOas!=null?igOas:'—'}</span>
               ${igOas!=null?`<span style="font-family:var(--mono);font-size:10px;color:${_igNumCol};opacity:0.7">bp</span>`:''}
             </div>
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${_igNumCol};margin-top:3px;letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${_igNumCol};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
           </div>
         </div>
         <!-- Historical Range Tracks — min/p25/median/p75/max visible as range bar with needle -->
         <div>
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">3YR Historical Range</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">3-Year Percentile Range</div><div class="mc-sect-line"></div></div>
           ${(()=>{
             const rangeTrack = (label, oas, histPct, pctMin, pctMax, levelLabel, numCol) => {
               if(oas==null) return '';
@@ -6298,10 +6300,10 @@ function renderMacroDataPanels(reg){
               const z75 = ((wide-tight)/range)*100;
               return `<div style="margin-bottom:10px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                  <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">${label}</span>
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${label}</span>
                   <div style="display:flex;align-items:center;gap:5px">
-                    <span style="font-family:var(--mono);font-size:8px;font-weight:900;color:${numCol}">${oas}bp</span>
-                    ${histPct!=null?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${statusCol};padding:1px 5px;border-radius:10px;background:${statusCol}15;border:1px solid ${statusCol}25">${histPct.toFixed(0)}th pct</span>`:''}
+                    <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${numCol}">${oas}bp</span>
+                    ${histPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${statusCol};padding:2px 6px;border-radius:10px;background:${statusCol}15;border:1px solid ${statusCol}25">${histPct.toFixed(0)}th pct</span>`:''}
                   </div>
                 </div>
                 <!-- Range bar with coloured zones -->
@@ -6315,9 +6317,9 @@ function renderMacroDataPanels(reg){
                   <div style="position:absolute;top:-4px;bottom:-4px;width:2px;left:${pos.toFixed(1)}%;background:#ffffff;border-radius:1px;box-shadow:0 0 6px rgba(255,255,255,0.9),0 0 2px rgba(255,255,255,1);transform:translateX(-50%);z-index:3"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-top:3px">
-                  <span style="font-family:var(--mono);font-size:5.5px;color:var(--faint)">Tight ${tight}bp</span>
-                  <span style="font-family:var(--mono);font-size:5.5px;color:var(--faint)">Med ${median}bp</span>
-                  <span style="font-family:var(--mono);font-size:5.5px;color:var(--faint)">${max}bp Wide</span>
+                  <span style="font-family:var(--mono);font-size:8px;color:var(--faint)">Tight ${tight}bp</span>
+                  <span style="font-family:var(--mono);font-size:8px;color:var(--faint)">Median ${median}bp</span>
+                  <span style="font-family:var(--mono);font-size:8px;color:var(--faint)">${max}bp Wide</span>
                 </div>
               </div>`;
             };
@@ -6327,7 +6329,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Delta rows — HY + IG side by side -->
         <div style="margin-top:6px">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Spread Changes</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Spread Momentum</div><div class="mc-sect-line"></div></div>
           ${(()=>{
             const deltaRow = (period, hyVal, igVal) => {
               const hyC = hyVal==null?'#5a6480':hyVal<0?'#22c97a':hyVal>0?'#e03a2a':'#adb8d0';
@@ -6336,16 +6338,16 @@ function renderMacroDataPanels(reg){
               const arrow = v => v==null?'':v<0?'\u25bc':v>0?'\u25b2':'=';
               const fmt = v => v!=null?Math.abs(v)+'bp':'\u2014';
               const tag = (v, c) => v!=null
-                ? `<span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${c};letter-spacing:0.01em">${arrow(v)}&thinsp;${fmt(v)}</span>`
+                ? `<span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${c};letter-spacing:0.01em">${arrow(v)}&thinsp;${fmt(v)}</span>`
                 : `<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">&mdash;</span>`;
               return `<div style="display:grid;grid-template-columns:20px 1fr 1fr;align-items:center;gap:4px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-                <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${period}</span>
+                <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${period}</span>
                 <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.3);width:14px">HY</span>
+                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.4);width:18px">HY</span>
                   ${tag(hyVal, hyC)}
                 </div>
                 <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.3);width:14px">IG</span>
+                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.4);width:18px">IG</span>
                   ${tag(igVal, igC)}
                 </div>
               </div>`;
@@ -6485,7 +6487,7 @@ function renderMacroDataPanels(reg){
         <!-- SPX Price Chart — dominant visual, set the tone -->
         <div style="margin-bottom:8px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 3-Month Price</span>
+            <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 3-Month</span>
             <div style="display:flex;align-items:baseline;gap:5px">
               <span style="font-family:var(--mono);font-size:18px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${momCol};font-variant-numeric:tabular-nums">${spxMomVal>=0?'+':''}${spxMomVal.toFixed(1)}%</span>
               <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${momCol};padding:1px 6px;border-radius:8px;background:${momCol}15;border:1px solid ${momCol}28">${momSig.label||''}</span>
@@ -6499,14 +6501,14 @@ function renderMacroDataPanels(reg){
           ${(()=>{
             // Each row: label | value+label | inline gauge bar
             const sigRow = (eyebrow, valueStr, labelStr, labelCol, gaugeNorm, gaugeCol, subNote) => `
-              <div class="ov-sc-sig-row" style="display:grid;grid-template-columns:68px 1fr auto;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.05)">
-                <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${eyebrow}</span>
+              <div class="ov-sc-sig-row" style="display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">${eyebrow}</span>
                 <div style="min-width:0">
                   <div style="display:flex;align-items:baseline;gap:4px">
-                    <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;line-height:1;color:${labelCol};font-variant-numeric:tabular-nums">${valueStr}</span>
-                    <span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${labelCol};letter-spacing:0.04em">${labelStr}</span>
+                    <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;line-height:1;color:${labelCol};font-variant-numeric:tabular-nums">${valueStr}</span>
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${labelCol};letter-spacing:0.04em">${labelStr}</span>
                   </div>
-                  ${subNote?`<div style="font-family:var(--mono);font-size:5px;color:var(--faint);margin-top:1px;opacity:0.7">${subNote}</div>`:''}
+                  ${subNote?`<div style="font-family:var(--mono);font-size:7px;color:var(--faint);margin-top:2px;opacity:0.75">${subNote}</div>`:''}
                 </div>
                 <div style="width:60px">
                   <div style="position:relative;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
@@ -6565,18 +6567,18 @@ function renderMacroDataPanels(reg){
 
         <!-- Cross-Asset Returns — compact 3-col strip (1M / 3M only, 1W dropped) -->
         <div style="flex:1;min-height:0">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Cross-Asset Performance</div><div class="mc-sect-line"></div></div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">
             ${assetRows.map(m=>`<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:5px 7px">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.04em;color:var(--dim);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.lbl}</div>
+              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.03em;color:var(--dim);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.lbl}</div>
               <div style="display:flex;flex-direction:column;gap:3px">
                 <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;color:var(--faint)">1M</span>
-                  <span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${m.colR(m.r1m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
+                  <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint)">1M</span>
+                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${m.colR(m.r1m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r1m)}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;color:var(--faint)">3M</span>
-                  <span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${m.colR(m.r3m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
+                  <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint)">3M</span>
+                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${m.colR(m.r3m)};font-variant-numeric:tabular-nums">${m.fmtR(m.r3m)}</span>
                 </div>
               </div>
             </div>`).join('')}
