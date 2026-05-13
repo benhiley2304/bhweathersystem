@@ -6021,7 +6021,7 @@ function renderMacroDataPanels(reg){
         </div>
         <div>
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
-            <div style="font-family:var(--mono);font-size:32px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
+            <div style="font-family:var(--mono);font-size:38px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
           </div>
           <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase;margin-top:1px">10Y − 2Y SPREAD</div>
         </div>
@@ -6042,9 +6042,9 @@ function renderMacroDataPanels(reg){
           </div>
         </div>
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
-        <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+        <div style="flex:1;min-height:160px;display:flex;flex-direction:column">
           <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:175px;max-height:220px;width:100%;overflow:hidden"></div>
+          <div id="ov-yc-chart" style="position:relative;min-height:10px"></div>
         </div>
         <!-- Momentum + move type row -->
         <div style="display:flex;gap:8px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;flex-shrink:0">
@@ -6054,14 +6054,13 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Rate Context row -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
-        <div style="display:flex;align-items:center;gap:6px;padding:5px 0 2px;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap">
-          ${ryVal!=null?`<div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Real</span>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:5px 0 2px;border-top:1px solid rgba(255,255,255,0.05)">
+          ${ryVal!=null?`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Real Yield</span>
             <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</span>
           </div>`:''}
-          ${effr!=null?`<span style="color:rgba(255,255,255,0.12);font-size:8px">|</span>
-          <div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">EFFR</span>
+          ${effr!=null?`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">EFFR</span>
             <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:var(--text)">${effr.toFixed(2)}%</span>
           </div>`:''}
           ${cuts12m!=null?(()=>{
@@ -6069,9 +6068,8 @@ function renderMacroDataPanels(reg){
               const pathCol = path_bp>0?'#e03a2a':path_bp<0?'#22c97a':'#adb8d0';
               const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
               const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
-              return `<span style="color:rgba(255,255,255,0.12);font-size:8px">|</span>
-          <div style="display:flex;align-items:baseline;gap:4px">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Fwd Path</span>
+              return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Path 12M</span>
             <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${pathCol}">${pathStr} ${pathLbl}</span>
           </div>`;})():''}
         </div>`:''}
@@ -6543,7 +6541,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     curveSvg += `<text x="${xOff.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" fill="${isKey ? nowCol : 'rgba(255,255,255,0.72)'}" font-family="var(--mono)" font-size="${isKey ? fLblKey : fLbl}" font-weight="${isKey ? 800 : 600}">${d.v.toFixed(2)}%</text>`;
   });
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%;min-height:${Math.max(H,130)}px;display:block;overflow:hidden" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block;overflow:visible" shape-rendering="geometricPrecision">
     ${grids}${xAxis}${curveSvg}
   </svg>`;
 
