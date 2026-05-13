@@ -4539,69 +4539,134 @@ _CB_RATE_SERIES = {
     "US":     "FEDFUNDS",          # US Fed Funds (key must match frontend CB_ORDER 'US')
 }
 
+# ── Hardcoded CB policy rate fallback layer ───────────────────────────────────
+# These are actual policy/target rates as of the last confirmed decision.
+# Used to OVERRIDE the FRED series when FRED diverges >30bp or is >30 days stale.
+# Update whenever a CB makes a rate decision.
+# Format: { CB_KEY: { "rate": float, "date": "YYYY-MM-DD", "next_meeting": "YYYY-MM-DD",
+#                     "prev_rate": float, "cycle_peak": float, "cycle_trough": float } }
+_CB_POLICY_FALLBACK = {
+    # US: FEDFUNDS actual effective rate (not FFF-implied)
+    "US":    {"rate": 4.33,  "date": "2025-01-29", "next_meeting": "2026-06-11",
+              "prev_rate": 4.58, "cycle_peak": 5.33, "cycle_trough": 0.08},
+    # BoE: Bank Rate 3.75% held April 30 2026
+    "BOE":   {"rate": 3.75,  "date": "2026-04-30", "next_meeting": "2026-06-18",
+              "prev_rate": 4.50, "cycle_peak": 5.25, "cycle_trough": 0.10},
+    # ECB: Deposit facility rate 2.00% (April 2026)
+    "ECB":   {"rate": 2.00,  "date": "2026-04-17", "next_meeting": "2026-06-05",
+              "prev_rate": 4.00, "cycle_peak": 4.00, "cycle_trough": -0.50},
+    # BoJ: Policy rate 0.75% held April 28 2026
+    "BOJ":   {"rate": 0.75,  "date": "2026-04-28", "next_meeting": "2026-06-16",
+              "prev_rate": 0.50, "cycle_peak": 0.75, "cycle_trough": -0.10},
+    # RBA: Cash rate 4.35% (hiked +25bp May 6 2026)
+    "RBA":   {"rate": 4.35,  "date": "2026-05-06", "next_meeting": "2026-07-08",
+              "prev_rate": 4.10, "cycle_peak": 4.35, "cycle_trough": 0.10},
+    # BoC: Policy rate 2.25% held April 29 2026
+    "BOC":   {"rate": 2.25,  "date": "2026-04-29", "next_meeting": "2026-06-04",
+              "prev_rate": 3.25, "cycle_peak": 5.00, "cycle_trough": 0.25},
+    # RBNZ: OCR 2.25% (cutting cycle)
+    "RBNZ":  {"rate": 2.25,  "date": "2026-04-09", "next_meeting": "2026-05-28",
+              "prev_rate": 3.50, "cycle_peak": 5.50, "cycle_trough": 0.25},
+    # SNB: Policy rate 0.00% since June 2025
+    "SNB":   {"rate": 0.00,  "date": "2026-03-20", "next_meeting": "2026-06-19",
+              "prev_rate": 1.00, "cycle_peak": 1.75, "cycle_trough": -0.75},
+}
+
 def _compute_intl_rates() -> dict:
-    """Fetch central bank policy rates from FRED and compute trend signals."""
+    """Fetch central bank policy rates from FRED, apply hardcoded fallback for accuracy.
+
+    Strategy:
+    - Use FRED series for TREND signals (3m/6m direction) — FRED is reliable for this
+    - Override the 'rate' field with _CB_POLICY_FALLBACK when FRED diverges >30bp or is stale
+    - Always attach next_meeting, cycle_peak, cycle_trough, change_from_peak from fallback
+    - This gives accurate rates + real trend signals from continuous data
+    """
     now = time.time()
     if _INTL_RATES_CACHE["data"] and (now - _INTL_RATES_CACHE["time"]) < _INTL_RATES_TTL:
         return _INTL_RATES_CACHE["data"]
 
     from datetime import datetime as _dt
     result = {}
-    # Max staleness: only include if data is within 18 months
     STALE_CUTOFF_DAYS = 548  # 18 months
+    FALLBACK_DIVERGE_THRESHOLD = 0.30  # 30bp divergence triggers override
+    FALLBACK_STALE_DAYS = 45   # override if FRED data >45 days old
 
     for cb, fred_id in _CB_RATE_SERIES.items():
+        fallback = _CB_POLICY_FALLBACK.get(cb, {})
         try:
-            # Daily series (BOE, ECB) need more periods to capture 6m trend; monthly need fewer
-            _DAILY_CBS = {"BOE", "ECB"}  # IUDSOIA and ECBDFR are daily series
-            periods = 400 if cb in _DAILY_CBS else 36  # 400 days for daily, 36 months for monthly
+            _DAILY_CBS = {"BOE", "ECB"}
+            periods = 400 if cb in _DAILY_CBS else 36
             raw = fetch_fred_series(fred_id, periods)
             if not raw or len(raw) < 3:
-                continue
+                raise ValueError("insufficient FRED data")
             vals = [x["value"] for x in raw if x.get("value") is not None]
             dates = [x["date"]  for x in raw if x.get("value") is not None]
             if len(vals) < 3:
-                continue
+                raise ValueError("insufficient FRED data")
 
-            # Staleness check: skip if last data point > 18 months old
-            try:
-                last_date = _dt.strptime(dates[-1], "%Y-%m-%d")
-                days_old  = (datetime.utcnow() - last_date).days
-                if days_old > STALE_CUTOFF_DAYS:
-                    continue  # Too stale to be useful
-            except Exception:
-                pass
+            # Staleness check
+            last_date = _dt.strptime(dates[-1], "%Y-%m-%d")
+            days_old  = (datetime.utcnow() - last_date).days
+            if days_old > STALE_CUTOFF_DAYS:
+                raise ValueError("FRED data too stale")
 
-            current = vals[-1]
-            # Daily series (BOE, ECB): 3m ≈ 65 obs; 6m ≈ 130 obs
-            # Monthly series: 3m ≈ 3 obs; 6m ≈ 6 obs
+            fred_rate = vals[-1]
+
+            # Build trend using the FRED time-series (even if rate is overridden)
             if cb in _DAILY_CBS:
                 v_3m = vals[-65]  if len(vals) >= 65  else vals[0]
                 v_6m = vals[-130] if len(vals) >= 130 else vals[0]
+                v_12m = vals[-250] if len(vals) >= 250 else vals[0]
             else:
-                v_3m = vals[-3] if len(vals) >= 3 else vals[0]
-                v_6m = vals[-6] if len(vals) >= 6 else vals[0]
+                v_3m  = vals[-3]  if len(vals) >= 3  else vals[0]
+                v_6m  = vals[-6]  if len(vals) >= 6  else vals[0]
+                v_12m = vals[-12] if len(vals) >= 12 else vals[0]
 
-            trend_3m = round(current - v_3m, 3)
-            trend_6m = round(current - v_6m, 3)
+            trend_3m  = round(fred_rate - v_3m,  3)
+            trend_6m  = round(fred_rate - v_6m,  3)
+            trend_12m = round(fred_rate - v_12m, 3)
             bias = 1 if trend_6m > 0.1 else -1 if trend_6m < -0.1 else 0
 
-            # Label logic:
-            # - FEDFUNDS (US) is a reliable policy rate: t3=0 means genuinely on hold.
-            #   Use t3-priority: if t3~0 but t6 shows prior trend, label as Paused.
-            # - Interbank proxies (IR3TIB01*) reflect market expectations and are
-            #   noisy month-to-month. For these, use t6 as the primary signal
-            #   (smoother, more reflective of the actual CB cycle), but also
-            #   require t3 agreement to confirm an active move vs inherited momentum.
+            # Determine if we should override rate with fallback
+            use_fallback_rate = False
+            fallback_rate = fallback.get("rate")
+            if fallback_rate is not None:
+                diverges = abs(fred_rate - fallback_rate) > FALLBACK_DIVERGE_THRESHOLD
+                is_stale = days_old > FALLBACK_STALE_DAYS
+                if diverges or is_stale:
+                    use_fallback_rate = True
+
+            actual_rate = fallback_rate if use_fallback_rate and fallback_rate is not None else fred_rate
+
+            # --- Label logic ---
+            # For CB policy rates (FEDFUNDS, IUDSOIA, ECBDFR): use t3 as primary
+            # For interbank proxies (IR3TIB01*): use t6 as primary, t3 as confirmation
+            # Additionally use fallback data to confirm: if peak-to-now delta is large,
+            # label reflects the cycle even if recent FRED noise is flat
             _IS_POLICY_RATE = fred_id in ("FEDFUNDS", "IUDSOIA", "ECBDFR")
             _t3_flat = abs(trend_3m) < 0.05
             _t6_flat = abs(trend_6m) < 0.1
 
+            # Fallback-assisted cycle label: compare actual rate vs prev_rate over 12m
+            if fallback:
+                fb_prev  = fallback.get("prev_rate", actual_rate)
+                fb_peak  = fallback.get("cycle_peak", actual_rate)
+                fb_trough= fallback.get("cycle_trough", actual_rate)
+                fb_delta_12m = round(actual_rate - fb_prev, 3)  # change since ~12M ago
+                at_peak  = abs(actual_rate - fb_peak) < 0.26
+                at_trough= abs(actual_rate - fb_trough) < 0.26
+                actively_cutting = fb_delta_12m < -0.30
+                actively_hiking  = fb_delta_12m > 0.30
+            else:
+                fb_delta_12m = trend_12m
+                at_peak = at_trough = False
+                actively_cutting = fb_delta_12m < -0.30
+                actively_hiking  = fb_delta_12m > 0.30
+
             if _IS_POLICY_RATE:
-                # Direct policy rate: t3=0 means the CB hasn't moved. Paused wins.
                 if _t3_flat:
-                    if abs(trend_6m) > 0.3:
-                        _label = "Paused"  # On hold after a hiking/cutting cycle
+                    if abs(trend_6m) > 0.3 or abs(fb_delta_12m) > 0.3:
+                        _label = "Paused"
                     else:
                         _label = "Flat"
                 elif trend_3m > 0.5:
@@ -4615,33 +4680,66 @@ def _compute_intl_rates() -> dict:
                 else:
                     _label = "Flat"
             else:
-                # Interbank proxy: use t6 as primary, t3 as confirmation
-                # Both must agree to label an active move; otherwise use t6 direction
-                # but downgrade the label intensity
-                _same_dir = (trend_3m * trend_6m) > 0  # same sign
-                if trend_6m > 0.5 and trend_3m > 0.05:
+                # Interbank proxy — use t6 + fallback confirmation
+                if (trend_6m > 0.5 and trend_3m > 0.05) or actively_hiking:
                     _label = "Hiking"
                 elif trend_6m > 0.1 and trend_3m > -0.05:
                     _label = "Tightening"
-                elif trend_6m < -0.5 and trend_3m < -0.05:
+                elif (trend_6m < -0.5 and trend_3m < -0.05) or actively_cutting:
                     _label = "Cutting"
                 elif trend_6m < -0.1 and trend_3m < 0.05:
                     _label = "Easing"
-                elif _t6_flat:
+                elif _t6_flat and not actively_cutting and not actively_hiking:
                     _label = "Flat"
                 else:
-                    # t6 shows a trend but t3 has reversed → Paused/fading
-                    _label = "Paused" if abs(trend_6m) > 0.3 else "Flat"
+                    _label = "Paused" if (abs(trend_6m) > 0.3 or abs(fb_delta_12m) > 0.3) else "Flat"
 
             result[cb] = {
-                "rate":     round(current, 3),
-                "trend_3m": trend_3m,
-                "trend_6m": trend_6m,
-                "bias":     bias,
-                "data_date": dates[-1],
-                "label":    _label,
+                "rate":           round(actual_rate, 2),
+                "rate_source":    "fallback" if use_fallback_rate else "fred",
+                "fred_rate":      round(fred_rate, 3),
+                "trend_3m":       trend_3m,
+                "trend_6m":       trend_6m,
+                "trend_12m":      trend_12m,
+                "change_12m":     round(fb_delta_12m, 2),
+                "bias":           bias,
+                "data_date":      dates[-1],
+                "label":          _label,
+                "next_meeting":   fallback.get("next_meeting"),
+                "cycle_peak":     fallback.get("cycle_peak"),
+                "cycle_trough":   fallback.get("cycle_trough"),
+                "change_from_peak": round(actual_rate - fallback.get("cycle_peak", actual_rate), 2) if fallback.get("cycle_peak") is not None else None,
             }
         except Exception:
+            # FRED fetch failed entirely — use fallback-only if available
+            if fallback and fallback.get("rate") is not None:
+                fb_rate  = fallback["rate"]
+                fb_prev  = fallback.get("prev_rate", fb_rate)
+                fb_delta = round(fb_rate - fb_prev, 2)
+                if fb_delta > 0.30:
+                    _label = "Hiking"
+                elif fb_delta < -0.30:
+                    _label = "Cutting"
+                elif abs(fb_delta) > 0.05:
+                    _label = "Paused"
+                else:
+                    _label = "Flat"
+                result[cb] = {
+                    "rate":           round(fb_rate, 2),
+                    "rate_source":    "fallback_only",
+                    "fred_rate":      None,
+                    "trend_3m":       None,
+                    "trend_6m":       fb_delta,
+                    "trend_12m":      fb_delta,
+                    "change_12m":     fb_delta,
+                    "bias":           1 if fb_delta > 0.1 else -1 if fb_delta < -0.1 else 0,
+                    "data_date":      fallback.get("date"),
+                    "label":          _label,
+                    "next_meeting":   fallback.get("next_meeting"),
+                    "cycle_peak":     fallback.get("cycle_peak"),
+                    "cycle_trough":   fallback.get("cycle_trough"),
+                    "change_from_peak": round(fb_rate - fallback.get("cycle_peak", fb_rate), 2) if fallback.get("cycle_peak") is not None else None,
+                }
             continue
 
     _INTL_RATES_CACHE["data"] = result
