@@ -5852,11 +5852,19 @@ function renderMacroDataPanels(reg){
       ${(()=>{
         const arcPct = jobsComp!=null?jobsComp*10:50;
         // Z-score style indicator bars — score 5=neutral, 0=bear, 10=bull
+        const adpScore  = ffScores.adp??5;
+        const wagesScore= ffScores.wages??5;
+        const adpVal    = ffAdp?.actual!=null?'+'+ffAdp.actual.toFixed(0)+'K':null;
+        const wagesVal  = ffWages?.actual!=null?ffWages.actual.toFixed(1)+'%':null;
+        const adpCol    = adpScore>=7?'#22c97a':adpScore>=5.5?'#adb8d0':adpScore>=4?'#f5c842':'#e03a2a';
+        const wagesCol  = wagesScore>=7?'#22c97a':wagesScore>=5.5?'#adb8d0':wagesScore>=4?'#f5c842':'#e03a2a';
         const zIndicators = [
-          {lbl:'NFP',          score:nfpScore,  val:nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—', col:nfpCol},
-          {lbl:'Unemployment', score:urScore,   val:unrate!=null?unrate+'%':'—', col:urCol},
-          {lbl:'Init. Claims', score:clScore,   val:claims!=null?(claims/1000).toFixed(0)+'K':'—', col:clCol},
+          {lbl:'NFP',          score:nfpScore,   val:nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—',  col:nfpCol},
+          {lbl:'Unemployment', score:urScore,    val:unrate!=null?unrate+'%':'—',                                  col:urCol},
+          {lbl:'Init. Claims', score:clScore,    val:claims!=null?(claims/1000).toFixed(0)+'K':'—',               col:clCol},
           {lbl:'JOLTS Opens',  score:jolts!=null?(jolts>8?8.5:jolts>7?6.5:jolts>6?5:3.5):5, val:jolts!=null?jolts.toFixed(1)+'M':'—', col:joltsCol},
+          {lbl:'ADP',          score:adpScore,   val:adpVal||'—',                                                  col:adpCol},
+          {lbl:'Wages MoM',    score:wagesScore, val:wagesVal||'—',                                               col:wagesCol},
         ].filter(r=>r.val!=='—');
         return `
       <div class="ov-macro-card" id="ov-macro-labour">
@@ -5906,13 +5914,13 @@ function renderMacroDataPanels(reg){
               const isNeutral = r.score>=4 && r.score<=6;
               const displayCol = isNeutral ? '#6e7d90' : gradCol;
               const displayCol2 = isNeutral ? '#7a8ea0' : gradCol2;
-              return `<div style="display:grid;grid-template-columns:80px 1fr 58px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-                <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+              return `<div style="display:grid;grid-template-columns:68px 1fr 54px;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
                 <div style="position:relative;height:10px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden">
                   <div style="position:absolute;left:50%;top:-1px;width:2px;height:calc(100% + 2px);background:rgba(255,255,255,0.25);border-radius:1px"></div>
                   <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(${isPos?'90deg':'270deg'},${displayCol},${displayCol2});border-radius:5px;opacity:${isNeutral?0.55:0.92};box-shadow:0 0 ${isNeutral?3:6}px ${displayCol}${isNeutral?'33':'44'}"></div>
                 </div>
-                <span style="font-family:var(--mono);font-size:15px;font-weight:900;color:${displayCol};text-align:right;white-space:nowrap;line-height:1">${r.val}</span>
+                <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${displayCol};text-align:right;white-space:nowrap;line-height:1">${r.val}</span>
               </div>`;
             }).join('');
           })()}
@@ -5979,7 +5987,10 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:clamp(28px,6vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
             ${gap!=null?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${gapCol}">${gap>=0?'+':''}${gap}% vs target</span>`:''}
           </div>
-          <div style="font-family:var(--mono);font-size:7px;color:var(--faint)">CPI YoY · Fed target 2.0%</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-family:var(--mono);font-size:7px;color:var(--faint)">CPI YoY · Fed target 2.0%</span>
+            ${(()=>{ const t=(macroComps['CPI']||{}).trend_label||''; return t?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:${t==='Rising'?'#e03a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'↑ Rising':t==='Falling'?'↓ Falling':'→ Stable'}</span>`:''; })()}
+          </div>
         </div>
         <!-- Fed Target Deviation Bar -->
         ${(()=>{
@@ -6088,7 +6099,7 @@ function renderMacroDataPanels(reg){
           <canvas id="ov-bs-arc-canvas" style="width:100%;max-width:260px;display:block"></canvas>
         </div>
         <div>
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Period Changes</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Period Changes</div><div class="mc-sect-line"></div>${fbChg3m!=null&&Math.abs(fbChg3m)>=0.12?`<span style="font-family:var(--mono);font-size:5.5px;font-weight:700;color:${chgCol(fbChg3m)};letter-spacing:0.06em;text-transform:uppercase;opacity:0.7">${fbChg3m>0?'QE PHASE':'QT PHASE'}</span>`:''}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
             <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
               <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">3M</div>
@@ -6356,7 +6367,7 @@ function renderMacroDataPanels(reg){
           const r3m = r.return_3m??null;
           const fmtR = v => v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
           const colR = v => v==null?'var(--faint)':v>0?'#22c97a':v<0?'#e03a2a':'var(--dim)';
-          const bPct = r1m!=null ? Math.min(50, Math.max(-50, r1m*5)) : 0;
+          const bPct = r1m!=null ? Math.min(50, Math.max(-50, r1m*3)) : 0;  // 3x scale: ±16% fills bar
           const bDir = bPct>=0?'right':'left';
           const bW   = Math.abs(bPct).toFixed(1);
           const bCol = colR(r1m);
@@ -6365,6 +6376,9 @@ function renderMacroDataPanels(reg){
 
         // ── P6 computed values ─────────────────────────────────────────
         const vixNum    = parseFloat(vixSig.value||'0')||0;
+        const vix3mNum  = parseFloat(reg.levels?.VIX3M||'0')||0;
+        const vixTermStr= vix3mNum>0&&vixNum>0?(vix3mNum>vixNum?'Contango':'Backwardation'):'';
+        const vixTermCol= vix3mNum>vixNum?'#adb8d0':'#e03a2a';
         const fwdPE     = parseFloat(capeSig.value||'0')||0;
         const breadthVal= parseFloat(brSig.value||'0')||0;
         const spxMomVal = parseFloat(momSig.value||'0')||0;
@@ -6437,6 +6451,7 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Forward P/E</div>
             <div style="font-family:var(--mono);font-size:clamp(20px,4.5vw,28px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${peCol}">${peHeroTxt}</div>
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:${peCol};margin-top:3px;letter-spacing:0.06em">${peLabel}</div>
+            <div style="font-family:var(--mono);font-size:5.5px;color:var(--faint);margin-bottom:2px">${peScore!==null?'Score-based ▸ '+peScore.toFixed(1):'Est. from composite'}</div>
             ${gaugeBar(peNorm, peCol, peLabel, 'Cheap', 'Expensive', 7)}
           </div>
           <!-- VIX tile -->
@@ -6444,6 +6459,7 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">VIX</div>
             <div style="font-family:var(--mono);font-size:clamp(20px,4.5vw,28px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${vixCol}">${vixNum>0?vixNum.toFixed(1):'—'}</div>
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:${vixCol};margin-top:3px;letter-spacing:0.06em">${vixLabel}</div>
+            ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:5px;color:${vixTermCol};margin-bottom:1px">3M: ${vix3mNum.toFixed(1)} · ${vixTermStr}</div>`:''}
             ${gaugeBar(vixNorm, vixCol, vixLabel, 'Low', 'Fear', 7)}
           </div>
         </div>
@@ -6451,7 +6467,7 @@ function renderMacroDataPanels(reg){
         <!-- SPX Momentum Chart with MA line -->
         <div style="margin-bottom:7px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · Momentum</span>
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 · 3M Momentum</span>
             <div style="display:flex;align-items:baseline;gap:5px">
               <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${momCol};font-variant-numeric:tabular-nums">${spxMomVal>0?'+':''}${spxMomVal.toFixed(1)}%</span>
               <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${momCol};padding:1px 5px;border-radius:8px;background:${momCol}15;border:1px solid ${momCol}30">${momSig.label||''}</span>
@@ -6463,7 +6479,7 @@ function renderMacroDataPanels(reg){
         <!-- Breadth gauge -->
         <div style="margin-bottom:6px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">
-            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Market Breadth</span>
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Market Breadth · SPY/RSP</span>
             <div style="display:flex;align-items:baseline;gap:5px">
               <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${brCol}">${breadthVal!==0?(breadthVal>0?'+':'')+breadthVal.toFixed(1)+'%':'—'}</span>
               <span style="font-family:var(--mono);font-size:5.5px;color:${brCol};font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">${brSig.label||''}</span>
@@ -6482,7 +6498,7 @@ function renderMacroDataPanels(reg){
             <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22);text-align:right">1M</span>
             <span style="font-family:var(--mono);font-size:5px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.22);text-align:right">3M</span>
           </div>
-          ${assetRows.map(m=>`<div style="display:grid;grid-template-columns:44px 1fr 32px 32px 32px;align-items:center;gap:3px;padding:2.5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+          ${assetRows.map(m=>`<div style="display:grid;grid-template-columns:42px 1fr 30px 30px 30px;align-items:center;gap:2px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
             <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.02em;color:var(--dim)">${m.lbl}</span>
             <div style="position:relative;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
               <div style="position:absolute;top:0;bottom:0;${m.bDir==='right'?'left:50%':'right:50%'};width:${m.bW}%;background:${m.bCol};border-radius:2px;opacity:0.82"></div>
