@@ -1420,7 +1420,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .mc-sect-lbl{
   font-family:var(--mono);font-size:6.5px;font-weight:800;
   letter-spacing:0.12em;text-transform:uppercase;
-  color:var(--faint);opacity:0.45;white-space:nowrap;
+  color:var(--dim);opacity:0.65;white-space:nowrap;
 }
 .mc-sect-line{
   flex:1;height:1px;
@@ -6193,7 +6193,7 @@ function renderMacroDataPanels(reg){
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
         <div style="flex:1;min-height:0;display:flex;flex-direction:column">
           <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="position:relative;min-height:10px"></div>
+          <div id="ov-yc-chart" style="position:relative;min-height:140px"></div>
         </div>
         <!-- Momentum + move type row -->
         <div style="display:flex;gap:8px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;flex-shrink:0">
@@ -6503,9 +6503,11 @@ function renderMacroDataPanels(reg){
             );
 
             // Forward P/E row — left=cheap, right=expensive. Needle towards expensive = bad
+            // When no numeric PE, peHeroTxt === peLabel — show label in value, suppress duplicate
+            const _peHasNum = fwdPE > 0;
             const peRow = sigRow('Forward P/E',
-              fwdPE>0?fwdPE.toFixed(1)+'x':peHeroTxt,
-              peLabel,
+              _peHasNum ? fwdPE.toFixed(1)+'x' : peLabel,
+              _peHasNum ? peLabel : '',
               peCol,
               peNorm,
               peCol,
@@ -6659,18 +6661,21 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   const el = document.getElementById('ov-yc-chart');
   if (!el) return;
 
+  // Curve styles — clearly distinct colour + dash family
+  // NOW: thick solid gold | -3M: amber dashed | -6M: teal dashed | -12M: cool blue dashed
   const CURVES = [
-    { key: 'm12', label: '−12M', color: 'rgba(100,140,200,0.65)', width: 1.2, dash: '5,4' },
-    { key: 'm6',  label: '−6M',  color: 'rgba(100,180,130,0.75)', width: 1.4, dash: '5,4' },
-    { key: 'm3',  label: '−3M',  color: 'rgba(210,160,60,0.85)',  width: 1.7, dash: '5,4' },
-    { key: 'now', label: 'Now',  color: nowCol,                   width: 3.0, dash: ''    },
+    { key: 'm12', label: '−12M', color: 'rgba(90,140,210,0.70)',  width: 1.3, dash: '6,5'  },
+    { key: 'm6',  label: '−6M',  color: 'rgba(60,190,160,0.75)',  width: 1.5, dash: '8,4'  },
+    { key: 'm3',  label: '−3M',  color: 'rgba(220,150,50,0.90)',  width: 1.8, dash: '4,3'  },
+    { key: 'now', label: 'Now',  color: nowCol,                   width: 3.2, dash: ''     },
   ];
-  // Full tenor set — historical snapshots may only have 2Y–30Y
+  // Tenors used for plot points — include all for smooth curves
   const ALL_TENORS = ['EFFR','1M','3M','6M','1Y','2Y','5Y','10Y','30Y'];
-  // EFFR plotted at same x as 1M (leftmost anchor) — avoids huge dead space
-  // Log scale starts at 1M so EFFR and 1M share the leftmost position (EFFR offset slightly left)
+  // X-axis tick labels — only show 6 key tenors to avoid crowding
+  const AXIS_TENORS = ['EFFR','1M','2Y','5Y','10Y','30Y'];
+  // EFFR sits just left of 1M on log scale
   const TENOR_MO = { 'EFFR':0.7,'1M':1,'3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
-  // Log range: 0.7M → 390M (tight left, plenty of right)
+  // Log range: 0.7M → 390M
   const logMin = Math.log2(0.7), logMax = Math.log2(390);
 
   // Use container's actual rendered dimensions
@@ -6684,8 +6689,8 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   const W = Math.max(containerW - 4, 160);
   // Use container height if available; else aspect ratio fallback
   let containerH = elRect.height;
-  const aspectH = W < 220 ? 0.75 : 0.62;
-  const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), 130);
+  const aspectH = W < 220 ? 0.80 : 0.68;
+  const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), 150);
   // On mini (mobile half-width), skip y-axis label space
   const _padL = containerW < 220 ? 8 : 36;
   const padL = _padL, padR = 10, padT = 10, padB = 32;
@@ -6745,17 +6750,17 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     const y = +yPos(v).toFixed(1);
     if (y < padT - 2 || y > padT + gH + 2) continue;
     const isWhole = Math.abs(v - Math.round(v)) < 0.01;
-    grids += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,${isWhole?0.1:0.04})" stroke-width="0.7" stroke-dasharray="2,5"/>`
-           + `<text x="${padL-5}" y="${(y+2.2).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,${isWhole?0.45:0.22})" font-family="var(--mono)" font-size="${fGrid}">${v.toFixed(isWhole?1:2)}</text>`;
+    grids += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,${isWhole?0.13:0.05})" stroke-width="0.8" stroke-dasharray="3,5"/>`
+           + `<text x="${padL-5}" y="${(y+2.2).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,${isWhole?0.55:0.28})" font-family="var(--mono)" font-size="${fGrid}">${v.toFixed(isWhole?1:2)}</text>`;
   }
 
-  // X axis ticks + labels
+  // X axis ticks + labels — only AXIS_TENORS shown (key tenors, avoids crowding)
   let xAxis = '';
-  ALL_TENORS.forEach(t => {
+  AXIS_TENORS.forEach(t => {
     const x = xPosLog(t); if (x==null) return;
     const yT = padT + gH;
     xAxis += `<line x1="${x.toFixed(1)}" y1="${yT}" x2="${x.toFixed(1)}" y2="${(yT+4).toFixed(1)}" stroke="rgba(255,255,255,0.25)" stroke-width="0.9"/>`
-           + `<text x="${x.toFixed(1)}" y="${(yT+11).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.55)" font-family="var(--mono)" font-size="${fAxis}" font-weight="700">${t}</text>`;
+           + `<text x="${x.toFixed(1)}" y="${(yT+11).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.60)" font-family="var(--mono)" font-size="${fAxis}" font-weight="700">${t}</text>`;
   });
   // X axis baseline
   xAxis += `<line x1="${padL}" y1="${padT+gH}" x2="${W-padR}" y2="${padT+gH}" stroke="rgba(255,255,255,0.15)" stroke-width="0.8"/>`;
@@ -6785,14 +6790,15 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     // Glow on Now line
     if (isNow) curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="5" fill="none" opacity="0.15" filter="url(#${uid}f)"/>`;
     curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="${c.width}" fill="none"${dashAttr} stroke-linecap="round" stroke-linejoin="round"/>`;
-    // Dots on Now at all tenors, on historicals at 2Y+10Y only
-    const dotTenors = isNow ? ALL_TENORS : ['6M','1Y','2Y','5Y','10Y','30Y'];
+    // Dots on Now at all tenors, on historicals at key tenors only
+    const dotTenors = isNow ? ALL_TENORS : ['2Y','10Y','30Y'];
     dotTenors.forEach(t => {
       if (snp[t]==null) return;
       const nx = xPosLog(t); if (nx==null) return;
       const ny = yPos(snp[t]);
-      const r = isNow ? 2.8 : 1.6;
-      curveSvg += `<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="${r}" fill="var(--bg2)" stroke="${c.color}" stroke-width="${isNow?1.6:0.9}"/>`;
+      const isKey = ['2Y','10Y'].includes(t);
+      const r = isNow ? (isKey ? 3.5 : 2.5) : 1.8;
+      curveSvg += `<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="${r}" fill="#030508" stroke="${c.color}" stroke-width="${isNow?(isKey?1.8:1.3):1.0}"/>`;
     });
   });
 
@@ -6805,16 +6811,16 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // Smart label placement: alternate above/below; key tenors larger + highlighted
   // 3M=start-anchor, 30Y=end-anchor, rest centered; avoid chart boundary clipping
   const KEY_TENORS = new Set(['2Y','10Y']);
-  // Show labels only on non-crowded tenors; on narrow cards skip the very short-end
+  // Show rate labels only on key tenors — avoids overlap, mirrors reference design
   const labelTenors = isMini
-    ? ['3M','2Y','10Y','30Y']
-    : ['3M','6M','1Y','2Y','5Y','10Y','30Y'];
+    ? ['2Y','10Y','30Y']
+    : ['1M','2Y','5Y','10Y','30Y'];
   const filteredLabels = labelData.filter(d => labelTenors.includes(d.t));
   filteredLabels.forEach((d, i) => {
     // Alternate above/below starting above for 3M
     const above = (i % 2 === 0);
     const isKey = KEY_TENORS.has(d.t);
-    const isEdgeL = d.t === '3M';
+    const isEdgeL = d.t === '1M';
     const isEdgeR = d.t === '30Y';
     const lx = d.x;
     let ly = above ? d.y - 7 : d.y + 11;
@@ -6828,12 +6834,12 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     ${grids}${xAxis}${curveSvg}
   </svg>`;
 
-  // Legend — compact, right-aligned
-  const legendHTML = `<div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:3px;padding-right:4px">
-    ${[...CURVES].reverse().filter(c => ALL_TENORS.some(t => tenorData[c.key]?.[t]!=null)).map(c =>
+  // Legend — left-aligned, clearly readable, colour-coded
+  const legendHTML = `<div style="display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-top:4px;padding-left:${padL}px">
+    ${CURVES.filter(c => ALL_TENORS.some(t => tenorData[c.key]?.[t]!=null)).map(c =>
       `<div style="display:flex;align-items:center;gap:4px">
-        <svg width="16" height="5" style="flex-shrink:0"><line x1="0" y1="2.5" x2="16" y2="2.5" stroke="${c.color}" stroke-width="${c.key==='now'?2.2:1.4}" ${c.dash?`stroke-dasharray="${c.dash}"`:''}/></svg>
-        <span style="font-family:var(--mono);font-size:6.5px;color:${c.key==='now'?c.color:'rgba(255,255,255,0.42)'}">${c.label}</span>
+        <svg width="18" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="18" y2="3" stroke="${c.color}" stroke-width="${c.key==='now'?2.5:1.6}" ${c.dash?`stroke-dasharray="${c.dash}"`:''}/></svg>
+        <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${c.key==='now'?c.color:'rgba(255,255,255,0.55)'}">${c.label}</span>
       </div>`).join('')}
   </div>`;
 
