@@ -6021,11 +6021,11 @@ function renderMacroDataPanels(reg){
         </div>
         <div>
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
-            <div style="font-family:var(--mono);font-size:38px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
+            <div style="font-family:var(--mono);font-size:32px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
           </div>
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y SPREAD</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase;margin-top:1px">10Y − 2Y SPREAD</div>
         </div>
-        <div style="display:flex;gap:10px;align-items:stretch;margin-bottom:4px">
+        <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:3px">
           <div style="display:flex;flex-direction:column;gap:1px">
             <span style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t2)};line-height:1">${t2!=null?t2.toFixed(2)+'%':'—'}</span>
             <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)">2Y Front End</span>
@@ -6047,36 +6047,33 @@ function renderMacroDataPanels(reg){
           <div id="ov-yc-chart" style="position:relative;flex:1;min-height:130px;width:100%"></div>
         </div>
         <!-- Momentum strip -->
-        <div style="display:flex;gap:10px;align-items:center;padding:3px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:auto">
+        <div style="display:flex;gap:10px;align-items:center;padding:3px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:6px">
           ${sChg3m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
           ${sChg6m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
           ${yc_move_type?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${moveCol};margin-left:auto">${yc_move_type}</span>`:''}
         </div>
         <!-- Rate Context row -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
-        <div>
-          <div class="mc-sect" style="margin:4px 0 4px"><div class="mc-sect-lbl">Rate Context</div><div class="mc-sect-line"></div></div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-            ${ryVal!=null?`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:7px;padding:7px 8px;text-align:center">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Real Yield</div>
-              <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</div>
-            </div>`:''}
-            ${effr!=null?`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:7px;padding:7px 8px;text-align:center">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">EFFR</div>
-              <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:var(--text)">${effr.toFixed(2)}%</div>
-            </div>`:''}
-            ${cuts12m!=null?(()=>{
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0 2px;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap">
+          ${ryVal!=null?`<div style="display:flex;align-items:baseline;gap:4px">
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Real</span>
+            <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</span>
+          </div>`:''}
+          ${effr!=null?`<span style="color:rgba(255,255,255,0.12);font-size:8px">|</span>
+          <div style="display:flex;align-items:baseline;gap:4px">
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">EFFR</span>
+            <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:var(--text)">${effr.toFixed(2)}%</span>
+          </div>`:''}
+          ${cuts12m!=null?(()=>{
               const path_bp = -cuts12m * 25;
               const pathCol = path_bp>0?'#e03a2a':path_bp<0?'#22c97a':'#adb8d0';
               const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
               const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
-              return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:7px;padding:7px 8px;text-align:center">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Path 12M</div>
-              <div style="font-family:var(--mono);font-size:13px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${pathCol}">${pathStr}</div>
-              <div style="font-family:var(--mono);font-size:6px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:${pathCol};margin-top:2px">${pathLbl} · FED FWD</div>
-            </div>`;
-            })():''}
-          </div>
+              return `<span style="color:rgba(255,255,255,0.12);font-size:8px">|</span>
+          <div style="display:flex;align-items:baseline;gap:4px">
+            <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Fwd Path</span>
+            <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${pathCol}">${pathStr} ${pathLbl}</span>
+          </div>`;})():''}
         </div>`:''}
       </div>`;
       })()}
@@ -6402,8 +6399,15 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // Extend log range: logMin=log2(1)=0, logMax=log2(360) so short end has space
   const logMin = Math.log2(1.5), logMax = Math.log2(390);
 
-  // Use container's actual width for responsive sizing; fall back to 280
-  const containerW = el.getBoundingClientRect().width || el.parentElement?.clientWidth || el.clientWidth || 280;
+  // Use container's actual width — walk up to the card if needed
+  let containerW = el.getBoundingClientRect().width;
+  if (!containerW) containerW = el.parentElement?.getBoundingClientRect().width || 0;
+  if (!containerW) {
+    // Fallback: find the card by ID and use its width minus padding
+    const card = document.getElementById('ov-macro-yc');
+    if (card) containerW = card.getBoundingClientRect().width - 48; // subtract card padding
+  }
+  if (!containerW) containerW = 280;
   const W = Math.max(containerW - 4, 180);
   // Height: 65% aspect on desktop, taller on narrow mobile
   const aspectH = W < 220 ? 0.75 : 0.62;
