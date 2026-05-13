@@ -1091,12 +1091,16 @@ a{color:inherit;text-decoration:none}
 /* ── Macro Data Panels (Yield Curve, Credit, Fed BS) ── */
 /* ── Macro Climate Panels ───────────────────────────────────────────── */
 .ov-macro-sect-header{
-  font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
-  color:var(--faint);margin:20px 16px 12px;
-  display:flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--accent);margin:20px 16px 12px;
+  display:flex;align-items:center;gap:12px;
+  opacity:0.75;
+}
+.ov-macro-sect-header::before{
+  content:'';width:3px;height:12px;background:var(--accent);border-radius:2px;opacity:0.7;flex-shrink:0;
 }
 .ov-macro-sect-header::after{
-  content:'';flex:1;height:1px;background:rgba(255,255,255,0.07);
+  content:'';flex:1;height:1px;background:rgba(200,169,110,0.15);
 }
 .ov-macro-panels{
   display:grid;
@@ -6004,7 +6008,7 @@ function renderMacroDataPanels(reg){
               return `<div style="display:grid;grid-template-columns:54px 1fr auto auto;align-items:center;gap:5px">
                 <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
                 <div style="position:relative;height:${isFirst?8:5}px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;${isFirst?'box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08)':''}">
-                  <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,${r.col}66,${r.col});border-radius:3px;opacity:0.85"></div>
+                  <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,${r.col}55,${r.col}bb);border-radius:3px;opacity:0.70"></div>
                   <!-- 2% target line -->
                   <div style="position:absolute;left:25%;top:0;width:1px;height:100%;background:rgba(255,255,255,0.2)"></div>
                 </div>
@@ -6314,7 +6318,7 @@ function renderMacroDataPanels(reg){
 
         // ── Hero arc SVG (semicircle, -2..+2 range) ──────────────────────
         const arcSVG = (()=>{
-          const W=220, H=120, cx=110, cy=110, R=88, stroke=10;
+          const W=220, H=125, cx=110, cy=110, R=88, stroke=10;
           // Arc from 180° → 0° (left to right), score maps -2→180° +2→0°
           const normScore = scComposite!=null?Math.min(1,Math.max(0,(scComposite+2)/4)):0.5;
           const startAngle = Math.PI; // 180deg
@@ -6388,7 +6392,7 @@ function renderMacroDataPanels(reg){
         </div>
 
         <!-- Hero Arc + Score -->
-        <div style="position:relative;text-align:center;margin:-4px 0 -8px">
+        <div style="position:relative;text-align:center;margin:-4px 0 -10px">
           ${arcSVG}
           <!-- Composite score overlaid centre of arc -->
           <div style="position:absolute;bottom:8px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:2px">
@@ -6403,7 +6407,7 @@ function renderMacroDataPanels(reg){
             // Centre bar: -2..+2 → bar fills from centre
             const barPct = Math.abs(s.score) / 2 * 50; // max 50% from centre
             const barDir = s.score >= 0 ? 'right' : 'left';
-            return `<div style="display:grid;grid-template-columns:70px 1fr 52px;align-items:center;gap:6px">
+            return `<div style="display:grid;grid-template-columns:65px 1fr 56px;align-items:center;gap:5px">
               <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--dim);text-align:right;line-height:1.2">${s.lbl}</div>
               <!-- Centre bar -->
               <div style="position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden">
@@ -6412,7 +6416,7 @@ function renderMacroDataPanels(reg){
               </div>
               <div style="text-align:left">
                 <div style="font-family:var(--mono);font-size:9px;font-weight:900;color:${s.col};font-variant-numeric:tabular-nums;line-height:1">${s.val}</div>
-                <div style="font-family:var(--mono);font-size:5.5px;font-weight:600;color:var(--faint);letter-spacing:0.04em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px">${s.sub}</div>
+                <div style="font-family:var(--mono);font-size:5.5px;font-weight:600;color:var(--faint);letter-spacing:0.04em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56px">${s.sub}</div>
               </div>
             </div>`;
           }).join('')}
