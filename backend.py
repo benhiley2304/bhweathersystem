@@ -3342,6 +3342,135 @@ def _fetch_ff_labour_surprises(force: bool = False) -> dict:
     return result
 
 
+# ── ForexFactory Inflation Surprises ─────────────────────────────────────────
+# Mirrors the labour pattern exactly. FF provides real consensus + actual for
+# CPI m/m, CPI y/y, Core CPI m/m, PPI m/m, Core PPI m/m, Core PCE m/m.
+# These replace the FRED rolling-average "expected" with real market forecasts.
+
+_FF_INFL_CACHE: dict = {"data": None, "time": 0}
+_FF_INFL_CACHE_TTL = 3600  # 1 hour
+
+# Exact event names as they appear on ForexFactory (USD events only)
+# For inflation lower=more hawkish, but for the SURPRISE direction:
+#   higher_is_good=False means a beat (actual > forecast) is BEARISH (hotter than expected)
+_FF_INFL_EVENTS = {
+    "CPI m/m":               {"key": "cpi_mom",     "unit": "%", "higher_is_good": False},
+    "CPI y/y":               {"key": "cpi_yoy",     "unit": "%", "higher_is_good": False},
+    "Core CPI m/m":          {"key": "core_cpi_mom","unit": "%", "higher_is_good": False},
+    "PPI m/m":               {"key": "ppi_mom",     "unit": "%", "higher_is_good": False},
+    "Core PPI m/m":          {"key": "core_ppi_mom","unit": "%", "higher_is_good": False},
+    "Core PCE Price Index m/m": {"key": "core_pce_mom", "unit": "%", "higher_is_good": False},
+}
+
+
+def _fetch_ff_inflation_surprises(force: bool = False) -> dict:
+    """
+    Fetch last 14 weeks of ForexFactory calendar and extract actual vs forecast
+    for key US inflation events. Mirrors _fetch_ff_labour_surprises exactly.
+    Returns per-event release lists + latest + composite hot/cool score.
+    """
+    global _FF_INFL_CACHE
+    now = time.time()
+    if not force and _FF_INFL_CACHE["data"] and (now - _FF_INFL_CACHE["time"]) < _FF_INFL_CACHE_TTL:
+        return _FF_INFL_CACHE["data"]
+
+    week_strings = _get_week_strings(16)  # 16 weeks ≈ 4 months (CPI/PCE monthly releases)
+    all_events = []
+
+    with _cf.ThreadPoolExecutor(max_workers=3) as ex:
+        futs = {ex.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
+        for fut in _cf.as_completed(futs):
+            try:
+                all_events.extend(fut.result())
+            except Exception:
+                pass
+
+    # Deduplicate: FF HTML sometimes returns same event twice per week
+    seen = set()
+    unique_events = []
+    for ev in all_events:
+        dedup_key = (ev.get("name"), ev.get("dateline"), ev.get("actual"))
+        if dedup_key not in seen:
+            seen.add(dedup_key)
+            unique_events.append(ev)
+
+    releases: dict = {meta["key"]: [] for meta in _FF_INFL_EVENTS.values()}
+
+    for ev in unique_events:
+        if ev.get("currency") != "USD":
+            continue
+        name = ev.get("name", "")
+        actual_str   = ev.get("actual", "")
+        forecast_str = ev.get("forecast", "")
+        if not actual_str or not forecast_str or actual_str in ("", "—") or forecast_str in ("", "—"):
+            continue
+        for event_name, meta in _FF_INFL_EVENTS.items():
+            if name == event_name:
+                actual_raw   = _parse_ff_value(actual_str)
+                forecast_raw = _parse_ff_value(forecast_str)
+                previous_raw = _parse_ff_value(ev.get("previous", ""))
+                if actual_raw is None or forecast_raw is None:
+                    break
+                surprise_raw  = actual_raw - forecast_raw
+                actual_disp   = round(actual_raw, 2)
+                forecast_disp = round(forecast_raw, 2)
+                surprise_disp = round(surprise_raw, 3)
+                # For inflation: beat = actual > forecast = HOTTER than expected
+                beat = actual_raw > forecast_raw  # True = hot surprise
+                releases[meta["key"]].append({
+                    "dateline": ev.get("dateline"),
+                    "actual":   actual_disp,
+                    "forecast": forecast_disp,
+                    "previous": round(previous_raw, 2) if previous_raw is not None else None,
+                    "surprise": surprise_disp,
+                    "beat":     beat,   # True = hotter than forecast
+                    "unit":     meta["unit"],
+                })
+                break
+
+    # Sort chronologically
+    for key in releases:
+        releases[key].sort(key=lambda x: x["dateline"] or 0)
+
+    # Most recent release per metric
+    latest = {key: rel_list[-1] for key, rel_list in releases.items() if rel_list}
+
+    # Hot/Cool score per metric: +1 if hot beat, -1 if cool miss, weighted recent
+    def _hot_score(rel_list: list) -> Optional[float]:
+        recent = rel_list[-6:]
+        if not recent:
+            return None
+        hits = [1 if r["beat"] else -1 for r in recent]
+        weights = [1.0] * len(hits)
+        for i in range(max(0, len(hits) - 3), len(hits)):
+            weights[i] = 1.5
+        raw = sum(h * w for h, w in zip(hits, weights)) / sum(weights)
+        return round(max(0, min(10, raw * 3 + 5)), 1)  # 0=cool, 5=neutral, 10=hot
+
+    scores = {}
+    for key, rel_list in releases.items():
+        if rel_list:
+            scores[key] = _hot_score(rel_list)
+
+    # Composite heat score
+    valid_scores = [s for s in scores.values() if s is not None]
+    composite_heat = round(sum(valid_scores) / len(valid_scores), 1) if valid_scores else None
+
+    result = {
+        "releases":       releases,
+        "scores":         scores,
+        "latest":         latest,
+        "composite_heat": composite_heat,
+        "fetched_at":     now,
+        "n_events_found": sum(len(v) for v in releases.values()),
+    }
+
+    _FF_INFL_CACHE["data"] = result
+    _FF_INFL_CACHE["time"] = now
+    print(f"[FF Inflation] Refreshed — {result['n_events_found']} releases, composite heat: {composite_heat}")
+    return result
+
+
 def _classify_ff_event(name: str, currency: str):
     """
     Returns (category, higher_is_good) if the event matches a known indicator,
@@ -3614,7 +3743,7 @@ FRED_SERIES = {
     "INDPRO":   "INDPRO",
     "CPI":      "CPIAUCSL",
     "CORE_CPI": "CPILFESL",
-    "PPI":      "PPIACO",
+    "PPI":      "PPIFIS",   # PPI: Final Demand (SA) — BLS headline figure. PPIACO (All Commodities) was incorrectly used before — it's a raw commodity spot index, not the market-reported PPI.
     "PCE":      "PCEPI",
     "CORE_PCE": "PCEPILFE",
     "CFNAI":    "CFNAI",
@@ -3810,7 +3939,7 @@ def compute_macro_all() -> dict:
     ppi_data = fetch_fred_series("PPI", 24)
     if ppi_data:
         r = compute_macro_surprise(ppi_data, higher_is_good=True, transform="yoy", scale=0.4)
-        components["PPI"] = {**r, "title": "PPI YoY", "category": "inflation",
+        components["PPI"] = {**r, "title": "PPI Final Demand", "category": "inflation",
                               "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
 
     pce_data = fetch_fred_series("PCE", 24)
@@ -3827,6 +3956,81 @@ def compute_macro_all() -> dict:
 
 
     # ── JOBS ──────────────────────────────────────────────────────────────────
+
+    # ── Overlay real ForexFactory consensus + actual onto inflation components ──
+    # FF gives us real market forecasts (vs FRED rolling avg) for print-day events.
+    try:
+        _ff_infl = _fetch_ff_inflation_surprises()
+        if _ff_infl and _ff_infl.get("n_events_found", 0) > 0:
+            _ff_latest  = _ff_infl.get("latest", {})
+            _ff_scores  = _ff_infl.get("scores", {})
+            _ff_rels    = _ff_infl.get("releases", {})
+
+            # CPI: inject FF CPI m/m latest + y/y
+            if "CPI" in components:
+                _cpi_l = _ff_latest.get("cpi_mom", {})
+                if _cpi_l:
+                    components["CPI"]["actual_ff"]   = _cpi_l.get("actual")
+                    components["CPI"]["forecast_ff"] = _cpi_l.get("forecast")
+                    components["CPI"]["surprise_ff"] = _cpi_l.get("surprise")
+                    components["CPI"]["beat_ff"]     = _cpi_l.get("beat")
+                    components["CPI"]["ff_score"]    = _ff_scores.get("cpi_mom")
+                    components["CPI"]["ff_releases"] = _ff_rels.get("cpi_mom", [])
+                _cpi_yoy_l = _ff_latest.get("cpi_yoy", {})
+                if _cpi_yoy_l:
+                    components["CPI"]["actual_ff_yoy"]   = _cpi_yoy_l.get("actual")
+                    components["CPI"]["forecast_ff_yoy"] = _cpi_yoy_l.get("forecast")
+                    components["CPI"]["surprise_ff_yoy"] = _cpi_yoy_l.get("surprise")
+                    components["CPI"]["beat_ff_yoy"]     = _cpi_yoy_l.get("beat")
+
+            # Core CPI
+            if "CORE_CPI" in components:
+                _ccpi_l = _ff_latest.get("core_cpi_mom", {})
+                if _ccpi_l:
+                    components["CORE_CPI"]["actual_ff"]   = _ccpi_l.get("actual")
+                    components["CORE_CPI"]["forecast_ff"] = _ccpi_l.get("forecast")
+                    components["CORE_CPI"]["surprise_ff"] = _ccpi_l.get("surprise")
+                    components["CORE_CPI"]["beat_ff"]     = _ccpi_l.get("beat")
+                    components["CORE_CPI"]["ff_score"]    = _ff_scores.get("core_cpi_mom")
+                    components["CORE_CPI"]["ff_releases"] = _ff_rels.get("core_cpi_mom", [])
+
+            # PPI: FF PPI m/m + Core PPI m/m
+            if "PPI" in components:
+                _ppi_l = _ff_latest.get("ppi_mom", {})
+                if _ppi_l:
+                    components["PPI"]["actual_ff"]   = _ppi_l.get("actual")
+                    components["PPI"]["forecast_ff"] = _ppi_l.get("forecast")
+                    components["PPI"]["surprise_ff"] = _ppi_l.get("surprise")
+                    components["PPI"]["beat_ff"]     = _ppi_l.get("beat")
+                    components["PPI"]["ff_score"]    = _ff_scores.get("ppi_mom")
+                    components["PPI"]["ff_releases"] = _ff_rels.get("ppi_mom", [])
+                _cppi_l = _ff_latest.get("core_ppi_mom", {})
+                if _cppi_l:
+                    components["PPI"]["core_actual_ff"]   = _cppi_l.get("actual")
+                    components["PPI"]["core_forecast_ff"] = _cppi_l.get("forecast")
+                    components["PPI"]["core_surprise_ff"] = _cppi_l.get("surprise")
+                    components["PPI"]["core_beat_ff"]     = _cppi_l.get("beat")
+
+            # Core PCE
+            if "CORE_PCE" in components:
+                _cpce_l = _ff_latest.get("core_pce_mom", {})
+                if _cpce_l:
+                    components["CORE_PCE"]["actual_ff"]   = _cpce_l.get("actual")
+                    components["CORE_PCE"]["forecast_ff"] = _cpce_l.get("forecast")
+                    components["CORE_PCE"]["surprise_ff"] = _cpce_l.get("surprise")
+                    components["CORE_PCE"]["beat_ff"]     = _cpce_l.get("beat")
+                    components["CORE_PCE"]["ff_score"]    = _ff_scores.get("core_pce_mom")
+                    components["CORE_PCE"]["ff_releases"] = _ff_rels.get("core_pce_mom", [])
+
+            # Composite heat score at top level (for P2 badge)
+            components["_ff_infl_heat"] = {
+                "composite": _ff_infl.get("composite_heat"),
+                "scores":    _ff_scores,
+                "n_events":  _ff_infl.get("n_events_found", 0),
+            }
+    except Exception as _ff_ie:
+        print(f"[FF Inflation] Injection error (non-fatal): {_ff_ie}")
+
     nfp_data = fetch_fred_series("NFP", 12)
     if nfp_data:
         r = compute_macro_surprise(nfp_data, higher_is_good=True, transform="mom", scale=80)
@@ -4918,49 +5122,76 @@ def compute_risk_regime() -> dict:
     except Exception as _e: print(f"[macro_dashboard] {_e}")
 
     try:
-        # DGS10 (10Y yield)
-        dgs10_data = fetch_fred_series("DGS10", 16)  # may not be in FRED_SERIES, use raw id
-        if dgs10_data and len(dgs10_data) >= 2:
-            dgs10_now = dgs10_data[-1]["value"]
-            dgs10_3m  = dgs10_data[0]["value"] if len(dgs10_data) >= 12 else dgs10_data[0]["value"]
-            macro_dashboard["dgs10"] = {
-                "level":  round(dgs10_now, 3),
-                "chg_3m": round(dgs10_now - dgs10_3m, 3),
-            }
-    except Exception: pass
-
-    try:
-        # Individual tenor yields for yield curve visualisation: 2Y, 5Y, 30Y
-        # Fetch 270 days so we can extract 6m (~130 trading days) and 12m (~260 trading days) snapshots
+        # Individual tenor yields for yield curve visualisation + DGS10 level/chg_3m.
+        # IMPORTANT: fetch 270 periods FIRST so the cache is primed with full history.
+        # Do NOT call fetch_fred_series("DGS10", 16) separately — it would cache only 16
+        # rows and block the 270-period snapshot fetches that follow.
+        # 270 trading days ≈ 13 calendar months, sufficient for 3M/6M/12M snapshots.
         dgs2_raw  = fetch_fred_series("DGS2",  270)
         dgs5_raw  = fetch_fred_series("DGS5",  270)
         dgs10_raw = fetch_fred_series("DGS10", 270)
         dgs30_raw = fetch_fred_series("DGS30", 270)
-        tenors = {}
+        dtb3_raw  = fetch_fred_series("DTB3",  270)  # 3-Month Treasury Bill (IRX proxy)
+
         def _tenor_snapshot(series, idx):
-            """Get value at index from end (-1=latest, -130=6m ago, -260=12m ago)"""
+            """Return the yield at trading-day offset idx from end.
+            idx=-1 → latest, -65 → ~3M, -130 → ~6M, -260 → ~12M.
+            Falls back to the oldest available value if the series is too short."""
             vals = [x for x in series if x.get("value") is not None] if series else []
             if not vals: return None
             try: return round(vals[idx]["value"], 3)
             except IndexError: return round(vals[0]["value"], 3)
+
+        tenors = {}
+
+        # ── DGS10: level + 3-month change (replaces old 16-period block) ─────────
+        if dgs10_raw and len(dgs10_raw) >= 2:
+            dgs10_now = dgs10_raw[-1]["value"]
+            dgs10_3m  = dgs10_raw[-65]["value"] if len(dgs10_raw) >= 65 else dgs10_raw[0]["value"]
+            macro_dashboard["dgs10"] = {
+                "level":  round(dgs10_now, 3),
+                "chg_3m": round(dgs10_now - dgs10_3m, 3),
+            }
+
+        # ── 2-Year snapshots ──────────────────────────────────────────────────────
         if dgs2_raw:
             tenors["t2y"]     = _tenor_snapshot(dgs2_raw, -1)
+            tenors["t2y_3m"]  = _tenor_snapshot(dgs2_raw, -65)
             tenors["t2y_6m"]  = _tenor_snapshot(dgs2_raw, -130)
             tenors["t2y_12m"] = _tenor_snapshot(dgs2_raw, -260)
+
+        # ── 5-Year snapshots ──────────────────────────────────────────────────────
         if dgs5_raw:
             tenors["t5y"]     = _tenor_snapshot(dgs5_raw, -1)
+            tenors["t5y_3m"]  = _tenor_snapshot(dgs5_raw, -65)
             tenors["t5y_6m"]  = _tenor_snapshot(dgs5_raw, -130)
             tenors["t5y_12m"] = _tenor_snapshot(dgs5_raw, -260)
+
+        # ── 10-Year snapshots ─────────────────────────────────────────────────────
         if dgs10_raw:
+            tenors["t10y_3m"]  = _tenor_snapshot(dgs10_raw, -65)
             tenors["t10y_6m"]  = _tenor_snapshot(dgs10_raw, -130)
             tenors["t10y_12m"] = _tenor_snapshot(dgs10_raw, -260)
+
+        # ── 30-Year snapshots ─────────────────────────────────────────────────────
         if dgs30_raw:
             tenors["t30y"]     = _tenor_snapshot(dgs30_raw, -1)
+            tenors["t30y_3m"]  = _tenor_snapshot(dgs30_raw, -65)
             tenors["t30y_6m"]  = _tenor_snapshot(dgs30_raw, -130)
             tenors["t30y_12m"] = _tenor_snapshot(dgs30_raw, -260)
+
+        # ── 3-Month T-bill (short-end anchor for historical YC curves) ────────────
+        if dtb3_raw:
+            tenors["t3m"]     = _tenor_snapshot(dtb3_raw, -1)
+            tenors["t3m_3m"]  = _tenor_snapshot(dtb3_raw, -65)
+            tenors["t3m_6m"]  = _tenor_snapshot(dtb3_raw, -130)
+            tenors["t3m_12m"] = _tenor_snapshot(dtb3_raw, -260)
+
         if tenors:
             macro_dashboard["yield_curve"] = {**macro_dashboard.get("yield_curve", {}), **tenors}
-    except Exception: pass
+    except Exception as _te:
+        print(f"[macro_dashboard tenor snapshots] {_te}")
+        pass
 
     try:
         # Real yield: DFII10
