@@ -6042,15 +6042,15 @@ function renderMacroDataPanels(reg){
           </div>
         </div>
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
-        <div style="flex:1;min-height:0;display:flex;flex-direction:column">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:130px;width:100%"></div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+          <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
+          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:160px;width:100%;overflow:hidden"></div>
         </div>
-        <!-- Momentum strip -->
-        <div style="display:flex;gap:10px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.05);margin-top:4px;flex-shrink:0">
-          ${sChg3m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
-          ${sChg6m!=null?`<div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
-          ${yc_move_type?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${moveCol};margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%">${yc_move_type}</span>`:''}
+        <!-- Momentum + move type row -->
+        <div style="display:flex;gap:8px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;flex-shrink:0">
+          ${sChg3m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
+          ${sChg6m!=null?`<span style="color:rgba(255,255,255,0.1);font-size:8px">·</span><div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:6px;font-weight:700;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
+          ${yc_move_type?`<span style="font-family:var(--mono);font-size:7.5px;font-weight:800;color:${moveCol};margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%;padding:2px 6px;background:${moveCol}18;border-radius:4px">${yc_move_type}</span>`:''}
         </div>
         <!-- Rate Context row -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
@@ -6399,21 +6399,21 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // Extend log range: logMin=log2(1)=0, logMax=log2(360) so short end has space
   const logMin = Math.log2(1.5), logMax = Math.log2(390);
 
-  // Use container's actual width — walk up to the card if needed
-  let containerW = el.getBoundingClientRect().width;
-  if (!containerW) containerW = el.parentElement?.getBoundingClientRect().width || 0;
+  // Use container's actual rendered dimensions
+  const elRect = el.getBoundingClientRect();
+  let containerW = elRect.width;
   if (!containerW) {
-    // Fallback: find the card by ID and use its width minus padding
     const card = document.getElementById('ov-macro-yc');
-    if (card) containerW = card.getBoundingClientRect().width - 48; // subtract card padding
+    if (card) containerW = card.getBoundingClientRect().width - 48;
   }
   if (!containerW) containerW = 280;
-  const W = Math.max(containerW - 4, 180);
-  // Height: 65% aspect on desktop, taller on narrow mobile
+  const W = Math.max(containerW - 4, 160);
+  // Use container height if available; else aspect ratio fallback
+  let containerH = elRect.height;
   const aspectH = W < 220 ? 0.75 : 0.62;
-  const H = Math.max(Math.round(W * aspectH), 140);
+  const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), 130);
   // On mini (mobile half-width), skip y-axis label space
-  const _padL = (el.getBoundingClientRect().width || containerW) < 220 ? 8 : 36;
+  const _padL = containerW < 220 ? 8 : 36;
   const padL = _padL, padR = 10, padT = 10, padB = 32;
   const gW = W - padL - padR, gH = H - padT - padB;
 
@@ -6543,7 +6543,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     curveSvg += `<text x="${xOff.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" fill="${isKey ? nowCol : 'rgba(255,255,255,0.72)'}" font-family="var(--mono)" font-size="${isKey ? fLblKey : fLbl}" font-weight="${isKey ? 800 : 600}">${d.v.toFixed(2)}%</text>`;
   });
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:hidden" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-height:${Math.max(H,130)}px;display:block;overflow:hidden" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">
     ${grids}${xAxis}${curveSvg}
   </svg>`;
 
