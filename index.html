@@ -5613,8 +5613,8 @@ function renderMacroDataPanels(reg){
   const sc         = (typeof DATA!=='undefined'&&DATA.stock_climate)||{};
   const scSignals  = sc.signals||{};
 
-  // ── Tenor data — all historical snapshots now use real FRED values (DTB3/DGS2/5/10/30)
-  // t3m: current 3M T-bill (prefer backend DTB3 value, fall back to reg.levels.IRX)
+  // ── Tenor data — backend uses DGS3MO/DGS2/DGS5/DGS10/DGS30 (all CMT, consistent series)
+  // t3m: 3M CMT from backend DGS3MO (fall back to IRX from levels if unavailable)
   const t3m = yc.t3m ?? reg.levels?.IRX ?? null;
   const t10 = dgs10.level ?? reg.levels?.TNX ?? null;
   const t2  = yc.t2y  ?? (t10!=null&&yc.t10y2y!=null ? +(t10-yc.t10y2y).toFixed(3) : null);
@@ -6723,69 +6723,87 @@ function renderMacroDataPanels(reg){
     } catch(e){}
     // SPX sparkline
     try { _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a'); } catch(e){}
-    // Build YC chart — extra RAF to let flex container settle its width
-    const _ycData = {
-      // Current curve: 3M and 1Y interpolated between real 3M T-bill and 2Y FRED data
-      // Historical curves: 3M tenor uses real DTB3 FRED snapshots; 6M/1Y interpolated
-      // from real DGS2/DGS10 historical anchors scaled by current curve shape
-      ...((() => {
-        const lerp = (a, b, f) => (a!=null && b!=null) ? +(a + (b-a)*f).toFixed(3) : null;
-        const t6m_now = lerp(t3m, t2, 0.25);
-        const t1y_now = lerp(t3m, t2, 0.55);
-        // Shape fractions: how far 6M/1Y sits between 2Y and 10Y anchor
-        const shape6mFrac = (t6m_now!=null&&t2!=null&&t10!=null&&(t10-t2)!==0) ? (t6m_now-t2)/(t10-t2||0.01) : -0.3;
-        const shape1yFrac = (t1y_now!=null&&t2!=null&&t10!=null&&(t10-t2)!==0) ? (t1y_now-t2)/(t10-t2||0.01) : -0.1;
-        // hist6m/1y: interpolate 6M and 1Y using real t2h anchor + historical steepness shape
-        const hist6m = (t2h, t10h) => {
-          if(t2h==null) return null;
-          const steepH = (t10h!=null) ? (t10h-t2h) : 0.1;
-          return +(t2h + shape6mFrac*steepH).toFixed(3);
-        };
-        const hist1y = (t2h, t10h) => {
-          if(t2h==null) return null;
-          const steepH = (t10h!=null) ? (t10h-t2h) : 0.1;
-          return +(t2h + shape1yFrac*steepH).toFixed(3);
-        };
-        // 1M tenor: interpolate between EFFR and 3M (⅓ of the way)
-        const t1m_now = lerp(effr, t3m, 0.35);
-        // Historical 1M: interpolate between historical EFFR (derived from t2h front end) and real t3m_Xm
-        const hist1m = (t3mH, t2h, t10h) => {
-          if(t3mH==null&&t2h==null) return null;
-          // Estimate historical EFFR from front-end 2Y using same discount as current
-          const steepH = (t10h!=null&&t2h!=null) ? (t10h-t2h) : 0.1;
-          const histrEffr = t2h!=null ? +(t2h + (shape6mFrac-0.28)*steepH).toFixed(3) : null;
-          const base3m = t3mH ?? (t2h!=null ? +(t2h + (shape6mFrac-0.15)*steepH).toFixed(3) : null);
-          return lerp(histrEffr, base3m, 0.35);
-        };
-        // Historical EFFR: estimated from 2Y front end
-        const histEFFR = (t3mH, t2h, t10h) => {
-          if(t2h==null) return null;
-          const steepH = (t10h!=null) ? (t10h-t2h) : 0.1;
-          return +(t2h + (shape6mFrac-0.28)*steepH).toFixed(3);
-        };
-        return {
-          now:  { 'EFFR': effr,                            '1M': t1m_now,                       '3M': t3m,                           '6M': t6m_now,              '1Y': t1y_now,              '2Y': t2,     '5Y': t5,     '10Y': t10,    '30Y': t30    },
-          m3:   { 'EFFR': histEFFR(t3m_3m,t2_3m,t10_3m),  '1M': hist1m(t3m_3m,t2_3m,t10_3m),  '3M': t3m_3m,                        '6M': hist6m(t2_3m,t10_3m), '1Y': hist1y(t2_3m,t10_3m), '2Y': t2_3m,  '5Y': t5_3m,  '10Y': t10_3m, '30Y': t30_3m },
-          m6:   { 'EFFR': histEFFR(t3m_6m,t2_6m,t10_6m),  '1M': hist1m(t3m_6m,t2_6m,t10_6m),  '3M': t3m_6m,                        '6M': hist6m(t2_6m,t10_6m), '1Y': hist1y(t2_6m,t10_6m), '2Y': t2_6m,  '5Y': t5_6m,  '10Y': t10_6m, '30Y': t30_6m  },
-          m12:  { 'EFFR': histEFFR(t3m_12m,t2_12m,t10_12m),'1M': hist1m(t3m_12m,t2_12m,t10_12m),'3M': t3m_12m,                      '6M': hist6m(t2_12m,t10_12m),'1Y': hist1y(t2_12m,t10_12m),'2Y': t2_12m,'5Y': t5_12m, '10Y': t10_12m,'30Y': t30_12m },
-        };
-      })()),
-    };
-    const _drawYC = () => { try { _drawYieldCurveInline(crCol, _ycData); } catch(e){ console.error('YC draw error:', e); } };
-    // Triple RAF: double RAF already done above, one more to ensure flex width is measured
-    requestAnimationFrame(() => {
-      _drawYC();
-      // Also attach ResizeObserver so chart redraws if panel resizes (e.g. orientation change)
+    // Build YC chart — fetch authoritative history from /api/yield-curve-history
+    // This endpoint uses real FRED CSV data with calendar-date snapshots (today-91/182/365)
+    // giving accurate per-tenor values across all 11 tenors, free of trading-day-index drift.
+    (async () => {
+      let _ycData = null;
       try {
-        const _ycEl = document.getElementById('ov-yc-chart');
-        if (_ycEl && window.ResizeObserver) {
-          let _ycRO = new ResizeObserver(() => _drawYC());
-          _ycRO.observe(_ycEl);
-          // Disconnect after 5s to avoid infinite loops
-          setTimeout(() => _ycRO.disconnect(), 5000);
+        const _ychResp = await Promise.race([
+          fetch(API + '/api/yield-curve-history'),
+          new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 12000))
+        ]);
+        if (_ychResp.ok) {
+          const _ych = await _ychResp.json();
+          // Map history endpoint keys to _ycData keys expected by _drawYieldCurveInline
+          // History tenors: 1M, 3M, 6M, 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y
+          // Chart uses: 3M, 6M, 1Y, 2Y, 5Y, 10Y, 30Y (EFFR added from scores)
+          const _mapTenors = (snap) => {
+            if (!snap || !snap.tenors) return null;
+            const t = snap.tenors;
+            return {
+              'EFFR': effr,     // EFFR from rate_signal (not in FRED CMT curve)
+              '3M':  t['3M']  ?? null,
+              '6M':  t['6M']  ?? null,
+              '1Y':  t['1Y']  ?? null,
+              '2Y':  t['2Y']  ?? null,
+              '5Y':  t['5Y']  ?? null,
+              '10Y': t['10Y'] ?? null,
+              '20Y': t['20Y'] ?? null,
+              '30Y': t['30Y'] ?? null,
+            };
+          };
+          const _mapTenorsHist = (snap) => {
+            // For historical snapshots, EFFR not in FRED data — estimate from 3M T-bill discount
+            if (!snap || !snap.tenors) return null;
+            const t = snap.tenors;
+            // EFFR estimate: 3M CMT minus ~5bp (typical bill/CMT spread)
+            const effr_est = t['3M'] != null ? +(t['3M'] - 0.05).toFixed(3) : null;
+            return {
+              'EFFR': effr_est,
+              '3M':  t['3M']  ?? null,
+              '6M':  t['6M']  ?? null,
+              '1Y':  t['1Y']  ?? null,
+              '2Y':  t['2Y']  ?? null,
+              '5Y':  t['5Y']  ?? null,
+              '10Y': t['10Y'] ?? null,
+              '20Y': t['20Y'] ?? null,
+              '30Y': t['30Y'] ?? null,
+            };
+          };
+          _ycData = {
+            now: _mapTenors(_ych.now),
+            m3:  _mapTenorsHist(_ych['3m']),
+            m6:  _mapTenorsHist(_ych['6m']),
+            m12: _mapTenorsHist(_ych['12m']),
+          };
         }
-      } catch(e){}
-    });
+      } catch(e) {
+        console.warn('YC history fetch failed, using fallback:', e);
+      }
+      // Fallback: build from scores endpoint data if history fetch fails
+      if (!_ycData) {
+        const lerp = (a, b, f) => (a!=null && b!=null) ? +(a + (b-a)*f).toFixed(3) : null;
+        _ycData = {
+          now:  { 'EFFR': effr, '3M': t3m, '6M': lerp(t3m,t2,0.25), '1Y': lerp(t3m,t2,0.55), '2Y': t2,     '5Y': t5,     '10Y': t10,    '30Y': t30    },
+          m3:   { 'EFFR': null, '3M': t3m_3m,  '6M': null, '1Y': null, '2Y': t2_3m,  '5Y': t5_3m,  '10Y': t10_3m, '30Y': t30_3m },
+          m6:   { 'EFFR': null, '3M': t3m_6m,  '6M': null, '1Y': null, '2Y': t2_6m,  '5Y': t5_6m,  '10Y': t10_6m, '30Y': t30_6m  },
+          m12:  { 'EFFR': null, '3M': t3m_12m, '6M': null, '1Y': null, '2Y': t2_12m, '5Y': t5_12m, '10Y': t10_12m,'30Y': t30_12m },
+        };
+      }
+      const _drawYC = () => { try { _drawYieldCurveInline(crCol, _ycData); } catch(e){ console.error('YC draw error:', e); } };
+      requestAnimationFrame(() => {
+        _drawYC();
+        try {
+          const _ycEl = document.getElementById('ov-yc-chart');
+          if (_ycEl && window.ResizeObserver) {
+            let _ycRO = new ResizeObserver(() => _drawYC());
+            _ycRO.observe(_ycEl);
+            setTimeout(() => _ycRO.disconnect(), 5000);
+          }
+        } catch(e){}
+      });
+    })();
   }));
 }
 
@@ -6804,14 +6822,14 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     { key: 'm3',  label: '3M ago',  color: 'rgba(245,164,66,0.88)',  width: 2.3, dash: '3,3'  },
     { key: 'now', label: 'Now',     color: nowCol,                   width: 3.5, dash: ''     },
   ];
-  // Tenors used for plot points — include all for smooth curves
-  const ALL_TENORS = ['3M','6M','1Y','2Y','5Y','10Y','30Y'];
-  // X-axis tick labels — only show 6 key tenors to avoid crowding
-  const AXIS_TENORS = ['3M','6M','2Y','5Y','10Y','30Y'];
+  // Tenors used for plot points — full 9-point curve for smooth, accurate shape
+  const ALL_TENORS = ['3M','6M','1Y','2Y','5Y','10Y','20Y','30Y'];
+  // X-axis tick labels — only show key tenors to avoid crowding
+  const AXIS_TENORS = ['3M','1Y','2Y','5Y','10Y','30Y'];
   // EFFR sits just left of 1M on log scale
-  const TENOR_MO = { '3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
-  // Log range: 0.7M → 390M
-  const logMin = Math.log2(2.5), logMax = Math.log2(390);
+  const TENOR_MO = { '3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'20Y':240,'30Y':360 };
+  // Log range: 2.5M → 400M
+  const logMin = Math.log2(2.5), logMax = Math.log2(400);
 
   // Use container's actual rendered dimensions
   const elRect = el.getBoundingClientRect();

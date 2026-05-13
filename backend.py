@@ -5261,7 +5261,7 @@ def compute_risk_regime() -> dict:
         dgs5_raw  = fetch_fred_series("DGS5",  270)
         dgs10_raw = fetch_fred_series("DGS10", 270)
         dgs30_raw = fetch_fred_series("DGS30", 270)
-        dtb3_raw  = fetch_fred_series("DTB3",  270)  # 3-Month Treasury Bill (IRX proxy)
+        dtb3_raw  = fetch_fred_series("DGS3MO", 270)  # 3-Month CMT — consistent with yield-curve-history
 
         def _tenor_snapshot(series, idx):
             """Return the yield at trading-day offset idx from end.
