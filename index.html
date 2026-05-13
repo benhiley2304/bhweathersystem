@@ -5711,7 +5711,7 @@ function renderMacroDataPanels(reg){
 
   // ── Fed BS helpers
   // Neutral (blue-grey) when change is minimal (<0.05T = virtually flat)
-  const chgCol = v => v==null?'var(--faint)':Math.abs(v)<0.05?'#7090c0':v<0?'#e03a2a':v>0?'#22c97a':'#adb8d0';
+  const chgCol = v => v==null?'var(--faint)':Math.abs(v)<0.12?'#7090c0':v<0?'#e03a2a':v>0?'#22c97a':'#adb8d0';
   const chgFmt = v => v==null?'—':(v>=0?'+':'')+v.toFixed(2)+'T';
   const pctFmt = v => v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
   // Fed BS SVG area chart — adaptive, with year labels + smooth spline
@@ -5898,8 +5898,8 @@ function renderMacroDataPanels(reg){
             return zIndicators.map(r=>{
               const pct = Math.round((r.score/10)*100);
               const isPos = pct >= 50;
-              const fillStart = isPos ? 50 : pct;
-              const fillW = Math.abs(pct - 50);
+              const fillW = Math.max(4, Math.abs(pct - 50));
+              const fillStart = isPos ? 50 : Math.max(0, 50 - fillW);
               const gradCol = scoreCol(r.score);
               const gradCol2 = scoreCol(Math.min(10,r.score+2));
               return `<div style="display:grid;grid-template-columns:80px 1fr 58px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
@@ -6365,21 +6365,32 @@ function renderMacroDataPanels(reg){
         const breadthVal= parseFloat(brSig.value||'0')||0;
         const spxMomVal = parseFloat(momSig.value||'0')||0;
 
-        // Valuation hero: Forward P/E with hot/cold
-        const peHot = fwdPE > 22;
-        const peCold = fwdPE < 16;
-        const peCol = fwdPE > 25?'#e03a2a':fwdPE>22?'#f5a442':fwdPE>18?'#f5c842':fwdPE>14?'#adb8d0':'#22c97a';
-        const peLabel = fwdPE>25?'EXTREME':fwdPE>22?'EXPENSIVE':fwdPE>18?'ELEVATED':fwdPE>14?'FAIR':'CHEAP';
-        const peNorm = Math.min(100, Math.max(0, ((fwdPE-10)/25)*100));
+        // Valuation hero: use score from capeSig (−2→+2) since numeric P/E not always in API
+        // Score: +2=cheap, +1=fair, 0=neutral, −1=elevated, −2=expensive
+        const peScore = capeSig.score??null;
+        // Also try numeric value — if present use it, if absent fall back to score-based display
+        const peScoreNum = peScore??0;
+        // Score→colour: negative score = expensive = red, positive = cheap = green
+        const peCol = peScoreNum<=-2?'#e03a2a':peScoreNum<=-1?'#f5a442':peScoreNum>=2?'#22c97a':peScoreNum>=1?'#5ec97a':'#c8a96e';
+        // Score→label
+        const peLabel = peScoreNum<=-2?'EXPENSIVE':peScoreNum<=-1?'ELEVATED':peScoreNum>=2?'CHEAP':peScoreNum>=1?'FAIR':'ELEVATED';
+        // Gauge norm: map score −2→+2 to 0→100% (left=cheap, right=expensive — inverted for intuition)
+        // At score=−2 → expensive → needle right (100%). At score=+2 → cheap → needle left (0%)
+        const peNorm = Math.min(100, Math.max(0, ((-peScoreNum + 2) / 4) * 100));
+        // Display value: prefer raw fwdPE if available, else show label only
+        const peHeroTxt = fwdPE > 0 ? fwdPE.toFixed(1)+'x' : (capeSig.label || peLabel);
 
         // VIX gauge: low VIX = complacent green, high = fear red
         const vixCol = vixNum>=30?'#e03a2a':vixNum>=20?'#f5c842':vixNum>=15?'#adb8d0':'#22c97a';
         const vixLabel = vixNum>=30?'FEAR':vixNum>=20?'CAUTION':vixNum>=15?'NORMAL':'COMPLACENT';
         const vixNorm = Math.min(100, Math.max(0, ((vixNum-8)/42)*100)); // 8→50+ range
 
-        // Breadth
-        const brCol = breadthVal>=55?'#22c97a':breadthVal>=45?'#adb8d0':breadthVal>=35?'#f5c842':'#e03a2a';
-        const brNorm = Math.min(100, Math.max(0, ((breadthVal-20)/60)*100));
+        // Breadth: use score (−2→+2) for gauge since raw % can be negative or > 100
+        const brScore = brSig.score??0;
+        const brCol = brScore>=2?'#22c97a':brScore>=1?'#5ec97a':brScore>=0?'#c8a96e':brScore>=-1?'#f5a442':'#e03a2a';
+        const brNorm = Math.min(100, Math.max(0, ((brScore+2)/4)*100));
+        // Also keep raw value display (can be negative → show as signed %)
+        const brDispVal = breadthVal!==0 ? (breadthVal>0?'':'')+breadthVal.toFixed(1)+'%' : '—';
 
         // SPX momentum colour
         const momCol = (momSig.score??0)>=1?'#22c97a':(momSig.score??0)<=-1?'#e03a2a':'#c8a96e';
@@ -6389,20 +6400,20 @@ function renderMacroDataPanels(reg){
           const p = normPct.toFixed(1);
           return `<div style="position:relative;height:${h}px;background:rgba(255,255,255,0.06);border-radius:${h/2}px;overflow:visible;margin:3px 0 1px">
             <div style="position:absolute;inset:0;border-radius:${h/2}px;overflow:hidden">
-              <div style="width:${p}%;height:100%;background:linear-gradient(90deg,rgba(255,255,255,0.04),${col}99,${col});border-radius:${h/2}px"></div>
+              <div style="width:${p}%;height:100%;background:linear-gradient(90deg,${col}22,${col}bb,${col});border-radius:${h/2}px;opacity:0.95"></div>
             </div>
-            <div style="position:absolute;top:-3px;bottom:-3px;left:${p}%;width:3px;background:${col};border-radius:2px;box-shadow:0 0 7px ${col}cc;transform:translateX(-50%)"></div>
+            <div style="position:absolute;top:-4px;bottom:-4px;left:${p}%;width:3px;background:${col};border-radius:2px;box-shadow:0 0 8px ${col},0 0 4px ${col}cc;transform:translateX(-50%)"></div>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.2)">${leftLbl}</span>
-            <span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.2)">${rightLbl}</span>
+            <span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.3)">${leftLbl}</span>
+            <span style="font-family:var(--mono);font-size:5px;color:rgba(255,255,255,0.3)">${rightLbl}</span>
           </div>`;
         };
 
         return `
       <div class="ov-macro-card" id="ov-macro-stock-climate">
-        <div class="ov-macro-card-glow" style="background:${peCol}"></div>
-        <div class="ov-macro-card-wash" style="background:${peCol}"></div>
+        <div class="ov-macro-card-glow" style="background:${scArcCol}"></div>
+        <div class="ov-macro-card-wash" style="background:${scArcCol}"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
         <!-- Header -->
@@ -6419,9 +6430,9 @@ function renderMacroDataPanels(reg){
           <!-- Forward P/E tile -->
           <div style="background:rgba(255,255,255,0.03);border:1px solid ${peCol}22;border-top:2px solid ${peCol}55;border-radius:9px;padding:8px 10px">
             <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Forward P/E</div>
-            <div style="font-family:var(--mono);font-size:clamp(20px,4.5vw,28px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${peCol}">${fwdPE>0?fwdPE.toFixed(1):'—'}x</div>
+            <div style="font-family:var(--mono);font-size:clamp(20px,4.5vw,28px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${peCol}">${peHeroTxt}</div>
             <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;color:${peCol};margin-top:3px;letter-spacing:0.06em">${peLabel}</div>
-            ${gaugeBar(peNorm, peCol, peLabel, '10x', '35x', 7)}
+            ${gaugeBar(peNorm, peCol, peLabel, 'Cheap', 'Expensive', 7)}
           </div>
           <!-- VIX tile -->
           <div style="background:rgba(255,255,255,0.03);border:1px solid ${vixCol}22;border-top:2px solid ${vixCol}55;border-radius:9px;padding:8px 10px">
@@ -6449,11 +6460,11 @@ function renderMacroDataPanels(reg){
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">
             <span style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">Market Breadth</span>
             <div style="display:flex;align-items:baseline;gap:5px">
-              <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${brCol}">${breadthVal>0?breadthVal.toFixed(1)+'%':'—'}</span>
-              <span style="font-family:var(--mono);font-size:5.5px;color:${brCol};font-weight:700">${brSig.label||''}</span>
+              <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${brCol}">${breadthVal!==0?(breadthVal>0?'+':'')+breadthVal.toFixed(1)+'%':'—'}</span>
+              <span style="font-family:var(--mono);font-size:5.5px;color:${brCol};font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px">${brSig.label||''}</span>
             </div>
           </div>
-          ${gaugeBar(brNorm, brCol, '', '20% Thin', '80% Broad', 10)}
+          ${gaugeBar(brNorm, brCol, '', 'Thin (−2)', 'Broad (+2)', 10)}
         </div>
 
         <!-- Cross-Asset Returns Table — compact -->
