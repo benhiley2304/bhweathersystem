@@ -6354,10 +6354,23 @@ function renderMacroDataPanels(reg){
     try { _drawSpxMiniChart('ov-sc-spx-chart', scSignals['_spx_closes']||[], (scSignals['SPX_MOM']?.score??0)>=0?'#22c97a':'#e03a2a'); } catch(e){}
     // Build YC chart — extra RAF to let flex container settle its width
     const _ycData = {
-      now:  { '3M': t3m,    '2Y': t2,     '5Y': t5,    '10Y': t10,   '30Y': t30   },
-      m3:   { '3M': null,   '2Y': t2_3m,  '5Y': t5_3m, '10Y': t10_3m,'30Y': t30_3m},
-      m6:   { '3M': null,   '2Y': t2_6m,  '5Y': t5_6m, '10Y': t10_6m,'30Y': t30_6m},
-      m12:  { '3M': null,   '2Y': t2_12m, '5Y': t5_12m,'10Y': t10_12m,'30Y': t30_12m},
+      // Interpolate 6M and 1Y for current curve (log-scale fractions between 3M and 2Y)
+      // 6M ≈ 25% of way 3M→2Y; 1Y ≈ 55% of way 3M→2Y
+      // For historical curves (3M unavailable) carry the current shape offset scaled by 0.85
+      ...((() => {
+        const lerp = (a, b, f) => (a!=null && b!=null) ? +(a + (b-a)*f).toFixed(3) : null;
+        const t6m_now = lerp(t3m, t2, 0.25);
+        const t1y_now = lerp(t3m, t2, 0.55);
+        const shp6m = (t6m_now!=null && t2!=null) ? t6m_now - t2 : null;
+        const shp1y = (t1y_now!=null && t2!=null) ? t1y_now - t2 : null;
+        const hist6m = (base, shp) => (base!=null && shp!=null) ? +(base + shp*0.85).toFixed(3) : null;
+        return {
+          now:  { '3M': t3m,    '6M': t6m_now, '1Y': t1y_now, '2Y': t2,     '5Y': t5,     '10Y': t10,    '30Y': t30    },
+          m3:   { '3M': null,   '6M': hist6m(t2_3m,shp6m),  '1Y': hist6m(t2_3m,shp1y),  '2Y': t2_3m,  '5Y': t5_3m,  '10Y': t10_3m, '30Y': t30_3m },
+          m6:   { '3M': null,   '6M': hist6m(t2_6m,shp6m),  '1Y': hist6m(t2_6m,shp1y),  '2Y': t2_6m,  '5Y': t5_6m,  '10Y': t10_6m, '30Y': t30_6m  },
+          m12:  { '3M': null,   '6M': hist6m(t2_12m,shp6m), '1Y': hist6m(t2_12m,shp1y), '2Y': t2_12m, '5Y': t5_12m, '10Y': t10_12m,'30Y': t30_12m },
+        };
+      })()),
     };
     const _drawYC = () => { try { _drawYieldCurveInline(crCol, _ycData); } catch(e){ console.error('YC draw error:', e); } };
     // Triple RAF: double RAF already done above, one more to ensure flex width is measured
@@ -6391,9 +6404,9 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     { key: 'now', label: 'Now',  color: nowCol,    width: 2.5, dash: ''    },
   ];
   // Full tenor set — historical snapshots may only have 2Y–30Y
-  const ALL_TENORS = ['3M','2Y','5Y','10Y','30Y'];
+  const ALL_TENORS = ['3M','6M','1Y','2Y','5Y','10Y','30Y'];
   // Log scale: map months → x. Start from 1M (gives 3M breathing room)
-  const TENOR_MO = { '3M':3,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
+  const TENOR_MO = { '3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
   // Extend log range: logMin=log2(1)=0, logMax=log2(360) so short end has space
   const logMin = Math.log2(1.5), logMax = Math.log2(390);
 
@@ -6510,7 +6523,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     if (isNow) curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="5" fill="none" opacity="0.15" filter="url(#${uid}f)"/>`;
     curveSvg += `<path d="${catmull(pts)}" stroke="${c.color}" stroke-width="${c.width}" fill="none"${dashAttr} stroke-linecap="round" stroke-linejoin="round"/>`;
     // Dots on Now at all tenors, on historicals at 2Y+10Y only
-    const dotTenors = isNow ? ALL_TENORS : ['2Y','10Y'];
+    const dotTenors = isNow ? ALL_TENORS : ['6M','1Y','2Y','5Y','10Y','30Y'];
     dotTenors.forEach(t => {
       if (snp[t]==null) return;
       const nx = xPosLog(t); if (nx==null) return;
@@ -6526,18 +6539,25 @@ function _drawYieldCurveInline(nowCol, tenorData) {
     .filter(t => nowTenors[t]!=null)
     .map(t => ({ t, x: xPosLog(t), y: yPos(nowTenors[t]), v: nowTenors[t] }));
 
-  // Alternate above/below; 3M forced above, 30Y forced above; 10Y gets highlighted
-  const placements = [true, false, true, false, true]; // above/below for 3M,2Y,5Y,10Y,30Y
-  labelData.forEach((d, i) => {
-    const above = placements[i] !== false;
-    const isKey = d.t === '10Y' || d.t === '2Y';
+  // Smart label placement: alternate above/below; key tenors larger + highlighted
+  // 3M=start-anchor, 30Y=end-anchor, rest centered; avoid chart boundary clipping
+  const KEY_TENORS = new Set(['2Y','10Y']);
+  // Show labels only on non-crowded tenors; on narrow cards skip the very short-end
+  const labelTenors = isMini
+    ? ['3M','2Y','10Y','30Y']
+    : ['3M','6M','1Y','2Y','5Y','10Y','30Y'];
+  const filteredLabels = labelData.filter(d => labelTenors.includes(d.t));
+  filteredLabels.forEach((d, i) => {
+    // Alternate above/below starting above for 3M
+    const above = (i % 2 === 0);
+    const isKey = KEY_TENORS.has(d.t);
+    const isEdgeL = d.t === '3M';
+    const isEdgeR = d.t === '30Y';
     const lx = d.x;
-    // Clamp Y so label stays within chart
     let ly = above ? d.y - 7 : d.y + 11;
     ly = Math.max(padT + 7, Math.min(padT + gH - 4, ly));
-    // Anchor: 3M left-align, 30Y right-align, rest centered
-    const anchor = d.t === '3M' ? 'start' : d.t === '30Y' ? 'end' : 'middle';
-    const xOff = d.t === '3M' ? lx - 1 : d.t === '30Y' ? lx + 1 : lx;
+    const anchor = isEdgeL ? 'start' : isEdgeR ? 'end' : 'middle';
+    const xOff = isEdgeL ? lx + 1 : isEdgeR ? lx - 1 : lx;
     curveSvg += `<text x="${xOff.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" fill="${isKey ? nowCol : 'rgba(255,255,255,0.72)'}" font-family="var(--mono)" font-size="${isKey ? fLblKey : fLbl}" font-weight="${isKey ? 800 : 600}">${d.v.toFixed(2)}%</text>`;
   });
 
