@@ -5875,39 +5875,7 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${r.col};text-align:right;white-space:nowrap">${r.val}</span>
             </div>`;
           }).join('')}
-          ${ffRows.length ? `
-          <div class="mc-sect" style="margin:5px 0 4px"><div class="mc-sect-lbl">Latest Release</div><div class="mc-sect-line"></div></div>
-          ${ffRows.map(r=>{
-            const sCol=r.d.beat?'#22c97a':'#e03a2a';
-            const surpStr=r.d.surprise!=null?(r.d.surprise>0?'+':'')+r.d.surprise+r.unit:'';
-            const surpAbs=Math.abs(r.d.surprise||0);
-            const barW=Math.min(100,Math.max(4,(surpAbs/Math.max(surpAbs,20))*100));
-            return `<div style="display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-              <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <div style="position:relative;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
-                  <div style="position:absolute;left:0;top:0;height:100%;width:${barW.toFixed(0)}%;background:${sCol};border-radius:3px;opacity:0.8;box-shadow:0 0 4px ${sCol}33"></div>
-                </div>
-                <span style="font-family:var(--mono);font-size:6px;color:rgba(255,255,255,0.22)">exp ${r.d.forecast}${r.unit}</span>
-              </div>
-              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
-                <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${sCol};line-height:1">${r.d.actual}${r.unit}</span>
-                <span style="font-family:var(--mono);font-size:5.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:${sCol}18;color:${sCol}">${r.d.beat?'▲ BEAT':'▼ MISS'}${surpStr?' '+surpStr:''}</span>
-              </div>
-            </div>`;
-          }).join('')}` : `
-          <div class="mc-sect" style="margin:5px 0 3px"><div class="mc-sect-lbl">Indicators</div><div class="mc-sect-line"></div></div>
-          ${claims!=null?`<div style="display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-            <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">Claims 4W avg</span>
-            <span style="font-family:var(--mono);font-size:8px;color:var(--faint)">${claims4w!=null?(claims4w/1000).toFixed(0)+'K':''}</span>
-            <span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${clChg4w!=null&&clChg4w<0?'#22c97a':'#e03a2a'}">${clChg4w!=null?(clChg4w>=0?'+':'')+(clChg4w/1000).toFixed(0)+'K Δ4w':''}</span>
-          </div>`:''}
-          ${jolts!=null?`<div style="display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:6px;padding:3px 0">
-            <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">JOLTS Opens</span>
-            <span style="font-family:var(--mono);font-size:8px;color:var(--faint)">${jolts6m!=null?jolts6m.toFixed(1)+'M avg':''}</span>
-            <span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${joltsCol}">${jolts.toFixed(1)}M${joltsChg!=null?` <span style="font-size:7.5px;color:${joltsChg>=0?'#22c97a':'#e03a2a'}">${joltsChg>=0?'+':''}${joltsChg.toFixed(1)}</span>`:''}</span>
-          </div>`:''}
-          `}
+
         </div>
       </div>`;
       })()}
