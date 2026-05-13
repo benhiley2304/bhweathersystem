@@ -4801,49 +4801,38 @@ def compute_stock_climate() -> dict:
                 "category": "volatility",
             }
 
-        # ── 2. Shiller CAPE via FRED (series: CAPE = cyclically adjusted PE)
+        # ── 2. Trailing P/E (SPY) — used as CAPE-like valuation proxy
+        # Shiller CAPE has no reliable free live API; SPY trailing P/E is a close proxy
         cape_val = None
         try:
-            # FRED series for Shiller CAPE is "CAPE" — fetch last 3 months
-            cape_raw = fetch_fred_series("CAPE", 3)
-            if cape_raw and len(cape_raw) >= 1:
-                # fetch_fred_series returns list of {"date":..., "value":...} dicts
-                last = cape_raw[-1]
-                v = last.get("value") if isinstance(last, dict) else (last[1] if len(last) > 1 else None)
-                if v is not None:
-                    cape_val = float(v)
+            _spy_tk = yf.Ticker("SPY")
+            _spy_info = _spy_tk.info or {}
+            if isinstance(_spy_info, dict):
+                _pe = _spy_info.get("trailingPE") or _spy_info.get("forwardPE")
+                if _pe:
+                    cape_val = float(_pe)
         except Exception:
             pass
 
-        # Fallback: try yfinance for a PE-like metric
-        if cape_val is None:
-            try:
-                _spx_tk = yf.Ticker("^GSPC")
-                _spx_info = _spx_tk.info
-                _pe = _spx_info.get("trailingPE") or _spx_info.get("forwardPE")
-                if _pe:
-                    cape_val = float(_pe)
-            except Exception:
-                pass
-
         if cape_val is not None and cape_val > 0:
-            # Historical CAPE: avg ~16, elevated >25, extreme >35
-            if cape_val < 18:
+            # Trailing P/E historical context: avg ~17, elevated >25, extreme >32
+            if cape_val < 17:
                 pe_score, pe_label = 2, "Cheap"
-            elif cape_val < 22:
+            elif cape_val < 21:
                 pe_score, pe_label = 1, "Fair Value"
-            elif cape_val < 28:
+            elif cape_val < 26:
                 pe_score, pe_label = 0, "Moderate"
-            elif cape_val < 35:
+            elif cape_val < 32:
                 pe_score, pe_label = -1, "Expensive"
             else:
                 pe_score, pe_label = -2, "Very Expensive"
             signals["FORWARD_PE"] = {
-                "title": "Shiller CAPE",
+                "title": "Trailing P/E",
                 "value": f"{cape_val:.1f}x",
                 "label": pe_label,
                 "score": pe_score,
                 "category": "valuation",
+                "raw": round(cape_val, 2),
             }
 
         # ── 3. SPY/RSP Breadth ──────────────────────────────────────────────
@@ -5114,29 +5103,36 @@ def compute_stock_climate() -> dict:
         except Exception:
             pass
 
-        # ── 11. CBOE Put/Call Ratio ──────────────────────────────────────────
-        # Total equity put/call ratio — contrarian sentiment: high = fear (buy signal), low = greed (caution)
-        # FRED series PUTCALL = CBOE equity P/C ratio (daily)
+        # ── 11. SPY Put/Call Ratio (from yfinance options) ──────────────────
+        # Computed from SPY options volume across nearest 3 expiries.
+        # Contrarian: high P/C = fear (buy signal), low P/C = greed (caution)
         try:
-            pcr_raw = fetch_fred_series("PUTCALL", 5)  # last 5 days
-            if pcr_raw and len(pcr_raw) >= 1:
-                pcr_vals = [r["value"] for r in pcr_raw if r.get("value") is not None]
-                if pcr_vals:
-                    pcr_now = pcr_vals[-1]
-                    pcr_prev = pcr_vals[-5] if len(pcr_vals) >= 5 else pcr_vals[0]
-                    # Contrarian: low P/C = complacency/greed (bearish signal), high = fear (bullish signal)
-                    if pcr_now > 0.85:
-                        pcr_score, pcr_label = 2, "Fear / Buy Signal"
-                    elif pcr_now > 0.75:
+            _spy_pcr = yf.Ticker("SPY")
+            _exps = _spy_pcr.options  # tuple of expiry strings
+            if _exps:
+                total_put_vol, total_call_vol = 0, 0
+                for _exp in _exps[:3]:  # nearest 3 expiries
+                    try:
+                        _chain = _spy_pcr.option_chain(_exp)
+                        total_put_vol  += float(_chain.puts["volume"].fillna(0).sum())
+                        total_call_vol += float(_chain.calls["volume"].fillna(0).sum())
+                    except Exception:
+                        pass
+                if total_call_vol > 0:
+                    pcr_now = total_put_vol / total_call_vol
+                    # Contrarian: low P/C = complacency/greed (bearish), high = fear (bullish)
+                    if pcr_now > 1.10:
+                        pcr_score, pcr_label = 2, "Elevated Fear"
+                    elif pcr_now > 0.85:
                         pcr_score, pcr_label = 1, "Mildly Fearful"
-                    elif pcr_now > 0.60:
+                    elif pcr_now > 0.65:
                         pcr_score, pcr_label = 0, "Neutral"
                     elif pcr_now > 0.50:
                         pcr_score, pcr_label = -1, "Greed / Caution"
                     else:
                         pcr_score, pcr_label = -2, "Extreme Greed"
                     signals["PUT_CALL"] = {
-                        "title": "Put/Call Ratio",
+                        "title": "Put/Call Ratio (SPY)",
                         "value": f"{pcr_now:.2f}",
                         "label": pcr_label,
                         "score": pcr_score,
