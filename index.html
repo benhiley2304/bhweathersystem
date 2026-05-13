@@ -5785,32 +5785,31 @@ function renderMacroDataPanels(reg){
             return `<div style="display:grid;grid-template-columns:62px 1fr 38px;align-items:center;gap:6px;padding:3.5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
               <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
               <div style="position:relative;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
-                <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,0.15)"></div>
-                <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:${r.col};border-radius:3px;opacity:0.85;box-shadow:0 0 5px ${r.col}44"></div>
+                <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.25);border-radius:1px"></div>
+                <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(90deg,${r.col}88,${r.col});border-radius:3px;opacity:0.9;box-shadow:0 0 8px ${r.col}55"></div>
               </div>
               <span style="font-family:var(--mono);font-size:9.5px;font-weight:900;color:${r.col};text-align:right;white-space:nowrap">${r.val}</span>
             </div>`;
           }).join('')}
           ${ffRows.length ? `
-          <div class="mc-sect" style="margin:5px 0 3px"><div class="mc-sect-lbl">Latest Release</div><div class="mc-sect-line"></div>
-            <!-- Beat/miss bar chart -->
-            <div style="display:flex;gap:2px;align-items:flex-end;height:20px;margin-left:6px">
-              ${ffRows.map(r=>{
-                const col=r.d.beat?'#22c97a':'#e03a2a';
-                const surpAbs=Math.abs(r.d.surprise||0);
-                const h=Math.max(5,Math.min(18,5+(surpAbs/20)*13));
-                return `<div style="width:10px;height:${h.toFixed(0)}px;background:${col};border-radius:2px 2px 1px 1px;opacity:0.8;flex-shrink:0" title="${r.lbl}: ${r.d.beat?'BEAT':'MISS'}"></div>`;
-              }).join('')}
-            </div>
-          </div>
+          <div class="mc-sect" style="margin:5px 0 4px"><div class="mc-sect-lbl">Latest Release</div><div class="mc-sect-line"></div></div>
           ${ffRows.map(r=>{
             const sCol=r.d.beat?'#22c97a':'#e03a2a';
             const surpStr=r.d.surprise!=null?(r.d.surprise>0?'+':'')+r.d.surprise+r.unit:'';
-            return `<div style="display:grid;grid-template-columns:50px 1fr auto auto;align-items:center;gap:3px;padding:2.5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
-              <span style="font-family:var(--mono);font-size:7px;color:rgba(255,255,255,0.22)">exp ${r.d.forecast}${r.unit}</span>
-              <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${sCol}">${r.d.actual}${r.unit}</span>
-              <span style="font-family:var(--mono);font-size:6px;font-weight:800;padding:1.5px 4px;border-radius:3px;background:${sCol}15;border:1px solid ${sCol}25;color:${sCol};white-space:nowrap">${r.d.beat?'▲':'▼'}${surpStr?' '+surpStr:''}</span>
+            const surpAbs=Math.abs(r.d.surprise||0);
+            const barW=Math.min(100,Math.max(4,(surpAbs/Math.max(surpAbs,20))*100));
+            return `<div style="display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+              <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="position:relative;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+                  <div style="position:absolute;left:0;top:0;height:100%;width:${barW.toFixed(0)}%;background:${sCol};border-radius:3px;opacity:0.85;box-shadow:0 0 6px ${sCol}55"></div>
+                </div>
+                <span style="font-family:var(--mono);font-size:6px;color:rgba(255,255,255,0.22)">exp ${r.d.forecast}${r.unit}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+                <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${sCol};line-height:1">${r.d.actual}${r.unit}</span>
+                <span style="font-family:var(--mono);font-size:5.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:${sCol}18;color:${sCol}">${r.d.beat?'▲ BEAT':'▼ MISS'}${surpStr?' '+surpStr:''}</span>
+              </div>
             </div>`;
           }).join('')}` : `
           <div class="mc-sect" style="margin:5px 0 3px"><div class="mc-sect-lbl">Indicators</div><div class="mc-sect-line"></div></div>
@@ -5923,17 +5922,17 @@ function renderMacroDataPanels(reg){
           <!-- Visual cascade: shows the transmission path with relative pressure -->
           <div style="display:flex;flex-direction:column;gap:3px">
             ${pipeItems.map((r,i)=>{
-              const barW = Math.min(100, Math.max(0, (parseFloat(r.v||0)/8)*100)).toFixed(0);
+              const barW = Math.min(100, Math.max(0, (parseFloat(r.v||0)/6)*100)).toFixed(0);
               const isFirst = i===0;
               return `<div style="display:grid;grid-template-columns:54px 1fr auto auto;align-items:center;gap:5px">
                 <span style="font-family:var(--mono);font-size:6.8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${r.lbl}</span>
-                <div style="position:relative;height:${isFirst?7:5}px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
+                <div style="position:relative;height:${isFirst?8:5}px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;${isFirst?'box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08)':''}">
                   <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,${r.col}66,${r.col});border-radius:3px;opacity:0.85"></div>
                   <!-- 2% target line -->
                   <div style="position:absolute;left:25%;top:0;width:1px;height:100%;background:rgba(255,255,255,0.2)"></div>
                 </div>
                 <span style="font-family:var(--mono);font-size:${isFirst?14:12}px;font-weight:900;letter-spacing:-0.02em;color:${r.col};white-space:nowrap">${r.v!=null?(typeof r.v==='number'?r.v.toFixed(2)+'%':r.v):'—'}</span>
-                <span style="font-size:9px;color:${r.tCol};line-height:1;width:10px;text-align:center">${r.tArrow}</span>
+                <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${r.tCol};line-height:1;width:14px;text-align:center;text-shadow:0 0 8px ${r.tCol}88">${r.tArrow}</span>
               </div>`;
             }).join('')}
           </div>
@@ -5969,20 +5968,23 @@ function renderMacroDataPanels(reg){
         <div>
           <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Period Changes</div><div class="mc-sect-line"></div></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
-            <div style="text-align:center;padding:5px 2px;border-right:1px solid rgba(255,255,255,0.06)">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:4px">3M</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${chgCol(fbChg3m)}">${chgFmt(fbChg3m)}</div>
-              <div style="font-family:var(--mono);font-size:9px;font-weight:600;color:var(--faint);margin-top:2px">${pctFmt(fbChg3mP)}</div>
+            <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">3M</div>
+              <div style="font-family:var(--mono);font-size:16px;font-weight:900;line-height:1;color:${chgCol(fbChg3m)}">${chgFmt(fbChg3m)}</div>
+              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg3mP)}</div>
+              <div style="margin:3px auto 0;width:80%;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg3m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg3m)};border-radius:2px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg3m)}66"></div></div>
             </div>
-            <div style="text-align:center;padding:5px 2px;border-right:1px solid rgba(255,255,255,0.06)">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:4px">6M</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${chgCol(fbChg6m)}">${chgFmt(fbChg6m)}</div>
-              <div style="font-family:var(--mono);font-size:9px;font-weight:600;color:var(--faint);margin-top:2px">${pctFmt(fbChg6mP)}</div>
+            <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">6M</div>
+              <div style="font-family:var(--mono);font-size:16px;font-weight:900;line-height:1;color:${chgCol(fbChg6m)}">${chgFmt(fbChg6m)}</div>
+              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg6mP)}</div>
+              <div style="margin:3px auto 0;width:80%;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg6m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg6m)};border-radius:2px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg6m)}66"></div></div>
             </div>
-            <div style="text-align:center;padding:5px 2px">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:4px">12M</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${chgCol(fbChg12m)}">${chgFmt(fbChg12m)}</div>
-              <div style="font-family:var(--mono);font-size:9px;font-weight:600;color:var(--faint);margin-top:2px">${pctFmt(fbChg12mP)}</div>
+            <div style="text-align:center;padding:5px 4px">
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">12M</div>
+              <div style="font-family:var(--mono);font-size:16px;font-weight:900;line-height:1;color:${chgCol(fbChg12m)}">${chgFmt(fbChg12m)}</div>
+              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--faint);margin-top:2px">${pctFmt(fbChg12mP)}</div>
+              <div style="margin:3px auto 0;width:80%;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg12m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg12m)};border-radius:2px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg12m)}66"></div></div>
             </div>
           </div>
         </div>
@@ -6042,7 +6044,7 @@ function renderMacroDataPanels(reg){
           </div>
         </div>
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
-        <div style="flex:1;min-height:160px;display:flex;flex-direction:column">
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column">
           <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Full Yield Curve</div><div class="mc-sect-line"></div></div>
           <div id="ov-yc-chart" style="position:relative;min-height:10px"></div>
         </div>
@@ -6171,14 +6173,14 @@ function renderMacroDataPanels(reg){
               return `<div style="display:grid;grid-template-columns:22px 1fr 1fr;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
                 <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)">${period}</span>
                 <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.3)">HY</span>
-                  <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden"><div style="height:100%;width:${hyVal!=null?Math.min(100,(Math.abs(hyVal)/80)*100).toFixed(0):0}%;background:${hyC};border-radius:2px"></div></div>
-                  <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${hyC};min-width:38px;text-align:right">${fmt(hyVal)}</span>
+                  <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.35);width:14px">HY</span>
+                  <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative"><div style="position:absolute;top:0;height:100%;width:${hyVal!=null?Math.min(100,(Math.abs(hyVal)/80)*100).toFixed(0):0}%;background:${hyC};border-radius:3px;opacity:0.85;box-shadow:0 0 6px ${hyC}55"></div></div>
+                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${hyC};min-width:40px;text-align:right">${fmt(hyVal)}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-family:var(--mono);font-size:6.5px;color:rgba(255,255,255,0.3)">IG</span>
-                  <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden"><div style="height:100%;width:${igVal!=null?Math.min(100,(Math.abs(igVal)/30)*100).toFixed(0):0}%;background:${igC};border-radius:2px"></div></div>
-                  <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${igC};min-width:28px;text-align:right">${fmt(igVal)}</span>
+                  <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:rgba(255,255,255,0.35);width:14px">IG</span>
+                  <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative"><div style="position:absolute;top:0;height:100%;width:${igVal!=null?Math.min(100,(Math.abs(igVal)/30)*100).toFixed(0):0}%;background:${igC};border-radius:3px;opacity:0.85;box-shadow:0 0 6px ${igC}55"></div></div>
+                  <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${igC};min-width:30px;text-align:right">${fmt(igVal)}</span>
                 </div>
               </div>`;
             };
@@ -6301,6 +6303,10 @@ function renderMacroDataPanels(reg){
             ${radarSVG}
           </div>
         </div>
+        <!-- 4-signal score strip -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px">
+          ${[{lbl:'Vol',score:vixSig.score??0,val:vixVal,col:vixCol},{lbl:'Mom',score:momSig.score??0,val:momVal,col:momCol},{lbl:'Val',score:capeSig.score??0,val:capeVal,col:capeCol},{lbl:'Brd',score:brSig.score??0,val:brVal,col:brCol}].map(s=>'<div style="background:'+s.col+'0e;border:1px solid '+s.col+'28;border-radius:7px;padding:5px 4px;text-align:center"><div style="font-family:var(--mono);font-size:5.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:2px">'+s.lbl+'</div><div style="font-family:var(--mono);font-size:9px;font-weight:900;color:'+s.col+'">'+s.val+'</div></div>').join('')}
+        </div>
         <!-- SPX sparkline -->
         <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:5px">
           <div style="display:flex;align-items:baseline;justify-content:space-between">
@@ -6408,7 +6414,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // Log scale: map months → x. Start from 1M (gives 3M breathing room)
   const TENOR_MO = { '3M':3,'6M':6,'1Y':12,'2Y':24,'5Y':60,'10Y':120,'30Y':360 };
   // Extend log range: logMin=log2(1)=0, logMax=log2(360) so short end has space
-  const logMin = Math.log2(1.5), logMax = Math.log2(390);
+  const logMin = Math.log2(2.0), logMax = Math.log2(390);
 
   // Use container's actual rendered dimensions
   const elRect = el.getBoundingClientRect();
