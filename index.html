@@ -211,7 +211,7 @@ a{color:inherit;text-decoration:none}
 .sidebar{
   width:var(--sidebar-w);flex-shrink:0;
   display:flex;flex-direction:column;
-  border-right:1px solid rgba(255,255,255,0.09);
+  border-right:1px solid rgba(200,169,110,0.10);
   overflow:hidden;
   background:rgba(5,7,14,0.45);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
@@ -256,16 +256,28 @@ a{color:inherit;text-decoration:none}
 /* Market row */
 .mkt-row{
   display:flex;align-items:center;gap:10px;
-  padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.07);
+  padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.055);
   cursor:pointer;transition:background 150ms;position:relative;
 }
-.mkt-row:hover{background:rgba(255,255,255,0.03)}
+.mkt-row:hover{background:rgba(255,255,255,0.035)}
 .mkt-row:hover::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:2px;border-radius:0 2px 2px 0;background:rgba(255,255,255,0.18)}
 .mkt-row:hover .mr-name{color:var(--text)}
 .mkt-row.sel{background:var(--surf2);border-bottom-color:rgba(255,255,255,0.07)}
 .mkt-row.sel::before{
   content:'';position:absolute;left:0;top:4px;bottom:4px;
   width:2px;border-radius:0 2px 2px 0;background:var(--accent);
+}
+/* Zone-based row tinting: bull rows faint green, bear rows faint red */
+.mkt-row[data-zone="bull"]{background:rgba(38,201,122,0.025)}
+.mkt-row[data-zone="bull"]:hover{background:rgba(38,201,122,0.05)}
+.mkt-row[data-zone="bear"]{background:rgba(224,58,42,0.025)}
+.mkt-row[data-zone="bear"]:hover{background:rgba(224,58,42,0.05)}
+.mkt-row[data-zone="bull"].sel,.mkt-row[data-zone="bear"].sel{background:var(--surf2)}
+/* Zone boundary row — faint separator line between bull/neutral/bear zones */
+.mkt-row-zone-sep{
+  height:1px;
+  background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,0.20) 20%,rgba(200,169,110,0.20) 80%,transparent 100%);
+  margin:0;flex-shrink:0;
 }
 .mr-id{font-family:var(--mono);font-size:9px;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.04em;width:28px;flex-shrink:0}
 .mr-body{flex:1;min-width:0}
@@ -638,8 +650,8 @@ a{color:inherit;text-decoration:none}
   position:relative;
   display:flex;flex-direction:column;gap:3px;
   background:rgba(14,17,28,0.72);
-  border:1px solid rgba(255,255,255,0.10);
-  border-top-color:rgba(255,255,255,0.18);
+  border:1px solid rgba(200,169,110,0.12);
+  border-top-color:rgba(200,169,110,0.22);
   border-radius:8px;padding:8px 13px;
   transition:border-color 150ms,background 150ms;
   min-width:86px;
@@ -691,20 +703,21 @@ a{color:inherit;text-decoration:none}
 }
 .ov-sector-row:last-child{border-bottom:none}
 .ov-sector-name{
-  font-size:8px;font-weight:700;letter-spacing:0.05em;
-  color:rgba(190,210,240,0.75);width:46px;flex-shrink:0;
+  font-size:7.5px;font-weight:800;letter-spacing:0.08em;
+  color:rgba(200,169,110,0.60);width:46px;flex-shrink:0;
   text-transform:uppercase;
 }
 .ov-sector-bar-wrap{
-  flex:1;height:2px;background:rgba(255,255,255,0.14);border-radius:2px;overflow:hidden;
+  flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;
 }
 .ov-sector-bar-fill{
-  height:100%;border-radius:2px;transition:width 600ms var(--ease);
-  opacity:0.90;
+  height:100%;border-radius:3px;transition:width 600ms var(--ease);
+  opacity:0.88;
+  box-shadow:0 0 6px currentColor;
 }
 .ov-sector-score{
-  font-family:var(--mono);font-size:9.5px;font-weight:700;
-  letter-spacing:-0.01em;width:26px;text-align:right;flex-shrink:0;
+  font-family:var(--mono);font-size:10px;font-weight:800;
+  letter-spacing:-0.02em;width:26px;text-align:right;flex-shrink:0;
 }
 /* arc + dist — deeper Jarvis ambient bloom */
 .ov-banner-right{
@@ -831,8 +844,8 @@ a{color:inherit;text-decoration:none}
 /* ── Category Summary Bar ── */
 .ov-cat-bar{
   display:flex;gap:0;
-  border-top:1px solid rgba(255,255,255,0.07);
-  border-bottom:1px solid rgba(255,255,255,0.09);
+  border-top:1px solid rgba(200,169,110,0.10);
+  border-bottom:1px solid rgba(200,169,110,0.10);
   overflow-x:auto;scrollbar-width:none;
   position:relative;
   background:rgba(255,255,255,0.012);
@@ -876,8 +889,8 @@ a{color:inherit;text-decoration:none}
 }
 .ov-cat-pill:hover::after{opacity:0.5}
 .ov-cat-name{
-  font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
-  color:rgba(255,255,255,0.38);margin-bottom:5px;
+  font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
+  color:rgba(200,169,110,0.65);margin-bottom:5px;
   transition:color 180ms;
 }
 .ov-cat-pill:hover .ov-cat-name{color:var(--dim)}
@@ -900,8 +913,9 @@ a{color:inherit;text-decoration:none}
   display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;
 }
 .ov-hm-sector-label{
-  font-size:7px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
-  color:rgba(200,169,110,0.65);line-height:1.2;
+  font-size:6.5px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;
+  color:rgba(200,169,110,0.80);line-height:1.2;
+  text-shadow:0 0 8px rgba(200,169,110,0.20);
 }
 .ov-hm-sec-badge{
   font-family:var(--mono);font-size:8px;font-weight:800;
@@ -960,14 +974,14 @@ a{color:inherit;text-decoration:none}
 /* V7: Heatmap tile upgrade */
 .ov-tile{
   position:relative;border-radius:8px;
-  padding:6px 8px 8px;
+  padding:6px 7px 9px;
   display:flex;flex-direction:column;gap:0;
   cursor:pointer;
   transition:transform 130ms var(--ease),box-shadow 130ms var(--ease),filter 130ms var(--ease);
   min-width:54px;flex:1;max-width:92px;
   overflow:hidden;
-  border:1px solid rgba(255,255,255,0.08);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07);
 }
 .ov-tile::after{
   content:'';position:absolute;top:0;left:0;right:0;height:40%;
@@ -986,13 +1000,14 @@ a{color:inherit;text-decoration:none}
   border-radius:inherit;
 }
 
-.ov-tile-id{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.07em;opacity:0.6;line-height:1.4}
-.ov-tile-name{font-size:7.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;opacity:0.82;margin-bottom:2px}
-.ov-tile-score{font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.03em;line-height:1;margin-bottom:4px}
+.ov-tile-id{font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.09em;opacity:0.55;line-height:1.4}
+.ov-tile-name{font-size:7px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;opacity:0.80;margin-bottom:1px}
+.ov-tile-score{font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.04em;line-height:1;margin-bottom:5px}
 /* Score bar at bottom of tile */
 .ov-tile-bar{
-  position:absolute;bottom:0;left:0;right:0;height:2px;
+  position:absolute;bottom:0;left:0;right:0;height:3px;
   background:rgba(255,255,255,0.06);
+  border-radius:0 0 8px 8px;
 }
 .ov-tile-bar-f{
   height:100%;border-radius:0 0 0 7px;
@@ -1427,13 +1442,13 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   display:flex;align-items:center;gap:8px;
 }
 .mc-sect-lbl{
-  font-family:var(--mono);font-size:7.5px;font-weight:800;
-  letter-spacing:0.12em;text-transform:uppercase;
-  color:rgba(173,184,208,0.95);white-space:nowrap;
+  font-family:var(--mono);font-size:7px;font-weight:800;
+  letter-spacing:0.14em;text-transform:uppercase;
+  color:rgba(200,169,110,0.65);white-space:nowrap;
 }
 .mc-sect-line{
   flex:1;height:1px;
-  background:linear-gradient(90deg,rgba(255,255,255,0.10),transparent);
+  background:linear-gradient(90deg,rgba(200,169,110,0.22),transparent);
 }
 /* Hero block */
 .mc-hero-block{flex-shrink:0;display:flex;align-items:baseline;gap:10px;margin-bottom:2px}
@@ -3457,7 +3472,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   /* Hide subtitle on mobile — too cramped */
   .nav-sub{display:none}
   #ts{display:none}
-  .nav-title{font-size:11px;letter-spacing:0.10em}
+  .nav-title{font-size:10px;letter-spacing:0.08em}
   .nav-logo svg{width:22px;height:22px}
   /* Refresh: icon only on mobile */
   .nav-btn-label{display:none}
@@ -3481,21 +3496,22 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
     background:var(--bg);
   }
   .sb-head{
-    padding:8px 14px 7px;
+    padding:6px 14px 6px;
     /* nav is fixed height includes safe-area inset */
     position:sticky;top:calc(50px + env(safe-area-inset-top,0px));z-index:99;
     background:rgba(5,7,13,0.97);
-    border-bottom:1px solid rgba(255,255,255,0.07);
+    border-bottom:1px solid rgba(200,169,110,0.10);
     backdrop-filter:blur(24px);
     -webkit-backdrop-filter:blur(24px);
     box-shadow:0 2px 12px rgba(0,0,0,0.5);
   }
   /* Tighter rankings header on mobile */
-  .sb-top{margin-bottom:6px}
-  .sb-top h2{font-size:8.5px;letter-spacing:0.12em}
-  #sb-count{font-size:8.5px}
-  .cat-row{gap:4px;flex-wrap:wrap}
-  .cat-btn{padding:7px 11px;font-size:7.5px;border-radius:5px;min-height:32px}
+  .sb-top{margin-bottom:4px}
+  .sb-top h2{font-size:8px;letter-spacing:0.12em}
+  #sb-count{font-size:8px}
+  .cat-row{gap:4px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .cat-row::-webkit-scrollbar{display:none}
+  .cat-btn{padding:5px 10px;font-size:7.5px;border-radius:5px;min-height:28px;flex-shrink:0;white-space:nowrap}
   .cat-btn.on{box-shadow:0 0 8px rgba(200,169,110,0.15),inset 0 1px 0 rgba(255,255,255,0.08)}
 
   /* Market list: no clip */
@@ -3633,13 +3649,13 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   }
   .mob-hero-stat{
     display:flex;flex-direction:column;gap:2px;
-    background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.14);
-    border-top:1px solid rgba(255,255,255,0.22);
-    border-radius:8px;padding:9px 12px;
+    background:rgba(255,255,255,0.055);
+    border:1px solid rgba(200,169,110,0.16);
+    border-top:1px solid rgba(200,169,110,0.28);
+    border-radius:10px;padding:9px 10px;
     flex:1;position:relative;overflow:hidden;
     backdrop-filter:blur(14px);
-    box-shadow:0 2px 12px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.08);
+    box-shadow:0 2px 14px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.07);
   }
   /* Top highlight on stat pill */
   .mob-hero-stat::before{
@@ -3700,9 +3716,9 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
     overflow-x:auto;-webkit-overflow-scrolling:touch;
     scrollbar-width:none;
     gap:0;
-    border-top:1px solid rgba(255,255,255,0.07);
-    border-bottom:1px solid rgba(255,255,255,0.08);
-    background:rgba(8,10,18,0.7);
+    border-top:1px solid rgba(200,169,110,0.10);
+    border-bottom:1px solid rgba(200,169,110,0.10);
+    background:rgba(6,8,15,0.80);
     padding:0;
   }
   #mob-sector-strip::-webkit-scrollbar{display:none}
@@ -3743,9 +3759,9 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
     pointer-events:none;
   }
   .mob-sector-name{
-    font-size:7.5px;font-weight:700;letter-spacing:0.11em;
-    text-transform:uppercase;color:rgba(255,255,255,0.52);
-    margin-bottom:5px;padding-top:0;
+    font-size:7px;font-weight:800;letter-spacing:0.13em;
+    text-transform:uppercase;color:rgba(200,169,110,0.65);
+    margin-bottom:4px;padding-top:0;
   }
   .mob-sector-score{
     font-family:var(--mono);font-size:18px;font-weight:900;
@@ -3753,11 +3769,11 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
     margin-bottom:6px;
   }
   .mob-sector-bar{
-    width:100%;height:2px;
-    background:rgba(255,255,255,0.09);
-    border-radius:2px;overflow:hidden;
+    width:100%;height:3px;
+    background:rgba(255,255,255,0.07);
+    border-radius:3px;overflow:hidden;
   }
-  .mob-sector-bar-f{height:100%;border-radius:2px;transition:width 500ms var(--ease)}
+  .mob-sector-bar-f{height:100%;border-radius:3px;transition:width 500ms var(--ease);opacity:0.88}
 
   /* ── 7. DETAIL TAB / CONTENT FIXES ── */
   .factor-strip{grid-template-columns:repeat(3,1fr)}
@@ -4576,13 +4592,20 @@ function renderList(){
     document.getElementById('mkt-list').innerHTML='<div style="padding:14px;color:var(--faint);font-size:10px">No markets</div>';
     return;
   }
-  document.getElementById('mkt-list').innerHTML=markets.map(m=>{
+  // Build zone-aware rows with separators between bull/neutral/bear
+  const _prevZones = [];
+  document.getElementById('mkt-list').innerHTML=markets.map((m, idx)=>{
     const ws=m.weighted_score;
     const col=sHex(ws);
     // Short bias label
     const biasShort=m.bias?m.bias.replace('Very ','').replace('Mildly ','').replace('mildly ',''):'—';
     // On mobile: score-coloured left accent border
     const mobBorder=`--mob-row-col:${col}`;
+    const thisZone = ws >= 6.0 ? 'bull' : ws <= 4.0 ? 'bear' : 'neutral';
+    const prevZone = _prevZones[idx - 1] || thisZone;
+    _prevZones[idx] = thisZone;
+    // Insert separator only at zone transitions (bull→neutral or neutral→bear)
+    const sepHtml = (idx > 0 && thisZone !== prevZone) ? '<div class="mkt-row-zone-sep"></div>' : '';
 
     // ── Scaled bidirectional bar ────────────────────────────────────────────
     // Display range 3.0–7.0 maps to 0–100% of each half.
@@ -4632,7 +4655,8 @@ function renderList(){
       background:${col};opacity:0.9;
       pointer-events:none"></div>` : '';
 
-    return `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
+    const _zone = ws >= 6.0 ? 'bull' : ws <= 4.0 ? 'bear' : 'neutral';
+    return sepHtml + `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" data-zone="${_zone}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id">${m.id}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
@@ -5644,9 +5668,9 @@ function renderOverview(){
           <div style="display:flex;align-items:center;gap:5px">
             <span style="font-family:var(--mono);font-size:${isUS ? '12' : '11'}px;font-weight:${isUS ? '900' : '800'};color:${isUS ? '#fff' : 'rgba(255,255,255,0.80)'};letter-spacing:0.02em">${CB_NAMES_OV[cb] || cb}</span>
           </div>
-          ${nmFmt ? `<div style="text-align:right">
-            <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:rgba(255,255,255,0.55);line-height:1">${nmFmt}</div>
-            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28);margin-top:2px">${nmDays}d</div>` : ''}
+          ${nmFmt ? `<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.04em;color:rgba(255,255,255,0.50);line-height:1">${nmFmt}</div>
+            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.03em;color:${nmDays <= 14 ? 'rgba(200,169,110,0.75)' : 'rgba(173,184,208,0.35)'};margin-top:1px">${nmDays <= 14 ? nmDays+'d' : nmDays+'d away'}</div>` : ''}
           </div>` : ''}
         </div>
         <!-- Row 2: rate + stance pill + cfp delta -->
@@ -6866,8 +6890,12 @@ function renderMacroDataPanels(reg){
               const displayCol = isNeutral ? '#6e7d90' : gradCol;
               const displayCol2 = isNeutral ? '#7a8ea0' : gradCol2;
               const rowIdx = zIndicators.indexOf(r);
+              // Label colour: score-aware tint so hot/cold signals read at a glance
+              const lblCol = r.score >= 6.5 ? 'rgba(48,217,136,0.80)'
+                : r.score <= 3.5 ? 'rgba(224,58,42,0.80)'
+                : 'rgba(173,184,208,0.65)';
               return `<div style="display:grid;grid-template-columns:82px 1fr auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${rowIdx*55}ms">
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+                <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${lblCol}">${r.lbl}</span>
                 <div style="position:relative;height:14px;background:rgba(255,255,255,0.06);border-radius:7px;overflow:hidden">
                   <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.30);border-radius:1px;z-index:1"></div>
                   <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(${isPos?'90deg':'270deg'},${displayCol},${displayCol2});border-radius:7px;opacity:${isNeutral?0.62:0.95};box-shadow:0 0 ${isNeutral?4:10}px ${displayCol}${isNeutral?'44':'88'}"></div>
@@ -7018,9 +7046,11 @@ function renderMacroDataPanels(reg){
                 const surpDelta = r.surprise!=null ? (r.hasFF
                   ? (r.surprise>=0?'+':'')+r.surprise.toFixed(2)+'%'
                   : (r.surprise>=0?'+':'')+r.surprise.toFixed(2)+'pp') : null;
+                // Label colour: hot = red, cool = blue, neutral = grey
+                const pipeLblCol = r.beat === false ? 'rgba(224,58,42,0.80)' : r.beat === true ? 'rgba(92,158,255,0.80)' : 'rgba(173,184,208,0.65)';
                 return `<div style="display:grid;grid-template-columns:60px 1fr auto;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${pipeIdx*50}ms">
                   <div style="display:flex;flex-direction:column;gap:1px">
-                    <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--dim)">${r.lbl}</span>
+                    <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${pipeLblCol}">${r.lbl}</span>
                     ${r.hasFF?'<span style="font-family:var(--mono);font-size:6.5px;font-weight:600;letter-spacing:0.05em;color:rgba(173,184,208,0.4)">FF CONSENSUS</span>':''}
                   </div>
                   <div style="display:flex;flex-direction:column;gap:2px">
