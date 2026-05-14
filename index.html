@@ -5434,44 +5434,55 @@ function renderOverview(){
       .sort((a, b) => (intlRates[b].rate ?? 0) - (intlRates[a].rate ?? 0));
 
     // SVG arc helper — draws a semi-circular arc showing cycle position
-    const _cbArc = (pct, col, colRgb) => {
+    const _cbArc = (pct, col, col2, colRgb, col2Rgb) => {
       const R = 36, cx = 45, cy = 45, stroke = 5;
       const toRad = deg => deg * Math.PI / 180;
-      // Arc spans 220deg (from -200deg to +20deg)
       const startDeg = -200, totalDeg = 220;
       const endDeg = startDeg + totalDeg * (pct / 100);
-      const sx = cx + R * Math.cos(toRad(startDeg));
-      const sy = cy + R * Math.sin(toRad(startDeg));
-      const ex = cx + R * Math.cos(toRad(endDeg));
-      const ey = cy + R * Math.sin(toRad(endDeg));
+      const sx  = cx + R * Math.cos(toRad(startDeg));
+      const sy  = cy + R * Math.sin(toRad(startDeg));
+      const ex  = cx + R * Math.cos(toRad(endDeg));
+      const ey  = cy + R * Math.sin(toRad(endDeg));
       const largeArc = (totalDeg * pct / 100) > 180 ? 1 : 0;
-      // Track arc (full 220deg)
       const tx1 = cx + R * Math.cos(toRad(startDeg));
       const ty1 = cy + R * Math.sin(toRad(startDeg));
       const tx2 = cx + R * Math.cos(toRad(startDeg + totalDeg));
       const ty2 = cy + R * Math.sin(toRad(startDeg + totalDeg));
-      // Thumb dot position
       const tdx = cx + R * Math.cos(toRad(endDeg));
       const tdy = cy + R * Math.sin(toRad(endDeg));
-      // Percentage label — only show if pct > 2
-      const pctLabel = pct > 2 ? `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" font-weight="800" fill="${col}" opacity="0.90" letter-spacing="-0.5">${Math.round(pct)}%</text>` : '';
+      const uid = 'arc' + Math.round(pct) + Math.round(Math.random()*9999);
+      // Percentage label centred in arc
+      const pctLbl = pct > 2
+        ? `<text x="${cx}" y="${cy - 2}" text-anchor="middle" dominant-baseline="middle"
+            font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="800"
+            fill="${col}" opacity="0.92" letter-spacing="-0.5">${Math.round(pct)}%</text>`
+        : '';
       return `<svg width="82" height="64" viewBox="0 0 90 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
         <defs>
-          <filter id="cbBlur${Math.round(pct)}" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5"/></filter>
-          <filter id="cbGlow${Math.round(pct)}" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="3"/></filter>
+          <linearGradient id="arcGrad${uid}" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="${col2}" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="${col}" stop-opacity="0.95"/>
+          </linearGradient>
+          <filter id="arcBlur${uid}" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3"/></filter>
+          <filter id="arcGlow${uid}" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="3.5"/></filter>
         </defs>
         <!-- Track -->
-        <path d="M ${tx1.toFixed(2)} ${ty1.toFixed(2)} A ${R} ${R} 0 1 1 ${tx2.toFixed(2)} ${ty2.toFixed(2)}" stroke="rgba(255,255,255,0.09)" stroke-width="${stroke}" stroke-linecap="round" fill="none"/>
-        <!-- Glow layer -->
-        ${pct > 1 ? `<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}" stroke="rgba(${colRgb},0.30)" stroke-width="${stroke + 5}" stroke-linecap="round" fill="none" filter="url(#cbBlur${Math.round(pct)})"/>` : ''}
-        <!-- Fill -->
-        ${pct > 1 ? `<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}" stroke="${col}" stroke-width="${stroke}" stroke-linecap="round" fill="none" opacity="0.88"/>` : ''}
-        <!-- Thumb glow halo -->
-        ${pct > 0 ? `<circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="7" fill="rgba(${colRgb},0.20)" filter="url(#cbGlow${Math.round(pct)})"/>` : ''}
-        <!-- Thumb dot -->
-        ${pct > 0 ? `<circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="4.5" fill="${col}"/><circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="2" fill="rgba(255,255,255,0.95)"/>` : ''}
-        <!-- Percentage label -->
-        ${pctLabel}
+        <path d="M ${tx1.toFixed(2)} ${ty1.toFixed(2)} A ${R} ${R} 0 1 1 ${tx2.toFixed(2)} ${ty2.toFixed(2)}"
+          stroke="rgba(255,255,255,0.08)" stroke-width="${stroke}" stroke-linecap="round" fill="none"/>
+        <!-- Glow halo -->
+        ${pct > 1 ? `<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}"
+          stroke="url(#arcGrad${uid})" stroke-width="${stroke + 6}" stroke-linecap="round" fill="none" opacity="0.28" filter="url(#arcBlur${uid})"/>` : ''}
+        <!-- Fill stroke w/ gradient -->
+        ${pct > 1 ? `<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}"
+          stroke="url(#arcGrad${uid})" stroke-width="${stroke}" stroke-linecap="round" fill="none" opacity="0.92"/>` : ''}
+        <!-- Thumb outer glow -->
+        ${pct > 0 ? `<circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="8"
+          fill="rgba(${colRgb},0.22)" filter="url(#arcGlow${uid})"/>` : ''}
+        <!-- Thumb dot: gradient fill -->
+        ${pct > 0 ? `<circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="5" fill="url(#arcGrad${uid})"/>
+          <circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="2" fill="rgba(255,255,255,0.92)"/>` : ''}
+        <!-- Pct label -->
+        ${pctLbl}
       </svg>`;
     };
 
@@ -5480,63 +5491,99 @@ function renderOverview(){
       const _lbl    = d.label || '';
       const _isHike = _lbl === 'Hiking'  || _lbl === 'Tightening';
       const _isCut  = _lbl === 'Cutting' || _lbl === 'Easing';
-      // Unified palette
-      const col     = _isHike ? '#e6b84a' : _isCut ? '#5eb8f5' : '#a0aec0';
-      const colRgb  = _isHike ? '230,184,74' : _isCut ? '94,184,245' : '160,174,192';
+      const _isPause = !_isHike && !_isCut;
+      const isUS   = cb === 'US';
+
+      // ── Per-stance colour families ────────────────────────────────────────
+      // Hiking:  amber → burnt-orange warmth
+      // Cutting: ice-blue → cyan-teal coolness
+      // Paused:  indigo-slate → cool lavender neutrality
+      const col      = _isHike ? '#f0c060' : _isCut ? '#4ec9d4' : '#9b9fd4';
+      const colRgb   = _isHike ? '240,192,96' : _isCut ? '78,201,212' : '155,159,212';
+      const col2     = _isHike ? '#e07830' : _isCut ? '#38b2e8' : '#7070b8'; // secondary shade
+      const col2Rgb  = _isHike ? '224,120,48' : _isCut ? '56,178,232' : '112,112,184';
+      // Card bg: each stance gets a unique diagonal gradient
+      const bgGrad   = _isHike
+        ? `linear-gradient(135deg,rgba(200,100,20,0.18) 0%,rgba(180,80,10,0.08) 35%,rgba(4,6,14,0.92) 100%)`
+        : _isCut
+        ? `linear-gradient(135deg,rgba(20,120,180,0.18) 0%,rgba(20,180,160,0.07) 40%,rgba(4,6,14,0.92) 100%)`
+        : `linear-gradient(135deg,rgba(80,70,160,0.16) 0%,rgba(50,55,130,0.07) 40%,rgba(4,6,14,0.92) 100%)`;
+      // Border
+      const borderCol = _isHike
+        ? `rgba(220,140,40,${isUS ? '0.40' : '0.22'})`
+        : _isCut
+        ? `rgba(40,190,200,${isUS ? '0.38' : '0.20'})`
+        : `rgba(120,115,200,${isUS ? '0.36' : '0.18'})`;
+      // Radial shimmer: top-right glow unique per stance
+      const shimmer  = _isHike
+        ? `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(230,140,30,0.22) 0%,transparent 70%)`
+        : _isCut
+        ? `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(30,200,220,0.18) 0%,transparent 70%)`
+        : `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(120,100,210,0.18) 0%,transparent 70%)`;
+      // Left bar colour
+      const barCol   = `linear-gradient(180deg,transparent,${col},${col2},transparent)`;
+
       const r  = d.rate  ?? 0;
       const pk = d.cycle_peak   ?? r;
       const tr = d.cycle_trough ?? 0;
       const pct = Math.min(100, Math.max(0, (r - tr) / ((pk - tr) || 1) * 100));
       const cfp    = d.change_from_peak;
       const cfpStr = cfp != null ? (cfp >= 0 ? '+' : '') + cfp.toFixed(2) + '%' : '—';
-      const cfpCol = cfp != null && cfp < -0.15 ? '#5eb8f5' : cfp != null && cfp > 0.15 ? '#e6b84a' : 'rgba(173,184,208,0.55)';
+      const cfpCol = cfp != null && cfp < -0.15 ? '#4ec9d4' : cfp != null && cfp > 0.15 ? '#f0c060' : 'rgba(173,184,208,0.55)';
       const nmFmt  = _fmtMtg(d.next_meeting);
       const nmDays = _daysTo(d.next_meeting);
-      const isUS   = cb === 'US';
       const srcBadge = d.rate_source === 'fallback_only'
         ? `<span style="font-size:5px;opacity:0.28"> est</span>` : '';
+      // Stance pill colours
+      const pillBg  = _isHike ? 'rgba(230,140,30,0.18)' : _isCut ? 'rgba(30,200,220,0.15)' : 'rgba(120,100,200,0.14)';
+      const pillBdr = _isHike ? 'rgba(230,140,30,0.38)' : _isCut ? 'rgba(30,200,220,0.35)' : 'rgba(120,100,200,0.32)';
+
       return `
       <div style="
         position:relative;overflow:hidden;
-        padding:12px 12px 10px 14px;
-        border-radius:12px;
-        background:linear-gradient(145deg,rgba(${colRgb},${isUS ? '0.12' : '0.06'}) 0%,rgba(8,11,20,0.75) 55%,rgba(4,6,14,0.90) 100%);
-        border:1px solid rgba(${colRgb},${isUS ? '0.30' : '0.16'});
-        box-shadow:0 2px 16px rgba(0,0,0,0.35);
+        padding:11px 11px 10px 13px;
+        border-radius:13px;
+        background:${bgGrad};
+        border:1px solid ${borderCol};
+        box-shadow:0 4px 20px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.04);
       ">
+        <!-- Radial shimmer overlay -->
+        <div style="pointer-events:none;position:absolute;inset:0;background:${shimmer}"></div>
         <!-- Left accent bar -->
-        <div style="position:absolute;top:12%;left:0;width:2.5px;height:76%;border-radius:0 2px 2px 0;background:linear-gradient(180deg,transparent,${col},transparent);opacity:${isUS ? '0.80' : '0.45'}"></div>
-        ${isUS ? `<div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,${col},transparent);opacity:0.55"></div>` : ''}
+        <div style="position:absolute;top:10%;left:0;width:2px;height:80%;border-radius:0 2px 2px 0;background:${barCol};opacity:${isUS ? '0.90' : '0.55'}"></div>
+        ${isUS ? `<div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,${col},${col2},transparent);opacity:0.60"></div>` : ''}
         <!-- Top row: flag+name left, next mtg right -->
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px">
           <div style="display:flex;align-items:center;gap:5px">
-            <span style="font-size:14px;line-height:1">${CB_FLAGS_OV[cb] || ''}</span>
-            <span style="font-family:var(--mono);font-size:${isUS ? '11' : '10'}px;font-weight:${isUS ? '900' : '700'};color:${isUS ? '#fff' : 'rgba(255,255,255,0.72)'};letter-spacing:-0.01em">${CB_NAMES_OV[cb] || cb}</span>
+            <span style="font-size:13px;line-height:1">${CB_FLAGS_OV[cb] || ''}</span>
+            <span style="font-family:var(--mono);font-size:${isUS ? '11' : '10'}px;font-weight:${isUS ? '900' : '700'};color:${isUS ? '#fff' : 'rgba(255,255,255,0.70)'};letter-spacing:0.01em">${CB_NAMES_OV[cb] || cb}</span>
           </div>
           ${nmFmt ? `<div style="text-align:right">
-            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.55);line-height:1">${nmFmt}</div>
-            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.35);margin-top:2px">${nmDays}d</div>` : ''}
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(255,255,255,0.50);line-height:1">${nmFmt}</div>
+            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.30);margin-top:2px">${nmDays}d</div>` : ''}
           </div>` : ''}
         </div>
         <!-- Middle: rate number + arc side by side -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0">
+        <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0">
           <div style="min-width:0;flex:1">
-            <div style="font-family:var(--mono);font-size:${isUS ? '26' : '22'}px;font-weight:900;color:${col};letter-spacing:-0.04em;line-height:1">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.65">%</span>${srcBadge}</div>
-            <div style="margin-top:6px;display:flex;align-items:center;gap:6px">
+            <div style="font-family:var(--mono);font-size:${isUS ? '26' : '22'}px;font-weight:900;letter-spacing:-0.04em;line-height:1;
+              background:linear-gradient(135deg,${col} 0%,${col2} 100%);
+              -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+            ">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.70">%</span>${srcBadge}</div>
+            <div style="margin-top:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
               <span style="
                 font-family:var(--mono);font-size:7px;font-weight:800;
-                letter-spacing:0.09em;text-transform:uppercase;
-                color:${col};background:rgba(${colRgb},0.14);
-                border:1px solid rgba(${colRgb},0.30);
-                border-radius:4px;padding:2px 7px;
+                letter-spacing:0.08em;text-transform:uppercase;
+                color:${col};background:${pillBg};
+                border:1px solid ${pillBdr};
+                border-radius:4px;padding:2px 6px;
               ">${_lbl || 'Flat'}</span>
-              <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${cfpCol}">${cfpStr}</span>
-              <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.35);letter-spacing:0.05em">vs peak</span>
+              <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:${cfpCol}">${cfpStr}</span>
             </div>
           </div>
           <!-- Arc: cycle position -->
           <div style="flex-shrink:0">
-            ${_cbArc(pct, col, colRgb)}
+            ${_cbArc(pct, col, col2, colRgb, col2Rgb)}
           </div>
         </div>
       </div>`;
@@ -5636,26 +5683,44 @@ function renderOverview(){
         ${(()=>{
           const bp12Dir = totalBp12m!=null&&totalBp12m>8 ? 'hike' : totalBp12m!=null&&totalBp12m<-8 ? 'cut' : 'flat';
           const bp18Dir = totalBp18m!=null&&totalBp18m>8 ? 'hike' : totalBp18m!=null&&totalBp18m<-8 ? 'cut' : 'flat';
-          const tileCol = d => d==='hike' ? '#e6b84a' : d==='cut' ? '#5eb8f5' : 'rgba(255,255,255,0.78)';
-          const tileRgb = d => d==='hike' ? '230,184,74' : d==='cut' ? '94,184,245' : '200,207,224';
+          // Tile colour system: direction × horizon
+          // hike/12M: amber-gold → orange; hike/18M: amber → deeper gold
+          // cut/12M: ice-blue → teal; cut/18M: sky → cyan
+          // flat: silver-lavender
+          const tileGrad = (dir, h) => {
+            if (dir === 'hike') return h === '12m'
+              ? { c1:'#f0c060', c2:'#e07830', rgb:'240,192,96', rgb2:'224,120,48' }
+              : { c1:'#e8d060', c2:'#c89020', rgb:'232,208,96', rgb2:'200,144,32' };
+            if (dir === 'cut')  return h === '12m'
+              ? { c1:'#4ec9d4', c2:'#2880e0', rgb:'78,201,212', rgb2:'40,128,224' }
+              : { c1:'#70d8f0', c2:'#3090c8', rgb:'112,216,240', rgb2:'48,144,200' };
+            return { c1:'rgba(210,215,240,0.85)', c2:'rgba(160,170,200,0.85)', rgb:'200,207,224', rgb2:'160,170,200' };
+          };
           const arrow = d => d==='hike' ? '↑' : d==='cut' ? '↓' : '→';
           const tile = (lbl, bp, dir, horizon) => {
-            const c = tileCol(dir), rgb = tileRgb(dir);
-            return `<div class="ov-rp-stat" style="--rp-stat-rgb:${rgb}">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            const tg = tileGrad(dir, horizon);
+            const arrowCol = dir==='hike' ? '#f0c060' : dir==='cut' ? '#4ec9d4' : 'rgba(200,207,224,0.60)';
+            const barBg = dir==='hike'
+              ? `linear-gradient(90deg,rgba(${tg.rgb2},0.22),rgba(${tg.rgb},0.08))`
+              : dir==='cut'
+              ? `linear-gradient(90deg,rgba(${tg.rgb2},0.20),rgba(${tg.rgb},0.07))`
+              : `rgba(${tg.rgb},0.08)`;
+            const barFill = `linear-gradient(90deg,${tg.c2},${tg.c1})`;
+            return `<div class="ov-rp-stat" style="--rp-stat-rgb:${tg.rgb}">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
                 <div class="ov-rp-stat-lbl">${lbl}</div>
-                <span style="font-size:16px;line-height:1;color:rgba(${rgb},0.50);font-weight:300">${arrow(dir)}</span>
+                <span style="font-size:15px;line-height:1;color:${arrowCol};font-weight:400;opacity:0.70">${arrow(dir)}</span>
               </div>
-              <div class="ov-rp-stat-val" style="color:${c}">${_bpStr(bp)}</div>
-              <div class="ov-rp-stat-sub" style="color:rgba(${rgb},0.65);margin-top:4px">${_bpLabel(bp)}</div>
-              <div style="margin-top:8px;height:3px;border-radius:3px;background:rgba(${rgb},0.10);overflow:hidden">
-                <div style="height:100%;width:${Math.min(100,Math.abs(bp??0)/50*100).toFixed(0)}%;border-radius:3px;background:linear-gradient(90deg,rgba(${rgb},0.70),rgba(${rgb},0.45))"></div>
+              <div class="ov-rp-stat-val" style="background:linear-gradient(135deg,${tg.c1},${tg.c2});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${_bpStr(bp)}</div>
+              <div class="ov-rp-stat-sub" style="color:rgba(${tg.rgb},0.60);margin-top:4px">${_bpLabel(bp)}</div>
+              <div style="margin-top:8px;height:3px;border-radius:3px;background:${barBg};overflow:hidden">
+                <div style="height:100%;width:${Math.min(100,Math.abs(bp??0)/50*100).toFixed(0)}%;border-radius:3px;background:${barFill}"></div>
               </div>
             </div>`;
           };
           return `<div class="ov-rp-stats">
-            ${tile('12M Pricing', totalBp12m, bp12Dir)}
-            ${tile('18M Pricing', totalBp18m, bp18Dir)}
+            ${tile('12M Pricing', totalBp12m, bp12Dir, '12m')}
+            ${tile('18M Pricing', totalBp18m, bp18Dir, '18m')}
           </div>`;
         })()}
       </div>` : '';
