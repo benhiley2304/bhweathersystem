@@ -4188,53 +4188,522 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   background:linear-gradient(90deg,rgba(26,30,44,0.88) 0%,rgba(20,23,34,0.80) 100%) !important;
 }
 
-/* ── Regime atmosphere wash — fixed full-screen tonal field ── */
+/* ══════════════════════════════════════════════════════════════
+   NEXUS OS — 100x Creative Overhaul
+   Quantum HUD · Apple OS Glass · Ultra-Premium Dark
+══════════════════════════════════════════════════════════════ */
+
+/* ── Nexus font upgrade ── */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+:root{
+  --nexus-head: 'Space Grotesk', 'Inter', sans-serif;
+  --reg-col: rgba(34,201,122,0.7);
+}
+
+/* ── Regime atmosphere wash — cinematic full-screen colour field ── */
 #regime-wash{
   position:fixed;inset:0;pointer-events:none;z-index:0;
   opacity:0;
-  transition:background 2.4s cubic-bezier(0.16,1,0.3,1), opacity 1.8s ease;
+  transition:background 3s cubic-bezier(0.16,1,0.3,1), opacity 2s ease;
+  animation:nexusBreath 9s ease-in-out infinite;
 }
 #regime-wash.visible{opacity:1}
+@keyframes nexusBreath{
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.3)}
+}
 
-/* ── Quantum scanline — single drifting horizontal light line ── */
+/* ── Nexus scanlines — fine CRT texture over entire UI ── */
 #q-scanline{
-  position:fixed;left:0;right:0;height:1px;pointer-events:none;z-index:2;
-  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 20%,rgba(255,255,255,0.12) 50%,rgba(255,255,255,0.04) 80%,transparent 100%);
-  animation:scanlineDrift 18s linear infinite;
-  top:0;
+  position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.07) 2px,
+    rgba(0,0,0,0.07) 3px
+  );
+  opacity:0.6;
 }
 
-/* ── Heatmap tile ring arc upgrade ── */
-.ov-tile-ring-wrap{
-  position:absolute;top:4px;right:4px;pointer-events:none;
+/* ── Nexus horizon edge glow ── */
+#nexus-horizon{
+  position:fixed;bottom:0;left:0;right:0;height:1px;pointer-events:none;z-index:4;
+  background:linear-gradient(90deg,transparent 0%,var(--reg-col) 30%,var(--reg-col) 70%,transparent 100%);
+  opacity:0.4;
+  animation:horizonPulse 5s ease-in-out infinite;
+  filter:blur(0.5px);
 }
-.ov-tile-ring-wrap svg{overflow:visible}
+@keyframes horizonPulse{
+  0%,100%{opacity:0.25;filter:blur(0.5px)}
+  50%{opacity:0.55;filter:blur(1px)}
+}
 
-/* ── Rankings dot meter ── */
-.mr-dot-meter{
-  display:flex;gap:2.5px;align-items:center;flex-shrink:0;
+/* ── Nexus nav upgrade — ultra-slim frosted bar ── */
+.nav{
+  height:46px;
+  background:rgba(2,4,10,0.88);
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  box-shadow:0 1px 0 rgba(255,255,255,0.04),0 0 40px rgba(0,0,0,0.6);
 }
-.mr-dot{
-  width:4px;height:4px;border-radius:50%;
-  transition:background 300ms, box-shadow 300ms;
+.nav-title{
+  font-family:var(--nexus-head);
+  font-size:11px;font-weight:700;
+  letter-spacing:0.14em;
+  background:linear-gradient(135deg,rgba(255,255,255,0.95) 0%,rgba(200,169,110,0.85) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-sub{
+  font-family:var(--mono);
+  font-size:7px;color:rgba(255,255,255,0.28);
+  letter-spacing:0.12em;
+}
+.regime-badge{
+  background:rgba(8,12,24,0.80);
+  border:1px solid rgba(255,255,255,0.09);
+  backdrop-filter:blur(24px);
+  padding:3px 12px;
+  border-radius:20px;
+}
+
+/* ── SIDEBAR — Nexus glass column ── */
+.sidebar{
+  background:rgba(2,4,10,0.72);
+  border-right:1px solid rgba(255,255,255,0.06);
+  backdrop-filter:blur(32px);
+  -webkit-backdrop-filter:blur(32px);
+}
+.sidebar::after{
+  content:'';
+  position:absolute;top:0;right:0;bottom:0;width:1px;
+  background:linear-gradient(180deg,transparent 0%,rgba(255,255,255,0.05) 30%,rgba(255,255,255,0.05) 70%,transparent 100%);
+  pointer-events:none;
+}
+.sb-head{
+  padding:16px 16px 12px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  background:rgba(255,255,255,0.014);
+}
+.sb-top h2{
+  font-family:var(--nexus-head);
+  font-size:7.5px;font-weight:700;
+  letter-spacing:0.22em;
+  color:rgba(200,169,110,0.55);
+}
+
+/* ── Filter chips — nexus pill style ── */
+.cat-btn{
+  padding:3px 9px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,0.07);
+  font-size:7px;font-weight:700;
+  letter-spacing:0.08em;
+  color:rgba(173,184,208,0.5);
+  background:transparent;
+  transition:all 140ms;
+}
+.cat-btn:hover{
+  border-color:rgba(255,255,255,0.18);
+  color:rgba(255,255,255,0.8);
+  background:rgba(255,255,255,0.05);
+}
+.cat-btn.on{
+  border-color:rgba(200,169,110,0.50);
+  background:rgba(200,169,110,0.10);
+  color:#e8d5b0;
+  box-shadow:0 0 12px rgba(200,169,110,0.12),inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* ── Market rows — nexus ladder ── */
+.mkt-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.035);
+  cursor:pointer;
+  transition:background 120ms;
+  position:relative;
+  overflow:hidden;
+}
+.mkt-row::after{
+  content:'';
+  position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:transparent;
+  transition:background 120ms;
+  border-radius:0 1px 1px 0;
+}
+.mkt-row:hover::after{
+  background:rgba(255,255,255,0.14);
+}
+.mkt-row.sel::after{
+  background:linear-gradient(180deg,var(--row-accent,var(--accent)) 0%,rgba(200,169,110,0.4) 100%);
+  box-shadow:0 0 8px var(--row-accent,rgba(200,169,110,0.5));
+}
+.mkt-row:hover{
+  background:rgba(255,255,255,0.028);
+}
+.mkt-row.sel{
+  background:rgba(255,255,255,0.04);
+  border-bottom-color:rgba(255,255,255,0.05);
+}
+/* Zone tints — more saturated, less washed out */
+.mkt-row[data-zone="bull"]{ background:rgba(34,201,122,0.035) }
+.mkt-row[data-zone="bull"]:hover{ background:rgba(34,201,122,0.065) }
+.mkt-row[data-zone="bear"]{ background:rgba(224,58,42,0.035) }
+.mkt-row[data-zone="bear"]:hover{ background:rgba(224,58,42,0.065) }
+.mkt-row[data-zone="bull"].sel,.mkt-row[data-zone="bear"].sel{ background:rgba(255,255,255,0.04) }
+.mkt-row-zone-sep{
+  height:1px;
+  background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,0.15) 20%,rgba(200,169,110,0.15) 80%,transparent 100%);
+  margin:1px 0;
+}
+.mr-id{
+  font-family:var(--mono);font-size:8.5px;font-weight:700;
+  color:rgba(255,255,255,0.28);letter-spacing:0.04em;
+  width:26px;flex-shrink:0;
+}
+.mr-name{
+  font-size:11.5px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:rgba(220,228,248,0.90);
+  transition:color 100ms;
+  letter-spacing:-0.01em;
+}
+.mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:#fff}
+
+/* ── Nexus score flame — replaces dot meter ── */
+.mr-flame-bar{
+  display:flex;gap:1.5px;align-items:flex-end;height:12px;
+  margin-top:4px;
+}
+.mr-flame-seg{
+  width:3px;border-radius:1.5px;
+  transition:background 300ms, box-shadow 200ms;
+  flex-shrink:0;
+}
+.mr-score-badge{
+  font-family:var(--mono);font-size:14px;font-weight:800;
+  letter-spacing:-0.04em;line-height:1;
+  min-width:36px;text-align:right;
+  filter:drop-shadow(0 0 6px currentColor);
+}
+.mr-bias{
+  font-size:6.5px;font-weight:700;
+  white-space:nowrap;letter-spacing:0.06em;
+  text-transform:uppercase;opacity:0.65;
+}
+
+/* ── HERO BANNER — Nexus command centre ── */
+.ov-banner{
+  position:relative;overflow:hidden;
+  padding:0;
+  background:transparent;
+  border-bottom:none;
+}
+.ov-banner-inner{
+  position:relative;z-index:2;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:0;
+  padding:24px 28px 20px;
+  border-left:none;
+}
+.ov-banner-left{
+  display:flex;flex-direction:column;gap:0;
+}
+.ov-banner-eyebrow{
+  font-family:var(--nexus-head);
+  font-size:7px;font-weight:500;
+  letter-spacing:0.28em;text-transform:uppercase;
+  color:rgba(255,255,255,0.22);
+  padding-bottom:0;border-bottom:none;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.ov-banner-eyebrow::before{
+  content:'';
+  display:inline-block;width:16px;height:1px;
+  background:rgba(200,169,110,0.5);
   flex-shrink:0;
 }
 
-/* ── Sector bar — segmented glow upgrade ── */
-.ov-sector-bar-segs{
-  display:flex;gap:2px;flex:1;height:3px;align-items:center;
-}
-.ov-sector-seg{
-  height:3px;border-radius:3px;flex:1;
-  transition:background 600ms, box-shadow 400ms;
-}
-
-/* ── Regime glow text — hero ── */
-.regime-glow-text{
-  transition: text-shadow 1.8s cubic-bezier(0.16,1,0.3,1);
+/* Giant regime headline */
+.ov-banner-regime{
+  font-family:var(--nexus-head);
+  font-size:52px;font-weight:700;
+  letter-spacing:-0.04em;line-height:0.92;
+  background:none;
+  -webkit-text-fill-color:unset;
+  animation:regimePulse 6s ease-in-out infinite;
+  transition:color 800ms,text-shadow 1.5s;
+  margin-bottom:10px;
 }
 
-/* ── Glass shimmer on macro cards — one-shot on load ── */
+.ov-banner-desc{
+  font-size:11px;color:rgba(173,184,208,0.65);font-weight:400;
+  margin-top:0;line-height:1.5;max-width:520px;
+  letter-spacing:0.01em;
+}
+.ov-banner-sub{
+  font-size:10px;color:rgba(173,184,208,0.45);
+  margin-top:8px;display:flex;align-items:center;gap:8px;
+}
+.ov-banner-dot{
+  width:5px;height:5px;border-radius:50%;display:inline-block;flex-shrink:0;
+}
+
+/* ── Stat pills — nexus glass chips ── */
+.ov-banner-stats{
+  display:flex;gap:6px;flex-wrap:wrap;margin-top:16px;
+}
+.ov-stat-pill{
+  position:relative;
+  display:flex;flex-direction:column;gap:2px;
+  background:rgba(255,255,255,0.038);
+  border:1px solid rgba(255,255,255,0.08);
+  border-top:1px solid rgba(255,255,255,0.13);
+  border-radius:10px;padding:9px 14px;
+  min-width:82px;
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  overflow:hidden;
+  transition:background 160ms,border-color 160ms;
+}
+.ov-stat-pill::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,0.04) 0%,transparent 100%);
+  pointer-events:none;
+  border-radius:10px 10px 0 0;
+}
+.ov-stat-pill:hover{
+  background:rgba(255,255,255,0.06);
+  border-color:rgba(255,255,255,0.13);
+}
+.ov-stat-label{
+  font-family:var(--mono);font-size:6px;font-weight:700;
+  letter-spacing:0.16em;text-transform:uppercase;
+  color:rgba(200,169,110,0.55);
+}
+.ov-stat-val{
+  font-family:var(--mono);font-size:16px;font-weight:800;
+  letter-spacing:-0.03em;line-height:1;
+}
+.ov-stat-sub{font-size:7.5px;color:rgba(173,184,208,0.55);margin-top:1px}
+
+/* ── Price strip pills ── */
+.ov-price-strip{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.ov-price-pill{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.030);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:6px;padding:4px 10px;
+  backdrop-filter:blur(16px);
+  transition:background 150ms;
+}
+.ov-price-pill:hover{background:rgba(255,255,255,0.05)}
+.ov-price-label{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(200,169,110,0.55)}
+.ov-price-val{font-family:var(--mono);font-size:11px;font-weight:800;color:#f2f6ff}
+.ov-price-chg{font-family:var(--mono);font-size:9.5px;font-weight:700}
+
+/* ── Nexus score orb — floating climate score beacon ── */
+.nexus-orb-wrap{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex-shrink:0;
+  width:120px;
+  margin-top:-4px;
+}
+.nexus-orb{
+  position:relative;
+  width:90px;height:90px;
+  display:flex;align-items:center;justify-content:center;
+}
+.nexus-orb-bg{
+  position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 50%,transparent 100%);
+  border:1px solid rgba(255,255,255,0.10);
+  backdrop-filter:blur(12px);
+  animation:orbBreath 6s ease-in-out infinite;
+}
+@keyframes orbBreath{
+  0%,100%{box-shadow:0 0 0 0 transparent,0 0 20px rgba(255,255,255,0.02),inset 0 1px 0 rgba(255,255,255,0.10)}
+  50%{box-shadow:0 0 30px 8px var(--orb-glow,rgba(34,201,122,0.10)),0 0 60px 16px var(--orb-glow,rgba(34,201,122,0.04)),inset 0 1px 0 rgba(255,255,255,0.15)}
+}
+.nexus-orb-ring{
+  position:absolute;inset:-6px;border-radius:50%;
+  border:1px solid rgba(255,255,255,0.06);
+  animation:orbRingRotate 12s linear infinite;
+}
+.nexus-orb-ring::before{
+  content:'';
+  position:absolute;top:-1px;left:50%;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;
+  background:var(--orb-pip,rgba(34,201,122,0.8));
+  box-shadow:0 0 8px var(--orb-pip,rgba(34,201,122,0.8));
+}
+.nexus-orb-ring2{
+  position:absolute;inset:-14px;border-radius:50%;
+  border:1px solid rgba(255,255,255,0.035);
+  animation:orbRingRotate 20s linear infinite reverse;
+}
+.nexus-orb-ring2::before{
+  content:'';
+  position:absolute;bottom:-1px;left:30%;transform:translateX(-50%);
+  width:2.5px;height:2.5px;border-radius:50%;
+  background:var(--orb-pip2,rgba(200,169,110,0.6));
+  box-shadow:0 0 6px var(--orb-pip2,rgba(200,169,110,0.6));
+}
+@keyframes orbRingRotate{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+.nexus-orb-score{
+  font-family:var(--nexus-head);
+  font-size:28px;font-weight:700;
+  letter-spacing:-0.04em;line-height:1;
+  position:relative;z-index:2;
+  filter:drop-shadow(0 0 12px var(--orb-pip,rgba(34,201,122,0.6)));
+}
+.nexus-orb-label{
+  font-family:var(--mono);font-size:7px;font-weight:700;
+  letter-spacing:0.16em;text-transform:uppercase;
+  color:rgba(255,255,255,0.30);
+  margin-top:10px;
+}
+.nexus-orb-regime{
+  font-family:var(--nexus-head);
+  font-size:8.5px;font-weight:600;
+  letter-spacing:0.06em;
+  margin-top:3px;
+  opacity:0.75;
+  text-align:center;
+  max-width:110px;
+  line-height:1.3;
+}
+.nexus-orb-sent{
+  margin-top:10px;
+  width:100px;
+}
+.nexus-orb-sent-bar{
+  display:flex;height:3px;border-radius:2px;overflow:hidden;gap:1px;
+}
+.nexus-orb-sent-seg{
+  height:100%;border-radius:2px;
+}
+.nexus-orb-sent-labels{
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:7px;font-weight:600;
+  letter-spacing:0.08em;
+  margin-top:4px;
+  opacity:0.75;
+}
+
+/* ── Sector breadth — nexus vertical bars ── */
+.ov-banner-centre{
+  display:flex;flex-direction:column;gap:4px;flex:0 0 180px;
+}
+.ov-sector-eyebrow{
+  font-family:var(--mono);font-size:6.5px;font-weight:700;
+  letter-spacing:0.18em;text-transform:uppercase;
+  color:rgba(200,169,110,0.45);margin-bottom:8px;margin-top:0;
+  padding-bottom:0;border-bottom:none;
+}
+.ov-sector-row{
+  display:flex;align-items:center;gap:7px;
+  padding:2px 0;
+}
+.ov-sector-name{
+  font-family:var(--mono);font-size:7px;font-weight:700;
+  letter-spacing:0.08em;color:rgba(200,169,110,0.50);
+  width:44px;flex-shrink:0;text-transform:uppercase;
+}
+.ov-sector-bar-wrap{
+  flex:1;height:2px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;
+}
+.ov-sector-bar-fill{
+  height:100%;border-radius:2px;
+  transition:width 700ms var(--ease);
+  box-shadow:0 0 4px currentColor;
+}
+.ov-sector-score{
+  font-family:var(--mono);font-size:10px;font-weight:800;
+  letter-spacing:-0.03em;width:24px;text-align:right;flex-shrink:0;
+}
+
+/* ── SENTIMENT DONUT — right side ── */
+.ov-banner-right{
+  display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;
+}
+.ov-sent-wrap{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.ov-sent-label{
+  font-family:var(--mono);font-size:6.5px;font-weight:700;
+  letter-spacing:0.15em;text-transform:uppercase;
+  color:rgba(255,255,255,0.22);
+}
+
+/* ── CAT BAR — nexus horizontal pills ── */
+.ov-cat-bar{
+  display:flex;gap:0;
+  background:rgba(0,0,0,0.15);
+  border-top:1px solid rgba(255,255,255,0.05);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  overflow-x:auto;scrollbar-width:none;
+}
+.ov-cat-bar::-webkit-scrollbar{display:none}
+.ov-cat-pill{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:11px 14px;flex:1;min-width:76px;
+  border-right:1px solid rgba(255,255,255,0.045);
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:background 160ms;
+}
+.ov-cat-pill:last-child{border-right:none}
+.ov-cat-pill:hover{background:rgba(255,255,255,0.03)}
+.ov-cat-name{
+  font-family:var(--mono);font-size:7px;font-weight:800;
+  letter-spacing:0.14em;text-transform:uppercase;
+  color:rgba(200,169,110,0.55);margin-bottom:4px;
+}
+.ov-cat-score{font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.03em}
+.ov-cat-arrow{font-size:9px;font-weight:700}
+.ov-cat-n{font-size:6.5px;color:rgba(130,145,175,0.55);margin-top:3px;font-family:var(--mono)}
+
+/* ── HEATMAP tiles — nexus holographic foil ── */
+.ov-tile{
+  position:relative;border-radius:8px;
+  padding:6px 7px 9px;
+  display:flex;flex-direction:column;gap:0;
+  cursor:pointer;
+  transition:transform 150ms var(--ease),box-shadow 150ms,border-color 150ms;
+  min-width:52px;flex:1;max-width:90px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter:blur(2px);
+  animation:tileIn 240ms ease both;
+}
+/* Foil shimmer gradient — top-left angular highlight */
+.ov-tile::before{
+  content:'';
+  position:absolute;top:0;left:0;width:60%;height:50%;
+  background:linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 100%);
+  pointer-events:none;z-index:1;border-radius:8px 0 0 0;
+}
+.ov-tile::after{
+  content:'';
+  position:absolute;bottom:0;right:0;width:40%;height:30%;
+  background:linear-gradient(315deg,rgba(255,255,255,0.03) 0%,transparent 100%);
+  pointer-events:none;z-index:1;
+}
+.ov-tile:hover{
+  transform:translateY(-3px) scale(1.05);
+  box-shadow:0 8px 32px rgba(0,0,0,0.65),0 0 0 1px rgba(255,255,255,0.16),inset 0 1px 0 rgba(255,255,255,0.14);
+  z-index:2;border-color:rgba(255,255,255,0.18);
+  filter:brightness(1.18);
+}
+.ov-tile-ring-wrap{position:absolute;top:3px;right:3px;pointer-events:none}
+.ov-tile-ring-wrap svg{overflow:visible}
+
+/* ── Glass shimmer ── */
 .glass-shimmer-wrap{
   position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit;
 }
@@ -4244,8 +4713,6 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   animation:glassShimmer 3.5s cubic-bezier(0.4,0,0.6,1) 0.8s both;
   pointer-events:none;
 }
-
-/* ── Tile: hover glass shimmer ── */
 .ov-tile .glass-shimmer-line{
   animation:glassShimmer 1.2s cubic-bezier(0.4,0,0.6,1) both;
 }
@@ -4253,18 +4720,29 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   animation:glassShimmer 1.2s cubic-bezier(0.4,0,0.6,1) both;
 }
 
-/* ── CB card rate number ring ── */
-.cb-rate-ring-wrap{
-  position:absolute;top:0;right:0;pointer-events:none;
-}
+/* ── Heatmap sector label ── */
+.ov-hm-sector-wrap{width:60px;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px}
+.ov-hm-sector-label{font-family:var(--mono);font-size:6px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(200,169,110,0.65);line-height:1.2}
+.ov-hm-sec-badge{font-family:var(--mono);font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;background:rgba(255,255,255,0.04)}
 
-/* ── Horizon glow — bottom of detail panel ── */
+/* ── Rankings dot meter (retained) ── */
+.mr-dot-meter{display:flex;gap:2px;align-items:center;flex-shrink:0;margin-top:3px}
+.mr-dot{width:4px;height:4px;border-radius:50%;transition:background 300ms,box-shadow 300ms;flex-shrink:0}
+
+/* ── CB card rate ring ── */
+.cb-rate-ring-wrap{position:absolute;top:0;right:0;pointer-events:none}
+
+/* ── Nexus score orb canvas ── */
+#nexus-orb-canvas{position:absolute;inset:-20px;pointer-events:none;z-index:0}
+
+/* ── Horizon glow — bottom edge ── */
 #detail::after{
   content:'';
-  position:fixed;bottom:0;left:320px;right:0;height:2px;pointer-events:none;z-index:3;
-  background:linear-gradient(90deg,transparent 0%,var(--reg-col,rgba(34,201,122,0.6)) 50%,transparent 100%);
-  animation:horizonBreath 5s ease-in-out infinite;
-  opacity:0.05;
+  position:fixed;bottom:0;left:var(--sidebar-w);right:0;height:1px;
+  pointer-events:none;z-index:3;
+  background:linear-gradient(90deg,transparent 0%,var(--reg-col) 40%,var(--reg-col) 60%,transparent 100%);
+  opacity:0.3;
+  animation:horizonPulse 5s ease-in-out infinite;
 }
 
 /* ── Live pulse dot on stat pills ── */
@@ -4274,12 +4752,93 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   animation:microPulse 2.8s ease-in-out infinite;
 }
 
+/* ── Regime glow text ── */
+.regime-glow-text{
+  transition:text-shadow 1.8s cubic-bezier(0.16,1,0.3,1),color 0.8s;
+}
+
+/* ── Section headers — nexus style ── */
+.ov-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;margin-top:4px}
+.ov-section-title{
+  font-family:var(--nexus-head);
+  font-size:8.5px;font-weight:700;
+  letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--accent);flex-shrink:0;
+  display:flex;align-items:center;gap:8px;
+}
+.ov-section-title::before{
+  content:'';
+  width:2px;height:10px;
+  background:linear-gradient(180deg,var(--accent) 0%,rgba(200,169,110,0.3) 100%);
+  border-radius:1px;flex-shrink:0;
+  box-shadow:0 0 6px rgba(200,169,110,0.4);
+}
+.ov-section-hdr-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,0.25) 0%,rgba(200,169,110,0.05) 60%,transparent 100%)}
+
+/* ── Heatmap wrap ── */
+.ov-heatmap-wrap{padding:14px 22px 24px}
+.ov-legend-bar{width:72px;height:3px;border-radius:2px;background:linear-gradient(90deg,#e03a2a,#4a5268,#22c97a);opacity:0.55}
+.ov-legend-labels{display:flex;justify-content:space-between;width:72px}
+.ov-legend-label{font-size:6.5px;color:rgba(138,152,184,0.6);font-family:var(--mono)}
+
+/* ── Score signal leader cards — nexus glass ── */
+.ov-sig-card{
+  animation:fadeUp 260ms ease both;
+  transition:all 160ms var(--ease);
+  background:rgba(255,255,255,0.028);
+  border:1px solid rgba(255,255,255,0.07);
+  border-top:1px solid rgba(255,255,255,0.11);
+  border-radius:10px;
+  backdrop-filter:blur(12px);
+  overflow:hidden;
+  position:relative;
+}
+.ov-sig-card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.1) 50%,transparent 100%);
+  pointer-events:none;
+}
+.ov-sig-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  border-color:rgba(255,255,255,0.14);
+}
+.ov-sig-card.bull:hover{border-color:rgba(34,201,122,0.30);box-shadow:0 6px 24px rgba(34,201,122,0.07)}
+.ov-sig-card.bear:hover{border-color:rgba(224,58,42,0.30);box-shadow:0 6px 24px rgba(224,58,42,0.07)}
+
+/* ── Heatmap arc rings ── */
+.ov-tile-ring-wrap{position:absolute;top:3px;right:3px;pointer-events:none;z-index:3}
+
+/* ── Nexus particle noise canvas (full-screen ambient) ── */
+#nexus-noise-canvas{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  opacity:0.55;mix-blend-mode:screen;
+}
+
+/* ── Market leaders section ── */
+.ov-signals-col:first-child .ov-sig-card:nth-child(1){animation-delay:300ms}
+.ov-signals-col:first-child .ov-sig-card:nth-child(2){animation-delay:340ms}
+.ov-signals-col:first-child .ov-sig-card:nth-child(3){animation-delay:380ms}
+.ov-signals-col:first-child .ov-sig-card:nth-child(4){animation-delay:420ms}
+.ov-signals-col:last-child .ov-sig-card:nth-child(1){animation-delay:320ms}
+.ov-signals-col:last-child .ov-sig-card:nth-child(2){animation-delay:360ms}
+.ov-signals-col:last-child .ov-sig-card:nth-child(3){animation-delay:400ms}
+.ov-signals-col:last-child .ov-sig-card:nth-child(4){animation-delay:440ms}
+
+/* ── ringPulse ── */
+@keyframes ringPulse{0%,100%{opacity:0.55}50%{opacity:0.90}}
+@keyframes dotMeterIn{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+@keyframes scanlineDrift{from{transform:translateY(-100%)}to{transform:translateY(200vh)}}
+
 </style>
 </head>
 <body>
 <canvas id="app-particle-bg" aria-hidden="true"></canvas>
+<canvas id="nexus-noise-canvas" aria-hidden="true"></canvas>
   <div id="regime-wash"></div>
   <div id="q-scanline"></div>
+  <div id="nexus-horizon"></div>
 <script>
 (function(){
   function setH(){
@@ -4698,88 +5257,40 @@ function renderList(){
     document.getElementById('mkt-list').innerHTML='<div style="padding:14px;color:var(--faint);font-size:10px">No markets</div>';
     return;
   }
-  // Build zone-aware rows with separators between bull/neutral/bear
   const _prevZones = [];
   document.getElementById('mkt-list').innerHTML=markets.map((m, idx)=>{
     const ws=m.weighted_score;
     const col=sHex(ws);
-    // Short bias label
     const biasShort=m.bias?m.bias.replace('Very ','').replace('Mildly ','').replace('mildly ',''):'—';
-    // On mobile: score-coloured left accent border
-    const mobBorder=`--mob-row-col:${col}`;
+    const mobBorder=`--mob-row-col:${col};--row-accent:${col}`;
     const thisZone = ws >= 6.0 ? 'bull' : ws <= 4.0 ? 'bear' : 'neutral';
-    const prevZone = _prevZones[idx - 1] || thisZone;
     _prevZones[idx] = thisZone;
-    // Insert separator only at zone transitions (bull→neutral or neutral→bear)
+    const prevZone = _prevZones[idx - 1] || thisZone;
     const sepHtml = (idx > 0 && thisZone !== prevZone) ? '<div class="mkt-row-zone-sep"></div>' : '';
+    const _zone = thisZone;
 
-    // ── Scaled bidirectional bar ────────────────────────────────────────────
-    // Display range 3.0–7.0 maps to 0–100% of each half.
-    // Scores outside this range are clamped — extreme signals hit the wall.
-    // This makes the 4–6 cluster visually meaningful instead of invisible.
-    const NEUTRAL = 5.0;
-    const HALF_RANGE = 2.0;  // 3.0↔5.0 = bear half, 5.0↔7.0 = bull half
-    const deviation  = ws - NEUTRAL;                              // −5 to +5
-    const isBull     = deviation >= 0;
-    // Clamp & scale: 0 at neutral, 1.0 at ±HALF_RANGE (soft clamp beyond)
-    const rawPct     = Math.min(1, Math.abs(deviation) / HALF_RANGE);
-    // Linear fill: 0 at neutral, 50% of track at ±HALF_RANGE. Min 3% so bar is always visible.
-    const fillPct    = deviation === 0 ? 0 : Math.max(3, rawPct * 50); // 0–50% of track
-
-    // Hex color with alpha for glow effects
-    const colA = (a) => col + Math.round(a*255).toString(16).padStart(2,'0');
-
-    // Fill: solid crisp colour — no alpha fade so bearish red stays vivid
-    const fillStyle = isBull
-      ? `left:50%;width:${fillPct}%;background:${col}`
-      : `right:50%;width:${fillPct}%;background:${col}`;
-
-    // Tip position for glow dot
-    const tipLeft = isBull ? (50 + fillPct) : (50 - fillPct);
-
-    // Track: banded background — bear zone / neutral zone / bull zone
-    // Each zone is a separate div for precise control
-    const trackBg = `linear-gradient(90deg,
-      rgba(240,64,64,0.10) 0%,
-      rgba(240,64,64,0.04) 35%,
-      rgba(255,255,255,0.04) 40%,
-      rgba(255,255,255,0.04) 60%,
-      rgba(48,217,136,0.04) 65%,
-      rgba(48,217,136,0.10) 100%)`;
-
-    // Centre notch — crisp vertical rule at 50%
-    const centreNotch = `<div style="position:absolute;top:-2px;bottom:-2px;left:50%;
-      transform:translateX(-50%);width:1.5px;
-      background:linear-gradient(180deg,transparent,rgba(255,255,255,0.35),transparent);
-      border-radius:1px;pointer-events:none"></div>`;
-
-    // Tip cap — clean solid dot at bar end, no glow
-    const tipCap = fillPct > 3 ? `<div style="position:absolute;
-      top:50%;left:${tipLeft}%;
-      transform:translate(-50%,-50%);
-      width:4px;height:4px;border-radius:50%;
-      background:${col};opacity:0.9;
-      pointer-events:none"></div>` : '';
-
-    const _zone = ws >= 6.0 ? 'bull' : ws <= 4.0 ? 'bear' : 'neutral';
-    // Dot meter: 10 dots, filled = rounded score
-    const dotCount = 10;
-    const filledDots = Math.round(ws);
-    const dotHtml = Array.from({length:dotCount},(_,i)=>{
-      const filled = i < filledDots;
-      const glow = filled ? `box-shadow:0 0 5px ${col}cc,0 0 10px ${col}44` : '';
-      const bg = filled ? col : 'rgba(255,255,255,0.08)';
-      // Intensity: dots near the filled edge glow brighter
-      const edgeDist = filled ? filledDots - 1 - i : i - filledDots;
-      const opacity = filled ? (edgeDist === 0 ? 1.0 : edgeDist === 1 ? 0.85 : 0.65) : 0.5;
-      return `<div class="mr-dot" style="background:${bg};${glow};opacity:${opacity};animation:dotMeterIn 280ms cubic-bezier(0.34,1.56,0.64,1) ${i*30}ms both"></div>`;
+    // ── Nexus flame bar: 12 vertical segments, height driven by score
+    // Segments 1-12 light up proportionally — filled=vivid+glow, dark=very dim
+    const SEGS = 12;
+    const filled = Math.round((ws / 10) * SEGS);
+    const flameSegs = Array.from({length:SEGS},(_,i)=>{
+      const lit = i < filled;
+      // Height: taller segments as intensity increases (left=base, right=peak)
+      const heightPct = 25 + Math.round((i / (SEGS-1)) * 75);
+      // Opacity: lit segments fade slightly toward the base
+      const distFromTip = filled - 1 - i;
+      const litOpacity = lit ? (distFromTip === 0 ? 1.0 : distFromTip <= 2 ? 0.85 : distFromTip <= 5 ? 0.60 : 0.40) : 0.12;
+      const glow = lit && distFromTip <= 1 ? `box-shadow:0 0 4px ${col}bb,0 0 8px ${col}44` : '';
+      const bg = lit ? col : 'rgba(255,255,255,0.10)';
+      const delay = i * 22;
+      return `<div class="mr-flame-seg" style="height:${heightPct}%;background:${bg};${glow};opacity:${litOpacity};animation:dotMeterIn 260ms cubic-bezier(0.34,1.56,0.64,1) ${delay}ms both"></div>`;
     }).join('');
 
     return sepHtml + `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" data-zone="${_zone}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id">${m.id}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
-        <div class="mr-dot-meter">${dotHtml}</div>
+        <div class="mr-flame-bar">${flameSegs}</div>
       </div>
       <div class="mr-right">
         <span class="mr-score-badge" style="color:${col}">${ws.toFixed(1)}</span>
@@ -5163,21 +5674,27 @@ function renderOverview(){
       })()}
     </div>
     <div class="ov-banner-right">
-      <div class="ov-sent-wrap">
-        <div class="ov-sent-label">Sentiment</div>
-        <div class="ov-sent-body">
-          <div class="ov-dist-bar">
-            <div class="ov-dist-seg" style="width:${bullPct}%;background:#22c97a"></div>
-            <div class="ov-dist-seg" style="width:${neutPct}%;background:#4a5268"></div>
-            <div class="ov-dist-seg" style="width:${bearPct}%;background:#e03a2a"></div>
+      <div class="nexus-orb-wrap" style="--orb-glow:${regCol}22;--orb-pip:${regCol};--orb-pip2:rgba(200,169,110,0.7)">
+        <div class="nexus-orb">
+          <div class="nexus-orb-bg"></div>
+          <div class="nexus-orb-ring"></div>
+          <div class="nexus-orb-ring2"></div>
+          <div class="nexus-orb-score" style="color:${regCol}">${regScore!=null?regScore.toFixed(1):avg}</div>
+        </div>
+        <div class="nexus-orb-label">Climate Score</div>
+        <div class="nexus-orb-regime" style="color:${regCol}">${regLabel}</div>
+        <div class="nexus-orb-sent">
+          <div class="nexus-orb-sent-bar">
+            <div class="nexus-orb-sent-seg" style="width:${bullPct}%;background:#22c97a"></div>
+            <div class="nexus-orb-sent-seg" style="width:${neutPct}%;background:#4a5268"></div>
+            <div class="nexus-orb-sent-seg" style="width:${bearPct}%;background:#e03a2a"></div>
           </div>
-          <div class="ov-dist-labels">
-            <div class="ov-dist-label"><div class="ov-dist-dot" style="background:#22c97a"></div>${bull} Bull</div>
-            <div class="ov-dist-label"><div class="ov-dist-dot" style="background:#4a5268"></div>${neut} Neut</div>
-            <div class="ov-dist-label"><div class="ov-dist-dot" style="background:#e03a2a"></div>${bear} Bear</div>
+          <div class="nexus-orb-sent-labels">
+            <span style="color:#22c97a">${bull}B</span>
+            <span style="color:#7b8ba8">${neut}N</span>
+            <span style="color:#e03a2a">${bear}S</span>
           </div>
         </div>
-        ${ovDonutSvg(bull,neut,bear,total,avg)}
       </div>
     </div>`;
 
@@ -17861,6 +18378,92 @@ loadData();
 // Boot the global particle background immediately with neutral tint
 // (regime tint applied once data loads via initAppBg in renderOverview)
 initAppBg('');
+
+/* ── NEXUS NOISE CANVAS — ambient drifting luminance field ── */
+function initNexusNoise(){
+  const canvas=document.getElementById('nexus-noise-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  let W,H,animId;
+  // Particle field — drifting bright specks
+  const PARTICLE_COUNT=120;
+  const particles=[];
+  function initParticles(){
+    particles.length=0;
+    for(let i=0;i<PARTICLE_COUNT;i++){
+      particles.push({
+        x:Math.random()*W,
+        y:Math.random()*H,
+        r:Math.random()*1.2+0.2,
+        vx:(Math.random()-0.5)*0.12,
+        vy:(Math.random()-0.5)*0.08,
+        a:Math.random()*0.35+0.05,
+        phase:Math.random()*Math.PI*2,
+        freq:0.003+Math.random()*0.006,
+      });
+    }
+  }
+  function resize(){
+    W=canvas.width=window.innerWidth;
+    H=canvas.height=window.innerHeight;
+    initParticles();
+  }
+  window.addEventListener('resize',resize);
+  resize();
+
+  // Get current regime colour for tinting
+  function getRegCol(){
+    const wash=document.getElementById('regime-wash');
+    if(!wash)return null;
+    const col=getComputedStyle(document.documentElement).getPropertyValue('--reg-col').trim();
+    return col||null;
+  }
+
+  let frame=0;
+  function draw(){
+    animId=requestAnimationFrame(draw);
+    frame++;
+    ctx.clearRect(0,0,W,H);
+
+    // --- Drift particles ---
+    const t=frame*0.008;
+    particles.forEach(p=>{
+      // Pulse alpha
+      const pa=p.a*(0.6+0.4*Math.sin(t*p.freq*100+p.phase));
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(180,200,255,${pa.toFixed(3)})`;
+      ctx.fill();
+      // Move
+      p.x+=p.vx;
+      p.y+=p.vy;
+      // Wrap
+      if(p.x<-4)p.x=W+4;
+      if(p.x>W+4)p.x=-4;
+      if(p.y<-4)p.y=H+4;
+      if(p.y>H+4)p.y=-4;
+    });
+
+    // --- Scanline texture (subtle horizontal bands every ~4px) ---
+    if(frame%3===0){
+      // Only update scanlines every 3rd frame for performance
+      const imgData=ctx.getImageData(0,0,W,H);
+      const d=imgData.data;
+      for(let y=0;y<H;y+=4){
+        const rowStart=y*W*4;
+        for(let x=0;x<W*4;x+=4){
+          d[rowStart+x+3]=Math.max(0,d[rowStart+x+3]-3);
+        }
+      }
+      ctx.putImageData(imgData,0,0);
+    }
+  }
+  draw();
+
+  // Expose stop so we can cancel on tab switch
+  window._nexusNoiseCancelId=function(){cancelAnimationFrame(animId);};
+}
+initNexusNoise();
 </script>
 </div><!-- /.app-wrap -->
 </body>
