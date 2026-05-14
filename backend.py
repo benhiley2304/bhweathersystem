@@ -5084,41 +5084,42 @@ def compute_stock_climate() -> dict:
         except Exception:
             pass
 
-        # ── 11. SPY Put/Call Ratio (from yfinance options) ──────────────────
-        # Computed from SPY options volume across nearest 3 expiries.
-        # Contrarian: high P/C = fear (buy signal), low P/C = greed (caution)
+        # ── 11. CBOE Equity Put/Call Ratio ───────────────────────────────────
+        # Uses the same fetch_pcr_history() already used by the PCR tab.
+        # Equity-only strips out index/ETF hedging bias — much cleaner sentiment.
+        # CBOE equity P/C thresholds (historical range 0.35–1.20):
+        #   < 0.45 → extreme greed / complacency
+        #   0.45–0.60 → greed
+        #   0.60–0.75 → neutral
+        #   0.75–0.90 → mild fear / defensive
+        #   > 0.90 → elevated fear (contrarian buy signal)
         try:
-            _spy_pcr = yf.Ticker("SPY")
-            _exps = _spy_pcr.options  # tuple of expiry strings
-            if _exps:
-                total_put_vol, total_call_vol = 0, 0
-                for _exp in _exps[:3]:  # nearest 3 expiries
-                    try:
-                        _chain = _spy_pcr.option_chain(_exp)
-                        total_put_vol  += float(_chain.puts["volume"].fillna(0).sum())
-                        total_call_vol += float(_chain.calls["volume"].fillna(0).sum())
-                    except Exception:
-                        pass
-                if total_call_vol > 0:
-                    pcr_now = total_put_vol / total_call_vol
-                    # Contrarian: low P/C = complacency/greed (bearish), high = fear (bullish)
-                    if pcr_now > 1.10:
+            _pcr_df = fetch_pcr_history()
+            if _pcr_df is not None and not _pcr_df.empty:
+                _pcr_latest = _pcr_df["equity_pc"].dropna()
+                if len(_pcr_latest) > 0:
+                    pcr_now = float(_pcr_latest.iloc[-1])
+                    pcr_ma20 = float(_pcr_df["pc_ma20"].dropna().iloc[-1]) if "pc_ma20" in _pcr_df.columns else None
+                    pcr_date = str(_pcr_latest.index[-1].date())
+                    if pcr_now > 0.90:
                         pcr_score, pcr_label = 2, "Elevated Fear"
-                    elif pcr_now > 0.85:
-                        pcr_score, pcr_label = 1, "Mildly Fearful"
-                    elif pcr_now > 0.65:
+                    elif pcr_now > 0.75:
+                        pcr_score, pcr_label = 1, "Defensive"
+                    elif pcr_now > 0.60:
                         pcr_score, pcr_label = 0, "Neutral"
-                    elif pcr_now > 0.50:
-                        pcr_score, pcr_label = -1, "Greed / Caution"
+                    elif pcr_now > 0.45:
+                        pcr_score, pcr_label = -1, "Greed"
                     else:
                         pcr_score, pcr_label = -2, "Extreme Greed"
                     signals["PUT_CALL"] = {
-                        "title": "Put/Call Ratio (SPY)",
+                        "title": "CBOE Equity Put/Call",
                         "value": f"{pcr_now:.2f}",
                         "label": pcr_label,
                         "score": pcr_score,
                         "category": "sentiment",
                         "raw": round(pcr_now, 3),
+                        "ma20": round(pcr_ma20, 3) if pcr_ma20 else None,
+                        "date": pcr_date,
                     }
         except Exception:
             pass

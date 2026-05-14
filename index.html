@@ -6932,10 +6932,10 @@ function renderMacroDataPanels(reg){
             </div>
           </div>
 
-          <!-- Put/Call ratio thermostat -->
+          <!-- Put/Call ratio thermostat — CBOE Equity-only -->
           <div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Put/Call Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">high = fear / buy</span></span>
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">CBOE Equity P/C <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">high = fear / buy</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
                 ${pcrNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(pcrSig.score??0)};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</span>
                 <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(pcrSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'—'}</span>`:''}
@@ -6943,17 +6943,20 @@ function renderMacroDataPanels(reg){
             </div>
             ${thermoBar({
               value: pcrNum>0?pcrNum:null,
-              min: 0.5, max: 1.8,
+              min: 0.35, max: 1.20,
               zones: [
-                {v0:0.5, v1:0.7,  col:'rgba(220,60,42,0.80)'},
-                {v0:0.7, v1:0.9,  col:'rgba(240,120,50,0.70)'},
-                {v0:0.9, v1:1.1,  col:'rgba(200,169,110,0.60)'},
-                {v0:1.1, v1:1.35, col:'rgba(90,170,120,0.60)'},
-                {v0:1.35,v1:1.8,  col:'rgba(34,201,122,0.70)'},
+                {v0:0.35, v1:0.45, col:'rgba(220,60,42,0.82)'},
+                {v0:0.45, v1:0.60, col:'rgba(240,120,50,0.70)'},
+                {v0:0.60, v1:0.75, col:'rgba(200,169,110,0.58)'},
+                {v0:0.75, v1:0.90, col:'rgba(70,160,100,0.65)'},
+                {v0:0.90, v1:1.20, col:'rgba(34,201,122,0.78)'},
               ],
-              leftLabel: '0.5 Greed', rightLabel: '1.8 Fear',
-              benchmarks: [{v:1.0, label:'avg', col:'rgba(173,184,208,0.45)'}]
+              leftLabel: '0.35 Greed', rightLabel: '1.2 Fear',
+              benchmarks: [
+                {v:0.65, label:'avg', col:'rgba(173,184,208,0.45)'},
+              ]
             })}
+            ${pcrSig.ma20!=null?`<div style="font-family:var(--mono);font-size:5.5px;color:var(--faint);margin-top:2px;opacity:0.55">20-day MA: ${pcrSig.ma20?.toFixed(2)||'—'}${pcrSig.date?' · '+pcrSig.date:''}</div>`:''}
           </div>
         </div>
 
