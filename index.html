@@ -2197,11 +2197,11 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .ov-rp-card [style*="font-family:var(--mono)"],
 .ov-rp-card [class^="ov-rp-"]{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 .ov-rp-glow{
-  position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0;
+  position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0;
   background:var(--rp-accent);
   -webkit-mask:linear-gradient(90deg,transparent 0%,white 10%,white 90%,transparent 100%);
   mask:linear-gradient(90deg,transparent 0%,white 10%,white 90%,transparent 100%);
-  opacity:0.92;z-index:2;animation:macroGlowPulse 4s ease-in-out infinite;
+  opacity:0.60;z-index:2;animation:macroGlowPulse 4s ease-in-out infinite;
 }
 .ov-rp-glow::after{
   content:'';position:absolute;top:0;left:5%;right:5%;height:1px;
@@ -2210,7 +2210,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 .ov-rp-wash{
   position:absolute;top:0;left:0;right:0;height:60%;
-  background:var(--rp-accent);opacity:0.055;
+  background:var(--rp-accent);opacity:0.030;
   pointer-events:none;border-radius:16px 16px 0 0;z-index:0;
 }
 /* Header */
@@ -2234,7 +2234,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .ov-rp-target{
   font-family:var(--mono);font-size:clamp(28px,4.2vw,38px);
   font-weight:900;letter-spacing:-0.04em;line-height:1;color:#fff;
-  text-shadow:0 2px 32px rgba(var(--rp-accent-rgb),0.38),0 0 8px rgba(var(--rp-accent-rgb),0.18);
+  text-shadow:0 2px 20px rgba(var(--rp-accent-rgb),0.20);
 }
 .ov-rp-pct{font-size:0.50em;font-weight:700;color:rgba(255,255,255,0.68);margin-left:2px}
 .ov-rp-target-meta{
@@ -2334,13 +2334,13 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 .ov-rp-dot-spot{
   width:11px;height:11px;background:var(--rp-accent);
-  box-shadow:0 0 0 4px rgba(var(--rp-accent-rgb),0.18),
-             0 0 14px rgba(var(--rp-accent-rgb),0.50);
+  box-shadow:0 0 0 3px rgba(var(--rp-accent-rgb),0.14),
+             0 0 8px rgba(var(--rp-accent-rgb),0.28);
 }
 .ov-rp-dot-end{
   width:9px;height:9px;background:rgba(8,11,20,0.92);
   border:2px solid var(--rp-accent);
-  box-shadow:0 0 10px rgba(var(--rp-accent-rgb),0.45);
+  box-shadow:0 0 6px rgba(var(--rp-accent-rgb),0.25);
 }
 .ov-rp-dot-step{
   width:5px;height:5px;background:rgba(var(--rp-accent-rgb),0.60);
@@ -2391,7 +2391,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .ov-rp-stat-val{
   font-family:var(--mono);font-size:clamp(22px,3.2vw,30px);
   font-weight:900;line-height:1;letter-spacing:-0.03em;
-  text-shadow:0 0 24px rgba(var(--rp-stat-rgb),0.50);
+  text-shadow:0 0 16px rgba(var(--rp-stat-rgb),0.28);
 }
 .ov-rp-stat-sub{
   font-family:var(--mono);font-size:8.5px;font-weight:700;
@@ -2400,8 +2400,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 /* ── Rate path chart dot + label polish ── */
 @keyframes rpSpotPulse{
-  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.30;}
-  50%{transform:translate(-50%,-50%) scale(2.2);opacity:0;}
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.20;}
+  50%{transform:translate(-50%,-50%) scale(2.0);opacity:0;}
 }
 .ov-rp-dot-spot::after{
   content:'';position:absolute;inset:-6px;border-radius:50%;
@@ -2410,10 +2410,10 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 /* Endpoint label polish */
 .ov-rp-eplbl-spot{
-  text-shadow:0 0 14px rgba(var(--rp-accent-rgb),0.55);
+  text-shadow:0 0 10px rgba(var(--rp-accent-rgb),0.30);
 }
 .ov-rp-eplbl-rate{
-  text-shadow:0 0 10px rgba(var(--rp-accent-rgb),0.40);
+  text-shadow:0 0 8px rgba(var(--rp-accent-rgb),0.22);
 }
 /* Stat tile top accent bar */
 .ov-rp-stat{
@@ -5380,9 +5380,9 @@ function renderOverview(){
         <svg class="ov-rp-chart-svg" viewBox="0 0 ${VBW} ${VBH}" preserveAspectRatio="none">
           <defs>
             <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
-              <stop offset="0%"   stop-color="${accent}" stop-opacity="0.62"/>
-              <stop offset="35%"  stop-color="${accent}" stop-opacity="0.26"/>
-              <stop offset="75%"  stop-color="${accent}" stop-opacity="0.06"/>
+              <stop offset="0%"   stop-color="${accent}" stop-opacity="0.32"/>
+              <stop offset="40%"  stop-color="${accent}" stop-opacity="0.12"/>
+              <stop offset="80%"  stop-color="${accent}" stop-opacity="0.03"/>
               <stop offset="100%" stop-color="${accent}" stop-opacity="0.00"/>
             </linearGradient>
             <linearGradient id="${uidR}" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
@@ -5400,12 +5400,12 @@ function renderOverview(){
           ${gridSvg}
           ${crossline}
           <path d="${dArea}" fill="url(#${uid})"/>
-          <!-- outer halo glow -->
-          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="10" opacity="0.11" vector-effect="non-scaling-stroke" filter="url(#${uidG})"/>
-          <!-- vertical bloom — adds luminous depth under the line -->
-          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="4" opacity="0.28" vector-effect="non-scaling-stroke" filter="url(#${uidB})"/>
-          <!-- mid glow layer — tight corona -->
-          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="3" opacity="0.55" vector-effect="non-scaling-stroke"/>
+          <!-- outer halo glow — very subtle -->
+          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="6" opacity="0.07" vector-effect="non-scaling-stroke" filter="url(#${uidG})"/>
+          <!-- vertical bloom — gentle depth -->
+          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="2.5" opacity="0.18" vector-effect="non-scaling-stroke" filter="url(#${uidB})"/>
+          <!-- mid glow — soft corona -->
+          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="2" opacity="0.38" vector-effect="non-scaling-stroke"/>
           <!-- crisp line on top -->
           <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="1.5" opacity="1" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
         </svg>
