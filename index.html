@@ -5248,11 +5248,13 @@ function renderOverview(){
       const minR = Math.floor((rawMin - pad) / 0.125) * 0.125;
       const maxR = Math.ceil( (rawMax + pad) / 0.125) * 0.125;
       const rng  = (maxR - minR) || 0.5;
-      // Accent palette — cooler, more refined
-      // Hike: coral-red (not orange)  Cut: ice-blue  Hold: cool silver-white (not warm gold)
-      const accent    = isHiking ? '#e05c5c' : isCutting ? '#5eb8f5' : '#c8cfe0';
-      const accentRgb = isHiking ? '224,92,92' : isCutting ? '94,184,245' : '200,207,224';
-      const accentDim = isHiking ? 'rgba(224,92,92,' : isCutting ? 'rgba(94,184,245,' : 'rgba(200,207,224,';
+      // Accent palette — Bloomberg-terminal grade, clean & directional
+      // Hike: refined amber-gold (warm but tasteful, not orange/red)
+      // Cut:  electric ice-blue
+      // Hold: cool platinum-white
+      const accent    = isHiking ? '#e6b84a' : isCutting ? '#5eb8f5' : '#c8cfe0';
+      const accentRgb = isHiking ? '230,184,74' : isCutting ? '94,184,245' : '200,207,224';
+      const accentDim = isHiking ? 'rgba(230,184,74,' : isCutting ? 'rgba(94,184,245,' : 'rgba(200,207,224,';
       // Layout fractions
       const PL = 0.072, PR = 0.035, PT = 0.10, PB = 0.16;
       const xf = i => PL + (i / (pts.length - 1)) * (1 - PL - PR);
@@ -5382,8 +5384,8 @@ function renderOverview(){
         <svg class="ov-rp-chart-svg" viewBox="0 0 ${VBW} ${VBH}" preserveAspectRatio="none">
           <defs>
             <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
-              <stop offset="0%"   stop-color="${accent}" stop-opacity="0.16"/>
-              <stop offset="50%"  stop-color="${accent}" stop-opacity="0.05"/>
+              <stop offset="0%"   stop-color="${accent}" stop-opacity="0.10"/>
+              <stop offset="55%"  stop-color="${accent}" stop-opacity="0.03"/>
               <stop offset="100%" stop-color="${accent}" stop-opacity="0.00"/>
             </linearGradient>
             <linearGradient id="${uidR}" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
@@ -5527,10 +5529,10 @@ function renderOverview(){
     // ── Direction-tied accent system ──
     // Replaces the heavy red/blue hero glow with calm tints that harmonise
     // with the gold/teal accent used across the rest of the page.
-    const stAccent     = isHiking ? '#e05c5c' : isCutting ? '#5eb8f5' : '#c8cfe0';
-    const stAccentRgb  = isHiking ? '224,92,92' : isCutting ? '94,184,245' : '200,207,224';
+    const stAccent     = isHiking ? '#e6b84a' : isCutting ? '#5eb8f5' : '#c8cfe0';
+    const stAccentRgb  = isHiking ? '230,184,74' : isCutting ? '94,184,245' : '200,207,224';
     const mktDeltaCol  = stAccent;
-    const probTone     = domLabel === 'Hike' ? '#e05c5c' : domLabel === 'Cut' ? '#5eb8f5' : 'rgba(255,255,255,0.92)';
+    const probTone     = domLabel === 'Hike' ? '#e6b84a' : domLabel === 'Cut' ? '#5eb8f5' : 'rgba(255,255,255,0.92)';
     const rateCardHtml = (effr != null || cuts12m != null) ? `
       <!-- ════ FEDERAL RESERVE — rate path card, matches ov-macro-card system ════ -->
       <div class="ov-rp-card" style="--rp-accent:${stAccent};--rp-accent-rgb:${stAccentRgb}">
