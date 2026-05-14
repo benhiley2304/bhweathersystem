@@ -2400,13 +2400,13 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 /* ── Rate path chart dot + label polish ── */
 @keyframes rpSpotPulse{
-  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.25;}
-  50%{transform:translate(-50%,-50%) scale(1.7);opacity:0;}
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.22;}
+  50%{transform:translate(-50%,-50%) scale(1.5);opacity:0;}
 }
 .ov-rp-dot-spot::after{
-  content:'';position:absolute;inset:-5px;border-radius:50%;
-  border:1px solid var(--rp-accent);
-  animation:rpSpotPulse 3s ease-in-out infinite;
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:1px solid rgba(var(--rp-accent-rgb),0.70);
+  animation:rpSpotPulse 3.2s ease-in-out infinite;
 }
 /* Endpoint label polish */
 .ov-rp-eplbl-spot{
@@ -5567,6 +5567,7 @@ function renderOverview(){
         <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0">
           <div style="min-width:0;flex:1">
             <div style="font-family:var(--mono);font-size:${isUS ? '26' : '22'}px;font-weight:900;letter-spacing:-0.04em;line-height:1;
+              color:${col};
               background:linear-gradient(135deg,${col} 0%,${col2} 100%);
               -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
             ">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.70">%</span>${srcBadge}</div>
