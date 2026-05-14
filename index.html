@@ -6877,29 +6877,30 @@ function renderMacroDataPanels(reg){
         <div style="margin-bottom:7px">
           <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Valuation</div><div class="mc-sect-line"></div></div>
 
-          <!-- Forward PE thermostat -->
+          <!-- Trailing PE thermostat -->
           <div style="margin-bottom:5px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">P/E Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(SPY trailing)</span></span>
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">S&amp;P 500 P/E Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(trailing)</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
                 ${fpeNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(fpeSig.score??0)};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</span>
                 <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(fpeSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${fpeSig.label||'—'}</span>`:''}
-                ${fpeNum<=0&&fpeNum===0?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>`:''}
+                ${fpeNum<=0?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>`:''}
               </div>
             </div>
             ${thermoBar({
               value: fpeNum>0?fpeNum:null,
-              min: 12, max: 36,
+              min: 10, max: 40,
               zones: [
-                {v0:12, v1:17, col:'rgba(34,201,122,0.75)'},
-                {v0:17, v1:21, col:'rgba(90,170,120,0.60)'},
-                {v0:21, v1:26, col:'rgba(200,169,110,0.65)'},
-                {v0:26, v1:32, col:'rgba(240,140,60,0.70)'},
-                {v0:32, v1:36, col:'rgba(220,60,42,0.80)'},
+                {v0:10, v1:14, col:'rgba(34,201,122,0.80)'},
+                {v0:14, v1:18, col:'rgba(80,180,110,0.65)'},
+                {v0:18, v1:23, col:'rgba(200,169,110,0.65)'},
+                {v0:23, v1:30, col:'rgba(240,140,60,0.72)'},
+                {v0:30, v1:40, col:'rgba(220,60,42,0.82)'},
               ],
-              leftLabel: '12x Cheap', rightLabel: '36x Extreme',
+              leftLabel: '10x Cheap', rightLabel: '40x Extreme',
               benchmarks: [
-                {v:17.5, label:'LT avg ~17.5x', col:'rgba(173,184,208,0.45)'},
+                {v:17.5, label:'LT avg', col:'rgba(173,184,208,0.50)'},
+                {v:21.4, label:'5yr avg', col:'rgba(200,169,110,0.40)'},
               ]
             })}
           </div>
@@ -6940,7 +6941,7 @@ function renderMacroDataPanels(reg){
           <!-- Put/Call ratio thermostat -->
           <div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Put/Call Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(contrarian)</span></span>
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Put/Call Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">↑ high = fear → buy signal</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
                 ${pcrNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(pcrSig.score??0)};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</span>
                 <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(pcrSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'—'}</span>`:''}
@@ -6969,7 +6970,7 @@ function renderMacroDataPanels(reg){
           <!-- SPX 3m Momentum thermostat -->
           <div style="margin-bottom:5px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">SPX 3M Momentum</span>
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">SPX Momentum <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(3M price change)</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
                 <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(momSig.score??0)};letter-spacing:-0.02em">${momSig.value||'—'}</span>
                 <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(momSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${momSig.label||'—'}</span>
@@ -6977,15 +6978,16 @@ function renderMacroDataPanels(reg){
             </div>
             ${thermoBar({
               value: (()=>{ const v=parseFloat(momSig.value||'0'); return isNaN(v)?null:v; })(),
-              min: -20, max: 20,
+              min: -45, max: 40,
               zones: [
-                {v0:-20, v1:-8,  col:'rgba(200,40,40,0.80)'},
-                {v0:-8,  v1:-3,  col:'rgba(230,100,50,0.65)'},
+                {v0:-45, v1:-20, col:'rgba(200,40,40,0.82)'},
+                {v0:-20, v1:-8,  col:'rgba(230,100,50,0.70)'},
+                {v0:-8,  v1:-3,  col:'rgba(220,130,60,0.60)'},
                 {v0:-3,  v1:3,   col:'rgba(200,169,110,0.55)'},
-                {v0:3,   v1:8,   col:'rgba(70,160,100,0.65)'},
-                {v0:8,   v1:20,  col:'rgba(34,201,122,0.80)'},
+                {v0:3,   v1:10,  col:'rgba(70,160,100,0.65)'},
+                {v0:10,  v1:40,  col:'rgba(34,201,122,0.82)'},
               ],
-              leftLabel: '-20% Bear', rightLabel: '+20% Bull',
+              leftLabel: '-45% Bear', rightLabel: '+40% Bull',
               benchmarks: [{v:0, label:'Neutral', col:'rgba(255,255,255,0.30)'}]
             })}
           </div>
@@ -6993,7 +6995,7 @@ function renderMacroDataPanels(reg){
           <!-- RSP/SPY Breadth thermostat -->
           <div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Breadth RSP/SPY 3M Δ</span>
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Market Breadth <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(RSP vs SPY, 3M)</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
                 <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(brSig.score??0)};letter-spacing:-0.02em">${brSig.value||'—'}</span>
                 <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(brSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${brSig.label||'—'}</span>
@@ -7001,15 +7003,15 @@ function renderMacroDataPanels(reg){
             </div>
             ${thermoBar({
               value: (()=>{ const v=parseFloat(brSig.value||'0'); return isNaN(v)?null:v; })(),
-              min: -8, max: 8,
+              min: -12, max: 15,
               zones: [
-                {v0:-8, v1:-3,  col:'rgba(200,40,40,0.80)'},
-                {v0:-3, v1:-1,  col:'rgba(230,100,50,0.65)'},
-                {v0:-1, v1:1,   col:'rgba(200,169,110,0.55)'},
-                {v0:1,  v1:3,   col:'rgba(70,160,100,0.65)'},
-                {v0:3,  v1:8,   col:'rgba(34,201,122,0.80)'},
+                {v0:-12, v1:-5,  col:'rgba(200,40,40,0.82)'},
+                {v0:-5,  v1:-2,  col:'rgba(230,100,50,0.68)'},
+                {v0:-2,  v1:1,   col:'rgba(200,169,110,0.55)'},
+                {v0:1,   v1:4,   col:'rgba(70,160,100,0.65)'},
+                {v0:4,   v1:15,  col:'rgba(34,201,122,0.82)'},
               ],
-              leftLabel: 'Thin/Narrow', rightLabel: 'Broad Rally',
+              leftLabel: '-12% Narrow', rightLabel: '+15% Broad',
               benchmarks: [{v:0, label:'Flat', col:'rgba(255,255,255,0.28)'}]
             })}
           </div>
@@ -7017,9 +7019,9 @@ function renderMacroDataPanels(reg){
 
         <!-- ══ SECTION 4: CONDITIONS ══════════════════════════════════════ -->
         <div style="margin-bottom:0">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Macro Conditions</div><div class="mc-sect-line"></div></div>
-          ${statRow('Fin. Conditions (NFCI)', nfciSig.value||'—', nfciSig.label||'—', nfciSig.score, nfciSig.delta_4w!=null?`4W:${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:undefined)}
-          ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`10Y:${erpSig.dgs10}%`:undefined, true)}
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Conditions</div><div class="mc-sect-line"></div></div>
+          ${statRow('Chicago Fed NFCI', nfciSig.value||'—', nfciSig.label||'—', nfciSig.score, nfciSig.delta_4w!=null?`4W Δ:${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:undefined)}
+          ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`EY:${erpSig.ey??'—'}% · 10Y:${erpSig.dgs10}%`:undefined, true)}
         </div>
 
 
@@ -8209,7 +8211,7 @@ function _drawSkewGauge(canvasId, skewLevel, col){
   const R = Math.min(cx, cy) - 4;
 
   // SKEW range: 100–170 (calm left → tail-risk right)
-  const skewMin = 100, skewMax = 170;
+  const skewMin = 105, skewMax = 175;
   const vToDeg = v => 180 + ((Math.min(Math.max(v,skewMin),skewMax)-skewMin)/(skewMax-skewMin))*180;
 
   // Zones: green=calm, amber=elevated, red=extreme tail risk
@@ -8246,7 +8248,7 @@ function _drawSkewGauge(canvasId, skewLevel, col){
   });
 
   // Zone tick marks + labels
-  [110, 125, 135, 145].forEach(v=>{
+  [115, 125, 135, 150].forEach(v=>{
     const ang = Math.PI + toRad(((v-skewMin)/(skewMax-skewMin))*180);
     const nx = Math.cos(ang), ny = Math.sin(ang);
     c.save();

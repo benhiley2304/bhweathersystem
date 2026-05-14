@@ -4825,13 +4825,13 @@ def compute_stock_climate() -> dict:
                     ratio_12w  = rsp_c.iloc[-12] / spy_c.iloc[-12]
                     breadth_chg = (ratio_now - ratio_12w) / ratio_12w  # fractional change
 
-                    if breadth_chg > 0.03:
+                    if breadth_chg > 0.04:
                         br_score, br_label = 2, "Broad Rally"
-                    elif breadth_chg > 0.01:
+                    elif breadth_chg > 0.015:
                         br_score, br_label = 1, "Improving"
-                    elif breadth_chg > -0.01:
+                    elif breadth_chg > -0.015:
                         br_score, br_label = 0, "Neutral"
-                    elif breadth_chg > -0.03:
+                    elif breadth_chg > -0.05:
                         br_score, br_label = -1, "Narrowing"
                     else:
                         br_score, br_label = -2, "Thin Breadth"
@@ -4937,7 +4937,7 @@ def compute_stock_climate() -> dict:
             pass
 
         # ── 7. Equity Risk Premium (ERP = earnings yield − 10Y yield) ────────
-        # ERP = 1/CAPE − DGS10. Negative = stocks expensive vs bonds.
+        # ERP = (1/TrailingPE * 100) − DGS10. Negative = stocks expensive vs bonds.
         try:
             dgs10_raw = fetch_fred_series("DGS10", 5)
             dgs10_now = None
@@ -4945,26 +4945,31 @@ def compute_stock_climate() -> dict:
                 dgs10_vals = [r["value"] for r in dgs10_raw if r.get("value") is not None]
                 if dgs10_vals:
                     dgs10_now = dgs10_vals[-1]
-            if cape_val and cape_val > 0 and dgs10_now:
-                erp = round((1.0 / cape_val * 100) - dgs10_now, 2)  # both in %
-                if erp > 2.0:
+            # Use SPY trailingPE (already fetched for FWD_PE — re-fetch here for safety)
+            _erp_spy = yf.Ticker("SPY")
+            _erp_info = _erp_spy.info
+            _spy_pe = _erp_info.get("trailingPE")
+            spy_pe_float = float(_spy_pe) if _spy_pe else None
+            if spy_pe_float and spy_pe_float > 0 and dgs10_now:
+                earnings_yield = 1.0 / spy_pe_float * 100  # %
+                erp = round(earnings_yield - dgs10_now, 2)  # both in %
+                if erp > 1.5:
                     erp_score, erp_label = 2, "Cheap vs Bonds"
-                elif erp > 0.5:
+                elif erp > 0.0:
                     erp_score, erp_label = 1, "Fair vs Bonds"
-                elif erp > -0.5:
-                    erp_score, erp_label = 0, "Neutral"
-                elif erp > -2.0:
-                    erp_score, erp_label = -1, "Expensive"
+                elif erp > -1.5:
+                    erp_score, erp_label = -1, "Expensive vs Bonds"
                 else:
                     erp_score, erp_label = -2, "Very Expensive"
                 signals["ERP"] = {
                     "title": "Equity Risk Premium",
-                    "value": f"{erp:+.1f}%",
+                    "value": f"{erp:+.2f}%",
                     "label": erp_label,
                     "score": erp_score,
                     "category": "valuation",
                     "erp_raw": erp,
                     "dgs10": round(dgs10_now, 2),
+                    "ey": round(earnings_yield, 2),
                 }
         except Exception:
             pass
@@ -5039,35 +5044,40 @@ def compute_stock_climate() -> dict:
         except Exception:
             pass
 
-        # ── 10. Forward PE (NTM) via yfinance ───────────────────────────────
-        # Pull forward PE directly from yfinance info; fall back to CAPE-derived EY.
-        # Also store 5yr avg (19.9x) as a reference benchmark.
+        # ── 10. S&P 500 Trailing P/E via yfinance ───────────────────────────
+        # Uses SPY trailingPE as the best freely available S&P 500 valuation proxy.
+        # Note: yfinance does not return forwardPE for ETFs like SPY — trailingPE is
+        # the most consistent free signal. Labelled clearly as "Trailing P/E".
+        # Historical range (Shiller, modern era): ~9x trough / ~45x dotcom peak.
+        # 5yr avg (post-2019) ~21x; LT avg (post-1990) ~17-18x.
         try:
-            _fpe_tk = yf.Ticker("SPY")  # SPY info gives consistent forward PE
+            _fpe_tk = yf.Ticker("SPY")
             _fpe_info = _fpe_tk.info
-            fwd_pe = _fpe_info.get("trailingPE") or _fpe_info.get("forwardPE")
+            fwd_pe = _fpe_info.get("trailingPE")
+            if fwd_pe is None:
+                fwd_pe = _fpe_info.get("forwardPE")
             if fwd_pe:
                 fwd_pe = float(fwd_pe)
-                # SPY trailing P/E: LT avg ~17-18x, expensive >25x, extreme >32x
-                if fwd_pe < 17:
-                    fpe_score, fpe_label = 2, "Cheap"
-                elif fwd_pe < 21:
+                # Scoring: LT fair value ~17x; recent era 5yr avg ~21x; extreme >35x
+                if fwd_pe < 14:
+                    fpe_score, fpe_label = 2, "Very Cheap"
+                elif fwd_pe < 18:
                     fpe_score, fpe_label = 1, "Fair Value"
-                elif fwd_pe < 26:
+                elif fwd_pe < 23:
                     fpe_score, fpe_label = 0, "Elevated"
-                elif fwd_pe < 32:
+                elif fwd_pe < 30:
                     fpe_score, fpe_label = -1, "Expensive"
                 else:
                     fpe_score, fpe_label = -2, "Very Expensive"
                 signals["FWD_PE"] = {
-                    "title": "P/E Ratio (SPY trailing)",
+                    "title": "S&P 500 Trailing P/E",
                     "value": f"{fwd_pe:.1f}x",
                     "label": fpe_label,
                     "score": fpe_score,
                     "category": "valuation",
                     "raw": round(fwd_pe, 2),
-                    "avg5yr": 19.9,   # FactSet 5-yr historical average
-                    "avg10yr": 18.9,  # FactSet 10-yr historical average
+                    "avg5yr": 21.4,   # ~5yr post-COVID average
+                    "avg_lt": 17.5,   # long-term average (post-1990)
                 }
         except Exception:
             pass
