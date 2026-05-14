@@ -5455,7 +5455,7 @@ function renderOverview(){
       const tdy = cy + R * Math.sin(toRad(endDeg));
       // Percentage label — only show if pct > 2
       const pctLabel = pct > 2 ? `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" font-weight="800" fill="${col}" opacity="0.90" letter-spacing="-0.5">${Math.round(pct)}%</text>` : '';
-      return `<svg width="90" height="70" viewBox="0 0 90 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+      return `<svg width="82" height="64" viewBox="0 0 90 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
         <defs>
           <filter id="cbBlur${Math.round(pct)}" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5"/></filter>
           <filter id="cbGlow${Math.round(pct)}" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="3"/></filter>
@@ -5519,9 +5519,9 @@ function renderOverview(){
           </div>` : ''}
         </div>
         <!-- Middle: rate number + arc side by side -->
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-family:var(--mono);font-size:${isUS ? '28' : '24'}px;font-weight:900;color:${col};letter-spacing:-0.04em;line-height:1">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.65">%</span>${srcBadge}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0">
+          <div style="min-width:0;flex:1">
+            <div style="font-family:var(--mono);font-size:${isUS ? '26' : '22'}px;font-weight:900;color:${col};letter-spacing:-0.04em;line-height:1">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.65">%</span>${srcBadge}</div>
             <div style="margin-top:6px;display:flex;align-items:center;gap:6px">
               <span style="
                 font-family:var(--mono);font-size:7px;font-weight:800;
@@ -5535,7 +5535,7 @@ function renderOverview(){
             </div>
           </div>
           <!-- Arc: cycle position -->
-          <div style="display:flex;flex-direction:column;align-items:center;gap:0px">
+          <div style="flex-shrink:0">
             ${_cbArc(pct, col, colRgb)}
           </div>
         </div>
@@ -5670,7 +5670,7 @@ function renderOverview(){
             <div style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,169,110,0.85)">G10 Central Banks</div>
           </div>
           <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,0.18) 0%,transparent 100%)"></div>
-          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.38);flex-shrink:0;letter-spacing:0.05em">rate · cycle · next mtg</div>
+
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           ${cbUnifiedRows}
