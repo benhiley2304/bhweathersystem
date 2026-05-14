@@ -5031,25 +5031,26 @@ function renderOverview(){
       return `<svg width="${W}" height="${H}" style="width:100%;height:${H}px;display:block;overflow:visible" shape-rendering="crispEdges">
         <defs>
           <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.38"/>
-            <stop offset="60%" stop-color="${pathCol}" stop-opacity="0.10"/>
-            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0.01"/>
+            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.50"/>
+            <stop offset="55%" stop-color="${pathCol}" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0.02"/>
           </linearGradient>
           <filter id="${uid2}" x="-80%" y="-80%" width="260%" height="260%">
             <feGaussianBlur stdDeviation="4.5" result="blur"/>
             <feComposite in="SourceGraphic" in2="blur" operator="over"/>
           </filter>
           <linearGradient id="${uid3}" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stop-color="rgba(${glowRgb},0.04)"/>
-            <stop offset="100%" stop-color="rgba(${glowRgb},0)"/>
+            <stop offset="0%" stop-color="rgba(${glowRgb},0.10)"/>
+            <stop offset="60%" stop-color="rgba(${glowRgb},0.04)"/>
+            <stop offset="100%" stop-color="rgba(${glowRgb},0.01)"/>
           </linearGradient>
         </defs>
         <!-- Stage background subtle gradient -->
         <rect x="${PL}" y="${PT}" width="${cw}" height="${ch}" fill="url(#${uid3})" rx="2"/>
         ${gridSvg}
         <path d="${dArea}" fill="url(#${uid})"/>
-        <path d="${dLine}" fill="none" stroke="rgba(${glowRgb},0.22)" stroke-width="8" stroke-linejoin="miter" filter="url(#${uid2})"/>
-        <path d="${dLine}" fill="none" stroke="${pathCol2}" stroke-width="2.5" stroke-linejoin="miter" opacity="0.55"/>
+        <path d="${dLine}" fill="none" stroke="rgba(${glowRgb},0.32)" stroke-width="10" stroke-linejoin="miter" filter="url(#${uid2})"/>
+        <path d="${dLine}" fill="none" stroke="${pathCol2}" stroke-width="2.5" stroke-linejoin="miter" opacity="0.85"/>
         <path d="${dLine}" fill="none" stroke="${pathCol}" stroke-width="1.8" stroke-linejoin="miter" opacity="0.96"/>
         ${dots}${xLabels}${annots}${termLabel}
       </svg>`;
@@ -5162,9 +5163,10 @@ function renderOverview(){
 
     const rateCardHtml = (effr != null || cuts12m != null) ? `
       <!-- ══ FEDERAL RESERVE ══════════════════════════════════ -->
-      <div style="background:linear-gradient(160deg,rgba(${domRgb},0.055) 0%,rgba(10,13,22,0.60) 55%,rgba(5,7,14,0.55) 100%);border:1px solid rgba(${domRgb},0.16);border-top:2px solid rgba(${domRgb},0.38);border-radius:14px;padding:16px 18px 14px;position:relative;overflow:hidden">
+      <div style="background:linear-gradient(160deg,rgba(${domRgb},0.13) 0%,rgba(12,16,28,0.72) 55%,rgba(8,11,22,0.68) 100%);border:1px solid rgba(${domRgb},0.22);border-top:3px solid rgba(${domRgb},0.55);border-radius:14px;padding:16px 18px 14px;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(${domRgb},0.08),0 8px 32px rgba(0,0,0,0.40)">
         <!-- Subtle ambient wash -->
-        <div style="position:absolute;inset:0;pointer-events:none;border-radius:14px;background:linear-gradient(135deg,rgba(${domRgb},0.04) 0%,transparent 50%)"></div>
+        <div style="position:absolute;inset:0;pointer-events:none;border-radius:14px;background:linear-gradient(135deg,rgba(${domRgb},0.09) 0%,rgba(${domRgb},0.02) 45%,transparent 70%)"></div>
+        <div style="position:absolute;top:0;left:0;right:0;height:80px;pointer-events:none;border-radius:14px 14px 0 0;background:linear-gradient(180deg,rgba(${domRgb},0.07) 0%,transparent 100%)"></div>
         <!-- Section header row -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative">
           <div style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(173,184,208,0.80);flex-shrink:0">Federal Reserve</div>
@@ -5176,7 +5178,7 @@ function renderOverview(){
           <!-- Left: target range -->
           <div>
             <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">Target Range</div>
-            <div style="font-family:var(--mono);font-size:clamp(28px,4vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text)">${targetStr}<span style="font-size:0.50em;font-weight:700;color:rgba(255,255,255,0.50)">%</span></div>
+            <div style="font-family:var(--mono);font-size:clamp(28px,4vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#fff;text-shadow:0 0 24px rgba(${domRgb},0.30)">${targetStr}<span style="font-size:0.50em;font-weight:700;color:rgba(255,255,255,0.55)">%</span></div>
             <div style="margin-top:7px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.42)">Effective</span>
               <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:rgba(255,255,255,0.75);letter-spacing:-0.01em">${effrActual.toFixed(2)}%</span>
@@ -5185,7 +5187,7 @@ function renderOverview(){
             </div>
           </div>
           <!-- Centre: probability card -->
-          <div style="display:flex;flex-direction:column;align-items:center;background:rgba(${domRgb},0.10);border:1px solid rgba(${domRgb},0.28);border-top:2px solid rgba(${domRgb},0.50);border-radius:10px;padding:10px 16px;gap:3px;flex-shrink:0;box-shadow:0 4px 20px rgba(${domRgb},0.12)">
+          <div style="display:flex;flex-direction:column;align-items:center;background:rgba(${domRgb},0.16);border:1px solid rgba(${domRgb},0.32);border-top:2px solid rgba(${domRgb},0.65);border-radius:10px;padding:10px 16px;gap:3px;flex-shrink:0;box-shadow:0 4px 24px rgba(${domRgb},0.20),0 0 0 1px rgba(255,255,255,0.04) inset">
             <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(${domRgb},0.80)">${domLabel}</div>
             <div style="font-family:var(--mono);font-size:26px;font-weight:900;line-height:1;color:${domCol};letter-spacing:-0.03em;text-shadow:0 0 20px rgba(${domRgb},0.45)">${domProb.toFixed(0)}<span style="font-size:0.52em;opacity:0.65">%</span></div>
             <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.40);letter-spacing:0.04em">next meeting</div>
@@ -5205,7 +5207,7 @@ function renderOverview(){
             <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55)">Implied Rate Path</div>
             <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.30);letter-spacing:0.04em">Fed Funds Futures</div>
           </div>
-          <div style="border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);padding:14px 10px 4px;overflow:visible">
+          <div style="border-radius:10px;background:linear-gradient(180deg,rgba(${domRgb},0.06) 0%,rgba(5,8,18,0.55) 100%);border:1px solid rgba(${domRgb},0.14);border-top:1px solid rgba(${domRgb},0.22);padding:14px 10px 4px;overflow:visible">
             ${_buildRatePathChart(pathMonthly, effrActual)}
           </div>
         </div>` : ''}
@@ -5220,12 +5222,12 @@ function renderOverview(){
           const col12 = bp12IsHike ? '#f07070' : bp12IsCut ? '#5cb8ff' : '#adb8d0';
           const col18 = bp18IsHike ? '#f07070' : bp18IsCut ? '#5cb8ff' : '#adb8d0';
           return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div style="background:rgba(${c12},0.07);border:1px solid rgba(${c12},0.18);border-top:2px solid rgba(${c12},0.40);border-radius:10px;padding:11px 14px">
+          <div style="background:linear-gradient(160deg,rgba(${c12},0.13) 0%,rgba(${c12},0.05) 100%);border:1px solid rgba(${c12},0.22);border-top:3px solid rgba(${c12},0.60);border-radius:10px;padding:11px 14px;box-shadow:0 4px 16px rgba(${c12},0.08)">
             <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55);margin-bottom:5px">12M Pricing</div>
             <div style="font-family:var(--mono);font-size:clamp(22px,3.5vw,28px);font-weight:900;line-height:1;color:${_bpCol(totalBp12m)};letter-spacing:-0.03em;text-shadow:0 0 16px rgba(${c12},0.35)">${_bpStr(totalBp12m)}</div>
             <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(${c12},0.75);margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${_bpLabel(totalBp12m)}</div>
           </div>
-          <div style="background:rgba(${c18},0.07);border:1px solid rgba(${c18},0.18);border-top:2px solid rgba(${c18},0.40);border-radius:10px;padding:11px 14px">
+          <div style="background:linear-gradient(160deg,rgba(${c18},0.13) 0%,rgba(${c18},0.05) 100%);border:1px solid rgba(${c18},0.22);border-top:3px solid rgba(${c18},0.60);border-radius:10px;padding:11px 14px;box-shadow:0 4px 16px rgba(${c18},0.08)">
             <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55);margin-bottom:5px">18M Pricing</div>
             <div style="font-family:var(--mono);font-size:clamp(22px,3.5vw,28px);font-weight:900;line-height:1;color:${_bpCol(totalBp18m)};letter-spacing:-0.03em;text-shadow:0 0 16px rgba(${c18},0.35)">${_bpStr(totalBp18m)}</div>
             <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(${c18},0.75);margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${_bpLabel(totalBp18m)}</div>
@@ -5237,7 +5239,7 @@ function renderOverview(){
     const cbSectionHtml = cbUnifiedRows.length > 0 ? `
       <div style="margin-top:14px">
         <!-- G10 header -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.09)">
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
             <span style="display:inline-block;width:3px;height:14px;background:var(--accent);border-radius:2px;box-shadow:0 0 8px rgba(200,169,110,0.40)"></span>
             <div style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,169,110,0.92)">G10 Central Banks</div>
@@ -17060,4 +17062,3 @@ initAppBg('');
 </div><!-- /.app-wrap -->
 </body>
 </html>
-
