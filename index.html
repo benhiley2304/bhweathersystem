@@ -5435,61 +5435,90 @@ function renderOverview(){
 
     const cbUnifiedRows = cbsSorted.map(cb => {
       const d = intlRates[cb];
-      const _lbl     = d.label || '';
-      const _isHike  = _lbl === 'Hiking'  || _lbl === 'Tightening';
-      const _isCut   = _lbl === 'Cutting' || _lbl === 'Easing';
-      const _isPause = _lbl === 'Paused';
-      const col     = _isHike ? '#e03a2a' : _isCut ? '#5c9eff' : _isPause ? '#8c9fb5' : '#6e7d90';
-      const glowRgb = _isHike ? '224,58,42' : _isCut ? '92,158,255' : _isPause ? '140,159,181' : '110,125,144';
+      const _lbl    = d.label || '';
+      const _isHike = _lbl === 'Hiking'  || _lbl === 'Tightening';
+      const _isCut  = _lbl === 'Cutting' || _lbl === 'Easing';
+      const _isPause= _lbl === 'Paused';
+      // Refined palette — matches Rate Path system
+      const col     = _isHike ? '#e6b84a' : _isCut ? '#5eb8f5' : '#a0aec0';
+      const colRgb  = _isHike ? '230,184,74' : _isCut ? '94,184,245' : '160,174,192';
       const r  = d.rate  ?? 0;
       const pk = d.cycle_peak   ?? r;
       const tr = d.cycle_trough ?? 0;
       const cycleRange = pk - tr || 1;
       const pct = Math.min(100, Math.max(0, (r - tr) / cycleRange * 100));
       const cfp    = d.change_from_peak;
-      // Colour threshold: any move ≥15bp from peak is significant
-      const cfpCol = cfp != null && cfp < -0.15 ? '#5c9eff' : cfp != null && cfp > 0.15 ? '#e03a2a' : 'rgba(173,184,208,0.45)';
+      const cfpCol = cfp != null && cfp < -0.15 ? '#5eb8f5' : cfp != null && cfp > 0.15 ? '#e6b84a' : 'rgba(173,184,208,0.50)';
       const cfpStr = cfp != null ? (cfp >= 0 ? '+' : '') + cfp.toFixed(2) + '%' : '—';
       const nmFmt  = _fmtMtg(d.next_meeting);
       const nmDays = _daysTo(d.next_meeting);
       const isUS   = cb === 'US';
-      // Data source badge for freshness transparency
-      const srcBadge = d.rate_source === 'fallback_only' ? `<span style="font-family:var(--mono);font-size:5px;opacity:0.35;letter-spacing:0.04em">est</span>` : '';
+      const srcBadge = d.rate_source === 'fallback_only'
+        ? `<span style="font-family:var(--mono);font-size:5px;opacity:0.30;letter-spacing:0.04em">est</span>` : '';
       return `
-      <div style="padding:10px 0 10px;border-bottom:1px solid rgba(255,255,255,0.045);position:relative;${isUS ? 'padding-left:10px;margin-left:-10px;' : ''}">
-        ${isUS ? `<div style="position:absolute;left:0;top:0;bottom:0;width:2.5px;border-radius:2px;background:linear-gradient(180deg,rgba(${glowRgb},0.80) 0%,rgba(${glowRgb},0.20) 100%)"></div>` : ''}
-        <!-- Main data grid: identity | rate+stance+slider | vs peak | next -->
-        <div style="display:grid;grid-template-columns:56px 1fr 58px 52px;align-items:center;gap:8px;margin-bottom:7px">
-          <!-- Flag + name -->
+      <div style="
+        position:relative;
+        display:grid;
+        grid-template-columns:auto 1fr auto;
+        align-items:center;
+        gap:12px;
+        padding:10px 12px;
+        border-radius:10px;
+        background:${isUS ? `rgba(${colRgb},0.07)` : 'rgba(255,255,255,0.025)'};
+        border:1px solid ${isUS ? `rgba(${colRgb},0.22)` : 'rgba(255,255,255,0.06)'};
+        margin-bottom:5px;
+      ">
+        ${isUS ? `<div style="position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:0 2px 2px 0;background:${col};opacity:0.8"></div>` : ''}
+        <!-- Left: flag + name + rate -->
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:52px">
           <div style="display:flex;align-items:center;gap:5px">
-            <span style="font-size:13px;line-height:1;flex-shrink:0">${CB_FLAGS_OV[cb] || ''}</span>
-            <div style="font-family:var(--mono);font-size:${isUS ? '10.5' : '9.5'}px;font-weight:${isUS ? '900' : '800'};color:${isUS ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.62)'};letter-spacing:-0.01em">${CB_NAMES_OV[cb] || cb}</div>
+            <span style="font-size:${isUS ? '14' : '13'}px;line-height:1">${CB_FLAGS_OV[cb] || ''}</span>
+            <span style="font-family:var(--mono);font-size:${isUS ? '11' : '10'}px;font-weight:${isUS ? '900' : '700'};color:${isUS ? '#fff' : 'rgba(255,255,255,0.70)'};letter-spacing:-0.01em">${CB_NAMES_OV[cb] || cb}</span>
           </div>
-          <!-- Rate + stance -->
-          <div style="display:flex;align-items:center;gap:7px">
-            <span style="font-family:var(--mono);font-size:${isUS ? '14.5' : '12.5'}px;font-weight:900;color:${col};letter-spacing:-0.02em;line-height:1;text-shadow:0 0 12px rgba(${glowRgb},0.35)">${r.toFixed(2)}%${srcBadge}</span>
-            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:${col};background:rgba(${glowRgb},0.12);border:1px solid rgba(${glowRgb},0.32);border-radius:5px;padding:2px 7px;white-space:nowrap">${_lbl || 'Flat'}</span>
+          <div style="font-family:var(--mono);font-size:${isUS ? '16' : '14'}px;font-weight:900;color:${col};letter-spacing:-0.03em;line-height:1">${r.toFixed(2)}<span style="font-size:0.60em;font-weight:700;opacity:0.70">%</span>${srcBadge}</div>
+          <span style="
+            display:inline-block;
+            font-family:var(--mono);font-size:6.5px;font-weight:800;
+            letter-spacing:0.08em;text-transform:uppercase;
+            color:${col};
+            background:rgba(${colRgb},0.12);
+            border:1px solid rgba(${colRgb},0.28);
+            border-radius:4px;padding:2px 6px;
+            white-space:nowrap;align-self:flex-start;
+          ">${_lbl || 'Flat'}</span>
+        </div>
+        <!-- Centre: cycle bar -->
+        <div style="display:flex;flex-direction:column;gap:5px;padding:0 4px">
+          <div style="position:relative;height:6px;background:rgba(255,255,255,0.07);border-radius:6px;overflow:visible">
+            <!-- Filled track -->
+            <div style="position:absolute;left:0;top:0;bottom:0;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,rgba(${colRgb},0.10),rgba(${colRgb},0.55));border-radius:6px 0 0 6px"></div>
+            <!-- Thumb dot -->
+            <div style="
+              position:absolute;top:50%;left:${pct.toFixed(1)}%;
+              transform:translate(-50%,-50%);
+              width:12px;height:12px;border-radius:50%;
+              background:${col};
+              box-shadow:0 0 0 2px rgba(0,0,0,0.6),0 0 8px rgba(${colRgb},0.50);
+              z-index:2;
+            "></div>
+            <!-- Peak tick -->
+            <div style="position:absolute;right:0;top:-2px;bottom:-2px;width:1.5px;background:rgba(255,255,255,0.22);border-radius:1px"></div>
           </div>
-          <!-- vs peak -->
-          <div style="text-align:right">
-            <div style="font-family:var(--mono);font-size:9.5px;font-weight:800;color:${cfpCol};letter-spacing:-0.01em">${cfpStr}</div>
-            <div style="font-family:var(--mono);font-size:6px;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.30);margin-top:1px">vs peak</div>
-          </div>
-          <!-- Next meeting -->
-          <div style="text-align:right">
-            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.52)">${nmFmt || '—'}</div>
-            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.32);margin-top:1px">${nmDays}d</div>` : ''}
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.35)">${tr.toFixed(2)}%</span>
+            <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.35)">Peak ${pk.toFixed(2)}%</span>
           </div>
         </div>
-        <!-- Cycle slider: trough → current → peak -->
-        <div style="position:relative;height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:visible;margin-left:64px">
-          <div style="position:absolute;left:0;top:0;height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,rgba(${glowRgb},0.08) 0%,rgba(${glowRgb},0.45) 100%);border-radius:4px 0 0 4px"></div>
-          <div style="position:absolute;top:50%;left:${pct.toFixed(1)}%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:${col};box-shadow:0 0 8px 2px rgba(${glowRgb},0.55),0 0 0 2px rgba(0,0,0,0.55);z-index:2"></div>
-          <div style="position:absolute;top:-3px;right:0;width:1px;height:11px;background:rgba(255,255,255,0.18);border-radius:1px"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:3px;margin-left:64px">
-          <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28)">${tr.toFixed(2)}%</span>
-          <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28)">Peak ${pk.toFixed(2)}%</span>
+        <!-- Right: vs-peak + next mtg -->
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;min-width:52px">
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:800;color:${cfpCol};letter-spacing:-0.02em">${cfpStr}</div>
+            <div style="font-family:var(--mono);font-size:6px;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.32);margin-top:1px">vs peak</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:rgba(255,255,255,0.65)">${nmFmt || '—'}</div>
+            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.35);margin-top:1px">${nmDays}d</div>` : ''}
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -5523,8 +5552,8 @@ function renderOverview(){
     const domProb    = Math.max(hikeProbNext, cutProbNext, holdProb);
     const domLabel   = hikeProbNext >= cutProbNext && hikeProbNext >= holdProb ? 'Hike'
                      : cutProbNext  >= holdProb    ? 'Cut' : 'Hold';
-    const domCol     = domLabel === 'Hike' ? '#e03a2a' : domLabel === 'Cut' ? '#5c9eff' : 'var(--dim)';
-    const domRgb     = domLabel === 'Hike' ? '224,58,42' : domLabel === 'Cut' ? '92,158,255' : '173,184,208';
+    const domCol     = domLabel === 'Hike' ? '#e6b84a' : domLabel === 'Cut' ? '#5eb8f5' : 'rgba(255,255,255,0.85)';
+    const domRgb     = domLabel === 'Hike' ? '230,184,74' : domLabel === 'Cut' ? '94,184,245' : '200,207,224';
 
     // ── Direction-tied accent system ──
     // Replaces the heavy red/blue hero glow with calm tints that harmonise
@@ -5588,8 +5617,8 @@ function renderOverview(){
         ${(()=>{
           const bp12Dir = totalBp12m!=null&&totalBp12m>8 ? 'hike' : totalBp12m!=null&&totalBp12m<-8 ? 'cut' : 'flat';
           const bp18Dir = totalBp18m!=null&&totalBp18m>8 ? 'hike' : totalBp18m!=null&&totalBp18m<-8 ? 'cut' : 'flat';
-          const tileCol = d => d==='hike' ? '#d97a5a' : d==='cut' ? '#6aa6e8' : 'rgba(255,255,255,0.78)';
-          const tileRgb = d => d==='hike' ? '217,122,90' : d==='cut' ? '106,166,232' : '173,184,208';
+          const tileCol = d => d==='hike' ? '#e6b84a' : d==='cut' ? '#5eb8f5' : 'rgba(255,255,255,0.78)';
+          const tileRgb = d => d==='hike' ? '230,184,74' : d==='cut' ? '94,184,245' : '200,207,224';
           const tile = (lbl, bp, dir) => {
             const c = tileCol(dir), rgb = tileRgb(dir);
             return `<div class="ov-rp-stat" style="--rp-stat-rgb:${rgb}">
@@ -5607,25 +5636,18 @@ function renderOverview(){
 
     // ── Unified G10 CB section HTML ───────────────────────────────────────────
     const cbSectionHtml = cbUnifiedRows.length > 0 ? `
-      <div style="margin-top:14px">
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07)">
         <!-- G10 header -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.09)">
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span style="display:inline-block;width:3px;height:14px;background:var(--accent);border-radius:2px;box-shadow:0 0 8px rgba(200,169,110,0.40)"></span>
-            <div style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,169,110,0.92)">G10 Central Banks</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+            <span style="display:inline-block;width:2.5px;height:13px;background:var(--accent);border-radius:2px;opacity:0.80"></span>
+            <div style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,169,110,0.85)">G10 Central Banks</div>
           </div>
-          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,0.22) 0%,rgba(200,169,110,0.04) 70%,transparent 100%)"></div>
-          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.32);flex-shrink:0;letter-spacing:0.05em">rate · cycle position · next mtg</div>
-        </div>
-        <!-- Column headers -->
-        <div style="display:grid;grid-template-columns:56px 1fr 58px 52px;gap:8px;padding:0 0 7px;border-bottom:1px solid rgba(255,255,255,0.06)">
-          <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.40)">Bank</div>
-          <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.40)">Rate · Stance · Cycle</div>
-          <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.40);text-align:right">vs Peak</div>
-          <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.40);text-align:right">Next</div>
+          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,0.18) 0%,transparent 100%)"></div>
+          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.38);flex-shrink:0;letter-spacing:0.05em">rate · cycle · next mtg</div>
         </div>
         ${cbUnifiedRows}
-        <div style="margin-top:6px;font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.20);letter-spacing:0.04em">Source: FRED · official central bank releases</div>
+        <div style="margin-top:8px;font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.22);letter-spacing:0.04em">Source: FRED · official central bank releases</div>
       </div>` : '';
 
     // ── Inject into DOM ───────────────────────────────────────────────────────
