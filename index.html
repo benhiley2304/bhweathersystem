@@ -2175,6 +2175,286 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .ov-rate-cb-wrap{
   margin-top:14px;
 }
+
+/* ── Rate Path card — matches .ov-macro-card visual language ── */
+.ov-rp-card{
+  --rp-accent:#c8a96e;
+  --rp-accent-rgb:200,169,110;
+  position:relative;overflow:hidden;
+  background:linear-gradient(155deg,rgba(10,13,22,0.78) 0%,rgba(5,7,14,0.72) 100%);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:16px;
+  padding:18px 20px 16px;
+  display:flex;flex-direction:column;gap:0;
+  box-shadow:0 8px 40px rgba(0,0,0,0.55),0 1px 0 rgba(255,255,255,0.05) inset,0 -1px 0 rgba(0,0,0,0.35) inset;
+}
+.ov-rp-card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:16px;z-index:0;
+  background:linear-gradient(158deg,rgba(255,255,255,0.06) 0%,transparent 45%);
+}
+.ov-rp-card>*{position:relative;z-index:1}
+.ov-rp-card [style*="font-family:var(--mono)"],
+.ov-rp-card [class^="ov-rp-"]{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.ov-rp-glow{
+  position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0;
+  background:var(--rp-accent);
+  -webkit-mask:linear-gradient(90deg,transparent 0%,white 10%,white 90%,transparent 100%);
+  mask:linear-gradient(90deg,transparent 0%,white 10%,white 90%,transparent 100%);
+  opacity:0.75;z-index:2;animation:macroGlowPulse 4s ease-in-out infinite;
+}
+.ov-rp-glow::after{
+  content:'';position:absolute;top:0;left:5%;right:5%;height:1px;
+  background:var(--rp-accent);
+  filter:blur(6px);opacity:0.50;
+}
+.ov-rp-wash{
+  position:absolute;top:0;left:0;right:0;height:60%;
+  background:var(--rp-accent);opacity:0.035;
+  pointer-events:none;border-radius:16px 16px 0 0;z-index:0;
+}
+/* Header */
+.ov-rp-hdr{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:14px;gap:10px;
+}
+.ov-rp-hdr-left{min-width:0;flex:1}
+/* Hero row */
+.ov-rp-hero{
+  display:grid;grid-template-columns:1fr auto auto;align-items:end;gap:18px;
+  padding-bottom:14px;margin-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}
+.ov-rp-hero-l{min-width:0}
+.ov-rp-eyebrow{
+  font-family:var(--mono);font-size:8px;font-weight:800;
+  letter-spacing:0.13em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:4px;
+}
+.ov-rp-target{
+  font-family:var(--mono);font-size:clamp(28px,4.2vw,38px);
+  font-weight:900;letter-spacing:-0.04em;line-height:1;color:#fff;
+  text-shadow:0 2px 28px rgba(var(--rp-accent-rgb),0.22);
+}
+.ov-rp-pct{font-size:0.50em;font-weight:700;color:rgba(255,255,255,0.50);margin-left:2px}
+.ov-rp-target-meta{
+  margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:9.5px;color:var(--faint);
+}
+.ov-rp-meta-lbl{font-size:9.5px;color:var(--faint);letter-spacing:0.02em}
+.ov-rp-meta-val{font-size:11px;font-weight:800;color:var(--dim);letter-spacing:-0.01em}
+.ov-rp-meta-sep{color:rgba(173,184,208,0.30);margin:0 1px}
+.ov-rp-meta-chip{
+  font-size:8.5px;color:var(--dim);
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.10);
+  padding:2px 7px;border-radius:5px;letter-spacing:0.02em;
+}
+/* Probability — typographic, not a glowing pill */
+.ov-rp-prob{
+  display:flex;flex-direction:column;align-items:flex-end;gap:1px;
+  flex-shrink:0;text-align:right;line-height:1;
+}
+.ov-rp-prob-val{
+  font-family:var(--mono);font-size:32px;font-weight:900;
+  line-height:1;letter-spacing:-0.04em;
+}
+.ov-rp-prob-pct{font-size:0.50em;font-weight:700;opacity:0.55;margin-left:1px}
+.ov-rp-prob-lbl{
+  font-family:var(--mono);font-size:7.5px;font-weight:800;
+  letter-spacing:0.10em;text-transform:uppercase;
+  margin-top:4px;opacity:0.85;
+}
+/* Next meeting block */
+.ov-rp-mtg{
+  display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+  flex-shrink:0;line-height:1.1;
+}
+.ov-rp-mtg-date{
+  font-family:var(--mono);font-size:12px;font-weight:800;
+  color:rgba(255,255,255,0.78);letter-spacing:-0.01em;
+}
+.ov-rp-mtg-days{
+  font-family:var(--mono);font-size:8.5px;font-weight:800;
+  padding:2px 7px;border-radius:5px;border:1px solid transparent;
+  letter-spacing:0.04em;
+}
+.ov-rp-mtg-lbl{
+  font-family:var(--mono);font-size:7px;font-weight:700;
+  letter-spacing:0.14em;text-transform:uppercase;
+  color:rgba(173,184,208,0.40);margin-top:1px;
+}
+/* Chart stage */
+.ov-rp-chart-wrap{margin-bottom:14px}
+.ov-rp-chart-src{
+  font-family:var(--mono);font-size:7.5px;font-weight:700;
+  letter-spacing:0.08em;text-transform:uppercase;
+  color:rgba(173,184,208,0.42);flex-shrink:0;
+}
+.ov-rp-chart-stage{
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(var(--rp-accent-rgb),0.045) 0%,rgba(4,6,14,0.50) 100%);
+  border:1px solid rgba(var(--rp-accent-rgb),0.12);
+  border-top:1px solid rgba(var(--rp-accent-rgb),0.22);
+  padding:14px 14px 8px;
+  position:relative;overflow:visible;
+}
+/* Chart: SVG geometry layer + HTML overlay for labels/dots */
+.ov-rp-chart{position:relative;width:100%;height:185px}
+@media(max-width:520px){
+  .ov-rp-chart{height:150px}
+}
+.ov-rp-chart-svg{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  display:block;overflow:visible;
+}
+.ov-rp-chart-overlay{
+  position:absolute;inset:0;
+  pointer-events:none;
+  font-variant-numeric:tabular-nums;
+}
+.ov-rp-yax{
+  position:absolute;left:0;transform:translateY(-50%);
+  font-family:var(--mono);font-size:9px;font-weight:600;
+  color:rgba(173,184,208,0.55);letter-spacing:-0.01em;
+}
+.ov-rp-xax{
+  position:absolute;bottom:0;
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  color:rgba(173,184,208,0.45);letter-spacing:0.04em;
+  white-space:nowrap;
+}
+.ov-rp-xax-now{
+  color:var(--rp-accent);font-weight:700;
+}
+.ov-rp-dot{
+  position:absolute;border-radius:50%;transform:translate(-50%,-50%);
+}
+.ov-rp-dot-spot{
+  width:11px;height:11px;background:var(--rp-accent);
+  box-shadow:0 0 0 4px rgba(var(--rp-accent-rgb),0.18),
+             0 0 14px rgba(var(--rp-accent-rgb),0.50);
+}
+.ov-rp-dot-end{
+  width:9px;height:9px;background:rgba(8,11,20,0.92);
+  border:2px solid var(--rp-accent);
+  box-shadow:0 0 10px rgba(var(--rp-accent-rgb),0.45);
+}
+.ov-rp-dot-step{
+  width:5px;height:5px;background:rgba(var(--rp-accent-rgb),0.60);
+}
+.ov-rp-eplbl{
+  position:absolute;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;
+  letter-spacing:-0.02em;white-space:nowrap;
+}
+.ov-rp-eplbl-spot{
+  transform:translate(10px,-150%);
+  font-size:11px;font-weight:800;color:var(--rp-accent);
+}
+.ov-rp-eplbl-end{
+  transform:translate(-100%,-150%);
+  display:flex;flex-direction:column;align-items:flex-end;gap:1px;
+  text-align:right;padding-right:6px;
+}
+.ov-rp-eplbl-rate{
+  font-size:11px;font-weight:700;color:rgba(255,255,255,0.82);
+}
+.ov-rp-eplbl-delta{
+  font-size:8px;font-weight:700;
+  color:rgba(var(--rp-accent-rgb),0.85);
+  letter-spacing:0.04em;
+}
+/* 12M / 18M stat tiles */
+.ov-rp-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ov-rp-stat{
+  --rp-stat-rgb:173,184,208;
+  position:relative;
+  background:linear-gradient(150deg,rgba(var(--rp-stat-rgb),0.06) 0%,rgba(var(--rp-stat-rgb),0.02) 100%);
+  border:1px solid rgba(var(--rp-stat-rgb),0.14);
+  border-radius:10px;
+  padding:12px 14px 11px;
+  overflow:hidden;
+}
+.ov-rp-stat::before{
+  content:'';position:absolute;top:0;left:10%;right:10%;height:2px;
+  border-radius:0 0 2px 2px;
+  background:rgb(var(--rp-stat-rgb));opacity:0.55;
+}
+.ov-rp-stat-lbl{
+  font-family:var(--mono);font-size:7.5px;font-weight:800;
+  letter-spacing:0.11em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:4px;
+}
+.ov-rp-stat-val{
+  font-family:var(--mono);font-size:clamp(22px,3.2vw,30px);
+  font-weight:900;line-height:1;letter-spacing:-0.03em;
+  text-shadow:0 0 20px rgba(var(--rp-stat-rgb),0.30);
+}
+.ov-rp-stat-sub{
+  font-family:var(--mono);font-size:8.5px;font-weight:700;
+  letter-spacing:0.04em;text-transform:uppercase;
+  margin-top:5px;
+}
+/* ── Rate path chart dot + label polish ── */
+@keyframes rpSpotPulse{
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.30;}
+  50%{transform:translate(-50%,-50%) scale(2.2);opacity:0;}
+}
+.ov-rp-dot-spot::after{
+  content:'';position:absolute;inset:-6px;border-radius:50%;
+  border:1.5px solid var(--rp-accent);
+  animation:rpSpotPulse 2.6s ease-in-out infinite;
+}
+/* Endpoint label polish */
+.ov-rp-eplbl-spot{
+  text-shadow:0 0 14px rgba(var(--rp-accent-rgb),0.55);
+}
+.ov-rp-eplbl-rate{
+  text-shadow:0 0 10px rgba(var(--rp-accent-rgb),0.40);
+}
+/* Stat tile top accent bar */
+.ov-rp-stat{
+  position:relative;overflow:hidden;
+}
+.ov-rp-stat::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  border-radius:9px 9px 0 0;
+  background:rgba(var(--rp-stat-rgb),0.75);
+}
+
+/* Responsive: collapse hero to two rows on narrow widths */
+@media(max-width:760px){
+  .ov-rp-card{padding:14px 14px 12px;border-radius:12px}
+  .ov-rp-hero{
+    grid-template-columns:1fr auto;
+    grid-template-rows:auto auto;
+    gap:12px 14px;
+  }
+  .ov-rp-hero-l{grid-column:1 / 2;grid-row:1 / 3}
+  .ov-rp-prob{grid-column:2 / 3;grid-row:1 / 2;align-items:flex-end}
+  .ov-rp-mtg{grid-column:2 / 3;grid-row:2 / 3}
+  .ov-rp-target{font-size:clamp(24px,7vw,32px)}
+  .ov-rp-prob-val{font-size:26px}
+}
+@media(max-width:520px){
+  .ov-rp-hero{
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:auto auto;
+    align-items:start;gap:14px 12px;
+  }
+  .ov-rp-hero-l{grid-column:1 / 3;grid-row:1}
+  .ov-rp-prob{grid-column:1;grid-row:2;align-items:flex-start;text-align:left}
+  .ov-rp-mtg{grid-column:2;grid-row:2;align-items:flex-end;text-align:right}
+  .ov-rp-stats{grid-template-columns:1fr 1fr}
+  .ov-rp-target-meta{font-size:9px}
+  .ov-rp-prob-val{font-size:26px}
+  .ov-rp-stat-val{font-size:20px}
+  .ov-rp-stat{padding:10px 12px 9px}
+  .ov-rp-chart-stage{padding:12px 10px 6px}
+}
+
 .ov-rate-section-hdr{
   display:flex;align-items:center;gap:10px;
   margin-bottom:10px;
@@ -4960,100 +5240,126 @@ function renderOverview(){
       if (!path || path.length < 2) return '';
       const pts = [{rate: spotRate, label:'Now'}, ...path.slice(1, 13).map(p => ({rate: p.rate, label: _MABBR[p.month] + "'" + String(p.year).slice(2)})) ];
       const rates = pts.map(p => p.rate);
-      const minR  = Math.min(...rates) - 0.18;
-      const maxR  = Math.max(...rates) + 0.18;
-      const rng   = maxR - minR || 0.5;
-      const W = 400, H = 155, PL = 38, PR = 10, PT = 22, PB = 28;
-      const cw = W - PL - PR, ch = H - PT - PB;
-      const x = i => PL + (i / (pts.length - 1)) * cw;
-      const y = r => PT + ch - ((r - minR) / rng) * ch;
-      const pathCol  = isHiking ? '#f07070' : isCutting ? '#5cb8ff' : '#adb8d0';
-      const pathCol2 = isHiking ? '#e03a2a' : isCutting ? '#3a8eff' : '#8090a8';
-      const glowRgb  = isHiking ? '240,112,112' : isCutting ? '92,184,255' : '173,184,208';
+      // Snap range to 25bp ticks so gridlines align with policy steps.
+      const rawMin = Math.min(...rates), rawMax = Math.max(...rates);
+      const pad = Math.max(0.25, (rawMax - rawMin) * 0.30);
+      const minR = Math.floor((rawMin - pad) / 0.25) * 0.25;
+      const maxR = Math.ceil((rawMax + pad) / 0.25) * 0.25;
+      const rng  = (maxR - minR) || 0.5;
+      // Use 0-1 fractional coordinates so SVG stretches to fill any container.
+      // Reserve fractions of the chart area for axes (PL%, PR%, PT%, PB%).
+      const PL = 0.075, PR = 0.04, PT = 0.13, PB = 0.18;
+      // X fraction (0..1) for point i
+      const xf = i => PL + (i / (pts.length - 1)) * (1 - PL - PR);
+      // Y fraction for rate r
+      const yf = r => PT + (1 - PT - PB) * (1 - (r - minR) / rng);
+      // Accent palette tied to direction — saturated but restrained,
+      // tuned to harmonise with the warm gold accent used across the page.
+      const accent  = isHiking ? '#d97a5a' : isCutting ? '#6aa6e8' : '#c8a96e';
+      const accentRgb = isHiking ? '217,122,90' : isCutting ? '106,166,232' : '200,169,110';
+      // Build SVG geometry in fractional [0,100] viewBox.
+      // Stretch in X via preserveAspectRatio=none + non-scaling-stroke.
+      const VBW = 100, VBH = 100;
+      const X = i => (xf(i) * VBW).toFixed(2);
+      const Y = r => (yf(r) * VBH).toFixed(2);
       // Step path
-      let dLine = 'M' + x(0).toFixed(1) + ',' + y(pts[0].rate).toFixed(1);
+      let dLine = `M${X(0)},${Y(pts[0].rate)}`;
       for (let i = 1; i < pts.length; i++) {
-        dLine += ' L' + x(i).toFixed(1) + ',' + y(pts[i-1].rate).toFixed(1) + ' L' + x(i).toFixed(1) + ',' + y(pts[i].rate).toFixed(1);
+        dLine += ` L${X(i)},${Y(pts[i-1].rate)} L${X(i)},${Y(pts[i].rate)}`;
       }
-      // Smooth line for glow layer (same path)
-      const bot = PT + ch + 1;
-      let dArea = 'M' + x(0).toFixed(1) + ',' + bot + ' L' + x(0).toFixed(1) + ',' + y(pts[0].rate).toFixed(1);
+      // Area path
+      const bot = ((1 - PB) * VBH).toFixed(2);
+      let dArea = `M${X(0)},${bot} L${X(0)},${Y(pts[0].rate)}`;
       for (let i = 1; i < pts.length; i++) {
-        dArea += ' L' + x(i).toFixed(1) + ',' + y(pts[i-1].rate).toFixed(1) + ' L' + x(i).toFixed(1) + ',' + y(pts[i].rate).toFixed(1);
+        dArea += ` L${X(i)},${Y(pts[i-1].rate)} L${X(i)},${Y(pts[i].rate)}`;
       }
-      dArea += ' L' + x(pts.length-1).toFixed(1) + ',' + bot + ' Z';
-      // Gridlines at every 25bp — subtle, refined
+      dArea += ` L${X(pts.length-1)},${bot} Z`;
+      // Gridlines (SVG, scale with X)
       let gridSvg = '';
-      const gStep = 0.25, gStart = Math.ceil(minR / gStep) * gStep;
-      for (let gv = gStart; gv <= maxR + 0.01; gv = +(gv + gStep).toFixed(3)) {
-        const gy = y(gv);
-        if (gy < PT - 2 || gy > PT + ch + 2) continue;
-        const isMajor = Number.isInteger(Math.round(gv * 4)) && Math.abs(gv * 4 - Math.round(gv * 4)) < 0.01;
-        const gridOpacity = isMajor ? '0.08' : '0.04';
-        gridSvg += `<line x1="${PL}" y1="${gy.toFixed(1)}" x2="${W-PR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,${gridOpacity})" stroke-width="${isMajor ? '1' : '0.7'}"/>`;
-        gridSvg += `<text x="${PL - 5}" y="${(gy + 2.8).toFixed(1)}" font-family="'SF Mono','Fira Mono',monospace" font-size="7" fill="rgba(173,184,208,0.45)" text-anchor="end" font-weight="500">${gv.toFixed(2)}</text>`;
-      }
-      // X-axis labels: now, every 3rd, last
-      const xLabels = pts.map((p, i) => {
-        if (i === 0 || i === pts.length - 1 || i % 3 === 0) {
-          const anchor = i === 0 ? 'start' : i === pts.length - 1 ? 'end' : 'middle';
-          const fill   = i === 0 ? pathCol : 'rgba(173,184,208,0.42)';
-          const fw     = i === 0 ? '700' : '500';
-          return `<text x="${x(i).toFixed(1)}" y="${H - 8}" font-family="'SF Mono','Fira Mono',monospace" font-size="7.5" fill="${fill}" font-weight="${fw}" text-anchor="${anchor}">${p.label}</text>`;
-        } return '';
-      }).join('');
-      // Dots — larger, cleaner
-      const dots = pts.map((p, i) => {
-        const dc = p.rate > (spotRate + 0.01) ? '#f07070' : p.rate < (spotRate - 0.01) ? '#5cb8ff' : pathCol;
-        if (i === 0) {
-          return `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="9" fill="${pathCol}" opacity="0.10"/>` +
-                 `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="5" fill="${pathCol}" opacity="0.18"/>` +
-                 `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="3.5" fill="${pathCol}"/>`;
+      const gridLabels = [];
+      for (let gv = minR; gv <= maxR + 0.001; gv = +(gv + 0.25).toFixed(3)) {
+        const gy = (yf(gv) * VBH).toFixed(2);
+        const isWholePct = Math.abs(gv * 4 - Math.round(gv * 4)) < 0.001 && Math.round(gv * 4) % 4 === 0;
+        const isHalf = Math.abs(gv * 4 - Math.round(gv * 4)) < 0.001 && Math.round(gv * 4) % 2 === 0;
+        const op = isWholePct ? 0.12 : isHalf ? 0.07 : 0.035;
+        gridSvg += `<line x1="${(PL*VBW).toFixed(2)}" y1="${gy}" x2="${((1-PR)*VBW).toFixed(2)}" y2="${gy}" stroke="rgba(255,255,255,${op})" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
+        if (isWholePct || isHalf) {
+          gridLabels.push({ yPct: yf(gv) * 100, text: gv.toFixed(2) });
         }
-        return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="2.8" fill="rgba(8,11,20,0.9)" stroke="${dc}" stroke-width="1.5" opacity="0.90"/>`;
-      }).join('');
-      // Annotations
+      }
+      // Spot crossline
+      const spotY = (yf(spotRate) * VBH).toFixed(2);
+      const crossline = `<line x1="${(PL*VBW).toFixed(2)}" y1="${spotY}" x2="${((1-PR)*VBW).toFixed(2)}" y2="${spotY}" stroke="rgba(${accentRgb},0.30)" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`;
+      // HTML overlay: dots + labels positioned as percentages
       const lastRate = pts[pts.length - 1].rate;
       const deltaBp  = Math.round((lastRate - spotRate) * 100);
       const deltaStr = (deltaBp >= 0 ? '+' : '') + deltaBp + 'bp';
-      const deltaCol = deltaBp > 5 ? '#f07070' : deltaBp < -5 ? '#5cb8ff' : 'rgba(173,184,208,0.65)';
-      const firstY = y(pts[0].rate), lastY = y(lastRate);
-      // Current rate label with background pill feel
-      const annots = [
-        `<text x="${(x(0)+2).toFixed(1)}" y="${Math.max(PT + 13, firstY - 8).toFixed(1)}" font-family="'SF Mono','Fira Mono',monospace" font-size="10.5" font-weight="800" fill="${pathCol}" text-anchor="start" letter-spacing="-0.5">${spotRate.toFixed(2)}%</text>`,
-        `<text x="${(x(pts.length-1)-2).toFixed(1)}" y="${Math.max(PT + 13, lastY - 8).toFixed(1)}" font-family="'SF Mono','Fira Mono',monospace" font-size="10" font-weight="700" fill="${deltaCol}" text-anchor="end">${deltaStr}</text>`,
-      ].join('');
-      // "Implied terminal" label at last point below
-      const termLabel = `<text x="${(x(pts.length-1)-2).toFixed(1)}" y="${Math.min(H-10, lastY + 16).toFixed(1)}" font-family="'SF Mono','Fira Mono',monospace" font-size="6.5" font-weight="500" fill="rgba(173,184,208,0.35)" text-anchor="end">terminal</text>`;
+      // Y-axis labels (left gutter)
+      const yLabelsHtml = gridLabels.map(g =>
+        `<div class="ov-rp-yax" style="top:${g.yPct.toFixed(2)}%">${g.text}</div>`
+      ).join('');
+      // X-axis labels
+      const xLabelsHtml = pts.map((p, i) => {
+        if (i === 0 || i === pts.length - 1 || i % 3 === 0) {
+          const isFirst = i === 0;
+          const isLast = i === pts.length - 1;
+          const left = (xf(i) * 100).toFixed(2);
+          const cls = isFirst ? 'ov-rp-xax ov-rp-xax-now' : 'ov-rp-xax';
+          const transform = isFirst ? 'translateX(0)' : isLast ? 'translateX(-100%)' : 'translateX(-50%)';
+          return `<div class="${cls}" style="left:${left}%;transform:${transform}">${p.label}</div>`;
+        } return '';
+      }).join('');
+      // Dots
+      const dotsHtml = pts.map((p, i) => {
+        const left = (xf(i) * 100).toFixed(2);
+        const top  = (yf(p.rate) * 100).toFixed(2);
+        if (i === 0) {
+          return `<div class="ov-rp-dot ov-rp-dot-spot" style="left:${left}%;top:${top}%"></div>`;
+        }
+        if (i === pts.length - 1) {
+          return `<div class="ov-rp-dot ov-rp-dot-end" style="left:${left}%;top:${top}%"></div>`;
+        }
+        const prev = pts[i-1].rate;
+        if (Math.abs(p.rate - prev) < 0.001) return '';
+        return `<div class="ov-rp-dot ov-rp-dot-step" style="left:${left}%;top:${top}%"></div>`;
+      }).join('');
+      // Endpoint labels
+      const spotLeftPct = (xf(0) * 100).toFixed(2);
+      const spotTopPct  = (yf(spotRate) * 100).toFixed(2);
+      const endLeftPct  = (xf(pts.length-1) * 100).toFixed(2);
+      const endTopPct   = (yf(lastRate) * 100).toFixed(2);
+      const endpointHtml = `
+        <div class="ov-rp-eplbl ov-rp-eplbl-spot" style="left:${spotLeftPct}%;top:${spotTopPct}%">${spotRate.toFixed(2)}%</div>
+        <div class="ov-rp-eplbl ov-rp-eplbl-end" style="left:${endLeftPct}%;top:${endTopPct}%">
+          <span class="ov-rp-eplbl-rate">${lastRate.toFixed(2)}%</span>
+          <span class="ov-rp-eplbl-delta">${deltaStr}</span>
+        </div>`;
       const uid  = 'rpc' + ((Math.random() * 0xFFFFF | 0).toString(16));
-      const uid2 = 'rpg' + ((Math.random() * 0xFFFFF | 0).toString(16));
-      const uid3 = 'rpa' + ((Math.random() * 0xFFFFF | 0).toString(16));
-      return `<svg width="${W}" height="${H}" style="width:100%;height:${H}px;display:block;overflow:visible" shape-rendering="crispEdges">
-        <defs>
-          <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.50"/>
-            <stop offset="55%" stop-color="${pathCol}" stop-opacity="0.15"/>
-            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0.02"/>
-          </linearGradient>
-          <filter id="${uid2}" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="4.5" result="blur"/>
-            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-          </filter>
-          <linearGradient id="${uid3}" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stop-color="rgba(${glowRgb},0.10)"/>
-            <stop offset="60%" stop-color="rgba(${glowRgb},0.04)"/>
-            <stop offset="100%" stop-color="rgba(${glowRgb},0.01)"/>
-          </linearGradient>
-        </defs>
-        <!-- Stage background subtle gradient -->
-        <rect x="${PL}" y="${PT}" width="${cw}" height="${ch}" fill="url(#${uid3})" rx="2"/>
-        ${gridSvg}
-        <path d="${dArea}" fill="url(#${uid})"/>
-        <path d="${dLine}" fill="none" stroke="rgba(${glowRgb},0.32)" stroke-width="10" stroke-linejoin="miter" filter="url(#${uid2})"/>
-        <path d="${dLine}" fill="none" stroke="${pathCol2}" stroke-width="2.5" stroke-linejoin="miter" opacity="0.85"/>
-        <path d="${dLine}" fill="none" stroke="${pathCol}" stroke-width="1.8" stroke-linejoin="miter" opacity="0.96"/>
-        ${dots}${xLabels}${annots}${termLabel}
-      </svg>`;
+      return `<div class="ov-rp-chart" style="--rp-accent:${accent};--rp-accent-rgb:${accentRgb}">
+        <svg class="ov-rp-chart-svg" viewBox="0 0 ${VBW} ${VBH}" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+              <stop offset="0%" stop-color="${accent}" stop-opacity="0.35"/>
+              <stop offset="50%" stop-color="${accent}" stop-opacity="0.12"/>
+              <stop offset="100%" stop-color="${accent}" stop-opacity="0"/>
+            </linearGradient>
+            <filter id="${uid}g" x="-10%" y="-80%" width="120%" height="260%">
+              <feGaussianBlur stdDeviation="0.8 0.8" result="blur"/>
+            </filter>
+          </defs>
+          ${gridSvg}
+          ${crossline}
+          <path d="${dArea}" fill="url(#${uid})"/>
+          <path d="${dLine}" fill="none" stroke="${accent}" stroke-width="4" stroke-linejoin="miter" opacity="0.18" vector-effect="non-scaling-stroke" filter="url(#${uid}g)"/>
+          <path d="${dLine}" fill="none" stroke="${accent}" stroke-width="1.8" stroke-linejoin="miter" opacity="0.95" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <div class="ov-rp-chart-overlay">
+          ${yLabelsHtml}
+          ${xLabelsHtml}
+          ${dotsHtml}
+          ${endpointHtml}
+        </div>
+      </div>`;
     };
 
     // ── G10 CB Unified Rows ───────────────────────────────────────────────────
@@ -5161,77 +5467,82 @@ function renderOverview(){
     const domCol     = domLabel === 'Hike' ? '#e03a2a' : domLabel === 'Cut' ? '#5c9eff' : 'var(--dim)';
     const domRgb     = domLabel === 'Hike' ? '224,58,42' : domLabel === 'Cut' ? '92,158,255' : '173,184,208';
 
+    // ── Direction-tied accent system ──
+    // Replaces the heavy red/blue hero glow with calm tints that harmonise
+    // with the gold/teal accent used across the rest of the page.
+    const stAccent     = isHiking ? '#d97a5a' : isCutting ? '#6aa6e8' : '#c8a96e';
+    const stAccentRgb  = isHiking ? '217,122,90' : isCutting ? '106,166,232' : '200,169,110';
+    const mktDeltaCol  = stAccent;
+    const probTone     = domLabel === 'Hike' ? '#d97a5a' : domLabel === 'Cut' ? '#6aa6e8' : 'rgba(255,255,255,0.92)';
     const rateCardHtml = (effr != null || cuts12m != null) ? `
-      <!-- ══ FEDERAL RESERVE ══════════════════════════════════ -->
-      <div style="background:linear-gradient(160deg,rgba(${domRgb},0.13) 0%,rgba(12,16,28,0.72) 55%,rgba(8,11,22,0.68) 100%);border:1px solid rgba(${domRgb},0.22);border-top:3px solid rgba(${domRgb},0.55);border-radius:14px;padding:16px 18px 14px;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(${domRgb},0.08),0 8px 32px rgba(0,0,0,0.40)">
-        <!-- Subtle ambient wash -->
-        <div style="position:absolute;inset:0;pointer-events:none;border-radius:14px;background:linear-gradient(135deg,rgba(${domRgb},0.09) 0%,rgba(${domRgb},0.02) 45%,transparent 70%)"></div>
-        <div style="position:absolute;top:0;left:0;right:0;height:80px;pointer-events:none;border-radius:14px 14px 0 0;background:linear-gradient(180deg,rgba(${domRgb},0.07) 0%,transparent 100%)"></div>
-        <!-- Section header row -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative">
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(173,184,208,0.80);flex-shrink:0">Federal Reserve</div>
-          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.10) 0%,transparent 100%)"></div>
-          <div style="font-family:var(--mono);font-size:7px;font-weight:800;border-radius:6px;padding:3px 10px;letter-spacing:0.07em;flex-shrink:0;color:${rateBarCol};background:${rateBarCol}20;border:1px solid ${rateBarCol}40">${rateLabel || '—'}</div>
+      <!-- ════ FEDERAL RESERVE — rate path card, matches ov-macro-card system ════ -->
+      <div class="ov-rp-card" style="--rp-accent:${stAccent};--rp-accent-rgb:${stAccentRgb}">
+        <div class="ov-rp-glow"></div>
+        <div class="ov-rp-wash"></div>
+        <!-- Header: eyebrow + title + stance badge -->
+        <div class="ov-rp-hdr">
+          <div class="ov-rp-hdr-left">
+            <div class="ov-mc-eyebrow">Federal Reserve</div>
+            <div class="ov-mc-title">Rate Path</div>
+          </div>
+          <span class="ov-mc-badge" style="color:${stAccent};background:rgba(${stAccentRgb},0.10);border:1px solid rgba(${stAccentRgb},0.30)">${rateLabel || '—'}</span>
         </div>
-        <!-- Hero row: rate + prob card + meeting -->
-        <div style="display:grid;grid-template-columns:1fr auto auto;align-items:start;gap:10px;margin-bottom:16px;position:relative">
-          <!-- Left: target range -->
-          <div>
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">Target Range</div>
-            <div style="font-family:var(--mono);font-size:clamp(28px,4vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#fff;text-shadow:0 0 24px rgba(${domRgb},0.30)">${targetStr}<span style="font-size:0.50em;font-weight:700;color:rgba(255,255,255,0.55)">%</span></div>
-            <div style="margin-top:7px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-              <span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.42)">Effective</span>
-              <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:rgba(255,255,255,0.75);letter-spacing:-0.01em">${effrActual.toFixed(2)}%</span>
-              ${effr != null ? `<span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.35)">· Mkt <span style="color:${rateBarCol};font-weight:800">${effr.toFixed(2)}%</span></span>` : ''}
-              ${termDeltaStr ? `<span style="font-family:var(--mono);font-size:7px;color:rgba(173,184,208,0.35);background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.08)">${termDeltaStr}</span>` : ''}
+        <!-- Hero row -->
+        <div class="ov-rp-hero">
+          <!-- Left: target range as the dominant number, like other hero cards -->
+          <div class="ov-rp-hero-l">
+            <div class="ov-rp-eyebrow">Target Range</div>
+            <div class="ov-rp-target">${targetStr}<span class="ov-rp-pct">%</span></div>
+            <div class="ov-rp-target-meta">
+              <span class="ov-rp-meta-lbl">Effective</span>
+              <span class="ov-rp-meta-val">${effrActual.toFixed(2)}%</span>
+              ${effr != null ? `<span class="ov-rp-meta-sep">·</span><span class="ov-rp-meta-lbl">Market</span><span class="ov-rp-meta-val" style="color:${mktDeltaCol}">${effr.toFixed(2)}%</span>` : ''}
+              ${termDeltaStr ? `<span class="ov-rp-meta-chip">${termDeltaStr}</span>` : ''}
             </div>
           </div>
-          <!-- Centre: probability card -->
-          <div style="display:flex;flex-direction:column;align-items:center;background:rgba(${domRgb},0.16);border:1px solid rgba(${domRgb},0.32);border-top:2px solid rgba(${domRgb},0.65);border-radius:10px;padding:10px 16px;gap:3px;flex-shrink:0;box-shadow:0 4px 24px rgba(${domRgb},0.20),0 0 0 1px rgba(255,255,255,0.04) inset">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(${domRgb},0.80)">${domLabel}</div>
-            <div style="font-family:var(--mono);font-size:26px;font-weight:900;line-height:1;color:${domCol};letter-spacing:-0.03em;text-shadow:0 0 20px rgba(${domRgb},0.45)">${domProb.toFixed(0)}<span style="font-size:0.52em;opacity:0.65">%</span></div>
-            <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.40);letter-spacing:0.04em">next meeting</div>
+          <!-- Centre: probability — typographic, no neon glow -->
+          <div class="ov-rp-prob">
+            <div class="ov-rp-prob-val" style="color:${probTone}">${domProb.toFixed(0)}<span class="ov-rp-prob-pct">%</span></div>
+            <div class="ov-rp-prob-lbl" style="color:${probTone}">${domLabel} · Next Mtg</div>
           </div>
           <!-- Right: next FOMC date -->
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;padding-top:2px">
-            ${usNextMtg ? `
-            <div style="font-family:var(--mono);font-size:12px;font-weight:800;color:rgba(255,255,255,0.70);letter-spacing:-0.01em">${usNextMtg}</div>
-            ${usDaysTo != null ? `<div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${domCol};background:rgba(${domRgb},0.12);padding:2px 7px;border-radius:5px;border:1px solid rgba(${domRgb},0.22)">${usDaysTo}d</div>` : ''}
-            <div style="font-family:var(--mono);font-size:6.5px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.30);margin-top:1px">FOMC</div>` : ''}
-          </div>
+          ${usNextMtg ? `
+          <div class="ov-rp-mtg">
+            <div class="ov-rp-mtg-date">${usNextMtg}</div>
+            ${usDaysTo != null ? `<div class="ov-rp-mtg-days" style="color:${stAccent};border-color:rgba(${stAccentRgb},0.30);background:rgba(${stAccentRgb},0.10)">${usDaysTo}d</div>` : ''}
+            <div class="ov-rp-mtg-lbl">FOMC</div>
+          </div>` : ''}
         </div>
-        <!-- Rate path chart — full width, no inner border box -->
+        <!-- Implied rate path chart -->
         ${pathMonthly.length > 1 ? `
-        <div style="margin-bottom:14px;position:relative">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55)">Implied Rate Path</div>
-            <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.30);letter-spacing:0.04em">Fed Funds Futures</div>
+        <div class="ov-rp-chart-wrap">
+          <div class="mc-sect" style="margin:6px 0 4px">
+            <div class="mc-sect-lbl">Implied Rate Path</div>
+            <div class="mc-sect-line"></div>
+            <span class="ov-rp-chart-src">Fed Funds Futures · 12M</span>
           </div>
-          <div style="border-radius:10px;background:linear-gradient(180deg,rgba(${domRgb},0.06) 0%,rgba(5,8,18,0.55) 100%);border:1px solid rgba(${domRgb},0.14);border-top:1px solid rgba(${domRgb},0.22);padding:14px 10px 4px;overflow:visible">
+          <div class="ov-rp-chart-stage">
             ${_buildRatePathChart(pathMonthly, effrActual)}
           </div>
         </div>` : ''}
-        <!-- 12M / 18M market pricing tiles -->
+        <!-- 12M / 18M market pricing — calm stat tiles matching the rest of the dashboard -->
         ${(()=>{
-          const bp12IsHike = totalBp12m!=null&&totalBp12m>2;
-          const bp12IsCut  = totalBp12m!=null&&totalBp12m<-2;
-          const bp18IsHike = totalBp18m!=null&&totalBp18m>2;
-          const bp18IsCut  = totalBp18m!=null&&totalBp18m<-2;
-          const c12 = bp12IsHike ? '224,80,60' : bp12IsCut ? '92,184,255' : '173,184,208';
-          const c18 = bp18IsHike ? '224,80,60' : bp18IsCut ? '92,184,255' : '173,184,208';
-          const col12 = bp12IsHike ? '#f07070' : bp12IsCut ? '#5cb8ff' : '#adb8d0';
-          const col18 = bp18IsHike ? '#f07070' : bp18IsCut ? '#5cb8ff' : '#adb8d0';
-          return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div style="background:linear-gradient(160deg,rgba(${c12},0.13) 0%,rgba(${c12},0.05) 100%);border:1px solid rgba(${c12},0.22);border-top:3px solid rgba(${c12},0.60);border-radius:10px;padding:11px 14px;box-shadow:0 4px 16px rgba(${c12},0.08)">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55);margin-bottom:5px">12M Pricing</div>
-            <div style="font-family:var(--mono);font-size:clamp(22px,3.5vw,28px);font-weight:900;line-height:1;color:${_bpCol(totalBp12m)};letter-spacing:-0.03em;text-shadow:0 0 16px rgba(${c12},0.35)">${_bpStr(totalBp12m)}</div>
-            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(${c12},0.75);margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${_bpLabel(totalBp12m)}</div>
-          </div>
-          <div style="background:linear-gradient(160deg,rgba(${c18},0.13) 0%,rgba(${c18},0.05) 100%);border:1px solid rgba(${c18},0.22);border-top:3px solid rgba(${c18},0.60);border-radius:10px;padding:11px 14px;box-shadow:0 4px 16px rgba(${c18},0.08)">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55);margin-bottom:5px">18M Pricing</div>
-            <div style="font-family:var(--mono);font-size:clamp(22px,3.5vw,28px);font-weight:900;line-height:1;color:${_bpCol(totalBp18m)};letter-spacing:-0.03em;text-shadow:0 0 16px rgba(${c18},0.35)">${_bpStr(totalBp18m)}</div>
-            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(${c18},0.75);margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${_bpLabel(totalBp18m)}</div>
-          </div></div>`;
+          const bp12Dir = totalBp12m!=null&&totalBp12m>8 ? 'hike' : totalBp12m!=null&&totalBp12m<-8 ? 'cut' : 'flat';
+          const bp18Dir = totalBp18m!=null&&totalBp18m>8 ? 'hike' : totalBp18m!=null&&totalBp18m<-8 ? 'cut' : 'flat';
+          const tileCol = d => d==='hike' ? '#d97a5a' : d==='cut' ? '#6aa6e8' : 'rgba(255,255,255,0.78)';
+          const tileRgb = d => d==='hike' ? '217,122,90' : d==='cut' ? '106,166,232' : '173,184,208';
+          const tile = (lbl, bp, dir) => {
+            const c = tileCol(dir), rgb = tileRgb(dir);
+            return `<div class="ov-rp-stat" style="--rp-stat-rgb:${rgb}">
+              <div class="ov-rp-stat-lbl">${lbl}</div>
+              <div class="ov-rp-stat-val" style="color:${c}">${_bpStr(bp)}</div>
+              <div class="ov-rp-stat-sub" style="color:rgba(${rgb},0.78)">${_bpLabel(bp)}</div>
+            </div>`;
+          };
+          return `<div class="ov-rp-stats">
+            ${tile('12M Pricing', totalBp12m, bp12Dir)}
+            ${tile('18M Pricing', totalBp18m, bp18Dir)}
+          </div>`;
         })()}
       </div>` : '';
 
