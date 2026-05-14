@@ -5495,22 +5495,12 @@ function renderOverview(){
       // Rate value labels — only show at endpoints (12M ago and Now)
       const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-5).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="700" fill="rgba(255,255,255,0.50)">${r12.toFixed(2)}</text>`;
       const valLblNow = `<text x="${xs[3]-2}" y="${(ys[3]-6).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
-      // Particle dots — 8 subtle random dots as backdrop (deterministic)
-      const seed = r * 137 + (t12m||0) * 31;
-      const particles = Array.from({length:16}, (_, i) => {
-        const px = ((seed * (i+1) * 73.1) % (W-20)) + 10;
-        const py = ((seed * (i+2) * 41.7) % (H-20)) + 5;
-        const pr = 1.0 + (i % 4) * 0.5;
-        const pop = 0.10 + (i % 5) * 0.04;
-        return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${pr}" fill="rgba(${colRgb},${pop.toFixed(2)})"/>`;
-      }).join('');
+
       return `<svg width="100%" height="68" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
         <defs>
           <filter id="tlBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/></filter>
           <filter id="tlGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
         </defs>
-        <!-- Particle backdrop -->
-        ${particles}
         <!-- Path segments (old → new, gradient opacity) -->
         ${segs.join('')}
         <!-- Nodes -->
@@ -5595,10 +5585,10 @@ function renderOverview(){
       const col2Rgb  = _isHike ? '224,120,48' : _isCut ? '58,111,184' : '144,152,170';
       // Card bg: each stance gets a unique diagonal gradient
       const bgGrad   = _isHike
-        ? `linear-gradient(135deg,rgba(210,110,20,0.18) 0%,rgba(180,80,10,0.07) 35%,rgba(4,6,14,0.92) 70%,rgba(4,6,14,0.82) 100%)`
+        ? `linear-gradient(135deg,rgba(210,110,20,0.18) 0%,rgba(180,80,10,0.07) 35%,rgba(4,6,14,0.78) 70%,rgba(4,6,14,0.65) 100%)`
         : _isCut
-        ? `linear-gradient(135deg,rgba(40,90,180,0.16) 0%,rgba(30,70,150,0.06) 40%,rgba(4,6,14,0.92) 70%,rgba(4,6,14,0.82) 100%)`
-        : `linear-gradient(135deg,rgba(80,90,110,0.14) 0%,rgba(60,70,90,0.05) 40%,rgba(4,6,14,0.92) 70%,rgba(4,6,14,0.82) 100%)`;
+        ? `linear-gradient(135deg,rgba(40,90,180,0.16) 0%,rgba(30,70,150,0.06) 40%,rgba(4,6,14,0.78) 70%,rgba(4,6,14,0.65) 100%)`
+        : `linear-gradient(135deg,rgba(80,90,110,0.14) 0%,rgba(60,70,90,0.05) 40%,rgba(4,6,14,0.78) 70%,rgba(4,6,14,0.65) 100%)`;
       // Border
       const borderCol = _isHike
         ? `rgba(220,140,40,${isUS ? '0.42' : '0.24'})`
