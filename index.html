@@ -7309,6 +7309,237 @@ canvas{
   background:rgba(5,7,14,0.82) !important;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NEXUS R10 — Universal Chromatic Slider Language,
+   COT Chart Depth, G10 Ring Removal, Macro Panel Polish
+═══════════════════════════════════════════════════════════ */
+
+/* ── Universal bar/slider language ─────────────────────── */
+/* Spectrum gradient used across ALL bars (same stops) */
+:root {
+  --nexus-spec: linear-gradient(90deg,
+    #e03a2a 0%, #c47a4a 20%, #4a5268 50%, #3b82c4 80%, #22c97a 100%
+  );
+  --nexus-spec-inv: linear-gradient(90deg,
+    #22c97a 0%, #3b82c4 20%, #4a5268 50%, #c47a4a 80%, #e03a2a 100%
+  );
+}
+
+/* ── 1. Sidebar score slider — R10 upgrade ───────────────── */
+.mr-slider-track{
+  position:relative !important;
+  height:4px !important;
+  margin-top:8px !important;
+  border-radius:3px !important;
+  background:linear-gradient(90deg,
+    #c0321e 0%,
+    #a0522d 16%,
+    #3d4660 38%,
+    #3d4660 62%,
+    #1e9a6a 84%,
+    #22c97a 100%
+  ) !important;
+  opacity:0.90 !important;
+  overflow:visible !important;
+}
+.mr-slider-dot{
+  position:absolute !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) !important;
+  width:9px !important; height:9px !important;
+  border-radius:50% !important;
+  background:#ffffff !important;
+  box-shadow:0 0 0 1.5px rgba(0,0,0,0.6), 0 0 8px 2px var(--mr-dot-glow, rgba(255,255,255,0.55)) !important;
+  pointer-events:none !important;
+  transition:left 400ms cubic-bezier(0.25,1,0.5,1) !important;
+}
+
+/* ── 2. COT score cards (cc-gauge) — spectrum dot style ──── */
+.cc-gauge{
+  position:relative !important;
+  height:5px !important;
+  border-radius:3px !important;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.50) 0%,
+    rgba(196,122,74,0.40) 20%,
+    rgba(74,82,104,0.35) 50%,
+    rgba(59,130,196,0.40) 80%,
+    rgba(34,201,122,0.50) 100%
+  ) !important;
+  margin:6px 0 !important;
+  overflow:visible !important;
+}
+.cc-gauge-f{
+  display:none !important; /* replaced by spectrum dot */
+}
+.cc-gauge-dot{
+  position:absolute;
+  top:50%;transform:translate(-50%,-50%);
+  width:9px;height:9px;border-radius:50%;
+  border:1.5px solid var(--bg);
+  pointer-events:none;
+  transition:left 0.5s cubic-bezier(0.25,1,0.5,1);
+}
+
+/* ── 3. Factor strip bars (f-bar-track / f-bar-f) ─────────── */
+.f-bar-track{
+  height:4px !important;
+  border-radius:3px !important;
+  background:rgba(255,255,255,0.05) !important;
+  overflow:visible !important;
+  position:relative !important;
+}
+.f-bar-f{
+  height:4px !important;
+  border-radius:3px !important;
+  position:absolute !important;
+  top:0 !important; left:0 !important;
+  box-shadow:0 0 8px currentColor !important;
+}
+
+/* ── 4. d-sub-bar (factor sub-score, detail panel) ─────────── */
+.d-sub-bar{
+  background:rgba(255,255,255,0.06) !important;
+  border-radius:3px !important;
+  height:4px !important;
+  overflow:visible !important;
+  position:relative !important;
+}
+.d-sub-bar-f{
+  height:100% !important;
+  border-radius:3px !important;
+  position:relative !important;
+  box-shadow:0 0 7px currentColor !important;
+  transition:width 700ms cubic-bezier(0.16,1,0.3,1) !important;
+}
+.d-sub-bar-f::after{
+  content:'';
+  position:absolute;right:-2.5px;top:-3px;bottom:-3px;width:5px !important;
+  background:inherit !important;
+  border-radius:50% !important;
+  filter:blur(3px) !important;
+  opacity:1.0 !important;
+}
+
+/* ── 5. d-score-hero-bar ─────────────────────────────────── */
+.d-score-hero-bar{
+  width:100%;height:4px !important;border-radius:3px;margin-top:10px;
+  background:rgba(255,255,255,0.06);overflow:visible;position:relative;
+}
+.d-score-hero-bar-f{
+  height:100%;border-radius:3px;
+  transition:width 400ms ease;
+  box-shadow:0 0 10px currentColor !important;
+}
+
+/* ── 6. ov-sector-bar — taller track, glow boost ─────────── */
+.ov-sector-bar-wrap{
+  flex:1;height:4px !important;
+  background:rgba(255,255,255,0.07) !important;
+  border-radius:2px;overflow:hidden;
+}
+.ov-sector-bar-fill{
+  height:100%;border-radius:2px;
+  transition:width 700ms var(--ease);
+  box-shadow:0 0 7px currentColor !important;
+}
+
+/* ── 7. ov-cp-cat-bar — wider dot, more opaque track ─────── */
+.ov-cp-cat-bar-wrap{
+  flex:1;height:5px !important;
+  background:linear-gradient(90deg,#e03a2a 0%,#b87333 25%,#5a6480 50%,#5aaa88 75%,#22c97a 100%) !important;
+  border-radius:3px;overflow:visible;
+  position:relative;opacity:0.45 !important;
+  transition:opacity 160ms;
+}
+.ov-cp-cat-row:hover .ov-cp-cat-bar-wrap{opacity:0.80 !important}
+.ov-cp-cat-bar-dot{
+  position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:10px !important;height:10px !important;border-radius:50%;
+  border:1.5px solid var(--bg);
+  transition:left 700ms var(--ease);
+  box-shadow:0 0 10px rgba(var(--cat-accent-rgb,200,169,110),0.75) !important;
+}
+
+/* ── 8. ph-gauge-track (score history) ───────────────────── */
+.ph-gauge-track{
+  position:relative;height:5px !important;border-radius:3px;
+  background:rgba(255,255,255,0.06) !important;overflow:visible !important;
+}
+
+/* ── 9. ov-rate-bar (G10 rate bar) ───────────────────────── */
+.ov-rate-bar-wrap{
+  height:4px !important;
+  background:rgba(255,255,255,0.07) !important;
+  border-radius:2px;overflow:visible !important;margin-bottom:4px;
+  position:relative;
+}
+.ov-rate-bar-fill{
+  height:100%;border-radius:2px;
+  transition:width 600ms var(--ease);
+  box-shadow:0 0 6px currentColor !important;
+}
+
+/* ── 10. mc-mom-bar (macro momentum bars) ─────────────────── */
+.mc-mom-bar{
+  flex:1;height:4px !important;border-radius:2px;
+  background:rgba(255,255,255,0.06) !important;
+  position:relative;overflow:visible !important;
+}
+.mc-mom-fill{
+  position:absolute;top:0;height:4px !important;border-radius:2px;
+  transition:width 800ms cubic-bezier(0.16,1,0.3,1);
+  box-shadow:0 0 8px currentColor !important;
+}
+/* mc-mom spectrum track overlay */
+.mc-mom-bar::before{
+  content:'';position:absolute;inset:0;border-radius:2px;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.22) 0%,rgba(196,122,74,0.18) 20%,
+    rgba(74,82,104,0.12) 50%,rgba(59,130,196,0.18) 80%,
+    rgba(34,201,122,0.22) 100%
+  );
+  pointer-events:none;
+}
+
+/* ── 11. mcat-bar (macro category mini bars) ──────────────── */
+.mcat-bar{
+  height:4px !important;border-radius:2px;
+  background:rgba(255,255,255,0.06) !important;
+  overflow:visible !important;
+  position:relative;
+}
+.mcat-bar-f{
+  height:100%;border-radius:2px;
+  box-shadow:0 0 7px currentColor !important;
+  transition:width 600ms ease !important;
+}
+.mcat-bar::before{
+  content:'';position:absolute;inset:0;border-radius:2px;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.20) 0%,rgba(196,122,74,0.16) 20%,
+    rgba(74,82,104,0.10) 50%,rgba(59,130,196,0.16) 80%,
+    rgba(34,201,122,0.20) 100%
+  );
+  pointer-events:none;
+}
+
+/* ── 12. ov-cb-bar-wrap (G10 CB table compact bar) ───────── */
+.ov-cb-bar-wrap{
+  flex:1;height:3px !important;
+  background:rgba(255,255,255,0.06) !important;
+  border-radius:2px;overflow:hidden !important;
+}
+
+/* Ensure mc-mom tip dots are visible */
+.mc-mom-tip{
+  position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:5px;height:5px;border-radius:50%;
+  pointer-events:none;
+  box-shadow:0 0 6px currentColor;
+}
+
+
 
 </style>
 </head>
@@ -7750,7 +7981,8 @@ function renderList(){
 
     // ── R9: Score gradient slider (replaces flame bar)
     const sliderPct = Math.max(2, Math.min(98, ws * 10));
-    const sliderHtml = `<div class="mr-slider-track">
+    const dotGlow = score>=7?'rgba(34,201,122,0.70)':score>=5.5?'rgba(59,130,196,0.65)':score>=4.5?'rgba(74,82,104,0.55)':score>=3?'rgba(196,122,74,0.65)':'rgba(224,58,42,0.70)';
+    const sliderHtml = `<div class="mr-slider-track" style="--mr-dot-glow:${dotGlow}">
       <div class="mr-slider-dot" style="left:${sliderPct}%"></div>
     </div>`;
 
@@ -8861,13 +9093,7 @@ function renderOverview(){
         <!-- Row 2: rate + stance pill + cfp delta -->
         <div style="position:relative;display:flex;align-items:baseline;gap:8px;margin-bottom:6px;flex-wrap:wrap">
           <div style="position:relative;display:inline-block">
-            <!-- Concentric pulse rings behind rate number -->
-            <svg style="position:absolute;top:50%;left:50%;transform:translate(-50%,-52%);pointer-events:none;overflow:visible" width="0" height="0">
-              <circle r="28" cx="0" cy="0" fill="none" stroke="${col}" stroke-width="1.5"
-                style="opacity:0;animation:ringPulse 3s ease-in-out ${Math.random()*500}ms infinite;transform-origin:center"/>
-              <circle r="38" cx="0" cy="0" fill="none" stroke="${col}" stroke-width="0.8"
-                style="opacity:0;animation:ringPulse 3s ease-in-out ${400+Math.random()*500}ms infinite;transform-origin:center"/>
-            </svg>
+
             <div style="position:relative;font-family:var(--mono);font-size:${isUS ? '28' : '24'}px;font-weight:900;letter-spacing:-0.04em;line-height:1;
               color:${col};
               background:linear-gradient(135deg,${col} 0%,${col2} 100%);
@@ -14931,7 +15157,7 @@ function dHead(m,ws,col,bg){
           const tipText=`${factorLabel}: ${sc.toFixed(1)}/10 × ${wt}% = ${contribSign}${contrib.toFixed(2)} pts`;
           return `<div class="d-sub-row" title="${tipText}">
             <span class="d-sub-lbl">${lbl}</span>
-            <div class="d-sub-bar"><div class="d-sub-bar-f" style="width:${pct}%;background:${c}"></div></div>
+            <div class="d-sub-bar"><div style="position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,#e03a2a 0%,#c47a4a 20%,#4a5268 50%,#3b82c4 80%,#22c97a 100%);opacity:0.12"></div><div class="d-sub-bar-f" style="width:${pct}%;background:${c};box-shadow:0 0 8px ${c}cc"></div><div style="position:absolute;top:50%;left:${pct}%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;background:${c};box-shadow:0 0 8px ${c}bb;pointer-events:none"></div></div>
             <span class="d-sub-num" style="color:${c}">${sc.toFixed(1)}</span>
           </div>`;
         }).join('');
@@ -15237,9 +15463,9 @@ function fCard(id,sc,weights,extras){
     ${id==='cot'&&extras?.ice_limited_history?`<div style="font-size:6px;font-weight:700;letter-spacing:0.08em;color:#f5a623;border:1px solid rgba(245,164,35,0.3);border-radius:3px;padding:1px 4px;margin-top:2px;display:inline-block">LIMITED DATA</div>`:''}
     <div class="f-bar">
       <div class="f-bar-track">
-        <div style="position:absolute;inset:0;border-radius:2px;background:${barGrad};opacity:0.12"></div>
+        <div style="position:absolute;inset:0;border-radius:3px;background:${barGrad};opacity:0.20"></div>
         <div class="f-bar-f" style="width:${pct}%;background:${barGrad};background-size:${pct>0?(100/pct*100)+'% 100%':'100% 100%'}"></div>
-        <div style="position:absolute;top:-3px;left:${pct}%;transform:translateX(-50%);width:2px;height:8px;border-radius:1px;background:${col};box-shadow:0 0 6px ${col}80"></div>
+        <div style="position:absolute;top:-4px;left:${pct}%;transform:translateX(-50%);width:3px;height:12px;border-radius:2px;background:${col};box-shadow:0 0 10px ${col}cc,0 0 20px ${col}44"></div>
       </div>
       ${wtBarPct>0?`<div class="f-wt-bar-track"><div class="f-wt-bar-fill" style="width:${wtBarPct}%;--f-accent:${meta.accent}"></div></div>`:''}
     </div>
@@ -15508,7 +15734,7 @@ function cotTab(m){
     html+=`<div class="cot-card">
       <div class="cc-head">Base: ${baseLeg}</div>
       <div class="cc-idx" style="color:${baseCol}">${baseBr.toFixed(0)}<sup>/100</sup></div>
-      <div class="cc-gauge"><div class="cc-gauge-f" style="width:${baseBr}%;background:linear-gradient(90deg,#e03a2a 0%,#c47a4a 20%,#4a5268 50%,#3b82c4 80%,#22c97a 100%);background-size:${baseBr>0?(100/baseBr*100)+'% 100%':'100% 100%'}"></div></div>
+      <div class="cc-gauge"><div class="cc-gauge-dot" style="left:${baseBr}%;background:${baseBr>=60?'#22c97a':baseBr<=40?'#e03a2a':'#c47a4a'};box-shadow:0 0 8px ${baseBr>=60?'#22c97a99':baseBr<=40?'#e03a2a99':'#c47a4a99'}"></div></div>
       ${baseExtreme?`<div class="cc-tag" style="color:${baseCol}">${baseTag}</div>`:''}
       <div class="cc-desc">Briese Index — commercial sentiment for ${baseLeg} futures (0=max short, 100=max long)</div>
     </div>`;
@@ -15518,7 +15744,7 @@ function cotTab(m){
     html+=`<div class="cot-card">
       <div class="cc-head">Quote: ${quoteLeg}</div>
       <div class="cc-idx" style="color:${quoteCol}">${quoteBr.toFixed(0)}<sup>/100</sup></div>
-      <div class="cc-gauge"><div class="cc-gauge-f" style="width:${quoteBr}%;background:linear-gradient(90deg,#e03a2a 0%,#c47a4a 20%,#4a5268 50%,#3b82c4 80%,#22c97a 100%);background-size:${quoteBr>0?(100/quoteBr*100)+'% 100%':'100% 100%'}"></div></div>
+      <div class="cc-gauge"><div class="cc-gauge-dot" style="left:${quoteBr}%;background:${quoteBr>=60?'#22c97a':quoteBr<=40?'#e03a2a':'#c47a4a'};box-shadow:0 0 8px ${quoteBr>=60?'#22c97a99':quoteBr<=40?'#e03a2a99':'#c47a4a99'}"></div></div>
       ${quoteExtreme?`<div class="cc-tag" style="color:${quoteCol}">${quoteTag}</div>`:''}
       <div class="cc-desc">Briese Index — commercial sentiment for ${quoteLeg} futures (0=max short, 100=max long)</div>
     </div>`;
@@ -15527,7 +15753,7 @@ function cotTab(m){
     html+=`<div class="cot-card">
       <div class="cc-head">Differential</div>
       <div class="cc-idx" style="color:${diffCol}">${diff>=0?'+':''}${diff.toFixed(0)}<sup>/±100</sup></div>
-      <div class="cc-gauge"><div class="cc-gauge-f" style="width:${diffNorm}%;background:linear-gradient(90deg,#e03a2a 0%,#c47a4a 20%,#4a5268 50%,#3b82c4 80%,#22c97a 100%);background-size:${diffNorm>0?(100/diffNorm*100)+'% 100%':'100% 100%'}"></div></div>
+      <div class="cc-gauge"><div class="cc-gauge-dot" style="left:${diffNorm}%;background:${diffNorm>=60?'#22c97a':diffNorm<=40?'#e03a2a':'#c47a4a'};box-shadow:0 0 8px ${diffNorm>=60?'#22c97a99':diffNorm<=40?'#e03a2a99':'#c47a4a99'}"></div></div>
       <div class="cc-desc">${baseLeg} Briese minus ${quoteLeg} Briese — positive = bullish ${m.id.slice(0,3)}, negative = bearish</div>
     </div>`;
     html+=`</div>`;
@@ -15657,7 +15883,7 @@ function cotTab(m){
     html+=`<div class="cot-card" style="border-top:2px solid ${g.col};border-top-color:${extreme?g.col:g.col+'55'}">
       <div class="cc-head" style="color:${g.col}">${g.label}</div>
       <div class="cc-idx" style="color:${g.col}">${ix!=null?ix.toFixed(0):'—'}<sup>/100</sup></div>
-      <div class="cc-gauge"><div class="cc-gauge-f" style="width:${ix??50}%;background:linear-gradient(90deg,#e03a2a 0%,#c47a4a 20%,#4a5268 50%,#3b82c4 80%,#22c97a 100%);background-size:${ix!=null&&ix>0?(100/ix*100)+'% 100%':'100% 100%'}"></div></div>
+      <div class="cc-gauge"><div class="cc-gauge-dot" style="left:${ix??50}%;background:${(ix??50)>=60?'#22c97a':(ix??50)<=40?'#e03a2a':'#c47a4a'};box-shadow:0 0 8px ${(ix??50)>=60?'#22c97a99':(ix??50)<=40?'#e03a2a99':'#c47a4a99'}"></div></div>
       <div class="cc-net">Net: ${fmtK(g.net)}</div>
       ${extreme?`<div class="cc-tag" style="background:${tagCol};color:${g.col}">${tag}</div>`:''}
       <div class="cc-desc">${g.desc}</div>
@@ -16089,15 +16315,15 @@ async function initCotCharts(marketId){
         datasets:[{
           data:vals,
           borderColor:col,
-          borderWidth:2,
+          borderWidth:2.5,
           pointRadius:0,
           tension:0.3,
           fill:{
             target:{value:isIdx?50:0},
-            above:col+'48',
-            below:(isIdx?col:col)+'22',
+            above:col+'70',
+            below:(isIdx?col:col)+'44',
           },
-          backgroundColor:col+'22',
+          backgroundColor:col+'33',
         }]
       },
       options:{
@@ -16127,9 +16353,9 @@ async function initCotCharts(marketId){
             border:{color:'rgba(255,255,255,0.08)'}
           },
           y:{
-            ticks:{color:'rgba(180,200,235,0.38)',font:{size:7,family:'JetBrains Mono'},maxTicksLimit:4,
+            ticks:{color:'rgba(180,200,235,0.52)',font:{size:7.5,family:'JetBrains Mono'},maxTicksLimit:4,
               callback:v=>isIdx?v.toFixed(0):fmtK(v)},
-            grid:{color:'rgba(255,255,255,0.05)'},
+            grid:{color:'rgba(255,255,255,0.08)'},
             border:{color:'transparent'},
             // Zero / midpoint line
             ...(isIdx?{min:0,max:100}:{}),
@@ -16138,6 +16364,15 @@ async function initCotCharts(marketId){
         // Zero baseline annotation via afterDraw plugin
       },
       plugins:[{
+        id:'bg-'+i,
+        beforeDraw(ch){
+          const{ctx:c2,chartArea:{left,top,right,bottom}}=ch;
+          c2.save();
+          c2.fillStyle='rgba(6,8,16,0.70)';
+          c2.fillRect(left,top,right-left,bottom-top);
+          c2.restore();
+        }
+      },{
         id:'zero-'+i,
         afterDraw(ch){
           const{ctx:c2,scales:{x,y}}=ch;
@@ -19962,9 +20197,9 @@ function phaseTab(m){
         <span class="ph-gauge-val" style="color:${vc}">${val.toFixed(0)}<span style="opacity:0.4;font-size:8px">/100</span></span>
       </div>
       <div class="ph-gauge-track">
-        <div style="position:absolute;inset:0;background:${grad};opacity:0.1;border-radius:3px"></div>
-        <div style="width:${pct}%;height:100%;background:${grad};background-size:${bsize};border-radius:3px;position:absolute;top:0;left:0;transition:width 0.4s"></div>
-        <div style="position:absolute;top:-3px;left:${pct}%;transform:translateX(-50%);width:2px;height:10px;border-radius:1px;background:${vc};box-shadow:0 0 6px ${vc}80"></div>
+        <div style="position:absolute;inset:0;background:${grad};opacity:0.18;border-radius:3px"></div>
+        <div style="width:${pct}%;height:100%;background:${grad};background-size:${bsize};border-radius:3px;position:absolute;top:0;left:0;transition:width 0.4s;box-shadow:0 0 8px ${vc}88"></div>
+        <div style="position:absolute;top:50%;left:${pct}%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:${vc};border:1.5px solid #030508;box-shadow:0 0 10px ${vc}cc;pointer-events:none;transition:left 0.4s"></div>
       </div>
     </div>`;
   }
