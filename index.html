@@ -5609,10 +5609,10 @@ function renderOverview(){
       const col2Rgb  = _isHike ? '224,120,48' : _isCut ? '58,111,184' : '144,152,170';
       // Card bg: each stance gets a unique diagonal gradient
       const bgGrad   = _isHike
-        ? `linear-gradient(135deg,rgba(210,110,20,0.18) 0%,rgba(180,80,10,0.07) 35%,rgba(4,6,14,0.78) 70%,rgba(4,6,14,0.65) 100%)`
+        ? `linear-gradient(135deg,rgba(210,110,20,0.18) 0%,rgba(180,80,10,0.07) 35%,rgba(4,6,14,0.50) 70%,rgba(4,6,14,0.38) 100%)`
         : _isCut
-        ? `linear-gradient(135deg,rgba(40,90,180,0.16) 0%,rgba(30,70,150,0.06) 40%,rgba(4,6,14,0.78) 70%,rgba(4,6,14,0.65) 100%)`
-        : `linear-gradient(135deg,rgba(80,90,110,0.14) 0%,rgba(60,70,90,0.05) 40%,rgba(4,6,14,0.78) 70%,rgba(4,6,14,0.65) 100%)`;
+        ? `linear-gradient(135deg,rgba(40,90,180,0.16) 0%,rgba(30,70,150,0.06) 40%,rgba(4,6,14,0.50) 70%,rgba(4,6,14,0.38) 100%)`
+        : `linear-gradient(135deg,rgba(80,90,110,0.14) 0%,rgba(60,70,90,0.05) 40%,rgba(4,6,14,0.50) 70%,rgba(4,6,14,0.38) 100%)`;
       // Border
       const borderCol = _isHike
         ? `rgba(220,140,40,${isUS ? '0.42' : '0.24'})`
@@ -5651,11 +5651,12 @@ function renderOverview(){
         background:${bgGrad};
         border:1px solid ${borderCol};
         box-shadow:0 4px 22px rgba(0,0,0,0.50),inset 0 1px 0 rgba(255,255,255,0.04);
+        backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
       ">
         <!-- Flag backdrop: full-bleed right-anchored SVG with left gradient fade -->
         ${CB_FLAG_HTML[cb] ? `<div style="pointer-events:none;position:absolute;inset:0;z-index:0;overflow:hidden;border-radius:13px">
           <div style="position:absolute;inset:0;opacity:0.13">${CB_FLAG_HTML[cb]}</div>
-          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(4,6,14,0.99) 0%,rgba(4,6,14,0.97) 40%,rgba(4,6,14,0.70) 62%,rgba(4,6,14,0.0) 100%)"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(4,6,14,0.82) 0%,rgba(4,6,14,0.68) 35%,rgba(4,6,14,0.38) 60%,rgba(4,6,14,0.0) 100%)"></div>
         </div>` : ''}
         <!-- Radial shimmer -->
         <div style="pointer-events:none;position:absolute;inset:0;background:${shimmer}"></div>
