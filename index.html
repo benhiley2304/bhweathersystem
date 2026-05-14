@@ -977,11 +977,12 @@ a{color:inherit;text-decoration:none}
   padding:6px 7px 9px;
   display:flex;flex-direction:column;gap:0;
   cursor:pointer;
-  transition:transform 130ms var(--ease),box-shadow 130ms var(--ease),filter 130ms var(--ease);
+  transition:transform 160ms var(--ease),box-shadow 160ms var(--ease),border-color 160ms var(--ease);
   min-width:54px;flex:1;max-width:92px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,0.09);
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.07);
+  backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);
 }
 .ov-tile::after{
   content:'';position:absolute;top:0;left:0;right:0;height:40%;
@@ -989,9 +990,10 @@ a{color:inherit;text-decoration:none}
   pointer-events:none;
 }
 .ov-tile:hover{
-  transform:translateY(-1px) scale(1.02);
-  box-shadow:0 4px 16px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08);
+  transform:translateY(-2px) scale(1.04);
+  box-shadow:0 6px 24px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.14),inset 0 1px 0 rgba(255,255,255,0.12);
   z-index:2;
+  border-color:rgba(255,255,255,0.20);
 }
 .ov-tile::before{
   content:'';position:absolute;inset:0;
@@ -1515,6 +1517,20 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .ov-cs-arc-unit:nth-child(1){animation-delay:160ms}
 .ov-cs-arc-unit:nth-child(2){animation-delay:280ms}
 @keyframes csArcIn{from{opacity:0;transform:translateY(8px) scale(0.96)}to{opacity:1;transform:none}}
+/* ── Quantum Creative Upgrade keyframes ── */
+@keyframes ringArcFill{from{stroke-dashoffset:var(--arc-full)}to{stroke-dashoffset:var(--arc-offset)}}
+@keyframes ringPulse{0%,100%{opacity:0.70}50%{opacity:1.0}}
+@keyframes dotMeterIn{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+@keyframes regimeWashPulse{0%,100%{opacity:0.55}50%{opacity:1.0}}
+@keyframes scanlineDrift{from{transform:translateY(-100%)}to{transform:translateY(200vh)}}
+@keyframes cbRingOrbit{0%{stroke-dashoffset:var(--cb-full)}100%{stroke-dashoffset:var(--cb-offset)}}
+@keyframes cbRingPulse{0%,100%{opacity:0.55;r:24}50%{opacity:0.85;r:26}}
+@keyframes glassShimmer{0%{transform:translateX(-100%) rotate(15deg)}100%{transform:translateX(300%) rotate(15deg)}}
+@keyframes tileGlowIn{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}
+@keyframes horizonBreath{0%,100%{opacity:0.03}50%{opacity:0.07}}
+@keyframes chromaShift{0%,100%{filter:hue-rotate(0deg)}50%{filter:hue-rotate(12deg)}}
+@keyframes microPulse{0%,100%{transform:scale(1);opacity:0.7}50%{transform:scale(1.5);opacity:1}}
+
 /* Arc wrap — positions the score overlay centrally */
 .ov-cs-arc-svg-wrap{
   position:relative;display:flex;flex-direction:column;align-items:center;
@@ -4171,10 +4187,99 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .fx-cat-row:hover{
   background:linear-gradient(90deg,rgba(26,30,44,0.88) 0%,rgba(20,23,34,0.80) 100%) !important;
 }
+
+/* ── Regime atmosphere wash — fixed full-screen tonal field ── */
+#regime-wash{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  opacity:0;
+  transition:background 2.4s cubic-bezier(0.16,1,0.3,1), opacity 1.8s ease;
+}
+#regime-wash.visible{opacity:1}
+
+/* ── Quantum scanline — single drifting horizontal light line ── */
+#q-scanline{
+  position:fixed;left:0;right:0;height:1px;pointer-events:none;z-index:2;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 20%,rgba(255,255,255,0.12) 50%,rgba(255,255,255,0.04) 80%,transparent 100%);
+  animation:scanlineDrift 18s linear infinite;
+  top:0;
+}
+
+/* ── Heatmap tile ring arc upgrade ── */
+.ov-tile-ring-wrap{
+  position:absolute;top:4px;right:4px;pointer-events:none;
+}
+.ov-tile-ring-wrap svg{overflow:visible}
+
+/* ── Rankings dot meter ── */
+.mr-dot-meter{
+  display:flex;gap:2.5px;align-items:center;flex-shrink:0;
+}
+.mr-dot{
+  width:4px;height:4px;border-radius:50%;
+  transition:background 300ms, box-shadow 300ms;
+  flex-shrink:0;
+}
+
+/* ── Sector bar — segmented glow upgrade ── */
+.ov-sector-bar-segs{
+  display:flex;gap:2px;flex:1;height:3px;align-items:center;
+}
+.ov-sector-seg{
+  height:3px;border-radius:3px;flex:1;
+  transition:background 600ms, box-shadow 400ms;
+}
+
+/* ── Regime glow text — hero ── */
+.regime-glow-text{
+  transition: text-shadow 1.8s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ── Glass shimmer on macro cards — one-shot on load ── */
+.glass-shimmer-wrap{
+  position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit;
+}
+.glass-shimmer-line{
+  position:absolute;top:0;bottom:0;width:60px;
+  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,0.055) 50%,transparent 100%);
+  animation:glassShimmer 3.5s cubic-bezier(0.4,0,0.6,1) 0.8s both;
+  pointer-events:none;
+}
+
+/* ── Tile: hover glass shimmer ── */
+.ov-tile .glass-shimmer-line{
+  animation:glassShimmer 1.2s cubic-bezier(0.4,0,0.6,1) both;
+}
+.ov-tile:hover .glass-shimmer-line{
+  animation:glassShimmer 1.2s cubic-bezier(0.4,0,0.6,1) both;
+}
+
+/* ── CB card rate number ring ── */
+.cb-rate-ring-wrap{
+  position:absolute;top:0;right:0;pointer-events:none;
+}
+
+/* ── Horizon glow — bottom of detail panel ── */
+#detail::after{
+  content:'';
+  position:fixed;bottom:0;left:320px;right:0;height:2px;pointer-events:none;z-index:3;
+  background:linear-gradient(90deg,transparent 0%,var(--reg-col,rgba(34,201,122,0.6)) 50%,transparent 100%);
+  animation:horizonBreath 5s ease-in-out infinite;
+  opacity:0.05;
+}
+
+/* ── Live pulse dot on stat pills ── */
+.stat-live-dot{
+  width:5px;height:5px;border-radius:50%;
+  display:inline-block;flex-shrink:0;
+  animation:microPulse 2.8s ease-in-out infinite;
+}
+
 </style>
 </head>
 <body>
 <canvas id="app-particle-bg" aria-hidden="true"></canvas>
+  <div id="regime-wash"></div>
+  <div id="q-scanline"></div>
 <script>
 (function(){
   function setH(){
@@ -4279,6 +4384,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
         <!-- unified hero — particles + text + arc in one panel -->
         <div class="ov-banner" id="ov-banner">
           <div class="ov-banner-bg" id="ov-banner-bg"></div>
+          <div class="glass-shimmer-wrap" style="border-radius:0"><div class="glass-shimmer-line" style="animation-duration:5s;animation-delay:1.2s;animation-iteration-count:infinite;animation-timing-function:cubic-bezier(0.4,0,0.6,1);width:120px;opacity:0.6"></div></div>
           <canvas class="ov-banner-canvas" id="ov-canvas"></canvas>
           <div class="ov-banner-inner" id="ov-banner-inner"></div>
           <!-- arc section lives inside the same hero -->
@@ -4656,15 +4762,24 @@ function renderList(){
       pointer-events:none"></div>` : '';
 
     const _zone = ws >= 6.0 ? 'bull' : ws <= 4.0 ? 'bear' : 'neutral';
+    // Dot meter: 10 dots, filled = rounded score
+    const dotCount = 10;
+    const filledDots = Math.round(ws);
+    const dotHtml = Array.from({length:dotCount},(_,i)=>{
+      const filled = i < filledDots;
+      const glow = filled ? `box-shadow:0 0 5px ${col}cc,0 0 10px ${col}44` : '';
+      const bg = filled ? col : 'rgba(255,255,255,0.08)';
+      // Intensity: dots near the filled edge glow brighter
+      const edgeDist = filled ? filledDots - 1 - i : i - filledDots;
+      const opacity = filled ? (edgeDist === 0 ? 1.0 : edgeDist === 1 ? 0.85 : 0.65) : 0.5;
+      return `<div class="mr-dot" style="background:${bg};${glow};opacity:${opacity};animation:dotMeterIn 280ms cubic-bezier(0.34,1.56,0.64,1) ${i*30}ms both"></div>`;
+    }).join('');
+
     return sepHtml + `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" data-zone="${_zone}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id">${m.id}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
-        <div class="mr-bar" style="background:${trackBg}">
-          <div class="mr-bar-f" style="${fillStyle}"></div>
-          ${centreNotch}
-          ${tipCap}
-        </div>
+        <div class="mr-dot-meter">${dotHtml}</div>
       </div>
       <div class="mr-right">
         <span class="mr-score-badge" style="color:${col}">${ws.toFixed(1)}</span>
@@ -4827,6 +4942,33 @@ function renderOverview(){
     const c2=regLabel.includes('On')?'rgba(38,201,122,0.05)':regLabel.includes('Off')?'rgba(220,90,58,0.05)':'rgba(92,158,255,0.04)';
     bnBg.style.background=`radial-gradient(ellipse 80% 130% at 85% 50%,${c1} 0%,transparent 65%),radial-gradient(ellipse 50% 70% at 10% 90%,${c2} 0%,transparent 60%)`;
   }
+  // ── Regime atmosphere wash ──────────────────────────────────────────────
+  (function(){
+    const wash = document.getElementById('regime-wash');
+    if(!wash) return;
+    const isOn  = regLabel.includes('Risk-On');
+    const isOff = regLabel.includes('Risk-Off');
+    const strong = regLabel.includes('Strong');
+    let c1,c2,c3;
+    if(isOn){
+      c1 = strong ? 'rgba(0,240,154,0.06)' : 'rgba(34,201,122,0.045)';
+      c2 = 'rgba(38,180,110,0.025)';
+      c3 = 'rgba(0,60,40,0.04)';
+    } else if(isOff){
+      c1 = strong ? 'rgba(220,40,40,0.07)' : 'rgba(224,58,42,0.05)';
+      c2 = 'rgba(180,40,40,0.025)';
+      c3 = 'rgba(60,0,0,0.04)';
+    } else {
+      c1 = 'rgba(92,158,255,0.035)';
+      c2 = 'rgba(60,100,180,0.02)';
+      c3 = 'rgba(10,20,50,0.03)';
+    }
+    wash.style.background = `radial-gradient(ellipse 65% 55% at 72% 30%,${c1} 0%,transparent 70%),radial-gradient(ellipse 45% 60% at 20% 75%,${c2} 0%,transparent 65%),radial-gradient(ellipse 80% 40% at 50% 100%,${c3} 0%,transparent 60%)`;
+    wash.classList.add('visible');
+    // Expose regime colour as CSS var for horizon line
+    document.documentElement.style.setProperty('--reg-col', regCol + '99');
+  })();
+
 
   // Sentiment bar
   const bullPct=Math.round((bull/total)*100);
@@ -4934,8 +5076,8 @@ function renderOverview(){
     <div class="ov-banner-left">
       <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-        <div class="ov-banner-regime" style="color:${regCol}">${regLabel}</div>
-        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}35;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px" title="Composite climate score — 5.0 = neutral, 10 = max risk-on, 0 = max risk-off"><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 10</span></div>`:''}
+        <div class="ov-banner-regime regime-glow-text" style="color:${regCol};text-shadow:0 0 24px ${regCol}aa,0 0 80px ${regCol}55,0 0 160px ${regCol}22">${regLabel}</div>
+        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}44;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 18px ${regCol}33,inset 0 1px 0 rgba(255,255,255,0.10);animation:pillBreath 3.5s ease-in-out infinite" title="Composite climate score — 5.0 = neutral, 10 = max risk-on, 0 = max risk-off"><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 10</span></div>`:''}
       </div>
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
       <div class="ov-banner-sub">
@@ -4944,7 +5086,7 @@ function renderOverview(){
       </div>
       <div class="ov-banner-stats">
         <div class="ov-stat-pill">
-          <div class="ov-stat-label">Avg Score</div>
+          <div class="ov-stat-label" style="display:flex;align-items:center;gap:4px"><span class="stat-live-dot" style="background:${regCol};color:${regCol}"></span>Avg Score</div>
           <div class="ov-stat-val" style="color:${sHex(parseFloat(avg))}" data-countup="${avg}">${avg}</div>
           <div class="ov-stat-sub">composite / 10</div>
         </div>
@@ -5001,9 +5143,20 @@ function renderOverview(){
           const av=ss.reduce((a,b)=>a+b,0)/ss.length;
           const col=sHex(av);
           const barW=Math.round(Math.max(0,Math.min(100,((av-3)/6)*100))); // map 3-9 → 0-100%
+          // Segmented bar: 12 segments, fill proportional to barW
+          const segCount = 12;
+          const filledSegs = Math.round(segCount * barW / 100);
+          const segsHtml = Array.from({length:segCount},(_,si)=>{
+            const on = si < filledSegs;
+            const edgeSeg = on && si === filledSegs-1;
+            const glowStr = on ? `box-shadow:0 0 6px ${col}cc${edgeSeg?`,0 0 14px ${col}88`:''}` : '';
+            const bg = on ? col : 'rgba(255,255,255,0.07)';
+            const op = on ? (edgeSeg ? 1.0 : si > filledSegs-3 ? 0.85 : 0.65) : 0.5;
+            return `<div class="ov-sector-seg" style="background:${bg};${glowStr};opacity:${op}"></div>`;
+          }).join('');
           return `<div class="ov-sector-row">
             <div class="ov-sector-name">${s.label}</div>
-            <div class="ov-sector-bar-wrap"><div class="ov-sector-bar-fill" style="width:${barW}%;background:${col}"></div></div>
+            <div class="ov-sector-bar-segs">${segsHtml}</div>
             <div class="ov-sector-score" style="color:${col}">${av.toFixed(1)}</div>
           </div>`;
         }).filter(Boolean).join('');
@@ -5088,13 +5241,48 @@ function renderOverview(){
       const delay=tileIdx*28;
       tileIdx++;
       const barPctTile=Math.min(100,Math.max(0,(ws/10)*100));
-      return `<div class="ov-tile" style="background:${c.bg};animation-delay:${delay}ms" onclick="selectMkt('${m.id}')" title="${m.name}: ${ws.toFixed(1)}/10">
-        <div class="ov-tile-pip" style="background:${c.pip};color:${c.pip}"></div>
-        <div class="ov-tile-id" style="color:${c.text}">${m.id}</div>
-        <div class="ov-tile-name" style="color:${c.text}">${m.name}</div>
-        <div class="ov-tile-score" style="color:${c.text}">${ws.toFixed(1)}</div>
-        <div class="ov-tile-bar"><div class="ov-tile-bar-f" style="width:${barPctTile}%;background:${c.pip}"></div></div>
-      </div>`;
+      (function(){
+        // Arc ring parameters
+        const R=11,stroke=3,CX=15,CY=15;
+        const circ=2*Math.PI*R;
+        const arcFrac=Math.min(1,Math.max(0,(ws-1)/9)); // 1→10 maps to 0→full
+        const dashOffset=circ*(1-arcFrac);
+        const uid='tr'+Math.random().toString(36).slice(2,7);
+        const arcSvg=`<svg width="30" height="30" viewBox="0 0 30 30" style="overflow:visible">
+          <defs>
+            <linearGradient id="tg${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="${c.pip}" stop-opacity="1"/>
+              <stop offset="100%" stop-color="${c.pip}" stop-opacity="0.4"/>
+            </linearGradient>
+          </defs>
+          <circle cx="${CX}" cy="${CY}" r="${R}" stroke="rgba(255,255,255,0.06)" stroke-width="${stroke}" fill="none" stroke-linecap="round"/>
+          <circle cx="${CX}" cy="${CY}" r="${R}" stroke="url(#tg${uid})" stroke-width="${stroke}" fill="none"
+            stroke-linecap="round"
+            stroke-dasharray="${circ.toFixed(2)}"
+            stroke-dashoffset="${circ.toFixed(2)}"
+            style="transform-origin:${CX}px ${CY}px;transform:rotate(-90deg);
+              transition:stroke-dashoffset 900ms cubic-bezier(0.16,1,0.3,1) ${delay}ms;
+              --arc-full:${circ.toFixed(2)};--arc-offset:${dashOffset.toFixed(2)}"
+            data-arc-target="${dashOffset.toFixed(2)}"/>
+          <circle cx="${CX}" cy="${CY}" r="${R}" stroke="${c.pip}" stroke-width="${stroke+4}" fill="none"
+            stroke-linecap="round"
+            stroke-dasharray="${circ.toFixed(2)}"
+            stroke-dashoffset="${circ.toFixed(2)}"
+            style="transform-origin:${CX}px ${CY}px;transform:rotate(-90deg);
+              transition:stroke-dashoffset 900ms cubic-bezier(0.16,1,0.3,1) ${delay}ms;
+              opacity:0.10;filter:blur(2px)"
+            data-arc-target="${dashOffset.toFixed(2)}"/>
+        </svg>`;
+        return `<div class="ov-tile" style="background:${c.bg};animation-delay:${delay}ms" onclick="selectMkt('${m.id}')" title="${m.name}: ${ws.toFixed(1)}/10">
+          <div class="glass-shimmer-wrap"><div class="glass-shimmer-line"></div></div>
+          <div class="ov-tile-pip" style="background:${c.pip};color:${c.pip}"></div>
+          <div class="ov-tile-id" style="color:${c.text}">${m.id}</div>
+          <div class="ov-tile-name" style="color:${c.text}">${m.name}</div>
+          <div class="ov-tile-score" style="color:${c.text}">${ws.toFixed(1)}</div>
+          <div class="ov-tile-ring-wrap">${arcSvg}</div>
+          <div class="ov-tile-bar"><div class="ov-tile-bar-f" style="width:${barPctTile}%;background:${c.pip}"></div></div>
+        </div>`;
+      })();
     }).filter(Boolean).join('');
     if(!tiles)continue;
     const secScores=sec.ids.map(id=>mktMap[id]?.weighted_score).filter(v=>v!=null);
@@ -5109,6 +5297,15 @@ function renderOverview(){
     </div>`;
   }
   document.getElementById('ov-heatmap-grid').innerHTML=hmHtml;
+  // Trigger arc ring fill animations
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      document.querySelectorAll('[data-arc-target]').forEach(el=>{
+        el.style.strokeDashoffset = el.dataset.arcTarget;
+      });
+    });
+  });
+
 
   // ── 4. TOP SIGNALS ─────────────────────────────
   const topBull=sorted.slice(0,4);
@@ -5676,11 +5873,21 @@ function renderOverview(){
         </div>
         <!-- Row 2: rate + stance pill + cfp delta -->
         <div style="position:relative;display:flex;align-items:baseline;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-          <div style="font-family:var(--mono);font-size:${isUS ? '28' : '24'}px;font-weight:900;letter-spacing:-0.04em;line-height:1;
-            color:${col};
-            background:linear-gradient(135deg,${col} 0%,${col2} 100%);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-          ">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.70">%</span>${srcBadge}</div>
+          <div style="position:relative;display:inline-block">
+            <!-- Concentric pulse rings behind rate number -->
+            <svg style="position:absolute;top:50%;left:50%;transform:translate(-50%,-52%);pointer-events:none;overflow:visible" width="0" height="0">
+              <circle r="28" cx="0" cy="0" fill="none" stroke="${col}" stroke-width="1.5"
+                style="opacity:0;animation:ringPulse 3s ease-in-out ${Math.random()*500}ms infinite;transform-origin:center"/>
+              <circle r="38" cx="0" cy="0" fill="none" stroke="${col}" stroke-width="0.8"
+                style="opacity:0;animation:ringPulse 3s ease-in-out ${400+Math.random()*500}ms infinite;transform-origin:center"/>
+            </svg>
+            <div style="position:relative;font-family:var(--mono);font-size:${isUS ? '28' : '24'}px;font-weight:900;letter-spacing:-0.04em;line-height:1;
+              color:${col};
+              background:linear-gradient(135deg,${col} 0%,${col2} 100%);
+              -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+              filter:drop-shadow(0 0 12px ${col}66);
+            ">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.70">%</span>${srcBadge}</div>
+          </div>
           <span style="
             font-family:var(--mono);font-size:8px;font-weight:800;
             letter-spacing:0.08em;text-transform:uppercase;
