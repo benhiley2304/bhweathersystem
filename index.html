@@ -5437,9 +5437,10 @@ function renderOverview(){
     // col2 = past (faded), col = present (vivid)
     const _cbTimeline = (r, t3m, t6m, t12m, col, col2, colRgb) => {
       // Reconstruct absolute rates at each waypoint
-      const r12 = r - (t12m != null ? t12m * 12 : 0);
-      const r6  = r - (t6m  != null ? t6m  * 6  : 0);
-      const r3  = r - (t3m  != null ? t3m  * 3  : 0);
+      // t12m = change_12m (total delta over 12M), t6m/t3m = trend fields (direct delta)
+      const r12 = r - (t12m != null ? t12m : 0);
+      const r6  = r - (t6m  != null ? t6m  : 0);
+      const r3  = r - (t3m  != null ? t3m  : 0);
       const pts = [r12, r6, r3, r];
       // SVG dims
       const W = 160, H = 44;
@@ -5597,10 +5598,10 @@ function renderOverview(){
       // Left bar colour
       const barCol   = `linear-gradient(180deg,transparent,${col},${col2},transparent)`;
 
-      const r    = d.rate     ?? 0;
-      const t3m  = d.trend_3m  ?? 0;
-      const t6m  = d.trend_6m  ?? 0;
-      const t12m = d.trend_12m ?? 0;
+      const r    = d.rate      ?? 0;
+      const t3m  = d.trend_3m   ?? 0;   // direct delta over 3M
+      const t6m  = d.trend_6m   ?? 0;   // direct delta over 6M
+      const t12m = d.change_12m ?? 0;   // actual 12M rate change (most accurate)
       const cfp    = d.change_from_peak;
       const cfpStr = cfp != null ? (cfp >= 0 ? '+' : '') + cfp.toFixed(2) + '%' : '—';
       const cfpCol = cfp != null && cfp < -0.15 ? '#4ec9d4' : cfp != null && cfp > 0.15 ? '#f0c060' : 'rgba(173,184,208,0.55)';
