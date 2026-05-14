@@ -6865,7 +6865,7 @@ function renderMacroDataPanels(reg){
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
         <!-- ══ HEADER ═══════════════════════════════════════════════════ -->
-        <div class="ov-mc-header" style="margin-bottom:5px">
+        <div class="ov-mc-header">
           <div>
             <div class="ov-mc-eyebrow">Equities</div>
             <div class="ov-mc-title">Equity Conditions</div>
@@ -6873,18 +6873,50 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${scBadgeCol};background:${scBadgeCol}1a;border:1px solid ${scBadgeCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- ══ SECTION 1: VALUATION ═══════════════════════════════════════ -->
-        <div style="margin-bottom:5px">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Valuation</div><div class="mc-sect-line"></div></div>
+        <!-- ══ SECTION 1: VOLATILITY & SENTIMENT ═══════════════════════ -->
+        <!-- Hero: VIX + SKEW tiles — mirrors Credit Spreads HY/IG structure -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
 
-          <!-- Trailing PE thermostat -->
-          <div style="margin-bottom:3px">
+          <!-- VIX tile -->
+          ${(()=>{
+            const vc = vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0';
+            return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${vc}18;border-top:2px solid ${vc}40;border-radius:9px;padding:10px 12px">
+              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">VIX</div>
+              <div style="display:flex;align-items:baseline;gap:3px">
+                <span style="font-family:var(--mono);font-size:clamp(22px,3.5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${vc};text-shadow:0 0 18px ${vc}44">${vixNum>0?vixNum.toFixed(1):'—'}</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${vc};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${vixSig.label||'—'}</div>
+              ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:7px;color:var(--faint);margin-top:2px">3M: ${vix3mNum.toFixed(1)} · ${tsRatio!=null?(tsRatio>1.02?'Contango':'Backw.'):'—'}</div>`:''}
+            </div>`;
+          })()}
+
+          <!-- SKEW tile -->
+          ${(()=>{
+            const sc2 = skewSig.score??0;
+            const skc = sigCol(sc2);
+            return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${skc}18;border-top:2px solid ${skc}40;border-radius:9px;padding:10px 12px;position:relative">
+              ${vixSkewDiv?`<div style="position:absolute;top:7px;right:8px;font-family:var(--mono);font-size:6px;font-weight:800;letter-spacing:0.10em;color:#f5a442;text-transform:uppercase;background:rgba(245,164,66,0.15);padding:1px 5px;border-radius:10px;border:1px solid rgba(245,164,66,0.25)">DIVG</div>`:''}
+              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">CBOE SKEW</div>
+              <div style="display:flex;align-items:baseline;gap:3px">
+                <span style="font-family:var(--mono);font-size:clamp(22px,3.5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${skc};text-shadow:0 0 18px ${skc}44">${skewNum>0?skewNum.toFixed(0):'—'}</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${skc};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${skewSig.label||'—'}</div>
+              <div style="font-family:var(--mono);font-size:7px;color:var(--faint);margin-top:2px">Tail hedge demand</div>
+            </div>`;
+          })()}
+        </div>
+
+        <!-- ══ SECTION 2: VALUATION & SENTIMENT ═════════════════════════ -->
+        <div style="margin-bottom:6px">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Valuation &amp; Sentiment</div><div class="mc-sect-line"></div></div>
+
+          <!-- P/E Ratio bar -->
+          <div style="margin-bottom:7px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">S&amp;P 500 P/E Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(trailing)</span></span>
-              <div style="display:flex;align-items:baseline;gap:4px">
-                ${fpeNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(fpeSig.score??0)};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</span>
-                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(fpeSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${fpeSig.label||'—'}</span>`:''}
-                ${fpeNum<=0?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>`:''}
+              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 P/E <span style="font-size:7px;font-weight:500;opacity:0.7;text-transform:none;letter-spacing:0">(trailing)</span></span>
+              <div style="display:flex;align-items:baseline;gap:5px">
+                ${fpeNum>0?`<span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(fpeSig.score??0)};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</span>
+                <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${sigCol(fpeSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${fpeSig.label||'—'}</span>`:'<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>'}
               </div>
             </div>
             ${thermoBar({
@@ -6897,48 +6929,21 @@ function renderMacroDataPanels(reg){
                 {v0:23, v1:30, col:'rgba(240,140,60,0.72)'},
                 {v0:30, v1:40, col:'rgba(220,60,42,0.82)'},
               ],
-              leftLabel: '10x Cheap', rightLabel: '40x Extreme',
+              leftLabel: '10x cheap', rightLabel: '40x extreme',
               benchmarks: [
-                {v:17.5, label:'LT avg', col:'rgba(173,184,208,0.50)'},
-                {v:21.4, label:'5yr avg', col:'rgba(200,169,110,0.40)'},
+                {v:17.5, label:'LT avg 17.5x', col:'rgba(173,184,208,0.55)'},
+                {v:21.4, label:'5yr avg 21.4x', col:'rgba(200,169,110,0.45)'},
               ]
             })}
           </div>
 
-        </div>
-
-        <!-- ══ SECTION 2: FEAR & VOLATILITY ══════════════════════════════ -->
-        <div style="margin-bottom:6px">
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Fear &amp; Volatility</div><div class="mc-sect-line"></div></div>
-
-          <!-- VIX + SKEW compact dual boxes (like Credit Spreads HY/IG) -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
-
-            <!-- VIX box -->
-            <div style="background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px;text-align:center">
-              <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:4px">VIX</div>
-              <div style="font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0'}">${vixNum>0?vixNum.toFixed(1):'—'}</div>
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0'};margin-top:3px">${vixSig.label||'—'}</div>
-              ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:6px;color:var(--faint);margin-top:3px;opacity:0.6">3M:${vix3mNum.toFixed(1)} · ${tsRatio!=null?(tsRatio>1.02?'Cntg':'Bkwd'):'—'}</div>`:''}
-            </div>
-
-            <!-- SKEW box -->
-            <div style="background:rgba(255,255,255,0.022);border:1px solid ${skewNum>135?'rgba(240,140,60,0.22)':'rgba(255,255,255,0.07)'};border-radius:8px;padding:8px 10px;text-align:center;position:relative">
-              ${vixSkewDiv?`<div style="position:absolute;top:4px;right:5px;font-family:var(--mono);font-size:4.5px;font-weight:900;letter-spacing:0.10em;color:#f5a442;text-transform:uppercase;background:rgba(245,164,66,0.12);padding:1px 3px;border-radius:2px">DIVG</div>`:''}
-              <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:4px">SKEW</div>
-              <div style="font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${sigCol(skewSig.score??0)}">${skewNum>0?skewNum.toFixed(0):'—'}</div>
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${sigCol(skewSig.score??0)};margin-top:3px">${skewSig.label||'—'}</div>
-              <div style="font-family:var(--mono);font-size:6px;color:var(--faint);margin-top:3px;opacity:0.6">tail hedge demand</div>
-            </div>
-          </div>
-
-          <!-- Put/Call ratio thermostat — CBOE Equity-only -->
+          <!-- CBOE Equity P/C bar -->
           <div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">CBOE Equity P/C <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">high = fear / buy</span></span>
-              <div style="display:flex;align-items:baseline;gap:4px">
-                ${pcrNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(pcrSig.score??0)};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</span>
-                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(pcrSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'—'}</span>`:''}
+              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">CBOE Equity P/C <span style="font-size:7px;font-weight:500;opacity:0.7;text-transform:none;letter-spacing:0">↑ = fear / buy</span></span>
+              <div style="display:flex;align-items:baseline;gap:5px">
+                ${pcrNum>0?`<span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(pcrSig.score??0)};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</span>
+                <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${sigCol(pcrSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'—'}</span>`:'<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>'}
               </div>
             </div>
             ${thermoBar({
@@ -6951,26 +6956,24 @@ function renderMacroDataPanels(reg){
                 {v0:0.75, v1:0.90, col:'rgba(70,160,100,0.65)'},
                 {v0:0.90, v1:1.20, col:'rgba(34,201,122,0.78)'},
               ],
-              leftLabel: '0.35 Greed', rightLabel: '1.2 Fear',
-              benchmarks: [
-                {v:0.65, label:'avg', col:'rgba(173,184,208,0.45)'},
-              ]
+              leftLabel: '0.35 greed', rightLabel: '1.2 fear',
+              benchmarks: [{v:0.65, label:'avg ~0.65', col:'rgba(173,184,208,0.50)'}]
             })}
-            ${pcrSig.ma20!=null?`<div style="font-family:var(--mono);font-size:5.5px;color:var(--faint);margin-top:2px;opacity:0.55">20-day MA: ${pcrSig.ma20?.toFixed(2)||'—'}${pcrSig.date?' · '+pcrSig.date:''}</div>`:''}
+            ${pcrSig.ma20!=null||pcrSig.date?`<div style="display:flex;gap:8px;margin-top:3px"><span style="font-family:var(--mono);font-size:7px;color:var(--faint);opacity:0.6">${pcrSig.ma20!=null?'20d MA: '+pcrSig.ma20.toFixed(2):''}</span><span style="font-family:var(--mono);font-size:7px;color:var(--faint);opacity:0.45">${pcrSig.date||''}</span></div>`:''}
           </div>
         </div>
 
         <!-- ══ SECTION 3: BREADTH & MOMENTUM ═════════════════════════════ -->
-        <div style="margin-bottom:5px">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
+        <div style="margin-bottom:6px">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
 
-          <!-- SPX 3m Momentum thermostat -->
-          <div style="margin-bottom:3px">
+          <!-- SPX Momentum bar -->
+          <div style="margin-bottom:7px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">SPX Momentum <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(3M price change)</span></span>
-              <div style="display:flex;align-items:baseline;gap:4px">
-                <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(momSig.score??0)};letter-spacing:-0.02em">${momSig.value||'—'}</span>
-                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(momSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${momSig.label||'—'}</span>
+              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">SPX Momentum <span style="font-size:7px;font-weight:500;opacity:0.7;text-transform:none;letter-spacing:0">(3M)</span></span>
+              <div style="display:flex;align-items:baseline;gap:5px">
+                <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(momSig.score??0)};letter-spacing:-0.02em">${momSig.value||'—'}</span>
+                <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${sigCol(momSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${momSig.label||'—'}</span>
               </div>
             </div>
             ${thermoBar({
@@ -6984,18 +6987,18 @@ function renderMacroDataPanels(reg){
                 {v0:3,   v1:10,  col:'rgba(70,160,100,0.65)'},
                 {v0:10,  v1:40,  col:'rgba(34,201,122,0.82)'},
               ],
-              leftLabel: '-45% Bear', rightLabel: '+40% Bull',
-              benchmarks: [{v:0, label:'Neutral', col:'rgba(255,255,255,0.30)'}]
+              leftLabel: '-45% bear', rightLabel: '+40% bull',
+              benchmarks: [{v:0, label:'flat', col:'rgba(255,255,255,0.30)'}]
             })}
           </div>
 
-          <!-- RSP/SPY Breadth thermostat -->
+          <!-- Market Breadth bar -->
           <div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Market Breadth <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(RSP vs SPY, 3M)</span></span>
-              <div style="display:flex;align-items:baseline;gap:4px">
-                <span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(brSig.score??0)};letter-spacing:-0.02em">${brSig.value||'—'}</span>
-                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(brSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${brSig.label||'—'}</span>
+              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">Market Breadth <span style="font-size:7px;font-weight:500;opacity:0.7;text-transform:none;letter-spacing:0">(RSP vs SPY, 3M)</span></span>
+              <div style="display:flex;align-items:baseline;gap:5px">
+                <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(brSig.score??0)};letter-spacing:-0.02em">${brSig.value||'—'}</span>
+                <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${sigCol(brSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${brSig.label||'—'}</span>
               </div>
             </div>
             ${thermoBar({
@@ -7008,8 +7011,8 @@ function renderMacroDataPanels(reg){
                 {v0:1,   v1:4,   col:'rgba(70,160,100,0.65)'},
                 {v0:4,   v1:15,  col:'rgba(34,201,122,0.82)'},
               ],
-              leftLabel: '-12% Narrow', rightLabel: '+15% Broad',
-              benchmarks: [{v:0, label:'Flat', col:'rgba(255,255,255,0.28)'}]
+              leftLabel: '-12% narrow', rightLabel: '+15% broad',
+              benchmarks: [{v:0, label:'flat', col:'rgba(255,255,255,0.28)'}]
             })}
           </div>
         </div>
@@ -7017,10 +7020,9 @@ function renderMacroDataPanels(reg){
         <!-- ══ SECTION 4: CONDITIONS ══════════════════════════════════════ -->
         <div style="margin-bottom:0">
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Conditions</div><div class="mc-sect-line"></div></div>
-          ${statRow('Chicago Fed NFCI', nfciSig.value||'—', nfciSig.label||'—', nfciSig.score, nfciSig.delta_4w!=null?`4W Δ:${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:undefined)}
-          ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`EY:${erpSig.ey??'—'}% · 10Y:${erpSig.dgs10}%`:undefined, true)}
+          ${statRow('Chicago Fed NFCI', nfciSig.value||'—', nfciSig.label||'—', nfciSig.score, nfciSig.delta_4w!=null?`4W: ${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:undefined)}
+          ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`EY ${erpSig.ey??'—'}% vs 10Y ${erpSig.dgs10}%`:undefined, true)}
         </div>
-
 
       </div>`;
       })()}    </div>
