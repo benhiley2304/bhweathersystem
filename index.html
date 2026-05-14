@@ -1254,15 +1254,6 @@ a{color:inherit;text-decoration:none}
   --gold-bg:rgba(245,200,66,0.10);
   --gold-border:rgba(245,200,66,0.22);
 }
-/* Section eyebrow labels */
-.mc-sect-lbl{
-  font-family:var(--mono)!important;
-  letter-spacing:0.10em!important;
-  font-size:6px!important;
-  font-weight:700!important;
-  text-transform:uppercase!important;
-  color:var(--faint)!important;
-}
 /* Badge semantic system (Stripe-style) */
 .ov-mc-badge{
   font-family:var(--mono)!important;
@@ -1432,7 +1423,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 /* Section divider within a card */
 .mc-sect{
-  flex-shrink:0;margin:8px 0 5px;
+  flex-shrink:0;margin:0;
   display:flex;align-items:center;gap:8px;
 }
 .mc-sect-lbl{
@@ -6256,7 +6247,7 @@ function renderMacroDataPanels(reg){
         <!-- Hero: NFP headline only — no arc ring -->
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
-            <div style="font-family:var(--mono);font-size:clamp(28px,6vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${nfpCol}">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—'}</div>
+            <div style="font-family:var(--mono);font-size:clamp(26px,5.5vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${nfpCol}">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—'}</div>
             ${ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null
               ? surprisePill(ffNfp.beat?'BEAT':'MISS', ffNfp.beat?'#22c97a':'#e03a2a')
               : (nfpSurpL?surprisePill(nfpSurpL, surpCol):'')}
@@ -6279,7 +6270,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Indicator strength: centred z-score bars — fill remaining card height -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Labour Signals</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Labour Signals</div><div class="mc-sect-line"></div></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
           ${(()=>{
             // score→colour: use system palette exactly
@@ -6387,7 +6378,7 @@ function renderMacroDataPanels(reg){
         <!-- Hero: CPI reading only — no arc ring -->
         <div style="margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.07)">
           <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:2px">
-            <div style="font-family:var(--mono);font-size:clamp(28px,6vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
+            <div style="font-family:var(--mono);font-size:clamp(26px,5.5vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
             ${gap!=null?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${gapCol}">${gap>=0?'+':''}${gap}% vs target</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:6px">
@@ -6433,7 +6424,7 @@ function renderMacroDataPanels(reg){
         })()}
         <!-- Pipeline Pressure: beat/miss vs expectation (hot=red, cooler=blue) -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;overflow:hidden">
             ${(()=>{
               // Absolute scale: all bars on same 0→4% surprise axis so PPI +2.93 vs CPI +1.01 are visually proportionate
@@ -6495,7 +6486,7 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${lineCol};background:${lineCol}1a;border:1px solid ${lineCol}38">${fbTrend}</span>
         </div>
         <div style="display:flex;align-items:baseline;gap:10px">
-          <div style="font-family:var(--mono);font-size:clamp(24px,6vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
+          <div style="font-family:var(--mono);font-size:clamp(26px,5.5vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
           ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent)">${vsPeak}% of QE peak</span>`:''}
         </div>
         <!-- Full-width SVG area chart — hero visual matching old design -->
@@ -6508,7 +6499,7 @@ function renderMacroDataPanels(reg){
           <canvas id="ov-bs-arc-canvas" style="width:100%;max-width:260px;display:block"></canvas>
         </div>
         <div>
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">QE / QT Activity</div><div class="mc-sect-line"></div>${fbChg3m!=null&&Math.abs(fbChg3m)>=0.12?`<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${chgCol(fbChg3m)};letter-spacing:0.06em;text-transform:uppercase;opacity:0.8">${fbChg3m>0?'QE PHASE':'QT PHASE'}</span>`:''}</div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">QE / QT Activity</div><div class="mc-sect-line"></div>${fbChg3m!=null&&Math.abs(fbChg3m)>=0.12?`<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${chgCol(fbChg3m)};letter-spacing:0.06em;text-transform:uppercase;opacity:0.8">${fbChg3m>0?'QE PHASE':'QT PHASE'}</span>`:''}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
             <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
               <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">3 months</div>
@@ -6565,7 +6556,7 @@ function renderMacroDataPanels(reg){
         </div>
         <div>
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
-            <div style="font-family:var(--mono);font-size:clamp(26px,6vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
+            <div style="font-family:var(--mono);font-size:clamp(26px,5.5vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
             <!-- Spread change deltas inline with hero -->
             <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:2px">
               ${sChg3m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
@@ -6596,7 +6587,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
         <div style="flex:1;min-height:0;max-height:230px;display:flex;flex-direction:column">
-          <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Historical Curves</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px;flex-shrink:0"><div class="mc-sect-lbl">Historical Curves</div><div class="mc-sect-line"></div></div>
           <div id="ov-yc-chart" style="position:relative;flex:1;min-height:140px;max-height:200px"></div>
         </div>
         <!-- Momentum + move type row -->
@@ -6664,7 +6655,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Historical Range Tracks — min/p25/median/p75/max visible as range bar with needle -->
         <div>
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">3-Year Percentile Range</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">3-Year Percentile Range</div><div class="mc-sect-line"></div></div>
           ${(()=>{
             const rangeTrack = (label, oas, histPct, pctMin, pctMax, levelLabel, numCol) => {
               if(oas==null) return '';
@@ -6715,7 +6706,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Delta rows — HY + IG side by side -->
         <div style="margin-top:6px">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Spread Momentum</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Spread Momentum</div><div class="mc-sect-line"></div></div>
           ${(()=>{
             const deltaRow = (period, hyVal, igVal) => {
               const hyC = hyVal==null?'#5a6480':hyVal<0?'#22c97a':hyVal>0?'#e03a2a':'#adb8d0';
@@ -6883,7 +6874,7 @@ function renderMacroDataPanels(reg){
             return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${vc}18;border-top:2px solid ${vc}40;border-radius:9px;padding:10px 12px">
               <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">VIX</div>
               <div style="display:flex;align-items:baseline;gap:3px">
-                <span style="font-family:var(--mono);font-size:clamp(22px,3.5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${vc};text-shadow:0 0 18px ${vc}44">${vixNum>0?vixNum.toFixed(1):'—'}</span>
+                <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${vc};text-shadow:0 0 18px ${vc}44">${vixNum>0?vixNum.toFixed(1):'—'}</span>
               </div>
               <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${vc};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${vixSig.label||'—'}</div>
               ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:7px;color:var(--faint);margin-top:2px">3M: ${vix3mNum.toFixed(1)} · ${tsRatio!=null?(tsRatio>1.02?'Contango':'Backw.'):'—'}</div>`:''}
@@ -6898,7 +6889,7 @@ function renderMacroDataPanels(reg){
               ${vixSkewDiv?`<div style="position:absolute;top:7px;right:8px;font-family:var(--mono);font-size:6px;font-weight:800;letter-spacing:0.10em;color:#f5a442;text-transform:uppercase;background:rgba(245,164,66,0.15);padding:1px 5px;border-radius:10px;border:1px solid rgba(245,164,66,0.25)">DIVG</div>`:''}
               <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">CBOE SKEW</div>
               <div style="display:flex;align-items:baseline;gap:3px">
-                <span style="font-family:var(--mono);font-size:clamp(22px,3.5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${skc};text-shadow:0 0 18px ${skc}44">${skewNum>0?skewNum.toFixed(0):'—'}</span>
+                <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${skc};text-shadow:0 0 18px ${skc}44">${skewNum>0?skewNum.toFixed(0):'—'}</span>
               </div>
               <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${skc};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${skewSig.label||'—'}</div>
               <div style="font-family:var(--mono);font-size:7px;color:var(--faint);margin-top:2px">Tail hedge demand</div>
@@ -6908,7 +6899,7 @@ function renderMacroDataPanels(reg){
 
         <!-- ══ SECTION 2: VALUATION & SENTIMENT ═════════════════════════ -->
         <div style="margin-bottom:6px">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Valuation &amp; Sentiment</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Valuation &amp; Sentiment</div><div class="mc-sect-line"></div></div>
 
           <!-- P/E Ratio bar -->
           <div style="margin-bottom:7px">
@@ -6965,7 +6956,7 @@ function renderMacroDataPanels(reg){
 
         <!-- ══ SECTION 3: BREADTH & MOMENTUM ═════════════════════════════ -->
         <div style="margin-bottom:6px">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
 
           <!-- SPX Momentum bar -->
           <div style="margin-bottom:7px">
@@ -7019,7 +7010,7 @@ function renderMacroDataPanels(reg){
 
         <!-- ══ SECTION 4: CONDITIONS ══════════════════════════════════════ -->
         <div style="margin-bottom:0">
-          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Conditions</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Conditions</div><div class="mc-sect-line"></div></div>
           ${statRow('Chicago Fed NFCI', nfciSig.value||'—', nfciSig.label||'—', nfciSig.score, nfciSig.delta_4w!=null?`4W: ${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:undefined)}
           ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`EY ${erpSig.ey??'—'}% vs 10Y ${erpSig.dgs10}%`:undefined, true)}
         </div>
