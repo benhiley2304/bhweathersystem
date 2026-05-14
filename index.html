@@ -5431,7 +5431,7 @@ function renderOverview(){
     // Inline SVG flag art — semi-transparent backdrop per card
     const _cbFlagSvg = cb => {
       const flags = {
-        US: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+        US: `<svg viewBox="0 0 60 36" style="width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect width="60" height="36" fill="#B22234"/>
           <rect y="2.77" width="60" height="2.77" fill="#fff"/>
           <rect y="5.54" width="60" height="2.77" fill="#B22234"/>
@@ -5447,7 +5447,7 @@ function renderOverview(){
           <rect y="33.23" width="60" height="2.77" fill="#B22234"/>
           <rect width="24" height="19.38" fill="#3C3B6E"/>
         </svg>`,
-        BOE: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+        BOE: `<svg viewBox="0 0 60 36" style="width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect width="60" height="36" fill="#012169"/>
           <line x1="0" y1="0" x2="60" y2="36" stroke="#fff" stroke-width="6"/>
           <line x1="60" y1="0" x2="0" y2="36" stroke="#fff" stroke-width="6"/>
@@ -5458,7 +5458,7 @@ function renderOverview(){
           <rect x="26" y="0" width="8" height="36" fill="#C8102E"/>
           <rect x="0" y="14" width="60" height="8" fill="#C8102E"/>
         </svg>`,
-        ECB: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+        ECB: `<svg viewBox="0 0 60 36" style="width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect width="60" height="36" fill="#003399"/>
           <g fill="#FFCC00">
             <circle cx="30" cy="18" r="1.4"/>
@@ -5476,11 +5476,11 @@ function renderOverview(){
             <circle cx="37" cy="28.2" r="1.4"/>
           </g>
         </svg>`,
-        BOJ: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+        BOJ: `<svg viewBox="0 0 60 36" style="width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect width="60" height="36" fill="#fff"/>
           <circle cx="30" cy="18" r="10" fill="#BC002D"/>
         </svg>`,
-        RBA: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+        RBA: `<svg viewBox="0 0 60 36" style="width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect width="60" height="36" fill="#00008B"/>
           <rect x="27" y="0" width="6" height="36" fill="#fff"/>
           <rect x="0" y="15" width="60" height="6" fill="#fff"/>
@@ -5499,18 +5499,18 @@ function renderOverview(){
           <circle cx="46" cy="32" r="2.2" fill="#fff" opacity="0.9"/>
           <circle cx="41" cy="21" r="2.2" fill="#fff" opacity="0.9"/>
         </svg>`,
-        BOC: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+        BOC: `<svg viewBox="0 0 60 36" style="width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect width="15" height="36" fill="#FF0000"/>
           <rect x="45" y="0" width="15" height="36" fill="#FF0000"/>
           <rect x="15" y="0" width="30" height="36" fill="#fff"/>
           <polygon points="30,8 32.5,15 40,15 34,19.5 36.5,26.5 30,22 23.5,26.5 26,19.5 20,15 27.5,15" fill="#FF0000"/>
         </svg>`,
-        SNB: `<svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        SNB: `<svg viewBox="0 0 36 36" style="width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect width="36" height="36" fill="#FF0000"/>
           <rect x="14" y="7" width="8" height="22" fill="#fff"/>
           <rect x="7" y="14" width="22" height="8" fill="#fff"/>
         </svg>`,
-        RBNZ: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+        RBNZ: `<svg viewBox="0 0 60 36" style="width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect width="60" height="36" fill="#00247D"/>
           <rect x="27" y="0" width="6" height="18" fill="#fff"/>
           <rect x="0" y="6" width="30" height="6" fill="#fff"/>
@@ -5662,6 +5662,8 @@ function renderOverview(){
     const cbUnifiedRows = cbsSorted.map(cb => {
       const d = intlRates[cb];
       const _lbl    = d.label || '';
+      // Normalise display label — unify API variants to consistent terms
+      const _lblDisplay = _lbl === 'Tightening' ? 'Hiking' : _lbl === 'Easing' ? 'Cutting' : _lbl === 'Paused' ? 'Holding' : _lbl || 'Flat';
       const _isHike = _lbl === 'Hiking'  || _lbl === 'Tightening';
       const _isCut  = _lbl === 'Cutting' || _lbl === 'Easing';
       const _isPause = !_isHike && !_isCut;
@@ -5671,28 +5673,28 @@ function renderOverview(){
       // Hiking:  amber → burnt-orange warmth
       // Cutting: ice-blue → cyan-teal coolness
       // Paused:  indigo-slate → cool lavender neutrality
-      const col      = _isHike ? '#f0c060' : _isCut ? '#4ec9d4' : '#b0b4e8';
-      const colRgb   = _isHike ? '240,192,96' : _isCut ? '78,201,212' : '176,180,232';
-      const col2     = _isHike ? '#e07830' : _isCut ? '#38b2e8' : '#8890d0'; // secondary shade
-      const col2Rgb  = _isHike ? '224,120,48' : _isCut ? '56,178,232' : '136,144,208';
+      const col      = _isHike ? '#f0c060' : _isCut ? '#5a8fd4' : '#c0c4d0';
+      const colRgb   = _isHike ? '240,192,96' : _isCut ? '90,143,212' : '192,196,208';
+      const col2     = _isHike ? '#e07830' : _isCut ? '#3a6fb8' : '#9098aa'; // secondary shade
+      const col2Rgb  = _isHike ? '224,120,48' : _isCut ? '58,111,184' : '144,152,170';
       // Card bg: each stance gets a unique diagonal gradient
       const bgGrad   = _isHike
-        ? `linear-gradient(135deg,rgba(210,110,20,0.20) 0%,rgba(180,80,10,0.09) 35%,rgba(4,6,14,0.93) 100%)`
+        ? `linear-gradient(135deg,rgba(210,110,20,0.18) 0%,rgba(180,80,10,0.07) 35%,rgba(4,6,14,0.95) 100%)`
         : _isCut
-        ? `linear-gradient(135deg,rgba(20,130,190,0.20) 0%,rgba(20,190,170,0.08) 40%,rgba(4,6,14,0.93) 100%)`
-        : `linear-gradient(135deg,rgba(90,80,180,0.18) 0%,rgba(60,65,150,0.08) 40%,rgba(4,6,14,0.93) 100%)`;
+        ? `linear-gradient(135deg,rgba(40,90,180,0.16) 0%,rgba(30,70,150,0.06) 40%,rgba(4,6,14,0.95) 100%)`
+        : `linear-gradient(135deg,rgba(80,90,110,0.14) 0%,rgba(60,70,90,0.05) 40%,rgba(4,6,14,0.95) 100%)`;
       // Border
       const borderCol = _isHike
-        ? `rgba(220,140,40,${isUS ? '0.40' : '0.22'})`
+        ? `rgba(220,140,40,${isUS ? '0.42' : '0.24'})`
         : _isCut
-        ? `rgba(40,190,200,${isUS ? '0.38' : '0.20'})`
-        : `rgba(120,115,200,${isUS ? '0.36' : '0.18'})`;
+        ? `rgba(70,120,200,${isUS ? '0.40' : '0.22'})`
+        : `rgba(140,150,170,${isUS ? '0.36' : '0.18'})`;
       // Radial shimmer: top-right glow unique per stance
       const shimmer  = _isHike
-        ? `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(230,140,30,0.22) 0%,transparent 70%)`
+        ? `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(230,140,30,0.20) 0%,transparent 70%)`
         : _isCut
-        ? `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(30,200,220,0.18) 0%,transparent 70%)`
-        : `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(120,100,210,0.18) 0%,transparent 70%)`;
+        ? `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(60,110,200,0.18) 0%,transparent 70%)`
+        : `radial-gradient(ellipse 70% 55% at 95% 0%,rgba(140,150,170,0.14) 0%,transparent 70%)`;
       // Left bar colour
       const barCol   = `linear-gradient(180deg,transparent,${col},${col2},transparent)`;
 
@@ -5702,14 +5704,14 @@ function renderOverview(){
       const t12m = d.change_12m ?? 0;   // actual 12M rate change (most accurate)
       const cfp    = d.change_from_peak;
       const cfpStr = cfp != null ? (cfp >= 0 ? '+' : '') + cfp.toFixed(2) + '%' : '—';
-      const cfpCol = cfp != null && cfp < -0.15 ? '#4ec9d4' : cfp != null && cfp > 0.15 ? '#f0c060' : 'rgba(173,184,208,0.55)';
+      const cfpCol = cfp != null && cfp < -0.15 ? '#5a8fd4' : cfp != null && cfp > 0.15 ? '#f0c060' : 'rgba(173,184,208,0.50)';
       const nmFmt  = _fmtMtg(d.next_meeting);
       const nmDays = _daysTo(d.next_meeting);
       const srcBadge = d.rate_source === 'fallback_only'
         ? `<span style="font-size:5px;opacity:0.28"> est</span>` : '';
       // Stance pill
-      const pillBg  = _isHike ? 'rgba(230,140,30,0.18)' : _isCut ? 'rgba(30,200,220,0.15)' : 'rgba(120,100,200,0.14)';
-      const pillBdr = _isHike ? 'rgba(230,140,30,0.38)' : _isCut ? 'rgba(30,200,220,0.35)' : 'rgba(120,100,200,0.32)';
+      const pillBg  = _isHike ? 'rgba(230,140,30,0.16)' : _isCut ? 'rgba(60,110,200,0.16)' : 'rgba(150,160,180,0.12)';
+      const pillBdr = _isHike ? 'rgba(230,140,30,0.36)' : _isCut ? 'rgba(70,120,210,0.38)' : 'rgba(150,160,180,0.28)';
 
       return `
       <div style="
@@ -5727,9 +5729,13 @@ function renderOverview(){
         ${isUS ? `<div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,${col},${col2},transparent);opacity:0.55"></div>` : ''}
         <!-- Row 1: flag + name + next mtg -->
         <div style="position:relative;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <!-- Flag backdrop -->
-          <div style="pointer-events:none;position:absolute;bottom:0;right:0;width:72px;height:52px;overflow:hidden;border-radius:0 0 13px 0;opacity:0.07">
-            ${_cbFlagSvg(cb)}
+          <!-- Flag backdrop: full-height, right-anchored, fade-left mask -->
+          <div style="pointer-events:none;position:absolute;top:0;right:0;bottom:0;width:55%;overflow:hidden;border-radius:0 13px 13px 0;opacity:0.11;-webkit-mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,0.4) 30%,rgba(0,0,0,0.85) 100%);mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,0.4) 30%,rgba(0,0,0,0.85) 100%)">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end">
+              <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
+                ${_cbFlagSvg(cb)}
+              </div>
+            </div>
           </div>
           <div style="display:flex;align-items:center;gap:5px">
             <span style="font-family:var(--mono);font-size:${isUS ? '12' : '11'}px;font-weight:${isUS ? '900' : '800'};color:${isUS ? '#fff' : 'rgba(255,255,255,0.80)'};letter-spacing:0.02em">${CB_NAMES_OV[cb] || cb}</span>
@@ -5753,7 +5759,7 @@ function renderOverview(){
             border:1px solid ${pillBdr};
             border-radius:4px;padding:2px 6px;
             align-self:center;
-          ">${_lbl || 'Flat'}</span>
+          ">${_lblDisplay}</span>
           <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${cfpCol};align-self:center">${cfpStr}</span>
         </div>
         <!-- Row 3: Rate history timeline — full width, no side padding -->
@@ -5866,14 +5872,14 @@ function renderOverview(){
               ? { c1:'#f0c060', c2:'#e07830', rgb:'240,192,96', rgb2:'224,120,48' }
               : { c1:'#e8d060', c2:'#c89020', rgb:'232,208,96', rgb2:'200,144,32' };
             if (dir === 'cut')  return h === '12m'
-              ? { c1:'#4ec9d4', c2:'#2880e0', rgb:'78,201,212', rgb2:'40,128,224' }
-              : { c1:'#70d8f0', c2:'#3090c8', rgb:'112,216,240', rgb2:'48,144,200' };
+              ? { c1:'#5a8fd4', c2:'#3a6fb8', rgb:'90,143,212', rgb2:'58,111,184' }
+              : { c1:'#7aaae0', c2:'#4a80cc', rgb:'122,170,224', rgb2:'74,128,204' };
             return { c1:'rgba(210,215,240,0.85)', c2:'rgba(160,170,200,0.85)', rgb:'200,207,224', rgb2:'160,170,200' };
           };
           const arrow = d => d==='hike' ? '↑' : d==='cut' ? '↓' : '→';
           const tile = (lbl, bp, dir, horizon) => {
             const tg = tileGrad(dir, horizon);
-            const arrowCol = dir==='hike' ? '#f0c060' : dir==='cut' ? '#4ec9d4' : 'rgba(200,207,224,0.60)';
+            const arrowCol = dir==='hike' ? '#f0c060' : dir==='cut' ? '#5a8fd4' : 'rgba(200,207,224,0.55)';
             const barBg   = `rgba(255,255,255,0.06)`;
             const barFill = `linear-gradient(90deg,${tg.c2},${tg.c1})`;
             return `<div class="ov-rp-stat" style="--rp-stat-rgb:${tg.rgb}">
