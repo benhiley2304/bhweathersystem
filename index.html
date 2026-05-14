@@ -6865,7 +6865,7 @@ function renderMacroDataPanels(reg){
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
         <!-- ══ HEADER ═══════════════════════════════════════════════════ -->
-        <div class="ov-mc-header" style="margin-bottom:8px">
+        <div class="ov-mc-header" style="margin-bottom:5px">
           <div>
             <div class="ov-mc-eyebrow">Equities</div>
             <div class="ov-mc-title">Equity Conditions</div>
@@ -6874,11 +6874,11 @@ function renderMacroDataPanels(reg){
         </div>
 
         <!-- ══ SECTION 1: VALUATION ═══════════════════════════════════════ -->
-        <div style="margin-bottom:7px">
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Valuation</div><div class="mc-sect-line"></div></div>
+        <div style="margin-bottom:5px">
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Valuation</div><div class="mc-sect-line"></div></div>
 
           <!-- Trailing PE thermostat -->
-          <div style="margin-bottom:5px">
+          <div style="margin-bottom:3px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
               <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">S&amp;P 500 P/E Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(trailing)</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
@@ -6908,40 +6908,34 @@ function renderMacroDataPanels(reg){
         </div>
 
         <!-- ══ SECTION 2: FEAR & VOLATILITY ══════════════════════════════ -->
-        <div style="margin-bottom:7px">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Fear &amp; Volatility</div><div class="mc-sect-line"></div></div>
+        <div style="margin-bottom:6px">
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Fear &amp; Volatility</div><div class="mc-sect-line"></div></div>
 
-          <!-- VIX + SKEW side-by-side gauges -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+          <!-- VIX + SKEW compact dual boxes (like Credit Spreads HY/IG) -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
 
-            <!-- VIX gauge block -->
-            <div style="background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:5px 8px;text-align:center">
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">VIX</div>
-              <canvas id="ov-sc-vix-gauge" width="100" height="56" style="width:100%;max-width:100px;height:56px;display:block;margin:0 auto"></canvas>
-              <div style="display:flex;justify-content:center;align-items:baseline;gap:4px;margin-top:2px">
-                <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em;color:${vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0'}">${vixNum>0?vixNum.toFixed(1):'—'}</span>
-              </div>
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0'};opacity:0.85;margin-top:1px">${vixSig.label||'—'}</span>
-              ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:6px;color:var(--faint);margin-top:2px">3M: ${vix3mNum.toFixed(1)} &middot; ${tsRatio!=null?(tsRatio>1.02?'Contango':'Backw.'):'—'}</div>`:'<div style="height:10px"></div>'}
+            <!-- VIX box -->
+            <div style="background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px;text-align:center">
+              <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:4px">VIX</div>
+              <div style="font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0'}">${vixNum>0?vixNum.toFixed(1):'—'}</div>
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=20?'#f5a442':vixNum>=15?'#adb8d0':'#22c97a'):'#adb8d0'};margin-top:3px">${vixSig.label||'—'}</div>
+              ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:6px;color:var(--faint);margin-top:3px;opacity:0.6">3M:${vix3mNum.toFixed(1)} · ${tsRatio!=null?(tsRatio>1.02?'Cntg':'Bkwd'):'—'}</div>`:''}
             </div>
 
-            <!-- SKEW gauge block -->
-            <div style="background:rgba(255,255,255,0.018);border:1px solid ${skewNum>135?'rgba(240,140,60,0.25)':'rgba(255,255,255,0.06)'};border-radius:8px;padding:5px 8px;text-align:center;position:relative">
-              ${vixSkewDiv?`<div style="position:absolute;top:4px;right:6px;font-family:var(--mono);font-size:5px;font-weight:800;letter-spacing:0.08em;color:#f5a442;text-transform:uppercase;opacity:0.9">DIVERGE</div>`:''}
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">CBOE SKEW</div>
-              <canvas id="ov-sc-skew-gauge" width="100" height="56" style="width:100%;max-width:100px;height:56px;display:block;margin:0 auto"></canvas>
-              <div style="display:flex;justify-content:center;align-items:baseline;gap:4px;margin-top:2px">
-                <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.02em;color:${sigCol(skewSig.score??0)}">${skewNum>0?skewNum.toFixed(0):'—'}</span>
-              </div>
-              <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${sigCol(skewSig.score??0)};opacity:0.85;margin-top:1px">${skewSig.label||'Tail Risk'}</div>
-              <div style="font-family:var(--mono);font-size:6px;color:var(--faint);margin-top:2px">Tail hedge demand</div>
+            <!-- SKEW box -->
+            <div style="background:rgba(255,255,255,0.022);border:1px solid ${skewNum>135?'rgba(240,140,60,0.22)':'rgba(255,255,255,0.07)'};border-radius:8px;padding:8px 10px;text-align:center;position:relative">
+              ${vixSkewDiv?`<div style="position:absolute;top:4px;right:5px;font-family:var(--mono);font-size:4.5px;font-weight:900;letter-spacing:0.10em;color:#f5a442;text-transform:uppercase;background:rgba(245,164,66,0.12);padding:1px 3px;border-radius:2px">DIVG</div>`:''}
+              <div style="font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:4px">SKEW</div>
+              <div style="font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${sigCol(skewSig.score??0)}">${skewNum>0?skewNum.toFixed(0):'—'}</div>
+              <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${sigCol(skewSig.score??0)};margin-top:3px">${skewSig.label||'—'}</div>
+              <div style="font-family:var(--mono);font-size:6px;color:var(--faint);margin-top:3px;opacity:0.6">tail hedge demand</div>
             </div>
           </div>
 
           <!-- Put/Call ratio thermostat -->
           <div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Put/Call Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">↑ high = fear → buy signal</span></span>
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Put/Call Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">high = fear / buy</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
                 ${pcrNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(pcrSig.score??0)};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</span>
                 <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(pcrSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'—'}</span>`:''}
@@ -6951,24 +6945,24 @@ function renderMacroDataPanels(reg){
               value: pcrNum>0?pcrNum:null,
               min: 0.5, max: 1.8,
               zones: [
-                {v0:0.5, v1:0.7,  col:'rgba(220,60,42,0.80)'},   // extreme greed
-                {v0:0.7, v1:0.9,  col:'rgba(240,120,50,0.70)'},  // greed
-                {v0:0.9, v1:1.1,  col:'rgba(200,169,110,0.60)'}, // neutral
-                {v0:1.1, v1:1.35, col:'rgba(90,170,120,0.60)'},  // mildly fearful
-                {v0:1.35,v1:1.8,  col:'rgba(34,201,122,0.70)'},  // fear/buy signal
+                {v0:0.5, v1:0.7,  col:'rgba(220,60,42,0.80)'},
+                {v0:0.7, v1:0.9,  col:'rgba(240,120,50,0.70)'},
+                {v0:0.9, v1:1.1,  col:'rgba(200,169,110,0.60)'},
+                {v0:1.1, v1:1.35, col:'rgba(90,170,120,0.60)'},
+                {v0:1.35,v1:1.8,  col:'rgba(34,201,122,0.70)'},
               ],
               leftLabel: '0.5 Greed', rightLabel: '1.8 Fear',
-              benchmarks: [{v:1.0, label:'SPY avg ~1.0', col:'rgba(173,184,208,0.45)'}]
+              benchmarks: [{v:1.0, label:'avg', col:'rgba(173,184,208,0.45)'}]
             })}
           </div>
         </div>
 
         <!-- ══ SECTION 3: BREADTH & MOMENTUM ═════════════════════════════ -->
-        <div style="margin-bottom:7px">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
+        <div style="margin-bottom:5px">
+          <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
 
           <!-- SPX 3m Momentum thermostat -->
-          <div style="margin-bottom:5px">
+          <div style="margin-bottom:3px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
               <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">SPX Momentum <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(3M price change)</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
