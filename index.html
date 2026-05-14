@@ -5768,6 +5768,628 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   pointer-events:none;z-index:3;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   NEXUS OS  ·  PHASE 3 — Detail Panel Deep Overhaul
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Factor tab strip: deep glow active state ── */
+.f-card{
+  background:rgba(3,5,14,0.0) !important;
+  transition:background 180ms, box-shadow 180ms !important;
+}
+.f-card.on,.f-card.act{
+  background:linear-gradient(
+    170deg,
+    rgba(200,169,110,0.06) 0%,
+    rgba(200,169,110,0.02) 100%
+  ) !important;
+  box-shadow:inset 0 0 20px rgba(200,169,110,0.03) !important;
+}
+.f-card.on::after,.f-card.act::after{
+  content:'';
+  position:absolute;bottom:0;left:10%;right:10%;height:2px;
+  background:linear-gradient(90deg,
+    transparent,
+    var(--accent) 20%,
+    rgba(232,213,176,0.9) 50%,
+    var(--accent) 80%,
+    transparent
+  );
+  border-radius:2px 2px 0 0;
+  box-shadow:
+    0 0 6px rgba(200,169,110,0.7),
+    0 0 14px rgba(200,169,110,0.35),
+    0 0 28px rgba(200,169,110,0.12);
+  animation:tabGlowPulse 3s ease-in-out infinite;
+}
+@keyframes tabGlowPulse{
+  0%,100%{opacity:0.85}
+  50%{opacity:1;box-shadow:0 0 10px rgba(200,169,110,0.9),0 0 22px rgba(200,169,110,0.5)}
+}
+.f-card:hover:not(.on):not(.act){
+  background:rgba(255,255,255,0.022) !important;
+}
+.f-lbl{
+  font-size:7.5px !important;
+  letter-spacing:0.12em !important;
+}
+.f-val{
+  font-family:var(--nexus-head) !important;
+  letter-spacing:-0.02em !important;
+}
+
+/* ── COT cards: regime-tinted glassmorphism ── */
+.cot-card{
+  background:rgba(4,7,18,0.90) !important;
+  border:1px solid rgba(255,255,255,0.06) !important;
+  border-top:1px solid rgba(255,255,255,0.13) !important;
+  border-radius:14px !important;
+  backdrop-filter:blur(24px) !important;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.05) inset,
+    0 8px 32px rgba(0,0,0,0.55) !important;
+  transition:transform 200ms, box-shadow 200ms !important;
+}
+.cot-card:hover{
+  transform:translateY(-3px) !important;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.07) inset,
+    0 16px 48px rgba(0,0,0,0.65) !important;
+}
+.cot-card::before{
+  background:linear-gradient(
+    160deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(200,169,110,0.015) 40%,
+    transparent 70%
+  ) !important;
+  height:60% !important;
+}
+.cot-card-label{
+  font-family:var(--nexus-head) !important;
+  font-size:7px !important;
+  letter-spacing:0.18em !important;
+  color:rgba(255,255,255,0.28) !important;
+}
+.cot-card-val{
+  font-size:20px !important;
+  letter-spacing:-0.04em !important;
+  filter:drop-shadow(0 0 10px currentColor) !important;
+}
+
+/* ── Sub-score bars: animated glowing fills ── */
+.d-sub-bar{
+  background:rgba(255,255,255,0.06) !important;
+  border-radius:3px !important;
+  height:3px !important;
+  overflow:visible !important;
+}
+.d-sub-bar-f{
+  height:100% !important;
+  border-radius:3px !important;
+  position:relative;
+  box-shadow:0 0 6px currentColor;
+  transition:width 700ms cubic-bezier(0.16,1,0.3,1) !important;
+}
+.d-sub-bar-f::after{
+  content:'';
+  position:absolute;right:-2px;top:-2px;bottom:-2px;width:4px;
+  background:inherit;
+  border-radius:50%;
+  filter:blur(3px);
+  opacity:0.9;
+}
+.d-sub-lbl{
+  font-size:7px !important;
+  letter-spacing:0.10em !important;
+  color:rgba(180,195,225,0.5) !important;
+}
+.d-sub-num{
+  font-size:9px !important;
+  font-weight:700 !important;
+  letter-spacing:-0.01em !important;
+}
+
+/* ── Narrative panels: cinematic premium typography ── */
+.narr-panel{
+  background:rgba(4,7,18,0.88) !important;
+  border:1px solid rgba(255,255,255,0.055) !important;
+  border-top:1px solid rgba(255,255,255,0.12) !important;
+  border-radius:16px !important;
+  backdrop-filter:blur(28px) !important;
+  box-shadow:0 12px 48px rgba(0,0,0,0.55) !important;
+}
+.narr-panel::before{
+  background:linear-gradient(
+    155deg,
+    rgba(255,255,255,0.032) 0%,
+    rgba(200,169,110,0.012) 40%,
+    transparent 70%
+  ) !important;
+}
+.narr-head{
+  font-size:7px !important;
+  letter-spacing:0.24em !important;
+  color:rgba(200,169,110,0.6) !important;
+}
+.narr-text{
+  font-size:12.5px !important;
+  line-height:1.75 !important;
+  color:rgba(195,210,240,0.75) !important;
+  letter-spacing:0.012em !important;
+}
+
+/* ── Seasonality cards: deep glass modal upgrade ── */
+.seas-card{
+  background:rgba(4,7,18,0.92) !important;
+  border:1px solid rgba(255,255,255,0.065) !important;
+  border-top:1px solid rgba(255,255,255,0.14) !important;
+  border-radius:16px !important;
+  backdrop-filter:blur(28px) !important;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.06) inset,
+    0 10px 40px rgba(0,0,0,0.55) !important;
+  transition:transform 200ms, box-shadow 200ms !important;
+}
+.seas-card:hover{
+  transform:translateY(-2px) !important;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.08) inset,
+    0 18px 55px rgba(0,0,0,0.65) !important;
+}
+.seas-card::before{
+  background:linear-gradient(
+    155deg,
+    rgba(255,255,255,0.03) 0%,
+    rgba(200,169,110,0.01) 45%,
+    transparent 70%
+  ) !important;
+}
+
+/* ── Detail score hero: deeper glass + stronger glow ── */
+.d-score-hero{
+  background:rgba(4,7,18,0.88) !important;
+  border:1px solid rgba(255,255,255,0.07) !important;
+  border-top:1px solid rgba(255,255,255,0.15) !important;
+  border-radius:20px !important;
+  backdrop-filter:blur(28px) !important;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.07) inset,
+    0 12px 44px rgba(0,0,0,0.6),
+    0 0 0 0 rgba(200,169,110,0.0);
+  animation:scoreEntry 320ms cubic-bezier(0.34,1.56,0.64,1) both,
+            heroPulse 5s 1s ease-in-out infinite !important;
+}
+@keyframes heroPulse{
+  0%,100%{box-shadow:0 2px 0 rgba(255,255,255,0.07) inset,0 12px 44px rgba(0,0,0,0.6),0 0 0 rgba(200,169,110,0)}
+  50%{box-shadow:0 2px 0 rgba(255,255,255,0.07) inset,0 12px 44px rgba(0,0,0,0.6),0 0 20px rgba(200,169,110,0.1)}
+}
+.d-score-hero-num{
+  filter:drop-shadow(0 0 14px currentColor) !important;
+  letter-spacing:-0.05em !important;
+}
+.d-score-hero-bar{
+  height:4px !important;
+  background:rgba(255,255,255,0.06) !important;
+  border-radius:3px !important;
+}
+.d-score-hero-bar-f{
+  border-radius:3px !important;
+  box-shadow:0 0 8px currentColor !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   NEXUS OS  ·  PHASE 4 — Mobile Experience Full Uplift
+   ───────────────────────────────────────────────────────────────── */
+
+@media(max-width:768px){
+
+  /* Mobile hero: bigger, more cinematic */
+  .mob-hero{
+    padding:22px 16px 18px !important;
+    background:linear-gradient(
+      160deg,
+      rgba(2,4,14,0.99) 0%,
+      rgba(4,8,20,0.97) 100%
+    ) !important;
+  }
+  .mob-hero::before{
+    background:
+      repeating-linear-gradient(
+        120deg,
+        transparent,transparent 28px,
+        rgba(255,255,255,0.006) 28px,rgba(255,255,255,0.006) 29px
+      ),
+      repeating-linear-gradient(
+        210deg,
+        transparent,transparent 44px,
+        rgba(255,255,255,0.004) 44px,rgba(255,255,255,0.004) 45px
+      ) !important;
+  }
+  .mob-hero-eyebrow{
+    font-size:7px !important;
+    letter-spacing:0.25em !important;
+    color:rgba(200,169,110,0.55) !important;
+  }
+  .mob-hero-regime{
+    font-size:38px !important;
+    line-height:0.93 !important;
+    margin-bottom:10px !important;
+  }
+  .mob-hero-desc{
+    font-size:11px !important;
+    line-height:1.6 !important;
+    color:rgba(180,200,235,0.52) !important;
+  }
+  .mob-hero-stats{
+    gap:8px !important;
+    margin-top:16px !important;
+  }
+  .mob-hero-stat{
+    background:rgba(255,255,255,0.038) !important;
+    border:1px solid rgba(255,255,255,0.07) !important;
+    border-top:1px solid rgba(255,255,255,0.13) !important;
+    border-radius:12px !important;
+    backdrop-filter:blur(12px) !important;
+    padding:10px 14px 9px !important;
+    flex:1 1 0 !important;
+    min-width:0 !important;
+  }
+  .mob-hero-stat::before{
+    background:linear-gradient(
+      155deg,
+      rgba(255,255,255,0.04) 0%,
+      transparent 60%
+    ) !important;
+    border-radius:12px !important;
+  }
+  .mob-hero-stat-val{
+    font-size:24px !important;
+    font-weight:700 !important;
+    letter-spacing:-0.045em !important;
+    filter:drop-shadow(0 0 10px currentColor) !important;
+  }
+  .mob-hero-stat-label{
+    font-size:7px !important;
+    letter-spacing:0.14em !important;
+  }
+
+  /* Mobile sentiment bar: taller + rounded */
+  .mob-hero-sent{
+    height:5px !important;
+    border-radius:3px !important;
+    gap:2px !important;
+    overflow:hidden;
+  }
+  .mob-hero-sent-seg{
+    border-radius:2px !important;
+  }
+
+  /* Mobile market list rows: crisper */
+  .mob-mkt-row{
+    padding:10px 14px !important;
+    gap:8px !important;
+  }
+  .mob-mkt-name{
+    font-family:var(--nexus-head) !important;
+    font-size:13px !important;
+    font-weight:600 !important;
+    letter-spacing:-0.01em !important;
+  }
+  .mob-mkt-score{
+    font-family:var(--nexus-head) !important;
+    font-size:15px !important;
+    font-weight:700 !important;
+    letter-spacing:-0.03em !important;
+    filter:drop-shadow(0 0 6px currentColor) !important;
+  }
+  .mob-mkt-badge{
+    font-size:9px !important;
+    padding:2px 7px !important;
+    border-radius:20px !important;
+    font-family:var(--nexus-head) !important;
+    letter-spacing:0.04em !important;
+  }
+
+  /* Mobile detail panel: premium glass header */
+  .mob-detail-header{
+    padding:18px 16px 14px !important;
+    background:rgba(4,7,18,0.95) !important;
+    border-bottom:1px solid rgba(255,255,255,0.06) !important;
+  }
+  .mob-detail-name{
+    font-family:var(--nexus-head) !important;
+    font-size:22px !important;
+    font-weight:700 !important;
+    letter-spacing:-0.03em !important;
+  }
+  .mob-detail-score{
+    font-family:var(--nexus-head) !important;
+    font-size:28px !important;
+    font-weight:700 !important;
+    letter-spacing:-0.04em !important;
+    filter:drop-shadow(0 0 12px currentColor) !important;
+  }
+
+  /* Mobile factor tabs: full-width scroll strip */
+  .factor-strip{
+    gap:0 !important;
+    overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none !important;
+  }
+  .factor-strip::-webkit-scrollbar{display:none}
+  .f-card{
+    min-width:80px !important;
+    flex-shrink:0 !important;
+    padding:10px 10px 9px !important;
+  }
+
+  /* Mobile COT cards: 2-col grid */
+  .cot-cards{
+    grid-template-columns:1fr 1fr !important;
+    gap:6px !important;
+  }
+  .cot-card{
+    padding:10px 10px 9px !important;
+    border-radius:12px !important;
+  }
+
+  /* Mobile narrative panel */
+  .narr-panel{
+    border-radius:12px !important;
+  }
+  .narr-text{
+    font-size:12px !important;
+    line-height:1.7 !important;
+  }
+
+  /* Mobile seasonality cards: single-col stacked */
+  .seas-cards-grid{
+    grid-template-columns:1fr !important;
+  }
+  .seas-card{
+    border-radius:12px !important;
+  }
+
+  /* Nav: tighter mobile */
+  #nexus-horizon{
+    height:30px !important;
+    opacity:0.7 !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   NEXUS OS  ·  PHASE 5 — Motion Layer
+   ───────────────────────────────────────────────────────────────── */
+
+/* ── New keyframes ── */
+@keyframes nexusRowIn{
+  from{opacity:0;transform:translateX(-8px)}
+  to{opacity:1;transform:none}
+}
+@keyframes regimeBadgePulse{
+  0%,100%{
+    box-shadow:0 0 0 0 rgba(200,169,110,0);
+    opacity:1;
+  }
+  40%{
+    box-shadow:0 0 0 6px rgba(200,169,110,0.12);
+    opacity:0.9;
+  }
+  70%{
+    box-shadow:0 0 0 10px rgba(200,169,110,0);
+    opacity:1;
+  }
+}
+@keyframes orbRingRotate{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+@keyframes orbRingRotateCCW{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(-360deg)}
+}
+@keyframes shimmerPass{
+  0%{transform:translateX(-120%) skewX(-18deg);opacity:0}
+  30%{opacity:0.4}
+  70%{opacity:0.25}
+  100%{transform:translateX(120%) skewX(-18deg);opacity:0}
+}
+@keyframes scoreBarReveal{
+  from{width:0 !important;opacity:0.6}
+  to{opacity:1}
+}
+@keyframes liveDotFlash{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:0.4;transform:scale(0.7)}
+}
+@keyframes orbBeaconPulse{
+  0%{transform:scale(1);opacity:0.35}
+  50%{transform:scale(1.55);opacity:0}
+  100%{transform:scale(1);opacity:0}
+}
+@keyframes nexusCardIn{
+  from{opacity:0;transform:translateY(10px) scale(0.98)}
+  to{opacity:1;transform:none}
+}
+@keyframes scanLineWipe{
+  0%{top:-100%;opacity:0}
+  8%{opacity:0.5}
+  92%{opacity:0.5}
+  100%{top:100%;opacity:0}
+}
+@keyframes horizonBreath{
+  0%,100%{opacity:0.6;filter:blur(0px)}
+  50%{opacity:1;filter:blur(2px)}
+}
+
+/* ── Orb rings: continuous rotation ── */
+.nexus-orb-ring{
+  animation:orbRingRotate 12s linear infinite !important;
+}
+.nexus-orb-ring2{
+  animation:orbRingRotateCCW 18s linear infinite !important;
+}
+
+/* ── Orb beacon: ripple behind orb ── */
+.nexus-orb::before{
+  content:'';
+  position:absolute;inset:-8px;
+  border-radius:50%;
+  background:radial-gradient(circle,var(--orb-glow,rgba(200,169,110,0.3)) 0%,transparent 70%);
+  animation:orbBeaconPulse 3.5s ease-out infinite;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── Regime badge: heartbeat ── */
+.ov-regime-score-pill{
+  animation:regimeBadgePulse 4s ease-in-out infinite !important;
+}
+
+/* ── Live dot: flashing ── */
+.ov-banner-dot,.mob-hero-pip,.live-dot,.regime-live-dot{
+  animation:liveDotFlash 2s ease-in-out infinite !important;
+}
+
+/* ── Market row hover: shimmer pass ── */
+.mkt-row{
+  overflow:hidden !important;
+}
+.mkt-row::after{
+  content:'';
+  position:absolute;
+  top:0;bottom:0;
+  left:0;width:60%;
+  background:linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.04) 50%,
+    transparent 100%
+  );
+  transform:translateX(-120%) skewX(-18deg);
+  opacity:0;
+  pointer-events:none;
+  transition:none;
+}
+.mkt-row:hover::after{
+  animation:shimmerPass 0.55s ease-out forwards;
+}
+
+/* ── Market row staggered entrance ── */
+.mkt-row{
+  animation:nexusRowIn 400ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.mkt-row:nth-child(1){animation-delay:0ms}
+.mkt-row:nth-child(2){animation-delay:40ms}
+.mkt-row:nth-child(3){animation-delay:80ms}
+.mkt-row:nth-child(4){animation-delay:120ms}
+.mkt-row:nth-child(5){animation-delay:160ms}
+.mkt-row:nth-child(6){animation-delay:200ms}
+.mkt-row:nth-child(7){animation-delay:240ms}
+.mkt-row:nth-child(8){animation-delay:280ms}
+.mkt-row:nth-child(9){animation-delay:320ms}
+.mkt-row:nth-child(10){animation-delay:360ms}
+.mkt-row:nth-child(n+11){animation-delay:380ms}
+
+/* ── COT + Seasonality cards: staggered entrance ── */
+.cot-card,.seas-card,.narr-panel,.sig-leader-card,.macro-card{
+  animation:nexusCardIn 500ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.cot-card:nth-child(1),.seas-card:nth-child(1){animation-delay:0ms}
+.cot-card:nth-child(2),.seas-card:nth-child(2){animation-delay:60ms}
+.cot-card:nth-child(3),.seas-card:nth-child(3){animation-delay:120ms}
+.cot-card:nth-child(4),.seas-card:nth-child(4){animation-delay:180ms}
+.cot-card:nth-child(5),.seas-card:nth-child(5){animation-delay:240ms}
+.cot-card:nth-child(6),.seas-card:nth-child(6){animation-delay:300ms}
+
+/* ── Score bar reveal on page load ── */
+.d-sub-bar-f,.d-score-hero-bar-f{
+  animation:scoreBarReveal 800ms cubic-bezier(0.16,1,0.3,1) both !important;
+}
+
+/* ── Horizon line: breathing glow ── */
+#nexus-horizon{
+  animation:horizonPulse 5s ease-in-out infinite,
+            horizonBreath 8s ease-in-out infinite !important;
+}
+
+/* ── Orb scan line: enhanced ── */
+.nexus-orb-scan{
+  animation:scanLineWipe 5s ease-in-out infinite !important;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0.0) 10%,
+    rgba(255,255,255,0.45) 50%,
+    rgba(255,255,255,0.0) 90%,
+    transparent 100%
+  ) !important;
+}
+
+/* ── Signal leader cards: hover shimmer ── */
+.sig-leader-card{
+  overflow:hidden !important;
+}
+.sig-leader-card::after{
+  content:'';
+  position:absolute;
+  top:0;bottom:0;
+  left:0;width:50%;
+  background:linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.045) 50%,
+    transparent 100%
+  );
+  transform:translateX(-120%) skewX(-20deg);
+  opacity:0;
+  pointer-events:none;
+}
+.sig-leader-card:hover::after{
+  animation:shimmerPass 0.6s ease-out forwards !important;
+}
+
+/* ── Macro card: hover lift with gold glow ── */
+.macro-card:hover{
+  transform:translateY(-3px) !important;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.06) inset,
+    0 20px 60px rgba(0,0,0,0.7),
+    0 0 30px rgba(200,169,110,0.06) !important;
+}
+
+/* ── Heatmap tile: hover glow ring ── */
+.hm-cell:hover{
+  box-shadow:
+    0 0 0 1px rgba(200,169,110,0.2),
+    0 6px 24px rgba(0,0,0,0.5) !important;
+  z-index:2;
+}
+
+/* ── Factor tab label transition ── */
+.f-lbl,.f-val,.f-sub,.f-wt{
+  transition:color 180ms, opacity 180ms !important;
+}
+
+/* ── F-card icon: subtle glow on active ── */
+.f-card.on .f-lbl,.f-card.act .f-lbl{
+  color:rgba(200,169,110,0.85) !important;
+}
+.f-card.on .f-val,.f-card.act .f-val{
+  filter:drop-shadow(0 0 6px currentColor) !important;
+}
+
+/* ── Score orb: third ring for depth ── */
+.nexus-orb-ring3{
+  position:absolute;
+  inset:-14px;
+  border-radius:50%;
+  border:1px dashed rgba(200,169,110,0.08);
+  animation:orbRingRotate 28s linear infinite !important;
+}
+
+
 </style>
 </head>
 <body>
@@ -6616,6 +7238,7 @@ function renderOverview(){
           <div class="nexus-orb-bg"></div>
           <div class="nexus-orb-ring"></div>
           <div class="nexus-orb-ring2"></div>
+          <div class="nexus-orb-ring3"></div>
           <div class="nexus-orb-scan"></div>
           <div class="nexus-orb-score" style="color:${regCol}">${regScore!=null?regScore.toFixed(1):avg}</div>
         </div>
@@ -19402,6 +20025,47 @@ function initNexusNoise(){
   window._nexusNoiseCancelId=function(){cancelAnimationFrame(animId);};
 }
 initNexusNoise();
+
+// ── NEXUS OS Phase 5: Intersection Observer for card entrance animations ──
+(function initNexusReveal(){
+  if(!('IntersectionObserver' in window)) return;
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      const el = e.target;
+      const siblings = el.parentElement ? Array.from(el.parentElement.children).filter(c=>c.classList.contains(el.classList[0])) : [el];
+      const idx = siblings.indexOf(el);
+      el.style.animationDelay = (idx * 55) + 'ms';
+      el.classList.add('nexus-card-visible');
+      obs.unobserve(el);
+    });
+  },{threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+  // Observe cot-cards, seas-cards, sig-leader-cards, macro-cards, narr-panels
+  function attachObs(){
+    document.querySelectorAll('.cot-card,.seas-card,.sig-leader-card,.macro-card,.narr-panel').forEach(el=>{
+      el.style.opacity='0';
+      el.style.transform='translateY(10px) scale(0.98)';
+      el.style.transition='opacity 500ms cubic-bezier(0.16,1,0.3,1), transform 500ms cubic-bezier(0.16,1,0.3,1)';
+      obs.observe(el);
+    });
+  }
+  // Run after panels render
+  const origRender = window.renderDetailPanel;
+  if(origRender){
+    window.renderDetailPanel = function(){
+      const r = origRender.apply(this, arguments);
+      setTimeout(attachObs, 80);
+      return r;
+    };
+  }
+  setTimeout(attachObs, 300);
+  // Re-attach on tab switch
+  document.addEventListener('click', function(e){
+    if(e.target.closest('.f-card,.factor-tab')) setTimeout(attachObs, 120);
+  });
+  // Make cards visible when observer fires
+  document.head.insertAdjacentHTML('beforeend','<style>.nexus-card-visible{opacity:1 !important;transform:none !important}</style>');
+})();
 </script>
 </div><!-- /.app-wrap -->
 </body>
