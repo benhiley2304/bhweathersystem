@@ -2333,9 +2333,9 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   position:absolute;border-radius:50%;transform:translate(-50%,-50%);
 }
 .ov-rp-dot-spot{
-  width:11px;height:11px;background:var(--rp-accent);
-  box-shadow:0 0 0 3px rgba(var(--rp-accent-rgb),0.14),
-             0 0 8px rgba(var(--rp-accent-rgb),0.28);
+  width:10px;height:10px;background:var(--rp-accent);
+  box-shadow:0 0 0 2px rgba(var(--rp-accent-rgb),0.18),
+             0 0 10px rgba(var(--rp-accent-rgb),0.35);
 }
 .ov-rp-dot-end{
   width:9px;height:9px;background:rgba(8,11,20,0.92);
@@ -2400,13 +2400,13 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 /* ── Rate path chart dot + label polish ── */
 @keyframes rpSpotPulse{
-  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.20;}
-  50%{transform:translate(-50%,-50%) scale(2.0);opacity:0;}
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.25;}
+  50%{transform:translate(-50%,-50%) scale(1.7);opacity:0;}
 }
 .ov-rp-dot-spot::after{
-  content:'';position:absolute;inset:-6px;border-radius:50%;
-  border:1.5px solid var(--rp-accent);
-  animation:rpSpotPulse 2.6s ease-in-out infinite;
+  content:'';position:absolute;inset:-5px;border-radius:50%;
+  border:1px solid var(--rp-accent);
+  animation:rpSpotPulse 3s ease-in-out infinite;
 }
 /* Endpoint label polish */
 .ov-rp-eplbl-spot{
@@ -5435,17 +5435,17 @@ function renderOverview(){
 
     // SVG arc helper — draws a semi-circular arc showing cycle position
     const _cbArc = (pct, col, colRgb) => {
-      const R = 28, cx = 34, cy = 34, stroke = 4;
+      const R = 36, cx = 45, cy = 45, stroke = 5;
       const toRad = deg => deg * Math.PI / 180;
-      // Arc spans 200deg (from -190deg to +10deg, i.e. bottom-left to bottom-right)
-      const startDeg = -190, totalDeg = 200;
+      // Arc spans 220deg (from -200deg to +20deg)
+      const startDeg = -200, totalDeg = 220;
       const endDeg = startDeg + totalDeg * (pct / 100);
       const sx = cx + R * Math.cos(toRad(startDeg));
       const sy = cy + R * Math.sin(toRad(startDeg));
       const ex = cx + R * Math.cos(toRad(endDeg));
       const ey = cy + R * Math.sin(toRad(endDeg));
       const largeArc = (totalDeg * pct / 100) > 180 ? 1 : 0;
-      // Track arc (full)
+      // Track arc (full 220deg)
       const tx1 = cx + R * Math.cos(toRad(startDeg));
       const ty1 = cy + R * Math.sin(toRad(startDeg));
       const tx2 = cx + R * Math.cos(toRad(startDeg + totalDeg));
@@ -5453,20 +5453,25 @@ function renderOverview(){
       // Thumb dot position
       const tdx = cx + R * Math.cos(toRad(endDeg));
       const tdy = cy + R * Math.sin(toRad(endDeg));
-      return `<svg width="68" height="50" viewBox="0 0 68 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-        <!-- Track -->
-        <path d="M ${tx1.toFixed(2)} ${ty1.toFixed(2)} A ${R} ${R} 0 1 1 ${tx2.toFixed(2)} ${ty2.toFixed(2)}" stroke="rgba(255,255,255,0.10)" stroke-width="${stroke}" stroke-linecap="round" fill="none"/>
-        <!-- Fill -->
-        ${pct > 1 ? `<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}" stroke="${col}" stroke-width="${stroke}" stroke-linecap="round" fill="none" opacity="0.75"/>` : ''}
-        <!-- Glow layer -->
-        ${pct > 1 ? `<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}" stroke="rgba(${colRgb},0.35)" stroke-width="${stroke + 4}" stroke-linecap="round" fill="none" filter="url(#cbBlur)"/>` : ''}
-        <!-- Thumb dot -->
-        ${pct > 0 ? `<circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="5" fill="${col}" filter="url(#cbGlow)"/>
-        <circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="3" fill="${col}"/>` : ''}
+      // Percentage label — only show if pct > 2
+      const pctLabel = pct > 2 ? `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" font-weight="800" fill="${col}" opacity="0.90" letter-spacing="-0.5">${Math.round(pct)}%</text>` : '';
+      return `<svg width="90" height="70" viewBox="0 0 90 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
         <defs>
-          <filter id="cbBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
-          <filter id="cbGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2.5"/></filter>
+          <filter id="cbBlur${Math.round(pct)}" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5"/></filter>
+          <filter id="cbGlow${Math.round(pct)}" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="3"/></filter>
         </defs>
+        <!-- Track -->
+        <path d="M ${tx1.toFixed(2)} ${ty1.toFixed(2)} A ${R} ${R} 0 1 1 ${tx2.toFixed(2)} ${ty2.toFixed(2)}" stroke="rgba(255,255,255,0.09)" stroke-width="${stroke}" stroke-linecap="round" fill="none"/>
+        <!-- Glow layer -->
+        ${pct > 1 ? `<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}" stroke="rgba(${colRgb},0.30)" stroke-width="${stroke + 5}" stroke-linecap="round" fill="none" filter="url(#cbBlur${Math.round(pct)})"/>` : ''}
+        <!-- Fill -->
+        ${pct > 1 ? `<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}" stroke="${col}" stroke-width="${stroke}" stroke-linecap="round" fill="none" opacity="0.88"/>` : ''}
+        <!-- Thumb glow halo -->
+        ${pct > 0 ? `<circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="7" fill="rgba(${colRgb},0.20)" filter="url(#cbGlow${Math.round(pct)})"/>` : ''}
+        <!-- Thumb dot -->
+        ${pct > 0 ? `<circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="4.5" fill="${col}"/><circle cx="${tdx.toFixed(2)}" cy="${tdy.toFixed(2)}" r="2" fill="rgba(255,255,255,0.95)"/>` : ''}
+        <!-- Percentage label -->
+        ${pctLabel}
       </svg>`;
     };
 
@@ -5493,12 +5498,15 @@ function renderOverview(){
       return `
       <div style="
         position:relative;overflow:hidden;
-        padding:12px 12px 10px;
+        padding:12px 12px 10px 14px;
         border-radius:12px;
-        background:linear-gradient(135deg,rgba(${colRgb},${isUS ? '0.10' : '0.05'}) 0%,rgba(10,13,22,0.60) 100%);
-        border:1px solid rgba(${colRgb},${isUS ? '0.28' : '0.14'});
+        background:linear-gradient(145deg,rgba(${colRgb},${isUS ? '0.12' : '0.06'}) 0%,rgba(8,11,20,0.75) 55%,rgba(4,6,14,0.90) 100%);
+        border:1px solid rgba(${colRgb},${isUS ? '0.30' : '0.16'});
+        box-shadow:0 2px 16px rgba(0,0,0,0.35);
       ">
-        ${isUS ? `<div style="position:absolute;top:0;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,${col},transparent);opacity:0.70"></div>` : ''}
+        <!-- Left accent bar -->
+        <div style="position:absolute;top:12%;left:0;width:2.5px;height:76%;border-radius:0 2px 2px 0;background:linear-gradient(180deg,transparent,${col},transparent);opacity:${isUS ? '0.80' : '0.45'}"></div>
+        ${isUS ? `<div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,${col},transparent);opacity:0.55"></div>` : ''}
         <!-- Top row: flag+name left, next mtg right -->
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:5px">
@@ -5527,9 +5535,8 @@ function renderOverview(){
             </div>
           </div>
           <!-- Arc: cycle position -->
-          <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0px">
             ${_cbArc(pct, col, colRgb)}
-            <div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.40);letter-spacing:0.06em;text-align:center">${pct.toFixed(0)}% of cycle</div>
           </div>
         </div>
       </div>`;
@@ -5641,8 +5648,8 @@ function renderOverview(){
               </div>
               <div class="ov-rp-stat-val" style="color:${c}">${_bpStr(bp)}</div>
               <div class="ov-rp-stat-sub" style="color:rgba(${rgb},0.65);margin-top:4px">${_bpLabel(bp)}</div>
-              <div style="margin-top:8px;height:2px;border-radius:2px;background:rgba(${rgb},0.12)">
-                <div style="height:100%;width:${Math.min(100,Math.abs(bp??0)/50*100).toFixed(0)}%;border-radius:2px;background:rgba(${rgb},0.55)"></div>
+              <div style="margin-top:8px;height:3px;border-radius:3px;background:rgba(${rgb},0.10);overflow:hidden">
+                <div style="height:100%;width:${Math.min(100,Math.abs(bp??0)/50*100).toFixed(0)}%;border-radius:3px;background:linear-gradient(90deg,rgba(${rgb},0.70),rgba(${rgb},0.45))"></div>
               </div>
             </div>`;
           };
