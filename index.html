@@ -5428,6 +5428,104 @@ function renderOverview(){
     const intlRates = reg.intl_rates || {};
     const CB_NAMES_OV = {US:'Fed', ECB:'ECB', BOE:'BoE', BOJ:'BoJ', RBA:'RBA', BOC:'BoC', SNB:'SNB', RBNZ:'RBNZ'};
     const CB_FLAGS_OV = {US:'🇺🇸', ECB:'🇪🇺', BOE:'🇬🇧', BOJ:'🇯🇵', RBA:'🇦🇺', BOC:'🇨🇦', SNB:'🇨🇭', RBNZ:'🇳🇿'};
+    // Inline SVG flag art — semi-transparent backdrop per card
+    const _cbFlagSvg = cb => {
+      const flags = {
+        US: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="36" fill="#B22234"/>
+          <rect y="2.77" width="60" height="2.77" fill="#fff"/>
+          <rect y="5.54" width="60" height="2.77" fill="#B22234"/>
+          <rect y="8.31" width="60" height="2.77" fill="#fff"/>
+          <rect y="11.08" width="60" height="2.77" fill="#B22234"/>
+          <rect y="13.85" width="60" height="2.77" fill="#fff"/>
+          <rect y="16.62" width="60" height="2.77" fill="#B22234"/>
+          <rect y="19.38" width="60" height="2.77" fill="#fff"/>
+          <rect y="22.15" width="60" height="2.77" fill="#B22234"/>
+          <rect y="24.92" width="60" height="2.77" fill="#fff"/>
+          <rect y="27.69" width="60" height="2.77" fill="#B22234"/>
+          <rect y="30.46" width="60" height="2.77" fill="#fff"/>
+          <rect y="33.23" width="60" height="2.77" fill="#B22234"/>
+          <rect width="24" height="19.38" fill="#3C3B6E"/>
+        </svg>`,
+        BOE: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="36" fill="#012169"/>
+          <line x1="0" y1="0" x2="60" y2="36" stroke="#fff" stroke-width="6"/>
+          <line x1="60" y1="0" x2="0" y2="36" stroke="#fff" stroke-width="6"/>
+          <line x1="0" y1="0" x2="60" y2="36" stroke="#C8102E" stroke-width="3.5"/>
+          <line x1="60" y1="0" x2="0" y2="36" stroke="#C8102E" stroke-width="3.5"/>
+          <rect x="24" y="0" width="12" height="36" fill="#fff"/>
+          <rect x="0" y="12" width="60" height="12" fill="#fff"/>
+          <rect x="26" y="0" width="8" height="36" fill="#C8102E"/>
+          <rect x="0" y="14" width="60" height="8" fill="#C8102E"/>
+        </svg>`,
+        ECB: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="36" fill="#003399"/>
+          <g fill="#FFCC00">
+            <circle cx="30" cy="18" r="1.4"/>
+            <circle cx="30" cy="7" r="1.4"/>
+            <circle cx="30" cy="29" r="1.4"/>
+            <circle cx="19.5" cy="9.5" r="1.4"/>
+            <circle cx="14" cy="18" r="1.4"/>
+            <circle cx="19.5" cy="26.5" r="1.4"/>
+            <circle cx="40.5" cy="9.5" r="1.4"/>
+            <circle cx="46" cy="18" r="1.4"/>
+            <circle cx="40.5" cy="26.5" r="1.4"/>
+            <circle cx="23" cy="7.8" r="1.4"/>
+            <circle cx="37" cy="7.8" r="1.4"/>
+            <circle cx="23" cy="28.2" r="1.4"/>
+            <circle cx="37" cy="28.2" r="1.4"/>
+          </g>
+        </svg>`,
+        BOJ: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="36" fill="#fff"/>
+          <circle cx="30" cy="18" r="10" fill="#BC002D"/>
+        </svg>`,
+        RBA: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="36" fill="#00008B"/>
+          <rect x="27" y="0" width="6" height="36" fill="#fff"/>
+          <rect x="0" y="15" width="60" height="6" fill="#fff"/>
+          <rect x="0" y="0" width="30" height="18" fill="#00008B"/>
+          <line x1="0" y1="0" x2="30" y2="18" stroke="#fff" stroke-width="4"/>
+          <line x1="30" y1="0" x2="0" y2="18" stroke="#fff" stroke-width="4"/>
+          <line x1="0" y1="0" x2="30" y2="18" stroke="#CC0000" stroke-width="2.5"/>
+          <line x1="30" y1="0" x2="0" y2="18" stroke="#CC0000" stroke-width="2.5"/>
+          <rect x="12" y="0" width="6" height="18" fill="#fff"/>
+          <rect x="0" y="6" width="30" height="6" fill="#fff"/>
+          <rect x="13.5" y="0" width="3" height="18" fill="#CC0000"/>
+          <rect x="0" y="7.5" width="30" height="3" fill="#CC0000"/>
+          <circle cx="44" cy="26" r="3" fill="#fff" opacity="0.9"/>
+          <circle cx="50" cy="21" r="2.2" fill="#fff" opacity="0.9"/>
+          <circle cx="52" cy="28" r="2.2" fill="#fff" opacity="0.9"/>
+          <circle cx="46" cy="32" r="2.2" fill="#fff" opacity="0.9"/>
+          <circle cx="41" cy="21" r="2.2" fill="#fff" opacity="0.9"/>
+        </svg>`,
+        BOC: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="15" height="36" fill="#FF0000"/>
+          <rect x="45" y="0" width="15" height="36" fill="#FF0000"/>
+          <rect x="15" y="0" width="30" height="36" fill="#fff"/>
+          <polygon points="30,8 32.5,15 40,15 34,19.5 36.5,26.5 30,22 23.5,26.5 26,19.5 20,15 27.5,15" fill="#FF0000"/>
+        </svg>`,
+        SNB: `<svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="36" height="36" fill="#FF0000"/>
+          <rect x="14" y="7" width="8" height="22" fill="#fff"/>
+          <rect x="7" y="14" width="22" height="8" fill="#fff"/>
+        </svg>`,
+        RBNZ: `<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="36" fill="#00247D"/>
+          <rect x="27" y="0" width="6" height="18" fill="#fff"/>
+          <rect x="0" y="6" width="30" height="6" fill="#fff"/>
+          <line x1="0" y1="0" x2="30" y2="18" stroke="#fff" stroke-width="4"/>
+          <line x1="30" y1="0" x2="0" y2="18" stroke="#fff" stroke-width="4"/>
+          <line x1="0" y1="0" x2="30" y2="18" stroke="#CC142B" stroke-width="2.5"/>
+          <line x1="30" y1="0" x2="0" y2="18" stroke="#CC142B" stroke-width="2.5"/>
+          <rect x="13.5" y="0" width="3" height="18" fill="#CC142B"/>
+          <rect x="0" y="7.5" width="30" height="3" fill="#CC142B"/>
+          <polygon points="40,8 41.5,13.5 47,12 43.5,16 47,20 41.5,18.5 40,24 38.5,18.5 33,20 36.5,16 33,12 38.5,13.5" fill="#CC142B" opacity="0.85"/>
+          <polygon points="51,14 52,17.5 55.5,16.5 53.5,19 55.5,21.5 52,20.5 51,24 50,20.5 46.5,21.5 48.5,19 46.5,16.5 50,17.5" fill="#CC142B" opacity="0.85"/>
+        </svg>`
+      };
+      return flags[cb] || '';
+    };
     const CB_ORDER_OV = ['US','ECB','BOE','BOJ','RBA','BOC','SNB','RBNZ'];
 
     const cbsSorted = CB_ORDER_OV.filter(cb => intlRates[cb])
@@ -5443,8 +5541,8 @@ function renderOverview(){
       const r3  = r - (t3m  != null ? t3m  : 0);
       const pts = [r12, r6, r3, r];
       // SVG dims
-      const W = 160, H = 44;
-      const padL = 10, padR = 10, padT = 10, padB = 16;
+      const W = 180, H = 50;
+      const padL = 12, padR = 12, padT = 11, padB = 17;
       const xs = [padL, padL + (W-padL-padR)*0.33, padL + (W-padL-padR)*0.66, W-padR];
       const minR = Math.min(...pts) - 0.04;
       const maxR = Math.max(...pts) + 0.04;
@@ -5477,10 +5575,10 @@ function renderOverview(){
       }).join('');
       // X-axis labels
       const lbls = ['-12M','-6M','-3M','Now'];
-      const lblHtml = xs.map((x, i) => `<text x="${x}" y="${H-2}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="6" font-weight="700" fill="rgba(255,255,255,${i===3?'0.65':'0.30'})" letter-spacing="0">${lbls[i]}</text>`).join('');
+      const lblHtml = xs.map((x, i) => `<text x="${x}" y="${H-2}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7.5" font-weight="700" fill="rgba(255,255,255,${i===3?'0.72':'0.36'})" letter-spacing="0">${lbls[i]}</text>`).join('');
       // Rate value labels — only show at endpoints (12M ago and Now)
-      const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-5).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="6.5" font-weight="700" fill="rgba(255,255,255,0.28)">${r12.toFixed(2)}</text>`;
-      const valLblNow = `<text x="${xs[3]-2}" y="${(ys[3]-6).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="6.5" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
+      const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-5).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" font-weight="700" fill="rgba(255,255,255,0.38)">${r12.toFixed(2)}</text>`;
+      const valLblNow = `<text x="${xs[3]-2}" y="${(ys[3]-6).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
       // Particle dots — 8 subtle random dots as backdrop (deterministic)
       const seed = r * 137 + (t12m||0) * 31;
       const particles = Array.from({length:8}, (_, i) => {
@@ -5490,7 +5588,7 @@ function renderOverview(){
         const pop = 0.06 + (i % 4) * 0.03;
         return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${pr}" fill="rgba(${colRgb},${pop.toFixed(2)})"/>`;
       }).join('');
-      return `<svg width="160" height="44" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
+      return `<svg width="100%" height="50" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
         <defs>
           <filter id="tlBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/></filter>
           <filter id="tlGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
@@ -5629,31 +5727,34 @@ function renderOverview(){
         ${isUS ? `<div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,${col},${col2},transparent);opacity:0.55"></div>` : ''}
         <!-- Row 1: flag + name + next mtg -->
         <div style="position:relative;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <!-- Flag backdrop -->
+          <div style="pointer-events:none;position:absolute;bottom:0;right:0;width:72px;height:52px;overflow:hidden;border-radius:0 0 13px 0;opacity:0.07">
+            ${_cbFlagSvg(cb)}
+          </div>
           <div style="display:flex;align-items:center;gap:5px">
-            <span style="font-size:13px;line-height:1">${CB_FLAGS_OV[cb] || ''}</span>
-            <span style="font-family:var(--mono);font-size:${isUS ? '11' : '10'}px;font-weight:${isUS ? '900' : '700'};color:${isUS ? '#fff' : 'rgba(255,255,255,0.70)'};letter-spacing:0.01em">${CB_NAMES_OV[cb] || cb}</span>
+            <span style="font-family:var(--mono);font-size:${isUS ? '12' : '11'}px;font-weight:${isUS ? '900' : '800'};color:${isUS ? '#fff' : 'rgba(255,255,255,0.80)'};letter-spacing:0.02em">${CB_NAMES_OV[cb] || cb}</span>
           </div>
           ${nmFmt ? `<div style="text-align:right">
-            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(255,255,255,0.48);line-height:1">${nmFmt}</div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:rgba(255,255,255,0.55);line-height:1">${nmFmt}</div>
             ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28);margin-top:2px">${nmDays}d</div>` : ''}
           </div>` : ''}
         </div>
         <!-- Row 2: rate + stance pill + cfp delta -->
         <div style="position:relative;display:flex;align-items:baseline;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-          <div style="font-family:var(--mono);font-size:${isUS ? '26' : '22'}px;font-weight:900;letter-spacing:-0.04em;line-height:1;
+          <div style="font-family:var(--mono);font-size:${isUS ? '28' : '24'}px;font-weight:900;letter-spacing:-0.04em;line-height:1;
             color:${col};
             background:linear-gradient(135deg,${col} 0%,${col2} 100%);
             -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
           ">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.70">%</span>${srcBadge}</div>
           <span style="
-            font-family:var(--mono);font-size:7px;font-weight:800;
+            font-family:var(--mono);font-size:8px;font-weight:800;
             letter-spacing:0.08em;text-transform:uppercase;
             color:${col};background:${pillBg};
             border:1px solid ${pillBdr};
             border-radius:4px;padding:2px 6px;
             align-self:center;
           ">${_lbl || 'Flat'}</span>
-          <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${cfpCol};align-self:center">${cfpStr}</span>
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${cfpCol};align-self:center">${cfpStr}</span>
         </div>
         <!-- Row 3: Rate history timeline — full width, no side padding -->
         <div style="position:relative;margin:0 -11px 0 -13px;">
