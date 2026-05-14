@@ -6873,33 +6873,14 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${scBadgeCol};background:${scBadgeCol}1a;border:1px solid ${scBadgeCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- ══ COMPOSITE SCORE + SPX SPARKLINE ═══════════════════════════ -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.07);border-radius:9px">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:6px">
-              <span style="font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.04em;line-height:1;color:${compCol}">${scComp!=null?scComp.toFixed(2):'—'}</span>
-              <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;color:${compCol};padding:2px 6px;border-radius:4px;background:${compCol}18;border:1px solid ${compCol}28;letter-spacing:0.06em">${compLbl}</span>
-            </div>
-            <div style="position:relative;height:7px;border-radius:3.5px;overflow:hidden;background:rgba(255,255,255,0.06)">
-              <div style="position:absolute;inset:0;background:linear-gradient(90deg,#e03a2a 0%,#f5a442 28%,#c8a96e 50%,#5aaa7a 72%,#22c97a 100%);opacity:0.28;border-radius:3px"></div>
-              <div style="position:absolute;top:0;bottom:0;width:2.5px;left:${compNorm.toFixed(1)}%;background:${compCol};border-radius:1px;box-shadow:0 0 8px ${compCol};transform:translateX(-50%)"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:2.5px">
-              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.18)">Stressed</span>
-              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.18)">Risk-On</span>
-            </div>
-          </div>
-          <canvas id="ov-sc-spx-chart" width="100" height="44" style="width:88px;height:44px;display:block;border-radius:5px;flex-shrink:0"></canvas>
-        </div>
-
         <!-- ══ SECTION 1: VALUATION ═══════════════════════════════════════ -->
-        <div style="margin-bottom:9px">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Valuation</div><div class="mc-sect-line"></div></div>
+        <div style="margin-bottom:7px">
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Valuation</div><div class="mc-sect-line"></div></div>
 
           <!-- Forward PE thermostat -->
-          <div style="margin-bottom:7px">
+          <div style="margin-bottom:5px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Forward PE (NTM)</span>
+              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">P/E Ratio <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(SPY trailing)</span></span>
               <div style="display:flex;align-items:baseline;gap:4px">
                 ${fpeNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(fpeSig.score??0)};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</span>
                 <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(fpeSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${fpeSig.label||'—'}</span>`:''}
@@ -6908,59 +6889,32 @@ function renderMacroDataPanels(reg){
             </div>
             ${thermoBar({
               value: fpeNum>0?fpeNum:null,
-              min: 12, max: 28,
+              min: 12, max: 36,
               zones: [
-                {v0:12, v1:15, col:'rgba(34,201,122,0.75)'},
-                {v0:15, v1:18, col:'rgba(90,170,120,0.60)'},
-                {v0:18, v1:22, col:'rgba(200,169,110,0.65)'},
-                {v0:22, v1:25, col:'rgba(240,140,60,0.70)'},
-                {v0:25, v1:28, col:'rgba(220,60,42,0.80)'},
+                {v0:12, v1:17, col:'rgba(34,201,122,0.75)'},
+                {v0:17, v1:21, col:'rgba(90,170,120,0.60)'},
+                {v0:21, v1:26, col:'rgba(200,169,110,0.65)'},
+                {v0:26, v1:32, col:'rgba(240,140,60,0.70)'},
+                {v0:32, v1:36, col:'rgba(220,60,42,0.80)'},
               ],
-              leftLabel: '12x Cheap', rightLabel: '28x+ Extreme',
+              leftLabel: '12x Cheap', rightLabel: '36x Extreme',
               benchmarks: [
-                {v:19.9, label:'5yr avg 19.9x', col:'rgba(200,169,110,0.55)'},
-                {v:18.9, label:'10yr avg 18.9x', col:'rgba(173,184,208,0.35)'},
+                {v:17.5, label:'LT avg ~17.5x', col:'rgba(173,184,208,0.45)'},
               ]
             })}
           </div>
 
-          <!-- Trailing P/E thermostat -->
-          <div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">Trailing P/E <span style="font-size:5.5px;letter-spacing:0;opacity:0.6;text-transform:none">(SPY)</span></span>
-              <div style="display:flex;align-items:baseline;gap:4px">
-                ${capeNum>0?`<span style="font-family:var(--mono);font-size:12px;font-weight:900;color:${sigCol(capeSig.score??0)};letter-spacing:-0.02em">${capeNum.toFixed(1)}x</span>
-                <span style="font-family:var(--mono);font-size:6.5px;font-weight:700;color:${sigCol(capeSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${capeSig.label||'—'}</span>`:''}
-              </div>
-            </div>
-            ${thermoBar({
-              value: capeNum>0?capeNum:null,
-              min: 12, max: 38,
-              zones: [
-                {v0:12, v1:17, col:'rgba(34,201,122,0.75)'},
-                {v0:17, v1:21, col:'rgba(90,170,120,0.55)'},
-                {v0:21, v1:26, col:'rgba(200,169,110,0.65)'},
-                {v0:26, v1:32, col:'rgba(240,120,50,0.70)'},
-                {v0:32, v1:38, col:'rgba(200,40,40,0.80)'},
-              ],
-              leftLabel: '12x Cheap', rightLabel: '38x+ Extreme',
-              benchmarks: [
-                {v:17, label:'LT mean ~17x', col:'rgba(173,184,208,0.45)'},
-                {v:26, label:'Elevated', col:'rgba(200,169,110,0.40)'},
-              ]
-            })}
-          </div>
         </div>
 
         <!-- ══ SECTION 2: FEAR & VOLATILITY ══════════════════════════════ -->
-        <div style="margin-bottom:9px">
+        <div style="margin-bottom:7px">
           <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Fear &amp; Volatility</div><div class="mc-sect-line"></div></div>
 
           <!-- VIX + SKEW side-by-side gauges -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
 
             <!-- VIX gauge block -->
-            <div style="background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:7px 8px;text-align:center">
+            <div style="background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:5px 8px;text-align:center">
               <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">VIX</div>
               <canvas id="ov-sc-vix-gauge" width="100" height="56" style="width:100%;max-width:100px;height:56px;display:block;margin:0 auto"></canvas>
               <div style="display:flex;justify-content:center;align-items:baseline;gap:4px;margin-top:2px">
@@ -6971,7 +6925,7 @@ function renderMacroDataPanels(reg){
             </div>
 
             <!-- SKEW gauge block -->
-            <div style="background:rgba(255,255,255,0.018);border:1px solid ${skewNum>135?'rgba(240,140,60,0.25)':'rgba(255,255,255,0.06)'};border-radius:8px;padding:7px 8px;text-align:center;position:relative">
+            <div style="background:rgba(255,255,255,0.018);border:1px solid ${skewNum>135?'rgba(240,140,60,0.25)':'rgba(255,255,255,0.06)'};border-radius:8px;padding:5px 8px;text-align:center;position:relative">
               ${vixSkewDiv?`<div style="position:absolute;top:4px;right:6px;font-family:var(--mono);font-size:5px;font-weight:800;letter-spacing:0.08em;color:#f5a442;text-transform:uppercase;opacity:0.9">DIVERGE</div>`:''}
               <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">CBOE SKEW</div>
               <canvas id="ov-sc-skew-gauge" width="100" height="56" style="width:100%;max-width:100px;height:56px;display:block;margin:0 auto"></canvas>
@@ -7009,11 +6963,11 @@ function renderMacroDataPanels(reg){
         </div>
 
         <!-- ══ SECTION 3: BREADTH & MOMENTUM ═════════════════════════════ -->
-        <div style="margin-bottom:9px">
+        <div style="margin-bottom:7px">
           <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
 
           <!-- SPX 3m Momentum thermostat -->
-          <div style="margin-bottom:7px">
+          <div style="margin-bottom:5px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
               <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.5)">SPX 3M Momentum</span>
               <div style="display:flex;align-items:baseline;gap:4px">
@@ -7062,30 +7016,13 @@ function renderMacroDataPanels(reg){
         </div>
 
         <!-- ══ SECTION 4: CONDITIONS ══════════════════════════════════════ -->
-        <div style="margin-bottom:9px">
+        <div style="margin-bottom:0">
           <div class="mc-sect" style="margin:0 0 4px"><div class="mc-sect-lbl">Macro Conditions</div><div class="mc-sect-line"></div></div>
           ${statRow('Fin. Conditions (NFCI)', nfciSig.value||'—', nfciSig.label||'—', nfciSig.score, nfciSig.delta_4w!=null?`4W:${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:undefined)}
-          ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`10Y:${erpSig.dgs10}%`:undefined)}
-          ${statRow('HY Spreads', hyqSig.value||'—', hyqSig.label||'—', hyqSig.score, hyqSig.quadrant||undefined, true)}
+          ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`10Y:${erpSig.dgs10}%`:undefined, true)}
         </div>
 
-        <!-- ══ SECTION 5: CROSS-ASSET RETURNS ════════════════════════════ -->
-        <div style="flex:1;min-height:0">
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Cross-Asset Returns</div><div class="mc-sect-line"></div></div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">
-            ${miniAssets.map(m=>`<div style="background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.055);border-radius:6px;padding:5px 7px">
-              <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(173,184,208,0.65);margin-bottom:3px;letter-spacing:0.04em">${m.lbl}</div>
-              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
-                <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.35)">1M</span>
-                <span style="font-family:var(--mono);font-size:10.5px;font-weight:900;color:${m.colR(m.r1m)}">${m.fmtR(m.r1m)}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:baseline">
-                <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.35)">3M</span>
-                <span style="font-family:var(--mono);font-size:10.5px;font-weight:900;color:${m.colR(m.r3m)}">${m.fmtR(m.r3m)}</span>
-              </div>
-            </div>`).join('')}
-          </div>
-        </div>
+
       </div>`;
       })()}    </div>
   `;

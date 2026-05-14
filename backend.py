@@ -4801,39 +4801,8 @@ def compute_stock_climate() -> dict:
                 "category": "volatility",
             }
 
-        # ── 2. Trailing P/E (SPY) — used as CAPE-like valuation proxy
-        # Shiller CAPE has no reliable free live API; SPY trailing P/E is a close proxy
-        cape_val = None
-        try:
-            _spy_tk = yf.Ticker("SPY")
-            _spy_info = _spy_tk.info or {}
-            if isinstance(_spy_info, dict):
-                _pe = _spy_info.get("trailingPE") or _spy_info.get("forwardPE")
-                if _pe:
-                    cape_val = float(_pe)
-        except Exception:
-            pass
-
-        if cape_val is not None and cape_val > 0:
-            # Trailing P/E historical context: avg ~17, elevated >25, extreme >32
-            if cape_val < 17:
-                pe_score, pe_label = 2, "Cheap"
-            elif cape_val < 21:
-                pe_score, pe_label = 1, "Fair Value"
-            elif cape_val < 26:
-                pe_score, pe_label = 0, "Moderate"
-            elif cape_val < 32:
-                pe_score, pe_label = -1, "Expensive"
-            else:
-                pe_score, pe_label = -2, "Very Expensive"
-            signals["FORWARD_PE"] = {
-                "title": "Trailing P/E",
-                "value": f"{cape_val:.1f}x",
-                "label": pe_label,
-                "score": pe_score,
-                "category": "valuation",
-                "raw": round(cape_val, 2),
-            }
+        # ── 2. (Slot reserved — FORWARD_PE signal removed; FWD_PE signal covers valuation) ──
+        pass
 
         # ── 3. SPY/RSP Breadth ──────────────────────────────────────────────
         try:
@@ -5076,22 +5045,22 @@ def compute_stock_climate() -> dict:
         try:
             _fpe_tk = yf.Ticker("SPY")  # SPY info gives consistent forward PE
             _fpe_info = _fpe_tk.info
-            fwd_pe = _fpe_info.get("forwardPE") or _fpe_info.get("trailingPE")
+            fwd_pe = _fpe_info.get("trailingPE") or _fpe_info.get("forwardPE")
             if fwd_pe:
                 fwd_pe = float(fwd_pe)
-                # Forward PE thresholds vs historical context
-                if fwd_pe < 15:
+                # SPY trailing P/E: LT avg ~17-18x, expensive >25x, extreme >32x
+                if fwd_pe < 17:
                     fpe_score, fpe_label = 2, "Cheap"
-                elif fwd_pe < 18:
+                elif fwd_pe < 21:
                     fpe_score, fpe_label = 1, "Fair Value"
-                elif fwd_pe < 22:
+                elif fwd_pe < 26:
                     fpe_score, fpe_label = 0, "Elevated"
-                elif fwd_pe < 25:
+                elif fwd_pe < 32:
                     fpe_score, fpe_label = -1, "Expensive"
                 else:
                     fpe_score, fpe_label = -2, "Very Expensive"
                 signals["FWD_PE"] = {
-                    "title": "Forward PE (NTM)",
+                    "title": "P/E Ratio (SPY trailing)",
                     "value": f"{fwd_pe:.1f}x",
                     "label": fpe_label,
                     "score": fpe_score,
