@@ -12,28 +12,38 @@
 // NEXUS OS: Global Chart.js defaults — premium dark theme
 document.addEventListener('DOMContentLoaded', function(){
   if(typeof Chart === 'undefined') return;
-  Chart.defaults.color = 'rgba(180,200,235,0.4)';
+  Chart.defaults.color = 'rgba(180,200,235,0.55)';  // R8: brighter default tick labels
   Chart.defaults.font.family = "'JetBrains Mono', monospace";
   Chart.defaults.font.size = 8;
   Chart.defaults.plugins.legend.display = false;
-  Chart.defaults.scale.grid.color = 'rgba(255,255,255,0.04)';
+  Chart.defaults.scale.grid.color = 'rgba(255,255,255,0.05)';  // R8: slightly more visible grid
   Chart.defaults.scale.grid.drawBorder = false;
-  Chart.defaults.scale.ticks.color = 'rgba(180,200,235,0.28)';
+  Chart.defaults.scale.ticks.color = 'rgba(180,200,235,0.42)';  // R8: brighter ticks
   Chart.defaults.scale.ticks.maxTicksLimit = 6;
   Chart.defaults.animation.duration = 600;
   Chart.defaults.animation.easing = 'easeOutQuart';
-  // Custom background plugin for all charts
+  // Custom background plugin for all charts — R8: richer dark base + stronger glow
   Chart.register({
     id: 'nexusBg',
     beforeDraw: function(chart){
       const ctx = chart.ctx;
       const {left, top, width, height} = chart.chartArea || {left:0,top:0,width:chart.width,height:chart.height};
       ctx.save();
-      ctx.fillStyle = 'rgba(3,6,16,0.75)';
+      // Richer dark base
+      ctx.fillStyle = 'rgba(3,5,14,0.82)';
       ctx.fillRect(0, 0, chart.width, chart.height);
-      // Subtle radial glow in centre
+      // Subtle vignette from edges inward
+      const vignette = ctx.createRadialGradient(
+        chart.width/2, chart.height/2, Math.min(chart.width,chart.height)*0.2,
+        chart.width/2, chart.height/2, Math.max(chart.width,chart.height)*0.72
+      );
+      vignette.addColorStop(0, 'rgba(0,0,0,0)');
+      vignette.addColorStop(1, 'rgba(0,0,0,0.28)');
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, chart.width, chart.height);
+      // Subtle radial gold glow in centre — slightly stronger than before
       const grad = ctx.createRadialGradient(chart.width/2, chart.height/2, 0, chart.width/2, chart.height/2, Math.max(chart.width, chart.height)*0.55);
-      grad.addColorStop(0, 'rgba(200,169,110,0.018)');
+      grad.addColorStop(0, 'rgba(200,169,110,0.028)');
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, chart.width, chart.height);
@@ -266,7 +276,7 @@ a{color:inherit;text-decoration:none}
 .cat-row{display:flex;gap:3px;flex-wrap:wrap}
 /* V4: Category filter chips */
 .cat-btn{
-  padding:4px 11px;border-radius:6px;border:1px solid rgba(255,255,255,0.10);
+  padding:4px 11px;border-radius:14px;border:1px solid rgba(255,255,255,0.10);
   font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;
   color:rgba(173,184,208,0.7);transition:all 130ms;background:rgba(255,255,255,0.035);
   position:relative;overflow:hidden;
@@ -313,7 +323,7 @@ a{color:inherit;text-decoration:none}
   background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,0.20) 20%,rgba(200,169,110,0.20) 80%,transparent 100%);
   margin:0;flex-shrink:0;
 }
-.mr-id{font-family:var(--mono);font-size:9px;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.04em;width:28px;flex-shrink:0}
+.mr-id{font-family:var(--mono);font-size:10px;font-weight:700;color:rgba(255,255,255,0.62);letter-spacing:0.04em;width:28px;flex-shrink:0}
 .mr-body{flex:1;min-width:0}
 .mr-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(218,226,242,0.97);transition:color 120ms;letter-spacing:-0.01em}
 .mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:var(--text)}
@@ -867,7 +877,7 @@ a{color:inherit;text-decoration:none}
   position:relative;z-index:9;
 }
 .ov-arc-foot-note{
-  font-size:7.5px;color:var(--faint);letter-spacing:0.10em;
+  font-size:8px;color:var(--dim);letter-spacing:0.10em;
   font-weight:600;text-transform:uppercase;font-family:var(--mono);
 }
 .ov-arc-phases{display:none;}
@@ -3593,7 +3603,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
     letter-spacing:-0.03em;
   }
   .mr-bar{height:2px;margin-top:5px}
-  .mr-id{width:30px;font-size:9px;color:rgba(255,255,255,0.52);font-weight:700}
+  .mr-id{width:30px;font-size:10px;color:rgba(255,255,255,0.65);font-weight:700}
   .mr-bias{font-size:8px;font-weight:700;letter-spacing:0.03em}
 
   /* ── 3. DETAIL PANEL ── */
@@ -6952,6 +6962,312 @@ canvas[id^="rel-"]{
     filter:drop-shadow(0 0 5px currentColor) !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   NEXUS OS R8 — Chart & Graphics Deep Polish
+   ─ COT charts: gradient fills, glow lines, richer depth
+   ─ Seasonal chart: enhanced glass container
+   ─ Momentum candlestick: glassmorphism wrapper
+   ─ Score history chart: brighter labels, premium bars
+   ─ Market Leaders: flame bar glow + card depth
+   ─ CB Rate cards: deeper glass + flag visibility
+   ─ Mobile sticky rankings header: reliable fix
+   ─ Mobile factor strip: scroll hint polish
+═══════════════════════════════════════════════════════════ */
+
+/* ── COT chart containers: per-participant glow borders ── */
+.cot-chart-wrap{
+  position:relative;
+  background:rgba(4,6,18,0.92) !important;
+  border:1px solid rgba(255,255,255,0.07) !important;
+  border-top:1px solid rgba(255,255,255,0.14) !important;
+  border-radius:12px !important;
+  overflow:hidden;
+  backdrop-filter:blur(20px) !important;
+  box-shadow:0 8px 36px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+.cot-chart-wrap::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 0%,var(--chart-glow,rgba(92,158,255,0.4)) 50%,transparent 100%);
+  pointer-events:none;z-index:1;
+}
+/* Comm blue top border */
+.cot-chart-wrap:nth-child(1){ --chart-glow:rgba(92,158,255,0.50); }
+/* Lspec gold top border */
+.cot-chart-wrap:nth-child(2){ --chart-glow:rgba(245,200,66,0.50); }
+/* Sspec red top border */
+.cot-chart-wrap:nth-child(3){ --chart-glow:rgba(224,58,42,0.45); }
+/* COT canvas: ensure it uses the full wrapper */
+.cot-chart-wrap canvas{
+  display:block;
+  width:100% !important;
+  position:relative;z-index:0;
+}
+/* COT header: elevated + participant-tinted ── */
+.cot-chart-hdr{
+  padding:9px 12px 7px !important;
+  border-bottom:1px solid rgba(255,255,255,0.065) !important;
+  background:rgba(8,11,24,0.60) !important;
+  backdrop-filter:blur(8px) !important;
+  letter-spacing:0.06em !important;
+  font-size:8.5px !important;
+  display:flex;align-items:center;gap:8px;
+}
+/* Current value badge inside COT header */
+.cot-card-val{
+  font-family:var(--nexus-head) !important;
+  font-size:16px !important;
+  font-weight:900 !important;
+  letter-spacing:-0.04em !important;
+  filter:drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor) !important;
+}
+/* COT card glass body */
+.cot-card{
+  background:rgba(5,7,18,0.88) !important;
+  border:1px solid rgba(255,255,255,0.07) !important;
+  border-top:1px solid rgba(255,255,255,0.13) !important;
+  border-radius:12px !important;
+  box-shadow:0 6px 28px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  backdrop-filter:blur(24px) !important;
+  overflow:hidden;position:relative;
+  transition:border-color 200ms,box-shadow 200ms;
+}
+.cot-card:hover{
+  border-color:rgba(255,255,255,0.12) !important;
+  box-shadow:0 8px 40px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.07) !important;
+}
+/* Inner surface highlight */
+.cot-card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:45%;
+  background:linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 100%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── Seasonal chart container: premium glass ── */
+.seas-mini{
+  background:linear-gradient(160deg,rgba(8,10,22,0.92) 0%,rgba(4,6,16,0.97) 100%) !important;
+  border:1px solid rgba(91,110,245,0.14) !important;
+  border-top:1px solid rgba(91,110,245,0.30) !important;
+  border-radius:14px !important;
+  box-shadow:0 8px 40px rgba(0,0,0,0.55),inset 0 1px 0 rgba(91,110,245,0.12) !important;
+  backdrop-filter:blur(20px) !important;
+}
+/* Top glow stripe */
+.seas-mini::before{
+  background:linear-gradient(90deg,transparent 0%,rgba(91,110,245,0.45) 35%,rgba(255,255,255,0.18) 50%,rgba(91,110,245,0.45) 65%,transparent 100%) !important;
+  height:1px !important;
+}
+/* Insight stat cells: stronger accent bar */
+.seas-insight-cell::before{
+  width:3px !important;
+  opacity:0.9 !important;
+}
+.sic-value{
+  filter:drop-shadow(0 0 6px currentColor);
+}
+
+/* ── Momentum candlestick wrapper: glassmorphism ── */
+.mom-chart-wrap{
+  background:linear-gradient(180deg,rgba(8,11,26,0.92) 0%,rgba(4,6,18,0.96) 100%) !important;
+  border:1px solid rgba(255,255,255,0.08) !important;
+  border-top:1px solid rgba(255,255,255,0.16) !important;
+  border-radius:14px !important;
+  box-shadow:0 8px 40px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  backdrop-filter:blur(20px) !important;
+  overflow:hidden;
+}
+.mom-chart-header{
+  background:rgba(10,13,28,0.70) !important;
+  border-bottom:1px solid rgba(255,255,255,0.07) !important;
+  backdrop-filter:blur(8px) !important;
+}
+/* Momentum stat cards: subtle glow top border */
+.mom-card.primary{
+  background:rgba(10,13,28,0.72) !important;
+  border:1px solid rgba(255,255,255,0.09) !important;
+  border-top:1px solid rgba(255,255,255,0.18) !important;
+  box-shadow:0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  backdrop-filter:blur(12px) !important;
+}
+.mom-card{
+  background:rgba(8,11,22,0.60) !important;
+  border:1px solid rgba(255,255,255,0.07) !important;
+  backdrop-filter:blur(8px) !important;
+}
+.mc-v{
+  filter:drop-shadow(0 0 5px currentColor);
+}
+
+/* ── Score History chart: sharper labels & containers ── */
+/* Chart container */
+#hist-inner > div:has(canvas){
+  background:rgba(5,7,18,0.88) !important;
+  border:1px solid rgba(255,255,255,0.08) !important;
+  border-top:1px solid rgba(255,255,255,0.15) !important;
+  border-radius:12px !important;
+  box-shadow:0 6px 30px rgba(0,0,0,0.45) !important;
+  backdrop-filter:blur(16px) !important;
+}
+/* Accuracy stat pills */
+#hist-inner > div:first-child > div > div{
+  backdrop-filter:blur(12px) !important;
+}
+
+/* ── Market Leaders cards: deeper glass + score glow ── */
+.signal-leader-card{
+  background:rgba(6,8,20,0.82) !important;
+  border:1px solid rgba(255,255,255,0.07) !important;
+  border-top:1px solid rgba(255,255,255,0.14) !important;
+  border-radius:13px !important;
+  box-shadow:0 6px 28px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  backdrop-filter:blur(20px) !important;
+  transition:border-color 180ms, box-shadow 180ms, transform 180ms !important;
+}
+.signal-leader-card:hover{
+  border-color:rgba(255,255,255,0.14) !important;
+  box-shadow:0 10px 40px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  transform:translateY(-1px) !important;
+}
+/* Flame bar segments: slightly more vibrant with glow */
+.mr-flame-seg{
+  opacity:0.92 !important;
+  box-shadow:0 0 4px currentColor !important;
+}
+/* Leader score number: strong glow */
+.leader-score, .sl-score{
+  filter:drop-shadow(0 0 8px currentColor) drop-shadow(0 0 16px currentColor) !important;
+}
+
+/* ── CB Rate chart cards: deeper glass + flag reveal ── */
+.g10-cb-card{
+  background:rgba(5,7,18,0.85) !important;
+  border:1px solid rgba(255,255,255,0.08) !important;
+  border-top:1px solid rgba(255,255,255,0.16) !important;
+  border-radius:14px !important;
+  box-shadow:0 8px 36px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  backdrop-filter:blur(20px) !important;
+  overflow:hidden;
+  position:relative;
+}
+/* Make flag image slightly more visible */
+.g10-cb-flag-bg, .cb-flag-bg, [class*="cb-card"] canvas:first-child{
+  opacity:0.12 !important;
+}
+/* Rate number: glow */
+.cb-rate-val, .g10-rate{
+  filter:drop-shadow(0 0 8px currentColor) !important;
+}
+/* Chart line: brighter */
+.g10-cb-card canvas{ opacity:0.95 !important; }
+
+/* ── Market overview factor tab strip: glow ring on active ── */
+.tab-btn.on, .tab-btn.act{
+  box-shadow:0 0 0 1px rgba(200,169,110,0.35),0 0 14px rgba(200,169,110,0.12),inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+/* ── Score badge in detail header: sharper glow ── */
+.d-score-hero-num{
+  filter:drop-shadow(0 0 16px currentColor) drop-shadow(0 0 32px currentColor) !important;
+}
+
+/* ── Regime banner: orbit ring glow enhancement ── */
+.mr-orbit-ring{
+  box-shadow:0 0 8px rgba(200,169,110,0.10) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE STICKY RANKINGS HEADER — RELIABLE FIX
+   Problem: position:sticky breaks when parent has a stacking
+   context or when there is no defined-height ancestor.
+   Fix: Remove reliance on sidebar height; use a wrapper with
+   defined behaviour.
+═══════════════════════════════════════════════════════════ */
+@media(max-width:700px){
+  /* The sidebar on mobile is a flex column of [sb-head + mkt-list]
+     Because body scrolls and sidebar is flow, sticky on sb-head
+     should work — but backdrop-filter creates a stacking context
+     which can break sticky in some mobile browsers.
+     Solution: use a lightweight fixed-position header that mirrors
+     the sb-head, hidden on desktop. */
+  .sb-head{
+    position:sticky !important;
+    top:calc(50px + env(safe-area-inset-top,0px)) !important;
+    z-index:120 !important;
+    /* Remove backdrop-filter (stacking context breaker) from here,
+       use a pseudo-element background instead */
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    background:rgba(4,6,13,0.98) !important;
+    border-bottom:1px solid rgba(200,169,110,0.12) !important;
+    box-shadow:0 2px 16px rgba(0,0,0,0.65) !important;
+    /* Compensate for removed backdrop by using solid bg */
+  }
+  /* Add pseudo-element blur separately (doesn't affect stacking context) */
+  .sb-head::after{
+    content:'';
+    position:absolute;inset:0;
+    background:rgba(4,6,13,0.0);
+    pointer-events:none;
+    z-index:-1;
+  }
+  /* Ensure the sidebar itself doesn't create overflow clip */
+  .sidebar{
+    overflow:visible !important;
+    /* No transform, no filter, no will-change on this element */
+  }
+  /* Ensure mkt-list doesn't clip the sticky */
+  .mkt-list{
+    overflow-y:visible !important;
+    overflow-x:hidden;
+  }
+
+  /* ── Mobile COT chart height bump ── */
+  .cot-chart-wrap{ height:130px !important; }
+
+  /* ── Mobile seasonal chart height bump ── */
+  .seas-mini{ height:220px !important; padding-bottom:24px !important; }
+
+  /* ── Factor strip: show scroll hint gradient on right ── */
+  .tab-hdr::after{
+    content:'';
+    position:absolute;right:0;top:0;bottom:0;width:28px;
+    background:linear-gradient(90deg,transparent,rgba(5,7,14,0.85)) !important;
+    pointer-events:none;z-index:2;
+  }
+  .tab-hdr{ position:relative !important; }
+
+  /* ── Mobile detail score badge: ensure no clipping ── */
+  .d-score-hero{
+    max-width:120px !important;
+    flex-shrink:0 !important;
+  }
+
+  /* ── Mobile mkt row flame bars: slightly larger ── */
+  .mr-flame-bar{ height:15px !important; }
+  .mr-flame-seg{ width:3.5px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHART CANVAS GLOBAL UPGRADES
+   Improve all Chart.js rendered charts via CSS where possible
+═══════════════════════════════════════════════════════════ */
+/* Ensure all chart canvases anti-alias beautifully */
+canvas{
+  image-rendering:auto;
+  -webkit-font-smoothing:antialiased;
+}
+/* Score history bars wrapper */
+#hist-chart{
+  border-radius:8px;
+  overflow:hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NEXUS R8: COT CHART JS defaults — upgrade Chart.js fills
+   Applied via style injection to override global Chart defaults
+═══════════════════════════════════════════════════════════ */
 
 
 </style>
@@ -15744,15 +16060,15 @@ async function initCotCharts(marketId){
         datasets:[{
           data:vals,
           borderColor:col,
-          borderWidth:1.5,
+          borderWidth:2,
           pointRadius:0,
           tension:0.3,
           fill:{
             target:{value:isIdx?50:0},
-            above:col+'22',
-            below:(isIdx?col:col)+'11',
+            above:col+'38',
+            below:(isIdx?col:col)+'18',
           },
-          backgroundColor:col+'11',
+          backgroundColor:col+'18',
         }]
       },
       options:{
@@ -15777,14 +16093,14 @@ async function initCotCharts(marketId){
         },
         scales:{
           x:{
-            ticks:{color:'rgba(255,255,255,0.15)',font:{size:7,family:'JetBrains Mono'},maxTicksLimit:6,maxRotation:0},
+            ticks:{color:'rgba(180,200,235,0.30)',font:{size:7,family:'JetBrains Mono'},maxTicksLimit:6,maxRotation:0},
             grid:{display:false},
-            border:{color:'rgba(255,255,255,0.06)'}
+            border:{color:'rgba(255,255,255,0.08)'}
           },
           y:{
-            ticks:{color:'rgba(255,255,255,0.2)',font:{size:7,family:'JetBrains Mono'},maxTicksLimit:4,
+            ticks:{color:'rgba(180,200,235,0.38)',font:{size:7,family:'JetBrains Mono'},maxTicksLimit:4,
               callback:v=>isIdx?v.toFixed(0):fmtK(v)},
-            grid:{color:'rgba(255,255,255,0.03)'},
+            grid:{color:'rgba(255,255,255,0.05)'},
             border:{color:'transparent'},
             // Zero / midpoint line
             ...(isIdx?{min:0,max:100}:{}),
@@ -19207,7 +19523,7 @@ function _cbCard(cb, cbData, highlight){
   const bc     = _lbl==='Paused'?'#9aa5be':bias===1?'#22c97a':bias===-1?'#e03a2a':'#4a5268';
   const biasTx = _lbl||(bias===1?'Hiking':bias===-1?'Cutting':'Flat');
   const arrow  = bias===1?'↑':bias===-1?'↓':'→';
-  return `<div style="background:${highlight?'var(--surf3)':'var(--surf3)'};border:1px solid ${highlight?bc+'44':'var(--bdr2)'};border-radius:8px;padding:10px 12px;text-align:center">
+  return `<div style="background:${highlight?'var(--surf3)':'var(--surf3)'};border:1px solid ${highlight?bc+'44':'var(--bdr2)'};border-radius:12px;padding:10px 12px;text-align:center">
     <div style="font-size:8px;font-weight:700;letter-spacing:0.08em;color:var(--faint);margin-bottom:5px">${BC[cb]||cb}</div>
     ${rate!==null?`<div style="font-family:var(--mono);font-size:17px;font-weight:800;color:var(--text);line-height:1">${rate.toFixed(2)}%</div>`:''}
     <div style="margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px">
@@ -19856,7 +20172,7 @@ async function loadHistoryTab(marketId){
       <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);margin-bottom:6px">Composite Score vs Price — Walk-Forward (no look-ahead)</div>
       <div style="position:relative;height:220px"><canvas id="hist-chart" style="display:block;width:100%!important"></canvas></div>
     </div>
-    <div style="margin-top:6px;font-size:8px;color:var(--faint);line-height:1.5">Composite score (COT + seasonality + momentum + macro + relval + regime + PCR) replayed walk-forward at each weekly bar with zero look-ahead. Regime reconstructed historically using IRX 6m rate trend, TIP ETF 26w return (real yield proxy), and DXY 1m return — same signal logic as live scoring. PCR held constant at today’s level — only component without historical snapshots. Score 0–10 (5.0 = neutral, ≥6.5 = bullish, ≤3.5 = bearish). Price on right axis.</div>
+    <div style="margin-top:6px;font-size:8.5px;color:var(--dim);line-height:1.6">Composite score (COT + seasonality + momentum + macro + relval + regime + PCR) replayed walk-forward at each weekly bar with zero look-ahead. Regime reconstructed historically using IRX 6m rate trend, TIP ETF 26w return (real yield proxy), and DXY 1m return — same signal logic as live scoring. PCR held constant at today’s level — only component without historical snapshots. Score 0–10 (5.0 = neutral, ≥6.5 = bullish, ≤3.5 = bearish). Price on right axis.</div>
   `;
 
   const canvas = document.getElementById('hist-chart');
