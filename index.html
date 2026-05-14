@@ -8,6 +8,40 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// NEXUS OS: Global Chart.js defaults — premium dark theme
+document.addEventListener('DOMContentLoaded', function(){
+  if(typeof Chart === 'undefined') return;
+  Chart.defaults.color = 'rgba(180,200,235,0.4)';
+  Chart.defaults.font.family = "'JetBrains Mono', monospace";
+  Chart.defaults.font.size = 8;
+  Chart.defaults.plugins.legend.display = false;
+  Chart.defaults.scale.grid.color = 'rgba(255,255,255,0.04)';
+  Chart.defaults.scale.grid.drawBorder = false;
+  Chart.defaults.scale.ticks.color = 'rgba(180,200,235,0.28)';
+  Chart.defaults.scale.ticks.maxTicksLimit = 6;
+  Chart.defaults.animation.duration = 600;
+  Chart.defaults.animation.easing = 'easeOutQuart';
+  // Custom background plugin for all charts
+  Chart.register({
+    id: 'nexusBg',
+    beforeDraw: function(chart){
+      const ctx = chart.ctx;
+      const {left, top, width, height} = chart.chartArea || {left:0,top:0,width:chart.width,height:chart.height};
+      ctx.save();
+      ctx.fillStyle = 'rgba(3,6,16,0.75)';
+      ctx.fillRect(0, 0, chart.width, chart.height);
+      // Subtle radial glow in centre
+      const grad = ctx.createRadialGradient(chart.width/2, chart.height/2, 0, chart.width/2, chart.height/2, Math.max(chart.width, chart.height)*0.55);
+      grad.addColorStop(0, 'rgba(200,169,110,0.018)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, chart.width, chart.height);
+      ctx.restore();
+    }
+  });
+});
+</script>
 <style>
 :root {
   /* ── Backgrounds ── */
@@ -6387,6 +6421,334 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   border-radius:50%;
   border:1px dashed rgba(200,169,110,0.08);
   animation:orbRingRotate 28s linear infinite !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   NEXUS OS  ·  ROUND 6 — Targeted Polish Pass
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── COT cards: participant-tinted glass, stronger top accent ── */
+.cot-card[style*="border-top"]{
+  background:rgba(4,7,18,0.92) !important;
+  backdrop-filter:blur(24px) !important;
+}
+/* Comm (blue) tint */
+.cot-card[style*="--comm-c"]{
+  box-shadow:0 2px 0 rgba(255,255,255,0.05) inset,
+    0 8px 32px rgba(0,0,0,0.55),
+    0 0 40px rgba(92,158,255,0.04) !important;
+}
+/* Lspec (gold) tint */
+.cot-card[style*="--lspec-c"]{
+  box-shadow:0 2px 0 rgba(255,255,255,0.05) inset,
+    0 8px 32px rgba(0,0,0,0.55),
+    0 0 40px rgba(245,200,66,0.04) !important;
+}
+/* Sspec (red) tint */
+.cot-card[style*="--sspec-c"]{
+  box-shadow:0 2px 0 rgba(255,255,255,0.05) inset,
+    0 8px 32px rgba(0,0,0,0.55),
+    0 0 40px rgba(224,58,42,0.04) !important;
+}
+/* The top-color border needs a glow */
+.cot-card{
+  position:relative !important;
+}
+.cot-card::after{
+  content:'';
+  position:absolute;top:0;left:15%;right:15%;height:1px;
+  background:inherit;
+  filter:blur(4px);
+  pointer-events:none;
+  border-radius:50%;
+  background:currentColor;
+  opacity:0.4;
+}
+/* COT card scores: bigger, more presence */
+.cc-idx{
+  font-family:var(--nexus-head) !important;
+  font-size:32px !important;
+  font-weight:700 !important;
+  letter-spacing:-0.04em !important;
+  filter:drop-shadow(0 0 10px currentColor) !important;
+  line-height:1 !important;
+}
+.cc-idx sup{
+  font-size:11px !important;
+  font-weight:400 !important;
+  opacity:0.4 !important;
+  letter-spacing:0.02em !important;
+}
+.cc-head{
+  font-family:var(--nexus-head) !important;
+  font-size:7px !important;
+  font-weight:600 !important;
+  letter-spacing:0.18em !important;
+  text-transform:uppercase !important;
+  opacity:0.7 !important;
+  margin-bottom:4px !important;
+}
+.cc-net{
+  font-family:var(--mono) !important;
+  font-size:9px !important;
+  opacity:0.5 !important;
+  margin-top:2px !important;
+}
+.cc-tag{
+  font-family:var(--nexus-head) !important;
+  font-size:7.5px !important;
+  font-weight:700 !important;
+  letter-spacing:0.12em !important;
+  border-radius:4px !important;
+  padding:2px 7px !important;
+  display:inline-block;
+  margin:4px 0 2px !important;
+}
+.cc-desc{
+  font-size:9.5px !important;
+  line-height:1.5 !important;
+  color:rgba(180,200,235,0.38) !important;
+}
+/* COT gauge: taller */
+.cc-gauge{
+  height:3px !important;
+  border-radius:2px !important;
+  background:rgba(255,255,255,0.06) !important;
+  margin:6px 0 !important;
+  overflow:hidden;
+}
+.cc-gauge-f{
+  height:100% !important;
+  border-radius:2px !important;
+  box-shadow:0 0 6px rgba(255,255,255,0.2) !important;
+}
+
+/* ── Section labels: premium gold left-accent ── */
+.cot-stacked-head .cot-stacked-title,
+.narr-head,
+[class*="-section-head"],
+.cot-panel-label{
+  font-family:var(--nexus-head) !important;
+  font-size:7.5px !important;
+  letter-spacing:0.18em !important;
+  text-transform:uppercase !important;
+}
+
+/* ── Phase indicator: premium upgrade ── */
+.cot-phase-badge{
+  background:rgba(4,7,18,0.90) !important;
+  border:1px solid rgba(255,255,255,0.06) !important;
+  border-radius:14px !important;
+  backdrop-filter:blur(20px) !important;
+}
+.cot-phase-num{
+  font-family:var(--nexus-head) !important;
+  font-size:44px !important;
+  font-weight:700 !important;
+  letter-spacing:-0.06em !important;
+  filter:drop-shadow(0 0 16px currentColor) !important;
+}
+.cot-phase-title{
+  font-family:var(--nexus-head) !important;
+  font-size:14px !important;
+  font-weight:700 !important;
+  letter-spacing:-0.01em !important;
+}
+.cot-phase-desc{
+  font-size:10.5px !important;
+  color:rgba(180,200,235,0.5) !important;
+  line-height:1.5 !important;
+}
+
+/* ── Narrative info boxes: premium upgrade ── */
+.cot-note-card, .cot-note-warn,
+[class*="note-card"],[class*="note-warn"]{
+  border-radius:12px !important;
+  backdrop-filter:blur(12px) !important;
+}
+.cot-note-icon-wrap{
+  display:none;
+}
+
+/* ── Score history panel / COT phase panel: deep glass ── */
+#cot-phase-wrap, #score-history-wrap{
+  background:rgba(4,7,18,0.88) !important;
+  border:1px solid rgba(255,255,255,0.06) !important;
+  border-top:1px solid rgba(255,255,255,0.12) !important;
+  border-radius:16px !important;
+  backdrop-filter:blur(24px) !important;
+  box-shadow:0 12px 48px rgba(0,0,0,0.55) !important;
+}
+
+/* ── Sector segs: increase contrast, make more visible ── */
+.ov-sector-bar-segs{
+  height:20px !important;
+  gap:2px !important;
+  align-items:center !important;
+}
+.ov-sector-seg{
+  border-radius:3px !important;
+  min-width:5px !important;
+  min-height:12px !important;
+  height:60% !important;
+  flex:1 !important;
+  transition:height 300ms, opacity 300ms !important;
+}
+/* filled seg: full height */
+.ov-sector-seg[style*="box-shadow"]{
+  height:100% !important;
+  border-radius:3px !important;
+}
+
+/* ── Sector names: tighter Space Grotesk ── */
+.ov-sector-name{
+  font-family:var(--nexus-head) !important;
+  font-size:9px !important;
+  letter-spacing:0.06em !important;
+  color:rgba(180,200,235,0.55) !important;
+  width:52px !important;
+}
+.ov-sector-score{
+  font-weight:700 !important;
+  font-size:11px !important;
+  filter:drop-shadow(0 0 5px currentColor) !important;
+}
+
+/* ── Heatmap cells: richer gradient ── */
+.hm-cell{
+  position:relative !important;
+  border-radius:8px !important;
+  overflow:hidden !important;
+  transition:transform 200ms, box-shadow 200ms, filter 200ms !important;
+}
+.hm-cell::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(
+    135deg,
+    rgba(255,255,255,0.055) 0%,
+    transparent 50%,
+    rgba(0,0,0,0.12) 100%
+  );
+  pointer-events:none;
+  border-radius:inherit;
+}
+.hm-cell:hover{
+  transform:translateY(-3px) scale(1.04) !important;
+  z-index:3 !important;
+  filter:brightness(1.2) !important;
+}
+
+/* ── Signal leader card: premium foil top edge ── */
+.sig-leader-card{
+  border-top:1px solid rgba(255,255,255,0.15) !important;
+  background:linear-gradient(
+    168deg,
+    rgba(255,255,255,0.032) 0%,
+    rgba(4,7,18,0.90) 30%
+  ) !important;
+}
+
+/* ── Market rankings: subtle left-edge score colour ── */
+.mkt-row{
+  position:relative !important;
+}
+
+/* ── Orb ring3 CSS ── */
+.nexus-orb-ring3{
+  position:absolute;
+  inset:-14px;
+  border-radius:50%;
+  border:1px dashed rgba(200,169,110,0.07);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── Nav pill: stronger glow state ── */
+.nav-regime-pill{
+  animation:regimeBadgePulse 4.5s ease-in-out infinite !important;
+}
+
+/* ── Stat pill values: larger ── */
+.ov-stat-val{
+  font-size:17px !important;
+  font-weight:700 !important;
+  letter-spacing:-0.03em !important;
+}
+
+/* ── Price strip: premium terminal feel ── */
+.ov-price-strip{
+  display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;
+}
+.ov-price-chip{
+  background:rgba(255,255,255,0.04) !important;
+  border:1px solid rgba(255,255,255,0.07) !important;
+  border-radius:6px !important;
+  font-family:var(--mono) !important;
+  font-size:10px !important;
+  padding:4px 8px !important;
+  letter-spacing:0.02em !important;
+}
+.ov-price-val{
+  font-family:var(--mono) !important;
+  font-weight:700 !important;
+  font-size:11px !important;
+}
+
+/* ── Scrollbar: thinner custom ── */
+*::-webkit-scrollbar{
+  width:3px !important;
+  height:3px !important;
+}
+*::-webkit-scrollbar-track{
+  background:transparent !important;
+}
+*::-webkit-scrollbar-thumb{
+  background:rgba(200,169,110,0.18) !important;
+  border-radius:2px !important;
+}
+*::-webkit-scrollbar-thumb:hover{
+  background:rgba(200,169,110,0.35) !important;
+}
+
+/* ── Detail panel charts: subtle background grid ── */
+.cot-panel-chart,
+canvas[id^="cot-"],
+canvas[id^="seas-"],
+canvas[id^="mom-"],
+canvas[id^="rel-"]{
+  border-radius:8px !important;
+  background:rgba(3,6,16,0.8) !important;
+}
+.cot-panel{
+  border-radius:10px;
+  overflow:hidden;
+  background:rgba(3,6,16,0.50);
+  padding:8px;
+  margin-bottom:6px;
+}
+.cot-panel-label{
+  font-family:var(--nexus-head) !important;
+  font-size:8px !important;
+  letter-spacing:0.14em !important;
+  font-weight:600 !important;
+  margin-bottom:6px !important;
+}
+
+/* ── Factor strip: visual divider between cards ── */
+.f-card:not(:last-child){
+  border-right:1px solid rgba(255,255,255,0.038) !important;
+}
+
+/* ── Mobile: keep score hero legible ── */
+@media(max-width:768px){
+  .mob-hero-stat-val{
+    font-size:20px !important;
+  }
+  .nexus-orb-score{
+    font-size:26px !important;
+  }
 }
 
 
