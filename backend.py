@@ -4938,41 +4938,9 @@ def compute_stock_climate() -> dict:
 
         # ── 7. Equity Risk Premium (ERP = earnings yield − 10Y yield) ────────
         # ERP = (1/TrailingPE * 100) − DGS10. Negative = stocks expensive vs bonds.
-        try:
-            dgs10_raw = fetch_fred_series("DGS10", 5)
-            dgs10_now = None
-            if dgs10_raw:
-                dgs10_vals = [r["value"] for r in dgs10_raw if r.get("value") is not None]
-                if dgs10_vals:
-                    dgs10_now = dgs10_vals[-1]
-            # Use SPY trailingPE (already fetched for FWD_PE — re-fetch here for safety)
-            _erp_spy = yf.Ticker("SPY")
-            _erp_info = _erp_spy.info
-            _spy_pe = _erp_info.get("trailingPE")
-            spy_pe_float = float(_spy_pe) if _spy_pe else None
-            if spy_pe_float and spy_pe_float > 0 and dgs10_now:
-                earnings_yield = 1.0 / spy_pe_float * 100  # %
-                erp = round(earnings_yield - dgs10_now, 2)  # both in %
-                if erp > 1.5:
-                    erp_score, erp_label = 2, "Cheap vs Bonds"
-                elif erp > 0.0:
-                    erp_score, erp_label = 1, "Fair vs Bonds"
-                elif erp > -1.5:
-                    erp_score, erp_label = -1, "Expensive vs Bonds"
-                else:
-                    erp_score, erp_label = -2, "Very Expensive"
-                signals["ERP"] = {
-                    "title": "Equity Risk Premium",
-                    "value": f"{erp:+.2f}%",
-                    "label": erp_label,
-                    "score": erp_score,
-                    "category": "valuation",
-                    "erp_raw": erp,
-                    "dgs10": round(dgs10_now, 2),
-                    "ey": round(earnings_yield, 2),
-                }
-        except Exception:
-            pass
+        # NOTE: SPY trailing PE is fetched later in section 10 (FWD_PE).
+        # ERP computation is deferred to section 10b below to reuse that value.
+        pass  # see section 10b
 
         # ── 8. HY Spread Quadrant (level + direction) ────────────────────────
         # Use the already-fetched HYOAS data from FRED for a secondary signal
@@ -5078,6 +5046,40 @@ def compute_stock_climate() -> dict:
                     "raw": round(fwd_pe, 2),
                     "avg5yr": 21.4,   # ~5yr post-COVID average
                     "avg_lt": 17.5,   # long-term average (post-1990)
+                }
+        except Exception:
+            pass
+
+        # ── 10b. ERP using PE from section 10 ───────────────────────────────
+        # Reuses FWD_PE["raw"] to avoid a second yfinance call.
+        try:
+            dgs10_raw = fetch_fred_series("DGS10", 5)
+            dgs10_now = None
+            if dgs10_raw:
+                dgs10_vals = [r["value"] for r in dgs10_raw if r.get("value") is not None]
+                if dgs10_vals:
+                    dgs10_now = dgs10_vals[-1]
+            spy_pe_float = signals.get("FWD_PE", {}).get("raw") if signals.get("FWD_PE") else None
+            if spy_pe_float and spy_pe_float > 0 and dgs10_now:
+                earnings_yield = round(1.0 / spy_pe_float * 100, 2)  # %
+                erp = round(earnings_yield - dgs10_now, 2)
+                if erp > 1.5:
+                    erp_score, erp_label = 2, "Cheap vs Bonds"
+                elif erp > 0.0:
+                    erp_score, erp_label = 1, "Fair vs Bonds"
+                elif erp > -1.5:
+                    erp_score, erp_label = -1, "Expensive vs Bonds"
+                else:
+                    erp_score, erp_label = -2, "Very Expensive"
+                signals["ERP"] = {
+                    "title": "Equity Risk Premium",
+                    "value": f"{erp:+.2f}%",
+                    "label": erp_label,
+                    "score": erp_score,
+                    "category": "valuation",
+                    "erp_raw": erp,
+                    "dgs10": round(dgs10_now, 2),
+                    "ey": earnings_yield,
                 }
         except Exception:
             pass
