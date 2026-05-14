@@ -5498,16 +5498,16 @@ function renderOverview(){
       // Hiking:  amber → burnt-orange warmth
       // Cutting: ice-blue → cyan-teal coolness
       // Paused:  indigo-slate → cool lavender neutrality
-      const col      = _isHike ? '#f0c060' : _isCut ? '#4ec9d4' : '#9b9fd4';
-      const colRgb   = _isHike ? '240,192,96' : _isCut ? '78,201,212' : '155,159,212';
-      const col2     = _isHike ? '#e07830' : _isCut ? '#38b2e8' : '#7070b8'; // secondary shade
-      const col2Rgb  = _isHike ? '224,120,48' : _isCut ? '56,178,232' : '112,112,184';
+      const col      = _isHike ? '#f0c060' : _isCut ? '#4ec9d4' : '#b0b4e8';
+      const colRgb   = _isHike ? '240,192,96' : _isCut ? '78,201,212' : '176,180,232';
+      const col2     = _isHike ? '#e07830' : _isCut ? '#38b2e8' : '#8890d0'; // secondary shade
+      const col2Rgb  = _isHike ? '224,120,48' : _isCut ? '56,178,232' : '136,144,208';
       // Card bg: each stance gets a unique diagonal gradient
       const bgGrad   = _isHike
-        ? `linear-gradient(135deg,rgba(200,100,20,0.18) 0%,rgba(180,80,10,0.08) 35%,rgba(4,6,14,0.92) 100%)`
+        ? `linear-gradient(135deg,rgba(210,110,20,0.20) 0%,rgba(180,80,10,0.09) 35%,rgba(4,6,14,0.93) 100%)`
         : _isCut
-        ? `linear-gradient(135deg,rgba(20,120,180,0.18) 0%,rgba(20,180,160,0.07) 40%,rgba(4,6,14,0.92) 100%)`
-        : `linear-gradient(135deg,rgba(80,70,160,0.16) 0%,rgba(50,55,130,0.07) 40%,rgba(4,6,14,0.92) 100%)`;
+        ? `linear-gradient(135deg,rgba(20,130,190,0.20) 0%,rgba(20,190,170,0.08) 40%,rgba(4,6,14,0.93) 100%)`
+        : `linear-gradient(135deg,rgba(90,80,180,0.18) 0%,rgba(60,65,150,0.08) 40%,rgba(4,6,14,0.93) 100%)`;
       // Border
       const borderCol = _isHike
         ? `rgba(220,140,40,${isUS ? '0.40' : '0.22'})`
@@ -5700,11 +5700,7 @@ function renderOverview(){
           const tile = (lbl, bp, dir, horizon) => {
             const tg = tileGrad(dir, horizon);
             const arrowCol = dir==='hike' ? '#f0c060' : dir==='cut' ? '#4ec9d4' : 'rgba(200,207,224,0.60)';
-            const barBg = dir==='hike'
-              ? `linear-gradient(90deg,rgba(${tg.rgb2},0.22),rgba(${tg.rgb},0.08))`
-              : dir==='cut'
-              ? `linear-gradient(90deg,rgba(${tg.rgb2},0.20),rgba(${tg.rgb},0.07))`
-              : `rgba(${tg.rgb},0.08)`;
+            const barBg   = `rgba(255,255,255,0.06)`;
             const barFill = `linear-gradient(90deg,${tg.c2},${tg.c1})`;
             return `<div class="ov-rp-stat" style="--rp-stat-rgb:${tg.rgb}">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
