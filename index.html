@@ -5428,103 +5428,15 @@ function renderOverview(){
     const intlRates = reg.intl_rates || {};
     const CB_NAMES_OV = {US:'Fed', ECB:'ECB', BOE:'BoE', BOJ:'BoJ', RBA:'RBA', BOC:'BoC', SNB:'SNB', RBNZ:'RBNZ'};
     const CB_FLAGS_OV = {US:'🇺🇸', ECB:'🇪🇺', BOE:'🇬🇧', BOJ:'🇯🇵', RBA:'🇦🇺', BOC:'🇨🇦', SNB:'🇨🇭', RBNZ:'🇳🇿'};
-    // Inline SVG flag art — semi-transparent backdrop per card
-    const _cbFlagSvg = cb => {
-      const flags = {
-        US: `<svg viewBox="0 0 60 36" style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="60" height="36" fill="#B22234"/>
-          <rect y="2.77" width="60" height="2.77" fill="#fff"/>
-          <rect y="5.54" width="60" height="2.77" fill="#B22234"/>
-          <rect y="8.31" width="60" height="2.77" fill="#fff"/>
-          <rect y="11.08" width="60" height="2.77" fill="#B22234"/>
-          <rect y="13.85" width="60" height="2.77" fill="#fff"/>
-          <rect y="16.62" width="60" height="2.77" fill="#B22234"/>
-          <rect y="19.38" width="60" height="2.77" fill="#fff"/>
-          <rect y="22.15" width="60" height="2.77" fill="#B22234"/>
-          <rect y="24.92" width="60" height="2.77" fill="#fff"/>
-          <rect y="27.69" width="60" height="2.77" fill="#B22234"/>
-          <rect y="30.46" width="60" height="2.77" fill="#fff"/>
-          <rect y="33.23" width="60" height="2.77" fill="#B22234"/>
-          <rect width="24" height="19.38" fill="#3C3B6E"/>
-        </svg>`,
-        BOE: `<svg viewBox="0 0 60 36" style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="60" height="36" fill="#012169"/>
-          <line x1="0" y1="0" x2="60" y2="36" stroke="#fff" stroke-width="6"/>
-          <line x1="60" y1="0" x2="0" y2="36" stroke="#fff" stroke-width="6"/>
-          <line x1="0" y1="0" x2="60" y2="36" stroke="#C8102E" stroke-width="3.5"/>
-          <line x1="60" y1="0" x2="0" y2="36" stroke="#C8102E" stroke-width="3.5"/>
-          <rect x="24" y="0" width="12" height="36" fill="#fff"/>
-          <rect x="0" y="12" width="60" height="12" fill="#fff"/>
-          <rect x="26" y="0" width="8" height="36" fill="#C8102E"/>
-          <rect x="0" y="14" width="60" height="8" fill="#C8102E"/>
-        </svg>`,
-        ECB: `<svg viewBox="0 0 60 36" style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="60" height="36" fill="#1a4fd6"/>
-          <g fill="#FFD700">
-            <circle cx="30" cy="18" r="1.9"/>
-            <circle cx="30" cy="6.5" r="1.9"/>
-            <circle cx="30" cy="29.5" r="1.9"/>
-            <circle cx="19" cy="9" r="1.9"/>
-            <circle cx="13" cy="18" r="1.9"/>
-            <circle cx="19" cy="27" r="1.9"/>
-            <circle cx="41" cy="9" r="1.9"/>
-            <circle cx="47" cy="18" r="1.9"/>
-            <circle cx="41" cy="27" r="1.9"/>
-            <circle cx="22.5" cy="7" r="1.9"/>
-            <circle cx="37.5" cy="7" r="1.9"/>
-            <circle cx="22.5" cy="29" r="1.9"/>
-            <circle cx="37.5" cy="29" r="1.9"/>
-          </g>
-        </svg>`,
-        BOJ: `<svg viewBox="0 0 60 36" style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="60" height="36" fill="#f5f0eb"/>
-          <circle cx="32" cy="18" r="13" fill="#BC002D"/>
-        </svg>`,
-        RBA: `<svg viewBox="0 0 60 36" style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="60" height="36" fill="#00008B"/>
-          <rect x="27" y="0" width="6" height="36" fill="#fff"/>
-          <rect x="0" y="15" width="60" height="6" fill="#fff"/>
-          <rect x="0" y="0" width="30" height="18" fill="#00008B"/>
-          <line x1="0" y1="0" x2="30" y2="18" stroke="#fff" stroke-width="4"/>
-          <line x1="30" y1="0" x2="0" y2="18" stroke="#fff" stroke-width="4"/>
-          <line x1="0" y1="0" x2="30" y2="18" stroke="#CC0000" stroke-width="2.5"/>
-          <line x1="30" y1="0" x2="0" y2="18" stroke="#CC0000" stroke-width="2.5"/>
-          <rect x="12" y="0" width="6" height="18" fill="#fff"/>
-          <rect x="0" y="6" width="30" height="6" fill="#fff"/>
-          <rect x="13.5" y="0" width="3" height="18" fill="#CC0000"/>
-          <rect x="0" y="7.5" width="30" height="3" fill="#CC0000"/>
-          <circle cx="44" cy="26" r="3" fill="#fff" opacity="0.9"/>
-          <circle cx="50" cy="21" r="2.2" fill="#fff" opacity="0.9"/>
-          <circle cx="52" cy="28" r="2.2" fill="#fff" opacity="0.9"/>
-          <circle cx="46" cy="32" r="2.2" fill="#fff" opacity="0.9"/>
-          <circle cx="41" cy="21" r="2.2" fill="#fff" opacity="0.9"/>
-        </svg>`,
-        BOC: `<svg viewBox="0 0 60 36" style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="15" height="36" fill="#FF0000"/>
-          <rect x="45" y="0" width="15" height="36" fill="#FF0000"/>
-          <rect x="15" y="0" width="30" height="36" fill="#fff"/>
-          <polygon points="30,8 32.5,15 40,15 34,19.5 36.5,26.5 30,22 23.5,26.5 26,19.5 20,15 27.5,15" fill="#FF0000"/>
-        </svg>`,
-        SNB: `<svg viewBox="0 0 36 36" style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="36" height="36" fill="#D52B1E"/>
-          <rect x="13" y="6" width="10" height="24" fill="#fff"/>
-          <rect x="6" y="13" width="24" height="10" fill="#fff"/>
-        </svg>`,
-        RBNZ: `<svg viewBox="0 0 60 36" style="position:absolute;inset:0;width:100%;height:100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          <rect width="60" height="36" fill="#00247D"/>
-          <rect x="27" y="0" width="6" height="18" fill="#fff"/>
-          <rect x="0" y="6" width="30" height="6" fill="#fff"/>
-          <line x1="0" y1="0" x2="30" y2="18" stroke="#fff" stroke-width="4"/>
-          <line x1="30" y1="0" x2="0" y2="18" stroke="#fff" stroke-width="4"/>
-          <line x1="0" y1="0" x2="30" y2="18" stroke="#CC142B" stroke-width="2.5"/>
-          <line x1="30" y1="0" x2="0" y2="18" stroke="#CC142B" stroke-width="2.5"/>
-          <rect x="13.5" y="0" width="3" height="18" fill="#CC142B"/>
-          <rect x="0" y="7.5" width="30" height="3" fill="#CC142B"/>
-          <polygon points="40,8 41.5,13.5 47,12 43.5,16 47,20 41.5,18.5 40,24 38.5,18.5 33,20 36.5,16 33,12 38.5,13.5" fill="#CC142B" opacity="0.85"/>
-          <polygon points="51,14 52,17.5 55.5,16.5 53.5,19 55.5,21.5 52,20.5 51,24 50,20.5 46.5,21.5 48.5,19 46.5,16.5 50,17.5" fill="#CC142B" opacity="0.85"/>
-        </svg>`
-      };
-      return flags[cb] || '';
+    const CB_FLAG_URI = {
+      US: 'url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2060%2036%22%3E%3Crect%20width=%2260%22%20height=%2236%22%20fill=%22%23B22234%22/%3E%3Crect%20y=%222.77%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23fff%22/%3E%3Crect%20y=%225.54%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23B22234%22/%3E%3Crect%20y=%228.31%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23fff%22/%3E%3Crect%20y=%2211.08%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23B22234%22/%3E%3Crect%20y=%2213.85%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23fff%22/%3E%3Crect%20y=%2216.62%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23B22234%22/%3E%3Crect%20y=%2219.38%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23fff%22/%3E%3Crect%20y=%2222.15%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23B22234%22/%3E%3Crect%20y=%2224.92%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23fff%22/%3E%3Crect%20y=%2227.69%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23B22234%22/%3E%3Crect%20y=%2230.46%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23fff%22/%3E%3Crect%20y=%2233.23%22%20width=%2260%22%20height=%222.77%22%20fill=%22%23B22234%22/%3E%3Crect%20width=%2226%22%20height=%2219%22%20fill=%22%233C3B6E%22/%3E%3C/svg%3E")',
+      BOE: 'url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2060%2036%22%3E%3Crect%20width=%2260%22%20height=%2236%22%20fill=%22%23012169%22/%3E%3Cline%20x1=%220%22%20y1=%220%22%20x2=%2260%22%20y2=%2236%22%20stroke=%22%23fff%22%20stroke-width=%227%22/%3E%3Cline%20x1=%2260%22%20y1=%220%22%20x2=%220%22%20y2=%2236%22%20stroke=%22%23fff%22%20stroke-width=%227%22/%3E%3Cline%20x1=%220%22%20y1=%220%22%20x2=%2260%22%20y2=%2236%22%20stroke=%22%23C8102E%22%20stroke-width=%224%22/%3E%3Cline%20x1=%2260%22%20y1=%220%22%20x2=%220%22%20y2=%2236%22%20stroke=%22%23C8102E%22%20stroke-width=%224%22/%3E%3Crect%20x=%2225%22%20y=%220%22%20width=%2210%22%20height=%2236%22%20fill=%22%23fff%22/%3E%3Crect%20x=%220%22%20y=%2213%22%20width=%2260%22%20height=%2210%22%20fill=%22%23fff%22/%3E%3Crect%20x=%2226.5%22%20y=%220%22%20width=%227%22%20height=%2236%22%20fill=%22%23C8102E%22/%3E%3Crect%20x=%220%22%20y=%2214.5%22%20width=%2260%22%20height=%227%22%20fill=%22%23C8102E%22/%3E%3C/svg%3E")',
+      ECB: 'url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2060%2036%22%3E%3Crect%20width=%2260%22%20height=%2236%22%20fill=%22%231a4fd6%22/%3E%3Cg%20fill=%22%23FFD700%22%3E%3Ccircle%20cx=%2230%22%20cy=%2218%22%20r=%222%22/%3E%3Ccircle%20cx=%2230%22%20cy=%226%22%20r=%222%22/%3E%3Ccircle%20cx=%2230%22%20cy=%2230%22%20r=%222%22/%3E%3Ccircle%20cx=%2218%22%20cy=%229%22%20r=%222%22/%3E%3Ccircle%20cx=%2212%22%20cy=%2218%22%20r=%222%22/%3E%3Ccircle%20cx=%2218%22%20cy=%2227%22%20r=%222%22/%3E%3Ccircle%20cx=%2242%22%20cy=%229%22%20r=%222%22/%3E%3Ccircle%20cx=%2248%22%20cy=%2218%22%20r=%222%22/%3E%3Ccircle%20cx=%2242%22%20cy=%2227%22%20r=%222%22/%3E%3Ccircle%20cx=%2222%22%20cy=%226.5%22%20r=%222%22/%3E%3Ccircle%20cx=%2238%22%20cy=%226.5%22%20r=%222%22/%3E%3Ccircle%20cx=%2222%22%20cy=%2229.5%22%20r=%222%22/%3E%3Ccircle%20cx=%2238%22%20cy=%2229.5%22%20r=%222%22/%3E%3C/g%3E%3C/svg%3E")',
+      BOJ: 'url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2060%2036%22%3E%3Crect%20width=%2260%22%20height=%2236%22%20fill=%22%23f0ebe4%22/%3E%3Ccircle%20cx=%2230%22%20cy=%2218%22%20r=%2213%22%20fill=%22%23BC002D%22/%3E%3C/svg%3E")',
+      RBA: 'url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2060%2036%22%3E%3Crect%20width=%2260%22%20height=%2236%22%20fill=%22%2300008B%22/%3E%3Cline%20x1=%220%22%20y1=%220%22%20x2=%2230%22%20y2=%2218%22%20stroke=%22%23fff%22%20stroke-width=%225%22/%3E%3Cline%20x1=%2230%22%20y1=%220%22%20x2=%220%22%20y2=%2218%22%20stroke=%22%23fff%22%20stroke-width=%225%22/%3E%3Cline%20x1=%220%22%20y1=%220%22%20x2=%2230%22%20y2=%2218%22%20stroke=%22%23CC0000%22%20stroke-width=%223%22/%3E%3Cline%20x1=%2230%22%20y1=%220%22%20x2=%220%22%20y2=%2218%22%20stroke=%22%23CC0000%22%20stroke-width=%223%22/%3E%3Crect%20x=%2212%22%20y=%220%22%20width=%226%22%20height=%2218%22%20fill=%22%23fff%22/%3E%3Crect%20x=%220%22%20y=%226%22%20width=%2230%22%20height=%226%22%20fill=%22%23fff%22/%3E%3Crect%20x=%2213.5%22%20y=%220%22%20width=%223%22%20height=%2218%22%20fill=%22%23CC0000%22/%3E%3Crect%20x=%220%22%20y=%227.5%22%20width=%2230%22%20height=%223%22%20fill=%22%23CC0000%22/%3E%3Crect%20x=%2227%22%20y=%220%22%20width=%226%22%20height=%2236%22%20fill=%22%23fff%22/%3E%3Crect%20x=%220%22%20y=%2215%22%20width=%2260%22%20height=%226%22%20fill=%22%23fff%22/%3E%3Crect%20x=%2229%22%20y=%220%22%20width=%222%22%20height=%2236%22%20fill=%22%23CC0000%22/%3E%3Crect%20x=%220%22%20y=%2216.5%22%20width=%2260%22%20height=%223%22%20fill=%22%23CC0000%22/%3E%3Ccircle%20cx=%2244%22%20cy=%2226%22%20r=%223.5%22%20fill=%22%23fff%22/%3E%3Ccircle%20cx=%2250%22%20cy=%2221%22%20r=%222.5%22%20fill=%22%23fff%22/%3E%3Ccircle%20cx=%2253%22%20cy=%2229%22%20r=%222.5%22%20fill=%22%23fff%22/%3E%3Ccircle%20cx=%2247%22%20cy=%2233%22%20r=%222.5%22%20fill=%22%23fff%22/%3E%3Ccircle%20cx=%2240%22%20cy=%2221%22%20r=%222.5%22%20fill=%22%23fff%22/%3E%3C/svg%3E")',
+      BOC: 'url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2060%2036%22%3E%3Crect%20width=%2215%22%20height=%2236%22%20fill=%22%23FF0000%22/%3E%3Crect%20x=%2245%22%20y=%220%22%20width=%2215%22%20height=%2236%22%20fill=%22%23FF0000%22/%3E%3Crect%20x=%2215%22%20y=%220%22%20width=%2230%22%20height=%2236%22%20fill=%22%23fff%22/%3E%3Cpolygon%20points=%2230,7%2033,15%2041,15%2035,20%2037,28%2030,23%2023,28%2025,20%2019,15%2027,15%22%20fill=%22%23FF0000%22/%3E%3C/svg%3E")',
+      SNB: 'url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2036%2036%22%3E%3Crect%20width=%2236%22%20height=%2236%22%20fill=%22%23D52B1E%22/%3E%3Crect%20x=%2213%22%20y=%226%22%20width=%2210%22%20height=%2224%22%20fill=%22%23fff%22/%3E%3Crect%20x=%226%22%20y=%2213%22%20width=%2224%22%20height=%2210%22%20fill=%22%23fff%22/%3E%3C/svg%3E")',
+      RBNZ: 'url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2060%2036%22%3E%3Crect%20width=%2260%22%20height=%2236%22%20fill=%22%2300247D%22/%3E%3Cline%20x1=%220%22%20y1=%220%22%20x2=%2230%22%20y2=%2218%22%20stroke=%22%23fff%22%20stroke-width=%225%22/%3E%3Cline%20x1=%2230%22%20y1=%220%22%20x2=%220%22%20y2=%2218%22%20stroke=%22%23fff%22%20stroke-width=%225%22/%3E%3Cline%20x1=%220%22%20y1=%220%22%20x2=%2230%22%20y2=%2218%22%20stroke=%22%23CC142B%22%20stroke-width=%223%22/%3E%3Cline%20x1=%2230%22%20y1=%220%22%20x2=%220%22%20y2=%2218%22%20stroke=%22%23CC142B%22%20stroke-width=%223%22/%3E%3Crect%20x=%2212%22%20y=%220%22%20width=%226%22%20height=%2218%22%20fill=%22%23fff%22/%3E%3Crect%20x=%220%22%20y=%226%22%20width=%2230%22%20height=%226%22%20fill=%22%23fff%22/%3E%3Crect%20x=%2213.5%22%20y=%220%22%20width=%223%22%20height=%2218%22%20fill=%22%23CC142B%22/%3E%3Crect%20x=%220%22%20y=%227.5%22%20width=%2230%22%20height=%223%22%20fill=%22%23CC142B%22/%3E%3Ccircle%20cx=%2240%22%20cy=%229%22%20r=%223%22%20fill=%22%23CC142B%22/%3E%3Ccircle%20cx=%2250%22%20cy=%2214%22%20r=%222.5%22%20fill=%22%23CC142B%22/%3E%3Ccircle%20cx=%2253%22%20cy=%2223%22%20r=%222.5%22%20fill=%22%23CC142B%22/%3E%3Ccircle%20cx=%2246%22%20cy=%2229%22%20r=%222.5%22%20fill=%22%23CC142B%22/%3E%3Ccircle%20cx=%2238%22%20cy=%2222%22%20r=%222.5%22%20fill=%22%23CC142B%22/%3E%3C/svg%3E")'
     };
     const CB_ORDER_OV = ['US','ECB','BOE','BOJ','RBA','BOC','SNB','RBNZ'];
 
@@ -5541,8 +5453,8 @@ function renderOverview(){
       const r3  = r - (t3m  != null ? t3m  : 0);
       const pts = [r12, r6, r3, r];
       // SVG dims
-      const W = 180, H = 50;
-      const padL = 12, padR = 12, padT = 11, padB = 17;
+      const W = 180, H = 68;
+      const padL = 14, padR = 14, padT = 12, padB = 20;
       const xs = [padL, padL + (W-padL-padR)*0.33, padL + (W-padL-padR)*0.66, W-padR];
       const minR = Math.min(...pts) - 0.04;
       const maxR = Math.max(...pts) + 0.04;
@@ -5556,18 +5468,18 @@ function renderOverview(){
         const op = [0.30, 0.55, 0.82][i];
         // Smooth cubic bezier for each segment
         const cpx = (xs[i] + xs[i+1]) / 2;
-        segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="${col}" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="${op}"/>`);
+        segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="${col}" stroke-width="2.8" stroke-linecap="round" fill="none" opacity="${op}"/>`);
         // Glow duplicate, wider & blurred
-        segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="rgba(${colRgb},${(op*0.5).toFixed(2)})" stroke-width="5" stroke-linecap="round" fill="none" filter="url(#tlBlur)"/>`);
+        segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="rgba(${colRgb},${(op*0.5).toFixed(2)})" stroke-width="8" stroke-linecap="round" fill="none" filter="url(#tlBlur)"/>`);
       }
       // Nodes — growing size: old=2.5, mid=3, recent=3.5, now=5
-      const nodeSizes = [2.5, 3.0, 3.5, 5.0];
-      const nodeOps   = [0.35, 0.55, 0.78, 1.0];
+      const nodeSizes = [3.0, 3.8, 4.5, 6.5];
+      const nodeOps   = [0.40, 0.60, 0.82, 1.0];
       const nodes = xs.map((x, i) => {
         const y = ys[i], sz = nodeSizes[i], op = nodeOps[i];
         if (i === 3) {
           // NOW node — full glow + white centre
-          return `<circle cx="${x}" cy="${y.toFixed(1)}" r="8" fill="rgba(${colRgb},0.14)" filter="url(#tlGlow)"/>
+          return `<circle cx="${x}" cy="${y.toFixed(1)}" r="11" fill="rgba(${colRgb},0.18)" filter="url(#tlGlow)"/>
             <circle cx="${x}" cy="${y.toFixed(1)}" r="${sz}" fill="${col}"/>
             <circle cx="${x}" cy="${y.toFixed(1)}" r="2" fill="rgba(255,255,255,0.92)"/>`;
         }
@@ -5575,10 +5487,10 @@ function renderOverview(){
       }).join('');
       // X-axis labels
       const lbls = ['-12M','-6M','-3M','Now'];
-      const lblHtml = xs.map((x, i) => `<text x="${x}" y="${H-2}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7.5" font-weight="700" fill="rgba(255,255,255,${i===3?'0.72':'0.36'})" letter-spacing="0">${lbls[i]}</text>`).join('');
+      const lblHtml = xs.map((x, i) => `<text x="${x}" y="${H-2}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" font-weight="700" fill="rgba(255,255,255,${i===3?'0.82':'0.48'})" letter-spacing="0">${lbls[i]}</text>`).join('');
       // Rate value labels — only show at endpoints (12M ago and Now)
-      const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-5).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" font-weight="700" fill="rgba(255,255,255,0.38)">${r12.toFixed(2)}</text>`;
-      const valLblNow = `<text x="${xs[3]-2}" y="${(ys[3]-6).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
+      const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-5).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="700" fill="rgba(255,255,255,0.50)">${r12.toFixed(2)}</text>`;
+      const valLblNow = `<text x="${xs[3]-2}" y="${(ys[3]-6).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
       // Particle dots — 8 subtle random dots as backdrop (deterministic)
       const seed = r * 137 + (t12m||0) * 31;
       const particles = Array.from({length:8}, (_, i) => {
@@ -5588,7 +5500,7 @@ function renderOverview(){
         const pop = 0.06 + (i % 4) * 0.03;
         return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${pr}" fill="rgba(${colRgb},${pop.toFixed(2)})"/>`;
       }).join('');
-      return `<svg width="100%" height="50" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
+      return `<svg width="100%" height="68" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
         <defs>
           <filter id="tlBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/></filter>
           <filter id="tlGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
@@ -5718,7 +5630,10 @@ function renderOverview(){
         position:relative;overflow:hidden;
         padding:11px 11px 0 13px;
         border-radius:13px;
-        background:${bgGrad};
+        background:${CB_FLAG_URI[cb] ? bgGrad + ", " + CB_FLAG_URI[cb] : bgGrad};
+        background-size:auto, 165% auto;
+        background-position:top left, right center;
+        background-repeat:no-repeat, no-repeat;
         border:1px solid ${borderCol};
         box-shadow:0 4px 22px rgba(0,0,0,0.50),inset 0 1px 0 rgba(255,255,255,0.04);
       ">
@@ -5729,14 +5644,7 @@ function renderOverview(){
         ${isUS ? `<div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,${col},${col2},transparent);opacity:0.55"></div>` : ''}
         <!-- Row 1: flag + name + next mtg -->
         <div style="position:relative;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <!-- Flag backdrop: right-anchored, full-height fill, left fade -->
-          <div style="pointer-events:none;position:absolute;top:0;right:0;bottom:0;width:60%;overflow:hidden;border-radius:0 13px 13px 0">
-            <div style="position:absolute;inset:0;opacity:0.13">
-              ${_cbFlagSvg(cb)}
-            </div>
-            <!-- Left fade overlay to blend flag into card -->
-            <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(4,6,14,1) 0%,rgba(4,6,14,0.6) 25%,rgba(4,6,14,0.0) 65%)"></div>
-          </div>
+
           <div style="display:flex;align-items:center;gap:5px">
             <span style="font-family:var(--mono);font-size:${isUS ? '12' : '11'}px;font-weight:${isUS ? '900' : '800'};color:${isUS ? '#fff' : 'rgba(255,255,255,0.80)'};letter-spacing:0.02em">${CB_NAMES_OV[cb] || cb}</span>
           </div>
