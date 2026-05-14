@@ -2173,8 +2173,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
 /* ── Rate Path + G10 CB signal slot ── */
 .ov-rate-cb-wrap{
-  margin-top:14px;padding-top:12px;
-  border-top:1px solid rgba(255,255,255,0.06);
+  margin-top:14px;
 }
 .ov-rate-section-hdr{
   display:flex;align-items:center;gap:10px;
@@ -4961,81 +4960,98 @@ function renderOverview(){
       if (!path || path.length < 2) return '';
       const pts = [{rate: spotRate, label:'Now'}, ...path.slice(1, 13).map(p => ({rate: p.rate, label: _MABBR[p.month] + "'" + String(p.year).slice(2)})) ];
       const rates = pts.map(p => p.rate);
-      const minR  = Math.min(...rates) - 0.20;
-      const maxR  = Math.max(...rates) + 0.20;
+      const minR  = Math.min(...rates) - 0.18;
+      const maxR  = Math.max(...rates) + 0.18;
       const rng   = maxR - minR || 0.5;
-      const W = 340, H = 120, PL = 36, PR = 8, PT = 18, PB = 24;
+      const W = 400, H = 155, PL = 38, PR = 10, PT = 22, PB = 28;
       const cw = W - PL - PR, ch = H - PT - PB;
       const x = i => PL + (i / (pts.length - 1)) * cw;
       const y = r => PT + ch - ((r - minR) / rng) * ch;
-      const pathCol = isHiking ? '#e03a2a' : isCutting ? '#5c9eff' : '#adb8d0';
-      const glowCol = isHiking ? 'rgba(224,58,42,0.30)' : isCutting ? 'rgba(92,158,255,0.30)' : 'rgba(173,184,208,0.20)';
-      // Step path (market convention: rate holds, then jumps at meeting)
+      const pathCol  = isHiking ? '#f07070' : isCutting ? '#5cb8ff' : '#adb8d0';
+      const pathCol2 = isHiking ? '#e03a2a' : isCutting ? '#3a8eff' : '#8090a8';
+      const glowRgb  = isHiking ? '240,112,112' : isCutting ? '92,184,255' : '173,184,208';
+      // Step path
       let dLine = 'M' + x(0).toFixed(1) + ',' + y(pts[0].rate).toFixed(1);
       for (let i = 1; i < pts.length; i++) {
         dLine += ' L' + x(i).toFixed(1) + ',' + y(pts[i-1].rate).toFixed(1) + ' L' + x(i).toFixed(1) + ',' + y(pts[i].rate).toFixed(1);
       }
-      // Area fill (same step shape, closed at bottom)
-      const bot = PT + ch + 2;
+      // Smooth line for glow layer (same path)
+      const bot = PT + ch + 1;
       let dArea = 'M' + x(0).toFixed(1) + ',' + bot + ' L' + x(0).toFixed(1) + ',' + y(pts[0].rate).toFixed(1);
       for (let i = 1; i < pts.length; i++) {
         dArea += ' L' + x(i).toFixed(1) + ',' + y(pts[i-1].rate).toFixed(1) + ' L' + x(i).toFixed(1) + ',' + y(pts[i].rate).toFixed(1);
       }
       dArea += ' L' + x(pts.length-1).toFixed(1) + ',' + bot + ' Z';
-      // Horizontal gridlines at every 25bp
+      // Gridlines at every 25bp — subtle, refined
       let gridSvg = '';
       const gStep = 0.25, gStart = Math.ceil(minR / gStep) * gStep;
       for (let gv = gStart; gv <= maxR + 0.01; gv = +(gv + gStep).toFixed(3)) {
         const gy = y(gv);
         if (gy < PT - 2 || gy > PT + ch + 2) continue;
-        gridSvg += `<line x1="${PL}" y1="${gy.toFixed(1)}" x2="${W-PR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,0.045)" stroke-width="0.8"/>`;
-        gridSvg += `<text x="${PL - 4}" y="${(gy + 2.5).toFixed(1)}" font-family="monospace" font-size="6.5" fill="rgba(173,184,208,0.40)" text-anchor="end">${gv.toFixed(2)}</text>`;
+        const isMajor = Number.isInteger(Math.round(gv * 4)) && Math.abs(gv * 4 - Math.round(gv * 4)) < 0.01;
+        const gridOpacity = isMajor ? '0.08' : '0.04';
+        gridSvg += `<line x1="${PL}" y1="${gy.toFixed(1)}" x2="${W-PR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,${gridOpacity})" stroke-width="${isMajor ? '1' : '0.7'}"/>`;
+        gridSvg += `<text x="${PL - 5}" y="${(gy + 2.8).toFixed(1)}" font-family="'SF Mono','Fira Mono',monospace" font-size="7" fill="rgba(173,184,208,0.45)" text-anchor="end" font-weight="500">${gv.toFixed(2)}</text>`;
       }
-      // X-axis: Now, every 3rd month, last
+      // X-axis labels: now, every 3rd, last
       const xLabels = pts.map((p, i) => {
-        if (i === 0 || i === pts.length - 1 || (i % 3 === 0 && i > 0)) {
+        if (i === 0 || i === pts.length - 1 || i % 3 === 0) {
           const anchor = i === 0 ? 'start' : i === pts.length - 1 ? 'end' : 'middle';
-          const fill   = i === 0 ? pathCol : 'rgba(173,184,208,0.40)';
-          const fw     = i === 0 ? '700' : '400';
-          return `<text x="${x(i).toFixed(1)}" y="${H - 5}" font-family="monospace" font-size="7" fill="${fill}" font-weight="${fw}" text-anchor="${anchor}">${p.label}</text>`;
+          const fill   = i === 0 ? pathCol : 'rgba(173,184,208,0.42)';
+          const fw     = i === 0 ? '700' : '500';
+          return `<text x="${x(i).toFixed(1)}" y="${H - 8}" font-family="'SF Mono','Fira Mono',monospace" font-size="7.5" fill="${fill}" font-weight="${fw}" text-anchor="${anchor}">${p.label}</text>`;
         } return '';
       }).join('');
-      // Dots: glowing halo on first point, small coloured dots on rest
+      // Dots — larger, cleaner
       const dots = pts.map((p, i) => {
-        const dc = p.rate > (spotRate + 0.01) ? '#e03a2a' : p.rate < (spotRate - 0.01) ? '#5c9eff' : pathCol;
-        if (i === 0) return `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="7" fill="${pathCol}" opacity="0.12"/>` +
-                            `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="3.5" fill="${pathCol}"/>`;
-        return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="2.2" fill="#0a0d14" stroke="${dc}" stroke-width="1.3" opacity="0.85"/>`;
+        const dc = p.rate > (spotRate + 0.01) ? '#f07070' : p.rate < (spotRate - 0.01) ? '#5cb8ff' : pathCol;
+        if (i === 0) {
+          return `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="9" fill="${pathCol}" opacity="0.10"/>` +
+                 `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="5" fill="${pathCol}" opacity="0.18"/>` +
+                 `<circle cx="${x(0).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="3.5" fill="${pathCol}"/>`;
+        }
+        return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.rate).toFixed(1)}" r="2.8" fill="rgba(8,11,20,0.9)" stroke="${dc}" stroke-width="1.5" opacity="0.90"/>`;
       }).join('');
-      // Annotations: spot rate top-left, end delta top-right
+      // Annotations
       const lastRate = pts[pts.length - 1].rate;
       const deltaBp  = Math.round((lastRate - spotRate) * 100);
       const deltaStr = (deltaBp >= 0 ? '+' : '') + deltaBp + 'bp';
-      const deltaCol = deltaBp > 5 ? '#e03a2a' : deltaBp < -5 ? '#5c9eff' : 'rgba(173,184,208,0.65)';
+      const deltaCol = deltaBp > 5 ? '#f07070' : deltaBp < -5 ? '#5cb8ff' : 'rgba(173,184,208,0.65)';
       const firstY = y(pts[0].rate), lastY = y(lastRate);
+      // Current rate label with background pill feel
       const annots = [
-        `<text x="${x(0).toFixed(1)}" y="${Math.max(PT + 11, firstY - 7).toFixed(1)}" font-family="monospace" font-size="9.5" font-weight="800" fill="${pathCol}" text-anchor="start">${spotRate.toFixed(2)}%</text>`,
-        `<text x="${x(pts.length-1).toFixed(1)}" y="${Math.max(PT + 11, lastY - 7).toFixed(1)}" font-family="monospace" font-size="9" font-weight="700" fill="${deltaCol}" text-anchor="end">${deltaStr}</text>`,
+        `<text x="${(x(0)+2).toFixed(1)}" y="${Math.max(PT + 13, firstY - 8).toFixed(1)}" font-family="'SF Mono','Fira Mono',monospace" font-size="10.5" font-weight="800" fill="${pathCol}" text-anchor="start" letter-spacing="-0.5">${spotRate.toFixed(2)}%</text>`,
+        `<text x="${(x(pts.length-1)-2).toFixed(1)}" y="${Math.max(PT + 13, lastY - 8).toFixed(1)}" font-family="'SF Mono','Fira Mono',monospace" font-size="10" font-weight="700" fill="${deltaCol}" text-anchor="end">${deltaStr}</text>`,
       ].join('');
+      // "Implied terminal" label at last point below
+      const termLabel = `<text x="${(x(pts.length-1)-2).toFixed(1)}" y="${Math.min(H-10, lastY + 16).toFixed(1)}" font-family="'SF Mono','Fira Mono',monospace" font-size="6.5" font-weight="500" fill="rgba(173,184,208,0.35)" text-anchor="end">terminal</text>`;
       const uid  = 'rpc' + ((Math.random() * 0xFFFFF | 0).toString(16));
       const uid2 = 'rpg' + ((Math.random() * 0xFFFFF | 0).toString(16));
+      const uid3 = 'rpa' + ((Math.random() * 0xFFFFF | 0).toString(16));
       return `<svg width="${W}" height="${H}" style="width:100%;height:${H}px;display:block;overflow:visible" shape-rendering="crispEdges">
         <defs>
           <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.30"/>
-            <stop offset="80%" stop-color="${pathCol}" stop-opacity="0.04"/>
-            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0"/>
+            <stop offset="0%" stop-color="${pathCol}" stop-opacity="0.38"/>
+            <stop offset="60%" stop-color="${pathCol}" stop-opacity="0.10"/>
+            <stop offset="100%" stop-color="${pathCol}" stop-opacity="0.01"/>
           </linearGradient>
-          <filter id="${uid2}" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="3" result="blur"/>
+          <filter id="${uid2}" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="4.5" result="blur"/>
             <feComposite in="SourceGraphic" in2="blur" operator="over"/>
           </filter>
+          <linearGradient id="${uid3}" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stop-color="rgba(${glowRgb},0.04)"/>
+            <stop offset="100%" stop-color="rgba(${glowRgb},0)"/>
+          </linearGradient>
         </defs>
+        <!-- Stage background subtle gradient -->
+        <rect x="${PL}" y="${PT}" width="${cw}" height="${ch}" fill="url(#${uid3})" rx="2"/>
         ${gridSvg}
         <path d="${dArea}" fill="url(#${uid})"/>
-        <path d="${dLine}" fill="none" stroke="${pathCol}" stroke-width="2.4" stroke-linejoin="miter" opacity="0.92"/>
-        <path d="${dLine}" fill="none" stroke="${glowCol}" stroke-width="6" stroke-linejoin="miter" filter="url(#${uid2})"/>
-        ${dots}${xLabels}${annots}
+        <path d="${dLine}" fill="none" stroke="rgba(${glowRgb},0.22)" stroke-width="8" stroke-linejoin="miter" filter="url(#${uid2})"/>
+        <path d="${dLine}" fill="none" stroke="${pathCol2}" stroke-width="2.5" stroke-linejoin="miter" opacity="0.55"/>
+        <path d="${dLine}" fill="none" stroke="${pathCol}" stroke-width="1.8" stroke-linejoin="miter" opacity="0.96"/>
+        ${dots}${xLabels}${annots}${termLabel}
       </svg>`;
     };
 
@@ -5074,45 +5090,40 @@ function renderOverview(){
       // Data source badge for freshness transparency
       const srcBadge = d.rate_source === 'fallback_only' ? `<span style="font-family:var(--mono);font-size:5px;opacity:0.35;letter-spacing:0.04em">est</span>` : '';
       return `
-      <div style="padding:9px 0 10px;border-bottom:1px solid rgba(255,255,255,0.04);${isUS ? 'background:linear-gradient(90deg,rgba(92,158,255,0.03) 0%,transparent 100%);margin:0 -2px;padding:9px 2px 10px;border-radius:4px;' : ''}">
-        <!-- Top data row -->
-        <div style="display:grid;grid-template-columns:52px 1fr auto auto;align-items:center;gap:8px;margin-bottom:7px">
-          <!-- Identity: flag + name -->
-          <div style="display:flex;align-items:center;gap:4px">
-            <span style="font-size:12px;line-height:1;flex-shrink:0">${CB_FLAGS_OV[cb] || ''}</span>
-            <div>
-              <div style="font-family:var(--mono);font-size:10px;font-weight:800;color:${isUS ? 'var(--text)' : 'var(--dim)'}">${CB_NAMES_OV[cb] || cb}</div>
-            </div>
+      <div style="padding:10px 0 10px;border-bottom:1px solid rgba(255,255,255,0.045);position:relative;${isUS ? 'padding-left:10px;margin-left:-10px;' : ''}">
+        ${isUS ? `<div style="position:absolute;left:0;top:0;bottom:0;width:2.5px;border-radius:2px;background:linear-gradient(180deg,rgba(${glowRgb},0.80) 0%,rgba(${glowRgb},0.20) 100%)"></div>` : ''}
+        <!-- Main data grid: identity | rate+stance+slider | vs peak | next -->
+        <div style="display:grid;grid-template-columns:56px 1fr 58px 52px;align-items:center;gap:8px;margin-bottom:7px">
+          <!-- Flag + name -->
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="font-size:13px;line-height:1;flex-shrink:0">${CB_FLAGS_OV[cb] || ''}</span>
+            <div style="font-family:var(--mono);font-size:${isUS ? '10.5' : '9.5'}px;font-weight:${isUS ? '900' : '800'};color:${isUS ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.62)'};letter-spacing:-0.01em">${CB_NAMES_OV[cb] || cb}</div>
           </div>
-          <!-- Rate (big) + stance pill -->
+          <!-- Rate + stance -->
           <div style="display:flex;align-items:center;gap:7px">
-            <span style="font-family:var(--mono);font-size:${isUS ? '15' : '13'}px;font-weight:900;color:${isUS ? col : 'var(--text)'};letter-spacing:-0.02em;line-height:1">${r.toFixed(2)}%${srcBadge}</span>
-            <span style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${col};background:rgba(${glowRgb},0.11);border:1px solid rgba(${glowRgb},0.30);border-radius:5px;padding:2px 7px;white-space:nowrap">${_lbl || 'Flat'}</span>
+            <span style="font-family:var(--mono);font-size:${isUS ? '14.5' : '12.5'}px;font-weight:900;color:${col};letter-spacing:-0.02em;line-height:1;text-shadow:0 0 12px rgba(${glowRgb},0.35)">${r.toFixed(2)}%${srcBadge}</span>
+            <span style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:${col};background:rgba(${glowRgb},0.12);border:1px solid rgba(${glowRgb},0.32);border-radius:5px;padding:2px 7px;white-space:nowrap">${_lbl || 'Flat'}</span>
           </div>
           <!-- vs peak -->
-          <div style="text-align:right;min-width:42px">
-            <div style="font-family:var(--mono);font-size:9.5px;font-weight:800;color:${cfpCol}">${cfpStr}</div>
-            <div style="font-family:var(--mono);font-size:6.5px;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.30);margin-top:1px">vs peak</div>
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:9.5px;font-weight:800;color:${cfpCol};letter-spacing:-0.01em">${cfpStr}</div>
+            <div style="font-family:var(--mono);font-size:6px;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.30);margin-top:1px">vs peak</div>
           </div>
           <!-- Next meeting -->
-          <div style="text-align:right;min-width:38px">
-            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(173,184,208,0.50)">${nmFmt || '—'}</div>
-            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6.5px;letter-spacing:0.05em;color:rgba(173,184,208,0.30);margin-top:1px">${nmDays}d</div>` : ''}
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.52)">${nmFmt || '—'}</div>
+            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.32);margin-top:1px">${nmDays}d</div>` : ''}
           </div>
         </div>
-        <!-- Cycle position slider: trough (left) → peak (right) -->
-        <div style="position:relative;height:6px;background:rgba(255,255,255,0.07);border-radius:5px;overflow:visible">
-          <!-- Gradient fill -->
-          <div style="position:absolute;left:0;top:0;height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,rgba(${glowRgb},0.10) 0%,rgba(${glowRgb},0.38) 100%);border-radius:5px 0 0 5px;"></div>
-          <!-- Glowing thumb -->
-          <div style="position:absolute;top:50%;left:${pct.toFixed(1)}%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:${col};box-shadow:0 0 8px 3px rgba(${glowRgb},0.50),0 0 0 2px rgba(0,0,0,0.5);z-index:2"></div>
-          <!-- Peak tick at far right -->
-          <div style="position:absolute;top:-3px;right:0;width:1px;height:11px;background:rgba(255,255,255,0.20);border-radius:1px"></div>
+        <!-- Cycle slider: trough → current → peak -->
+        <div style="position:relative;height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:visible;margin-left:64px">
+          <div style="position:absolute;left:0;top:0;height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,rgba(${glowRgb},0.08) 0%,rgba(${glowRgb},0.45) 100%);border-radius:4px 0 0 4px"></div>
+          <div style="position:absolute;top:50%;left:${pct.toFixed(1)}%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:${col};box-shadow:0 0 8px 2px rgba(${glowRgb},0.55),0 0 0 2px rgba(0,0,0,0.55);z-index:2"></div>
+          <div style="position:absolute;top:-3px;right:0;width:1px;height:11px;background:rgba(255,255,255,0.18);border-radius:1px"></div>
         </div>
-        <!-- Axis labels: trough left, peak right -->
-        <div style="display:flex;justify-content:space-between;margin-top:3px">
-          <span style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.28)">${tr.toFixed(2)}%</span>
-          <span style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.28)">Peak ${pk.toFixed(2)}%</span>
+        <div style="display:flex;justify-content:space-between;margin-top:3px;margin-left:64px">
+          <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28)">${tr.toFixed(2)}%</span>
+          <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28)">Peak ${pk.toFixed(2)}%</span>
         </div>
       </div>`;
     }).join('');
@@ -5150,49 +5161,51 @@ function renderOverview(){
     const domRgb     = domLabel === 'Hike' ? '224,58,42' : domLabel === 'Cut' ? '92,158,255' : '173,184,208';
 
     const rateCardHtml = (effr != null || cuts12m != null) ? `
-      <!-- ── US Rate Path ──────────────────────────────────── -->
-      <div style="margin-bottom:4px">
-        <!-- Section header -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:13px">
-          <div style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--faint);flex-shrink:0">Federal Reserve</div>
-          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.08) 0%,transparent 100%)"></div>
-          <div style="font-family:var(--mono);font-size:7px;font-weight:800;border-radius:5px;padding:3px 9px;letter-spacing:0.06em;flex-shrink:0;color:${rateBarCol};background:${rateBarCol}18;border:1px solid ${rateBarCol}30">${rateLabel || '—'}</div>
+      <!-- ══ FEDERAL RESERVE ══════════════════════════════════ -->
+      <div style="background:linear-gradient(160deg,rgba(${domRgb},0.055) 0%,rgba(10,13,22,0.60) 55%,rgba(5,7,14,0.55) 100%);border:1px solid rgba(${domRgb},0.16);border-top:2px solid rgba(${domRgb},0.38);border-radius:14px;padding:16px 18px 14px;position:relative;overflow:hidden">
+        <!-- Subtle ambient wash -->
+        <div style="position:absolute;inset:0;pointer-events:none;border-radius:14px;background:linear-gradient(135deg,rgba(${domRgb},0.04) 0%,transparent 50%)"></div>
+        <!-- Section header row -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative">
+          <div style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(173,184,208,0.80);flex-shrink:0">Federal Reserve</div>
+          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.10) 0%,transparent 100%)"></div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:800;border-radius:6px;padding:3px 10px;letter-spacing:0.07em;flex-shrink:0;color:${rateBarCol};background:${rateBarCol}20;border:1px solid ${rateBarCol}40">${rateLabel || '—'}</div>
         </div>
-        <!-- Hero stats: 3-column grid -->
-        <div style="display:grid;grid-template-columns:1fr auto auto;align-items:start;gap:8px;margin-bottom:14px">
-          <!-- Left: target range + effective rate -->
+        <!-- Hero row: rate + prob card + meeting -->
+        <div style="display:grid;grid-template-columns:1fr auto auto;align-items:start;gap:10px;margin-bottom:16px;position:relative">
+          <!-- Left: target range -->
           <div>
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:3px">Target Range</div>
-            <div style="font-family:var(--mono);font-size:clamp(26px,3.6vw,34px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text)">${targetStr}<span style="font-size:0.52em;font-weight:700;opacity:0.6">%</span></div>
-            <div style="margin-top:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-              <span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.38)">Effective</span>
-              <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;color:var(--dim)">${effrActual.toFixed(2)}%</span>
-              ${effr != null ? `<span style="font-family:var(--mono);font-size:7px;color:rgba(173,184,208,0.25)">·</span><span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.35)">Mkt <span style="color:${rateBarCol};font-weight:700">${effr.toFixed(2)}%</span></span>` : ''}
-              ${termDeltaStr ? `<span style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.28);white-space:nowrap">(${termDeltaStr})</span>` : ''}
+            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.45);margin-bottom:4px">Target Range</div>
+            <div style="font-family:var(--mono);font-size:clamp(28px,4vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text)">${targetStr}<span style="font-size:0.50em;font-weight:700;color:rgba(255,255,255,0.50)">%</span></div>
+            <div style="margin-top:7px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.42)">Effective</span>
+              <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:rgba(255,255,255,0.75);letter-spacing:-0.01em">${effrActual.toFixed(2)}%</span>
+              ${effr != null ? `<span style="font-family:var(--mono);font-size:7.5px;color:rgba(173,184,208,0.35)">· Mkt <span style="color:${rateBarCol};font-weight:800">${effr.toFixed(2)}%</span></span>` : ''}
+              ${termDeltaStr ? `<span style="font-family:var(--mono);font-size:7px;color:rgba(173,184,208,0.35);background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.08)">${termDeltaStr}</span>` : ''}
             </div>
           </div>
-          <!-- Centre: dominant probability pill (large) -->
-          <div style="display:flex;flex-direction:column;align-items:center;background:rgba(${domRgb},0.07);border:1px solid rgba(${domRgb},0.22);border-radius:10px;padding:8px 14px;gap:2px;flex-shrink:0">
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(${domRgb},0.70)">${domLabel}</div>
-            <div style="font-family:var(--mono);font-size:22px;font-weight:900;line-height:1;color:${domCol}">${domProb.toFixed(0)}<span style="font-size:0.55em;opacity:0.7">%</span></div>
-            <div style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.30);letter-spacing:0.04em">next meeting</div>
+          <!-- Centre: probability card -->
+          <div style="display:flex;flex-direction:column;align-items:center;background:rgba(${domRgb},0.10);border:1px solid rgba(${domRgb},0.28);border-top:2px solid rgba(${domRgb},0.50);border-radius:10px;padding:10px 16px;gap:3px;flex-shrink:0;box-shadow:0 4px 20px rgba(${domRgb},0.12)">
+            <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(${domRgb},0.80)">${domLabel}</div>
+            <div style="font-family:var(--mono);font-size:26px;font-weight:900;line-height:1;color:${domCol};letter-spacing:-0.03em;text-shadow:0 0 20px rgba(${domRgb},0.45)">${domProb.toFixed(0)}<span style="font-size:0.52em;opacity:0.65">%</span></div>
+            <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.40);letter-spacing:0.04em">next meeting</div>
           </div>
-          <!-- Right: next meeting date + countdown -->
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+          <!-- Right: next FOMC date -->
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;padding-top:2px">
             ${usNextMtg ? `
-            <div style="font-family:var(--mono);font-size:11px;font-weight:800;color:rgba(173,184,208,0.65)">${usNextMtg}</div>
-            ${usDaysTo != null ? `<div style="font-family:var(--mono);font-size:8.5px;color:rgba(173,184,208,0.35)">${usDaysTo}d</div>` : ''}
-            <div style="font-family:var(--mono);font-size:6px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.22);margin-top:1px">FOMC</div>` : ''}
+            <div style="font-family:var(--mono);font-size:12px;font-weight:800;color:rgba(255,255,255,0.70);letter-spacing:-0.01em">${usNextMtg}</div>
+            ${usDaysTo != null ? `<div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${domCol};background:rgba(${domRgb},0.12);padding:2px 7px;border-radius:5px;border:1px solid rgba(${domRgb},0.22)">${usDaysTo}d</div>` : ''}
+            <div style="font-family:var(--mono);font-size:6.5px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.30);margin-top:1px">FOMC</div>` : ''}
           </div>
         </div>
-        <!-- Implied rate path chart (full width) -->
+        <!-- Rate path chart — full width, no inner border box -->
         ${pathMonthly.length > 1 ? `
-        <div style="margin-bottom:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.35)">Implied Rate Path</div>
-            <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.25);letter-spacing:0.04em">Fed Funds Futures</div>
+        <div style="margin-bottom:14px;position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55)">Implied Rate Path</div>
+            <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.30);letter-spacing:0.04em">Fed Funds Futures</div>
           </div>
-          <div style="border-radius:10px;background:rgba(255,255,255,0.014);border:1px solid rgba(255,255,255,0.065);padding:12px 8px 5px;overflow:visible">
+          <div style="border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);padding:14px 10px 4px;overflow:visible">
             ${_buildRatePathChart(pathMonthly, effrActual)}
           </div>
         </div>` : ''}
@@ -5202,53 +5215,45 @@ function renderOverview(){
           const bp12IsCut  = totalBp12m!=null&&totalBp12m<-2;
           const bp18IsHike = totalBp18m!=null&&totalBp18m>2;
           const bp18IsCut  = totalBp18m!=null&&totalBp18m<-2;
-          const bg12 = bp12IsHike
-            ? 'linear-gradient(150deg,rgba(196,26,46,0.10) 0%,rgba(12,9,10,0.82) 100%)'
-            : bp12IsCut
-            ? 'linear-gradient(150deg,rgba(34,201,122,0.10) 0%,rgba(9,12,10,0.82) 100%)'
-            : 'linear-gradient(150deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.02) 100%)';
-          const bg18 = bp18IsHike
-            ? 'linear-gradient(150deg,rgba(196,26,46,0.10) 0%,rgba(12,9,10,0.82) 100%)'
-            : bp18IsCut
-            ? 'linear-gradient(150deg,rgba(34,201,122,0.10) 0%,rgba(9,12,10,0.82) 100%)'
-            : 'linear-gradient(150deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.02) 100%)';
-          const bdr12 = bp12IsHike ? 'rgba(196,26,46,0.22)' : bp12IsCut ? 'rgba(34,201,122,0.22)' : 'rgba(255,255,255,0.09)';
-          const bdr18 = bp18IsHike ? 'rgba(196,26,46,0.22)' : bp18IsCut ? 'rgba(34,201,122,0.22)' : 'rgba(255,255,255,0.09)';
-          const bdrTop12 = bp12IsHike ? 'rgba(196,26,46,0.32)' : bp12IsCut ? 'rgba(34,201,122,0.32)' : 'rgba(255,255,255,0.14)';
-          const bdrTop18 = bp18IsHike ? 'rgba(196,26,46,0.32)' : bp18IsCut ? 'rgba(34,201,122,0.32)' : 'rgba(255,255,255,0.14)';
-          return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <div style="background:${bg12};border:1px solid ${bdr12};border-top-color:${bdrTop12};border-radius:10px;padding:12px 14px">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:6px">12M Market Pricing</div>
-            <div style="font-family:var(--mono);font-size:24px;font-weight:900;line-height:1;color:${_bpCol(totalBp12m)};margin-bottom:4px;letter-spacing:-0.02em">${_bpStr(totalBp12m)}</div>
-            <div style="font-family:var(--mono);font-size:8px;font-weight:600;color:rgba(173,184,208,0.60)">${_bpLabel(totalBp12m)}</div>
+          const c12 = bp12IsHike ? '224,80,60' : bp12IsCut ? '92,184,255' : '173,184,208';
+          const c18 = bp18IsHike ? '224,80,60' : bp18IsCut ? '92,184,255' : '173,184,208';
+          const col12 = bp12IsHike ? '#f07070' : bp12IsCut ? '#5cb8ff' : '#adb8d0';
+          const col18 = bp18IsHike ? '#f07070' : bp18IsCut ? '#5cb8ff' : '#adb8d0';
+          return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:rgba(${c12},0.07);border:1px solid rgba(${c12},0.18);border-top:2px solid rgba(${c12},0.40);border-radius:10px;padding:11px 14px">
+            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55);margin-bottom:5px">12M Pricing</div>
+            <div style="font-family:var(--mono);font-size:clamp(22px,3.5vw,28px);font-weight:900;line-height:1;color:${_bpCol(totalBp12m)};letter-spacing:-0.03em;text-shadow:0 0 16px rgba(${c12},0.35)">${_bpStr(totalBp12m)}</div>
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(${c12},0.75);margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${_bpLabel(totalBp12m)}</div>
           </div>
-          <div style="background:${bg18};border:1px solid ${bdr18};border-top-color:${bdrTop18};border-radius:10px;padding:12px 14px">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:6px">18M Market Pricing</div>
-            <div style="font-family:var(--mono);font-size:24px;font-weight:900;line-height:1;color:${_bpCol(totalBp18m)};margin-bottom:4px;letter-spacing:-0.02em">${_bpStr(totalBp18m)}</div>
-            <div style="font-family:var(--mono);font-size:8px;font-weight:600;color:rgba(173,184,208,0.60)">${_bpLabel(totalBp18m)}</div>
+          <div style="background:rgba(${c18},0.07);border:1px solid rgba(${c18},0.18);border-top:2px solid rgba(${c18},0.40);border-radius:10px;padding:11px 14px">
+            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.55);margin-bottom:5px">18M Pricing</div>
+            <div style="font-family:var(--mono);font-size:clamp(22px,3.5vw,28px);font-weight:900;line-height:1;color:${_bpCol(totalBp18m)};letter-spacing:-0.03em;text-shadow:0 0 16px rgba(${c18},0.35)">${_bpStr(totalBp18m)}</div>
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(${c18},0.75);margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${_bpLabel(totalBp18m)}</div>
           </div></div>`;
         })()}
       </div>` : '';
 
     // ── Unified G10 CB section HTML ───────────────────────────────────────────
     const cbSectionHtml = cbUnifiedRows.length > 0 ? `
-      <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06)">
-        <!-- Section header -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <div style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);flex-shrink:0;display:flex;align-items:center;gap:9px"><span style="display:inline-block;width:3px;height:13px;background:var(--accent);border-radius:2px;opacity:0.9;box-shadow:0 0 6px rgba(200,169,110,0.35)"></span>G10 Central Banks</div>
-          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,0.28) 0%,rgba(200,169,110,0.06) 60%,transparent 100%)"></div>
-          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.32);flex-shrink:0;letter-spacing:0.05em">sorted by rate · cycle: trough — peak</div>
+      <div style="margin-top:14px">
+        <!-- G10 header -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06)">
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span style="display:inline-block;width:3px;height:14px;background:var(--accent);border-radius:2px;box-shadow:0 0 8px rgba(200,169,110,0.40)"></span>
+            <div style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,169,110,0.92)">G10 Central Banks</div>
+          </div>
+          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,0.22) 0%,rgba(200,169,110,0.04) 70%,transparent 100%)"></div>
+          <div style="font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.32);flex-shrink:0;letter-spacing:0.05em">rate · cycle position · next mtg</div>
         </div>
         <!-- Column headers -->
-        <div style="display:grid;grid-template-columns:52px 1fr auto auto;gap:8px;padding:5px 0 8px;border-bottom:1px solid rgba(255,255,255,0.07)">
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.50)">Bank</div>
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.50)">Rate &middot; Stance</div>
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.50);text-align:right;min-width:42px">vs Peak</div>
-          <div style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.50);text-align:right;min-width:38px">Next Mtg</div>
+        <div style="display:grid;grid-template-columns:56px 1fr 58px 52px;gap:8px;padding:0 0 7px;border-bottom:1px solid rgba(255,255,255,0.06)">
+          <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.40)">Bank</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.40)">Rate · Stance · Cycle</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.40);text-align:right">vs Peak</div>
+          <div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.40);text-align:right">Next</div>
         </div>
         ${cbUnifiedRows}
-        <!-- Data attribution -->
-        <div style="margin-top:8px;font-family:var(--mono);font-size:6.5px;color:rgba(173,184,208,0.22);letter-spacing:0.04em">Source: FRED · official central bank releases</div>
+        <div style="margin-top:6px;font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.20);letter-spacing:0.04em">Source: FRED · official central bank releases</div>
       </div>` : '';
 
     // ── Inject into DOM ───────────────────────────────────────────────────────
