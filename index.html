@@ -29,24 +29,18 @@ document.addEventListener('DOMContentLoaded', function(){
       const ctx = chart.ctx;
       const {left, top, width, height} = chart.chartArea || {left:0,top:0,width:chart.width,height:chart.height};
       ctx.save();
-      // Richer dark base
-      ctx.fillStyle = 'rgba(3,5,14,0.82)';
-      ctx.fillRect(0, 0, chart.width, chart.height);
-      // Subtle vignette from edges inward
-      const vignette = ctx.createRadialGradient(
-        chart.width/2, chart.height/2, Math.min(chart.width,chart.height)*0.2,
-        chart.width/2, chart.height/2, Math.max(chart.width,chart.height)*0.72
+      // Clean dark base — no background fill on full canvas, only chart area
+      ctx.fillStyle = 'rgba(4,6,16,0.88)';
+      ctx.fillRect(left, top, width, height);
+      // Edge vignette — darker at edges, lighter in center
+      const vig = ctx.createRadialGradient(
+        left + width/2, top + height/2, Math.min(width,height)*0.3,
+        left + width/2, top + height/2, Math.max(width,height)*0.7
       );
-      vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(0,0,0,0.28)');
-      ctx.fillStyle = vignette;
-      ctx.fillRect(0, 0, chart.width, chart.height);
-      // Subtle radial gold glow in centre — slightly stronger than before
-      const grad = ctx.createRadialGradient(chart.width/2, chart.height/2, 0, chart.width/2, chart.height/2, Math.max(chart.width, chart.height)*0.55);
-      grad.addColorStop(0, 'rgba(200,169,110,0.028)');
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, chart.width, chart.height);
+      vig.addColorStop(0, 'rgba(0,0,0,0)');
+      vig.addColorStop(1, 'rgba(0,0,0,0.22)');
+      ctx.fillStyle = vig;
+      ctx.fillRect(left, top, width, height);
       ctx.restore();
     }
   });
@@ -312,9 +306,9 @@ a{color:inherit;text-decoration:none}
   width:2px;border-radius:0 2px 2px 0;background:var(--accent);
 }
 /* Zone-based row tinting: bull rows faint green, bear rows faint red */
-.mkt-row[data-zone="bull"]{background:rgba(38,201,122,0.025)}
+.mkt-row[data-zone="bull"]{background:rgba(38,201,122,0.030)}
 .mkt-row[data-zone="bull"]:hover{background:rgba(38,201,122,0.05)}
-.mkt-row[data-zone="bear"]{background:rgba(224,58,42,0.025)}
+.mkt-row[data-zone="bear"]{background:rgba(224,58,42,0.030)}
 .mkt-row[data-zone="bear"]:hover{background:rgba(224,58,42,0.05)}
 .mkt-row[data-zone="bull"].sel,.mkt-row[data-zone="bear"].sel{background:var(--surf2)}
 /* Zone boundary row — faint separator line between bull/neutral/bear zones */
@@ -335,7 +329,7 @@ a{color:inherit;text-decoration:none}
   font-family:var(--mono);font-size:14px;font-weight:800;
   letter-spacing:-0.03em;line-height:1;
   min-width:38px;text-align:right;
-  text-shadow:0 0 14px currentColor;
+  text-shadow:0 1px 2px rgba(0,0,0,0.8);
 }
 
 .mr-bias{font-size:7.5px;font-weight:700;white-space:nowrap;opacity:0.80;letter-spacing:0.04em;text-transform:uppercase}
@@ -4135,9 +4129,9 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
 /* ── Market row glass upgrade ── */
 .mkt-row{
-  background:linear-gradient(90deg,rgba(15,17,25,0.72) 0%,rgba(9,11,17,0.62) 100%);
-  backdrop-filter:blur(2px);
-  -webkit-backdrop-filter:blur(2px);
+  background:linear-gradient(90deg,rgba(12,14,22,0.58) 0%,rgba(8,10,16,0.48) 100%);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
   border-bottom:1px solid rgba(255,255,255,0.055);
   transition:background 150ms,border-color 150ms;
 }
@@ -4223,7 +4217,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
 /* ── FX cross rows glass ── */
 .fx-cat-row{
-  background:linear-gradient(90deg,rgba(15,17,25,0.72) 0%,rgba(9,11,17,0.62) 100%) !important;
+  background:linear-gradient(90deg,rgba(12,14,22,0.58) 0%,rgba(8,10,16,0.48) 100%) !important;
   backdrop-filter:blur(3px);
   -webkit-backdrop-filter:blur(3px);
   border-color:rgba(255,255,255,0.07) !important;
@@ -4312,7 +4306,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
 /* ── SIDEBAR — Nexus glass column ── */
 .sidebar{
-  background:rgba(2,4,10,0.72);
+  background:rgba(2,4,10,0.60);
   border-right:1px solid rgba(255,255,255,0.06);
   backdrop-filter:blur(32px);
   -webkit-backdrop-filter:blur(32px);
@@ -4414,21 +4408,14 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 .mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:#fff}
 
-/* ── Nexus score flame — replaces dot meter ── */
-.mr-flame-bar{
-  display:flex;gap:1.5px;align-items:flex-end;height:12px;
-  margin-top:4px;
-}
-.mr-flame-seg{
-  width:3px;border-radius:1.5px;
-  transition:background 300ms, box-shadow 200ms;
-  flex-shrink:0;
-}
+/* ── Nexus score flame — hidden in R9, replaced by gradient slider ── */
+.mr-flame-bar{ display:none !important; }
+.mr-flame-seg{ display:none !important; }
 .mr-score-badge{
   font-family:var(--mono);font-size:14px;font-weight:800;
   letter-spacing:-0.04em;line-height:1;
   min-width:36px;text-align:right;
-  filter:drop-shadow(0 0 6px currentColor);
+  text-shadow:0 1px 2px rgba(0,0,0,0.8);
 }
 .mr-bias{
   font-size:6.5px;font-weight:700;
@@ -4929,7 +4916,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
 /* ── PHASE 2: Sidebar — deep glass trough ── */
 .sidebar{
-  background:rgba(1,3,9,0.75);
+  background:rgba(1,3,9,0.62);
   border-right:none;
   box-shadow:inset -1px 0 0 rgba(255,255,255,0.045),1px 0 0 rgba(0,0,0,0.8);
 }
@@ -4979,6 +4966,9 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   border-bottom:1px solid rgba(255,255,255,0.028);
   gap:8px;
   transition:background 100ms,box-shadow 100ms;
+  background:rgba(8,10,20,0.45);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
 }
 .mkt-row:hover{
   background:rgba(255,255,255,0.032);
@@ -5006,7 +4996,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   font-size:16px;font-weight:700;
   letter-spacing:-0.04em;line-height:1;
   min-width:38px;text-align:right;
-  filter:drop-shadow(0 0 8px currentColor);
+  text-shadow:0 1px 2px rgba(0,0,0,0.8);
 }
 .mr-bias{
   font-family:var(--nexus-head);
@@ -5015,16 +5005,33 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   opacity:0.6;
 }
 
-/* ── PHASE 2: Flame bars — v2 with taper + glow trail ── */
-.mr-flame-bar{
-  gap:1.5px;
-  height:16px;
-  margin-top:4px;
-}
-.mr-flame-seg{
-  width:3px;
+/* ── R9: Gradient score slider (replaces flame bar) ── */
+.mr-flame-bar{ display:none !important; }
+.mr-flame-seg{ display:none !important; }
+.mr-slider-track{
+  position:relative;
+  width:100%;height:4px;
   border-radius:2px;
-  flex-shrink:0;
+  margin-top:5px;
+  /* red → neutral dark → green gradient left to right */
+  background:linear-gradient(90deg,
+    #c0392b 0%,
+    rgba(80,40,40,0.6) 20%,
+    rgba(30,35,55,0.55) 45%,
+    rgba(40,55,35,0.6) 60%,
+    #27ae60 100%
+  );
+  overflow:visible;
+}
+.mr-slider-dot{
+  position:absolute;
+  top:50%;transform:translate(-50%,-50%);
+  width:8px;height:8px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 0 5px rgba(255,255,255,0.55),0 0 1px rgba(0,0,0,0.8);
+  pointer-events:none;
+  transition:left 350ms cubic-bezier(0.25,1,0.5,1);
 }
 
 /* ── PHASE 2: Zone separators — neon hairline ── */
@@ -6583,7 +6590,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
 /* ── Score history panel / COT phase panel: deep glass ── */
 #cot-phase-wrap, #score-history-wrap{
-  background:rgba(4,7,18,0.88) !important;
+  background:rgba(3,5,14,0.72) !important;
   border:1px solid rgba(255,255,255,0.06) !important;
   border-top:1px solid rgba(255,255,255,0.12) !important;
   border-radius:16px !important;
@@ -7131,10 +7138,7 @@ canvas[id^="rel-"]{
   transform:translateY(-1px) !important;
 }
 /* Flame bar segments: slightly more vibrant with glow */
-.mr-flame-seg{
-  opacity:0.92 !important;
-  box-shadow:0 0 4px currentColor !important;
-}
+.mr-flame-seg{ display:none !important; }
 /* Leader score number: strong glow */
 .leader-score, .sl-score{
   filter:drop-shadow(0 0 8px currentColor) drop-shadow(0 0 16px currentColor) !important;
@@ -7195,27 +7199,22 @@ canvas[id^="rel-"]{
     position:sticky !important;
     top:calc(50px + env(safe-area-inset-top,0px)) !important;
     z-index:120 !important;
-    /* Remove backdrop-filter (stacking context breaker) from here,
-       use a pseudo-element background instead */
     backdrop-filter:none !important;
     -webkit-backdrop-filter:none !important;
-    background:rgba(4,6,13,0.98) !important;
-    border-bottom:1px solid rgba(200,169,110,0.12) !important;
-    box-shadow:0 2px 16px rgba(0,0,0,0.65) !important;
-    /* Compensate for removed backdrop by using solid bg */
+    background:rgba(3,5,10,1) !important;
+    border-bottom:1px solid rgba(200,169,110,0.18) !important;
+    box-shadow:0 1px 0 rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.9) !important;
   }
-  /* Add pseudo-element blur separately (doesn't affect stacking context) */
-  .sb-head::after{
+  .sb-head::before{
     content:'';
-    position:absolute;inset:0;
-    background:rgba(4,6,13,0.0);
+    position:absolute;
+    bottom:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(200,169,110,0.25) 30%,rgba(200,169,110,0.25) 70%,transparent);
     pointer-events:none;
-    z-index:-1;
   }
   /* Ensure the sidebar itself doesn't create overflow clip */
   .sidebar{
     overflow:visible !important;
-    /* No transform, no filter, no will-change on this element */
   }
   /* Ensure mkt-list doesn't clip the sticky */
   .mkt-list{
@@ -7245,8 +7244,8 @@ canvas[id^="rel-"]{
   }
 
   /* ── Mobile mkt row flame bars: slightly larger ── */
-  .mr-flame-bar{ height:15px !important; }
-  .mr-flame-seg{ width:3.5px !important; }
+  .mr-flame-bar{ display:none !important; }
+  .mr-slider-track{ margin-top:4px !important; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -7268,6 +7267,48 @@ canvas{
    NEXUS R8: COT CHART JS defaults — upgrade Chart.js fills
    Applied via style injection to override global Chart defaults
 ═══════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════
+   NEXUS R9 — Particles+Glass Integration, Gradient Score Slider,
+   Sticky Header Shelf, Chart Polish
+═══════════════════════════════════════════════════════════ */
+
+/* ── Score slider (replaces flame bar) ── */
+.mr-slider-track{
+  position:relative;
+  height:3px;
+  margin-top:8px;
+  border-radius:2px;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.65) 0%,
+    rgba(224,58,42,0.40) 20%,
+    rgba(100,100,120,0.35) 40%,
+    rgba(100,100,120,0.35) 60%,
+    rgba(34,201,122,0.40) 80%,
+    rgba(34,201,122,0.65) 100%
+  );
+  overflow:visible;
+}
+.mr-slider-fill{
+  /* Invisible — slider is gradient track, dot shows position */
+  display:none;
+}
+.mr-slider-dot{
+  position:absolute;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:7px;height:7px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 0 0 1.5px rgba(0,0,0,0.5);
+  pointer-events:none;
+}
+
+/* ── Sidebar backdrop increase for particle bleed-through ── */
+.sidebar{
+  background:rgba(5,7,14,0.82) !important;
+}
 
 
 </style>
@@ -7708,28 +7749,17 @@ function renderList(){
     const sepHtml = (idx > 0 && thisZone !== prevZone) ? '<div class="mkt-row-zone-sep"></div>' : '';
     const _zone = thisZone;
 
-    // ── Nexus flame bar: 12 vertical segments, height driven by score
-    // Segments 1-12 light up proportionally — filled=vivid+glow, dark=very dim
-    const SEGS = 12;
-    const filled = Math.round((ws / 10) * SEGS);
-    const flameSegs = Array.from({length:SEGS},(_,i)=>{
-      const lit = i < filled;
-      // Height: taller segments as intensity increases (left=base, right=peak)
-      const heightPct = 25 + Math.round((i / (SEGS-1)) * 75);
-      // Opacity: lit segments fade slightly toward the base
-      const distFromTip = filled - 1 - i;
-      const litOpacity = lit ? (distFromTip === 0 ? 1.0 : distFromTip <= 2 ? 0.85 : distFromTip <= 5 ? 0.60 : 0.40) : 0.12;
-      const glow = lit && distFromTip <= 1 ? `box-shadow:0 0 4px ${col}bb,0 0 8px ${col}44` : '';
-      const bg = lit ? col : 'rgba(255,255,255,0.10)';
-      const delay = i * 22;
-      return `<div class="mr-flame-seg" style="height:${heightPct}%;background:${bg};${glow};opacity:${litOpacity};animation:dotMeterIn 260ms cubic-bezier(0.34,1.56,0.64,1) ${delay}ms both"></div>`;
-    }).join('');
+    // ── R9: Score gradient slider (replaces flame bar)
+    const sliderPct = Math.max(2, Math.min(98, ws * 10));
+    const sliderHtml = `<div class="mr-slider-track">
+      <div class="mr-slider-dot" style="left:${sliderPct}%"></div>
+    </div>`;
 
     return sepHtml + `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" data-zone="${_zone}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id">${m.id}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
-        <div class="mr-flame-bar">${flameSegs}</div>
+        ${sliderHtml}
       </div>
       <div class="mr-right">
         <span class="mr-score-badge" style="color:${col}">${ws.toFixed(1)}</span>
@@ -14033,7 +14063,7 @@ function initClimateBg(regCol){
   }
 
   // Very sparse, slow, large ambient particles — atmospheric not distracting
-  const PTS=22;
+  const PTS=30;
   const CONNECT_DIST=160;
   const pts=Array.from({length:PTS},()=>({
     x:Math.random()*W(),
@@ -14041,7 +14071,7 @@ function initClimateBg(regCol){
     vx:(Math.random()-0.5)*0.09,  // very slow drift
     vy:(Math.random()-0.5)*0.06,
     size:Math.random()*2.2+0.6,
-    alpha:Math.random()*0.11+0.03, // very low alpha — ghostly
+    alpha:Math.random()*0.14+0.045, // R9: slightly more visible
     phase:Math.random()*Math.PI*2,
     pulseSpeed:Math.random()*0.006+0.004
   }));
@@ -14067,7 +14097,7 @@ function initClimateBg(regCol){
         const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if(dist<CONNECT_DIST){
-          const la=(1-dist/CONNECT_DIST)*0.07;
+          const la=(1-dist/CONNECT_DIST)*0.10;
           ctx.beginPath();
           ctx.moveTo(pts[i].x,pts[i].y);
           ctx.lineTo(pts[j].x,pts[j].y);
@@ -14150,15 +14180,15 @@ function initAppBg(regLabel){
   const H=()=>canvas.height;
 
   // More particles than climate panel, even slower, even lower alpha
-  const PTS=38;
-  const CONNECT_DIST=140;
+  const PTS=52;
+  const CONNECT_DIST=160;
   const pts=Array.from({length:PTS},()=>({
     x:Math.random()*window.innerWidth,
     y:Math.random()*window.innerHeight,
     vx:(Math.random()-0.5)*0.05,   // ultra-slow drift
     vy:(Math.random()-0.5)*0.04,
     size:Math.random()*1.8+0.4,
-    alpha:Math.random()*0.055+0.015, // very low — barely visible individually
+    alpha:Math.random()*0.075+0.022, // R9: slightly more visible individually
     phase:Math.random()*Math.PI*2,
     pulseSpeed:Math.random()*0.004+0.002  // very slow pulse
   }));
@@ -14172,7 +14202,7 @@ function initAppBg(regLabel){
     // Three large radial nebula blobs — very soft
     [[W()*0.18,H()*0.22,W()*0.30],[W()*0.82,H()*0.65,W()*0.26],[W()*0.50,H()*0.40,W()*0.20]].forEach(([bx,by,br])=>{
       const bg=ctx.createRadialGradient(bx,by,0,bx,by,br);
-      bg.addColorStop(0,`rgba(${r},${g},${b},0.018)`);
+      bg.addColorStop(0,`rgba(${r},${g},${b},0.026)`);
       bg.addColorStop(1,`rgba(${r},${g},${b},0)`);
       ctx.fillStyle=bg;
       ctx.fillRect(0,0,W(),H());
@@ -14184,7 +14214,7 @@ function initAppBg(regLabel){
         const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if(dist<CONNECT_DIST){
-          const la=(1-dist/CONNECT_DIST)*0.045;
+          const la=(1-dist/CONNECT_DIST)*0.065;
           ctx.beginPath();
           ctx.moveTo(pts[i].x,pts[i].y);
           ctx.lineTo(pts[j].x,pts[j].y);
@@ -15971,8 +16001,8 @@ async function initCotCharts(marketId){
             borderWidth:1.5,
             pointRadius:0,
             tension:0.3,
-            fill:{target:{value:cfg.midVal},above:cfg.col+'22',below:cfg.col+'11'},
-            backgroundColor:cfg.col+'11',
+            fill:{target:{value:cfg.midVal},above:cfg.col+'48',below:cfg.col+'22'},
+            backgroundColor:cfg.col+'18',
           }]
         },
         options:{
@@ -16065,10 +16095,10 @@ async function initCotCharts(marketId){
           tension:0.3,
           fill:{
             target:{value:isIdx?50:0},
-            above:col+'38',
-            below:(isIdx?col:col)+'18',
+            above:col+'48',
+            below:(isIdx?col:col)+'22',
           },
-          backgroundColor:col+'18',
+          backgroundColor:col+'22',
         }]
       },
       options:{
@@ -20227,7 +20257,7 @@ async function loadHistoryTab(marketId){
           backgroundColor: barColors,
           borderColor: barBorderColors,
           borderWidth: 0, // V14: no border on bars
-          borderRadius: 3, // V14: rounded bars
+          borderRadius: 4, // R9: slightly more rounded bars
           order: 2,
         },
         ...(cotLine ? [{
