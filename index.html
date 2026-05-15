@@ -3099,7 +3099,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .cot-panel{margin-bottom:2px}
 .cot-panel-label{font-size:8px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:3px;display:flex;align-items:center;gap:6px}
 .cot-panel-label span{font-family:var(--mono);font-size:8px;color:var(--text);opacity:0.7}
-.cot-panel-chart{position:relative;height:90px}
+.cot-panel-chart{position:relative;height:115px}
 .cot-panel-chart canvas{display:block;width:100%!important;border-radius:4px}
 .cot-panel-divider{height:1px;background:linear-gradient(90deg,transparent,var(--bdr3),transparent);margin:20px 0 12px}
 
@@ -3313,7 +3313,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   background:linear-gradient(180deg,rgba(12,14,22,0.85) 0%,rgba(6,8,16,0.95) 100%);
   border:1px solid rgba(255,255,255,0.07);
   border-radius:12px;
-  padding:10px 10px 22px 8px;
+  padding:10px 10px 16px 8px;
   margin-bottom:12px;
   backdrop-filter:blur(4px);
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 4px 20px rgba(0,0,0,0.4);
@@ -3847,7 +3847,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   .cot-card{padding:9px 8px}
   .cc-idx{font-size:18px}
   .cc-desc{display:none}
-  .cot-panel-chart{height:90px}
+  .cot-panel-chart{height:100px}
   .cot-chart-wrap{height:120px!important}
   .modal{max-width:100%;max-height:100dvh;border-radius:0}
   .modal-back{padding:0}
@@ -7066,7 +7066,7 @@ canvas[id^="rel-"]{
   opacity:0.9 !important;
 }
 .sic-value{
-  filter:drop-shadow(0 0 6px currentColor);
+  /* glow removed */
 }
 
 /* ── Momentum candlestick wrapper: glassmorphism ── */
@@ -7098,7 +7098,7 @@ canvas[id^="rel-"]{
   backdrop-filter:blur(8px) !important;
 }
 .mc-v{
-  filter:drop-shadow(0 0 5px currentColor);
+  /* glow removed */
 }
 
 /* ── Score History chart: sharper labels & containers ── */
@@ -7155,19 +7155,19 @@ canvas[id^="rel-"]{
 }
 /* Rate number: glow */
 .cb-rate-val, .g10-rate{
-  filter:drop-shadow(0 0 8px currentColor) !important;
+  /* glow removed */
 }
-/* Chart line: brighter */
-.g10-cb-card canvas{ opacity:0.95 !important; }
+/* Chart line: clean */
+.g10-cb-card canvas{ opacity:0.88 !important; }
 
 /* ── Market overview factor tab strip: glow ring on active ── */
 .tab-btn.on, .tab-btn.act{
-  box-shadow:0 0 0 1px rgba(200,169,110,0.35),0 0 14px rgba(200,169,110,0.12),inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  box-shadow:0 0 0 1px rgba(200,169,110,0.25),inset 0 1px 0 rgba(255,255,255,0.06) !important;
 }
 
 /* ── Score badge in detail header: sharper glow ── */
 .d-score-hero-num{
-  filter:drop-shadow(0 0 16px currentColor) drop-shadow(0 0 32px currentColor) !important;
+  /* glow removed — too neon */
 }
 
 /* ── Regime banner: orbit ring glow enhancement ── */
@@ -16151,7 +16151,7 @@ function fCard(id,sc,weights,extras){
       <div class="f-bar-track">
         <div style="position:absolute;inset:0;border-radius:3px;background:${barGrad};opacity:0.20"></div>
         <div class="f-bar-f" style="width:${pct}%;background:${barGrad};background-size:${pct>0?(100/pct*100)+'% 100%':'100% 100%'}"></div>
-        <div style="position:absolute;top:-4px;left:${pct}%;transform:translateX(-50%);width:3px;height:12px;border-radius:2px;background:${col};box-shadow:0 0 10px ${col}cc,0 0 20px ${col}44"></div>
+        <div style="position:absolute;top:-4px;left:${pct}%;transform:translateX(-50%);width:2px;height:10px;border-radius:2px;background:${col};opacity:0.75"></div>
       </div>
       ${wtBarPct>0?`<div class="f-wt-bar-track"><div class="f-wt-bar-fill" style="width:${wtBarPct}%;--f-accent:${meta.accent}"></div></div>`:''}
     </div>
@@ -16398,9 +16398,10 @@ function cotTab(m){
     const baseBr   = d.base_briese  ?? d.comm_index  ?? 50;
     const quoteBr  = d.quote_briese ?? d.lspec_index ?? 50;
     const diff     = d.differential ?? (baseBr - quoteBr);
-    const diffCol  = diff>=30?'#22c97a':diff<=-30?'#e03a2a':diff>=10?'#3b82c4':diff<=-10?'#e06030':'#7a8ab0';
-    const baseCol  = baseBr>=60?'#22c97a':baseBr<=40?'#e03a2a':'#7a8ab0';
-    const quoteCol = quoteBr>=60?'#22c97a':quoteBr<=40?'#e03a2a':'#7a8ab0';
+    // Fixed per-leg palette — must match renderCotHistory crossConfigs colours
+    const baseCol  = '#5c9eff';   // base leg blue
+    const quoteCol = '#f5c842';   // quote leg gold
+    const diffCol  = diff>=10?'#22c97a':diff<=-10?'#e03a2a':'#e8d5b0'; // diff: directional tint on warm-white
     const biasText = diff>=30?`Bullish ${m.id.slice(0,3)}`:diff<=-30?`Bearish ${m.id.slice(0,3)}`:diff>=10?`Mild Bullish ${m.id.slice(0,3)}`:diff<=-10?`Mild Bearish ${m.id.slice(0,3)}`:'Neutral';
     const cotScore = m.scores.cot?.score ?? 5;
     const cotScoreCol = sHex(cotScore);
