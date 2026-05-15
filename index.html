@@ -12333,6 +12333,239 @@ canvas{
 }
 
 /* ─── END R19f ─── */
+
+/* ════════════════════════════════════════════════════
+   R19g — Three-issue fix:
+   1. mob-hero-regime: gradient shimmer text (no glow)
+   2. mobile sticky bar: position:fixed (bulletproof)
+   3. score panel: enforce mobile constraints
+════════════════════════════════════════════════════ */
+
+/* ════ 1. MOB-HERO-REGIME — gradient shimmer text ════ */
+@media(max-width:700px){
+  .mob-hero-regime {
+    font-size: 48px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.03em !important;
+    line-height: 0.92 !important;
+    font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+    margin-bottom: 7px !important;
+
+    /* Gradient shimmer — same treatment as desktop ov-banner-regime */
+    background: linear-gradient(
+      105deg,
+      currentColor 0%,
+      currentColor 30%,
+      rgba(255,255,255,0.75) 48%,
+      rgba(255,255,255,0.55) 52%,
+      currentColor 70%,
+      currentColor 100%
+    ) !important;
+    background-size: 400% 100% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+
+    /* Slow sheen sweep — 20s so it's subtle not distracting */
+    animation: regimePulse 6s ease-in-out infinite,
+               textSheen 20s linear infinite !important;
+
+    /* Kill any glow/shadow — clean is better */
+    text-shadow: none !important;
+    filter: none !important;
+  }
+}
+
+/* ════ 2. MOBILE STICKY BAR — position:fixed (reliable) ════ */
+@media(max-width:700px){
+
+  /* Fixed positioning — immune to overflow:hidden on ancestors */
+  .sb-head {
+    position: fixed !important;
+    top: calc(50px + env(safe-area-inset-top, 0px)) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 200 !important;
+
+    /* Solid frosted glass — no bleed-through */
+    background: rgba(4,5,9,0.98) !important;
+    backdrop-filter: blur(20px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+
+    padding: 8px 16px 8px !important;
+    box-sizing: border-box !important;
+
+    /* Gold separator + deep shadow into list */
+    border-bottom: 1px solid rgba(200,169,110,0.16) !important;
+    border-top: none !important;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 4px 24px rgba(0,0,0,0.75) !important;
+  }
+
+  /* Compensate — push mkt-list down by fixed bar height (~58px) */
+  .mkt-list {
+    padding-top: 58px !important;
+  }
+
+  /* RANKINGS label */
+  .sb-top {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 7px !important;
+  }
+  .sb-top h2 {
+    font-size: 7px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.22em !important;
+    color: rgba(200,169,110,0.42) !important;
+    text-transform: uppercase !important;
+  }
+  #sb-count {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    color: rgba(173,184,208,0.40) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+
+  /* Filter chips row */
+  .cat-row {
+    display: flex !important;
+    gap: 5px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    padding-bottom: 1px !important;
+  }
+  .cat-row::-webkit-scrollbar { display: none !important; }
+
+  /* Chips */
+  .cat-btn {
+    flex-shrink: 0 !important;
+    height: 24px !important;
+    padding: 0 10px !important;
+    font-size: 7px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.10em !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255,255,255,0.09) !important;
+    background: rgba(255,255,255,0.03) !important;
+    color: rgba(173,184,208,0.55) !important;
+    white-space: nowrap !important;
+  }
+  .cat-btn.on {
+    background: rgba(200,169,110,0.11) !important;
+    border-color: rgba(200,169,110,0.30) !important;
+    color: rgba(232,213,176,0.92) !important;
+  }
+}
+
+/* ════ 3. SCORE PANEL — hard mobile constraints ════ */
+@media(max-width:700px){
+
+  /* Force the detail header to not overflow */
+  .d-head {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    padding: 12px 14px 10px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  .d-head-l {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Score panel — fixed, never stretches */
+  .d-score-hero {
+    flex: 0 0 108px !important;
+    width: 108px !important;
+    min-width: 0 !important;
+    max-width: 108px !important;
+    padding: 10px 10px !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    /* Override global min-width:120px !important from earlier block */
+    /* This rule comes last so wins */
+  }
+
+  .d-score-hero-num {
+    font-size: 34px !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.04em !important;
+    line-height: 1.0 !important;
+  }
+
+  .d-score-hero-denom {
+    font-size: 9px !important;
+    margin-top: 0 !important;
+    opacity: 0.45 !important;
+  }
+
+  .d-score-hero-label {
+    font-size: 6.5px !important;
+    letter-spacing: 0.05em !important;
+    line-height: 1.25 !important;
+    margin-top: 4px !important;
+    word-break: break-word !important;
+  }
+
+  .d-score-hero-bar {
+    margin-top: 5px !important;
+    height: 2px !important;
+  }
+
+  .d-sub-scores {
+    margin-top: 6px !important;
+    padding-top: 5px !important;
+    gap: 2px !important;
+    width: 100% !important;
+  }
+
+  .d-sub-row {
+    display: grid !important;
+    grid-template-columns: 18px 1fr 16px !important;
+    gap: 3px !important;
+    align-items: center !important;
+  }
+
+  .d-sub-lbl {
+    font-size: 5.5px !important;
+    letter-spacing: 0.03em !important;
+    overflow: hidden !important;
+  }
+
+  .d-sub-bar {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    height: 2px !important;
+  }
+
+  .d-sub-num {
+    font-size: 6px !important;
+    text-align: right !important;
+  }
+
+  /* Market name — ellipsis so it doesn't push score panel off */
+  .d-name {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+}
+/* ─── END R19g ─── */
 </style>
 </head>
 <body>
