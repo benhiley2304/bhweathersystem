@@ -3309,7 +3309,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
 /* ── Mini chart container ──────────────────────────────────────────────── */
 .seas-mini{
-  position:relative;height:270px;
+  position:relative;height:330px;
   background:linear-gradient(180deg,rgba(12,14,22,0.85) 0%,rgba(6,8,16,0.95) 100%);
   border:1px solid rgba(255,255,255,0.07);
   border-radius:12px;
@@ -3851,7 +3851,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   .cot-chart-wrap{height:120px!important}
   .modal{max-width:100%;max-height:100dvh;border-radius:0}
   .modal-back{padding:0}
-  .seas-mini{height:210px;padding-bottom:20px}
+  .seas-mini{height:260px;padding-bottom:22px}
   .rv-table-wrap{overflow-x:auto}
   .mom-bar-label{white-space:normal;word-break:break-word;font-size:8px}
   .back-to-ov-btn{font-size:8.5px;padding:5px 10px 5px 7px;min-height:28px}
@@ -5494,15 +5494,17 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 .d-score-hero-num{
   font-family:var(--nexus-head) !important;
-  font-size:52px !important;
-  font-weight:700 !important;
-  letter-spacing:-0.05em !important;
+  font-size:48px !important;
+  font-weight:500 !important;
+  letter-spacing:-0.04em !important;
   /* glow removed R13 */
 }
 .d-score-hero-label{
   font-family:var(--nexus-head) !important;
-  font-size:8px !important;
-  letter-spacing:0.18em !important;
+  font-size:7.5px !important;
+  font-weight:600 !important;
+  letter-spacing:0.20em !important;
+  opacity:0.70 !important;
 }
 .d-bias-pill{
   font-family:var(--nexus-head);
@@ -7218,7 +7220,7 @@ canvas[id^="rel-"]{
   .cot-chart-wrap{ height:130px !important; }
 
   /* ── Mobile seasonal chart height bump ── */
-  .seas-mini{ height:220px !important; padding-bottom:24px !important; }
+  .seas-mini{ height:270px !important; padding-bottom:26px !important; }
 
   /* ── Factor strip: show scroll hint gradient on right ── */
   .tab-hdr::after{
@@ -8106,6 +8108,124 @@ canvas{
 }
 
 
+
+
+/* ╔═══════════════════════════════════════════════════════════╗
+   ║  NEXUS R15 — Bar Glow Strip, Row Sel Clean, G10 Polish   ║
+   ╚═══════════════════════════════════════════════════════════╝ */
+
+/* ── 1. Factor strip bars: kill glow entirely ─────────────── */
+.f-bar-f{
+  box-shadow:none !important;
+  filter:none !important;
+}
+.f-bar-track::before{
+  opacity:0.5 !important;  /* tone down spectrum overlay */
+}
+
+/* ── 2. Sub-score bars (detail panel): kill glow + tip blur ── */
+.d-sub-bar-f{
+  box-shadow:none !important;
+}
+.d-sub-bar-f::after{
+  display:none !important;  /* kill the blurred tip dot */
+}
+
+/* ── 3. COT gauge dot: clean crisp dot, no bloom ─────────── */
+.cc-gauge-dot{
+  width:10px !important;
+  height:10px !important;
+  box-shadow:0 0 0 2px rgba(0,0,0,0.80) !important;  /* clean border only */
+}
+
+/* ── 4. Selected market row: clean lift, no outer glow ─────── */
+.mkt-row.sel{
+  background:rgba(255,255,255,0.042) !important;
+  box-shadow:inset 3px 0 0 var(--row-accent,rgba(200,169,110,0.85)) !important;
+  border-bottom-color:rgba(255,255,255,0.07) !important;
+}
+/* Kill the green zone tint on selected — always neutral surface */
+.mkt-row[data-zone="bull"].sel,
+.mkt-row[data-zone="bear"].sel{
+  background:rgba(255,255,255,0.042) !important;
+}
+
+/* ── 5. Ranking slider bars (mr-bar-f): no glow ────────────── */
+.mr-bar-f{
+  box-shadow:none !important;
+  opacity:0.82 !important;
+}
+
+/* ── 6. G10 flag backdrop: darken to subtle texture ─────────── */
+/* Flag opacity handled via JS; add a heavier gradient mask here */
+/* The inline gradient already fades left-side; boost the mask */
+.g10-flag-mask-boost{
+  background:linear-gradient(to right,
+    rgba(5,5,6,0.92) 0%,
+    rgba(5,5,6,0.75) 35%,
+    rgba(5,5,6,0.45) 65%,
+    rgba(5,5,6,0.18) 100%
+  ) !important;
+}
+
+/* ── 7. ov-cp-cat-bar-dot: no glow (sector breadth dots) ───── */
+.ov-cp-cat-bar-dot{
+  box-shadow:0 0 0 1.5px rgba(0,0,0,0.70) !important;
+  width:8px !important;
+  height:8px !important;
+}
+
+/* ── 8. Macro panel section labels — uniform gold separator ─── */
+.mc-sect-lbl{
+  font-size:7px !important;
+  font-weight:800 !important;
+  letter-spacing:0.16em !important;
+  color:rgba(200,169,110,0.55) !important;
+  text-transform:uppercase !important;
+}
+.mc-sect-line{
+  background:linear-gradient(90deg,rgba(200,169,110,0.18),transparent) !important;
+  height:1px !important;
+}
+.mc-sect{
+  margin:8px 0 6px !important;
+  gap:7px !important;
+}
+
+/* ── 9. Macro panel status badges — uniform style ───────────── */
+.ov-mc-badge{
+  font-size:7.5px !important;
+  font-weight:800 !important;
+  letter-spacing:0.07em !important;
+  padding:3px 8px !important;
+  border-radius:4px !important;
+  backdrop-filter:blur(4px) !important;
+  -webkit-backdrop-filter:blur(4px) !important;
+}
+
+/* ── 10. ov-sector-bar-fill: strip glow ──────────────────── */
+.ov-sector-bar-fill{
+  box-shadow:none !important;
+}
+
+/* ── R15 addendum: sub-score bars fully deglow ── */
+.d-sub-bar-f{
+  box-shadow:none !important;
+}
+.d-sub-bar-f::after{
+  display:none !important;
+}
+/* ── R15: score hero number — lighter weight, refined ── */
+.d-score-hero-num{
+  font-weight:500 !important;
+  filter:none !important;
+  text-shadow:none !important;
+}
+.d-score-hero-label{
+  font-weight:600 !important;
+  opacity:0.68 !important;
+  letter-spacing:0.20em !important;
+}
 
 </style>
 </head>
@@ -9463,8 +9583,8 @@ function renderOverview(){
       const r3  = r - (t3m  != null ? t3m  : 0);
       const pts = [r12, r6, r3, r];
       // SVG dims
-      const W = 180, H = 68;
-      const padL = 12, padR = 12, padT = 8,  padB = 18;
+      const W = 180, H = 76;
+      const padL = 12, padR = 28, padT = 8,  padB = 20;
       const xs = [padL, padL + (W-padL-padR)*0.33, padL + (W-padL-padR)*0.66, W-padR];
       const minR = Math.min(...pts) - 0.02;
       const maxR = Math.max(...pts) + 0.02;
@@ -9499,10 +9619,10 @@ function renderOverview(){
       const lbls = ['-12M','-6M','-3M','Now'];
       const lblHtml = xs.map((x, i) => `<text x="${x}" y="${H-2}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" font-weight="700" fill="rgba(255,255,255,${i===3?'0.82':'0.48'})" letter-spacing="0">${lbls[i]}</text>`).join('');
       // Rate value labels — only show at endpoints (12M ago and Now)
-      const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-5).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="700" fill="rgba(255,255,255,0.50)">${r12.toFixed(2)}</text>`;
-      const valLblNow = `<text x="${xs[3]-2}" y="${(ys[3]-6).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
+      const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-6).toFixed(1)}" text-anchor="start" font-family="JetBrains Mono,monospace" font-size="10" font-weight="700" fill="rgba(255,255,255,0.42)">${r12.toFixed(2)}</text>`;
+      const valLblNow = `<text x="${xs[3]}" y="${(ys[3]-7).toFixed(1)}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
 
-      return `<svg width="100%" height="82" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
+      return `<svg width="100%" height="96" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
         <defs>
           <filter id="tlBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/></filter>
           <filter id="tlGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
@@ -9637,8 +9757,8 @@ function renderOverview(){
       ">
         <!-- Flag backdrop: full-bleed right-anchored SVG with left gradient fade -->
         ${CB_FLAG_HTML[cb] ? `<div style="pointer-events:none;position:absolute;inset:0;z-index:0;overflow:hidden;border-radius:13px">
-          <div style="position:absolute;inset:0;opacity:0.20">${CB_FLAG_HTML[cb]}</div>
-          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(5,5,6,0.75) 0%,rgba(5,5,6,0.55) 30%,rgba(5,5,6,0.28) 60%,rgba(5,5,6,0.0) 100%)"></div>
+          <div style="position:absolute;inset:0;opacity:0.08">${CB_FLAG_HTML[cb]}</div>
+          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(5,5,6,0.92) 0%,rgba(5,5,6,0.78) 30%,rgba(5,5,6,0.50) 60%,rgba(5,5,6,0.10) 100%)"></div>
         </div>` : ''}
         <!-- Radial shimmer -->
         <div style="pointer-events:none;position:absolute;inset:0;background:${shimmer}"></div>
@@ -10315,7 +10435,7 @@ function renderClimatePanel(reg, markets, mktMap){
       wrap.querySelectorAll('.ov-cp-cat-bar-dot').forEach(d=>d.remove());
       const dot=document.createElement('div');
       dot.className='ov-cp-cat-bar-dot';
-      dot.style.cssText=`left:${pct}%;background:${col};box-shadow:0 0 6px ${col}`;
+      dot.style.cssText=`left:${pct}%;background:${col};box-shadow:0 0 0 2px rgba(0,0,0,0.80)`;
       wrap.appendChild(dot);
     });
   });
@@ -15723,7 +15843,7 @@ function dHead(m,ws,col,bg){
           const tipText=`${factorLabel}: ${sc.toFixed(1)}/10 × ${wt}% = ${contribSign}${contrib.toFixed(2)} pts`;
           return `<div class="d-sub-row" title="${tipText}">
             <span class="d-sub-lbl">${lbl}</span>
-            <div class="d-sub-bar"><div style="position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,#e03a2a 0%,#c47a4a 20%,#4a5268 50%,#3b82c4 80%,#22c97a 100%);opacity:0.12"></div><div class="d-sub-bar-f" style="width:${pct}%;background:${c};box-shadow:0 0 8px ${c}cc"></div><div style="position:absolute;top:50%;left:${pct}%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;background:${c};box-shadow:0 0 8px ${c}bb;pointer-events:none"></div></div>
+            <div class="d-sub-bar"><div style="position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,#e03a2a 0%,#c47a4a 20%,#4a5268 50%,#3b82c4 80%,#22c97a 100%);opacity:0.12"></div><div class="d-sub-bar-f" style="width:${pct}%;background:${c}"></div><div style="position:absolute;top:50%;left:${pct}%;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:${c};opacity:0.90;pointer-events:none"></div></div>
             <span class="d-sub-num" style="color:${c}">${sc.toFixed(1)}</span>
           </div>`;
         }).join('');
@@ -16759,13 +16879,10 @@ async function initCotCharts(marketId){
     const latestDiff  = diffSeries[diffSeries.length-1]??0;
 
     // Derive colours from current value
-    const baseColFn  = v=>v>=60?'#22c97a':v<=40?'#e03a2a':'#7a8ab0';
-    const quoteColFn = v=>v>=60?'#22c97a':v<=40?'#e03a2a':'#7a8ab0';
-    const diffColFn  = v=>v>=30?'#22c97a':v<=-30?'#e03a2a':v>=10?'#22c97a':v<=-10?'#e06030':'#7a8ab0';
-
-    const baseCol  = baseColFn(latestBase);
-    const quoteCol = quoteColFn(latestQuote);
-    const diffCol  = diffColFn(latestDiff);
+    // Fixed per-leg palette — Base=blue (COT commercial), Quote=gold, Diff=warm-white
+    const baseCol  = '#5c9eff';   // base leg (blue — matches commercial/COT colour)
+    const quoteCol = '#f5c842';   // quote leg (yellow/gold)
+    const diffCol  = '#e8d5b0';   // differential (warm white/accent2)
 
     // Update panel labels
     const el0=document.getElementById('comm-latest');  if(el0) el0.textContent=latestBase.toFixed(0)+'/100';
@@ -17101,7 +17218,7 @@ function momTab(m){
         <span style="display:flex;align-items:center;gap:3px;font-size:8px;color:rgba(245,200,66,0.9)"><span style="width:14px;height:1.5px;background:rgba(245,200,66,0.9);display:inline-block;border-top:1.5px dashed rgba(245,200,66,0.9);height:0"></span>200 SMA</span>
       </span>
     </div>
-    <div style="position:relative;height:200px;background:var(--surf2);border-radius:0 0 10px 10px;padding:0">
+    <div style="position:relative;height:280px;background:var(--surf2);border-radius:0 0 10px 10px;padding:0">
       <canvas id="mom-candle-c" style="display:block;width:100%;height:100%"></canvas>
       <div id="mom-candle-load" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dim)">Loading chart…</div>
     </div>
