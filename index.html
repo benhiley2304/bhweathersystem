@@ -11083,6 +11083,440 @@ canvas{
 }
 
 /* ─── END R18e ─── */
+
+/* ═══════════════════════════════════════════════════════════════
+   R19 — MOBILE FIXES + COMPREHENSIVE POLISH
+   1. Mobile Risk-On weight fix (too thin at 200 → 350)
+   2. Mobile backdrop image always illuminated (0.22 → 0.65)
+   3. Full visual polish pass — spacing, contrast, depth
+═══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. MOBILE HERO WEIGHT FIX ─── */
+/* The base mob-hero-regime has font-weight:200 from R18c.
+   On mobile, 200 is too thin to read well. Use 350 (the sweet spot). */
+@media(max-width:700px){
+  .mob-hero-regime {
+    font-size: 46px !important;
+    font-weight: 350 !important;
+    letter-spacing: -0.04em !important;
+    line-height: 0.95 !important;
+    font-family: var(--nexus-head) !important;
+  }
+}
+
+/* ─── 2. MOBILE BACKDROP — always illuminated ─── */
+@media(max-width:700px){
+  .d-head-graphic {
+    opacity: 0.65 !important;
+    left: 20% !important;
+  }
+  /* Ensure tap/active state goes to full brightness */
+  .d-head:active .d-head-graphic,
+  .d-head:focus-within .d-head-graphic {
+    opacity: 0.80 !important;
+  }
+  /* Slightly darker overlay on mobile so text stays readable */
+  .d-head-graphic::after {
+    background: rgba(5,7,13,0.45) !important;
+  }
+}
+
+/* ─── 3. DESKTOP HERO — stronger left-to-right fade so text pops ─── */
+.d-head-graphic::before {
+  background: linear-gradient(90deg,
+    var(--bg) 0%,
+    rgba(4,4,5,0.92) 18%,
+    rgba(4,4,5,0.55) 45%,
+    rgba(4,4,5,0.15) 70%,
+    transparent 100%
+  ) !important;
+}
+
+/* ─── 4. NAV — tighten height, stronger brand presence ─── */
+.nav-bar {
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 0 20px !important;
+}
+.nav-brand {
+  font-family: var(--nexus-head) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  color: var(--text) !important;
+}
+.nav-sub {
+  font-size: 7px !important;
+  letter-spacing: 0.06em !important;
+  color: rgba(173,184,208,0.28) !important;
+}
+
+/* ─── 5. SIDEBAR HEADER ─── */
+.sb-head {
+  padding: 12px 16px 10px !important;
+}
+/* RANKINGS label */
+.sb-head-title, [class*="sb-rankings"] {
+  font-family: var(--nexus-head) !important;
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.22em !important;
+  color: rgba(173,184,208,0.30) !important;
+  text-transform: uppercase !important;
+}
+/* Market count badge */
+.sb-mkt-count {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  color: rgba(173,184,208,0.35) !important;
+}
+
+/* ─── 6. SIDEBAR MARKET ROWS — tighter, cleaner ─── */
+.mkt-row {
+  padding: 7px 14px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.022) !important;
+  transition: background 80ms !important;
+}
+.mkt-row:hover {
+  background: rgba(255,255,255,0.028) !important;
+}
+.mkt-row.sel {
+  background: rgba(200,169,110,0.07) !important;
+  border-right: 2px solid var(--accent) !important;
+}
+/* Market ID ticker */
+.mr-id {
+  font-size: 6.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  color: rgba(173,184,208,0.30) !important;
+  min-width: 28px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+/* Market name */
+.mr-name {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--text) !important;
+}
+/* Score number */
+.mr-score {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  min-width: 28px !important;
+  text-align: right !important;
+}
+/* BULLISH / LEAN BULLISH label */
+.mr-bias-lbl {
+  font-size: 6px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(173,184,208,0.35) !important;
+  text-transform: uppercase !important;
+  text-align: right !important;
+}
+
+/* ─── 7. DETAIL NAME — consistent across screen sizes ─── */
+.d-name {
+  font-size: 36px !important;
+  font-weight: 200 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.0 !important;
+  font-family: var(--nexus-head) !important;
+}
+@media(max-width:700px){
+  .d-name {
+    font-size: 28px !important;
+    font-weight: 300 !important;
+    letter-spacing: -0.03em !important;
+  }
+}
+
+/* ─── 8. DETAIL FACTOR STRIP — active tab bolder indicator ─── */
+.f-card.act {
+  box-shadow: inset 0 3px 0 var(--accent) !important;
+  background: rgba(200,169,110,0.06) !important;
+}
+.f-card.act .f-label {
+  color: var(--accent) !important;
+  opacity: 1 !important;
+}
+/* Factor strip container */
+.factor-strip {
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* ─── 9. OVERVIEW BANNER — more breathing room ─── */
+.ov-banner {
+  padding: 24px 28px 20px !important;
+}
+.ov-banner-regime {
+  font-size: 64px !important;
+  font-weight: 200 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1.0 !important;
+  font-family: var(--nexus-head) !important;
+  text-shadow: none !important;
+}
+
+/* ─── 10. PRICE STRIP — consistent sizing ─── */
+.ov-price-pill {
+  padding: 6px 12px !important;
+  background: rgba(255,255,255,0.028) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+  border-radius: 6px !important;
+  gap: 3px !important;
+}
+.ov-price-label {
+  font-size: 6.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  color: rgba(173,184,208,0.38) !important;
+  text-transform: uppercase !important;
+}
+.ov-price-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--text) !important;
+}
+
+/* ─── 11. COT SIGNAL CARDS — richer depth ─── */
+.cot-card {
+  background: rgba(255,255,255,0.020) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+  border-radius: 10px !important;
+  padding: 14px 16px 12px !important;
+  box-shadow: none !important;
+}
+/* COT card header label (COMMERCIALS / LARGE SPECS) */
+.cot-card-title, [class*="cot-title"] {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  color: rgba(173,184,208,0.38) !important;
+  text-transform: uppercase !important;
+  margin-bottom: 6px !important;
+}
+/* COT score number */
+.cot-score-num, [class*="cot-score"] {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 42px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1.0 !important;
+}
+/* Net position line */
+.cot-net-line {
+  font-size: 9px !important;
+  color: rgba(173,184,208,0.45) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  letter-spacing: -0.01em !important;
+}
+/* Phase label (EXTREME LONG / EXTREME SHORT) */
+.cot-phase-lbl, [class*="phase-lbl"] {
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  border-radius: 3px !important;
+  padding: 2px 6px !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 12. COT METHODOLOGY NOTE ─── */
+.cot-stacked {
+  background: rgba(200,169,110,0.035) !important;
+  border: 1px solid rgba(200,169,110,0.10) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+.cot-stacked-title {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  color: rgba(200,169,110,0.65) !important;
+  text-transform: uppercase !important;
+}
+.cot-note-text {
+  font-size: 10.5px !important;
+  color: rgba(173,184,208,0.55) !important;
+  line-height: 1.5 !important;
+}
+
+/* ─── 13. AI BRIEF CARD ─── */
+.ov-ai-brief {
+  background: rgba(255,255,255,0.018) !important;
+  border: 1px solid rgba(255,255,255,0.045) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+.ov-ai-eyebrow {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.20em !important;
+  color: rgba(200,169,110,0.50) !important;
+  text-transform: uppercase !important;
+  margin-bottom: 8px !important;
+}
+.ov-ai-narr-text, .ov-ai-body {
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+  color: rgba(173,184,208,0.75) !important;
+  letter-spacing: 0.005em !important;
+}
+
+/* ─── 14. MARKET NARRATIVE / NEWS CARD ─── */
+.ov-news-item, [class*="news-item"] {
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+}
+.ov-news-item:hover, [class*="news-item"]:hover {
+  background: rgba(255,255,255,0.018) !important;
+}
+.ov-news-headline, [class*="news-title"] {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--text) !important;
+  line-height: 1.35 !important;
+  letter-spacing: -0.01em !important;
+}
+.ov-news-meta, [class*="news-meta"] {
+  font-size: 7.5px !important;
+  color: rgba(173,184,208,0.35) !important;
+  letter-spacing: 0.06em !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ─── 15. SCORE HISTORY (mini right panel) ─── */
+.d-sh-row {
+  padding: 7px 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+}
+.d-sh-label {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: rgba(173,184,208,0.40) !important;
+}
+.d-sh-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ─── 16. BULL/BEAR PHASE BANNER ─── */
+.cot-phase-banner {
+  border-radius: 8px !important;
+  padding: 14px 16px !important;
+  box-shadow: none !important;
+}
+.cot-phase-num {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+.cot-phase-title {
+  font-family: var(--nexus-head) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ─── 17. SEASONALITY TAB — score card ─── */
+.seas-score-card {
+  background: rgba(255,255,255,0.022) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+.seas-score-num {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 36px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.04em !important;
+}
+.seas-score-label {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  color: rgba(173,184,208,0.38) !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 18. MOBILE DETAIL BACK BUTTON ─── */
+@media(max-width:700px){
+  .mob-back {
+    font-size: 8px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.10em !important;
+    padding: 4px 10px !important;
+    border-radius: 5px !important;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    color: rgba(173,184,208,0.70) !important;
+  }
+}
+
+/* ─── 19. MOBILE SECTOR SCORE CARDS ─── */
+@media(max-width:700px){
+  .mob-sector-score {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+  }
+  .mob-sector-label {
+    font-size: 6.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.12em !important;
+    color: rgba(173,184,208,0.38) !important;
+    text-transform: uppercase !important;
+  }
+}
+
+/* ─── 20. MISC POLISH ─── */
+/* Regime badge pill */
+.regime-badge {
+  font-family: var(--nexus-head) !important;
+  font-size: 6.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  padding: 2px 5px !important;
+  border-radius: 3px !important;
+  text-transform: uppercase !important;
+}
+/* Bull P1/P2/P3 marker */
+.cot-cycle-label {
+  font-family: var(--nexus-head) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+}
+/* Macro tab card header */
+.macro-head-lbl {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  color: rgba(173,184,208,0.35) !important;
+  text-transform: uppercase !important;
+}
+/* Momentum tab — signal chip */
+.mom-sig-chip {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  border-radius: 4px !important;
+  padding: 3px 7px !important;
+}
+
+/* ─── END R19 ─── */
 </style>
 </head>
 <body>
