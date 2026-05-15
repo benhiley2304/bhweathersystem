@@ -12566,6 +12566,77 @@ canvas{
   }
 }
 /* ─── END R19g ─── */
+
+/* ════════════════════════════════════════════════════
+   R19h — Root mobile layout fix:
+   1. Kill green bar above nav (particle canvas bleed)
+   2. Push app-wrap below fixed nav with padding-top
+   3. Position .sb-head correctly relative to padded layout
+   4. Remove mkt-list padding-top (no longer needed)
+════════════════════════════════════════════════════ */
+
+@media(max-width:700px){
+
+  /* ─── 1. Kill the green bleed above nav ─── */
+  /* Clip particle canvas and regime-wash to start below the fixed nav */
+  #app-particle-bg {
+    top: calc(50px + env(safe-area-inset-top, 0px)) !important;
+    height: calc(100vh - 50px - env(safe-area-inset-top, 0px)) !important;
+  }
+  #regime-wash {
+    top: calc(50px + env(safe-area-inset-top, 0px)) !important;
+  }
+  /* Also kill any green glow canvas above nav */
+  #nexus-noise-canvas {
+    top: calc(50px + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  /* ─── 2. Push app-wrap content below the fixed nav ─── */
+  .app-wrap {
+    padding-top: calc(50px + env(safe-area-inset-top, 0px)) !important;
+    /* Ensure it scrolls from the top */
+    position: relative !important;
+    overflow-x: hidden !important;
+  }
+
+  /* ─── 3. sb-head: sticky (not fixed) now works correctly ─── */
+  /* With app-wrap padded, body scroll starts below nav.
+     Use sticky so it pins at top of viewport scroll area. */
+  .sb-head {
+    position: sticky !important;
+    top: 0 !important;   /* sticky relative to body scroll — sits right at top of scrollable area */
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 200 !important;
+    background: rgba(4,5,9,0.99) !important;
+    backdrop-filter: blur(20px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    padding: 8px 16px 8px !important;
+    box-sizing: border-box !important;
+    border-bottom: 1px solid rgba(200,169,110,0.16) !important;
+    border-top: none !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.75) !important;
+  }
+
+  /* ─── 4. Remove the old fixed-bar compensating padding ─── */
+  .mkt-list {
+    padding-top: 0 !important;
+  }
+
+  /* ─── 5. Ensure sidebar/main have no overflow:hidden ─── */
+  /* overflow:hidden on any ancestor breaks position:sticky */
+  .sidebar,
+  .main,
+  .app-wrap > * {
+    overflow: visible !important;
+  }
+  /* Exception: mkt-list can scroll normally */
+  .mkt-list {
+    overflow-y: visible !important;
+  }
+}
+/* ─── END R19h ─── */
 </style>
 </head>
 <body>
