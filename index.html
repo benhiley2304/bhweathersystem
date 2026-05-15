@@ -12637,6 +12637,64 @@ canvas{
   }
 }
 /* ─── END R19h ─── */
+
+/* ════════════════════════════════════════════════════
+   R19i — Definitive fix:
+   1. Body solid background on mobile (kills green bleed)
+   2. Undo R19h app-wrap padding-top (was wrong — .main
+      already has margin-top for the fixed nav)
+   3. Restore correct sb-head sticky at top:calc(50px+SAI)
+   4. Kill all conflicting sb-head overrides from R19f/g/h
+════════════════════════════════════════════════════ */
+
+@media(max-width:700px){
+
+  /* ─── 1. Body must be opaque — kills all bleed-through ─── */
+  body {
+    background: var(--bg) !important;
+    background-color: #040405 !important;
+  }
+
+  /* ─── 2. Undo R19h — app-wrap must NOT have padding-top ─── */
+  /* .main already has margin-top:calc(50px + safe-area) in base CSS */
+  .app-wrap {
+    padding-top: 0 !important;
+  }
+
+  /* ─── 3. sb-head: sticky, correct top offset ─── */
+  /* The sidebar sits inside .main which starts below the fixed nav.
+     sticky top = 0 pins to top of .main's scroll origin = correct. */
+  .sb-head {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 200 !important;
+    background: rgba(4,5,9,0.99) !important;
+    backdrop-filter: blur(20px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    padding: 8px 16px !important;
+    box-sizing: border-box !important;
+    border-bottom: 1px solid rgba(200,169,110,0.16) !important;
+    border-top: none !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.7) !important;
+  }
+
+  /* ─── 4. mkt-list — no extra padding needed ─── */
+  .mkt-list {
+    padding-top: 0 !important;
+  }
+
+  /* ─── 5. Ensure no overflow:hidden breaks sticky ─── */
+  .sidebar {
+    overflow: visible !important;
+  }
+  .main {
+    overflow: visible !important;
+  }
+}
+/* ─── END R19i ─── */
 </style>
 </head>
 <body>
