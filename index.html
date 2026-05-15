@@ -4749,8 +4749,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 .glass-shimmer-line{
   position:absolute;top:0;bottom:0;width:60px;
-  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,0.055) 50%,transparent 100%);
-  animation:glassShimmer 3.5s cubic-bezier(0.4,0,0.6,1) 0.8s both;
+  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,0.030) 50%,transparent 100%);
+  animation:glassShimmer 4.5s cubic-bezier(0.4,0,0.6,1) 1.2s both;
   pointer-events:none;
 }
 .ov-tile .glass-shimmer-line{
@@ -7540,6 +7540,275 @@ canvas{
 }
 
 
+/* ╔═══════════════════════════════════════════════════════════╗
+   ║  NEXUS R11 — Premium Creative Upgrade                    ║
+   ╚═══════════════════════════════════════════════════════════╝ */
+
+/* ── 1. Universal bar token (overrides R10 where needed) ─────── */
+/* All bars now use the same 4px track, spectrum bg, dot tip */
+
+/* fx-diff-bar — FX tab differential bars */
+.fx-diff-bar-wrap{
+  flex:1;height:4px !important;border-radius:3px;
+  background:rgba(255,255,255,0.06) !important;
+  position:relative;overflow:visible !important;
+}
+.fx-diff-bar-fill{
+  height:4px !important;border-radius:3px;
+  transition:width 600ms var(--ease);
+  box-shadow:0 0 7px currentColor !important;
+}
+.fx-diff-bar-wrap::before{
+  content:'';position:absolute;inset:0;border-radius:3px;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.18) 0%,rgba(196,122,74,0.14) 25%,
+    rgba(74,82,104,0.10) 50%,rgba(59,130,196,0.14) 75%,
+    rgba(34,201,122,0.18) 100%
+  );pointer-events:none;
+}
+
+/* ov-cb-bar-wrap — G10 CB compact table bars */
+.ov-cb-bar-wrap{
+  flex:1;height:3px !important;border-radius:2px;
+  background:rgba(255,255,255,0.06) !important;
+  position:relative;overflow:visible !important;
+}
+
+/* ov-menv-spectrum — market environment spectrum */
+.ov-menv-spectrum{
+  height:4px !important;border-radius:3px !important;
+  opacity:0.60 !important;
+}
+.ov-menv-spectrum-dot{
+  width:8px !important;height:8px !important;
+  box-shadow:0 0 8px currentColor !important;
+}
+
+/* ov-rate-bar-wrap — G10 CB rate bar (within cb card) */
+.ov-rate-bar-wrap{
+  height:4px !important;border-radius:3px !important;
+  background:rgba(255,255,255,0.07) !important;
+  overflow:visible !important;
+  position:relative;
+}
+.ov-rate-bar-fill{
+  height:100%;border-radius:3px;
+  box-shadow:0 0 7px currentColor !important;
+}
+
+/* ── 2. G10 Rate Path chart — taller & richer ─────────────────── */
+.ov-rp-chart{
+  position:relative;width:100%;
+  height:260px !important;  /* up from 200px */
+}
+@media(max-width:900px){
+  .ov-rp-chart{height:200px !important;}
+}
+@media(max-width:520px){
+  .ov-rp-chart{height:160px !important;}
+}
+/* Chart stage: deeper glass */
+.ov-rp-chart-stage{
+  border-radius:12px !important;
+  background:rgba(6,8,18,0.90) !important;
+  border:1px solid rgba(255,255,255,0.10) !important;
+  border-top:1px solid rgba(255,255,255,0.16) !important;
+  padding:16px 16px 10px !important;
+  box-shadow:0 1px 0 rgba(255,255,255,0.05) inset,0 6px 32px rgba(0,0,0,0.55) !important;
+}
+/* Y-axis labels: bigger */
+.ov-rp-yax{
+  font-size:9.5px !important;
+  color:rgba(173,184,208,0.85) !important;
+}
+/* X-axis labels: bigger */
+.ov-rp-xax{
+  font-size:9.5px !important;
+  color:rgba(173,184,208,0.78) !important;
+}
+/* Endpoint labels */
+.ov-rp-eplbl-spot,.ov-rp-eplbl-end{
+  font-size:10px !important;
+  font-weight:800 !important;
+}
+
+/* ── 3. G10 CB Cards — stronger flag, better hierarchy ─────────── */
+/* The flag overlay in cbUnifiedRows uses opacity:0.13 — we boost here */
+/* (inline styles take precedence, so we target the parent card) */
+/* Increase rate number size on non-US cards */
+.ov-cb-rate-num{font-size:26px !important;} /* applied via JS below */
+
+/* ── 4. Climate+Rates (regime) tab — glass redesign ─────────────── */
+/* Regime container: full glass treatment */
+#regime-wrap, .regime-container, [id^="t-regime"] .tab-body{
+  background:transparent !important;
+}
+/* Score contribution rows */
+.d-contrib-row,.contrib-row{
+  background:rgba(255,255,255,0.03) !important;
+  border:1px solid rgba(255,255,255,0.06) !important;
+  border-radius:8px !important;
+  padding:8px 10px !important;
+  margin-bottom:4px !important;
+  backdrop-filter:blur(2px);
+}
+/* Regime interpretation card — glass */
+.d-regime-interp,.regime-interp-card{
+  background:rgba(8,10,22,0.75) !important;
+  border:1px solid rgba(255,255,255,0.10) !important;
+  border-radius:12px !important;
+  backdrop-filter:blur(8px) !important;
+}
+/* AI narrative block — match new glass */
+.regime-narr-block{
+  background:rgba(92,158,255,0.05) !important;
+  border:1px solid rgba(92,158,255,0.18) !important;
+  backdrop-filter:blur(4px) !important;
+}
+
+/* ── 5. Text glow audit — reduce all decorative text-shadows ────── */
+/* menv primary number: halved glow */
+.ov-menv-primary{
+  text-shadow:0 0 14px rgba(var(--menv-accent-rgb,200,169,110),0.20) !important;
+}
+/* ov-cp-cat score */
+.ov-cp-cat-score{
+  text-shadow:0 0 10px rgba(var(--cat-accent-rgb,200,169,110),0.25) !important;
+}
+/* rate path prob value */
+.ov-rp-prob-val{
+  text-shadow:none !important;
+}
+/* rate path target */
+.ov-rp-target{
+  text-shadow:0 2px 12px rgba(var(--rp-accent-rgb),0.12) !important;
+}
+/* rate path stat val */
+.ov-rp-stat-val{
+  text-shadow:0 0 10px rgba(var(--rp-stat-rgb),0.16) !important;
+}
+/* G10 rate number gradient — drop the drop-shadow filter */
+.cb-rate-val, .g10-rate{
+  filter:none !important;
+}
+
+/* ── 6. Data visual flair — chart backgrounds & borders ─────────── */
+/* COT chart canvas: deeper stage (the beforeDraw bg is already added in R10 JS) */
+/* Factor card glass borders */
+.factor-strip .fcard,.f-card{
+  border:1px solid rgba(255,255,255,0.07) !important;
+  background:rgba(8,10,20,0.65) !important;
+  backdrop-filter:blur(3px) !important;
+  box-shadow:0 2px 12px rgba(0,0,0,0.40),inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+/* ov-macro-card: slightly deeper bg + stronger top edge */
+.ov-macro-card{
+  background:rgba(10,12,24,0.82) !important;
+  border-top:1px solid rgba(255,255,255,0.14) !important;
+}
+/* ov-macro-card glow: subtle, not harsh */
+.ov-macro-card-glow{
+  opacity:0.30 !important;
+}
+
+/* ── 7. Home page — remove repeated shimmer; keep one-shot ───────── */
+/* glassSHimmer stays (it's one-shot on load) but suppress repeated sweeps */
+.market-row::after{
+  display:none !important; /* row hover shimmer pass removed */
+}
+/* Keep the hover state but lose the animation flash */
+@keyframes shimmerPass{
+  0%{transform:translateX(-100%);opacity:0}
+  100%{transform:translateX(100%);opacity:0}
+}
+/* Subtle ambient breath on the home hero panel instead */
+@keyframes heroBreathe{
+  0%,100%{opacity:0.015}
+  50%{opacity:0.028}
+}
+.ov-arc-bg-shimmer{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 55% 35% at 50% 0%,rgba(200,169,110,0.08) 0%,transparent 70%);
+  animation:heroBreathe 8s ease-in-out infinite;
+  border-radius:inherit;
+}
+
+/* ── 8. G10 CB card flag — boost to 0.18 opacity (from inline 0.13) ─ */
+/* Cannot override inline styles directly — handled via JS patch below */
+
+/* ── 9. Regime tab (Climate+Rates) — per-asset interpretation panel ─ */
+/* The inline-styled regime interp blocks get glass treatment */
+[id^="regime-narr-slot"] > div:first-child{
+  background:rgba(6,8,20,0.80) !important;
+  border:1px solid rgba(92,158,255,0.16) !important;
+  backdrop-filter:blur(6px) !important;
+  box-shadow:0 4px 20px rgba(0,0,0,0.30) !important;
+}
+/* The regime score contribution blocks */
+[id^="regime-narr-slot"] > div:not(:first-child){
+  background:rgba(8,10,22,0.70) !important;
+  border:1px solid rgba(255,255,255,0.07) !important;
+  backdrop-filter:blur(4px) !important;
+}
+
+/* ── 10. Sector breadth bars on home — spectrum overlay ─────────── */
+/* ov-sector-bar-wrap already has glow; add spectrum track */
+.ov-sector-bar-wrap::before{
+  content:'';position:absolute;inset:0;border-radius:2px;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.15) 0%,rgba(74,82,104,0.08) 50%,rgba(34,201,122,0.15) 100%
+  );pointer-events:none;
+}
+
+/* ── 11. COT phase arc + card — premium border ───────────────────── */
+.cc-phase-card,.d-phase-badge{
+  border:1px solid rgba(255,255,255,0.08) !important;
+  background:rgba(8,10,20,0.75) !important;
+  backdrop-filter:blur(4px) !important;
+}
+
+/* ── 12. d-score-hero-bar: outer spectrum track more visible ─────── */
+.d-score-hero-bar{
+  background:rgba(255,255,255,0.05) !important;
+}
+.d-score-hero-bar::before{
+  content:'';position:absolute;inset:0;border-radius:3px;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.20) 0%,rgba(74,82,104,0.12) 50%,rgba(34,201,122,0.20) 100%
+  );pointer-events:none;
+}
+
+/* ── 13. Macro panel section headers — subtle gold line ──────────── */
+.mc-sect-lbl{
+  font-size:7.5px !important;
+  letter-spacing:0.14em !important;
+  color:rgba(200,169,110,0.70) !important;
+}
+.mc-sect-line{
+  background:linear-gradient(90deg,rgba(200,169,110,0.20) 0%,transparent 100%) !important;
+}
+
+/* ── 14. Tab pill (factor strip): richer active state ────────────── */
+.factor-tab.active,.fcard.active,.tab.on .fcard{
+  border:1px solid rgba(200,169,110,0.22) !important;
+  background:rgba(200,169,110,0.06) !important;
+}
+
+/* ── 15. ov-rp-stats tile: glass card ────────────────────────────── */
+.ov-rp-stat{
+  background:rgba(8,10,22,0.80) !important;
+  border:1px solid rgba(255,255,255,0.08) !important;
+  backdrop-filter:blur(4px) !important;
+  border-top:1px solid rgba(var(--rp-stat-rgb,200,169,110),0.18) !important;
+}
+
+/* ── 16. Score history gauge track — spectrum + dot already R10 ──── */
+/* Just boost the ph-gauge-track opacity slightly */
+.ph-gauge-track{
+  background:rgba(255,255,255,0.08) !important;
+}
+
+
 
 </style>
 </head>
@@ -8827,8 +9096,8 @@ function renderOverview(){
         <svg class="ov-rp-chart-svg" viewBox="0 0 ${VBW} ${VBH}" preserveAspectRatio="none">
           <defs>
             <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
-              <stop offset="0%"   stop-color="${accent}" stop-opacity="0.10"/>
-              <stop offset="55%"  stop-color="${accent}" stop-opacity="0.03"/>
+              <stop offset="0%"   stop-color="${accent}" stop-opacity="0.18"/>
+              <stop offset="55%"  stop-color="${accent}" stop-opacity="0.07"/>
               <stop offset="100%" stop-color="${accent}" stop-opacity="0.00"/>
             </linearGradient>
             <linearGradient id="${uidR}" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
@@ -8851,9 +9120,9 @@ function renderOverview(){
           <!-- vertical bloom — gentle depth -->
           <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="2.5" opacity="0.18" vector-effect="non-scaling-stroke" filter="url(#${uidB})"/>
           <!-- mid glow — soft corona -->
-          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="2" opacity="0.38" vector-effect="non-scaling-stroke"/>
+          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="3" opacity="0.28" vector-effect="non-scaling-stroke"/>
           <!-- crisp line on top -->
-          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="1.5" opacity="1" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+          <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="2.0" opacity="1" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
         </svg>
         <div class="ov-rp-chart-overlay">
           ${yLabelsHtml}
@@ -8912,12 +9181,12 @@ function renderOverview(){
         const op = [0.30, 0.55, 0.82][i];
         // Smooth cubic bezier for each segment
         const cpx = (xs[i] + xs[i+1]) / 2;
-        segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="${col}" stroke-width="2.8" stroke-linecap="round" fill="none" opacity="${op}"/>`);
+        segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="${col}" stroke-width="3.4" stroke-linecap="round" fill="none" opacity="${op}"/>`);
         // Glow duplicate, wider & blurred
         segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="rgba(${colRgb},${(op*0.5).toFixed(2)})" stroke-width="8" stroke-linecap="round" fill="none" filter="url(#tlBlur)"/>`);
       }
       // Nodes — growing size: old=2.5, mid=3, recent=3.5, now=5
-      const nodeSizes = [3.0, 3.8, 4.5, 6.5];
+      const nodeSizes = [3.5, 4.5, 5.5, 8.0];
       const nodeOps   = [0.40, 0.60, 0.82, 1.0];
       const nodes = xs.map((x, i) => {
         const y = ys[i], sz = nodeSizes[i], op = nodeOps[i];
@@ -8936,7 +9205,7 @@ function renderOverview(){
       const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-5).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="700" fill="rgba(255,255,255,0.50)">${r12.toFixed(2)}</text>`;
       const valLblNow = `<text x="${xs[3]-2}" y="${(ys[3]-6).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
 
-      return `<svg width="100%" height="68" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
+      return `<svg width="100%" height="82" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
         <defs>
           <filter id="tlBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/></filter>
           <filter id="tlGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
@@ -9062,7 +9331,7 @@ function renderOverview(){
       return `
       <div style="
         position:relative;overflow:hidden;
-        padding:11px 11px 0 13px;
+        padding:13px 13px 2px 14px;
         border-radius:13px;
         background:${bgGrad};
         border:1px solid ${borderCol};
@@ -9071,13 +9340,13 @@ function renderOverview(){
       ">
         <!-- Flag backdrop: full-bleed right-anchored SVG with left gradient fade -->
         ${CB_FLAG_HTML[cb] ? `<div style="pointer-events:none;position:absolute;inset:0;z-index:0;overflow:hidden;border-radius:13px">
-          <div style="position:absolute;inset:0;opacity:0.13">${CB_FLAG_HTML[cb]}</div>
-          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(4,6,14,0.82) 0%,rgba(4,6,14,0.68) 35%,rgba(4,6,14,0.38) 60%,rgba(4,6,14,0.0) 100%)"></div>
+          <div style="position:absolute;inset:0;opacity:0.20">${CB_FLAG_HTML[cb]}</div>
+          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(4,6,14,0.75) 0%,rgba(4,6,14,0.55) 30%,rgba(4,6,14,0.28) 60%,rgba(4,6,14,0.0) 100%)"></div>
         </div>` : ''}
         <!-- Radial shimmer -->
         <div style="pointer-events:none;position:absolute;inset:0;background:${shimmer}"></div>
         <!-- Left accent bar -->
-        <div style="position:absolute;top:8%;left:0;width:2px;height:84%;border-radius:0 2px 2px 0;background:${barCol};opacity:${isUS ? '0.90' : '0.50'}"></div>
+        <div style="position:absolute;top:6%;left:0;width:3px;height:88%;border-radius:0 2px 2px 0;background:${barCol};opacity:${isUS ? '1.0' : '0.65'}"></div>
         ${isUS ? `<div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,${col},${col2},transparent);opacity:0.55"></div>` : ''}
         <!-- Row 1: flag + name + next mtg -->
         <div style="position:relative;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -9087,7 +9356,7 @@ function renderOverview(){
           </div>
           ${nmFmt ? `<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:1px">
             <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.04em;color:rgba(255,255,255,0.50);line-height:1">${nmFmt}</div>
-            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.03em;color:${nmDays <= 14 ? 'rgba(200,169,110,0.75)' : 'rgba(173,184,208,0.35)'};margin-top:1px">${nmDays <= 14 ? nmDays+'d' : nmDays+'d away'}</div>` : ''}
+            ${nmDays != null ? `<div style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.03em;color:${nmDays <= 14 ? 'rgba(200,169,110,0.90)' : 'rgba(173,184,208,0.45)'};margin-top:1px">${nmDays <= 14 ? nmDays+'d' : nmDays+'d away'}</div>` : ''}
           </div>` : ''}
         </div>
         <!-- Row 2: rate + stance pill + cfp delta -->
@@ -9098,15 +9367,15 @@ function renderOverview(){
               color:${col};
               background:linear-gradient(135deg,${col} 0%,${col2} 100%);
               -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-              filter:drop-shadow(0 0 12px ${col}66);
+              filter:drop-shadow(0 0 6px ${col}33);
             ">${r.toFixed(2)}<span style="font-size:0.45em;font-weight:700;opacity:0.70">%</span>${srcBadge}</div>
           </div>
           <span style="
-            font-family:var(--mono);font-size:8px;font-weight:800;
+            font-family:var(--mono);font-size:9px;font-weight:900;
             letter-spacing:0.08em;text-transform:uppercase;
             color:${col};background:${pillBg};
             border:1px solid ${pillBdr};
-            border-radius:4px;padding:2px 6px;
+            border-radius:5px;padding:3px 8px;
             align-self:center;
           ">${_lblDisplay}</span>
           <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${cfpCol};align-self:center">${cfpStr}</span>
@@ -9262,7 +9531,7 @@ function renderOverview(){
           <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,0.18) 0%,transparent 100%)"></div>
 
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           ${cbUnifiedRows}
         </div>
         <div style="margin-top:10px;font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.22);letter-spacing:0.04em">Source: FRED · official central bank releases</div>
@@ -16353,7 +16622,7 @@ async function initCotCharts(marketId){
             border:{color:'rgba(255,255,255,0.08)'}
           },
           y:{
-            ticks:{color:'rgba(180,200,235,0.52)',font:{size:7.5,family:'JetBrains Mono'},maxTicksLimit:4,
+            ticks:{color:'rgba(180,200,235,0.58)',font:{size:8.5,family:'JetBrains Mono'},maxTicksLimit:4,
               callback:v=>isIdx?v.toFixed(0):fmtK(v)},
             grid:{color:'rgba(255,255,255,0.08)'},
             border:{color:'transparent'},
@@ -16368,7 +16637,7 @@ async function initCotCharts(marketId){
         beforeDraw(ch){
           const{ctx:c2,chartArea:{left,top,right,bottom}}=ch;
           c2.save();
-          c2.fillStyle='rgba(6,8,16,0.70)';
+          c2.fillStyle='rgba(4,6,14,0.85)';
           c2.fillRect(left,top,right-left,bottom-top);
           c2.restore();
         }
