@@ -11805,6 +11805,236 @@ canvas{
 }
 
 /* ─── END R19b ─── */
+
+/* ════════════════════════════════════════════════════
+   R19c — Precision polish: signal card depth,
+   mobile hero warmth, sector strip first-row,
+   COT card values, desktop macro card header,
+   nav regime badge, detail title refinement
+════════════════════════════════════════════════════ */
+
+/* ─── 1. SIGNAL CARDS — true borderless with depth via shadow ─── */
+/* Kill all border variants that may be inheriting */
+.ov-sig-card,
+.ov-sig-card.bull,
+.ov-sig-card.bear {
+  border: none !important;
+  outline: none !important;
+}
+/* Subtle left-side category colour stripe instead of border */
+.ov-sig-card::before {
+  width: 2px !important;
+  border-radius: 2px 0 0 2px !important;
+  opacity: 0.7 !important;
+}
+/* Cleaner inset depth */
+.ov-sig-card {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 -1px 0 rgba(0,0,0,0.4) inset,
+    0 4px 20px rgba(0,0,0,0.55) !important;
+  background: rgba(13,16,26,0.98) !important;
+}
+/* Hover: ring appears via box-shadow, not border */
+.ov-sig-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.09),
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 8px 24px rgba(0,0,0,0.45) !important;
+}
+.ov-sig-card.bull:hover {
+  box-shadow:
+    0 0 0 1px rgba(48,217,136,0.18),
+    0 8px 24px rgba(48,217,136,0.06) !important;
+}
+.ov-sig-card.bear:hover {
+  box-shadow:
+    0 0 0 1px rgba(240,64,64,0.18),
+    0 8px 24px rgba(240,64,64,0.06) !important;
+}
+/* Signals column divider — softer */
+.ov-signals-col:first-child {
+  border-right: 1px solid rgba(255,255,255,0.04) !important;
+}
+
+/* ─── 2. SIGNAL CARD TYPOGRAPHY — tighter hierarchy ─── */
+.ov-sig-score {
+  font-size: 24px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+  min-width: 42px !important;
+  text-align: right !important;
+}
+.ov-sig-meta {
+  font-size: 7.5px !important;
+  color: rgba(173,184,208,0.30) !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* ─── 3. PRICE STRIP — wider label size gap ─── */
+.ov-price-label {
+  font-size: 6.5px !important;
+  letter-spacing: 0.14em !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+}
+.ov-price-val {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  display: block !important;
+  line-height: 1.0 !important;
+}
+.ov-price-chg {
+  font-size: 9px !important;
+  display: block !important;
+  margin-top: 1px !important;
+}
+
+/* ─── 4. SECTOR STRIP — balanced row borders ─── */
+.ov-sector-row {
+  border-top: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+}
+/* Kill R19b first-child top border (sector strip needs no top) */
+.ov-sector-row:first-child {
+  border-top: none !important;
+}
+
+/* ─── 5. MOBILE HERO — richer backdrop atmosphere ─── */
+@media(max-width:700px){
+  /* Warm vertical gradient — fills top area with subtle depth */
+  #mob-hero {
+    background: linear-gradient(
+      180deg,
+      rgba(8,5,3,1) 0%,
+      rgba(4,4,6,0.99) 40%,
+      rgba(3,4,8,0.98) 100%
+    ) !important;
+  }
+  /* Accent glow — very subtle warm radial from top-centre */
+  #mob-hero::before {
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(200,169,110,0.04) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, rgba(200,169,110,0.06) 0%, transparent 65%),
+      linear-gradient(90deg,rgba(200,169,110,0.010) 0px,transparent 1px),
+      linear-gradient(0deg,rgba(200,169,110,0.010) 0px,transparent 1px) !important;
+    background-size: auto, auto, 52px 36px, 52px 36px !important;
+  }
+  /* Arc canvas — slight warmth */
+  #mob-hero-canvas {
+    opacity: 0.25 !important;
+  }
+  /* Tighter inner padding — push content up closer to nav */
+  #mob-hero-inner {
+    padding: 12px 16px 14px !important;
+  }
+  /* Sentiment bar — bolder */
+  .mob-hero-sent {
+    height: 2px !important;
+    border-radius: 1px !important;
+    overflow: hidden !important;
+    margin-top: 8px !important;
+  }
+}
+
+/* ─── 6. MOBILE MARKET LIST — label stronger ─── */
+@media(max-width:700px){
+  /* Market ticker label */
+  .mkt-row .mkt-ticker,
+  .mkt-row [class*="ticker"] {
+    font-size: 7.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.10em !important;
+    color: rgba(200,169,110,0.45) !important;
+  }
+  /* Market name */
+  .mkt-row .mkt-name,
+  .mkt-row [class*="name"] {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    color: var(--text) !important;
+  }
+  /* Score number on right */
+  .mkt-row .mkt-score,
+  .mkt-row [class*="score"] {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    letter-spacing: -0.03em !important;
+  }
+}
+
+/* ─── 7. DESKTOP MACRO ENV CARDS — premium header treatment ─── */
+.ov-menv-card {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+.ov-menv-card-head {
+  font-size: 7px !important;
+  letter-spacing: 0.18em !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  margin-bottom: 4px !important;
+}
+
+/* ─── 8. DETAIL VIEW — polish the header area ─── */
+/* Detail category eyebrow — finer */
+.d-cat {
+  font-size: 7.5px !important;
+  letter-spacing: 0.14em !important;
+  color: rgba(255,255,255,0.32) !important;
+  font-weight: 700 !important;
+}
+/* Detail market name — slightly tighter on desktop */
+@media(min-width:701px){
+  .d-name {
+    font-size: 34px !important;
+    font-weight: 200 !important;
+    letter-spacing: -0.04em !important;
+    line-height: 1.0 !important;
+  }
+}
+/* Detail score hero — bigger on desktop for impact */
+@media(min-width:701px){
+  .d-score-num {
+    font-size: 52px !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.05em !important;
+    line-height: 1.0 !important;
+  }
+}
+
+/* ─── 9. NAV REGIME BADGE — accent glow ─── */
+.regime-badge {
+  border-color: rgba(200,169,110,0.20) !important;
+  background: rgba(200,169,110,0.06) !important;
+}
+/* Bull state — subtle green */
+.regime-badge.bull {
+  border-color: rgba(34,201,122,0.22) !important;
+  background: rgba(34,201,122,0.05) !important;
+  color: rgba(34,201,122,0.85) !important;
+}
+/* Bear state — subtle red */
+.regime-badge.bear {
+  border-color: rgba(208,58,36,0.22) !important;
+  background: rgba(208,58,36,0.05) !important;
+  color: rgba(240,100,80,0.85) !important;
+}
+
+/* ─── 10. SCORE HISTORY SIDEBAR — tighter, cleaner ─── */
+.d-sh-row {
+  gap: 6px !important;
+}
+/* Colour bar in score history */
+.d-sh-bar {
+  height: 3px !important;
+  border-radius: 1.5px !important;
+}
+
+/* ─── END R19c ─── */
 </style>
 </head>
 <body>
