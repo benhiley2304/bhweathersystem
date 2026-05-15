@@ -8565,6 +8565,115 @@ canvas{
   color:rgba(138,152,184,0.50) !important;
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   NEXUS R16b — Sidebar + typography refinement
+═══════════════════════════════════════════════════════════ */
+
+/* ── Sidebar border: softer ─────────────────────────────── */
+.sidebar{
+  border-right:1px solid rgba(255,255,255,0.05) !important;
+  background:rgba(5,5,6,0.70) !important;
+}
+
+/* ── Filter chips: scrollable row, no wrapping ──────────── */
+.cat-row{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch !important;
+  scrollbar-width:none !important;
+  gap:4px !important;
+  padding-bottom:1px !important;
+}
+.cat-row::-webkit-scrollbar{ display:none !important; }
+.cat-btn{ flex-shrink:0 !important; }
+
+/* ── Market row: taller rows ────────────────────────────── */
+.mkt-row{
+  padding:10px 14px 10px 10px !important;
+  min-height:46px !important;
+}
+
+/* ── Ticker ID: dim right down — reference only ─────────── */
+.mr-id{
+  font-size:7.5px !important;
+  color:rgba(138,152,184,0.25) !important;
+  width:22px !important;
+  letter-spacing:0 !important;
+}
+
+/* ── Market name ─────────────────────────────────────────── */
+.mr-name{
+  font-size:12px !important;
+  font-weight:500 !important;
+  letter-spacing:-0.01em !important;
+  line-height:1.2 !important;
+}
+
+/* ── Score badge ─────────────────────────────────────────── */
+.mr-score-badge{
+  font-size:12.5px !important;
+  font-weight:700 !important;
+  min-width:30px !important;
+}
+
+/* ── Bias label: slightly more readable ──────────────────── */
+.mr-bias{
+  font-size:7.5px !important;
+  opacity:0.55 !important;
+  letter-spacing:0.05em !important;
+}
+
+/* ── Slider track: cleaner ───────────────────────────────── */
+.mr-slider-track{
+  height:2.5px !important;
+  margin-top:5px !important;
+  opacity:0.75 !important;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.60) 0%,
+    rgba(196,122,74,0.25) 22%,
+    rgba(30,34,50,0.55) 42%,
+    rgba(30,34,50,0.55) 58%,
+    rgba(34,201,122,0.25) 78%,
+    rgba(34,201,122,0.60) 100%
+  ) !important;
+}
+.mr-slider-dot{
+  width:8px !important;
+  height:8px !important;
+  background:#e8f0ff !important;
+  box-shadow:0 0 0 1.5px rgba(0,0,0,0.65) !important;
+}
+
+/* ── Zone separator ──────────────────────────────────────── */
+.mkt-row-zone-sep{
+  height:1px !important;
+  margin:1px 0 !important;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(200,169,110,0.10) 20%,
+    rgba(200,169,110,0.10) 80%,
+    transparent 100%
+  ) !important;
+}
+
+/* ── Nav: hide timestamp, tighten gap ────────────────────── */
+.nav{ gap:8px !important; }
+#ts{ display:none !important; }
+
+/* ── MOBILE: remove dead space, tighten nav ─────────────── */
+@media(max-width:700px){
+  #mob-hero{ margin-top:0 !important; padding-top:0 !important; }
+  .nav{ height:44px !important; padding:0 14px !important; }
+  .nav-title{ font-size:11px !important; }
+  .nav-sub{ display:none !important; }
+  .mkt-row{ padding:10px 12px !important; }
+  .mr-name{ font-size:13px !important; }
+  .mr-score-badge{ font-size:13px !important; }
+  .mr-bias{ font-size:8px !important; }
+}
+
 </style>
 </head>
 <body>
@@ -22236,7 +22345,8 @@ initNexusNoise();
     if(e.target.closest('.f-card,.factor-tab')) setTimeout(attachObs, 120);
   });
   // Make cards visible when observer fires
-  document.head.insertAdjacentHTML('beforeend','<style>.nexus-card-visible{opacity:1 !important;transform:none !important}</style>');
+  document.head.insertAdjacentHTML('beforeend','<style>.nexus-card-visible{opacity:1 !important;transform:none !important}
+');
 })();
 </script>
 </div><!-- /.app-wrap -->
