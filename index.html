@@ -12695,6 +12695,74 @@ canvas{
   }
 }
 /* ─── END R19i ─── */
+
+/* ════════════════════════════════════════════════════
+   R19j — Two targeted fixes:
+   1. mob-hero-regime: replace currentColor gradient with
+      explicit regime-aware colours so -webkit-text-fill-color:transparent
+      correctly renders the shimmer on iOS Safari/WebKit.
+      Also: keep regimePulse but only for opacity (not fighting gradient).
+   2. mkt-row-zone-sep: remove visible band on mobile —
+      hide on mobile entirely (the left-border colour already
+      communicates zone transition cleanly without a line).
+════════════════════════════════════════════════════ */
+
+/* ════ 1. MOB-HERO-REGIME — explicit gradient colours ════ */
+/* Problem: currentColor + -webkit-text-fill-color:transparent breaks on iOS Safari
+   when the parent opacity animation interferes. JS sets inline color:#22c97a for Risk-On.
+   Fix: use CSS variables with fallback — read from --mob-regime-col (set inline by JS).
+   Since CSS var doesn't work inside gradient with currentColor, we use a data-regime approach.
+   But simplest: override for each regime state via colour stops we control explicitly.
+   The mob-hero-regime div gets style="--mob-regime-col:#22c97a" from JS, so we
+   can use that custom property directly in the gradient. */
+@media(max-width:700px){
+  .mob-hero-regime {
+    /* Core type — matches R19d/g settings */
+    font-size: 48px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.03em !important;
+    line-height: 0.92 !important;
+    font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+    margin-bottom: 7px !important;
+
+    /* Use colour via CSS custom property set by JS (--mob-regime-col) */
+    /* Shimmer: the BASE colour transitions from var(--mob-regime-col) to a lighter sheen */
+    background: linear-gradient(
+      105deg,
+      var(--mob-regime-col, #22c97a) 0%,
+      var(--mob-regime-col, #22c97a) 28%,
+      rgba(255,255,255,0.90) 46%,
+      rgba(255,255,255,0.70) 52%,
+      var(--mob-regime-col, #22c97a) 70%,
+      var(--mob-regime-col, #22c97a) 100%
+    ) !important;
+    background-size: 400% 100% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: var(--mob-regime-col, #22c97a) !important;
+
+    /* textSheen sweeps the gradient position — slow & cinematic */
+    animation: textSheen 18s linear infinite !important;
+
+    /* No glow, no shadow — let the gradient do all the work */
+    text-shadow: none !important;
+    filter: none !important;
+  }
+}
+
+/* ════ 2. MOB-HERO-REGIME particles — keep them alive ════ */
+/* No change needed for canvas — JS drives it independently */
+
+/* ════ 3. ZONE SEPARATOR — invisible on mobile ════ */
+/* The left-border accent on each .mkt-row already communicates
+   zone changes (green for bull, red for bear). The golden 1px line
+   reads as a 'dark brownish band' on retina mobile — remove it. */
+@media(max-width:700px){
+  .mkt-row-zone-sep {
+    display: none !important;
+  }
+}
 </style>
 </head>
 <body>
