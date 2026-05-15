@@ -7810,6 +7810,226 @@ canvas{
 
 
 
+/* ╔═══════════════════════════════════════════════════════════╗
+   ║  NEXUS R12 — Visual Depth & Polish Pass                  ║
+   ╚═══════════════════════════════════════════════════════════╝ */
+
+/* ── 1. f-bar-track: spectrum overlay + dot tip CSS ───────────── */
+.f-bar-track::before{
+  content:'';position:absolute;inset:0;border-radius:3px;
+  background:linear-gradient(90deg,
+    rgba(224,58,42,0.18) 0%,rgba(196,122,74,0.14) 20%,
+    rgba(74,82,104,0.10) 50%,rgba(59,130,196,0.14) 80%,
+    rgba(34,201,122,0.18) 100%
+  );
+  pointer-events:none;
+}
+/* f-bar-f: glow stronger */
+.f-bar-f{
+  box-shadow:0 0 10px currentColor, 0 0 20px rgba(255,255,255,0.08) !important;
+}
+
+/* ── 2. f-card active bottom bar: bolder, spectrum gradient ──── */
+.f-card.act::after{
+  background:linear-gradient(90deg,
+    var(--f-accent,var(--accent)) 0%,
+    color-mix(in srgb,var(--f-accent,var(--accent)) 50%,#22c97a) 100%
+  ) !important;
+  height:2.5px !important;
+  opacity:1 !important;
+}
+/* f-val: strong glow on all f-cards */
+.f-val{
+  filter:drop-shadow(0 0 12px currentColor) drop-shadow(0 0 4px rgba(255,255,255,0.10)) !important;
+}
+/* f-lbl: sharpen label contrast */
+.f-lbl{
+  color:rgba(180,195,225,0.65) !important;
+}
+.f-card.act .f-lbl{
+  color:var(--text) !important;
+}
+
+/* ── 3. COT score gauge dot: bigger glow, more presence ──────── */
+.cc-gauge-dot{
+  width:11px !important;
+  height:11px !important;
+  box-shadow:0 0 14px currentColor, 0 0 28px rgba(255,255,255,0.12) !important;
+  border:2px solid rgba(0,0,0,0.70) !important;
+}
+/* cc-idx number: slightly larger, glow */
+.cc-idx{
+  font-size:28px !important;
+  filter:drop-shadow(0 0 12px currentColor) !important;
+}
+/* cc-head: bump contrast */
+.cc-head{
+  opacity:0.90 !important;
+  letter-spacing:0.12em !important;
+}
+
+/* ── 4. Breaking news items — glass panel treatment ─────────── */
+.ov-ai-news-item{
+  background:rgba(6,8,18,0.72) !important;
+  border-bottom:1px solid rgba(255,255,255,0.055) !important;
+  border-left:2px solid rgba(200,169,110,0.22) !important;
+  border-radius:0 8px 8px 0 !important;
+  backdrop-filter:blur(6px) !important;
+  margin-bottom:3px !important;
+  transition:background 160ms, border-left-color 160ms !important;
+}
+.ov-ai-news-item:last-child{
+  border-bottom:none !important;
+  margin-bottom:0 !important;
+}
+.ov-ai-news-item:hover{
+  background:rgba(16,20,36,0.88) !important;
+  border-left-color:rgba(200,169,110,0.55) !important;
+}
+/* Section header for Breaking News: accent treatment */
+.ov-news-section-head, [class*="news-head"]{
+  letter-spacing:0.12em !important;
+}
+
+/* ── 5. Rate path bias bar: make it more striking ────────────── */
+/* The bias bar is inline-rendered but targets this parent context */
+.ov-rp-bias-bar, [class*="rp-bias"]{
+  height:4px !important;
+  border-radius:2px !important;
+}
+
+/* ── 6. Score hero bar: 5px + dot tip at the end ─────────────── */
+.d-score-hero-bar{
+  height:5px !important;
+  border-radius:3px !important;
+  background:rgba(255,255,255,0.07) !important;
+}
+.d-score-hero-bar-f{
+  height:5px !important;
+  border-radius:3px !important;
+  box-shadow:0 0 10px currentColor !important;
+  position:relative;
+}
+.d-score-hero-bar-f::after{
+  content:'';
+  position:absolute;
+  right:-3px;top:50%;transform:translateY(-50%);
+  width:9px;height:9px;border-radius:50%;
+  background:inherit;
+  box-shadow:0 0 12px currentColor, 0 0 22px rgba(255,255,255,0.15);
+  pointer-events:none;
+  background-size:100% !important;
+}
+
+/* ── 7. d-sub-row: a bit more visual padding, accent divider ─── */
+.d-sub-row{
+  padding:6px 0 !important;
+  border-bottom:1px solid rgba(255,255,255,0.045) !important;
+}
+/* d-sub-lbl: score-aware tint improvement */
+.d-sub-lbl{
+  font-size:8px !important;
+  letter-spacing:0.12em !important;
+  color:rgba(180,200,235,0.55) !important;
+}
+/* d-sub-num: boost readability */
+.d-sub-num{
+  font-size:10px !important;
+  font-weight:800 !important;
+  filter:drop-shadow(0 0 6px currentColor) !important;
+}
+
+/* ── 8. Market leaders heatmap rows: deeper glass ────────────── */
+.ov-heatmap-row{
+  background:rgba(8,10,20,0.55) !important;
+  border-radius:6px !important;
+  margin-bottom:2px !important;
+  border:1px solid rgba(255,255,255,0.05) !important;
+  transition:background 160ms,border-color 160ms !important;
+}
+.ov-heatmap-row:hover{
+  background:rgba(16,20,36,0.82) !important;
+  border-color:rgba(255,255,255,0.09) !important;
+}
+/* Market row item score number: glow */
+.ov-hm-score{
+  filter:drop-shadow(0 0 7px currentColor) !important;
+  font-weight:900 !important;
+}
+
+/* ── 9. ov-cat-bar-item: richer glass treatment ──────────────── */
+.ov-cat-bar-item{
+  background:rgba(8,10,20,0.65) !important;
+  border:1px solid rgba(255,255,255,0.07) !important;
+  border-top:1px solid rgba(255,255,255,0.11) !important;
+  border-radius:6px !important;
+  padding:7px 10px !important;
+  backdrop-filter:blur(4px) !important;
+  transition:background 160ms,border-color 160ms !important;
+}
+.ov-cat-bar-item:hover{
+  background:rgba(16,20,36,0.85) !important;
+  border-color:rgba(255,255,255,0.12) !important;
+}
+
+/* ── 10. Sector score numbers in ov-cat-bar: glow ────────────── */
+.ov-cat-score{
+  filter:drop-shadow(0 0 8px currentColor) !important;
+  font-size:14px !important;
+  font-weight:900 !important;
+}
+
+/* ── 11. Macro card section label: stronger accent ───────────── */
+.mc-sect-lbl{
+  color:rgba(200,169,110,0.80) !important;
+  font-size:7.5px !important;
+  letter-spacing:0.16em !important;
+}
+.mc-sect-line{
+  background:linear-gradient(90deg,rgba(200,169,110,0.35),transparent) !important;
+  height:1px !important;
+}
+
+/* ── 12. Score pill on factor tab strip: boost presence ──────── */
+.f-wt{
+  opacity:0.90 !important;
+  font-size:7px !important;
+}
+.f-card.act .f-wt{
+  opacity:1 !important;
+  border-color:color-mix(in srgb,var(--f-accent,#5c9eff) 55%,transparent) !important;
+  box-shadow:0 0 6px color-mix(in srgb,var(--f-accent,#5c9eff) 30%,transparent) !important;
+}
+
+/* ── 13. COT stacked chart: deeper glass header/legend ──────── */
+.cot-stacked{
+  background:linear-gradient(160deg,rgba(8,11,22,0.94) 0%,rgba(4,6,16,0.98) 100%) !important;
+  border-top:1px solid rgba(92,158,255,0.20) !important;
+}
+.cot-stacked-title{
+  color:rgba(232,240,255,0.88) !important;
+  font-size:9.5px !important;
+  letter-spacing:0.10em !important;
+}
+
+/* ── 14. Overview arc/radial chart container: deeper stage ───── */
+.ov-arc-wrap, .ov-arc-canvas-wrap{
+  background:rgba(3,5,12,0.80) !important;
+  border-radius:16px !important;
+}
+
+/* ── 15. News-card row items (breaking news section bottom) ─── */
+.news-card{
+  border-left-width:3px !important;
+  box-shadow:0 2px 12px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+/* news body text: boost clarity */
+.news-title{
+  color:rgba(232,240,255,0.92) !important;
+}
+
+
+
 </style>
 </head>
 <body>
