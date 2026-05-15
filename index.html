@@ -11517,6 +11517,294 @@ canvas{
 }
 
 /* ─── END R19 ─── */
+
+/* ════════════════════════════════════════════════════
+   R19b — Deep Polish: hero atmosphere, signal cards,
+   price strip hierarchy, sector strip, backdrop width,
+   COT refinements, mobile stat cards
+════════════════════════════════════════════════════ */
+
+/* ─── 1. MOBILE HERO — kill dead space, add atmosphere ─── */
+@media(max-width:700px){
+  #mob-hero {
+    min-height: 185px !important;
+    background: linear-gradient(
+      170deg,
+      rgba(2,3,9,1) 0%,
+      rgba(4,6,16,0.98) 55%,
+      rgba(6,10,22,0.95) 100%
+    ) !important;
+  }
+  /* Atmospheric bottom-up glow — fills dead space */
+  #mob-hero::before {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 100%, rgba(200,169,110,0.055) 0%, transparent 70%),
+      linear-gradient(90deg,rgba(200,169,110,0.012) 0px,transparent 1px),
+      linear-gradient(0deg,rgba(200,169,110,0.012) 0px,transparent 1px) !important;
+    background-size: auto, 52px 36px, 52px 36px !important;
+  }
+  /* Reduce inner top padding — content was floating too low */
+  #mob-hero-inner {
+    padding: 14px 18px 16px !important;
+    gap: 2px !important;
+  }
+  /* Eyebrow — tighter top */
+  .mob-hero-eyebrow {
+    margin-bottom: 5px !important;
+    font-size: 7px !important;
+    color: rgba(255,255,255,0.35) !important;
+    letter-spacing: 0.16em !important;
+  }
+  /* Regime headline — tighten line-height slightly */
+  .mob-hero-regime {
+    line-height: 0.92 !important;
+    margin-bottom: 5px !important;
+  }
+  /* Desc — subtle gold tint for visual warmth */
+  .mob-hero-desc {
+    color: rgba(232,213,176,0.48) !important;
+    font-size: 10.5px !important;
+    margin-bottom: 10px !important;
+  }
+  /* Stats row — tighter gap, more air above */
+  .mob-hero-stats {
+    gap: 5px !important;
+  }
+  /* Stat pill — warmer glass, accent top border */
+  .mob-hero-stat {
+    background: rgba(200,169,110,0.04) !important;
+    border: 1px solid rgba(200,169,110,0.12) !important;
+    border-top-color: rgba(200,169,110,0.25) !important;
+    border-radius: 8px !important;
+    padding: 7px 9px 6px !important;
+  }
+  .mob-hero-stat-label {
+    color: rgba(200,169,110,0.55) !important;
+    letter-spacing: 0.14em !important;
+  }
+  .mob-hero-stat-val {
+    font-size: 17px !important;
+    font-weight: 800 !important;
+  }
+}
+
+/* ─── 2. MOBILE DETAIL BACKDROP — full width coverage ─── */
+@media(max-width:700px){
+  .d-head-graphic {
+    left: 0% !important;
+    opacity: 0.72 !important;
+  }
+  /* Stronger left fade on mobile so text stays readable */
+  .d-head-graphic::before {
+    background: linear-gradient(90deg,
+      rgba(4,4,5,1) 0%,
+      rgba(4,4,5,0.95) 22%,
+      rgba(4,4,5,0.60) 52%,
+      rgba(4,4,5,0.12) 80%,
+      rgba(4,4,5,0.0) 100%
+    ) !important;
+  }
+}
+
+/* ─── 3. DESKTOP SIGNAL CARDS — borderless, cleaner glass ─── */
+.ov-sig-card {
+  border: none !important;
+  background: linear-gradient(150deg, rgba(16,20,32,0.97) 0%, rgba(10,13,22,0.98) 100%) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset,
+              0 3px 16px rgba(0,0,0,0.5) !important;
+  border-radius: 11px !important;
+  padding: 12px 15px !important;
+}
+/* Keep hover border glow — only add on hover */
+.ov-sig-card:hover {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.10),
+              0 1px 0 rgba(255,255,255,0.07) inset,
+              0 6px 20px rgba(0,0,0,0.4) !important;
+}
+.ov-sig-card.bull:hover {
+  box-shadow: 0 0 0 1px rgba(48,217,136,0.22),
+              0 6px 20px rgba(48,217,136,0.06) !important;
+}
+.ov-sig-card.bear:hover {
+  box-shadow: 0 0 0 1px rgba(240,64,64,0.22),
+              0 6px 20px rgba(240,64,64,0.06) !important;
+}
+/* Score number — larger, bolder */
+.ov-sig-score {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+}
+/* Name — slightly stronger */
+.ov-sig-name {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+}
+/* Sig header label — finer, more muted */
+.ov-sig-hdr-label {
+  font-size: 8px !important;
+  letter-spacing: 0.12em !important;
+  color: rgba(173,184,208,0.38) !important;
+}
+
+/* ─── 4. PRICE STRIP — stronger hierarchy ─── */
+.ov-price-pill {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid rgba(255,255,255,0.065) !important;
+  border-top-color: rgba(255,255,255,0.10) !important;
+  border-radius: 8px !important;
+  padding: 6px 10px 5px !important;
+}
+.ov-price-label {
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  color: rgba(173,184,208,0.42) !important;
+  margin-bottom: 1px !important;
+}
+.ov-price-val {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--text) !important;
+}
+.ov-price-chg {
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ─── 5. SECTOR STRIP — fix first-cell asymmetry, unify ─── */
+.ov-sector-row {
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  padding: 4px 2px !important;
+  align-items: center !important;
+}
+.ov-sector-row:first-child {
+  border-top: 1px solid rgba(255,255,255,0.04) !important;
+}
+.ov-sector-name {
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.09em !important;
+  color: rgba(200,169,110,0.55) !important;
+}
+.ov-sector-score {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ─── 6. DESKTOP HERO — crisper typography hierarchy ─── */
+.ov-banner-eyebrow {
+  font-size: 7.5px !important;
+  letter-spacing: 0.20em !important;
+  color: rgba(173,184,208,0.40) !important;
+  border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+.ov-banner-stats {
+  font-size: 8px !important;
+  letter-spacing: 0.06em !important;
+  color: rgba(173,184,208,0.35) !important;
+}
+
+/* ─── 7. DESKTOP COT CARDS — richer, deeper glass ─── */
+.cot-card {
+  background: linear-gradient(145deg, rgba(15,19,30,0.97) 0%, rgba(10,13,20,0.98) 100%) !important;
+  border: none !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.045) inset,
+              0 4px 18px rgba(0,0,0,0.45) !important;
+  border-radius: 12px !important;
+}
+.cot-card-lbl {
+  font-size: 7px !important;
+  letter-spacing: 0.16em !important;
+  color: rgba(173,184,208,0.35) !important;
+  font-weight: 800 !important;
+}
+.cot-card-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+}
+
+/* ─── 8. MACRO ENV CARDS — warmer border accent ─── */
+.ov-menv-card {
+  border-top-color: rgba(200,169,110,0.14) !important;
+  background: rgba(200,169,110,0.018) !important;
+}
+.ov-menv-card-head {
+  letter-spacing: 0.14em !important;
+  color: rgba(200,169,110,0.50) !important;
+}
+
+/* ─── 9. MACRO CARDS — polish ─── */
+.ov-mc-eyebrow {
+  font-size: 6.5px !important;
+  letter-spacing: 0.18em !important;
+  color: rgba(173,184,208,0.32) !important;
+}
+.ov-mc-title {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.15 !important;
+}
+
+/* ─── 10. FILTER CHIPS — refined pill treatment ─── */
+.cat-btn {
+  border-radius: 20px !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  padding: 4px 10px !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  background: rgba(255,255,255,0.02) !important;
+  color: rgba(173,184,208,0.55) !important;
+  transition: all 140ms var(--ease) !important;
+}
+.cat-btn.on {
+  background: rgba(200,169,110,0.10) !important;
+  border-color: rgba(200,169,110,0.28) !important;
+  color: rgba(232,213,176,0.90) !important;
+}
+
+/* ─── 11. SIDEBAR MARKET ROWS — sharper sel state ─── */
+.mkt-row.sel {
+  background: rgba(200,169,110,0.07) !important;
+  border-left: 2px solid rgba(200,169,110,0.55) !important;
+}
+.mkt-row {
+  border-left: 2px solid transparent !important;
+}
+
+/* ─── 12. SECTION HEADERS — clean, no extra weight ─── */
+.ov-section-title {
+  font-size: 8px !important;
+  letter-spacing: 0.20em !important;
+  font-weight: 800 !important;
+  color: rgba(173,184,208,0.38) !important;
+}
+
+/* ─── 13. MOBILE LIST ROWS — slightly richer glass ─── */
+@media(max-width:700px){
+  .mkt-row {
+    background: rgba(255,255,255,0.015) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.035) !important;
+    padding: 10px 14px !important;
+    border-left: none !important;
+  }
+  .mkt-row.sel {
+    background: rgba(200,169,110,0.06) !important;
+    border-left: 2px solid rgba(200,169,110,0.45) !important;
+    padding-left: 12px !important;
+  }
+}
+
+/* ─── END R19b ─── */
 </style>
 </head>
 <body>
