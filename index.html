@@ -10552,6 +10552,304 @@ canvas{
 }
 
 /* ─── END R18c ─── */
+
+/* ═══════════════════════════════════════════════════════════════
+   R18d — PRECISION FIXES + STRUCTURAL POLISH
+   Section bars, typography, regime glow, G10 cards, COT
+═══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. REMOVE ALL SECTION HEADER LEFT BARS ─── */
+.ov-macro-sect-header::before,
+.ov-section-hdr::before,
+.ov-section-title::before,
+.sec-h::before {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: none !important;
+  content: none !important;
+}
+/* Remove the extending gradient line */
+.ov-section-hdr-line {
+  display: none !important;
+}
+/* Restyle section header text */
+.ov-macro-sect-header {
+  font-family: var(--nexus-head) !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.22em !important;
+  color: rgba(173,184,208,0.30) !important;
+  text-transform: uppercase !important;
+  margin: 20px 16px 12px !important;
+  gap: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  padding-bottom: 8px !important;
+}
+
+/* ─── 2. REGIME GLOW — mute it ─── */
+.regime-glow-text {
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* ─── 3. HERO BANNER SIZE — maximum impact ─── */
+.ov-banner-regime {
+  font-size: 64px !important;
+  font-weight: 200 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1.0 !important;
+  font-family: var(--nexus-head) !important;
+  text-shadow: none !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  background-size: unset !important;
+  animation: none !important;
+  margin-bottom: 8px !important;
+}
+@media(max-width:1100px) {
+  .ov-banner-regime { font-size: 50px !important; }
+}
+@media(max-width:700px) {
+  .ov-banner-regime { font-size: 42px !important; }
+}
+
+/* ─── 4. G10 CENTRAL BANK CARDS — premium treatment ─── */
+/* Cards container */
+.ov-rp-card {
+  background: rgba(255,255,255,0.022) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+.ov-rp-wash {
+  opacity: 0.12 !important;
+}
+/* Rate number */
+.ov-rp-hero {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 36px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.0 !important;
+}
+.ov-rp-hero-l {
+  font-family: var(--nexus-head) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  margin-bottom: 4px !important;
+}
+.ov-rp-eyebrow {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  color: rgba(173,184,208,0.38) !important;
+  text-transform: uppercase !important;
+}
+.ov-rp-hdr {
+  padding: 12px 14px 8px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+}
+.ov-rp-meta-lbl {
+  font-size: 7px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.10em !important;
+  color: rgba(173,184,208,0.38) !important;
+  text-transform: uppercase !important;
+}
+.ov-rp-meta-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+.ov-rp-stat-lbl {
+  font-size: 7px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.10em !important;
+  color: rgba(173,184,208,0.38) !important;
+  text-transform: uppercase !important;
+}
+.ov-rp-stat-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ─── 5. YIELD CURVE / CREDIT PANELS ─── */
+.ov-yc-hero-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 32px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.04em !important;
+}
+.ov-yc-hero-sub {
+  font-size: 8px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em !important;
+  color: rgba(173,184,208,0.40) !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 6. NEWS ROW POLISH ─── */
+.ov-news-row {
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  padding: 10px 0 !important;
+}
+.ov-news-row:hover {
+  background: rgba(255,255,255,0.02) !important;
+}
+.ov-news-row-title {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--text) !important;
+  line-height: 1.35 !important;
+  letter-spacing: -0.01em !important;
+}
+.ov-news-row-time {
+  font-size: 7.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(173,184,208,0.35) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.ov-news-day-label {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  color: rgba(173,184,208,0.30) !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 7. AI BRIEF / NARRATIVE ─── */
+.ov-ai-brief {
+  background: rgba(255,255,255,0.018) !important;
+  border: 1px solid rgba(255,255,255,0.048) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+.ov-ai-brief-title {
+  font-family: var(--nexus-head) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+.ov-ai-narr-text {
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+  color: rgba(173,184,208,0.72) !important;
+  letter-spacing: 0.005em !important;
+}
+
+/* ─── 8. BANNER STATS (S&P / VIX row) — more spacious ─── */
+.ov-banner-stats {
+  gap: 8px !important;
+  margin-top: 14px !important;
+  flex-wrap: wrap !important;
+}
+
+/* ─── 9. OVERVIEW PANEL BREADCRUMB ─── */
+.ov-banner-eyebrow {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.24em !important;
+  color: rgba(200,169,110,0.45) !important;
+  font-family: var(--nexus-head) !important;
+  text-transform: uppercase !important;
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* ─── 10. SCORE HISTORY CHART AREA ─── */
+.ov-cs-arc-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+}
+.ov-cs-arc-name {
+  font-family: var(--nexus-head) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 11. HEATMAP / SIGNAL BARS ─── */
+.ov-hm-sector-label {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: rgba(173,184,208,0.42) !important;
+}
+.ov-hm-score {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ─── 12. REGIME BADGE (RISK-ON / LEAN BULLISH) pill in sidebar ─── */
+.regime-badge {
+  font-family: var(--nexus-head) !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  border-radius: 3px !important;
+  padding: 2px 5px !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 13. OVERVIEW CLIMATE SCORE (top right widget) ─── */
+.ov-arc-header {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  color: rgba(173,184,208,0.35) !important;
+  text-transform: uppercase !important;
+}
+.ov-arc-title {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+}
+.ov-arc-foot-note {
+  font-size: 7px !important;
+  color: rgba(173,184,208,0.35) !important;
+  letter-spacing: 0.06em !important;
+}
+
+/* ─── 14. SMART PANEL (G10 Rate Path etc) ─── */
+.ov-smart-title {
+  font-family: var(--nexus-head) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+.ov-smart-id {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ─── 15. COT CARDS IN DETAIL VIEW ─── */
+.cot-stacked-title {
+  font-family: var(--nexus-head) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: rgba(173,184,208,0.40) !important;
+}
+
+/* ─── END R18d ─── */
 </style>
 </head>
 <body>
