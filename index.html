@@ -10850,6 +10850,239 @@ canvas{
 }
 
 /* ─── END R18d ─── */
+
+/* ═══════════════════════════════════════════════════════════════
+   R18e — DETAIL VIEW, FACTOR STRIP, COT, FINAL SECTION BAR KILL
+═══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. NUCLEAR KILL ON SECTION HEADER BARS ─── */
+/* Kill ::before on ALL section headers */
+.ov-macro-sect-header::before,
+.ov-section-hdr::before,
+.ov-section-title::before,
+.ov-sig-wrap-title::before,
+.ov-cp-eyebrow::before,
+.sec-h::before {
+  content: '' !important;
+  display: block !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  opacity: 0 !important;
+  position: static !important;
+  flex-shrink: 0 !important;
+}
+/* Kill extending gradient lines */
+.ov-section-hdr-line {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ─── 2. DETAIL MARKET TITLE — large light weight ─── */
+.d-name {
+  font-size: 38px !important;
+  font-weight: 200 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.0 !important;
+  font-family: var(--nexus-head) !important;
+  color: var(--text) !important;
+}
+
+/* ─── 3. DETAIL SCORE HERO (top right 6.5/10) ─── */
+.d-score-hero-num {
+  font-family: var(--nexus-head) !important;
+  font-size: 52px !important;
+  font-weight: 200 !important;
+  letter-spacing: -0.06em !important;
+  line-height: 1.0 !important;
+}
+.d-score-hero-denom {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  opacity: 0.45 !important;
+  font-family: var(--nexus-head) !important;
+}
+.d-score-hero-label {
+  font-family: var(--nexus-head) !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  margin-top: 4px !important;
+}
+.d-score-hero-glow {
+  display: none !important;
+}
+
+/* ─── 4. FACTOR STRIP TABS ─── */
+.f-card {
+  padding: 11px 14px 10px !important;
+  min-height: 84px !important;
+  border-right: 1px solid rgba(255,255,255,0.04) !important;
+  background: transparent !important;
+  transition: background 100ms !important;
+}
+.f-card:hover:not(.act) {
+  background: rgba(255,255,255,0.025) !important;
+}
+.f-card.act {
+  background: rgba(200,169,110,0.06) !important;
+  box-shadow: inset 0 2px 0 var(--accent) !important;
+}
+.f-card-bloom { display: none !important; }
+.f-label {
+  font-family: var(--nexus-head) !important;
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: rgba(173,184,208,0.55) !important;
+  margin-bottom: 4px !important;
+}
+.f-card.act .f-label {
+  color: var(--accent) !important;
+}
+/* Factor score number */
+.f-num, [class*="f-num"] {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.0 !important;
+}
+/* Factor weight % */
+.f-wt, [class*="f-wt"], [class*="f-weight"] {
+  font-size: 7px !important;
+  font-weight: 600 !important;
+  color: rgba(173,184,208,0.38) !important;
+  letter-spacing: 0.08em !important;
+}
+
+/* ─── 5. COT CARDS (Commercials / Large Specs / Small Specs) ─── */
+.cot-card {
+  background: rgba(255,255,255,0.022) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 14px 16px !important;
+}
+/* COT score big number */
+.cot-card > div:first-child,
+[class*="cot-score-num"],
+[class*="cot-num"] {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.cot-stacked-head {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  color: rgba(173,184,208,0.40) !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 6. COT NOTE BANNER (methodology box) ─── */
+.cot-stacked {
+  background: rgba(200,169,110,0.04) !important;
+  border: 1px solid rgba(200,169,110,0.12) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  padding: 12px 16px !important;
+}
+.cot-stacked-title {
+  font-family: var(--nexus-head) !important;
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.70) !important;
+}
+
+/* ─── 7. COT PANEL CHARTS ─── */
+.cot-panel-label {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: rgba(173,184,208,0.45) !important;
+}
+
+/* ─── 8. DETAIL BACK BUTTON / BREADCRUMB ─── */
+.d-back, [class*="back-btn"], [class*="d-back"] {
+  font-family: var(--nexus-head) !important;
+  font-size: 7.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  opacity: 0.50 !important;
+}
+/* MARKET OVERVIEW breadcrumb button */
+[class*="breadcrumb"], [class*="d-breadcrumb"] {
+  font-family: var(--nexus-head) !important;
+  font-size: 7.5px !important;
+  letter-spacing: 0.10em !important;
+}
+
+/* ─── 9. DETAIL CATEGORY BADGE (COMMODITY / FX etc) ─── */
+[class*="d-cat"], [class*="cat-badge"] {
+  font-family: var(--nexus-head) !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 10. REGIME BADGE PILL in sidebar rows ─── */
+.regime-badge {
+  font-family: var(--nexus-head) !important;
+  font-size: 6.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  padding: 2px 5px !important;
+  border-radius: 3px !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── 11. SIDEBAR RECONNECTING BANNER — less alarming ─── */
+[class*="reconnect"], [class*="reconnecting"] {
+  background: rgba(200,169,110,0.06) !important;
+  border-color: rgba(200,169,110,0.15) !important;
+  color: rgba(173,184,208,0.55) !important;
+  font-size: 9px !important;
+  border-radius: 6px !important;
+}
+
+/* ─── 12. FACTOR SCORE BARS (mini bars below factor score) ─── */
+.f-bar-track, [class*="f-bar-t"] {
+  height: 2px !important;
+  background: rgba(255,255,255,0.08) !important;
+  border-radius: 1px !important;
+  margin-top: 6px !important;
+}
+.f-bar-f, [class*="f-bar-f"] {
+  height: 2px !important;
+  border-radius: 1px !important;
+}
+
+/* ─── 13. OVERVIEW RIGHT PANEL — SECTOR BREADTH TITLE ─── */
+.sb-head {
+  font-family: var(--nexus-head) !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.20em !important;
+  color: rgba(173,184,208,0.30) !important;
+  text-transform: uppercase !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  margin-bottom: 6px !important;
+}
+
+/* ─── END R18e ─── */
 </style>
 </head>
 <body>
@@ -12565,11 +12798,8 @@ function renderOverview(){
         <!-- G10 header -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
-            <span style="display:inline-block;width:2.5px;height:13px;background:var(--accent);border-radius:2px;opacity:0.80"></span>
-            <div style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,169,110,0.85)">G10 Central Banks</div>
+            <div style="font-family:var(--nexus-head);font-size:7px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(200,169,110,0.85)">G10 Central Banks</div>
           </div>
-          <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,0.18) 0%,transparent 100%)"></div>
-
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           ${cbUnifiedRows}
