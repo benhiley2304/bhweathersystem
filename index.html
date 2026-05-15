@@ -152,8 +152,8 @@ a{color:inherit;text-decoration:none}
 @keyframes borderGlow{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 16px 1px var(--glow-col,rgba(200,169,110,0.20))}}
 
 /* Nav logo orbit rings */
-.nav-orbit-outer{animation:orbitRing 18s linear infinite;transform-origin:14px 14px}
-.nav-orbit-inner{animation:orbitRingRev 10s linear infinite;transform-origin:14px 14px}
+.nav-orbit-outer{/* orbit animation removed */transform-origin:14px 14px}
+.nav-orbit-inner{/* orbit animation removed */transform-origin:14px 14px}
 
 /* Score hero entry + glow pulse */
 .d-score-hero{animation:scoreEntry 320ms cubic-bezier(0.34,1.56,0.64,1) both;position:relative;z-index:2}
@@ -427,7 +427,7 @@ a{color:inherit;text-decoration:none}
 .ov-climate-panel{animation:fadeUp 360ms 180ms cubic-bezier(0.16,1,0.3,1) both}
 .ov-ai-brief{animation:fadeUp 340ms 220ms cubic-bezier(0.16,1,0.3,1) both}
 .ov-signals-wrap{animation:fadeUp 340ms 260ms cubic-bezier(0.16,1,0.3,1) both}
-.ov-heatmap-wrap{animation:fadeUp 320ms 300ms cubic-bezier(0.16,1,0.3,1) both}
+.ov-heatmap-wrap{display:none !important}  /* heatmap removed R13 */
 
 /* ── Hero regime text ── */
 .ov-banner-regime{
@@ -4554,7 +4554,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 50%,transparent 100%);
   border:1px solid rgba(255,255,255,0.10);
   backdrop-filter:blur(12px);
-  animation:orbBreath 6s ease-in-out infinite;
+  /* orbBreath animation removed */
 }
 @keyframes orbBreath{
   0%,100%{box-shadow:0 0 0 0 transparent,0 0 20px rgba(255,255,255,0.02),inset 0 1px 0 rgba(255,255,255,0.10)}
@@ -4562,27 +4562,19 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 .nexus-orb-ring{
   position:absolute;inset:-6px;border-radius:50%;
-  border:1px solid rgba(255,255,255,0.06);
-  animation:orbRingRotate 12s linear infinite;
+  border:1px solid rgba(255,255,255,0.05);
+  /* orbit animation removed — was cheesy */
 }
 .nexus-orb-ring::before{
-  content:'';
-  position:absolute;top:-1px;left:50%;transform:translateX(-50%);
-  width:4px;height:4px;border-radius:50%;
-  background:var(--orb-pip,rgba(34,201,122,0.8));
-  box-shadow:0 0 8px var(--orb-pip,rgba(34,201,122,0.8));
+  display:none; /* orbit dot removed */
 }
 .nexus-orb-ring2{
   position:absolute;inset:-14px;border-radius:50%;
-  border:1px solid rgba(255,255,255,0.035);
-  animation:orbRingRotate 20s linear infinite reverse;
+  border:1px solid rgba(255,255,255,0.03);
+  /* orbit animation removed */
 }
 .nexus-orb-ring2::before{
-  content:'';
-  position:absolute;bottom:-1px;left:30%;transform:translateX(-50%);
-  width:2.5px;height:2.5px;border-radius:50%;
-  background:var(--orb-pip2,rgba(200,169,110,0.6));
-  box-shadow:0 0 6px var(--orb-pip2,rgba(200,169,110,0.6));
+  display:none; /* orbit dot removed */
 }
 @keyframes orbRingRotate{
   from{transform:rotate(0deg)}
@@ -4593,7 +4585,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   font-size:28px;font-weight:700;
   letter-spacing:-0.04em;line-height:1;
   position:relative;z-index:2;
-  filter:drop-shadow(0 0 12px var(--orb-pip,rgba(34,201,122,0.6)));
+  /* filter glow removed from score number */
 }
 .nexus-orb-label{
   font-family:var(--mono);font-size:7px;font-weight:700;
@@ -5185,7 +5177,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   border:1px solid rgba(255,255,255,0.12);
   backdrop-filter:blur(16px);
   box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset;
-  animation:orbBreath 6s ease-in-out infinite;
+  /* orbBreath animation removed */
 }
 .nexus-orb-ring{
   position:absolute;inset:-8px;border-radius:50%;
@@ -5224,7 +5216,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   font-size:32px;font-weight:700;
   letter-spacing:-0.05em;line-height:1;
   position:relative;z-index:2;
-  filter:drop-shadow(0 0 16px var(--orb-pip,rgba(34,201,122,0.7)));
+  /* filter glow removed from mobile score number */
 }
 .nexus-orb-label{
   font-family:var(--mono);
@@ -5505,7 +5497,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   font-size:52px !important;
   font-weight:700 !important;
   letter-spacing:-0.05em !important;
-  filter:drop-shadow(0 0 20px currentColor);
+  /* glow removed R13 */
 }
 .d-score-hero-label{
   font-family:var(--nexus-head) !important;
@@ -7027,7 +7019,7 @@ canvas[id^="rel-"]{
   font-size:16px !important;
   font-weight:900 !important;
   letter-spacing:-0.04em !important;
-  filter:drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor) !important;
+  filter:none !important;  /* glow removed R13 */
 }
 /* COT card glass body */
 .cot-card{
@@ -7809,6 +7801,91 @@ canvas{
 }
 
 
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  NEXUS R13 — De-Glow + Clean Orbit + No Heatmap        ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+/* Strip all remaining heavy drop-shadows from data numbers */
+.f-val, .f-score-num,
+.cc-idx,
+.d-sub-num,
+.ov-cat-score,
+.cot-card-val,
+.ov-hm-score,
+.mr-score-badge,
+.ov-menv-primary{
+  filter:none !important;
+  text-shadow:none !important;
+}
+
+/* d-score-hero-num: no glow, just colour */
+.d-score-hero-num{
+  filter:none !important;
+  text-shadow:none !important;
+}
+
+/* nexus-orb-score: no glow */
+.nexus-orb-score{
+  filter:none !important;
+}
+
+/* Tone down ov-menv text shadow — was bright */
+.ov-menv-primary{
+  text-shadow:none !important;
+}
+
+/* Regime banner text: subtle, not blazing */
+.ov-banner-regime{
+  text-shadow:none !important;
+  filter:none !important;
+}
+.regime-glow-text{
+  text-shadow:none !important;
+}
+
+/* ov-rp score number */
+.ov-rp-stat-val{
+  text-shadow:none !important;
+}
+
+/* Macro hero numbers */
+.ov-mc-hero-num{
+  text-shadow:none !important;
+  filter:none !important;
+}
+
+/* Heatmap: fully removed */
+.ov-heatmap-wrap{
+  display:none !important;
+}
+
+/* Orb score: clean number, colour-only */
+.nexus-orb-score{
+  filter:none !important;
+  text-shadow:none !important;
+}
+
+/* f-bar-f glow: pull back to very subtle */
+.f-bar-f{
+  box-shadow:0 0 5px currentColor !important;
+}
+
+/* ov-sector-bar-fill: subtle glow only */
+.ov-sector-bar-fill{
+  box-shadow:0 0 4px currentColor !important;
+}
+
+/* d-sub-bar-f: subtle glow */
+.d-sub-bar-f{
+  box-shadow:0 0 5px currentColor !important;
+}
+
+/* Heatmap row scores */
+.ov-hm-score{
+  filter:none !important;
+}
+
+
 
 /* ╔═══════════════════════════════════════════════════════════╗
    ║  NEXUS R12 — Visual Depth & Polish Pass                  ║
@@ -7838,9 +7915,9 @@ canvas{
   height:2.5px !important;
   opacity:1 !important;
 }
-/* f-val: strong glow on all f-cards */
+/* f-val: NO glow on factor score numbers per de-glow pass */
 .f-val{
-  filter:drop-shadow(0 0 12px currentColor) drop-shadow(0 0 4px rgba(255,255,255,0.10)) !important;
+  filter:none !important;
 }
 /* f-lbl: sharpen label contrast */
 .f-lbl{
@@ -7857,10 +7934,10 @@ canvas{
   box-shadow:0 0 14px currentColor, 0 0 28px rgba(255,255,255,0.12) !important;
   border:2px solid rgba(0,0,0,0.70) !important;
 }
-/* cc-idx number: slightly larger, glow */
+/* cc-idx: enlarged but no glow */
 .cc-idx{
   font-size:28px !important;
-  filter:drop-shadow(0 0 12px currentColor) !important;
+  filter:none !important;
 }
 /* cc-head: bump contrast */
 .cc-head{
@@ -7932,11 +8009,11 @@ canvas{
   letter-spacing:0.12em !important;
   color:rgba(180,200,235,0.55) !important;
 }
-/* d-sub-num: boost readability */
+/* d-sub-num: readable but no glow */
 .d-sub-num{
   font-size:10px !important;
   font-weight:800 !important;
-  filter:drop-shadow(0 0 6px currentColor) !important;
+  filter:none !important;
 }
 
 /* ── 8. Market leaders heatmap rows: deeper glass ────────────── */
@@ -7972,9 +8049,9 @@ canvas{
   border-color:rgba(255,255,255,0.12) !important;
 }
 
-/* ── 10. Sector score numbers in ov-cat-bar: glow ────────────── */
+/* ── 10. Sector score numbers in ov-cat-bar ─────────────── */
 .ov-cat-score{
-  filter:drop-shadow(0 0 8px currentColor) !important;
+  filter:none !important;
   font-size:14px !important;
   font-weight:900 !important;
 }
@@ -8776,7 +8853,7 @@ function renderOverview(){
     <div class="ov-banner-left nexus-reveal" style="animation-delay:0ms">
       <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-        <div class="ov-banner-regime regime-glow-text" style="color:${regCol};text-shadow:0 0 24px ${regCol}aa,0 0 80px ${regCol}55,0 0 160px ${regCol}22">${regLabel}</div>
+        <div class="ov-banner-regime regime-glow-text" style="color:${regCol}">${regLabel}</div>
         ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}44;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 18px ${regCol}33,inset 0 1px 0 rgba(255,255,255,0.10);animation:pillBreath 3.5s ease-in-out infinite" title="Composite climate score — 5.0 = neutral, 10 = max risk-on, 0 = max risk-off"><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 10</span></div>`:''}
       </div>
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
@@ -13202,8 +13279,8 @@ function _renderClimateArcAnimated(canvas, data, _unused, live={}) {
       _arcAnimId = requestAnimationFrame(frame);
     } else {
       _arcAnimId = null;
-      // Start the live-dot pulse loop
-      _startArcPulse(canvas, data);
+      // live-dot pulse removed R13 — was cheesy
+      // _startArcPulse(canvas, data);
       // Render footer/phases (only once fully drawn)
       // _buildPhaseSummary removed per user request
       const lastScore = data.scores[data.scores.length - 1];
@@ -21096,7 +21173,7 @@ let _arcResizeTimer=null;
 window.addEventListener('resize',()=>{
   clearTimeout(_arcResizeTimer);
   _arcResizeTimer=setTimeout(()=>{
-    if(_arcData){const c=document.getElementById('ov-arc-canvas');if(c){if(_arcPulseId){cancelAnimationFrame(_arcPulseId);_arcPulseId=null;}if(_arcOrbRedrawId){cancelAnimationFrame(_arcOrbRedrawId);_arcOrbRedrawId=null;}const dc=document.getElementById('ov-arc-dot-canvas');if(dc)dc.remove();  _renderClimateArc(c,_arcData);_setupArcTooltip(c,_arcData);_startArcPulse(c,_arcData);}}
+    if(_arcData){const c=document.getElementById('ov-arc-canvas');if(c){if(_arcPulseId){cancelAnimationFrame(_arcPulseId);_arcPulseId=null;}if(_arcOrbRedrawId){cancelAnimationFrame(_arcOrbRedrawId);_arcOrbRedrawId=null;}const dc=document.getElementById('ov-arc-dot-canvas');if(dc)dc.remove();  _renderClimateArc(c,_arcData);_setupArcTooltip(c,_arcData);/* pulse dot removed R13 */}}
   },150);
 });
 
