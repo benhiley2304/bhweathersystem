@@ -12804,6 +12804,42 @@ canvas{
     top: env(safe-area-inset-top, 0px) !important;
   }
 }
+
+/* ════════════════════════════════════════════════════
+   R19L — TRUE root-cause fix for green status-bar bleed
+   
+   DIAGNOSIS: Later .nav patches (pos 284002 @520px, pos 296882 @700px)
+   override the correct safe-area-aware rule with:
+     height:44px !important; padding:0 !important
+   This strips env(safe-area-inset-top) so on iPhones with notch
+   the nav is shorter than the status bar (47px safe area > 44px nav).
+   The regime-wash at top:0 bleeds into that exposed gap.
+   
+   FIX: One final, highest-specificity mobile nav rule that
+   restores the safe-area height and padding — placed LAST so
+   nothing can override it.
+════════════════════════════════════════════════════ */
+@media(max-width:700px){
+  /* Restore safe-area nav height — must come AFTER all other nav rules */
+  .nav {
+    height: calc(50px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-bottom: 0px !important;
+    align-items: flex-end !important;
+    background: rgba(4, 4, 5, 0.98) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+  }
+  /* Ensure the .main content margin accounts for the corrected nav height */
+  .main {
+    margin-top: calc(50px + env(safe-area-inset-top, 0px)) !important;
+  }
+  .sidebar {
+    margin-top: calc(50px + env(safe-area-inset-top, 0px)) !important;
+  }
+}
 </style>
 </head>
 <body>
