@@ -12727,27 +12727,13 @@ canvas{
     font-family: 'Space Grotesk', 'Inter', sans-serif !important;
     margin-bottom: 7px !important;
 
-    /* Use colour via CSS custom property set by JS (--mob-regime-col) */
-    /* Shimmer: the BASE colour transitions from var(--mob-regime-col) to a lighter sheen */
-    background: linear-gradient(
-      105deg,
-      var(--mob-regime-col, #22c97a) 0%,
-      var(--mob-regime-col, #22c97a) 28%,
-      rgba(255,255,255,0.90) 46%,
-      rgba(255,255,255,0.70) 52%,
-      var(--mob-regime-col, #22c97a) 70%,
-      var(--mob-regime-col, #22c97a) 100%
-    ) !important;
-    background-size: 400% 100% !important;
+    /* Gradient set inline by JS (same heroWash approach as desktop).
+       CSS just provides the clip + animation scaffold. */
+    background-size: 300% 300% !important;
     -webkit-background-clip: text !important;
     background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
-    color: var(--mob-regime-col, #22c97a) !important;
-
-    /* textSheen sweeps the gradient position — slow & cinematic */
-    animation: textSheen 18s linear infinite !important;
-
-    /* No glow, no shadow — let the gradient do all the work */
+    animation: heroWash 8s ease-in-out infinite !important;
     text-shadow: none !important;
     filter: none !important;
   }
@@ -13098,7 +13084,12 @@ canvas{
 
 @keyframes heroBreathe {
   0%, 100% { opacity: 0.18; transform: scale(1.0); }
-  50%       { opacity: 0.28; transform: scale(1.06); }
+  50%       { opacity: 0.26; transform: scale(1.05); }
+}
+@keyframes heroWash {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 @media(min-width:701px){
   .ov-banner-regime {
@@ -13110,13 +13101,13 @@ canvas{
     line-height: 0.92 !important;
     font-family: var(--nexus-head) !important;
 
-    /* Clean near-white — the regime colour expresses through the glow, not the text */
-    color: #eef2ff !important;
-    -webkit-text-fill-color: #eef2ff !important;
-    background: none !important;
-    -webkit-background-clip: unset !important;
-    background-clip: unset !important;
-    animation: none !important;
+    /* Gradient set inline by JS using exact regCol hex —
+       mostly near-white, faint regime tint drifting through */
+    background-size: 300% 300% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    animation: heroWash 8s ease-in-out infinite !important;
     text-shadow: none !important;
     filter: none !important;
   }
@@ -13133,8 +13124,8 @@ canvas{
     font-family: inherit !important;
     color: var(--regime-text-col, #22c97a) !important;
     -webkit-text-fill-color: var(--regime-text-col, #22c97a) !important;
-    filter: blur(38px) !important;
-    animation: heroBreathe 5s ease-in-out infinite !important;
+    filter: blur(40px) !important;
+    animation: heroBreathe 6s ease-in-out infinite !important;
     z-index: -1 !important;
     pointer-events: none !important;
     white-space: nowrap !important;
@@ -14005,16 +13996,34 @@ function renderOverview(){
   // Start canvas animation
   initOvCanvas(regCol);
 
-  // R19Q — set --regime-text-col for the ::before bloom glow
+  // R19Q/R — set --regime-text-col for bloom glow, and apply
+  // the subtle tinted-white gradient inline on both hero elements.
+  // Gradient: mostly near-white, regime colour at very low opacity
+  // drifting through as a slow animated wash.
   document.documentElement.style.setProperty('--regime-text-col', regCol);
-  // Clear any inline gradient overrides from previous R19P attempts
+
+  // Build a hex colour that's the regime tint at ~20% opacity blended into white
+  // We approximate by using a very pale mix: white dominant, colour as accent stops
+  const _heroGrad = `linear-gradient(120deg, #e8eeff 0%, #dce8ff 20%, ${regCol}55 45%, #e2ecff 60%, ${regCol}33 80%, #eaf0ff 100%)`;
+
+  // Desktop
   const _regEl = document.querySelector('.ov-banner-regime');
-  if(_regEl){
-    _regEl.style.background = '';
-    _regEl.style.backgroundSize = '';
-    _regEl.style.webkitBackgroundClip = '';
-    _regEl.style.backgroundClip = '';
-    _regEl.style.webkitTextFillColor = '';
+  if(_regEl && window.innerWidth >= 701){
+    _regEl.style.background = _heroGrad;
+    _regEl.style.backgroundSize = '300% 300%';
+    _regEl.style.webkitBackgroundClip = 'text';
+    _regEl.style.backgroundClip = 'text';
+    _regEl.style.webkitTextFillColor = 'transparent';
+  }
+
+  // Mobile
+  const _mobEl = document.querySelector('.mob-hero-regime');
+  if(_mobEl && window.innerWidth <= 700){
+    _mobEl.style.background = _heroGrad;
+    _mobEl.style.backgroundSize = '300% 300%';
+    _mobEl.style.webkitBackgroundClip = 'text';
+    _mobEl.style.backgroundClip = 'text';
+    _mobEl.style.webkitTextFillColor = 'transparent';
   }
 
   // Start / update global app particle background with current regime tint
@@ -14141,61 +14150,7 @@ function renderOverview(){
   });
 
 
-  // ── 4. TOP SIGNALS ─────────────────────────────
-  const topBull=sorted.slice(0,4);
-  const topBear=sorted.slice(-4).reverse();
-  const FK=['cot','seasonal','momentum','macro','relval','regime'];
-  const FC={'cot':'#5c9eff','seasonal':'#f5c842','momentum':'#a78bfa','macro':'#34d399','relval':'#fb923c','regime':'#94a3b8'};
-
-  function sigCard(m,rank,side){
-    const ws=m.weighted_score;
-    const col=sHex(ws);
-    const sc=m.scores||{};
-    const miniBars=FK.map(k=>{
-      const v=sc[k]?.score??5;
-      const h=Math.round(2+((v/10)*20));
-      return `<div class="ov-sig-mini-bar" style="height:${h}px;background:${FC[k]};opacity:0.85"></div>`;
-    }).join('');
-    // Confluence badge
-    const confBonus=m.confluence_bonus||0;
-    const confBadge=confBonus>0?`<div style="display:inline-block;font-size:7px;font-weight:700;letter-spacing:0.06em;color:#f5c842;background:rgba(245,200,66,0.10);border:1px solid rgba(245,200,66,0.25);border-radius:4px;padding:1px 5px;margin-top:3px">Confluence +${confBonus.toFixed(2)}</div>`:'';
-    return `<div class="ov-sig-card ${side}" onclick="selectMkt('${m.id}')">
-      <div class="ov-sig-rank">#${rank}</div>
-      <div class="ov-sig-body">
-        <div class="ov-sig-name">${m.name}</div>
-        <div class="ov-sig-meta">${m.id} &middot; ${m.category}</div>
-        ${confBadge}
-        <div class="ov-sig-mini" style="margin-top:5px">${miniBars}</div>
-      </div>
-      <div class="ov-sig-score" style="color:${col}">${ws.toFixed(1)}</div>
-    </div>`;
-  }
-
-  document.getElementById('ov-signals-wrap').innerHTML=`
-    <div class="ov-sig-wrap-hdr">
-      <div class="ov-sig-wrap-title">Market Leaders</div>
-      <div class="ov-sig-wrap-title-line"></div>
-      <div class="ov-sig-wrap-sub">Top 4 · click to explore</div>
-    </div>
-    <div class="ov-sig-cols">
-      <div class="ov-signals-col">
-        <div class="ov-sig-hdr">
-          <div class="ov-sig-hdr-dot" style="background:#22c97a;box-shadow:0 0 5px #22c97a55"></div>
-          <div class="ov-sig-hdr-label" style="color:#22c97a">Bullish</div>
-        </div>
-        ${topBull.map((m,i)=>sigCard(m,i+1,'bull')).join('')}
-      </div>
-      <div class="ov-signals-col">
-        <div class="ov-sig-hdr">
-          <div class="ov-sig-hdr-dot" style="background:#e03a2a;box-shadow:0 0 5px #e03a2a55"></div>
-          <div class="ov-sig-hdr-label" style="color:#e03a2a">Bearish</div>
-        </div>
-        ${topBear.map((m,i)=>sigCard(m,i+1,'bear')).join('')}
-      </div>
-    </div>`;
-
-  // ── 4b. SMART MONEY CONSENSUS ─────────────────────
-  // Smart Money panel removed — space used for macro climate panels
+  // ── 4. MARKET LEADERS removed ──────────────────────
 
   // ── 5. REGIME SIGNALS PANEL ──────────────────────
   const regSignals=reg.signals||{};
