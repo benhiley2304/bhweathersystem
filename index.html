@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#040405"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>BH Weather System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -12761,6 +12763,45 @@ canvas{
 @media(max-width:700px){
   .mkt-row-zone-sep {
     display: none !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   R19k — Bulletproof green-bleed fix
+   The #regime-wash (position:fixed; inset:0) bleeds green
+   into the iOS safe-area / status bar slot above the nav.
+   Fix: clip it to start at env(safe-area-inset-top, 0px) only
+   (NOT 50px+safe-area — the nav is already above it at z-index:500).
+   The status bar slot is protected by theme-color meta (#040405).
+   Belt AND braces: also set body/html background solid on mobile.
+════════════════════════════════════════════════════ */
+@media(max-width:700px){
+  html {
+    background: #040405 !important;
+  }
+  body {
+    background: #040405 !important;
+  }
+  /* Clip regime-wash, particle canvas, and noise canvas
+     to start AT the safe-area-inset-top boundary only.
+     The nav (z-index:500) covers 50px below that — so the
+     wash is invisible behind the nav anyway.
+     We only need to stop it reaching INTO the status bar slot. */
+  #regime-wash {
+    top: env(safe-area-inset-top, 0px) !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+  #app-particle-bg {
+    top: env(safe-area-inset-top, 0px) !important;
+    height: calc(100% - env(safe-area-inset-top, 0px)) !important;
+  }
+  #nexus-noise-canvas {
+    top: env(safe-area-inset-top, 0px) !important;
+  }
+  #q-scanline {
+    top: env(safe-area-inset-top, 0px) !important;
   }
 }
 </style>
