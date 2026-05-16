@@ -13301,41 +13301,49 @@ canvas{
 .mkt-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10) !important; border-radius: 2px !important; }
 .mkt-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20) !important; }
 
-/* ── HERO TEXT — final cascade fix (R19Y)
-   Lines 10135 + 10599 had background:none !important which killed the
-   line-657 sheen gradient. Restore the gradient + clip here as last word.
-   currentColor = regCol set inline on the element, so the shimmer is
-   regime-coloured automatically. ── */
+/* ── HERO TEXT — R19Z: subtle modulating shimmer
+   Mostly near-white/platinum, regime colour bleeds in softly.
+   White-dominant so it reads as crisp text; the tint modulates
+   gently as the gradient sweeps — noticeable but not heavy-green.
+   Speed: 8s so the sweep is calm, not distracting.
+── */
+@keyframes heroSheen {
+  0%   { background-position: 0% center; }
+  100% { background-position: 100% center; }
+}
+/* Desktop hero — near-white base, barely-there regime tint modulates in/out.
+   Subtlety is intentional: looks great as clean white, the colour is felt
+   more than seen — a soft warmth cycling through the letterforms. */
 .ov-banner-regime {
   background: linear-gradient(
     105deg,
-    currentColor 0%,
-    currentColor 35%,
-    rgba(255,255,255,0.70) 50%,
-    currentColor 65%,
-    currentColor 100%
+    #ffffff                                        0%,
+    color-mix(in srgb, currentColor 18%, #ffffff) 25%,
+    #ffffff                                        50%,
+    color-mix(in srgb, currentColor 12%, #ffffff) 75%,
+    #ffffff                                        100%
   ) !important;
   background-size: 400% 100% !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
-  animation: textSheen 5s linear infinite !important;
+  animation: heroSheen 6s ease-in-out infinite alternate !important;
   color: var(--hero-col, currentColor) !important;
 }
 .mob-hero-regime {
   background: linear-gradient(
     105deg,
-    var(--mob-regime-col, #22c97a) 0%,
-    var(--mob-regime-col, #22c97a) 35%,
-    rgba(255,255,255,0.70) 50%,
-    var(--mob-regime-col, #22c97a) 65%,
-    var(--mob-regime-col, #22c97a) 100%
+    #ffffff                                                              0%,
+    color-mix(in srgb, var(--mob-regime-col, #22c97a) 18%, #ffffff)    25%,
+    #ffffff                                                              50%,
+    color-mix(in srgb, var(--mob-regime-col, #22c97a) 12%, #ffffff)    75%,
+    #ffffff                                                              100%
   ) !important;
   background-size: 400% 100% !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
-  animation: textSheen 5s linear infinite !important;
+  animation: heroSheen 6s ease-in-out infinite alternate !important;
 }
 </style>
 </head>
