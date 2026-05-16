@@ -13086,62 +13086,55 @@ canvas{
 }
 
 /* ════════════════════════════════════════════════════
-   R19P — Desktop hero text: vivid regime-colour knockout
-   Bold letterforms filled with a dominant regime colour.
-   A razor-thin white hotspot sweeps slowly (sheen effect).
-   Blurred ::before layer adds the outer glow halo.
+   R19Q — Desktop hero text: clean white + soft regime glow
+   Text is near-white for maximum readability and premium feel.
+   Regime colour lives as a diffuse bloom BEHIND the text,
+   like the letterforms are backlit — subtle, tasteful, iOS-grade.
 ════════════════════════════════════════════════════ */
+/* R19Q — hide zone separator band in rankings list */
+.mkt-row-zone-sep {
+  display: none !important;
+}
+
+@keyframes heroBreathe {
+  0%, 100% { opacity: 0.18; transform: scale(1.0); }
+  50%       { opacity: 0.28; transform: scale(1.06); }
+}
 @media(min-width:701px){
   .ov-banner-regime {
     position: relative !important;
     display: inline-block !important;
-
-    /* Typography — heavy weight fills letterforms with colour */
     font-size: 96px !important;
     font-weight: 900 !important;
     letter-spacing: -0.05em !important;
     line-height: 0.92 !important;
     font-family: var(--nexus-head) !important;
 
-    /* Gradient: regime colour via JS-set CSS variable --regime-text-col.
-       currentColor doesn't resolve correctly with background-clip:text.
-       JS sets --regime-text-col AND applies background inline after render. */
-    background: linear-gradient(
-      105deg,
-      var(--regime-text-col, #22c97a) 0%,
-      var(--regime-text-col, #22c97a) 44%,
-      rgba(255,255,255,0.92) 49%,
-      rgba(255,255,255,0.92) 51%,
-      var(--regime-text-col, #22c97a) 56%,
-      var(--regime-text-col, #22c97a) 100%
-    ) !important;
-    background-size: 800% 100% !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-
-    /* Sheen sweep animation */
-    animation: textSheen 14s linear infinite !important;
-
+    /* Clean near-white — the regime colour expresses through the glow, not the text */
+    color: #eef2ff !important;
+    -webkit-text-fill-color: #eef2ff !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    animation: none !important;
     text-shadow: none !important;
     filter: none !important;
   }
 
-  /* Glow halo — blurred duplicate behind the clipped text */
+  /* Soft regime-colour bloom sitting behind the letterforms */
   .ov-banner-regime::before {
     content: attr(data-label) !important;
     position: absolute !important;
-    inset: 0 !important;
+    inset: -20px -30px !important;
     font-size: inherit !important;
     font-weight: inherit !important;
     letter-spacing: inherit !important;
     line-height: inherit !important;
     font-family: inherit !important;
-    /* CSS variable resolves correctly for non-clipped colour */
     color: var(--regime-text-col, #22c97a) !important;
     -webkit-text-fill-color: var(--regime-text-col, #22c97a) !important;
-    filter: blur(28px) !important;
-    opacity: 0.5 !important;
+    filter: blur(38px) !important;
+    animation: heroBreathe 5s ease-in-out infinite !important;
     z-index: -1 !important;
     pointer-events: none !important;
     white-space: nowrap !important;
@@ -14012,18 +14005,16 @@ function renderOverview(){
   // Start canvas animation
   initOvCanvas(regCol);
 
-  // R19P v3 — set --regime-text-col CSS variable so the gradient text works
-  // (currentColor doesn't resolve inside background: with background-clip:text)
+  // R19Q — set --regime-text-col for the ::before bloom glow
   document.documentElement.style.setProperty('--regime-text-col', regCol);
-  // Also apply inline so there's zero timing gap before animation starts
+  // Clear any inline gradient overrides from previous R19P attempts
   const _regEl = document.querySelector('.ov-banner-regime');
-  if(_regEl && window.innerWidth >= 701){
-    const _grad = `linear-gradient(105deg, ${regCol} 0%, ${regCol} 44%, rgba(255,255,255,0.92) 49%, rgba(255,255,255,0.92) 51%, ${regCol} 56%, ${regCol} 100%)`;
-    _regEl.style.background = _grad;
-    _regEl.style.backgroundSize = '800% 100%';
-    _regEl.style.webkitBackgroundClip = 'text';
-    _regEl.style.backgroundClip = 'text';
-    _regEl.style.webkitTextFillColor = 'transparent';
+  if(_regEl){
+    _regEl.style.background = '';
+    _regEl.style.backgroundSize = '';
+    _regEl.style.webkitBackgroundClip = '';
+    _regEl.style.backgroundClip = '';
+    _regEl.style.webkitTextFillColor = '';
   }
 
   // Start / update global app particle background with current regime tint
