@@ -13142,12 +13142,28 @@ canvas{
    button style, bias pill readability, overview meta line
 ══════════════════════════════════════════════════════════════════ */
 
-/* ── 1. Filter chip row: right-edge fade so overflow is signalled cleanly ── */
+/* ── 1. Filter chip row: right-edge fade via pseudo-element overlay ──
+   Can't use mask-image when parent has overflow:hidden (clips the mask).
+   Instead: sb-head gets position:relative, ::after is an absolute gradient
+   overlay on the right edge that fades chips into transparency. ── */
 @media (max-width: 700px) {
+  .sb-head {
+    position: relative !important;
+    overflow: visible !important;
+  }
+  .sb-head::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 40px !important;
+    background: linear-gradient(to right, transparent, rgba(5,7,13,0.97)) !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+  }
   .cat-row {
-    mask-image: linear-gradient(to right, black 75%, transparent 100%) !important;
-    -webkit-mask-image: linear-gradient(to right, black 75%, transparent 100%) !important;
-    padding-right: 24px !important;
+    padding-right: 32px !important;
   }
 }
 
@@ -13207,6 +13223,37 @@ canvas{
 .ov-meta-line, .ov-breadcrumb {
   color: rgba(173,184,208,0.62) !important;
   font-size: 9px !important;
+}
+
+/* ── 9. Sidebar header polish — Rankings title more premium ── */
+.sb-top h2 {
+  font-size: 9px !important;
+  letter-spacing: 0.18em !important;
+  color: rgba(200,169,110,0.80) !important;
+}
+#sb-count {
+  font-size: 9px !important;
+  color: rgba(173,184,208,0.50) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 600 !important;
+}
+
+/* ── 10. Bias pill sizing — slightly larger on desktop too ── */
+.mr-bias {
+  font-size: 6.5px !important;
+  padding: 2px 5px !important;
+}
+
+/* ── 11. Score number — slightly bolder presence ── */
+.mr-score-badge {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+}
+
+/* ── 12. Asset name on desktop — slightly brighter ── */
+.mr-name {
+  color: rgba(228,235,248,0.92) !important;
 }
 
 /* ── R19X — ASSET LIST REDESIGN
@@ -13271,15 +13318,15 @@ canvas{
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 7px !important;
   font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: 0.04em !important;
   /* colour set inline by JS via _catCol */
-  min-width: 32px !important;
-  max-width: 32px !important;
+  min-width: 28px !important;
+  max-width: 36px !important;
   overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  text-overflow: clip !important;
   white-space: nowrap !important;
   text-transform: uppercase !important;
-  opacity: 0.75 !important;
+  opacity: 1 !important;   /* JS sets inline colour + opacity:0.8 — that wins */
 }
 
 /* ── Asset name — clean, slightly larger ── */
@@ -13865,8 +13912,10 @@ function renderList(){
       <div class="mr-slider-dot" style="left:${sliderPct}%"></div>
     </div>`;
 
+    // Shorten ticker for display: FX crosses like GBPAUD -> GBP, NZDCAD -> NZD etc
+    const _tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
     return sepHtml + `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" data-zone="${_zone}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
-      <span class="mr-id" style="color:${_catCol};opacity:0.8">${m.id}</span>
+      <span class="mr-id" style="color:${_catCol}">${_tidDisplay}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
         ${sliderHtml}
