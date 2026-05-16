@@ -13084,6 +13084,72 @@ canvas{
   letter-spacing: 0.10em !important;
   text-transform: uppercase !important;
 }
+
+/* ════════════════════════════════════════════════════
+   R19P — Desktop hero text: vivid regime-colour knockout
+   Thick, bold letterforms filled with the regime colour.
+   A narrow white hotspot sweeps slowly across (sheen).
+   Outer glow via a blurred duplicate layer behind the text.
+════════════════════════════════════════════════════ */
+@media(min-width:701px){
+  /* Wrapper: relative so ::before can position behind */
+  .ov-banner-regime {
+    position: relative !important;
+    display: inline-block !important;
+
+    /* Typography */
+    font-size: 96px !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.05em !important;
+    line-height: 0.92 !important;
+    font-family: var(--nexus-head) !important;
+
+    /* Fill: regime colour dominates, tiny white flash sweeps through */
+    background: linear-gradient(
+      105deg,
+      currentColor 0%,
+      currentColor 40%,
+      rgba(255,255,255,0.88) 49%,
+      rgba(255,255,255,0.88) 51%,
+      currentColor 60%,
+      currentColor 100%
+    ) !important;
+    background-size: 300% 100% !important;
+    background-position: 0% 50% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+
+    /* Sheen sweep — slow, cinematic */
+    animation: textSheen 12s linear infinite !important;
+
+    /* No conflicting shadow/filter */
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
+  /* Glow layer: blurred copy of the text sits behind,
+     creates the "lit from within" halo effect.
+     JS sets --ov-regime-col CSS variable alongside inline color. */
+  .ov-banner-regime::before {
+    content: attr(data-label) !important;
+    position: absolute !important;
+    inset: 0 !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: inherit !important;
+    line-height: inherit !important;
+    font-family: inherit !important;
+    color: currentColor !important;
+    -webkit-text-fill-color: currentColor !important;
+    filter: blur(18px) !important;
+    opacity: 0.55 !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
+    white-space: nowrap !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -13830,7 +13896,7 @@ function renderOverview(){
     <div class="ov-banner-left nexus-reveal" style="animation-delay:0ms">
       <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-        <div class="ov-banner-regime regime-glow-text" style="color:${regCol}">${regLabel}</div>
+        <div class="ov-banner-regime regime-glow-text" style="color:${regCol}" data-label="${regLabel}">${regLabel}</div>
         ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}44;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 18px ${regCol}33,inset 0 1px 0 rgba(255,255,255,0.10);animation:pillBreath 3.5s ease-in-out infinite" title="Composite climate score — 5.0 = neutral, 10 = max risk-on, 0 = max risk-off"><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 10</span></div>`:''}
       </div>
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
