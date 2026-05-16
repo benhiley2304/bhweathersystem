@@ -13103,25 +13103,24 @@ canvas{
     line-height: 0.92 !important;
     font-family: var(--nexus-head) !important;
 
-    /* Gradient: regime colour is ~95% of the width.
-       White hotspot is razor-thin at centre (49-51%).
-       background-size:800% means 1/8th of gradient visible at once —
-       white flash appears for <5% of the animation sweep. */
+    /* Gradient: regime colour via JS-set CSS variable --regime-text-col.
+       currentColor doesn't resolve correctly with background-clip:text.
+       JS sets --regime-text-col AND applies background inline after render. */
     background: linear-gradient(
       105deg,
-      currentColor 0%,
-      currentColor 47%,
-      rgba(255,255,255,0.95) 49%,
-      rgba(255,255,255,0.95) 51%,
-      currentColor 53%,
-      currentColor 100%
+      var(--regime-text-col, #22c97a) 0%,
+      var(--regime-text-col, #22c97a) 44%,
+      rgba(255,255,255,0.92) 49%,
+      rgba(255,255,255,0.92) 51%,
+      var(--regime-text-col, #22c97a) 56%,
+      var(--regime-text-col, #22c97a) 100%
     ) !important;
     background-size: 800% 100% !important;
     -webkit-background-clip: text !important;
     background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
 
-    /* Inherit sheen animation (200% → -200% sweep) */
+    /* Sheen sweep animation */
     animation: textSheen 14s linear infinite !important;
 
     text-shadow: none !important;
@@ -13138,11 +13137,11 @@ canvas{
     letter-spacing: inherit !important;
     line-height: inherit !important;
     font-family: inherit !important;
-    /* Use currentColor directly — not clipped, just blurred */
-    color: currentColor !important;
-    -webkit-text-fill-color: currentColor !important;
-    filter: blur(22px) !important;
-    opacity: 0.45 !important;
+    /* CSS variable resolves correctly for non-clipped colour */
+    color: var(--regime-text-col, #22c97a) !important;
+    -webkit-text-fill-color: var(--regime-text-col, #22c97a) !important;
+    filter: blur(28px) !important;
+    opacity: 0.5 !important;
     z-index: -1 !important;
     pointer-events: none !important;
     white-space: nowrap !important;
@@ -14012,6 +14011,21 @@ function renderOverview(){
 
   // Start canvas animation
   initOvCanvas(regCol);
+
+  // R19P v3 — set --regime-text-col CSS variable so the gradient text works
+  // (currentColor doesn't resolve inside background: with background-clip:text)
+  document.documentElement.style.setProperty('--regime-text-col', regCol);
+  // Also apply inline so there's zero timing gap before animation starts
+  const _regEl = document.querySelector('.ov-banner-regime');
+  if(_regEl && window.innerWidth >= 701){
+    const _grad = `linear-gradient(105deg, ${regCol} 0%, ${regCol} 44%, rgba(255,255,255,0.92) 49%, rgba(255,255,255,0.92) 51%, ${regCol} 56%, ${regCol} 100%)`;
+    _regEl.style.background = _grad;
+    _regEl.style.backgroundSize = '800% 100%';
+    _regEl.style.webkitBackgroundClip = 'text';
+    _regEl.style.backgroundClip = 'text';
+    _regEl.style.webkitTextFillColor = 'transparent';
+  }
+
   // Start / update global app particle background with current regime tint
   initAppBg(regLabel);
 
