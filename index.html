@@ -13087,50 +13087,48 @@ canvas{
 
 /* ════════════════════════════════════════════════════
    R19P — Desktop hero text: vivid regime-colour knockout
-   Thick, bold letterforms filled with the regime colour.
-   A narrow white hotspot sweeps slowly across (sheen).
-   Outer glow via a blurred duplicate layer behind the text.
+   Bold letterforms filled with a dominant regime colour.
+   A razor-thin white hotspot sweeps slowly (sheen effect).
+   Blurred ::before layer adds the outer glow halo.
 ════════════════════════════════════════════════════ */
 @media(min-width:701px){
-  /* Wrapper: relative so ::before can position behind */
   .ov-banner-regime {
     position: relative !important;
     display: inline-block !important;
 
-    /* Typography */
+    /* Typography — heavy weight fills letterforms with colour */
     font-size: 96px !important;
     font-weight: 900 !important;
     letter-spacing: -0.05em !important;
     line-height: 0.92 !important;
     font-family: var(--nexus-head) !important;
 
-    /* Fill: regime colour dominates, tiny white flash sweeps through */
+    /* Gradient: regime colour is ~95% of the width.
+       White hotspot is razor-thin at centre (49-51%).
+       background-size:800% means 1/8th of gradient visible at once —
+       white flash appears for <5% of the animation sweep. */
     background: linear-gradient(
       105deg,
       currentColor 0%,
-      currentColor 40%,
-      rgba(255,255,255,0.88) 49%,
-      rgba(255,255,255,0.88) 51%,
-      currentColor 60%,
+      currentColor 47%,
+      rgba(255,255,255,0.95) 49%,
+      rgba(255,255,255,0.95) 51%,
+      currentColor 53%,
       currentColor 100%
     ) !important;
-    background-size: 300% 100% !important;
-    background-position: 0% 50% !important;
+    background-size: 800% 100% !important;
     -webkit-background-clip: text !important;
     background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
 
-    /* Sheen sweep — slow, cinematic */
-    animation: textSheen 12s linear infinite !important;
+    /* Inherit sheen animation (200% → -200% sweep) */
+    animation: textSheen 14s linear infinite !important;
 
-    /* No conflicting shadow/filter */
     text-shadow: none !important;
     filter: none !important;
   }
 
-  /* Glow layer: blurred copy of the text sits behind,
-     creates the "lit from within" halo effect.
-     JS sets --ov-regime-col CSS variable alongside inline color. */
+  /* Glow halo — blurred duplicate behind the clipped text */
   .ov-banner-regime::before {
     content: attr(data-label) !important;
     position: absolute !important;
@@ -13140,16 +13138,19 @@ canvas{
     letter-spacing: inherit !important;
     line-height: inherit !important;
     font-family: inherit !important;
+    /* Use currentColor directly — not clipped, just blurred */
     color: currentColor !important;
     -webkit-text-fill-color: currentColor !important;
-    filter: blur(18px) !important;
-    opacity: 0.55 !important;
+    filter: blur(22px) !important;
+    opacity: 0.45 !important;
     z-index: -1 !important;
     pointer-events: none !important;
     white-space: nowrap !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
   }
 }
-
 </style>
 </head>
 <body>
