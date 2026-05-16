@@ -12936,6 +12936,27 @@ canvas{
   flex-shrink: 0 !important;
   letter-spacing: -0.03em !important;
 }
+
+/* ════════════════════════════════════════════════════
+   R19N — Hotfix: revert unconditional nav position:fixed
+   R19M accidentally set position:fixed globally (outside any
+   media query), breaking desktop sticky nav and cutting off
+   the top of the page. Fix: restore desktop nav to sticky,
+   keep position:fixed only inside the mobile media query.
+════════════════════════════════════════════════════ */
+
+/* Desktop nav — restore sticky positioning */
+@media(min-width:701px){
+  .nav {
+    position: sticky !important;
+    top: 0 !important;
+    left: unset !important;
+    right: unset !important;
+    height: 52px !important;
+    padding: 0 16px !important;
+    z-index: 300 !important;
+  }
+}
 </style>
 </head>
 <body>
