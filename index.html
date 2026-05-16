@@ -13301,20 +13301,41 @@ canvas{
 .mkt-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10) !important; border-radius: 2px !important; }
 .mkt-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20) !important; }
 
-/* ── HERO TEXT FINAL OVERRIDE (R19W) ──────────────────────────────────────
-   All old ov-banner-regime background/clip/animation rules are dead weight.
-   JS sets --hero-grad and --hero-fill on the element; this block enforces them.
-   CSS var() with !important wins the cascade while JS retains full control.
-─────────────────────────────────────────────────────────────────────────── */
-.ov-banner-regime,
-.mob-hero-regime {
-  background: var(--hero-grad, none) !important;
+/* ── HERO TEXT — final cascade fix (R19Y)
+   Lines 10135 + 10599 had background:none !important which killed the
+   line-657 sheen gradient. Restore the gradient + clip here as last word.
+   currentColor = regCol set inline on the element, so the shimmer is
+   regime-coloured automatically. ── */
+.ov-banner-regime {
+  background: linear-gradient(
+    105deg,
+    currentColor 0%,
+    currentColor 35%,
+    rgba(255,255,255,0.70) 50%,
+    currentColor 65%,
+    currentColor 100%
+  ) !important;
   background-size: 400% 100% !important;
-  -webkit-background-clip: var(--hero-clip, border-box) !important;
-  background-clip: var(--hero-clip, border-box) !important;
-  -webkit-text-fill-color: var(--hero-fill, currentColor) !important;
-  animation: var(--hero-anim, none) !important;
-  color: var(--hero-col, var(--text)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: textSheen 5s linear infinite !important;
+  color: var(--hero-col, currentColor) !important;
+}
+.mob-hero-regime {
+  background: linear-gradient(
+    105deg,
+    var(--mob-regime-col, #22c97a) 0%,
+    var(--mob-regime-col, #22c97a) 35%,
+    rgba(255,255,255,0.70) 50%,
+    var(--mob-regime-col, #22c97a) 65%,
+    var(--mob-regime-col, #22c97a) 100%
+  ) !important;
+  background-size: 400% 100% !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: textSheen 5s linear infinite !important;
 }
 </style>
 </head>
@@ -14207,13 +14228,8 @@ function renderOverview(){
     el.style.setProperty('--hero-col', _heroCol);
   }
 
-  // Apply hero gradient — use rAF + timeout to guarantee it runs after
-  // any post-render CSS settling (defeats stale !important overrides)
-  function _applyHeroGradDeferred(){
-    _applyHeroGrad(document.querySelector('.ov-banner-regime'));
-    if(window.innerWidth <= 700) _applyHeroGrad(document.querySelector('.mob-hero-regime'));
-  }
-  requestAnimationFrame(()=>setTimeout(_applyHeroGradDeferred, 50));
+  // Hero gradient is now handled entirely via CSS (R19Y) — no JS injection needed.
+  // The final CSS block uses currentColor (set inline as regCol) + textSheen animation.
 
   // Start / update global app particle background with current regime tint
   initAppBg(regLabel);
