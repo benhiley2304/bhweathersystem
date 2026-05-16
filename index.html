@@ -12957,6 +12957,133 @@ canvas{
     z-index: 300 !important;
   }
 }
+
+/* ════════════════════════════════════════════════════
+   R19O — Revert Market Leaders CSS to pre-R19 clean state.
+   R19b/c/M added ov-sig-card overrides that broke the section.
+   This patch hard-resets all ov-sig-* rules to R18e values.
+════════════════════════════════════════════════════ */
+
+/* ── Card container — R18e exact values ── */
+.ov-sig-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 11px 14px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255,255,255,0.11) !important;
+  border-top-color: rgba(255,255,255,0.18) !important;
+  cursor: pointer !important;
+  transition: all 180ms var(--ease) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: linear-gradient(145deg, rgba(14,18,30,0.98) 0%, rgba(8,11,20,0.97) 100%) !important;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.ov-sig-card.bull:hover {
+  background: linear-gradient(135deg, rgba(34,201,122,0.10) 0%, rgba(8,11,20,0.98) 100%) !important;
+  border-color: rgba(34,201,122,0.30) !important;
+  box-shadow: 0 4px 20px rgba(34,201,122,0.12) !important;
+}
+.ov-sig-card.bear:hover {
+  background: linear-gradient(135deg, rgba(220,40,40,0.10) 0%, rgba(8,11,20,0.98) 100%) !important;
+  border-color: rgba(220,40,40,0.30) !important;
+  box-shadow: 0 4px 20px rgba(220,40,40,0.12) !important;
+}
+
+/* ── Left colour stripe — restore ::before ── */
+.ov-sig-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; bottom: 0 !important; left: 0 !important;
+  width: 3px !important;
+  border-radius: 2px 0 0 2px !important;
+  opacity: 0.75 !important;
+}
+.ov-sig-card.bull::before { background: linear-gradient(180deg,#22c97a,#3b82c4) !important; }
+.ov-sig-card.bear::before { background: linear-gradient(180deg,#c41a2e,#e03a2a) !important; }
+
+/* ── Rank badge ── */
+.ov-sig-rank {
+  font-family: var(--mono) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: var(--faint) !important;
+  width: 16px !important;
+  flex-shrink: 0 !important;
+  text-align: right !important;
+}
+
+/* ── Body ── */
+.ov-sig-body {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* ── Name ── */
+.ov-sig-name {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  letter-spacing: -0.02em !important;
+  font-family: var(--nexus-head) !important;
+}
+
+/* ── Meta ── */
+.ov-sig-meta {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  color: var(--faint) !important;
+  margin-top: 1px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* ── Mini bars container ── */
+.ov-sig-mini {
+  display: flex !important;
+  gap: 2px !important;
+  align-items: flex-end !important;
+  height: 22px !important;
+  flex-shrink: 0 !important;
+  margin-top: 5px !important;
+}
+
+/* ── Individual bar ── */
+.ov-sig-mini-bar {
+  width: 6px !important;
+  border-radius: 2px 2px 0 0 !important;
+  transition: height 400ms var(--ease) !important;
+  opacity: 0.85 !important;
+}
+
+/* ── Score number ── */
+.ov-sig-score {
+  font-family: var(--mono) !important;
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  flex-shrink: 0 !important;
+  letter-spacing: -0.03em !important;
+}
+
+/* ── Section header ── */
+.ov-sig-hdr {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-bottom: 8px !important;
+}
+.ov-sig-hdr-label {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+}
 </style>
 </head>
 <body>
