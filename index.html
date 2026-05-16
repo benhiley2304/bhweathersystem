@@ -13142,28 +13142,15 @@ canvas{
    button style, bias pill readability, overview meta line
 ══════════════════════════════════════════════════════════════════ */
 
-/* ── 1. Filter chip row: right-edge fade via pseudo-element overlay ──
-   Can't use mask-image when parent has overflow:hidden (clips the mask).
-   Instead: sb-head gets position:relative, ::after is an absolute gradient
-   overlay on the right edge that fades chips into transparency. ── */
+/* ── 1. Filter chip row: right-edge fade ──
+   Use mask-image on the cat-row itself — works because the row is the
+   scrollable element; the parent overflow:hidden only clips children
+   outside its bounds, not masks on the element itself. ── */
 @media (max-width: 700px) {
-  .sb-head {
-    position: relative !important;
-    overflow: visible !important;
-  }
-  .sb-head::after {
-    content: '' !important;
-    position: absolute !important;
-    top: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 40px !important;
-    background: linear-gradient(to right, transparent, rgba(5,7,13,0.97)) !important;
-    pointer-events: none !important;
-    z-index: 2 !important;
-  }
-  .cat-row {
-    padding-right: 32px !important;
+  #cat-row {
+    -webkit-mask-image: linear-gradient(to right, black 70%, transparent 98%) !important;
+    mask-image: linear-gradient(to right, black 70%, transparent 98%) !important;
+    padding-right: 20px !important;
   }
 }
 
