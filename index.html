@@ -12840,6 +12840,102 @@ canvas{
     margin-top: calc(50px + env(safe-area-inset-top, 0px)) !important;
   }
 }
+
+/* ════════════════════════════════════════════════════
+   R19M — Two definitive fixes:
+
+   1. GREEN HEADER: Root cause is a 420px rule at pos 185302 that sets
+      position:relative on .nav, removing fixed positioning on iPhones.
+      This means the nav no longer covers the iOS safe-area zone,
+      and #regime-wash (green, position:fixed, top:0) bleeds through.
+      Fix: final rule restores position:fixed + safe-area height + background.
+      Placed LAST — overrides ALL previous nav rules.
+
+   2. MARKET LEADERS: Cards render correctly but the ov-sig-mini bars
+      are too uniform in height and colour contrast is low.
+      Enhance: taller bar container, wider bars, stronger colour opacity,
+      and ensure the card body has enough padding to show them clearly.
+════════════════════════════════════════════════════ */
+
+/* ════ 1. NAV — absolute final override ════ */
+/* Applied at EVERY breakpoint to guarantee safe-area coverage */
+.nav {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 500 !important;
+}
+
+@media(max-width:700px){
+  .nav {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 500 !important;
+    height: calc(50px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-bottom: 0 !important;
+    align-items: flex-end !important;
+    /* Fully opaque dark background — covers regime-wash completely */
+    background: #040405 !important;
+    background: rgba(4, 4, 5, 1) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.05),
+                0 4px 24px rgba(0,0,0,0.8) !important;
+  }
+  /* Also kill nexus-horizon on mobile — it adds an animated glow
+     that can appear as a bright band at certain scroll positions */
+  #nexus-horizon {
+    display: none !important;
+  }
+}
+
+/* ════ 2. MARKET LEADERS — enhanced bar visibility ════ */
+.ov-sig-mini {
+  height: 28px !important;
+  gap: 3px !important;
+  align-items: flex-end !important;
+  margin-top: 6px !important;
+}
+.ov-sig-mini-bar {
+  width: 7px !important;
+  border-radius: 2px 2px 0 0 !important;
+  opacity: 1 !important;
+  min-height: 3px !important;
+}
+.ov-sig-card {
+  padding: 12px 14px 11px !important;
+  gap: 14px !important;
+}
+.ov-sig-body {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.ov-sig-name {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.ov-sig-meta {
+  font-size: 8px !important;
+  color: rgba(173, 184, 208, 0.55) !important;
+  letter-spacing: 0.05em !important;
+  margin-top: 2px !important;
+}
+.ov-sig-score {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  flex-shrink: 0 !important;
+  letter-spacing: -0.03em !important;
+}
 </style>
 </head>
 <body>
