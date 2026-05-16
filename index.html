@@ -12727,13 +12727,13 @@ canvas{
     font-family: 'Space Grotesk', 'Inter', sans-serif !important;
     margin-bottom: 7px !important;
 
-    /* Gradient set inline by JS (same heroWash approach as desktop).
-       CSS just provides the clip + animation scaffold. */
-    background-size: 300% 300% !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    animation: heroWash 8s ease-in-out infinite !important;
+    /* Safe fallback — visible white until JS injects the gradient */
+    color: #eef2ff !important;
+    -webkit-text-fill-color: #eef2ff !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    animation: none !important;
     text-shadow: none !important;
     filter: none !important;
   }
@@ -13101,13 +13101,13 @@ canvas{
     line-height: 0.92 !important;
     font-family: var(--nexus-head) !important;
 
-    /* Gradient set inline by JS using exact regCol hex —
-       mostly near-white, faint regime tint drifting through */
-    background-size: 300% 300% !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    animation: heroWash 8s ease-in-out infinite !important;
+    /* Safe fallback — visible white until JS injects the gradient */
+    color: #eef2ff !important;
+    -webkit-text-fill-color: #eef2ff !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    animation: none !important;
     text-shadow: none !important;
     filter: none !important;
   }
@@ -14006,25 +14006,22 @@ function renderOverview(){
   // We approximate by using a very pale mix: white dominant, colour as accent stops
   const _heroGrad = `linear-gradient(120deg, #e8eeff 0%, #dce8ff 20%, ${regCol}55 45%, #e2ecff 60%, ${regCol}33 80%, #eaf0ff 100%)`;
 
-  // Desktop
-  const _regEl = document.querySelector('.ov-banner-regime');
-  if(_regEl && window.innerWidth >= 701){
-    _regEl.style.background = _heroGrad;
-    _regEl.style.backgroundSize = '300% 300%';
-    _regEl.style.webkitBackgroundClip = 'text';
-    _regEl.style.backgroundClip = 'text';
-    _regEl.style.webkitTextFillColor = 'transparent';
+  // Apply gradient clip to hero text elements
+  // CSS fallback is #eef2ff (visible white) — JS upgrades to animated gradient
+  function _applyHeroGrad(el){
+    if(!el) return;
+    el.style.background = _heroGrad;
+    el.style.backgroundSize = '300% 300%';
+    el.style.webkitBackgroundClip = 'text';
+    el.style.backgroundClip = 'text';
+    el.style.webkitTextFillColor = 'transparent';
+    el.style.animation = 'heroWash 8s ease-in-out infinite';
   }
 
-  // Mobile
-  const _mobEl = document.querySelector('.mob-hero-regime');
-  if(_mobEl && window.innerWidth <= 700){
-    _mobEl.style.background = _heroGrad;
-    _mobEl.style.backgroundSize = '300% 300%';
-    _mobEl.style.webkitBackgroundClip = 'text';
-    _mobEl.style.backgroundClip = 'text';
-    _mobEl.style.webkitTextFillColor = 'transparent';
-  }
+  // Desktop
+  _applyHeroGrad(document.querySelector('.ov-banner-regime'));
+  // Mobile (only apply if mobile view)
+  if(window.innerWidth <= 700) _applyHeroGrad(document.querySelector('.mob-hero-regime'));
 
   // Start / update global app particle background with current regime tint
   initAppBg(regLabel);
