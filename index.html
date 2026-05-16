@@ -13135,6 +13135,172 @@ canvas{
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   R19X — ASSET LIST REDESIGN
+   Goal: dynamic, colourful, premium — score as visual anchor,
+   category colour identity, glowing fill bar, bias pill badges
+══════════════════════════════════════════════════════════════════ */
+
+/* ── Category colour tokens ── */
+:root {
+  --cat-equity:   #6c9edf;
+  --cat-fx:       #b57bee;
+  --cat-cross:    #9d6fd4;
+  --cat-commodity:#c8a96e;
+  --cat-bond:     #5ec4c4;
+  --cat-crypto:   #f97316;
+}
+
+/* ── Row base — more breathing room, score-colour left bar ── */
+.mkt-row {
+  padding: 10px 14px 10px 16px !important;
+  gap: 10px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.028) !important;
+  background: transparent !important;
+  transition: background 120ms, border-color 120ms !important;
+  position: relative !important;
+  border-left: 2.5px solid transparent !important;
+}
+.mkt-row::before { display:none !important; }
+.mkt-row::after  { display:none !important; }
+
+/* Coloured left accent bar driven by --row-accent (set inline by JS) */
+.mkt-row {
+  border-left-color: var(--row-accent, transparent) !important;
+}
+
+/* Zone tinting — more visible differentiation */
+.mkt-row[data-zone="bull"] {
+  background: rgba(34,201,122,0.04) !important;
+}
+.mkt-row[data-zone="bear"] {
+  background: rgba(224,58,42,0.04) !important;
+}
+.mkt-row[data-zone="neutral"] {
+  background: rgba(255,255,255,0.012) !important;
+}
+
+/* Hover — score-colour glow sweep */
+.mkt-row:hover {
+  background: rgba(255,255,255,0.038) !important;
+  border-left-color: var(--row-accent, rgba(255,255,255,0.3)) !important;
+}
+.mkt-row[data-zone="bull"]:hover { background: rgba(34,201,122,0.07) !important; }
+.mkt-row[data-zone="bear"]:hover { background: rgba(224,58,42,0.07) !important; }
+
+/* Selected */
+.mkt-row.sel {
+  background: rgba(255,255,255,0.05) !important;
+  border-left-color: var(--row-accent, var(--accent)) !important;
+}
+.mkt-row[data-zone="bull"].sel,
+.mkt-row[data-zone="bear"].sel {
+  background: rgba(255,255,255,0.05) !important;
+}
+
+/* ── Ticker ID — readable mono, category coloured ── */
+.mr-id {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 7.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  color: rgba(173,184,208,0.55) !important;
+  min-width: 30px !important;
+  text-transform: uppercase !important;
+}
+
+/* ── Asset name — clean, slightly larger ── */
+.mr-name {
+  font-family: var(--nexus-head) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.015em !important;
+  color: rgba(220,228,245,0.88) !important;
+  line-height: 1.2 !important;
+}
+.mkt-row:hover .mr-name,
+.mkt-row.sel .mr-name {
+  color: #f2f6ff !important;
+}
+
+/* ── Score badge — bigger, bolder, regime colour ── */
+.mr-score-badge {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  min-width: 34px !important;
+  text-align: right !important;
+  line-height: 1 !important;
+}
+
+/* ── Bias label — pill badge with tinted background ── */
+.mr-bias {
+  font-family: var(--nexus-head) !important;
+  font-size: 6px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.09em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  opacity: 1 !important;
+  padding: 1.5px 5px !important;
+  border-radius: 3px !important;
+  background: color-mix(in srgb, currentColor 12%, transparent) !important;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent) !important;
+  margin-top: 2px !important;
+}
+
+/* ── Slider track — wider, fills from left in score colour ── */
+.mr-slider-track {
+  position: relative !important;
+  height: 4px !important;
+  margin-top: 7px !important;
+  border-radius: 3px !important;
+  background: rgba(255,255,255,0.06) !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+}
+
+/* Score fill — fills from left to the dot position */
+.mr-slider-track::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: var(--mr-fill-w, 50%) !important;
+  background: var(--mr-fill-col, rgba(110,125,128,0.6)) !important;
+  border-radius: 3px !important;
+  opacity: 0.75 !important;
+  transition: width 500ms cubic-bezier(0.25,1,0.5,1) !important;
+}
+
+/* Dot — score colour with glow */
+.mr-slider-dot {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 50% !important;
+  background: var(--mr-dot-col, #fff) !important;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.65), 0 0 8px 2px var(--mr-dot-glow, rgba(110,125,128,0.5)) !important;
+  pointer-events: none !important;
+  transition: left 400ms cubic-bezier(0.25,1,0.5,1) !important;
+  z-index: 2 !important;
+}
+
+/* ── Zone separator — subtle gradient rule with label ── */
+.mkt-row-zone-sep {
+  display: none !important;
+}
+
+/* ── Scrollbar — thinner, more refined ── */
+.mkt-list::-webkit-scrollbar { width: 2px !important; }
+.mkt-list::-webkit-scrollbar-track { background: transparent !important; }
+.mkt-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10) !important; border-radius: 2px !important; }
+.mkt-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20) !important; }
+
 /* ── HERO TEXT FINAL OVERRIDE (R19W) ──────────────────────────────────────
    All old ov-banner-regime background/clip/animation rules are dead weight.
    JS sets --hero-grad and --hero-fill on the element; this block enforces them.
@@ -13588,15 +13754,17 @@ function renderList(){
     const sepHtml = (idx > 0 && thisZone !== prevZone) ? '<div class="mkt-row-zone-sep"></div>' : '';
     const _zone = thisZone;
 
-    // ── R9: Score gradient slider (replaces flame bar)
+    // ── R19X: Enhanced score slider with fill bar + category colour
     const sliderPct = Math.max(2, Math.min(98, ws * 10));
-    const dotGlow = ws>=7?'rgba(34,201,122,0.70)':ws>=5.5?'rgba(59,130,196,0.65)':ws>=4.5?'rgba(74,82,104,0.55)':ws>=3?'rgba(196,122,74,0.65)':'rgba(224,58,42,0.70)';
-    const sliderHtml = `<div class="mr-slider-track" style="--mr-dot-glow:${dotGlow}">
+    // Category colour for ticker ID
+    const _catCol = m.category==='equity'?'var(--cat-equity)':m.category==='fx'?'var(--cat-fx)':m.category==='fx_cross'?'var(--cat-cross)':m.category==='bond'?'var(--cat-bond)':m.category==='crypto'?'var(--cat-crypto)':'var(--cat-commodity)';
+    // Slider fill and dot use score colour
+    const sliderHtml = `<div class="mr-slider-track" style="--mr-fill-w:${sliderPct}%;--mr-fill-col:${col};--mr-dot-col:${col};--mr-dot-glow:${col}66">
       <div class="mr-slider-dot" style="left:${sliderPct}%"></div>
     </div>`;
 
     return sepHtml + `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" data-zone="${_zone}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
-      <span class="mr-id">${m.id}</span>
+      <span class="mr-id" style="color:${_catCol};opacity:0.8">${m.id}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
         ${sliderHtml}
@@ -14039,10 +14207,13 @@ function renderOverview(){
     el.style.setProperty('--hero-col', _heroCol);
   }
 
-  // Desktop
-  _applyHeroGrad(document.querySelector('.ov-banner-regime'));
-  // Mobile (only apply if mobile view)
-  if(window.innerWidth <= 700) _applyHeroGrad(document.querySelector('.mob-hero-regime'));
+  // Apply hero gradient — use rAF + timeout to guarantee it runs after
+  // any post-render CSS settling (defeats stale !important overrides)
+  function _applyHeroGradDeferred(){
+    _applyHeroGrad(document.querySelector('.ov-banner-regime'));
+    if(window.innerWidth <= 700) _applyHeroGrad(document.querySelector('.mob-hero-regime'));
+  }
+  requestAnimationFrame(()=>setTimeout(_applyHeroGradDeferred, 50));
 
   // Start / update global app particle background with current regime tint
   initAppBg(regLabel);
