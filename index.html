@@ -13151,62 +13151,62 @@ canvas{
   --cat-crypto:   #f97316;
 }
 
-/* ── Row base — more breathing room, score-colour left bar ── */
+/* ── Row base ── */
 .mkt-row {
-  padding: 10px 14px 10px 16px !important;
+  padding: 9px 14px 9px 14px !important;
   gap: 10px !important;
-  border-bottom: 1px solid rgba(255,255,255,0.028) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.025) !important;
   background: transparent !important;
-  transition: background 120ms, border-color 120ms !important;
+  transition: background 120ms !important;
   position: relative !important;
-  border-left: 2.5px solid transparent !important;
+  /* Left accent: inset box-shadow so overflow:hidden can't clip it */
+  box-shadow: inset 3px 0 0 var(--row-accent, transparent) !important;
 }
 .mkt-row::before { display:none !important; }
 .mkt-row::after  { display:none !important; }
 
-/* Coloured left accent bar driven by --row-accent (set inline by JS) */
-.mkt-row {
-  border-left-color: var(--row-accent, transparent) !important;
-}
-
-/* Zone tinting — more visible differentiation */
+/* Zone tinting */
 .mkt-row[data-zone="bull"] {
-  background: rgba(34,201,122,0.04) !important;
+  background: rgba(34,201,122,0.045) !important;
 }
 .mkt-row[data-zone="bear"] {
-  background: rgba(224,58,42,0.04) !important;
-}
-.mkt-row[data-zone="neutral"] {
-  background: rgba(255,255,255,0.012) !important;
+  background: rgba(224,58,42,0.045) !important;
 }
 
-/* Hover — score-colour glow sweep */
+/* Hover */
 .mkt-row:hover {
-  background: rgba(255,255,255,0.038) !important;
-  border-left-color: var(--row-accent, rgba(255,255,255,0.3)) !important;
+  background: rgba(255,255,255,0.042) !important;
+  box-shadow: inset 3px 0 0 var(--row-accent, rgba(255,255,255,0.25)),
+              inset 0 0 40px rgba(255,255,255,0.015) !important;
 }
-.mkt-row[data-zone="bull"]:hover { background: rgba(34,201,122,0.07) !important; }
-.mkt-row[data-zone="bear"]:hover { background: rgba(224,58,42,0.07) !important; }
+.mkt-row[data-zone="bull"]:hover { background: rgba(34,201,122,0.08) !important; }
+.mkt-row[data-zone="bear"]:hover { background: rgba(224,58,42,0.08) !important; }
 
 /* Selected */
 .mkt-row.sel {
-  background: rgba(255,255,255,0.05) !important;
-  border-left-color: var(--row-accent, var(--accent)) !important;
+  background: rgba(255,255,255,0.055) !important;
+  box-shadow: inset 3px 0 0 var(--row-accent, var(--accent)),
+              inset 16px 0 24px rgba(255,255,255,0.02) !important;
 }
 .mkt-row[data-zone="bull"].sel,
 .mkt-row[data-zone="bear"].sel {
-  background: rgba(255,255,255,0.05) !important;
+  background: rgba(255,255,255,0.055) !important;
 }
 
-/* ── Ticker ID — readable mono, category coloured ── */
+/* ── Ticker ID — category coloured, properly visible ── */
 .mr-id {
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 7.5px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.06em !important;
-  color: rgba(173,184,208,0.55) !important;
-  min-width: 30px !important;
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  /* colour set inline by JS via _catCol */
+  min-width: 32px !important;
+  max-width: 32px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
   text-transform: uppercase !important;
+  opacity: 0.75 !important;
 }
 
 /* ── Asset name — clean, slightly larger ── */
