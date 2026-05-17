@@ -13643,10 +13643,128 @@ canvas{
   pointer-events: none !important;
 }
 
-/* ── Banner inner: must be above arc (z-index:5) ── */
+/* ── R25: Hero redesign — arc centred, text anchored right ── */
 .ov-banner-inner {
-  position: relative !important;
+  position: absolute !important;
+  inset: 0 !important;
   z-index: 5 !important;
+  display: flex !important;
+  align-items: stretch !important;
+  padding: 0 !important;
+  border-left: none !important;
+  gap: 0 !important;
+}
+
+/* Left spacer — lets arc breathe */
+.ov-banner-left {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  padding: 0 0 48px 48px !important;
+  gap: 0 !important;
+  min-width: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Eyebrow: top-left corner label */
+.ov-banner-eyebrow {
+  position: absolute !important;
+  top: 28px !important;
+  left: 48px !important;
+  font-size: 8px !important;
+  letter-spacing: 0.18em !important;
+  color: var(--faint) !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Right text panel */
+.ov-banner-text-right {
+  width: 360px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: flex-end !important;
+  text-align: right !important;
+  padding: 0 48px 0 0 !important;
+  gap: 10px !important;
+  pointer-events: auto !important;
+}
+
+/* Regime headline — right aligned, larger */
+.ov-banner-regime {
+  font-size: 52px !important;
+  text-align: right !important;
+  line-height: 1 !important;
+}
+
+.ov-banner-desc {
+  text-align: right !important;
+  max-width: 320px !important;
+}
+
+.ov-banner-sub {
+  justify-content: flex-end !important;
+  flex-direction: row-reverse !important;
+}
+
+/* Hide stats + price strip in right panel — keep it clean */
+.ov-banner-text-right .ov-banner-stats,
+.ov-banner-text-right .ov-price-strip {
+  display: none !important;
+}
+
+/* Score pill — right aligned */
+.ov-banner-text-right .ov-regime-score-pill {
+  margin-left: auto !important;
+}
+
+/* Thin right-border accent on text panel */
+.ov-banner-text-right::after {
+  content: '' !important;
+  position: absolute !important;
+  right: 0 !important;
+  top: 20% !important;
+  bottom: 20% !important;
+  width: 2px !important;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.12) 60%, transparent) !important;
+  border-radius: 1px !important;
+}
+
+/* Responsive: tighten at smaller desktops */
+@media (max-width: 1440px) {
+  .ov-banner-text-right { width: 320px !important; padding-right: 40px !important; }
+  .ov-banner-left { padding: 0 0 40px 40px !important; }
+  .ov-banner-eyebrow { left: 40px !important; }
+  .ov-banner-regime { font-size: 44px !important; }
+}
+@media (max-width: 1280px) {
+  .ov-banner-text-right { width: 280px !important; padding-right: 32px !important; }
+  .ov-banner-left { padding: 0 0 36px 32px !important; }
+  .ov-banner-eyebrow { left: 32px !important; }
+  .ov-banner-regime { font-size: 38px !important; }
+}
+
+/* Mobile: revert to stacked */
+@media (max-width: 700px) {
+  .ov-banner-inner {
+    position: relative !important;
+    inset: auto !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 16px !important;
+    gap: 8px !important;
+  }
+  .ov-banner-left { padding: 0 !important; pointer-events: auto !important; }
+  .ov-banner-eyebrow { position: relative !important; top: auto !important; left: auto !important; }
+  .ov-banner-text-right { width: 100% !important; align-items: flex-start !important; text-align: left !important; padding: 0 !important; }
+  .ov-banner-regime { font-size: 32px !important; text-align: left !important; }
+  .ov-banner-desc { text-align: left !important; }
+  .ov-banner-sub { flex-direction: row !important; justify-content: flex-start !important; }
 }
 
 /* ── Banner bg and particle canvas ── */
@@ -14448,10 +14566,10 @@ function renderOverview(){
   document.getElementById('ov-banner-inner').innerHTML=`
     <div class="ov-banner-left nexus-reveal" style="animation-delay:0ms">
       <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
-      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-        <div class="ov-banner-regime regime-glow-text" style="color:${regCol}" data-label="${regLabel}">${regLabel}</div>
-        ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}44;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 18px ${regCol}33,inset 0 1px 0 rgba(255,255,255,0.10);animation:pillBreath 3.5s ease-in-out infinite" title="Composite climate score — 5.0 = neutral, 10 = max risk-on, 0 = max risk-off"><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 10</span></div>`:''}
-      </div>
+    </div>
+    <div class="ov-banner-text-right nexus-reveal" style="animation-delay:60ms;position:relative">
+      <div class="ov-banner-regime regime-glow-text" style="color:${regCol}" data-label="${regLabel}">${regLabel}</div>
+      ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}44;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 18px ${regCol}33,inset 0 1px 0 rgba(255,255,255,0.10);animation:pillBreath 3.5s ease-in-out infinite" title="Composite climate score — 5.0 = neutral, 10 = max risk-on, 0 = max risk-off"><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 10</span></div>`:''}
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
       <div class="ov-banner-sub">
         <span class="ov-banner-dot" style="background:${regCol};color:${regCol}"></span>
@@ -18959,9 +19077,9 @@ function _drawLiveDot(canvas, data, phase) {
   const LEFT_W = 108;
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
-  // Arc: 80% ring visible, right side of hero
+  // Arc: 80% ring visible, centred horizontally
   const ARC_OR_PRELIM = H * 0.90;
-  const ARC_CX  = W * 0.68;
+  const ARC_CX  = W * 0.50;
   const ARC_CY  = H * 0.56;
   const ARC_OR  = H * 0.90;
   const ARC_IR = ARC_OR * 0.30;
@@ -19089,7 +19207,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
   // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
   const ARC_OR_PRE = H * 0.90;
-  const ARC_CX  = W * 0.68;
+  const ARC_CX  = W * 0.50;
   const ARC_CY  = H * 0.56;
   const ARC_OR  = H * 0.90;
   const ARC_IR = ARC_OR * 0.30;
@@ -19866,7 +19984,7 @@ function _setupArcTooltip(canvas, data) {
     const ARC_X  = PAD_L + LEFT_W2;
     // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
     const ARC_OR_P = H * 0.90;
-    const ARC_CX  = W * 0.68;
+    const ARC_CX  = W * 0.50;
     const ARC_CY  = H * 0.56;
     const ARC_OR  = H * 0.90;
     const ARC_IR = ARC_OR * 0.30;
