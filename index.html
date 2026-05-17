@@ -13495,6 +13495,135 @@ canvas{
   background-size: unset !important;
   filter: none !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   NEXUS OS — R21: HERO ARC UNCONTAINMENT
+   Arc canvas breaks out of its lower pane and bleeds behind the hero
+   text, layered behind text via z-index. No hard contained box.
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Banner: no overflow clipping, use padding-bottom to reserve arc space ── */
+.ov-banner {
+  overflow: visible !important;
+  position: relative !important;
+  /* Reserve room for the arc which will be absolute-positioned */
+  /* Arc height: max 460px + footer 44px = 504px. Overlap by ~180px into text for bleed effect */
+  padding-bottom: 320px !important;
+}
+@media (min-width: 1440px) {
+  .ov-banner { padding-bottom: 340px !important; }
+}
+@media (min-width: 2560px) {
+  .ov-banner { padding-bottom: 360px !important; }
+}
+@media (max-width: 900px) {
+  .ov-banner { padding-bottom: 260px !important; }
+}
+@media (max-width: 700px) {
+  .ov-banner { padding-bottom: 0 !important; overflow: hidden !important; }
+}
+
+/* ── Arc section: absolute, overlapping the whole banner from bottom ── */
+.ov-charts {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  /* Start from 80px down — arc fades in from transparent, bleeds behind text stats */
+  top: 80px !important;
+  z-index: 1 !important;
+  background: transparent !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+/* restore pointer events for the canvas and footer */
+.ov-arc-canvas-wrap,
+.ov-arc-canvas,
+.ov-arc-footer {
+  pointer-events: auto !important;
+}
+
+/* ── Arc canvas wrap: top mask fade so arc dissolves into hero text area ── */
+.ov-arc-canvas-wrap {
+  position: relative !important;
+  width: 100% !important;
+  background: transparent !important;
+  /* Fade the top portion so it bleeds seamlessly behind the text */
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0,0,0,0.15) 12%,
+    rgba(0,0,0,0.50) 28%,
+    rgba(0,0,0,0.82) 45%,
+    black 62%
+  ) !important;
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0,0,0,0.15) 12%,
+    rgba(0,0,0,0.50) 28%,
+    rgba(0,0,0,0.82) 45%,
+    black 62%
+  ) !important;
+}
+
+/* ── Banner inner: must be above arc (z-index:5) ── */
+.ov-banner-inner {
+  position: relative !important;
+  z-index: 5 !important;
+}
+
+/* ── Banner bg and particle canvas: also above arc ── */
+.ov-banner-bg,
+.ov-banner-canvas {
+  z-index: 0 !important;
+}
+
+/* ── Particle canvas (ov-canvas): spans full banner height including arc ── */
+#ov-canvas {
+  z-index: 0 !important;
+  /* Let it span into the arc zone — it's already position:absolute, inset:0 */
+}
+
+/* ── Banner ::before (dissolve gradient): raise above arc ── */
+.ov-banner::before {
+  z-index: 6 !important;
+}
+
+/* ── Arc canvas: fills its container ── */
+.ov-arc-canvas {
+  width: 100% !important;
+  display: block !important;
+  background: transparent !important;
+}
+
+/* Remove the old hard-edge dissolve on arc wrap top */
+.ov-arc-canvas-wrap::before {
+  display: none !important;
+}
+
+/* ── Cat bar (below banner): ensure it still clears properly ── */
+.ov-cat-bar {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Mobile: revert to contained/stacked (no absolute positioning) */
+@media (max-width: 700px) {
+  .ov-charts {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    pointer-events: auto !important;
+  }
+  .ov-arc-canvas-wrap {
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -18640,7 +18769,7 @@ function _drawArcSkeleton(canvas) {
   canvas.style.height = H + 'px';
   const ctx = canvas.getContext('2d');
   ctx.scale(DPR, DPR);
-  ctx.fillStyle = '#020509';
+  ctx.fillStyle = 'rgba(0,0,0,0)';
   ctx.fillRect(0, 0, W, H);
   // Jarvis init line
   ctx.strokeStyle = 'rgba(200,169,110,0.12)';
@@ -18893,7 +19022,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // ── 0. Rich background ───────────────────────────────────────────────
   // Base: deep space navy (not pure black)
   // Background: very subtle dark tint — let parent particle canvas show through
-  ctx.fillStyle = 'rgba(1, 3, 9, 0.38)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0)';
   ctx.fillRect(0, 0, W, H);
 
   // Radial atmosphere: two layers — warm colour bloom + dark inner void
