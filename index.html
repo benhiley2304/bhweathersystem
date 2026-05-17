@@ -13686,9 +13686,10 @@ canvas{
   inset: 0 !important;
   pointer-events: none !important;
   z-index: 1 !important;
+  /* Fallback only — JS overrides this with regime-aware values */
   background:
-    radial-gradient(ellipse 55% 60% at 82% 8%, rgba(200,169,110,0.10) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 50% at 92% 0%, rgba(220,190,130,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 65% at 88% 5%, rgba(200,169,110,0.13) 0%, transparent 62%),
+    radial-gradient(ellipse 35% 40% at 97% 0%, rgba(220,195,140,0.09) 0%, transparent 50%),
     radial-gradient(ellipse 80% 70% at 42% 55%, rgba(34,201,122,0.05) 0%, rgba(0,0,0,0) 70%) !important;
 }
 
@@ -13737,20 +13738,19 @@ canvas{
   margin-right: 10px !important;
 }
 
-/* ── RIGHT TEXT PANEL: Now a floating absolutely positioned overlay ── */
-/* This is the main text composition — positioned over the banner like cover text */
+/* ── RIGHT TEXT PANEL: Floating absolutely positioned full-height overlay ── */
 .ov-banner-text-right {
   position: absolute !important;
-  /* Anchored: top-right for word1+word2, flows down */
   top: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
   width: 540px !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: space-between !important;
+  /* Headline pushed down to ~22%, data pushed to ~62% via padding/margins */
+  justify-content: flex-start !important;
   align-items: flex-end !important;
-  padding: 36px 56px 52px 24px !important;
+  padding: 0 56px 0 24px !important;
   gap: 0 !important;
   pointer-events: auto !important;
   overflow: visible !important;
@@ -13759,11 +13759,10 @@ canvas{
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
   border-left: none !important;
-  /* Soft vignette from right edge — creates depth without a hard border */
   mask-image: none !important;
 }
 
-/* Headline block — sits in upper portion of panel */
+/* Headline block — positioned at ~20% of banner height from top */
 .ov-hero-headline-block {
   display: flex !important;
   flex-direction: column !important;
@@ -13772,7 +13771,8 @@ canvas{
   flex: 0 0 auto !important;
   position: relative !important;
   z-index: 2 !important;
-  margin-top: 40px !important;
+  /* Push down to roughly 20% of 1000px banner = 200px */
+  margin-top: 200px !important;
 }
 
 /* Score watermark — ghost number behind the words */
@@ -13853,7 +13853,7 @@ canvas{
   flex-shrink: 0 !important;
 }
 
-/* Bottom data block — score, description, timestamp */
+/* Bottom data block — sits ~60-65% down, pushed by margin */
 .ov-hero-bottom-block {
   display: flex !important;
   flex-direction: column !important;
@@ -13862,6 +13862,10 @@ canvas{
   flex: 0 0 auto !important;
   position: relative !important;
   z-index: 2 !important;
+  /* After headline block (~344px) + margin-top(200px) = ~544px
+     We want bottom block at ~600px, so gap = ~56px */
+  margin-top: 56px !important;
+  padding-bottom: 60px !important;
 }
 
 /* Intermediate regime label */
@@ -13937,31 +13941,36 @@ canvas{
 
 /* Responsive */
 @media (min-width: 2560px) {
-  .ov-banner-text-right { width: 660px !important; padding: 44px 72px 60px 28px !important; }
+  .ov-banner-text-right { width: 660px !important; padding: 0 72px 0 28px !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 196px !important; }
   .ov-banner-text-right::before { font-size: 520px !important; opacity: 0.028 !important; }
   .ov-hero-regime-label { font-size: 9.5px !important; }
   .ov-banner-eyebrow { top: 38px !important; left: 56px !important; font-size: 8px !important; }
-  .ov-hero-headline-block { margin-top: 52px !important; }
+  .ov-hero-headline-block { margin-top: 200px !important; }
+  .ov-hero-bottom-block { margin-top: 60px !important; }
 }
 @media (min-width: 1920px) and (max-width: 2559px) {
-  .ov-banner-text-right { width: 600px !important; padding: 40px 64px 56px 24px !important; }
+  .ov-banner-text-right { width: 600px !important; padding: 0 64px 0 24px !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 174px !important; }
   .ov-banner-text-right::before { font-size: 460px !important; }
+  .ov-hero-headline-block { margin-top: 185px !important; }
+  .ov-hero-bottom-block { margin-top: 52px !important; }
 }
 @media (max-width: 1440px) {
-  .ov-banner-text-right { width: 440px !important; padding: 30px 44px 42px 18px !important; }
+  .ov-banner-text-right { width: 440px !important; padding: 0 44px 0 18px !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 116px !important; }
   .ov-banner-text-right::before { font-size: 320px !important; }
-  .ov-hero-headline-block { margin-top: 28px !important; }
+  .ov-hero-headline-block { margin-top: 160px !important; }
+  .ov-hero-bottom-block { margin-top: 40px !important; padding-bottom: 48px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner-text-right { width: 380px !important; padding: 28px 36px 38px 14px !important; }
+  .ov-banner-text-right { width: 380px !important; padding: 0 36px 0 14px !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 94px !important; }
   .ov-banner-text-right::before { font-size: 260px !important; }
   .ov-banner-eyebrow { left: 28px !important; }
   .ov-hero-regime-label { font-size: 7.5px !important; }
-  .ov-hero-headline-block { margin-top: 24px !important; }
+  .ov-hero-headline-block { margin-top: 145px !important; }
+  .ov-hero-bottom-block { margin-top: 32px !important; padding-bottom: 40px !important; }
 }
 
 /* Mobile: revert to stacked column layout */
@@ -14673,11 +14682,13 @@ function renderOverview(){
     const baseC  = isOn ? `rgba(34,201,122,${liftA})`
                  : isOff? `rgba(210,60,40,${liftA})`
                  :         `rgba(92,140,220,${liftA})`;
-    // Warm amber editorial pool top-right — always visible, like studio lighting
+    // Warm amber editorial pool top-right — always visible, like studio warm lighting
+    // Regime colour tints the arc zone (left-centre), amber warms the text side (right)
     bnBg.style.background = [
-      `radial-gradient(ellipse 60% 65% at 88% 5%,rgba(200,169,110,0.11) 0%,transparent 62%)`,
-      `radial-gradient(ellipse 35% 40% at 96% 0%,rgba(220,195,140,0.08) 0%,transparent 50%)`,
-      `radial-gradient(ellipse 75% 65% at 40% 52%,${baseC} 0%,transparent 62%)`
+      `radial-gradient(ellipse 65% 70% at 90% 4%,rgba(200,169,110,0.14) 0%,transparent 62%)`,
+      `radial-gradient(ellipse 40% 45% at 98% 0%,rgba(220,195,140,0.10) 0%,transparent 50%)`,
+      `radial-gradient(ellipse 30% 35% at 78% 20%,rgba(200,169,110,0.06) 0%,transparent 55%)`,
+      `radial-gradient(ellipse 75% 65% at 40% 52%,${baseC} 0%,transparent 60%)`
     ].join(',');
   }
   // ── Regime atmosphere wash ──────────────────────────────────────────────
@@ -14879,10 +14890,7 @@ function renderOverview(){
   const _heroLeftHtml = '';
 
   document.getElementById('ov-banner-inner').innerHTML=`
-    <div class="ov-banner-left nexus-reveal" style="animation-delay:0ms">
-      <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
-      ${_heroLeftHtml}
-    </div>
+    <div class="ov-banner-eyebrow nexus-reveal" style="animation-delay:0ms">BH Weather System &mdash; Market Overview</div>
     <div class="ov-banner-text-right nexus-reveal" style="animation-delay:60ms;color:${regCol};border-left-color:${regCol}20;--hero-accent:${regCol}" data-score="${regScore!=null?regScore.toFixed(1):''}">
       ${(()=>{
         // Big regime headline — always show "RISK" line 1, "ON" or "OFF" line 2
