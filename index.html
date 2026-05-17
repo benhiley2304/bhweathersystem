@@ -13800,10 +13800,11 @@ canvas{
   letter-spacing: -0.055em !important;
   line-height: 0.86 !important;
   text-align: right !important;
-  /* Stroke outline effect — clearly intentional design */
-  color: transparent !important;
+  /* Stroke outline: text fill transparent, stroke uses color var */
+  color: currentColor !important;
+  -webkit-text-fill-color: transparent !important;
   -webkit-text-stroke: 1.5px currentColor !important;
-  text-stroke: 1.5px currentColor !important;
+  paint-order: stroke fill !important;
   opacity: 0.55 !important;
   position: relative !important;
   z-index: 2 !important;
@@ -14969,7 +14970,7 @@ function renderOverview(){
           w1 = parts[0]; w2 = parts.slice(1).join(' ') || parts[0];
         }
         return `<span class="ov-hero-word1" style="color:${regCol}">${w1}</span>
-                <span class="ov-hero-word2" style="color:${regCol};-webkit-text-stroke-color:${regCol}">${w2}</span>`;
+                <span class="ov-hero-word2" style="color:${regCol}">${w2}</span>`;
       })()}
       <span class="ov-hero-regime-label" style="color:${regCol}">${regScore!=null?regScore.toFixed(1)+' / 10 — Macro Regime Indicator':'Macro Regime Indicator'}</span>
       <span class="ov-hero-rule" style="background:linear-gradient(to left,${regCol},transparent)"></span>
