@@ -13634,10 +13634,10 @@ canvas{
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(8,12,10,0.08) 30%,
-    rgba(8,12,10,0.45) 60%,
-    rgba(8,12,10,0.85) 82%,
-    #080c0a 100%
+    rgba(13,14,12,0.08) 30%,
+    rgba(13,14,12,0.50) 60%,
+    rgba(13,14,12,0.88) 82%,
+    #0d0e0c 100%
   ) !important;
   z-index: 2 !important;
   pointer-events: none !important;
@@ -13747,14 +13747,14 @@ canvas{
   width: 540px !important;
   display: flex !important;
   flex-direction: column !important;
-  /* Headline pushed down to ~22%, data pushed to ~62% via padding/margins */
   justify-content: flex-start !important;
   align-items: flex-end !important;
-  padding: 0 56px 0 24px !important;
+  padding: 0 56px 0 0 !important;
   gap: 0 !important;
   pointer-events: auto !important;
   overflow: visible !important;
-  background: transparent !important;
+  /* Subtle dark vignette from right — gives text a backdrop without a hard box */
+  background: linear-gradient(to left, rgba(10,12,10,0.72) 0%, rgba(10,12,10,0.45) 42%, transparent 100%) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
@@ -13771,16 +13771,17 @@ canvas{
   flex: 0 0 auto !important;
   position: relative !important;
   z-index: 2 !important;
-  /* Push down to roughly 20% of 1000px banner = 200px */
   margin-top: 200px !important;
+  padding-right: 52px !important;
+  width: 100% !important;
 }
 
 /* Score watermark — ghost number behind the words */
 .ov-banner-text-right::before {
   content: attr(data-score) !important;
   position: absolute !important;
-  right: 30px !important;
-  top: 38% !important;
+  right: 40px !important;
+  top: 37% !important;
   transform: translateY(-50%) !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 420px !important;
@@ -13788,7 +13789,7 @@ canvas{
   line-height: 1 !important;
   letter-spacing: -0.08em !important;
   color: currentColor !important;
-  opacity: 0.032 !important;
+  opacity: 0.036 !important;
   pointer-events: none !important;
   z-index: 0 !important;
   white-space: nowrap !important;
@@ -13862,10 +13863,9 @@ canvas{
   flex: 0 0 auto !important;
   position: relative !important;
   z-index: 2 !important;
-  /* After headline block (~344px) + margin-top(200px) = ~544px
-     We want bottom block at ~600px, so gap = ~56px */
   margin-top: 56px !important;
-  padding-bottom: 60px !important;
+  padding-right: 52px !important;
+  width: 100% !important;
 }
 
 /* Intermediate regime label */
@@ -13887,15 +13887,16 @@ canvas{
 
 /* Description text */
 .ov-banner-desc {
-  font-size: 9px !important;
-  letter-spacing: 0.18em !important;
-  text-transform: uppercase !important;
-  color: rgba(190,205,225,0.58) !important;
+  font-size: 10px !important;
+  letter-spacing: 0.10em !important;
+  text-transform: none !important;
+  color: rgba(190,205,225,0.62) !important;
   font-weight: 400 !important;
+  font-family: 'Inter', sans-serif !important;
   text-align: right !important;
-  max-width: 320px !important;
-  line-height: 2.1 !important;
-  margin-bottom: 16px !important;
+  max-width: 300px !important;
+  line-height: 1.85 !important;
+  margin-bottom: 18px !important;
   position: relative !important;
   z-index: 2 !important;
 }
@@ -13941,36 +13942,36 @@ canvas{
 
 /* Responsive */
 @media (min-width: 2560px) {
-  .ov-banner-text-right { width: 660px !important; padding: 0 72px 0 28px !important; }
+  .ov-banner-text-right { width: 660px !important; padding: 0 !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 196px !important; }
-  .ov-banner-text-right::before { font-size: 520px !important; opacity: 0.028 !important; }
+  .ov-banner-text-right::before { font-size: 520px !important; opacity: 0.028 !important; right: 50px !important; }
   .ov-hero-regime-label { font-size: 9.5px !important; }
   .ov-banner-eyebrow { top: 38px !important; left: 56px !important; font-size: 8px !important; }
-  .ov-hero-headline-block { margin-top: 200px !important; }
-  .ov-hero-bottom-block { margin-top: 60px !important; }
+  .ov-hero-headline-block { margin-top: 200px !important; padding-right: 68px !important; }
+  .ov-hero-bottom-block { margin-top: 60px !important; padding-right: 68px !important; }
 }
 @media (min-width: 1920px) and (max-width: 2559px) {
-  .ov-banner-text-right { width: 600px !important; padding: 0 64px 0 24px !important; }
+  .ov-banner-text-right { width: 600px !important; padding: 0 !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 174px !important; }
-  .ov-banner-text-right::before { font-size: 460px !important; }
-  .ov-hero-headline-block { margin-top: 185px !important; }
-  .ov-hero-bottom-block { margin-top: 52px !important; }
+  .ov-banner-text-right::before { font-size: 460px !important; right: 44px !important; }
+  .ov-hero-headline-block { margin-top: 185px !important; padding-right: 60px !important; }
+  .ov-hero-bottom-block { margin-top: 52px !important; padding-right: 60px !important; }
 }
 @media (max-width: 1440px) {
-  .ov-banner-text-right { width: 440px !important; padding: 0 44px 0 18px !important; }
+  .ov-banner-text-right { width: 440px !important; padding: 0 !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 116px !important; }
-  .ov-banner-text-right::before { font-size: 320px !important; }
-  .ov-hero-headline-block { margin-top: 160px !important; }
-  .ov-hero-bottom-block { margin-top: 40px !important; padding-bottom: 48px !important; }
+  .ov-banner-text-right::before { font-size: 320px !important; right: 34px !important; }
+  .ov-hero-headline-block { margin-top: 160px !important; padding-right: 42px !important; }
+  .ov-hero-bottom-block { margin-top: 40px !important; padding-right: 42px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner-text-right { width: 380px !important; padding: 0 36px 0 14px !important; }
+  .ov-banner-text-right { width: 380px !important; padding: 0 !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 94px !important; }
-  .ov-banner-text-right::before { font-size: 260px !important; }
+  .ov-banner-text-right::before { font-size: 260px !important; right: 28px !important; }
   .ov-banner-eyebrow { left: 28px !important; }
   .ov-hero-regime-label { font-size: 7.5px !important; }
-  .ov-hero-headline-block { margin-top: 145px !important; }
-  .ov-hero-bottom-block { margin-top: 32px !important; padding-bottom: 40px !important; }
+  .ov-hero-headline-block { margin-top: 145px !important; padding-right: 36px !important; }
+  .ov-hero-bottom-block { margin-top: 32px !important; padding-right: 36px !important; }
 }
 
 /* Mobile: revert to stacked column layout */
