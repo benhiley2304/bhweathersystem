@@ -13665,58 +13665,56 @@ canvas{
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   R25L — GRAPHIC DESIGN OVERHAUL: Premium, striking, futuristic hero
-   Key improvements:
-   - Glass panel with backdrop-filter on right text block
-   - Deep atmospheric background with radial colour bloom
-   - word2 outline/stroke treatment (not flat ghost)
-   - Intermediate hierarchy: score label between headline + rule
-   - Eyebrow elevated with accent pip
-   - Stronger spatial composition and depth
+   R25O — MAGAZINE COVER: Full-bleed editorial overlay composition
+   Direction: Bloomberg Markets / Monocle — warm, confident, premium
+   - Text overlays the arc scene like a magazine cover headline on photography
+   - Warm dark editorial background (#0d0e0c) with amber light pool
+   - "RISK" anchored top-left, large — like a magazine masthead headline
+   - "ON" anchored bottom-left, even larger — the bold cover statement
+   - Score in a refined bottom-right editorial block
+   - No right panel silo — text floats across the full composition
 ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Banner: editorial ink black — clean, no sci-fi ── */
+/* ── Banner: warm editorial charcoal — not cold void ── */
 .ov-banner {
-  background: #080c0a !important;
+  background: #0d0e0c !important;
 }
 
-/* ── Subtle warm lift — overridden by JS, this is fallback ── */
+/* ── Atmospheric lift — warm amber-cream pool top-right, subtle regime tint ── */
 .ov-banner-bg {
   position: absolute !important;
   inset: 0 !important;
   pointer-events: none !important;
   z-index: 1 !important;
-  background: radial-gradient(ellipse 90% 70% at 42% 55%, rgba(34,201,122,0.055) 0%, rgba(0,0,0,0) 70%) !important;
+  background:
+    radial-gradient(ellipse 55% 60% at 82% 8%, rgba(200,169,110,0.10) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 50% at 92% 0%, rgba(220,190,130,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 70% at 42% 55%, rgba(34,201,122,0.05) 0%, rgba(0,0,0,0) 70%) !important;
 }
 
+/* Banner inner: absolute overlay, full-bleed — no flex column layout */
 .ov-banner-inner {
   position: absolute !important;
   inset: 0 !important;
   z-index: 5 !important;
-  display: flex !important;
-  align-items: stretch !important;
+  display: block !important;
   padding: 0 !important;
-  border-left: none !important;
-  gap: 0 !important;
-}
-
-/* Left spacer */
-.ov-banner-left {
-  flex: 1 !important;
-  min-width: 0 !important;
   pointer-events: none !important;
-  padding: 0 !important;
-  gap: 0 !important;
 }
 
-/* Eyebrow: top-left corner label — elevated with accent pip */
+/* Left spacer / eyebrow container — empty, we position absolutely */
+.ov-banner-left {
+  display: none !important;
+}
+
+/* Eyebrow: top-left — editorial masthead label */
 .ov-banner-eyebrow {
   position: absolute !important;
-  top: 28px !important;
-  left: 40px !important;
-  font-size: 8px !important;
-  letter-spacing: 0.20em !important;
-  color: rgba(200,169,110,0.75) !important;
+  top: 32px !important;
+  left: 48px !important;
+  font-size: 7.5px !important;
+  letter-spacing: 0.28em !important;
+  color: rgba(200,169,110,0.65) !important;
   border-bottom: none !important;
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
@@ -13724,71 +13722,91 @@ canvas{
   text-transform: uppercase !important;
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 0 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 500 !important;
+  z-index: 8 !important;
 }
 .ov-banner-eyebrow::before {
   content: '' !important;
   display: inline-block !important;
-  width: 20px !important;
+  width: 24px !important;
   height: 1px !important;
-  background: var(--hero-accent, rgba(200,169,110,0.6)) !important;
+  background: rgba(200,169,110,0.5) !important;
   flex-shrink: 0 !important;
-  margin-right: 6px !important;
-  vertical-align: middle !important;
+  margin-right: 10px !important;
 }
 
-/* ── Right text panel — editorial, clean ── */
+/* ── RIGHT TEXT PANEL: Now a floating absolutely positioned overlay ── */
+/* This is the main text composition — positioned over the banner like cover text */
 .ov-banner-text-right {
-  position: relative !important;
-  width: 520px !important;
-  flex-shrink: 0 !important;
+  position: absolute !important;
+  /* Anchored: top-right for word1+word2, flows down */
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 540px !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: flex-start !important;
+  justify-content: space-between !important;
   align-items: flex-end !important;
-  padding: 52px 60px 0 32px !important;
+  padding: 36px 56px 52px 24px !important;
   gap: 0 !important;
   pointer-events: auto !important;
   overflow: visible !important;
-  /* Thin editorial rule — like a magazine column divider */
-  border-left: 1px solid rgba(255,255,255,0.08) !important;
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
+  border-left: none !important;
+  /* Soft vignette from right edge — creates depth without a hard border */
+  mask-image: none !important;
 }
 
-/* Giant score watermark — tilted, bleeds across panel + into arc */
+/* Headline block — sits in upper portion of panel */
+.ov-hero-headline-block {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 0 !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  z-index: 2 !important;
+  margin-top: 40px !important;
+}
+
+/* Score watermark — ghost number behind the words */
 .ov-banner-text-right::before {
   content: attr(data-score) !important;
   position: absolute !important;
-  right: -60px !important;
-  top: 50% !important;
-  transform: translateY(-52%) rotate(-12deg) !important;
+  right: 30px !important;
+  top: 38% !important;
+  transform: translateY(-50%) !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 380px !important;
+  font-size: 420px !important;
   font-weight: 800 !important;
   line-height: 1 !important;
   letter-spacing: -0.08em !important;
   color: currentColor !important;
-  opacity: 0.048 !important;
+  opacity: 0.032 !important;
   pointer-events: none !important;
   z-index: 0 !important;
   white-space: nowrap !important;
 }
 
-/* Word 1 — filled, massive, luminous */
+/* Word 1 — RISK: solid fill, magazine cover scale */
 .ov-hero-word1 {
   font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
-  font-size: 152px !important;
+  font-size: 148px !important;
   font-weight: 900 !important;
   letter-spacing: -0.055em !important;
-  line-height: 0.86 !important;
+  line-height: 0.88 !important;
   text-align: right !important;
   color: currentColor !important;
-  /* Clean typographic presence — single warm shadow for depth only */
+  -webkit-text-fill-color: currentColor !important;
+  -webkit-text-stroke: 0 !important;
   filter: none !important;
-  text-shadow: 0 2px 32px rgba(0,0,0,0.8), 0 0 60px rgba(0,0,0,0.4) !important;
+  text-shadow: 0 4px 48px rgba(0,0,0,0.9), 0 1px 0 rgba(0,0,0,0.6) !important;
   opacity: 1 !important;
   position: relative !important;
   z-index: 2 !important;
@@ -13796,84 +13814,94 @@ canvas{
   text-transform: uppercase !important;
   white-space: nowrap !important;
   overflow: visible !important;
-  margin-top: 12px !important;
+  margin: 0 !important;
 }
 
-/* Word 2 — stroke/outline treatment, intentional design not broken ghost */
+/* Word 2 — ON: stroke treatment, refined ghost */
 .ov-hero-word2 {
   font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
-  font-size: 152px !important;
+  font-size: 148px !important;
   font-weight: 900 !important;
   letter-spacing: -0.055em !important;
-  line-height: 0.86 !important;
+  line-height: 0.88 !important;
   text-align: right !important;
-  /* Stroke outline: text fill transparent, stroke uses color var */
   color: currentColor !important;
   -webkit-text-fill-color: transparent !important;
   -webkit-text-stroke: 1.5px currentColor !important;
   paint-order: stroke fill !important;
-  opacity: 0.65 !important;
+  opacity: 0.60 !important;
   position: relative !important;
   z-index: 2 !important;
   display: block !important;
   text-transform: uppercase !important;
-  margin-bottom: 0 !important;
+  margin: 0 0 0 0 !important;
   white-space: nowrap !important;
   overflow: visible !important;
   filter: none !important;
 }
 
-/* Intermediate regime label — bridges 152px headline and 9.5px body copy */
-.ov-hero-regime-label {
-  display: block !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 8.5px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.28em !important;
-  text-transform: uppercase !important;
-  color: currentColor !important;
-  opacity: 0.72 !important;
-  text-align: right !important;
-  margin: 14px 0 22px 0 !important;
-  position: relative !important;
-  z-index: 2 !important;
-  white-space: nowrap !important;
-}
-
-/* Accent rule — full width of panel, colour-matched, stronger presence */
+/* Thin rule separating headline from score data */
 .ov-hero-rule {
   display: block !important;
   width: 100% !important;
   height: 1px !important;
   background: linear-gradient(to left, currentColor, rgba(255,255,255,0)) !important;
-  opacity: 0.38 !important;
-  margin: 0 0 16px 0 !important;
+  opacity: 0.22 !important;
+  margin: 20px 0 0 0 !important;
   position: relative !important;
   z-index: 2 !important;
   flex-shrink: 0 !important;
 }
 
-/* Description — elevated contrast */
-.ov-banner-desc {
-  font-size: 9.5px !important;
-  letter-spacing: 0.20em !important;
-  text-transform: uppercase !important;
-  color: rgba(190,205,225,0.68) !important;
+/* Bottom data block — score, description, timestamp */
+.ov-hero-bottom-block {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 0 !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Intermediate regime label */
+.ov-hero-regime-label {
+  display: block !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 8px !important;
   font-weight: 500 !important;
+  letter-spacing: 0.28em !important;
+  text-transform: uppercase !important;
+  color: currentColor !important;
+  opacity: 0.60 !important;
   text-align: right !important;
-  max-width: 340px !important;
-  line-height: 2.0 !important;
-  margin-bottom: 20px !important;
+  margin: 0 0 16px 0 !important;
+  position: relative !important;
+  z-index: 2 !important;
+  white-space: nowrap !important;
+}
+
+/* Description text */
+.ov-banner-desc {
+  font-size: 9px !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(190,205,225,0.58) !important;
+  font-weight: 400 !important;
+  text-align: right !important;
+  max-width: 320px !important;
+  line-height: 2.1 !important;
+  margin-bottom: 16px !important;
   position: relative !important;
   z-index: 2 !important;
 }
 
 /* Markets + timestamp row */
 .ov-banner-sub {
-  font-size: 7.5px !important;
+  font-size: 7px !important;
   letter-spacing: 0.22em !important;
   text-transform: uppercase !important;
-  color: rgba(150,168,200,0.50) !important;
+  color: rgba(150,168,200,0.40) !important;
   justify-content: flex-end !important;
   flex-direction: row-reverse !important;
   gap: 10px !important;
@@ -13881,199 +13909,89 @@ canvas{
   position: relative !important;
   z-index: 2 !important;
 }
-.ov-banner-dot { opacity: 0.45 !important; width: 5px !important; height: 5px !important; }
+.ov-banner-dot { opacity: 0.40 !important; width: 4px !important; height: 4px !important; }
 
 /* Vertical sidebar text — right edge, rotated */
 .ov-hero-sidebar {
   position: absolute !important;
-  right: 14px !important;
+  right: 18px !important;
   top: 50% !important;
   transform: translateY(-50%) rotate(90deg) !important;
   transform-origin: center center !important;
-  font-size: 7px !important;
+  font-size: 6.5px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.28em !important;
+  letter-spacing: 0.30em !important;
   text-transform: uppercase !important;
-  color: rgba(138,152,184,0.25) !important;
+  color: rgba(138,152,184,0.18) !important;
   white-space: nowrap !important;
   pointer-events: none !important;
   z-index: 2 !important;
 }
 
-/* Score pill — very subtle */
-.ov-banner-text-right .ov-regime-score-pill {
-  display: none !important;
-}
+/* Score pill — hide */
+.ov-banner-text-right .ov-regime-score-pill { display: none !important; }
 
-/* Hide stats + price strip */
+/* Stats + price strip — hide */
 .ov-banner-text-right .ov-banner-stats,
-.ov-banner-text-right .ov-price-strip {
-  display: none !important;
-}
-
-/* Eyebrow — second definition after mobile overrides, keep consistent */
-
-/* Left panel — macro overview */
-.ov-banner-left {
-  flex: 1 !important;
-  min-width: 0 !important;
-  pointer-events: auto !important;
-  /* 160px left-pad clears the energy meter strip */
-  padding: 0 0 0 160px !important;
-  gap: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: stretch !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-
-/* ── Hero editorial headline panel ── */
-.ov-macro-panel {
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  padding: 0 64px 0 0 !important;
-  min-width: 0 !important;
-  max-width: 780px !important;
-  width: 100% !important;
-  flex: 1 !important;
-  align-self: stretch !important;
-  position: relative !important;
-  z-index: 6 !important;
-}
-.ov-macro-eyebrow {
-  font-size: 7px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.34em !important;
-  text-transform: uppercase !important;
-  color: rgba(200,169,110,0.45) !important;
-  margin-bottom: 24px !important;
-  padding-bottom: 12px !important;
-  border-bottom: 1px solid rgba(200,169,110,0.14) !important;
-  flex-shrink: 0 !important;
-}
-
-/* ── Editorial lines ── */
-.ov-macro-lines {
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  gap: 0 !important;
-  /* Don't stretch — keep lines compact, centred in available height */
-  flex: 0 0 auto !important;
-}
-.ov-macro-line {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  height: 72px !important;
-  border-bottom: 1px solid rgba(255,255,255,0.045) !important;
-  padding: 0 !important;
-  gap: 20px !important;
-}
-.ov-macro-line:last-child {
-  border-bottom: none !important;
-}
-/* Signal label — large bold editorial */
-.ov-macro-line-label {
-  font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
-  font-size: 22px !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.01em !important;
-  color: rgba(242,246,255,0.90) !important;
-  white-space: nowrap !important;
-  line-height: 1 !important;
-  flex-shrink: 0 !important;
-}
-/* Right side: value + status stacked */
-.ov-macro-line-right {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-end !important;
-  gap: 5px !important;
-  flex-shrink: 0 !important;
-}
-/* Mono data value */
-.ov-macro-line-value {
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.03em !important;
-  color: rgba(173,184,208,0.55) !important;
-  white-space: nowrap !important;
-  line-height: 1 !important;
-}
-/* Coloured status word */
-.ov-macro-line-status {
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 8px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.12em !important;
-  text-transform: uppercase !important;
-  white-space: nowrap !important;
-  line-height: 1 !important;
-}
-.ov-macro-footer {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  margin-top: 22px !important;
-  padding-top: 12px !important;
-  border-top: 1px solid rgba(200,169,110,0.10) !important;
-  font-size: 7px !important;
-  letter-spacing: 0.22em !important;
-  text-transform: uppercase !important;
-  color: rgba(138,152,184,0.25) !important;
-}
-/* Loading state */
-.ov-macro-loading {
-  align-items: flex-start !important;
-}
+.ov-banner-text-right .ov-price-strip { display: none !important; }
 
 /* Responsive */
 @media (min-width: 2560px) {
-  .ov-banner-text-right { width: 640px !important; padding: 60px 72px 0 32px !important; }
-  .ov-hero-word1, .ov-hero-word2 { font-size: 200px !important; }
-  .ov-banner-text-right::before { font-size: 500px !important; right: -90px !important; }
-  .ov-hero-regime-label { font-size: 10px !important; }
+  .ov-banner-text-right { width: 660px !important; padding: 44px 72px 60px 28px !important; }
+  .ov-hero-word1, .ov-hero-word2 { font-size: 196px !important; }
+  .ov-banner-text-right::before { font-size: 520px !important; opacity: 0.028 !important; }
+  .ov-hero-regime-label { font-size: 9.5px !important; }
+  .ov-banner-eyebrow { top: 38px !important; left: 56px !important; font-size: 8px !important; }
+  .ov-hero-headline-block { margin-top: 52px !important; }
 }
 @media (min-width: 1920px) and (max-width: 2559px) {
-  .ov-banner-text-right { width: 580px !important; padding: 56px 64px 0 28px !important; }
-  .ov-hero-word1, .ov-hero-word2 { font-size: 178px !important; }
-  .ov-banner-text-right::before { font-size: 440px !important; right: -80px !important; }
+  .ov-banner-text-right { width: 600px !important; padding: 40px 64px 56px 24px !important; }
+  .ov-hero-word1, .ov-hero-word2 { font-size: 174px !important; }
+  .ov-banner-text-right::before { font-size: 460px !important; }
 }
 @media (max-width: 1440px) {
-  .ov-banner-text-right { width: 420px !important; padding: 44px 44px 0 20px !important; }
-  .ov-hero-word1, .ov-hero-word2 { font-size: 120px !important; }
-  .ov-banner-text-right::before { font-size: 300px !important; }
+  .ov-banner-text-right { width: 440px !important; padding: 30px 44px 42px 18px !important; }
+  .ov-hero-word1, .ov-hero-word2 { font-size: 116px !important; }
+  .ov-banner-text-right::before { font-size: 320px !important; }
+  .ov-hero-headline-block { margin-top: 28px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner-text-right { width: 360px !important; padding: 40px 36px 0 16px !important; }
-  .ov-hero-word1, .ov-hero-word2 { font-size: 96px !important; }
-  .ov-banner-text-right::before { font-size: 250px !important; }
+  .ov-banner-text-right { width: 380px !important; padding: 28px 36px 38px 14px !important; }
+  .ov-hero-word1, .ov-hero-word2 { font-size: 94px !important; }
+  .ov-banner-text-right::before { font-size: 260px !important; }
   .ov-banner-eyebrow { left: 28px !important; }
-  .ov-hero-regime-label { font-size: 8px !important; }
+  .ov-hero-regime-label { font-size: 7.5px !important; }
+  .ov-hero-headline-block { margin-top: 24px !important; }
 }
 
-/* Mobile */
+/* Mobile: revert to stacked column layout */
 @media (max-width: 700px) {
   .ov-banner-inner {
-    position: relative !important; inset: auto !important;
-    flex-direction: column !important; align-items: stretch !important;
-    padding: 20px 16px !important; gap: 0 !important;
+    position: relative !important;
+    inset: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 20px 16px !important;
+    gap: 0 !important;
+    pointer-events: auto !important;
   }
-  .ov-banner-left { padding: 16px 0 20px 0 !important; }
-  .ov-macro-panel { padding: 0 0 16px 0 !important; flex: none !important; max-width: 100% !important; }
-  .ov-macro-line { min-height: 38px !important; gap: 8px !important; flex: none !important; }
-  .ov-macro-line-label { font-size: 15px !important; }
-  .ov-macro-line-value { font-size: 11px !important; }
-  .ov-macro-line-status { font-size: 7px !important; }
-  .ov-macro-eyebrow { margin-bottom: 16px !important; padding-bottom: 10px !important; }
-  .ov-macro-footer { margin-top: 14px !important; padding-top: 10px !important; }
-  .ov-banner-eyebrow { position: relative !important; top: auto !important; left: auto !important; margin-bottom: 10px !important; }
-  .ov-banner-text-right { width: 100% !important; align-items: flex-start !important; padding: 20px 0 0 0 !important; border-left: none !important; border-top: 1px solid rgba(200,169,110,0.08) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }
+  .ov-banner-left { display: flex !important; flex-direction: column !important; gap: 6px !important; flex: 1 !important; min-width: 0 !important; pointer-events: none !important; padding: 0 !important; }
+  .ov-banner-eyebrow { position: relative !important; top: auto !important; left: auto !important; margin-bottom: 10px !important; z-index: auto !important; }
+  .ov-banner-text-right {
+    position: relative !important;
+    top: auto !important; right: auto !important; bottom: auto !important;
+    width: 100% !important;
+    align-items: flex-start !important;
+    padding: 20px 0 0 0 !important;
+    border-top: 1px solid rgba(200,169,110,0.08) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+  }
+  .ov-hero-headline-block { align-items: flex-start !important; margin-top: 0 !important; }
   .ov-banner-text-right::before { display: none !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 56px !important; }
   .ov-hero-word2 { margin-bottom: 0 !important; }
@@ -14082,6 +14000,7 @@ canvas{
   .ov-banner-desc { text-align: left !important; text-transform: none !important; letter-spacing: 0.02em !important; }
   .ov-banner-sub { flex-direction: row !important; justify-content: flex-start !important; }
   .ov-hero-rule { background: linear-gradient(to right, currentColor, transparent) !important; }
+  .ov-hero-bottom-block { align-items: flex-start !important; }
 }
 
 /* ── Banner bg and particle canvas ── */
@@ -14746,18 +14665,19 @@ function renderOverview(){
   // Update banner bg gradient to match regime colour
   const bnBg=document.getElementById('ov-banner-bg');
   if(bnBg){
-    // Rich atmospheric bloom — arc glow zone (centre-left) + right panel depth
+    // R25O: Magazine cover atmosphere
+    // Warm amber top-right editorial light pool (always present, editorial warmth)
+    // + subtle regime tint in the arc zone (left-centre)
     const isOn=regLabel.includes('On'), isOff=regLabel.includes('Off');
-    // Editorial: one clean warm lift — photographic, not neon
-    // Regime colour tints the atmosphere very subtly, like coloured light on a studio backdrop
-    const liftA  = isOn ? 0.07 : isOff ? 0.07 : 0.05;
+    const liftA  = isOn ? 0.055 : isOff ? 0.05 : 0.04;
     const baseC  = isOn ? `rgba(34,201,122,${liftA})`
                  : isOff? `rgba(210,60,40,${liftA})`
                  :         `rgba(92,140,220,${liftA})`;
-    const deepA  = isOn ? 'rgba(4,12,8,0.7)' : isOff ? 'rgba(12,4,4,0.7)' : 'rgba(4,6,14,0.7)';
+    // Warm amber editorial pool top-right — always visible, like studio lighting
     bnBg.style.background = [
-      `radial-gradient(ellipse 80% 80% at 42% 55%,${baseC} 0%,transparent 65%)`,
-      `radial-gradient(ellipse 100% 40% at 50% 100%,${deepA} 0%,transparent 80%)`
+      `radial-gradient(ellipse 60% 65% at 88% 5%,rgba(200,169,110,0.11) 0%,transparent 62%)`,
+      `radial-gradient(ellipse 35% 40% at 96% 0%,rgba(220,195,140,0.08) 0%,transparent 50%)`,
+      `radial-gradient(ellipse 75% 65% at 40% 52%,${baseC} 0%,transparent 62%)`
     ].join(',');
   }
   // ── Regime atmosphere wash ──────────────────────────────────────────────
@@ -14978,15 +14898,19 @@ function renderOverview(){
           const parts = up.replace('-',' ').split(' ');
           w1 = parts[0]; w2 = parts.slice(1).join(' ') || parts[0];
         }
-        return `<span class="ov-hero-word1" style="color:${regCol}">${w1}</span>
-                <span class="ov-hero-word2" style="color:${regCol}">${w2}</span>`;
+        return `<div class="ov-hero-headline-block">
+                  <span class="ov-hero-word1" style="color:${regCol}">${w1}</span>
+                  <span class="ov-hero-word2" style="color:${regCol}">${w2}</span>
+                </div>`;
       })()}
-      <span class="ov-hero-regime-label" style="color:${regCol}">${regScore!=null?regScore.toFixed(1)+' / 10 — Macro Regime Indicator':'Macro Regime Indicator'}</span>
-      <span class="ov-hero-rule" style="background:linear-gradient(to left,${regCol},transparent)"></span>
-      ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
-      <div class="ov-banner-sub">
-        <span class="ov-banner-dot" style="background:${regCol}"></span>
-        ${total} markets tracked &nbsp;&middot;&nbsp; Updated ${DATA.updated_at?new Date(DATA.updated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC':'just now'}
+      <div class="ov-hero-bottom-block">
+        <span class="ov-hero-regime-label" style="color:${regCol}">${regScore!=null?regScore.toFixed(1)+' / 10 — Macro Regime Indicator':'Macro Regime Indicator'}</span>
+        <span class="ov-hero-rule" style="background:linear-gradient(to left,${regCol},transparent)"></span>
+        ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
+        <div class="ov-banner-sub">
+          <span class="ov-banner-dot" style="background:${regCol}"></span>
+          ${total} markets tracked &nbsp;&middot;&nbsp; Updated ${DATA.updated_at?new Date(DATA.updated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC':'just now'}
+        </div>
       </div>
       <span class="ov-hero-sidebar">Market Climate &mdash; ${regScore!=null?regScore.toFixed(1)+' / 10':''}</span>
       <div class="ov-banner-stats">
