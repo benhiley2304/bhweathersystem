@@ -13846,7 +13846,7 @@ canvas{
   flex: 1 !important;
   min-width: 0 !important;
   pointer-events: auto !important;
-  /* 160px clears the LEFT_W=145px energy meter strip on the arc canvas */
+  /* 160px left-pad clears the energy meter strip */
   padding: 0 0 0 160px !important;
   gap: 0 !important;
   display: flex !important;
@@ -13857,13 +13857,14 @@ canvas{
   overflow: hidden !important;
 }
 
-/* ── Hero macro signal panel ── */
+/* ── Hero editorial headline panel ── */
 .ov-macro-panel {
   display: flex !important;
   flex-direction: column !important;
-  justify-content: flex-start !important;
-  padding: 56px 48px 36px 0 !important;
+  justify-content: center !important;
+  padding: 0 64px 0 0 !important;
   min-width: 0 !important;
+  max-width: 780px !important;
   width: 100% !important;
   flex: 1 !important;
   align-self: stretch !important;
@@ -13875,157 +13876,82 @@ canvas{
   font-weight: 700 !important;
   letter-spacing: 0.34em !important;
   text-transform: uppercase !important;
-  color: rgba(200,169,110,0.40) !important;
-  margin-bottom: 18px !important;
-  padding-bottom: 12px !important;
-  border-bottom: 1px solid rgba(200,169,110,0.12) !important;
+  color: rgba(200,169,110,0.45) !important;
+  margin-bottom: 28px !important;
+  padding-bottom: 14px !important;
+  border-bottom: 1px solid rgba(200,169,110,0.14) !important;
 }
-.ov-macro-rows {
+
+/* ── Editorial lines ── */
+.ov-macro-lines {
   display: flex !important;
   flex-direction: column !important;
   gap: 0 !important;
   flex: 1 !important;
 }
-/* 5-col grid: tag | info-stack | track | reading | status */
-.ov-macro-row {
-  display: grid !important;
-  grid-template-columns: 46px minmax(130px,220px) 240px 100px 120px !important;
-  align-items: center !important;
-  gap: 0 18px !important;
+.ov-macro-line {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
   flex: 1 !important;
-  min-height: 52px !important;
-  max-width: 900px !important;
-  border-bottom: 1px solid rgba(255,255,255,0.035) !important;
-  transition: background 0.25s !important;
+  min-height: 48px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  padding: 0 0 !important;
+  gap: 16px !important;
 }
-.ov-macro-row:last-child {
+.ov-macro-line:last-child {
   border-bottom: none !important;
 }
-.ov-macro-row:hover {
-  background: rgba(255,255,255,0.025) !important;
-  border-radius: 6px !important;
-}
-/* Tag pill — filled background badge */
-.ov-macro-tag {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 38px !important;
-  height: 24px !important;
-  border-radius: 5px !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 8.5px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.04em !important;
-  background: currentColor !important;
+/* Signal label — bold, spaced, all-caps */
+.ov-macro-line-label {
+  font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  color: rgba(242,246,255,0.92) !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
   flex-shrink: 0 !important;
 }
-.ov-macro-tag span {
-  color: #040405 !important;
-  font-size: 8.5px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.04em !important;
-  line-height: 1 !important;
-}
-/* Info stack: label + sub */
-.ov-macro-info {
+/* Right side: value + status stacked or inline */
+.ov-macro-line-right {
   display: flex !important;
   flex-direction: column !important;
+  align-items: flex-end !important;
   gap: 3px !important;
-  min-width: 0 !important;
+  flex-shrink: 0 !important;
 }
-.ov-macro-name {
+/* Mono data value */
+.ov-macro-line-value {
+  font-family: 'JetBrains Mono', monospace !important;
   font-size: 13px !important;
   font-weight: 500 !important;
-  color: rgba(242,246,255,0.88) !important;
-  letter-spacing: 0.005em !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  line-height: 1.2 !important;
-}
-.ov-macro-sub {
-  font-size: 10px !important;
-  font-weight: 400 !important;
-  color: rgba(138,152,184,0.50) !important;
-  letter-spacing: 0.04em !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  line-height: 1.2 !important;
-}
-/* Progress track */
-.ov-macro-track {
-  position: relative !important;
-  height: 3px !important;
-  background: rgba(255,255,255,0.07) !important;
-  border-radius: 2px !important;
-  overflow: visible !important;
-  align-self: center !important;
-}
-.ov-macro-fill {
-  position: absolute !important;
-  top: 0 !important;
-  height: 100% !important;
-  border-radius: 2px !important;
-  opacity: 0.70 !important;
-  transition: width 1.0s cubic-bezier(0.4,0,0.2,1), left 1.0s cubic-bezier(0.4,0,0.2,1) !important;
-}
-/* Glowing tip dot */
-.ov-macro-tip {
-  position: absolute !important;
-  top: 50% !important;
-  width: 8px !important;
-  height: 8px !important;
-  border-radius: 50% !important;
-  background: currentColor !important;
-  transform: translate(-50%, -50%) !important;
-  box-shadow: 0 0 8px 3px currentColor !important;
-  opacity: 0.95 !important;
-  transition: left 1.0s cubic-bezier(0.4,0,0.2,1) !important;
-}
-.ov-macro-centre {
-  position: absolute !important;
-  left: 50% !important;
-  top: -5px !important;
-  width: 1px !important;
-  height: 13px !important;
-  background: rgba(255,255,255,0.16) !important;
-  transform: translateX(-50%) !important;
-}
-/* Reading value — mono data */
-.ov-macro-reading {
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 11px !important;
-  font-weight: 500 !important;
   letter-spacing: 0.02em !important;
-  text-align: right !important;
-  white-space: nowrap !important;
   color: rgba(173,184,208,0.65) !important;
+  white-space: nowrap !important;
   line-height: 1 !important;
 }
-/* Status — coloured label */
-.ov-macro-status {
+/* Coloured status word */
+.ov-macro-line-status {
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 9px !important;
+  font-size: 8px !important;
   font-weight: 700 !important;
-  letter-spacing: 0.07em !important;
-  text-align: right !important;
-  white-space: nowrap !important;
+  letter-spacing: 0.10em !important;
   text-transform: uppercase !important;
+  white-space: nowrap !important;
   line-height: 1 !important;
 }
 .ov-macro-footer {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  margin-top: 16px !important;
+  margin-top: 22px !important;
   padding-top: 12px !important;
-  border-top: 1px solid rgba(200,169,110,0.09) !important;
+  border-top: 1px solid rgba(200,169,110,0.10) !important;
   font-size: 7px !important;
-  letter-spacing: 0.20em !important;
+  letter-spacing: 0.22em !important;
   text-transform: uppercase !important;
-  color: rgba(138,152,184,0.28) !important;
+  color: rgba(138,152,184,0.25) !important;
 }
 /* Loading state */
 .ov-macro-loading {
@@ -14058,12 +13984,13 @@ canvas{
     padding: 20px 16px !important; gap: 0 !important;
   }
   .ov-banner-left { padding: 16px 0 20px 0 !important; }
-  .ov-macro-panel { padding: 0 0 16px 0 !important; flex: none !important; }
-  .ov-macro-row { grid-template-columns: 32px 1fr 68px !important; flex: none !important; min-height: 40px !important; gap: 0 10px !important; }
-  .ov-macro-track { display: none !important; }
-  .ov-macro-reading { display: none !important; }
-  .ov-macro-eyebrow { margin-bottom: 12px !important; padding-bottom: 8px !important; }
-  .ov-macro-footer { margin-top: 12px !important; padding-top: 8px !important; }
+  .ov-macro-panel { padding: 0 0 16px 0 !important; flex: none !important; max-width: 100% !important; }
+  .ov-macro-line { min-height: 38px !important; gap: 8px !important; flex: none !important; }
+  .ov-macro-line-label { font-size: 15px !important; }
+  .ov-macro-line-value { font-size: 11px !important; }
+  .ov-macro-line-status { font-size: 7px !important; }
+  .ov-macro-eyebrow { margin-bottom: 16px !important; padding-bottom: 10px !important; }
+  .ov-macro-footer { margin-top: 14px !important; padding-top: 10px !important; }
   .ov-banner-eyebrow { position: relative !important; top: auto !important; left: auto !important; margin-bottom: 10px !important; }
   .ov-banner-text-right { width: 100% !important; align-items: flex-start !important; padding: 20px 0 0 0 !important; border-left: none !important; border-top: 1px solid rgba(200,169,110,0.08) !important; }
   .ov-banner-text-right::before { display: none !important; }
@@ -14936,35 +14863,34 @@ function renderOverview(){
     { label: 'Real Yield',        tag: 'RY',  reading: _ryRead,  score: _ryScore,  sub: _rySub  },
   ];
 
+  // Build 4 editorial headline lines from the macro data
+  // Format: LABEL — VALUE  (two-part, tab-separated visual)
+  const _mkLine = (label, value, col, status) => ({ label, value, col, status });
+
+  const _heroLines = [
+    _mkLine('CREDIT SPREADS',    _crRead,  _hCol(_crScore),  _hStatus(_crScore)),
+    _mkLine('YIELD CURVE',       _ycRead,  _hCol(_ycScore),  _hStatus(_ycScore)),
+    _mkLine('INFLATION',         _infRead, _hCol(_infScore), _hStatus(_infScore)),
+    _mkLine('FED BALANCE SHEET', _fbRead,  _hCol(_fbScore),  _hStatus(_fbScore)),
+  ];
+
   const _heroLeftHtml = `
     <div class="ov-macro-panel">
       <div class="ov-macro-eyebrow">Economic Environment</div>
-      <div class="ov-macro-rows">
-        ${_heroSigs.map(sig => {
-          const col = _hCol(sig.score);
-          const status = _hStatus(sig.score);
-          const bPct  = sig.score != null ? Math.round(Math.max(5, Math.min(95, 50 + sig.score * 45))) : 50;
-          const bFill = Math.abs(bPct - 50);
-          const bLeft = Math.min(bPct, 50);
-          return `<div class="ov-macro-row">
-            <div class="ov-macro-tag" style="color:${col}">${sig.tag}</div>
-            <div class="ov-macro-info">
-              <div class="ov-macro-name">${sig.label}</div>
-              ${sig.sub ? `<div class="ov-macro-sub">${sig.sub}</div>` : ''}
+      <div class="ov-macro-lines">
+        ${_heroLines.map(line => `
+          <div class="ov-macro-line">
+            <div class="ov-macro-line-label">${line.label}</div>
+            <div class="ov-macro-line-right">
+              <span class="ov-macro-line-value">${line.value}</span>
+              <span class="ov-macro-line-status" style="color:${line.col}">${line.status}</span>
             </div>
-            <div class="ov-macro-track">
-              <div class="ov-macro-fill" style="left:${bLeft}%;width:${bFill}%;background:${col}88"></div>
-              <div class="ov-macro-tip" style="left:${bPct}%"></div>
-              <div class="ov-macro-centre"></div>
-            </div>
-            <div class="ov-macro-reading" style="color:rgba(173,184,208,0.7)">${sig.reading}</div>
-            <div class="ov-macro-status" style="color:${col}">${status}</div>
-          </div>`;
-        }).join('')}
+          </div>
+        `).join('')}
       </div>
       <div class="ov-macro-footer">
         <span>${total} markets tracked</span>
-        <span>${regScore != null ? 'Climate ' + regScore.toFixed(1) + '\u202f/\u202f10' : ''}</span>
+        <span>${regScore != null ? regScore.toFixed(1) + '\u202f/\u202f10' : ''}</span>
       </div>
     </div>
   `;
@@ -19696,285 +19622,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   }
   ctx.restore();
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // LEFT PANEL — JARVIS CLIMATE READOUT
-  // Premium holographic data spine: vertical energy bar, score hero, stats
-  // ═══════════════════════════════════════════════════════════════════════
-  {
-    const lx  = PAD_L + 2;
-    const lW  = LEFT_W - 6;
-    const lCX = lx + lW / 2;
-
-    // ── Resolve live data (banner-synced)
-    const scoreMax  = Math.max(...scores);
-    const scoreMin  = Math.min(...scores);
-    const scoreAvg  = scores.reduce((a,b) => a+b, 0) / scores.length;
-    const _liveScore = live.liveScore != null ? live.liveScore : curScore;
-    const _liveLabel = live.liveLabel || curLabel;
-    let _lC = curC;
-    if (live.liveCol && live.liveCol.startsWith('#') && live.liveCol.length === 7) {
-      _lC = [
-        parseInt(live.liveCol.slice(1,3),16),
-        parseInt(live.liveCol.slice(3,5),16),
-        parseInt(live.liveCol.slice(5,7),16),
-      ];
-    }
-
-    ctx.save();
-
-    // ── Panel background: deep glass panel with subtle border
-    const panelGrd = ctx.createLinearGradient(lx, 0, lx + lW, 0);
-    panelGrd.addColorStop(0, 'rgba(0,0,0,0)');
-    panelGrd.addColorStop(0.1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.04)`);
-    panelGrd.addColorStop(0.9, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.02)`);
-    panelGrd.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = panelGrd;
-    ctx.fillRect(lx, 0, lW, H);
-
-    // Right-edge divider with glow
-    const dvG = ctx.createLinearGradient(0, 0, 0, H);
-    dvG.addColorStop(0,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    dvG.addColorStop(0.15, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.40)`);
-    dvG.addColorStop(0.5,  `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`);
-    dvG.addColorStop(0.85, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.40)`);
-    dvG.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    ctx.beginPath(); ctx.moveTo(ARC_X - 1, 0); ctx.lineTo(ARC_X - 1, H);
-    ctx.strokeStyle = dvG; ctx.lineWidth = 0.75; ctx.stroke();
-
-    // ── Section 1: HEADER AREA (top 26% of H)
-    const headerH = Math.round(H * 0.26);
-
-    // Eyebrow label: "CLIMATE SCORE"
-    ctx.font = '700 6px "SF Mono",monospace';
-    ctx.letterSpacing = '0.20em';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.60)`;
-    ctx.fillText('CLIMATE SCORE', lCX, 13);
-    ctx.letterSpacing = '0';
-
-    // Top rule: thin line under eyebrow with fade-in
-    const topR = ctx.createLinearGradient(lx+4,0,lx+lW-4,0);
-    topR.addColorStop(0,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    topR.addColorStop(0.5, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.28)`);
-    topR.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    ctx.beginPath(); ctx.moveTo(lx+4, 16); ctx.lineTo(lx+lW-4, 16);
-    ctx.strokeStyle = topR; ctx.lineWidth = 0.5; ctx.stroke();
-
-    // Hero number: live score — large, glowing, white
-    const heroSz = Math.round(Math.min(lW * 0.36, 38));
-    const dispScore = _liveScore.toFixed(1);
-    ctx.save();
-    ctx.font = `100 ${heroSz}px "SF Pro Display","Helvetica Neue",sans-serif`;
-    ctx.textAlign = 'center';
-    // Hero number: white core + colour halo — single clean pass
-    ctx.shadowBlur = 14; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.50)`;
-    ctx.fillStyle = 'rgba(255,255,255,0.98)';
-    ctx.fillText(dispScore, lCX, 18 + heroSz);
-    ctx.shadowBlur = 0;
-    // Thin colour underline beneath score — premium accent
-    const ulY = 20 + heroSz + 3;
-    const ulW = Math.min(heroSz * 1.1, lW * 0.65);
-    const ulGrd = ctx.createLinearGradient(lCX - ulW/2, 0, lCX + ulW/2, 0);
-    ulGrd.addColorStop(0,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    ulGrd.addColorStop(0.5, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`);
-    ulGrd.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    ctx.beginPath(); ctx.moveTo(lCX - ulW/2, ulY); ctx.lineTo(lCX + ulW/2, ulY);
-    ctx.strokeStyle = ulGrd; ctx.lineWidth = 0.8; ctx.stroke();
-    ctx.restore();
-
-    // Scale denom — tiny, positioned just below hero
-    ctx.font = '400 6.5px "SF Mono",monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.32)`;
-    ctx.fillText('/ 10', lCX, 20 + heroSz + 10);
-
-    // Regime label — bold, coloured, glowing
-    const labelFull = _liveLabel
-      .replace('Strong Risk-On','S.RISK-ON').replace('Strong Risk-Off','S.RISK-OFF')
-      .replace('Lean Risk-On','L.RISK-ON').replace('Lean Risk-Off','L.RISK-OFF')
-      .toUpperCase();
-    ctx.save();
-    ctx.font = `700 8px "SF Mono",monospace`;
-    ctx.letterSpacing = '0.08em';
-    ctx.textAlign = 'center';
-    // Regime label: tight single glow for legibility
-    ctx.shadowBlur = 8; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.60)`;
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.92)`;
-    ctx.fillText(labelFull, lCX, 20 + heroSz + 24);
-    ctx.shadowBlur = 0;
-    ctx.letterSpacing = '0';
-    ctx.restore();
-
-    // ── Section 2: VERTICAL ENERGY BAR (central column, ~45% of H)
-    // This is the key Jarvis element — a tall vertical gauge
-    const barY1     = 20 + heroSz + 36;         // top of bar area
-    const barY2     = H - 46;                     // bottom of bar area
-    const barTotalH = barY2 - barY1;
-    const barCX     = lCX;                        // centered
-    const barW      = 14;                          // bar width
-    const barX0     = barCX - barW / 2;
-
-    // ── Live position fraction (0=bottom=-4, 1=top=+4)
-    const liveFrac = Math.max(0, Math.min(1, _liveScore / 10));
-
-    // ── Bar background track (gradient, top=bull, bot=bear)
-    const trackGrd = ctx.createLinearGradient(0, barY1, 0, barY2);
-    trackGrd.addColorStop(0,   'rgba(48,217,136,0.22)');   // bull green at top
-    trackGrd.addColorStop(0.5, 'rgba(60,70,100,0.12)');    // neutral
-    trackGrd.addColorStop(1,   'rgba(240,64,64,0.22)');    // bear red at bottom
-    ctx.beginPath(); ctx.roundRect(barX0, barY1, barW, barTotalH, 2);
-    ctx.fillStyle = trackGrd; ctx.fill();
-
-    // Track border
-    ctx.beginPath(); ctx.roundRect(barX0, barY1, barW, barTotalH, 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
-
-    // ── Filled portion: from neutral midpoint to live score
-    const neutralY   = barY1 + (1 - 0.5) * barTotalH;      // mid of bar (score=0)
-    const liveY      = barY1 + (1 - liveFrac) * barTotalH;  // live position
-    const fillTop    = Math.min(neutralY, liveY);
-    const fillH      = Math.abs(neutralY - liveY);
-    const isBull     = _liveScore >= 5;
-    const fillGrd    = ctx.createLinearGradient(0, fillTop, 0, fillTop + fillH);
-    if (isBull) {
-      fillGrd.addColorStop(0, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.85)`);
-      fillGrd.addColorStop(1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.20)`);
-    } else {
-      fillGrd.addColorStop(0, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.20)`);
-      fillGrd.addColorStop(1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.85)`);
-    }
-    ctx.beginPath(); ctx.roundRect(barX0, fillTop, barW, Math.max(1, fillH), 1);
-    ctx.fillStyle = fillGrd; ctx.fill();
-
-    // ── Scale ticks on left side of bar — architectural / HUD style
-    // 9 ticks: -4, -3, -2, -1, 0, +1, +2, +3, +4
-    for (let tick = -4; tick <= 4; tick++) {
-      const ty   = barY1 + (1 - (tick + 4) / 8) * barTotalH;
-      const isZero = tick === 0;
-      const tickW  = isZero ? 18 : (tick % 2 === 0 ? 12 : 6);
-      const tickX0 = barX0 - tickW - 1;
-      const alpha  = isZero ? 0.50 : (tick % 2 === 0 ? 0.28 : 0.13);
-      ctx.beginPath(); ctx.moveTo(tickX0, ty); ctx.lineTo(barX0 - 1, ty);
-      ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = isZero ? 0.8 : 0.5; ctx.stroke();
-      // Tick labels: only even values + 0 on far-left side
-      if (tick % 2 === 0) {
-        ctx.font = isZero ? '600 5.5px "SF Mono",monospace' : '400 5px "SF Mono",monospace';
-        ctx.textAlign = 'right';
-        const lColor = tick > 0 ? `rgba(48,217,136,${isZero?0.65:0.42})` :
-                       tick < 0 ? `rgba(240,80,80,${isZero?0.65:0.42})` :
-                       `rgba(255,255,255,${isZero?0.72:0.42})`;
-        ctx.fillStyle = lColor;
-        ctx.fillText(tick === 0 ? '0' : (tick > 0 ? '+'+tick : tick), tickX0 - 1, ty + 1.5);
-      }
-    }
-
-    // ── Live needle: horizontal line across the whole panel width
-    // This is the key linking element — same height as the energy bar needle
-    const needleY = barY1 + (1 - liveFrac) * barTotalH;
-    ctx.save();
-    // Full-width glow scan line
-    const scanGrd = ctx.createLinearGradient(lx, 0, lx + lW, 0);
-    scanGrd.addColorStop(0,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    scanGrd.addColorStop(0.25, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.45)`);
-    scanGrd.addColorStop(0.75, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.45)`);
-    scanGrd.addColorStop(1,   `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    ctx.beginPath(); ctx.moveTo(lx, needleY); ctx.lineTo(lx + lW, needleY);
-    ctx.strokeStyle = scanGrd; ctx.lineWidth = 0.8; ctx.stroke();
-    // Needle dot on bar
-    ctx.beginPath(); ctx.arc(barCX, needleY, 3, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.fill();
-    // Outer ring on needle dot
-    ctx.beginPath(); ctx.arc(barCX, needleY, 5.5, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`;
-    ctx.lineWidth = 0.8; ctx.stroke();
-    ctx.restore();
-
-    // ── 52W range band on right side of bar — show hi/lo as bracket
-    if (progress > 0.6) {
-      const fadeIn = Math.min(1, (progress - 0.6) / 0.3);
-      ctx.save(); ctx.globalAlpha = fadeIn;
-
-      const hiT  = (scoreMax + 4) / 8;
-      const loT  = (scoreMin + 4) / 8;
-      const hiY  = barY1 + (1 - hiT) * barTotalH;
-      const loY  = barY1 + (1 - loT) * barTotalH;
-      const brkX = barX0 + barW + 3;
-      const tickL = 5;
-
-      // Bracket lines
-      ctx.strokeStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.42)`;
-      ctx.lineWidth = 0.6;
-      // Vertical connector
-      ctx.beginPath(); ctx.moveTo(brkX, hiY); ctx.lineTo(brkX, loY); ctx.stroke();
-      // Horizontal ticks at hi/lo
-      ctx.beginPath(); ctx.moveTo(brkX, hiY); ctx.lineTo(brkX + tickL, hiY); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(brkX, loY); ctx.lineTo(brkX + tickL, loY); ctx.stroke();
-
-      // HI label
-      ctx.font = '400 4.5px "SF Mono",monospace';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(48,217,136,0.70)';
-      ctx.fillText(scoreMax.toFixed(1), brkX + tickL + 2, hiY + 1.5);
-
-      // LO label
-      ctx.fillStyle = scoreMin < 0 ? 'rgba(240,80,80,0.70)' : 'rgba(48,217,136,0.70)';
-      ctx.fillText(scoreMin.toFixed(1), brkX + tickL + 2, loY + 1.5);
-
-      // AVG dashed tick
-      const avgT = (scoreAvg + 4) / 8;
-      const avgY = barY1 + (1 - avgT) * barTotalH;
-      ctx.setLineDash([1.5, 2]);
-      ctx.beginPath(); ctx.moveTo(barX0, avgY); ctx.lineTo(barX0 + barW, avgY);
-      ctx.strokeStyle = 'rgba(92,158,255,0.35)'; ctx.lineWidth = 0.6; ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.font = '400 4.5px "SF Mono",monospace';
-      ctx.textAlign = 'right';
-      ctx.fillStyle = 'rgba(92,158,255,0.55)';
-      ctx.fillText('AVG', barX0 - tickL - 2, avgY + 1.5);
-
-      ctx.restore();
-    }
-
-    // ── Section 3: BOTTOM STAT ROW — compact 2-col grid
-    if (progress > 0.75) {
-      const fadeIn = Math.min(1, (progress - 0.75) / 0.2);
-      ctx.save(); ctx.globalAlpha = fadeIn;
-
-      const botY = barY2 + 8;
-      const colW = lW / 2;
-
-      const stats = [
-        { lbl:'52W HI', val:scoreMax.toFixed(1), col:[0,200,130] },
-        { lbl:'52W LO', val:scoreMin.toFixed(1), col: scoreMin < 3.5 ? [240,80,80] : [0,200,120] },
-      ];
-
-      stats.forEach((st, i) => {
-        const sx = lx + i * colW + colW * 0.5;
-        ctx.font = '400 4.5px "SF Mono",monospace';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.35)`;
-        ctx.fillText(st.lbl, sx, botY);
-        ctx.font = '700 7.5px "SF Mono",monospace';
-        ctx.shadowBlur = 4; ctx.shadowColor = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.5)`;
-        ctx.fillStyle = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.90)`;
-        ctx.fillText(st.val, sx, botY + 11);
-        ctx.shadowBlur = 0;
-      });
-
-      // Bottom separator
-      const botSepGrd = ctx.createLinearGradient(lx+4,0,lx+lW-4,0);
-      botSepGrd.addColorStop(0, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-      botSepGrd.addColorStop(0.5, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.15)`);
-      botSepGrd.addColorStop(1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-      ctx.beginPath(); ctx.moveTo(lx+4, botY-4); ctx.lineTo(lx+lW-4, botY-4);
-      ctx.strokeStyle = botSepGrd; ctx.lineWidth = 0.5; ctx.stroke();
-
-      ctx.restore();
-    }
-
-    ctx.restore();
-  }
+  // LEFT PANEL removed — score/bar/label replaced by HTML overlay
 
 
       // ═══════════════════════════════════════════════════════════════════════
