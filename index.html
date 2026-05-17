@@ -627,7 +627,7 @@ a{color:inherit;text-decoration:none}
 }
 .ov-banner-canvas{
   position:absolute;inset:0;width:100%;height:100%;
-  opacity:0.45;mix-blend-mode:screen;
+  opacity:0.18;mix-blend-mode:screen;
 }
 /* Ambient shimmer sweep across hero */
 @keyframes heroshim{
@@ -8728,7 +8728,7 @@ canvas{
 .ov-banner-eyebrow {
   font-size: 7.5px !important;
   letter-spacing: 0.18em !important;
-  opacity: 0.38 !important;
+  opacity: 0.25 !important;
   font-family: var(--nexus-head) !important;
   font-weight: 500 !important;
   margin-bottom: 6px !important;
@@ -10455,7 +10455,7 @@ canvas{
   }
   .mob-hero-desc {
     font-size: 11.5px !important;
-    color: rgba(200,215,235,0.78) !important;
+    color: rgba(190,205,225,0.68) !important;
     line-height: 1.45 !important;
   }
   /* Stats row */
@@ -11594,7 +11594,7 @@ canvas{
 @media(max-width:700px){
   .d-head-graphic {
     left: 0% !important;
-    opacity: 0.72 !important;
+    opacity: 0.65 !important;
   }
   /* Stronger left fade on mobile so text stays readable */
   .d-head-graphic::before {
@@ -13208,7 +13208,7 @@ canvas{
 
 /* ── 8. Overview desktop meta line brightness ── */
 .ov-meta-line, .ov-breadcrumb {
-  color: rgba(200,215,235,0.78) !important;
+  color: rgba(190,205,225,0.68) !important;
   font-size: 9px !important;
 }
 
@@ -13634,12 +13634,33 @@ canvas{
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(4,4,5,0.12) 25%,
-    rgba(4,4,5,0.42) 52%,
-    rgba(4,4,5,0.80) 78%,
-    #040405 100%
+    rgba(8,12,10,0.08) 30%,
+    rgba(8,12,10,0.45) 60%,
+    rgba(8,12,10,0.85) 82%,
+    #080c0a 100%
   ) !important;
   z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+/* ── Editorial top accent rule — magazine masthead ── */
+.ov-banner::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(200,169,110,0.12) 10%,
+    rgba(200,169,110,0.40) 40%,
+    rgba(200,169,110,0.40) 60%,
+    rgba(200,169,110,0.12) 90%,
+    transparent 100%
+  ) !important;
+  z-index: 10 !important;
   pointer-events: none !important;
 }
 
@@ -13654,22 +13675,18 @@ canvas{
    - Stronger spatial composition and depth
 ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Banner: lifted atmospheric background — midtone not black ── */
+/* ── Banner: editorial ink black — clean, no sci-fi ── */
 .ov-banner {
-  background:
-    radial-gradient(ellipse 120% 100% at 44% 58%, rgba(12,22,16,0.97) 0%, rgba(5,7,6,1) 60%, rgba(4,4,5,1) 100%) !important;
+  background: #080c0a !important;
 }
 
-/* ── Deep atmospheric bloom — coloured glow behind the arc ── */
+/* ── Subtle warm lift — overridden by JS, this is fallback ── */
 .ov-banner-bg {
   position: absolute !important;
   inset: 0 !important;
   pointer-events: none !important;
   z-index: 1 !important;
-  /* Layered depth — overridden by JS with regime colour, this is fallback */
-  background:
-    radial-gradient(ellipse 70% 80% at 44% 65%, rgba(34,201,122,0.08) 0%, rgba(0,0,0,0) 65%),
-    radial-gradient(ellipse 100% 50% at 50% 100%, rgba(2,6,4,0.55) 0%, rgba(0,0,0,0) 80%) !important;
+  background: radial-gradient(ellipse 90% 70% at 42% 55%, rgba(34,201,122,0.055) 0%, rgba(0,0,0,0) 70%) !important;
 }
 
 .ov-banner-inner {
@@ -13697,9 +13714,9 @@ canvas{
   position: absolute !important;
   top: 28px !important;
   left: 40px !important;
-  font-size: 7.5px !important;
-  letter-spacing: 0.24em !important;
-  color: rgba(200,169,110,0.70) !important;
+  font-size: 8px !important;
+  letter-spacing: 0.20em !important;
+  color: rgba(200,169,110,0.75) !important;
   border-bottom: none !important;
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
@@ -13712,20 +13729,15 @@ canvas{
 .ov-banner-eyebrow::before {
   content: '' !important;
   display: inline-block !important;
-  width: 4px !important;
-  height: 4px !important;
-  border-radius: 50% !important;
-  background: var(--hero-accent, rgba(200,169,110,0.9)) !important;
+  width: 20px !important;
+  height: 1px !important;
+  background: var(--hero-accent, rgba(200,169,110,0.6)) !important;
   flex-shrink: 0 !important;
-  box-shadow: 0 0 6px var(--hero-accent, rgba(200,169,110,0.9)) !important;
-  animation: eyebrowPip 2.5s ease-in-out infinite alternate !important;
-}
-@keyframes eyebrowPip {
-  from { opacity: 0.5; box-shadow: 0 0 4px var(--hero-accent, rgba(200,169,110,0.9)); }
-  to   { opacity: 1.0; box-shadow: 0 0 10px var(--hero-accent, rgba(200,169,110,0.9)); }
+  margin-right: 6px !important;
+  vertical-align: middle !important;
 }
 
-/* ── Right text panel — glassmorphism premium ── */
+/* ── Right text panel — editorial, clean ── */
 .ov-banner-text-right {
   position: relative !important;
   width: 520px !important;
@@ -13734,22 +13746,16 @@ canvas{
   flex-direction: column !important;
   justify-content: flex-start !important;
   align-items: flex-end !important;
-  padding: 52px 56px 0 32px !important;
+  padding: 52px 60px 0 32px !important;
   gap: 0 !important;
   pointer-events: auto !important;
   overflow: visible !important;
-  /* Frosted glass effect */
-  border-left: 1px solid rgba(200,169,110,0.12) !important;
-  background: linear-gradient(
-    135deg,
-    rgba(255,255,255,0.025) 0%,
-    rgba(255,255,255,0.010) 50%,
-    rgba(255,255,255,0.005) 100%
-  ) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  /* Subtle inner glow on left border */
-  box-shadow: inset 1px 0 0 rgba(200,169,110,0.06), -20px 0 60px rgba(0,0,0,0.25) !important;
+  /* Thin editorial rule — like a magazine column divider */
+  border-left: 1px solid rgba(255,255,255,0.08) !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 /* Giant score watermark — tilted, bleeds across panel + into arc */
@@ -13765,7 +13771,7 @@ canvas{
   line-height: 1 !important;
   letter-spacing: -0.08em !important;
   color: currentColor !important;
-  opacity: 0.065 !important;
+  opacity: 0.048 !important;
   pointer-events: none !important;
   z-index: 0 !important;
   white-space: nowrap !important;
@@ -13780,9 +13786,9 @@ canvas{
   line-height: 0.86 !important;
   text-align: right !important;
   color: currentColor !important;
-  /* Deep luminous glow + depth shadow */
-  filter: drop-shadow(0 0 90px currentColor) drop-shadow(0 0 30px currentColor) drop-shadow(0 2px 4px rgba(0,0,0,0.6)) !important;
-  text-shadow: 0 0 100px currentColor, 0 0 40px currentColor !important;
+  /* Clean typographic presence — single warm shadow for depth only */
+  filter: none !important;
+  text-shadow: 0 2px 32px rgba(0,0,0,0.8), 0 0 60px rgba(0,0,0,0.4) !important;
   opacity: 1 !important;
   position: relative !important;
   z-index: 2 !important;
@@ -13804,9 +13810,9 @@ canvas{
   /* Stroke outline: text fill transparent, stroke uses color var */
   color: currentColor !important;
   -webkit-text-fill-color: transparent !important;
-  -webkit-text-stroke: 2px currentColor !important;
+  -webkit-text-stroke: 1.5px currentColor !important;
   paint-order: stroke fill !important;
-  opacity: 0.55 !important;
+  opacity: 0.65 !important;
   position: relative !important;
   z-index: 2 !important;
   display: block !important;
@@ -13814,16 +13820,16 @@ canvas{
   margin-bottom: 0 !important;
   white-space: nowrap !important;
   overflow: visible !important;
-  filter: drop-shadow(0 0 30px currentColor) !important;
+  filter: none !important;
 }
 
 /* Intermediate regime label — bridges 152px headline and 9.5px body copy */
 .ov-hero-regime-label {
   display: block !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 9px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.32em !important;
+  font-size: 8.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.28em !important;
   text-transform: uppercase !important;
   color: currentColor !important;
   opacity: 0.72 !important;
@@ -13852,7 +13858,7 @@ canvas{
   font-size: 9.5px !important;
   letter-spacing: 0.20em !important;
   text-transform: uppercase !important;
-  color: rgba(200,215,235,0.78) !important;
+  color: rgba(190,205,225,0.68) !important;
   font-weight: 500 !important;
   text-align: right !important;
   max-width: 340px !important;
@@ -13867,7 +13873,7 @@ canvas{
   font-size: 7.5px !important;
   letter-spacing: 0.22em !important;
   text-transform: uppercase !important;
-  color: rgba(160,178,210,0.65) !important;
+  color: rgba(150,168,200,0.50) !important;
   justify-content: flex-end !important;
   flex-direction: row-reverse !important;
   gap: 10px !important;
@@ -14742,16 +14748,16 @@ function renderOverview(){
   if(bnBg){
     // Rich atmospheric bloom — arc glow zone (centre-left) + right panel depth
     const isOn=regLabel.includes('On'), isOff=regLabel.includes('Off');
-    const bloom1=isOn?'rgba(34,201,122,0.22)':isOff?'rgba(224,58,42,0.22)':'rgba(92,158,255,0.16)';
-    const bloom2=isOn?'rgba(0,200,100,0.12)':isOff?'rgba(200,40,40,0.12)':'rgba(60,100,180,0.08)';
-    const bloom3=isOn?'rgba(0,160,80,0.07)':isOff?'rgba(180,30,30,0.07)':'rgba(40,70,140,0.05)';
-    const bloom4=isOn?'rgba(8,30,18,0.55)':isOff?'rgba(30,6,6,0.55)':'rgba(8,12,28,0.50)';
-    // Arc bloom (centre), wide shoulder, upper highlight, deep base vignette
-    bnBg.style.background=[
-      `radial-gradient(ellipse 65% 75% at 44% 62%,${bloom1} 0%,transparent 60%)`,
-      `radial-gradient(ellipse 85% 55% at 44% 80%,${bloom2} 0%,transparent 65%)`,
-      `radial-gradient(ellipse 50% 40% at 30% 30%,${bloom3} 0%,transparent 70%)`,
-      `radial-gradient(ellipse 100% 55% at 50% 100%,${bloom4} 0%,transparent 85%)`
+    // Editorial: one clean warm lift — photographic, not neon
+    // Regime colour tints the atmosphere very subtly, like coloured light on a studio backdrop
+    const liftA  = isOn ? 0.07 : isOff ? 0.07 : 0.05;
+    const baseC  = isOn ? `rgba(34,201,122,${liftA})`
+                 : isOff? `rgba(210,60,40,${liftA})`
+                 :         `rgba(92,140,220,${liftA})`;
+    const deepA  = isOn ? 'rgba(4,12,8,0.7)' : isOff ? 'rgba(12,4,4,0.7)' : 'rgba(4,6,14,0.7)';
+    bnBg.style.background = [
+      `radial-gradient(ellipse 80% 80% at 42% 55%,${baseC} 0%,transparent 65%)`,
+      `radial-gradient(ellipse 100% 40% at 50% 100%,${deepA} 0%,transparent 80%)`
     ].join(',');
   }
   // ── Regime atmosphere wash ──────────────────────────────────────────────
@@ -19638,108 +19644,15 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Radial atmosphere: two layers — warm colour bloom + dark inner void
   // Layer 1: subtle colour atmosphere around the arc
   // Very subtle colour bloom only — arc centre is off-canvas so no dark void needed
-  // ── Deep atmospheric glow centred on arc origin ──
-  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.2, ARC_CX, ARC_CY, ARC_OR * 1.6);
-  vigGrd.addColorStop(0,   rgb(curC, 0.18));   // bright core
-  vigGrd.addColorStop(0.25, rgb(curC, 0.10));
-  vigGrd.addColorStop(0.55, rgb(curC, 0.04));
-  vigGrd.addColorStop(1,   'rgba(0,0,0,0)');
+  // ── EDITORIAL BACKGROUND — magazine quality, no sci-fi ──
+  // Single clean radial lift from arc origin. Warm, photographic.
+  // Think: Financial Times Weekend, WSJ Magazine, Bloomberg Businessweek.
+  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY * 0.8, 0, ARC_CX, ARC_CY * 0.8, ARC_OR * 1.8);
+  vigGrd.addColorStop(0,    rgb(curC, 0.07));
+  vigGrd.addColorStop(0.4,  rgb(curC, 0.03));
+  vigGrd.addColorStop(1,    'rgba(0,0,0,0)');
   ctx.fillStyle = vigGrd;
   ctx.fillRect(0, 0, W, H);
-
-  // ── Secondary wide bloom for environmental depth ──
-  const bloom2 = ctx.createRadialGradient(W * 0.35, H * 0.3, 0, W * 0.35, H * 0.3, W * 0.6);
-  bloom2.addColorStop(0,   rgb(curC, 0.06));
-  bloom2.addColorStop(0.5, rgb(curC, 0.02));
-  bloom2.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = bloom2;
-  ctx.fillRect(0, 0, W, H);
-
-  // ── Etched concentric rings — precision instrument feel, brighter ──
-  [0.68, 0.45, 0.22].forEach((frac, idx) => {
-    const er = ARC_IR * frac;
-    ctx.beginPath();
-    ctx.arc(ARC_CX, ARC_CY, er, 0, Math.PI * 2);
-    const etchA = [0.22, 0.14, 0.09][idx];
-    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${etchA})`;
-    ctx.lineWidth = idx === 0 ? 0.8 : 0.5;
-    if (idx === 1) ctx.setLineDash([3, 7]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  });
-
-  // ── Scan-line texture — tinted, more visible ──
-  ctx.save();
-  for (let y = 0; y < H; y += 6) {
-    ctx.fillStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.022)`;
-    ctx.fillRect(0, y, W, 1);
-  }
-  ctx.restore();
-
-  // ── Star field — more stars, brighter, better spread ──
-  ctx.save();
-  for (let i = 0; i < 180; i++) {
-    const rx = ((i * 9301 + 49297) % 233280) / 233280;
-    const ry = ((i * 6271  + 12345) % 233280) / 233280;
-    const rr = ((i * 1103  + 7691)  % 233280) / 233280;
-    const sz = 0.35 + rr * 0.7;
-    const baseAlpha = 0.06 + rr * 0.18;
-    ctx.beginPath();
-    ctx.arc(rx * W, ry * H, sz, 0, Math.PI * 2);
-    // Mix: regime-tinted warm stars + cool silver stars
-    if (i % 3 === 0) {
-      ctx.fillStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${baseAlpha})`;
-    } else {
-      ctx.fillStyle = `rgba(${180 + Math.round(rr*75)},${210 + Math.round(rr*45)},255,${baseAlpha * 0.7})`;
-    }
-    ctx.fill();
-  }
-  ctx.restore();
-
-  // ── Subtle noise grain layer for depth/texture ──
-  ctx.save();
-  ctx.globalAlpha = 0.018;
-  for (let gx = 0; gx < W; gx += 3) {
-    for (let gy = 0; gy < H; gy += 3) {
-      const n = ((gx * 374761393 + gy * 668265263) & 0xFFFFFF) / 0xFFFFFF;
-      if (n > 0.7) {
-        ctx.fillStyle = `rgba(255,255,255,${n * 0.3})`;
-        ctx.fillRect(gx, gy, 1, 1);
-      }
-    }
-  }
-  ctx.globalAlpha = 1;
-  ctx.restore();
-
-  // ── Perspective horizon grid — fills the empty field with editorial depth ──
-  ctx.save();
-  const gridAlpha = 0.045;
-  const gridCol = `rgba(${curC[0]},${curC[1]},${curC[2]},${gridAlpha})`;
-  const vp = { x: ARC_CX, y: ARC_CY * 0.5 }; // vanishing point — upper arc centre
-  // Horizontal lines (parallel, evenly spaced)
-  for (let row = 1; row <= 8; row++) {
-    const yp = H * (0.18 + row * 0.10);
-    if (yp >= H) break;
-    ctx.beginPath();
-    ctx.moveTo(0, yp);
-    ctx.lineTo(W, yp);
-    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${gridAlpha * (1 - row * 0.09)})`;
-    ctx.lineWidth = 0.4;
-    ctx.stroke();
-  }
-  // Perspective radiating lines from vanishing point
-  const radials = 14;
-  for (let ri = 0; ri < radials; ri++) {
-    const angle = Math.PI * (-0.15 + ri * 1.3 / (radials - 1));
-    const len = W * 1.2;
-    ctx.beginPath();
-    ctx.moveTo(vp.x, vp.y);
-    ctx.lineTo(vp.x + Math.cos(angle) * len, vp.y + Math.sin(angle) * len);
-    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${gridAlpha * 0.7})`;
-    ctx.lineWidth = 0.35;
-    ctx.stroke();
-  }
-  ctx.restore();
 
   // LEFT PANEL removed — score/bar/label replaced by HTML overlay
 
@@ -19753,67 +19666,18 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
   // Arc background — minimal, no heavy glow
 
-  // Guide rings: inner, mid-ghost, outer, outer-halo — brighter, more presence
+  // ── Two clean architectural arcs — inner track + outer bound ──
+  // No HUD, no reticle, no glow rings. Just the structural frame of the data.
   [
-    { r: ARC_IR,                           a: 0.45, lw: 1.2,  dash: [] },
-    { r: ARC_IR + (ARC_OR - ARC_IR)*0.33, a: 0.10, lw: 0.5,  dash: [3,9] },
-    { r: ARC_IR + (ARC_OR - ARC_IR)*0.67, a: 0.07, lw: 0.4,  dash: [2,8] },
-    { r: ARC_OR,                           a: 0.50, lw: 1.4,  dash: [] },
-    { r: ARC_OR + 4,                       a: 0.18, lw: 1.5,  dash: [] },  // halo glow ring
-    { r: ARC_OR + 10,                      a: 0.07, lw: 2.0,  dash: [] },  // outer atmosphere
+    { r: ARC_IR,  a: 0.18, lw: 0.7, dash: [] },
+    { r: ARC_OR,  a: 0.22, lw: 0.9, dash: [] },
   ].forEach(({ r, a, lw, dash }) => {
     ctx.beginPath();
     ctx.arc(ARC_CX, ARC_CY, r, START_A, START_A + SWEEP);
     ctx.strokeStyle = rgb(curC, a);
     ctx.lineWidth = lw;
-    if (dash.length) ctx.setLineDash(dash);
     ctx.stroke();
-    ctx.setLineDash([]);
   });
-
-  // JARVIS targeting reticle — 3 concentric rings + crosshair at arc centre
-  ctx.save();
-  const INNER_CLR = `rgba(${curC[0]},${curC[1]},${curC[2]},`;
-  // Cross lines
-  const crossLen = ARC_IR * 0.65;
-  for (let a = 0; a < 4; a++) {
-    const ang = a * Math.PI / 2;
-    ctx.beginPath();
-    ctx.moveTo(ARC_CX + Math.cos(ang) * (ARC_IR * 0.18), ARC_CY + Math.sin(ang) * (ARC_IR * 0.18));
-    ctx.lineTo(ARC_CX + Math.cos(ang) * crossLen, ARC_CY + Math.sin(ang) * crossLen);
-    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.28)`;
-    ctx.lineWidth = 0.6;
-    ctx.stroke();
-  }
-  // Corner bracket ticks at ARC_IR
-  for (let a = 0; a < 8; a++) {
-    const ang = a * Math.PI / 4;
-    const isDiag = a % 2 === 1;
-    if (isDiag) continue; // only at cardinal directions
-    ctx.beginPath();
-    ctx.arc(ARC_CX, ARC_CY, ARC_IR * 0.85, ang - 0.07, ang + 0.07);
-    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.45)`;
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-  }
-  // Inner focus ring
-  ctx.beginPath();
-  ctx.arc(ARC_CX, ARC_CY, ARC_IR * 0.38, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.25)`;
-  ctx.lineWidth = 0.8;
-  ctx.setLineDash([3, 5]);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  // Centre pip
-  ctx.beginPath();
-  ctx.arc(ARC_CX, ARC_CY, 3, 0, Math.PI * 2);
-  ctx.fillStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.5)`;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(ARC_CX, ARC_CY, 1.2, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.fill();
-  ctx.restore();
 
   // Draw 52 weekly radial segments — rich gradient fills
   const visNArc  = Math.max(2, Math.ceil(progress * N));
