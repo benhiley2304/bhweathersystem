@@ -13536,23 +13536,23 @@ canvas{
 .ov-banner {
   overflow: visible !important;
   position: relative !important;
-  min-height: 820px !important;
+  min-height: 900px !important;
   padding-bottom: 0 !important;
 }
 @media (min-width: 1440px) {
-  .ov-banner { min-height: 860px !important; }
+  .ov-banner { min-height: 960px !important; }
 }
 @media (min-width: 1920px) {
-  .ov-banner { min-height: 920px !important; }
+  .ov-banner { min-height: 1060px !important; }
 }
 @media (min-width: 2560px) {
-  .ov-banner { min-height: 1000px !important; }
+  .ov-banner { min-height: 1140px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner { min-height: 780px !important; }
+  .ov-banner { min-height: 860px !important; }
 }
 @media (max-width: 900px) {
-  .ov-banner { min-height: 640px !important; }
+  .ov-banner { min-height: 720px !important; }
 }
 @media (max-width: 700px) {
   .ov-banner { min-height: 0 !important; padding-bottom: 0 !important; overflow: hidden !important; }
@@ -18836,7 +18836,7 @@ async function loadClimateArc(live={}) {
 
 function _drawArcSkeleton(canvas) {
   const W = canvas.offsetWidth || 800;
-  const H = window.innerWidth <= 700 ? 200 : Math.max(320, Math.min(680, Math.round(W * 0.38)));
+  const H = window.innerWidth <= 700 ? 200 : Math.max(360, Math.min(820, Math.round(W * 0.45)));
   const DPR = Math.max(2, window.devicePixelRatio || 2);
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
@@ -18959,12 +18959,12 @@ function _drawLiveDot(canvas, data, phase) {
   const LEFT_W = 108;
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
-  // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-  const ARC_OR_PRELIM = H * 1.30;
+  // Arc: pivot just below canvas bottom — bars fan upward filling full canvas height
+  const ARC_OR_PRELIM = H * 0.92;
   const ARC_CX  = W * 0.67;   // right of centre — arc fills hero from mid to right
-  const ARC_CY  = H * 0.85;   // low pivot, inner ring below bottom fade
-  const ARC_OR  = H * 1.30;
-  const ARC_IR = ARC_OR * 0.30;
+  const ARC_CY  = H * 1.05;   // pivot below canvas — inner ring hidden, bars sweep full height
+  const ARC_OR  = H * 0.92;
+  const ARC_IR = ARC_OR * 0.28;
   const MIN_S = 0, MAX_S = 10;
   const SWEEP = 210 * Math.PI / 180;
   const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
@@ -19088,11 +19088,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   const LEFT_W = 145;                      // jarvis data panel width
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
   // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-  const ARC_OR_PRE = H * 1.30;
+  const ARC_OR_PRE = H * 0.92;
   const ARC_CX  = W * 0.67;   // right of centre — arc fills hero from mid to right
-  const ARC_CY  = H * 0.85;   // low pivot, inner ring below bottom fade
-  const ARC_OR  = H * 1.30;
-  const ARC_IR = ARC_OR * 0.30;
+  const ARC_CY  = H * 1.05;   // pivot below canvas — inner ring hidden, bars sweep full height
+  const ARC_OR  = H * 0.92;
+  const ARC_IR = ARC_OR * 0.28;
   const MIN_S  = 0, MAX_S = 10;
   const SWEEP  = 210 * Math.PI / 180;
   const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
@@ -19865,11 +19865,11 @@ function _setupArcTooltip(canvas, data) {
     // Arc geometry
     const ARC_X  = PAD_L + LEFT_W2;
     // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-    const ARC_OR_P = H * 1.30;
+    const ARC_OR_P = H * 0.92;
     const ARC_CX  = W * 0.67;   // right of centre — arc fills hero from mid to right
-    const ARC_CY  = H * 0.85;   // low pivot, inner ring below bottom fade
-    const ARC_OR  = H * 1.30;
-    const ARC_IR = ARC_OR * 0.30;
+    const ARC_CY  = H * 1.05;   // pivot below canvas — inner ring hidden, bars sweep full height
+    const ARC_OR  = H * 0.92;
+    const ARC_IR = ARC_OR * 0.28;
     const SWEEP  = 210 * Math.PI / 180;
     const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
 
