@@ -13523,6 +13523,12 @@ canvas{
   display: none !important;
 }
 
+/* ── Hide top-right panel: sector breadth bars + score orb + climate score ── */
+.ov-banner-centre,
+.ov-banner-right {
+  display: none !important;
+}
+
 /* ── Banner: min-height = top-offset + arc-canvas-height + breathing room ── */
 .ov-banner {
   overflow: visible !important;
@@ -13625,8 +13631,8 @@ canvas{
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(4,4,5,0.55) 40%,
-    rgba(4,4,5,0.85) 70%,
+    rgba(4,4,5,0.35) 45%,
+    rgba(4,4,5,0.72) 75%,
     #040405 100%
   ) !important;
   z-index: 2 !important;
@@ -19102,8 +19108,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   ctx.fillRect(0, 0, W, H);
   // Layer 2: frosted dark void disc — makes bars pop; fills inner arc area
   const voidGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_IR * 1.05);
-  voidGrd.addColorStop(0,   'rgba(1,2,8,0.78)');
-  voidGrd.addColorStop(0.65,'rgba(1,2,8,0.40)');
+  voidGrd.addColorStop(0,   'rgba(1,2,8,0.28)');
+  voidGrd.addColorStop(0.65,'rgba(1,2,8,0.12)');
   voidGrd.addColorStop(1,   'rgba(0,0,0,0)');
   ctx.fillStyle = voidGrd;
   ctx.fillRect(0, 0, W, H);
