@@ -19648,6 +19648,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     }
 
     ctx.save();
+    // Clip to left panel zone — prevents any shadow/glow from bleeding across the banner
+    ctx.beginPath();
+    ctx.rect(lx - 2, 0, lW + 4, H);
+    ctx.clip();
 
     // Panel background: transparent — no colour bleed
     // (removed: was creating green glow across entire banner)
