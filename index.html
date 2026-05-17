@@ -13836,32 +13836,8 @@ canvas{
   white-space: nowrap !important;
 }
 
-/* Word 1 — RISK: solid fill, magazine cover scale */
+/* Word 1 — RISK: hollow stroke only (R26K: swapped to ghost, ON is now solid) */
 .ov-hero-word1 {
-  font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
-  font-size: 148px !important;
-  font-weight: 900 !important;
-  letter-spacing: -0.055em !important;
-  line-height: 0.88 !important;
-  text-align: right !important;
-  color: currentColor !important;
-  -webkit-text-fill-color: currentColor !important;
-  -webkit-text-stroke: 0 !important;
-  filter: none !important;
-  /* R26I: heavy dark shadow to kill green luminance bleed on dark bg */
-  text-shadow: 0 0 80px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.98), 0 4px 48px rgba(0,0,0,0.95), 0 1px 0 rgba(0,0,0,0.6) !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 2 !important;
-  display: block !important;
-  text-transform: uppercase !important;
-  white-space: nowrap !important;
-  overflow: visible !important;
-  margin: 0 !important;
-}
-
-/* Word 2 — ON: stroke treatment, refined ghost */
-.ov-hero-word2 {
   font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
   font-size: 148px !important;
   font-weight: 900 !important;
@@ -13872,15 +13848,57 @@ canvas{
   -webkit-text-fill-color: transparent !important;
   -webkit-text-stroke: 2px currentColor !important;
   paint-order: stroke fill !important;
+  text-shadow: none !important;
   opacity: 0.55 !important;
   position: relative !important;
   z-index: 2 !important;
   display: block !important;
   text-transform: uppercase !important;
-  margin: 0 0 0 0 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  filter: none !important;
+}
+
+/* Word 2 — ON: solid fill with animated green/white gradient shimmer (R26K) */
+.ov-hero-word2 {
+  font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
+  font-size: 148px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.055em !important;
+  line-height: 0.88 !important;
+  text-align: right !important;
+  color: currentColor !important;
+  -webkit-text-fill-color: transparent !important;
+  -webkit-text-stroke: 0 !important;
+  background: linear-gradient(115deg,
+    var(--hero-accent, currentColor) 0%,
+    var(--hero-accent, currentColor) 28%,
+    rgba(255,255,255,0.82) 44%,
+    var(--hero-accent, currentColor) 56%,
+    var(--hero-accent, currentColor) 100%) !important;
+  background-size: 300% 100% !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  animation: heroGradientShimmer 7s cubic-bezier(0.45,0,0.55,1) infinite !important;
+  paint-order: stroke fill !important;
+  /* R26I: dark shadow penumbra to kill luminance bleed */
+  text-shadow: 0 0 80px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.98), 0 4px 48px rgba(0,0,0,0.95) !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 2 !important;
+  display: block !important;
+  text-transform: uppercase !important;
+  margin: 0 !important;
   white-space: nowrap !important;
   overflow: visible !important;
   filter: none !important;
+}
+
+@keyframes heroGradientShimmer {
+  0%   { background-position: 100% 0 }
+  50%  { background-position: 0% 0 }
+  100% { background-position: 100% 0 }
 }
 
 /* Thin rule separating headline from score data */
