@@ -14825,65 +14825,97 @@ function renderOverview(){
     // SVG timeline helper — horizontal rate history: -12M → -6M → -3M → Now
     // col2 = past (faded), col = present (vivid)
     const _cbTimeline = (r, t3m, t6m, t12m, col, col2, colRgb) => {
-      // Reconstruct absolute rates at each waypoint
-      // t12m = change_12m (total delta over 12M), t6m/t3m = trend fields (direct delta)
+      // Reconstruct absolute rates at 4 waypoints
       const r12 = r - (t12m != null ? t12m : 0);
       const r6  = r - (t6m  != null ? t6m  : 0);
       const r3  = r - (t3m  != null ? t3m  : 0);
       const pts = [r12, r6, r3, r];
-      // SVG dims
-      const W = 180, H = 76;
-      const padL = 12, padR = 28, padT = 8,  padB = 20;
-      const xs = [padL, padL + (W-padL-padR)*0.33, padL + (W-padL-padR)*0.66, W-padR];
-      const minR = Math.min(...pts) - 0.02;
-      const maxR = Math.max(...pts) + 0.02;
+      const lbls = ['-12M', '-6M', '-3M', 'Now'];
+      // SVG canvas — taller, generous padding so labels never clip
+      const W = 200, H = 100;
+      const padL = 14, padR = 14, padT = 28, padB = 22;
+      const chartW = W - padL - padR;
+      const xs = [padL, padL + chartW * 0.33, padL + chartW * 0.66, W - padR];
+      // Y scale — add 10% headroom above/below for breathing room
+      const rawMin = Math.min(...pts);
+      const rawMax = Math.max(...pts);
+      const margin = Math.max((rawMax - rawMin) * 0.18, 0.08);
+      const minR = rawMin - margin;
+      const maxR = rawMax + margin;
       const rng = maxR - minR || 0.5;
-      const yf = v => padT + (1 - (v - minR)/rng) * (H - padT - padB);
+      const yf = v => padT + (1 - (v - minR) / rng) * (H - padT - padB);
       const ys = pts.map(yf);
-      // Gradient-coloured connecting path segments — each segment gets own colour stop
-      const segs = [];
+      // Build smooth cubic bezier path string (used for both line and area fill)
+      let pathD = `M ${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
       for (let i = 0; i < 3; i++) {
-        // Interpolate colour opacity: segment 0 (oldest) = 30%, segment 1 = 55%, segment 2 = 80%
-        const op = [0.30, 0.55, 0.82][i];
-        // Smooth cubic bezier for each segment
         const cpx = (xs[i] + xs[i+1]) / 2;
-        segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="${col}" stroke-width="3.4" stroke-linecap="round" fill="none" opacity="${op}"/>`);
-        // Glow duplicate, wider & blurred
-        segs.push(`<path d="M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}" stroke="rgba(${colRgb},${(op*0.5).toFixed(2)})" stroke-width="8" stroke-linecap="round" fill="none" filter="url(#tlBlur)"/>`);
+        pathD += ` C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}`;
       }
-      // Nodes — growing size: old=2.5, mid=3, recent=3.5, now=5
-      const nodeSizes = [3.5, 4.5, 5.5, 8.0];
-      const nodeOps   = [0.40, 0.60, 0.82, 1.0];
+      // Area fill polygon: follow curve, then close along bottom
+      const areaD = `${pathD} L ${xs[3].toFixed(1)} ${(H - padB).toFixed(1)} L ${xs[0].toFixed(1)} ${(H - padB).toFixed(1)} Z`;
+      // Unique ID for gradients per card (avoid collision between multiple SVGs on page)
+      const uid = 'tl' + Math.abs(Math.round(r * 100 + t12m * 10));
+      // Glow path segments (progressive opacity old→new)
+      const glowSegs = [];
+      for (let i = 0; i < 3; i++) {
+        const op = [0.22, 0.40, 0.60][i];
+        const cpx = (xs[i] + xs[i+1]) / 2;
+        const segD = `M ${xs[i].toFixed(1)} ${ys[i].toFixed(1)} C ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i+1].toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}`;
+        glowSegs.push(`<path d="${segD}" stroke="rgba(${colRgb},${op})" stroke-width="9" stroke-linecap="round" fill="none" filter="url(#${uid}Blur)"/>`);
+      }
+      // Nodes — growing size, fading in from old to new
+      const nodeSizes = [3.0, 4.0, 5.0, 7.5];
+      const nodeOps   = [0.35, 0.55, 0.80, 1.0];
       const nodes = xs.map((x, i) => {
         const y = ys[i], sz = nodeSizes[i], op = nodeOps[i];
         if (i === 3) {
-          // NOW node — full glow + white centre
-          return `<circle cx="${x}" cy="${y.toFixed(1)}" r="11" fill="rgba(${colRgb},0.18)" filter="url(#tlGlow)"/>
-            <circle cx="${x}" cy="${y.toFixed(1)}" r="${sz}" fill="${col}"/>
-            <circle cx="${x}" cy="${y.toFixed(1)}" r="2" fill="rgba(255,255,255,0.92)"/>`;
+          return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="12" fill="rgba(${colRgb},0.16)" filter="url(#${uid}Glow)"/>
+                  <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${sz}" fill="${col}"/>
+                  <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2" fill="rgba(255,255,255,0.90)"/>`;
         }
-        return `<circle cx="${x}" cy="${y.toFixed(1)}" r="${sz}" fill="${col}" opacity="${op}"/>`;
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${sz}" fill="${col}" opacity="${op}"/>`;
       }).join('');
+      // Grid lines — 2 subtle horizontal rules at 33% and 66% of chart height
+      const gridY1 = padT + (H - padT - padB) * 0.33;
+      const gridY2 = padT + (H - padT - padB) * 0.67;
+      const grids = `<line x1="${padL}" y1="${gridY1.toFixed(1)}" x2="${W - padR}" y2="${gridY1.toFixed(1)}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                     <line x1="${padL}" y1="${gridY2.toFixed(1)}" x2="${W - padR}" y2="${gridY2.toFixed(1)}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+      // Value labels — clamp Y so they never clip at top edge
+      // Start label: left-anchored, only shown if rate changed
+      const showStartLbl = Math.abs(r12 - r) > 0.01;
+      const startLblY = Math.max(padT - 2, ys[0] - 7);
+      const startLbl = showStartLbl
+        ? `<text x="${xs[0].toFixed(1)}" y="${startLblY.toFixed(1)}" text-anchor="start" font-family="JetBrains Mono,monospace" font-size="9" font-weight="600" fill="rgba(255,255,255,0.38)">${r12.toFixed(2)}</text>`
+        : '';
+      // Now label: always shown — sits above dot, clamped to padT-2
+      const nowLblY = Math.max(padT - 2, ys[3] - 9);
+      const nowLbl = `<text x="${xs[3].toFixed(1)}" y="${nowLblY.toFixed(1)}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="800" fill="${col}">${r.toFixed(2)}</text>`;
       // X-axis labels
-      const lbls = ['-12M','-6M','-3M','Now'];
-      const lblHtml = xs.map((x, i) => `<text x="${x}" y="${H-2}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" font-weight="700" fill="rgba(255,255,255,${i===3?'0.82':'0.48'})" letter-spacing="0">${lbls[i]}</text>`).join('');
-      // Rate value labels — only show at endpoints (12M ago and Now)
-      const valLbl12 = `<text x="${xs[0]}" y="${(ys[0]-6).toFixed(1)}" text-anchor="start" font-family="JetBrains Mono,monospace" font-size="10" font-weight="700" fill="rgba(255,255,255,0.42)">${r12.toFixed(2)}</text>`;
-      const valLblNow = `<text x="${xs[3]}" y="${(ys[3]-7).toFixed(1)}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" font-weight="800" fill="${col}" opacity="0.85">${r.toFixed(2)}</text>`;
+      const xLbls = xs.map((x, i) => `<text x="${x.toFixed(1)}" y="${H - 4}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8.5" font-weight="700" fill="rgba(255,255,255,${i === 3 ? '0.75' : '0.35'})">${lbls[i]}</text>`).join('');
 
-      return `<svg width="100%" height="96" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">
+      return `<svg width="100%" height="108" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;overflow:visible">
         <defs>
-          <filter id="tlBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/></filter>
-          <filter id="tlGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+          <linearGradient id="${uid}AreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${col}" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="${col}" stop-opacity="0.00"/>
+          </linearGradient>
+          <filter id="${uid}Blur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.5"/></filter>
+          <filter id="${uid}Glow" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="4"/></filter>
         </defs>
-        <!-- Path segments (old → new, gradient opacity) -->
-        ${segs.join('')}
+        <!-- Grid lines -->
+        ${grids}
+        <!-- Area fill -->
+        <path d="${areaD}" fill="url(#${uid}AreaGrad)"/>
+        <!-- Glow halos -->
+        ${glowSegs.join('')}
+        <!-- Main line -->
+        <path d="${pathD}" stroke="${col}" stroke-width="2.8" stroke-linecap="round" fill="none"/>
         <!-- Nodes -->
         ${nodes}
         <!-- Value labels -->
-        ${valLbl12}${valLblNow}
+        ${startLbl}${nowLbl}
         <!-- X-axis labels -->
-        ${lblHtml}
+        ${xLbls}
       </svg>`;
     };
 
@@ -14997,7 +15029,7 @@ function renderOverview(){
       return `
       <div style="
         position:relative;overflow:hidden;
-        padding:13px 13px 2px 14px;
+        padding:13px 13px 6px 14px;
         border-radius:13px;
         background:${bgGrad};
         border:1px solid ${borderCol};
@@ -15046,8 +15078,8 @@ function renderOverview(){
           ">${_lblDisplay}</span>
           <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${cfpCol};align-self:center">${cfpStr}</span>
         </div>
-        <!-- Row 3: Rate history timeline — full width, no side padding -->
-        <div style="position:relative;margin:0 -11px 0 -13px;">
+        <!-- Row 3: Rate history timeline -->
+        <div style="position:relative;overflow:visible;margin-top:2px">
           ${_cbTimeline(r, t3m, t6m, t12m, col, col2, colRgb)}
         </div>
       </div>`;
