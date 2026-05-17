@@ -13569,31 +13569,32 @@ canvas{
 
 /* ── Arc section: R25O-f — moved up so arc top rings show fully
 ── */
+/* R26C: ov-charts top pulled up aggressively so arc top rings fully clear banner edge */
 .ov-charts {
   position: absolute !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  top: 170px !important;
+  top: 80px !important;
   z-index: 1 !important;
   background: transparent !important;
   overflow: visible !important;
   pointer-events: none !important;
 }
 @media (min-width: 1440px) {
-  .ov-charts { top: 175px !important; }
+  .ov-charts { top: 80px !important; }
 }
 @media (min-width: 1920px) {
-  .ov-charts { top: 180px !important; }
+  .ov-charts { top: 85px !important; }
 }
 @media (min-width: 2560px) {
-  .ov-charts { top: 165px !important; }
+  .ov-charts { top: 75px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-charts { top: 165px !important; }
+  .ov-charts { top: 80px !important; }
 }
 @media (max-width: 900px) {
-  .ov-charts { top: 155px !important; }
+  .ov-charts { top: 70px !important; }
 }
 /* restore pointer events for the canvas wrap only (footer is hidden) */
 .ov-arc-canvas-wrap,
@@ -13698,7 +13699,7 @@ canvas{
     radial-gradient(ellipse 65% 70% at 92% 3%, rgba(200,169,110,0.20) 0%, transparent 60%),
     radial-gradient(ellipse 45% 50% at 100% 0%, rgba(220,195,140,0.16) 0%, transparent 48%),
     radial-gradient(ellipse 35% 40% at 80% 18%, rgba(200,169,110,0.09) 0%, transparent 52%),
-    radial-gradient(ellipse 80% 65% at 38% 55%, rgba(34,201,122,0.07) 0%, rgba(0,0,0,0) 58%) !important;
+    radial-gradient(ellipse 80% 65% at 38% 55%, rgba(34,201,122,0.035) 0%, rgba(0,0,0,0) 58%) !important;
 }
 
 /* Banner inner: absolute overlay, full-bleed — no flex column layout */
@@ -13746,9 +13747,9 @@ canvas{
   margin-right: 10px !important;
 }
 
-/* ── Energy orb: absolutely pinned left side of banner, below eyebrow ── */
+/* ── Energy orb HTML widget: HIDDEN — vertical bar is drawn on canvas itself ── */
 .ov-banner-right {
-  display: flex !important;
+  display: none !important;
   position: absolute !important;
   left: 48px !important;
   top: 70px !important;
@@ -14709,7 +14710,8 @@ function renderOverview(){
     // Warm amber top-right editorial light pool (always present, editorial warmth)
     // + subtle regime tint in the arc zone (left-centre)
     const isOn=regLabel.includes('On'), isOff=regLabel.includes('Off');
-    const liftA  = isOn ? 0.07 : isOff ? 0.065 : 0.05;
+    // R26C: regime tint pulled back — was creating heavy swamp atmosphere
+    const liftA  = isOn ? 0.035 : isOff ? 0.032 : 0.025;
     const baseC  = isOn ? `rgba(34,201,122,${liftA})`
                  : isOff? `rgba(210,60,40,${liftA})`
                  :         `rgba(92,140,220,${liftA})`;
