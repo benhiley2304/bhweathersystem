@@ -13730,6 +13730,8 @@ canvas{
   z-index: 2 !important;
   display: block !important;
   text-transform: uppercase !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
 }
 
 /* Word 2 — outline only, arc bleeds through */
@@ -13749,6 +13751,8 @@ canvas{
   display: block !important;
   text-transform: uppercase !important;
   margin-bottom: 28px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
   /* Ghost echo for depth */
   text-shadow: 2px 4px 0 rgba(0,0,0,0) !important;
   filter: drop-shadow(0 0 20px currentColor) !important;
@@ -14708,7 +14712,12 @@ function renderOverview(){
     </div>
     <div class="ov-banner-text-right nexus-reveal" style="animation-delay:60ms;color:${regCol};border-left-color:${regCol}20" data-score="${regScore!=null?regScore.toFixed(1):''}">
       ${(()=>{
-        const words = regLabel.toUpperCase().split(' ');
+        // Split on spaces; for single hyphenated words (e.g. RISK-ON), split at hyphen
+        let words = regLabel.toUpperCase().split(' ');
+        if (words.length === 1 && words[0].includes('-')) {
+          const parts = words[0].split('-');
+          words = [parts[0], parts.slice(1).join('-')];
+        }
         const w1 = words.slice(0, Math.ceil(words.length/2)).join(' ');
         const w2 = words.slice(Math.ceil(words.length/2)).join(' ');
         return `<span class="ov-hero-word1" style="color:${regCol}">${w1}</span>
