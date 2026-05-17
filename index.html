@@ -19878,10 +19878,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Arc background — minimal, no heavy glow
 
   // ── Two clean architectural arcs — inner track + outer bound ──
-  // No HUD, no reticle, no glow rings. Just the structural frame of the data.
+  // R26D: drastically reduced opacity — large ring was dominating the background
   [
-    { r: ARC_IR,  a: 0.18, lw: 0.7, dash: [] },
-    { r: ARC_OR,  a: 0.22, lw: 0.9, dash: [] },
+    { r: ARC_IR,  a: 0.06, lw: 0.5, dash: [] },
+    { r: ARC_OR,  a: 0.08, lw: 0.6, dash: [] },
   ].forEach(({ r, a, lw, dash }) => {
     ctx.beginPath();
     ctx.arc(ARC_CX, ARC_CY, r, START_A, START_A + SWEEP);
