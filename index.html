@@ -13846,7 +13846,7 @@ canvas{
   flex: 1 !important;
   min-width: 0 !important;
   pointer-events: auto !important;
-  padding: 52px 0 52px 52px !important;
+  padding: 0 0 0 52px !important;
   gap: 0 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -13858,89 +13858,168 @@ canvas{
 
 /* ── Hero macro signal panel ── */
 .ov-macro-panel {
-  flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: center !important;
-  padding: 0 40px 0 0 !important;
+  justify-content: flex-start !important;
+  padding: 64px 56px 40px 0 !important;
   min-width: 0 !important;
+  width: 100% !important;
+  flex: 1 !important;
+  align-self: stretch !important;
 }
 .ov-macro-eyebrow {
   font-size: 7px !important;
   font-weight: 700 !important;
-  letter-spacing: 0.28em !important;
+  letter-spacing: 0.34em !important;
   text-transform: uppercase !important;
-  color: rgba(173,184,208,0.30) !important;
-  margin-bottom: 28px !important;
+  color: rgba(200,169,110,0.40) !important;
+  margin-bottom: 18px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid rgba(200,169,110,0.12) !important;
 }
 .ov-macro-rows {
   display: flex !important;
   flex-direction: column !important;
   gap: 0 !important;
+  flex: 1 !important;
 }
+/* 5-col grid: tag | info-stack | track | reading | status */
 .ov-macro-row {
   display: grid !important;
-  grid-template-columns: 36px 1fr 160px 120px !important;
+  grid-template-columns: 46px 1fr 200px 90px 110px !important;
   align-items: center !important;
-  gap: 0 14px !important;
-  padding: 13px 0 !important;
-  border-bottom: 1px solid rgba(200,169,110,0.06) !important;
+  gap: 0 16px !important;
+  flex: 1 !important;
+  min-height: 52px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.035) !important;
+  transition: background 0.25s !important;
 }
 .ov-macro-row:last-child {
   border-bottom: none !important;
 }
-.ov-macro-icon {
+.ov-macro-row:hover {
+  background: rgba(255,255,255,0.025) !important;
+  border-radius: 6px !important;
+}
+/* Tag pill — filled background badge */
+.ov-macro-tag {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 24px !important;
+  border-radius: 5px !important;
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 8px !important;
+  font-size: 8.5px !important;
   font-weight: 800 !important;
-  letter-spacing: 0.08em !important;
-  opacity: 0.85 !important;
-  text-align: center !important;
+  letter-spacing: 0.04em !important;
+  background: currentColor !important;
+  flex-shrink: 0 !important;
 }
-.ov-macro-label {
-  font-size: 11px !important;
+.ov-macro-tag span {
+  color: #040405 !important;
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
+}
+/* Info stack: label + sub */
+.ov-macro-info {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+}
+.ov-macro-name {
+  font-size: 13px !important;
   font-weight: 500 !important;
-  color: rgba(173,184,208,0.75) !important;
-  letter-spacing: 0.01em !important;
+  color: rgba(242,246,255,0.88) !important;
+  letter-spacing: 0.005em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
 }
+.ov-macro-sub {
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  color: rgba(138,152,184,0.50) !important;
+  letter-spacing: 0.04em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+/* Progress track */
 .ov-macro-track {
   position: relative !important;
   height: 3px !important;
   background: rgba(255,255,255,0.07) !important;
   border-radius: 2px !important;
   overflow: visible !important;
+  align-self: center !important;
 }
 .ov-macro-fill {
   position: absolute !important;
   top: 0 !important;
   height: 100% !important;
   border-radius: 2px !important;
-  opacity: 0.80 !important;
-  transition: width 0.6s ease, left 0.6s ease !important;
+  opacity: 0.70 !important;
+  transition: width 1.0s cubic-bezier(0.4,0,0.2,1), left 1.0s cubic-bezier(0.4,0,0.2,1) !important;
+}
+/* Glowing tip dot */
+.ov-macro-tip {
+  position: absolute !important;
+  top: 50% !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: currentColor !important;
+  transform: translate(-50%, -50%) !important;
+  box-shadow: 0 0 8px 3px currentColor !important;
+  opacity: 0.95 !important;
+  transition: left 1.0s cubic-bezier(0.4,0,0.2,1) !important;
 }
 .ov-macro-centre {
   position: absolute !important;
   left: 50% !important;
-  top: -3px !important;
+  top: -5px !important;
   width: 1px !important;
-  height: 9px !important;
-  background: rgba(255,255,255,0.18) !important;
+  height: 13px !important;
+  background: rgba(255,255,255,0.16) !important;
   transform: translateX(-50%) !important;
 }
+/* Reading value — mono data */
+.ov-macro-reading {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+  color: rgba(173,184,208,0.65) !important;
+  line-height: 1 !important;
+}
+/* Status — coloured label */
 .ov-macro-status {
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 9px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.04em !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em !important;
   text-align: right !important;
   white-space: nowrap !important;
+  text-transform: uppercase !important;
+  line-height: 1 !important;
 }
 .ov-macro-footer {
   display: flex !important;
   justify-content: space-between !important;
-  margin-top: 22px !important;
+  align-items: center !important;
+  margin-top: 16px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid rgba(200,169,110,0.09) !important;
   font-size: 7px !important;
-  letter-spacing: 0.18em !important;
+  letter-spacing: 0.20em !important;
   text-transform: uppercase !important;
   color: rgba(138,152,184,0.28) !important;
 }
@@ -13975,11 +14054,12 @@ canvas{
     padding: 20px 16px !important; gap: 0 !important;
   }
   .ov-banner-left { padding: 16px 0 20px 0 !important; }
-  .ov-macro-panel { padding: 0 !important; }
-  .ov-macro-row { grid-template-columns: 28px 1fr 80px !important; }
+  .ov-macro-panel { padding: 0 0 16px 0 !important; flex: none !important; }
+  .ov-macro-row { grid-template-columns: 32px 1fr 68px !important; flex: none !important; min-height: 40px !important; gap: 0 10px !important; }
   .ov-macro-track { display: none !important; }
-  .ov-macro-eyebrow { margin-bottom: 14px !important; }
-  .ov-macro-footer { margin-top: 14px !important; }
+  .ov-macro-reading { display: none !important; }
+  .ov-macro-eyebrow { margin-bottom: 12px !important; padding-bottom: 8px !important; }
+  .ov-macro-footer { margin-top: 12px !important; padding-top: 8px !important; }
   .ov-banner-eyebrow { position: relative !important; top: auto !important; left: auto !important; margin-bottom: 10px !important; }
   .ov-banner-text-right { width: 100% !important; align-items: flex-start !important; padding: 20px 0 0 0 !important; border-left: none !important; border-top: 1px solid rgba(200,169,110,0.08) !important; }
   .ov-banner-text-right::before { display: none !important; }
@@ -14788,77 +14868,102 @@ function renderOverview(){
   }
 
   // ── Macro signal data for hero left panel ─────────────────────────────────
-  const _heroMd = reg.macro_dashboard || {};
-  const _heroMc = _heroMd.components || {};
-  const _heroYc = _heroMd.yield_curve || {};
-  const _heroCr = _heroMd.credit || {};
-  const _heroLb = _heroMd.labour || {};
-  const _heroIn = _heroMd.inflation || {};
-  const _heroFb = _heroMd.fed_balance_sheet || {};
+  // ── Hero: macro signal data ────────────────────────────────────────────────
+  const _hmd  = reg.macro_dashboard || {};
+  const _hyc  = _hmd.yield_curve    || {};
+  const _hcr  = _hmd.credit         || {};
+  const _hlab = _hmd.labour         || {};
+  const _hinf = _hmd.inflation      || {};
+  const _hfb  = _hmd.fed_balance    || {};
+  const _hry  = _hmd.real_yield     || {};
 
-  // Macro signals: label, value (-1 to +1 contribution), status string
-  function _heroSigCol(v) {
-    if (v == null) return '#4a5268';
-    if (v >  0.18) return '#22c97a';
-    if (v >  0.05) return '#7aaa88';
-    if (v < -0.18) return '#e03a2a';
-    if (v < -0.05) return '#c06040';
-    return '#6e7d94';
+  function _hCol(s) {
+    if (s == null) return '#4a5268';
+    if (s >  0.5)  return '#22c97a';
+    if (s >  0.15) return '#5aaa7a';
+    if (s < -0.5)  return '#e03a2a';
+    if (s < -0.15) return '#c06040';
+    return '#7b8ba8';
   }
-  function _heroSigLabel(v) {
-    if (v == null) return 'No data';
-    if (v >  0.18) return 'Supportive';
-    if (v >  0.05) return 'Mild tailwind';
-    if (v < -0.18) return 'Headwind';
-    if (v < -0.05) return 'Mild headwind';
+  function _hStatus(s) {
+    if (s == null) return '—';
+    if (s >  0.5)  return 'Supportive';
+    if (s >  0.15) return 'Mild tailwind';
+    if (s < -0.5)  return 'Headwind';
+    if (s < -0.15) return 'Mild headwind';
     return 'Neutral';
   }
-  function _heroArrow(v) {
-    if (v == null) return '';
-    if (v >  0.05) return '&#8599;';  // ↗
-    if (v < -0.05) return '&#8600;';  // ↘
-    return '&#8594;';                 // →
-  }
-  // Extract component contributions
-  const _heroComps = [
-    { label: 'Credit Spreads',   icon: 'CR',  val: _heroMc.credit      ?? null },
-    { label: 'Yield Curve',      icon: 'YC',  val: _heroMc.yield_curve  ?? null },
-    { label: 'Fed Balance Sheet',icon: 'FBS', val: _heroMc.fed_bs       ?? null },
-    { label: 'Inflation',        icon: 'CPI', val: _heroMc.inflation     ?? null },
-    { label: 'Real Yield',       icon: 'RY',  val: _heroMc.real_yield   ?? null },
-  ];
-  const _heroHasData = _heroComps.some(c => c.val != null);
 
-  // Build left panel macro rows HTML
-  const _heroLeftHtml = _heroHasData ? `
+  // Credit: HY OAS bps — tight (<300) = supportive
+  const _crBps   = _hcr.hy_oas_bps ?? null;
+  const _crScore = _crBps != null ? Math.max(-1, Math.min(1, (350 - _crBps) / 300)) : null;
+  const _crRead  = _crBps != null ? `HY ${_crBps}bps` : '—';
+  const _crSub   = _hcr.hy_trend || '';
+
+  // Yield curve: 10y2y spread
+  const _ycSpd   = _hyc.t10y2y ?? null;
+  const _ycScore = _ycSpd != null ? Math.max(-1, Math.min(1, _ycSpd / 1.5)) : null;
+  const _ycRead  = _ycSpd != null ? `${_ycSpd >= 0 ? '+' : ''}${_ycSpd.toFixed(2)}%` : '—';
+  const _ycSub   = _hyc.curve_regime || '';
+
+  // Fed balance sheet
+  const _fbTrend = _hfb.trend || '';
+  const _fbScore = _fbTrend === 'Expanding' ? 0.65 : _fbTrend === 'Contracting' ? -0.65 : 0;
+  const _fbRead  = _hfb.level != null ? `$${_hfb.level.toFixed(1)}T` : '—';
+  const _fbSub   = _fbTrend;
+
+  // Inflation: CPI — rising = headwind
+  const _infYoy  = _hinf.cpi_yoy ?? null;
+  const _infScore= _infYoy != null ? Math.max(-1, Math.min(1, (3.0 - _infYoy) / 3.0)) : null;
+  const _infRead = _infYoy != null ? `${_infYoy.toFixed(1)}% YoY` : '—';
+  const _infSub  = _hinf.trend || '';
+
+  // Real yield: elevated = headwind
+  const _ryVal   = _hry.value ?? null;
+  const _ryScore = _ryVal != null ? Math.max(-1, Math.min(1, (1.0 - _ryVal) / 2.0)) : null;
+  const _ryRead  = _ryVal != null ? `${_ryVal.toFixed(1)}%` : '—';
+  const _rySub   = _hry.regime || '';
+
+  const _heroSigs = [
+    { label: 'Credit Spreads',    tag: 'CR',  reading: _crRead,  score: _crScore,  sub: _crSub  },
+    { label: 'Yield Curve',       tag: 'YC',  reading: _ycRead,  score: _ycScore,  sub: _ycSub  },
+    { label: 'Fed Balance Sheet', tag: 'FED', reading: _fbRead,  score: _fbScore,  sub: _fbSub  },
+    { label: 'Inflation',         tag: 'CPI', reading: _infRead, score: _infScore, sub: _infSub },
+    { label: 'Real Yield',        tag: 'RY',  reading: _ryRead,  score: _ryScore,  sub: _rySub  },
+  ];
+
+  const _heroLeftHtml = `
     <div class="ov-macro-panel">
       <div class="ov-macro-eyebrow">Economic Environment</div>
       <div class="ov-macro-rows">
-        ${_heroComps.map(sig => {
-          const col = _heroSigCol(sig.val);
-          const lbl = _heroSigLabel(sig.val);
-          const arr = _heroArrow(sig.val);
-          // bar: map -0.4..+0.4 to 0..100%, neutral at 50%
-          const barPct = sig.val != null ? Math.round(Math.max(0, Math.min(100, 50 + (sig.val / 0.40) * 50))) : 50;
-          const barFill = sig.val != null ? Math.abs(50 - barPct) : 0;
-          const barLeft = sig.val != null && sig.val < 0 ? barPct : 50;
+        ${_heroSigs.map(sig => {
+          const col = _hCol(sig.score);
+          const status = _hStatus(sig.score);
+          const bPct  = sig.score != null ? Math.round(Math.max(5, Math.min(95, 50 + sig.score * 45))) : 50;
+          const bFill = Math.abs(bPct - 50);
+          const bLeft = Math.min(bPct, 50);
           return `<div class="ov-macro-row">
-            <div class="ov-macro-icon" style="color:${col}">${sig.icon}</div>
-            <div class="ov-macro-label">${sig.label}</div>
+            <div class="ov-macro-tag" style="color:${col}">${sig.tag}</div>
+            <div class="ov-macro-info">
+              <div class="ov-macro-name">${sig.label}</div>
+              ${sig.sub ? `<div class="ov-macro-sub">${sig.sub}</div>` : ''}
+            </div>
             <div class="ov-macro-track">
-              <div class="ov-macro-fill" style="left:${Math.min(barLeft,50)}%;width:${barFill}%;background:${col}"></div>
+              <div class="ov-macro-fill" style="left:${bLeft}%;width:${bFill}%;background:${col}88"></div>
+              <div class="ov-macro-tip" style="left:${bPct}%"></div>
               <div class="ov-macro-centre"></div>
             </div>
-            <div class="ov-macro-status" style="color:${col}">${arr} ${lbl}</div>
+            <div class="ov-macro-reading" style="color:rgba(173,184,208,0.7)">${sig.reading}</div>
+            <div class="ov-macro-status" style="color:${col}">${status}</div>
           </div>`;
         }).join('')}
       </div>
       <div class="ov-macro-footer">
-        <span>${total} markets &middot; Score ${regScore!=null?regScore.toFixed(1)+' / 10':'—'}</span>
-        <span>Updated ${DATA.updated_at ? new Date(DATA.updated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC' : 'just now'}</span>
+        <span>${total} markets tracked</span>
+        <span>${regScore != null ? 'Climate ' + regScore.toFixed(1) + '\u202f/\u202f10' : ''}</span>
       </div>
     </div>
-  ` : `<div class="ov-macro-panel ov-macro-loading"><div class="ov-macro-eyebrow">Economic Environment</div><div style="color:rgba(138,152,184,0.35);font-size:11px;padding:24px 0">Loading macro data…</div></div>`;
+  `;
 
   document.getElementById('ov-banner-inner').innerHTML=`
     <div class="ov-banner-left nexus-reveal" style="animation-delay:0ms">
