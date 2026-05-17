@@ -14119,6 +14119,211 @@ canvas{
   }
 }
 
+/* ════════════════════════════════════════════════════════════════
+   R27 — UNIFIED SECTION HEADER SYSTEM
+   All section-level labels share: amber 0.70, mono 8px, 0.22em,
+   amber left-bar ::before, fading amber trailing line.
+   Sub-section labels (mc-sect): lighter amber, no bar.
+═══════════════════════════════════════════════════════════════ */
+
+/* ─── TIER 1: TOP-LEVEL SECTION HEADERS (with left bar + trailing line) ─── */
+/* Covers: .ov-section-title, .ov-section-hdr > .ov-section-title,           */
+/*         .ov-macro-sect-header ("ECONOMY & MARKETS"),                       */
+/*         .ov-sig-wrap-title ("Signal Leaders"),                             */
+/*         .ov-ai-brief-label ("Breaking News")                               */
+
+.ov-section-title,
+.ov-sig-wrap-title,
+.ov-ai-brief-label {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.70) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Left amber bar on tier-1 headers */
+.ov-section-title::before,
+.ov-sig-wrap-title::before {
+  content: '' !important;
+  display: block !important;
+  width: 3px !important;
+  height: 13px !important;
+  background: var(--accent) !important;
+  border-radius: 2px !important;
+  opacity: 0.90 !important;
+  box-shadow: 0 0 7px rgba(200,169,110,0.40) !important;
+  flex-shrink: 0 !important;
+  position: static !important;
+}
+
+/* Breaking News has its own icon — no ::before bar needed */
+.ov-ai-brief-label::before {
+  display: none !important;
+  width: 0 !important;
+}
+
+/* Trailing amber gradient line (inside .ov-section-hdr flex) */
+.ov-section-hdr-line,
+.ov-sig-wrap-title-line {
+  display: block !important;
+  visibility: visible !important;
+  flex: 1 !important;
+  height: 1px !important;
+  width: auto !important;
+  background: linear-gradient(90deg,
+    rgba(200,169,110,0.45) 0%,
+    rgba(200,169,110,0.12) 55%,
+    transparent 100%) !important;
+}
+
+/* ─── .ov-macro-sect-header ("ECONOMY & MARKETS") ─── */
+/* Uses ::before + ::after pattern — restyle to match tier-1 */
+.ov-macro-sect-header {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.70) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 22px 20px 14px !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+.ov-macro-sect-header::before {
+  content: '' !important;
+  display: block !important;
+  width: 3px !important;
+  height: 13px !important;
+  background: var(--accent) !important;
+  border-radius: 2px !important;
+  opacity: 0.90 !important;
+  box-shadow: 0 0 7px rgba(200,169,110,0.40) !important;
+  flex-shrink: 0 !important;
+  position: static !important;
+}
+.ov-macro-sect-header::after {
+  content: '' !important;
+  display: block !important;
+  flex: 1 !important;
+  height: 1px !important;
+  background: linear-gradient(90deg,
+    rgba(200,169,110,0.45) 0%,
+    rgba(200,169,110,0.12) 55%,
+    transparent 100%) !important;
+}
+
+/* ─── TIER 2: SUB-SECTION HEADERS inside macro panels ─── */
+/* mc-sect-lbl: "Labour Signals", "Price Pressures", "QE/QT Activity" etc. */
+/* Slightly smaller, softer amber, no left bar — these live inside cards */
+.mc-sect-lbl {
+  font-family: var(--mono) !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.58) !important;
+  white-space: nowrap !important;
+}
+.mc-sect-line {
+  flex: 1 !important;
+  height: 1px !important;
+  background: linear-gradient(90deg,
+    rgba(200,169,110,0.25) 0%,
+    transparent 100%) !important;
+}
+
+/* ─── TIER 3: UTILITY / INTERNAL SECTION LABELS ─── */
+/* .ov-rate-section-title: amber on black bg labels inside rate panels */
+.ov-rate-section-title {
+  font-family: var(--mono) !important;
+  font-size: 7.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.58) !important;
+  flex-shrink: 0 !important;
+}
+.ov-rate-section-line {
+  flex: 1 !important;
+  height: 1px !important;
+  background: linear-gradient(90deg,
+    rgba(200,169,110,0.18) 0%,
+    transparent 100%) !important;
+}
+
+/* .ind-cat-label: category labels in indicator breakdown tables */
+.ind-cat-label {
+  font-family: var(--mono) !important;
+  font-size: 7.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.60) !important;
+  margin: 16px 0 6px !important;
+  padding-bottom: 5px !important;
+  border-bottom: 1px solid rgba(200,169,110,0.12) !important;
+}
+
+/* ─── SIDEBAR RANKINGS HEADER ─── */
+/* .sb-top h2: already amber but align tracking/weight exactly */
+.sb-top h2 {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.70) !important;
+}
+
+/* ─── DESIGN COORDINATION: ov-section-hdr wrapper spacing ─── */
+.ov-section-hdr {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+  margin-top: 6px !important;
+}
+
+/* ─── NEWS SECTION HEAD ─── */
+.ov-news-section-head, [class*="news-head"] {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.70) !important;
+}
+
+/* ─── MOBILE OVERRIDES ─── */
+@media (max-width: 700px) {
+  .ov-section-title,
+  .ov-sig-wrap-title,
+  .ov-ai-brief-label {
+    font-size: 7.5px !important;
+    letter-spacing: 0.18em !important;
+  }
+  .ov-macro-sect-header {
+    font-size: 7.5px !important;
+    letter-spacing: 0.18em !important;
+    margin: 16px 14px 10px !important;
+  }
+  .sb-top h2 {
+    font-size: 7.5px !important;
+    letter-spacing: 0.18em !important;
+  }
+}
+
+/* ─── END R27 ─── */
+
 </style>
 </head>
 <body>
