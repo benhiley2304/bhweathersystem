@@ -13497,77 +13497,116 @@ canvas{
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   NEXUS OS — R21: HERO ARC UNCONTAINMENT
-   Arc canvas breaks out of its lower pane and bleeds behind the hero
-   text, layered behind text via z-index. No hard contained box.
+   NEXUS OS — R23: HERO ARC — TALLER, RIGHT-SHIFTED, SEAMLESS BOTTOM
+   - Arc canvas height cap raised to 680px (was 460)
+   - Arc CX shifted to W*0.72 for better visual balance
+   - Category score strip removed entirely
+   - Arc footer hidden — bottom dissolves via gradient fade
+   - Canvas wrap: top AND bottom mask fade for graceful bleed
+   - Banner min-height increased to accommodate taller arc
 ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Banner: reserve vertical space for the arc which is absolute-positioned at bottom ── */
-/* min-height = top-offset(80px) + arc-height(460px) + footer(44px) = 584px              */
-/* The banner-inner text content pushes the height further, which is fine                */
+/* ── Hide category score strip entirely ── */
+#ov-cat-bar,
+.ov-cat-bar {
+  display: none !important;
+}
+
+/* ── Hide arc footer for clean bottom dissolve ── */
+.ov-arc-footer {
+  display: none !important;
+}
+
+/* ── Banner: reserve space for taller arc (top:280px + arc:680px = 960px) ── */
 .ov-banner {
   overflow: visible !important;
   position: relative !important;
-  /* top:280px + arc(460px) + footer(44px) = 784px minimum */
-  min-height: 760px !important;
+  min-height: 840px !important;
   padding-bottom: 0 !important;
 }
 @media (min-width: 1440px) {
-  .ov-banner { min-height: 784px !important; }
+  .ov-banner { min-height: 900px !important; }
 }
 @media (min-width: 2560px) {
-  .ov-banner { min-height: 820px !important; }
+  .ov-banner { min-height: 980px !important; }
+}
+@media (max-width: 1280px) {
+  .ov-banner { min-height: 780px !important; }
 }
 @media (max-width: 900px) {
-  .ov-banner { min-height: 680px !important; }
+  .ov-banner { min-height: 640px !important; }
 }
 @media (max-width: 700px) {
   .ov-banner { min-height: 0 !important; padding-bottom: 0 !important; overflow: hidden !important; }
 }
 
-/* ── Arc section: absolute, overlapping the whole banner from bottom ── */
+/* ── Arc section: absolute, overlapping the whole banner from below text ── */
 .ov-charts {
   position: absolute !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  /* Push arc down so text content sits above the vivid bar zone */
-  /* Arc top is faded transparent via mask — so this bleed still looks seamless */
   top: 280px !important;
   z-index: 1 !important;
   background: transparent !important;
   overflow: visible !important;
   pointer-events: none !important;
 }
-/* restore pointer events for the canvas and footer */
+/* restore pointer events for the canvas wrap only (footer is hidden) */
 .ov-arc-canvas-wrap,
-.ov-arc-canvas,
-.ov-arc-footer {
+.ov-arc-canvas {
   pointer-events: auto !important;
 }
 
-/* ── Arc canvas wrap: top mask fade so arc dissolves into hero text area ── */
+/* ── Arc canvas wrap: top AND bottom mask fade — dissolves into hero above and page below ── */
 .ov-arc-canvas-wrap {
   position: relative !important;
   width: 100% !important;
   background: transparent !important;
-  /* Fade the top portion so it bleeds seamlessly behind the text */
   -webkit-mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0,0,0,0.20) 8%,
-    rgba(0,0,0,0.60) 20%,
-    rgba(0,0,0,0.90) 35%,
-    black 50%
+    rgba(0,0,0,0.15) 6%,
+    rgba(0,0,0,0.55) 18%,
+    rgba(0,0,0,0.88) 32%,
+    black 46%,
+    black 68%,
+    rgba(0,0,0,0.80) 80%,
+    rgba(0,0,0,0.40) 90%,
+    transparent 100%
   ) !important;
   mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0,0,0,0.20) 8%,
-    rgba(0,0,0,0.60) 20%,
-    rgba(0,0,0,0.90) 35%,
-    black 50%
+    rgba(0,0,0,0.15) 6%,
+    rgba(0,0,0,0.55) 18%,
+    rgba(0,0,0,0.88) 32%,
+    black 46%,
+    black 68%,
+    rgba(0,0,0,0.80) 80%,
+    rgba(0,0,0,0.40) 90%,
+    transparent 100%
   ) !important;
+}
+
+/* ── Seamless bottom fade overlay on the banner itself ── */
+/* This gradient fades the entire hero bottom edge into the page background */
+.ov-banner::after {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 180px !important;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(4,4,5,0.55) 40%,
+    rgba(4,4,5,0.85) 70%,
+    #040405 100%
+  ) !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
 }
 
 /* ── Banner inner: must be above arc (z-index:5) ── */
@@ -13576,19 +13615,18 @@ canvas{
   z-index: 5 !important;
 }
 
-/* ── Banner bg and particle canvas: also above arc ── */
+/* ── Banner bg and particle canvas ── */
 .ov-banner-bg,
 .ov-banner-canvas {
   z-index: 0 !important;
 }
 
-/* ── Particle canvas (ov-canvas): spans full banner height including arc ── */
+/* ── Particle canvas: spans full banner height including arc ── */
 #ov-canvas {
   z-index: 0 !important;
-  /* Let it span into the arc zone — it's already position:absolute, inset:0 */
 }
 
-/* ── Banner ::before (dissolve gradient): raise above arc ── */
+/* ── Banner ::before (top dissolve gradient): raise above arc ── */
 .ov-banner::before {
   z-index: 6 !important;
 }
@@ -13605,13 +13643,7 @@ canvas{
   display: none !important;
 }
 
-/* ── Cat bar (below banner): ensure it still clears properly ── */
-.ov-cat-bar {
-  position: relative !important;
-  z-index: 10 !important;
-}
-
-/* Mobile: revert to contained/stacked (no absolute positioning) */
+/* Mobile: revert to contained/stacked layout */
 @media (max-width: 700px) {
   .ov-charts {
     position: relative !important;
@@ -13624,6 +13656,12 @@ canvas{
   .ov-arc-canvas-wrap {
     -webkit-mask-image: none !important;
     mask-image: none !important;
+  }
+  .ov-banner::after {
+    display: none !important;
+  }
+  .ov-arc-footer {
+    display: flex !important;
   }
 }
 
@@ -18764,7 +18802,7 @@ async function loadClimateArc(live={}) {
 
 function _drawArcSkeleton(canvas) {
   const W = canvas.offsetWidth || 800;
-  const H = window.innerWidth <= 700 ? 200 : Math.max(280, Math.min(460, Math.round(W * 0.295)));
+  const H = window.innerWidth <= 700 ? 200 : Math.max(320, Math.min(680, Math.round(W * 0.38)));
   const DPR = Math.max(2, window.devicePixelRatio || 2);
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
@@ -18887,8 +18925,8 @@ function _drawLiveDot(canvas, data, phase) {
   const LEFT_W = 108;
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
-  const ARC_CX  = W * 0.68;  // right-shifted: open upper-left gap aligns over text block
-  const ARC_CY = H * 0.56;
+  const ARC_CX  = W * 0.72;  // right-shifted: open upper-left gap aligns over text block
+  const ARC_CY = H * 0.52;
   const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S = 0, MAX_S = 10;
@@ -18975,7 +19013,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   progress = (progress === undefined) ? 1 : progress;
   const DPR = Math.max(2, window.devicePixelRatio || 2);
   const W   = canvas.offsetWidth || 900;
-  const H   = window.innerWidth <= 700 ? 200 : Math.max(280, Math.min(460, Math.round(W * 0.295)));
+  const H   = window.innerWidth <= 700 ? 200 : Math.max(320, Math.min(680, Math.round(W * 0.38)));
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
   canvas.style.width  = W + 'px';
@@ -19013,8 +19051,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // ── Layout constants ─────────────────────────────────────────────────
   const LEFT_W = 145;                      // jarvis data panel width
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
-  const ARC_CX = ARC_X + (W - ARC_X - PAD_R) * 0.38;
-  const ARC_CY = H * 0.56;
+  const ARC_CX = W * 0.72;
+  const ARC_CY = H * 0.52;
   const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S  = 0, MAX_S = 10;
@@ -19793,8 +19831,8 @@ function _setupArcTooltip(canvas, data) {
     const LEFT_W2 = 108;
     // Arc geometry
     const ARC_X  = PAD_L + LEFT_W2;
-    const ARC_CX = ARC_X + (W - ARC_X - PAD_R) * 0.38;
-    const ARC_CY = H * 0.56;
+    const ARC_CX = W * 0.72;
+    const ARC_CY = H * 0.52;
     const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
     const ARC_IR = ARC_OR * 0.30;
     const SWEEP  = 210 * Math.PI / 180;
