@@ -13686,14 +13686,13 @@ canvas{
   flex-shrink: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: center !important;
+  justify-content: flex-start !important;
   align-items: flex-end !important;
-  padding: 0 56px 0 28px !important;
+  padding: 52px 52px 0 24px !important;
   gap: 0 !important;
   pointer-events: auto !important;
   overflow: visible !important;
-  /* Subtle left edge separator */
-  border-left: 1px solid rgba(200,169,110,0.08) !important;
+  border-left: 1px solid rgba(200,169,110,0.07) !important;
 }
 
 /* Giant score watermark — tilted, bleeds across panel + into arc */
@@ -13718,45 +13717,42 @@ canvas{
 /* Word 1 — filled, massive */
 .ov-hero-word1 {
   font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
-  font-size: 148px !important;
+  font-size: 152px !important;
   font-weight: 900 !important;
   letter-spacing: -0.055em !important;
-  line-height: 0.88 !important;
+  line-height: 0.86 !important;
   text-align: right !important;
   color: currentColor !important;
-  filter: drop-shadow(0 0 60px currentColor) !important;
-  opacity: 0.95 !important;
+  filter: drop-shadow(0 0 80px currentColor) !important;
+  opacity: 1 !important;
   position: relative !important;
   z-index: 2 !important;
   display: block !important;
   text-transform: uppercase !important;
   white-space: nowrap !important;
   overflow: visible !important;
+  margin-top: 12px !important;
 }
 
-/* Word 2 — outline only, arc bleeds through */
+/* Word 2 — outline ghost, same size */
 .ov-hero-word2 {
   font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
-  font-size: 148px !important;
+  font-size: 152px !important;
   font-weight: 900 !important;
   letter-spacing: -0.055em !important;
-  line-height: 0.88 !important;
+  line-height: 0.86 !important;
   text-align: right !important;
-  color: transparent !important;
-  -webkit-text-stroke-width: 1.5px !important;
-  -webkit-text-stroke-color: var(--hero-accent, rgba(48,217,136,0.85)) !important;
-  text-stroke: 1.5px !important;
-  opacity: 0.65 !important;
+  /* Use currentColor at low opacity for the outline ghost */
+  color: currentColor !important;
+  opacity: 0.22 !important;
   position: relative !important;
   z-index: 2 !important;
   display: block !important;
   text-transform: uppercase !important;
-  margin-bottom: 28px !important;
+  margin-bottom: 32px !important;
   white-space: nowrap !important;
   overflow: visible !important;
-  /* Ghost echo for depth */
-  text-shadow: 2px 4px 0 rgba(0,0,0,0) !important;
-  filter: drop-shadow(0 0 20px currentColor) !important;
+  filter: drop-shadow(0 0 40px currentColor) !important;
 }
 
 /* Accent rule — full width of panel, colour-matched */
@@ -13765,8 +13761,8 @@ canvas{
   width: 100% !important;
   height: 1px !important;
   background: linear-gradient(to left, currentColor, rgba(255,255,255,0)) !important;
-  opacity: 0.2 !important;
-  margin: 0 0 20px 0 !important;
+  opacity: 0.18 !important;
+  margin: 0 0 18px 0 !important;
   position: relative !important;
   z-index: 2 !important;
   flex-shrink: 0 !important;
@@ -13873,22 +13869,20 @@ canvas{
 
 /* Responsive */
 @media (min-width: 1920px) {
-  .ov-banner-text-right { width: 560px !important; padding-right: 64px !important; }
-  .ov-hero-word1, .ov-hero-word2 { font-size: 172px !important; }
+  .ov-banner-text-right { width: 580px !important; padding: 56px 64px 0 28px !important; }
+  .ov-hero-word1, .ov-hero-word2 { font-size: 178px !important; }
   .ov-banner-text-right::before { font-size: 440px !important; right: -80px !important; }
 }
 @media (max-width: 1440px) {
-  .ov-banner-text-right { width: 420px !important; padding-right: 48px !important; }
-  .ov-hero-word1, .ov-hero-word2 { font-size: 118px !important; }
+  .ov-banner-text-right { width: 420px !important; padding: 44px 44px 0 20px !important; }
+  .ov-hero-word1, .ov-hero-word2 { font-size: 120px !important; }
   .ov-banner-text-right::before { font-size: 300px !important; }
-  .ov-banner-left { padding: 0 0 44px 40px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner-text-right { width: 360px !important; padding-right: 36px !important; }
+  .ov-banner-text-right { width: 360px !important; padding: 40px 36px 0 16px !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 96px !important; }
   .ov-banner-text-right::before { font-size: 250px !important; }
   .ov-banner-eyebrow { left: 28px !important; }
-  .ov-banner-left { padding: 0 0 36px 32px !important; }
 }
 
 /* Mobile */
@@ -19109,220 +19103,186 @@ async function loadClimateArc(live={}) {
   }
 }
 
-// ── Hero Field: animated floating market data particles ──────────────────────
+// ── Hero Breadth Panel: 6 macro category gauges ─────────────────────────────
 (function() {
   let _hfRAF = null;
 
   window._initHeroField = function(regScore, col, markets) {
-    // Cancel any running loop
     if (_hfRAF) { cancelAnimationFrame(_hfRAF); _hfRAF = null; }
 
     const canvas = document.getElementById('ov-hero-field-canvas');
     if (!canvas) return;
 
-    // Size the canvas to its container
-    function resize() {
-      const rect = canvas.parentElement.getBoundingClientRect();
-      const DPR = Math.max(2, window.devicePixelRatio || 2);
-      canvas.width  = rect.width  * DPR;
-      canvas.height = rect.height * DPR;
-      canvas.style.width  = rect.width  + 'px';
-      canvas.style.height = rect.height + 'px';
+    // ── Category definitions ──────────────────────────────────────────────
+    const CATS = [
+      { label: 'Equities', ids: ['ES','NQ','YM','RTY','Z'] },
+      { label: 'FX',       ids: ['6E','6B','6J','6A','6C','DX'] },
+      { label: 'Metals',   ids: ['GC','SI','HG','PA','PL'] },
+      { label: 'Energy',   ids: ['CL','NG','B','GO','RB','HO'] },
+      { label: 'Bonds',    ids: ['ZB','ZN','ZF','ZT','R'] },
+      { label: 'Agri',     ids: ['ZS','ZC','ZW','KC','SB','CT','RC'] },
+    ];
+
+    const mktMap = {};
+    (markets||[]).forEach(m => { if (m&&m.id) mktMap[m.id]=m; });
+
+    // Compute category averages
+    const cats = CATS.map(c => {
+      const scores = c.ids.map(id=>mktMap[id]?.weighted_score).filter(v=>v!=null);
+      const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+      return { label: c.label, avg, count: scores.length };
+    }).filter(c => c.avg != null);
+
+    // ── Colour helpers ────────────────────────────────────────────────────
+    function scoreRgb(s) {
+      if (s==null) return [60,68,88];
+      if (s>=7.0)  return [30,217,120];
+      if (s>=6.0)  return [38,195,105];
+      if (s>=5.5)  return [55,175,95];
+      if (s>=5.0)  return [80,140,90];
+      if (s<=3.0)  return [230,50,40];
+      if (s<=4.0)  return [200,50,38];
+      if (s<=4.5)  return [155,52,40];
+      return [90,100,125]; // neutral 4.5-5.0
+    }
+    function hexToRgb(h){
+      if(!h||!h.startsWith('#'))return[200,169,110];
+      return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+    }
+    const [ar,ag,ab] = hexToRgb(col);
+
+    // ── Size canvas ───────────────────────────────────────────────────────
+    function resize(){
+      const rect=canvas.parentElement.getBoundingClientRect();
+      const DPR=Math.max(2,window.devicePixelRatio||2);
+      canvas.width=rect.width*DPR; canvas.height=rect.height*DPR;
+      canvas.style.width=rect.width+'px'; canvas.style.height=rect.height+'px';
     }
     resize();
+    const W=()=>canvas.width/(window.devicePixelRatio||2);
+    const H=()=>canvas.height/(window.devicePixelRatio||2);
 
-    const W  = () => canvas.width  / (window.devicePixelRatio || 2);
-    const H  = () => canvas.height / (window.devicePixelRatio || 2);
+    let frame=0;
 
-    // ── Build node list from top markets ─────────────────────────
-    const SHOW = ['ES','GC','DX','6E','CL','ZB','6J','NG','SI','GC','6B','6A','RC','B','Z','ZS','ZC','GC','HG'];
-    const unique = [];
-    SHOW.forEach(id => { if (!unique.includes(id)) unique.push(id); });
-    const pool = (markets || [])
-      .filter(m => m && m.weighted_score != null)
-      .sort((a,b) => Math.abs(b.weighted_score - 5) - Math.abs(a.weighted_score - 5))
-      .slice(0, 22);
-
-    // Hex to rgba helper
-    function hexRgb(h) {
-      const r = parseInt(h.slice(1,3),16);
-      const g = parseInt(h.slice(3,5),16);
-      const b = parseInt(h.slice(5,7),16);
-      return {r,g,b};
-    }
-    const accent = hexRgb(col && col.startsWith('#') ? col : '#c8a96e');
-
-    // Score to colour
-    function scoreCol(s, alpha) {
-      if (s == null) return `rgba(138,152,184,${alpha})`;
-      if (s >= 6.5) return `rgba(48,217,136,${alpha})`;
-      if (s >= 5.5) return `rgba(100,210,160,${alpha})`;
-      if (s <= 3.5) return `rgba(240,64,64,${alpha})`;
-      if (s <= 4.5) return `rgba(214,58,36,${alpha})`;
-      return `rgba(${accent.r},${accent.g},${accent.b},${alpha})`;
-    }
-
-    // Initialise nodes with random positions across the canvas
-    const nodes = pool.map((m, i) => {
-      const w = W(), h = H();
-      return {
-        id: m.id || m.name,
-        label: m.name || m.id,
-        score: m.weighted_score,
-        x: 0.08 * w + Math.random() * 0.82 * w,
-        y: 0.06 * h + Math.random() * 0.88 * h,
-        vx: (Math.random() - 0.5) * 0.22,
-        vy: -0.08 - Math.random() * 0.14,  // drift upward
-        r:  2.2 + Math.abs(m.weighted_score - 5) * 0.45,
-        alpha: 0.35 + Math.random() * 0.45,
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.6 + Math.random() * 0.8,
-        ttl: 180 + Math.floor(Math.random() * 240), // frames until respawn
-        age: Math.floor(Math.random() * 200),
-      };
-    });
-
-    // Pad to 22 nodes with ghost placeholders if needed
-    while (nodes.length < 14) {
-      const w = W(), h = H();
-      nodes.push({
-        id: '', label: '', score: 5 + (Math.random()-0.5)*2,
-        x: 0.08*w + Math.random()*0.82*w,
-        y: 0.06*h + Math.random()*0.88*h,
-        vx: (Math.random()-0.5)*0.18,
-        vy: -0.06 - Math.random()*0.12,
-        r: 1.5, alpha: 0.18 + Math.random()*0.15,
-        phase: Math.random()*Math.PI*2, speed: 0.5 + Math.random()*0.7,
-        ttl: 200 + Math.floor(Math.random()*200), age: Math.floor(Math.random()*180),
-      });
-    }
-
-    let frame = 0;
-
-    function draw() {
-      const w = W(), h = H();
-      const DPR = window.devicePixelRatio || 2;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function draw(){
+      const w=W(), h=H();
+      const DPR=window.devicePixelRatio||2;
+      const ctx=canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width,canvas.height);
       ctx.save();
-      ctx.scale(DPR, DPR);
+      ctx.scale(DPR,DPR);
 
-      // ── Subtle dot-grid background ──────────────────────
-      const GRID = 36;
-      for (let gx = GRID; gx < w - GRID*0.5; gx += GRID) {
-        for (let gy = GRID; gy < h - GRID*0.5; gy += GRID) {
-          ctx.beginPath();
-          ctx.arc(gx, gy, 0.7, 0, Math.PI*2);
-          ctx.fillStyle = `rgba(${accent.r},${accent.g},${accent.b},0.06)`;
-          ctx.fill();
-        }
+      // ── Giant diagonal score watermark ────────────────────────────────
+      if(regScore!=null){
+        ctx.save();
+        ctx.font=`800 ${Math.round(h*0.60)}px 'JetBrains Mono',monospace`;
+        ctx.fillStyle=`rgba(${ar},${ag},${ab},0.032)`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.translate(w*0.44,h*0.52);
+        ctx.rotate(-0.10);
+        ctx.fillText(regScore.toFixed(1),0,0);
+        ctx.restore();
       }
 
-      // ── Update + draw nodes ──────────────────────────────
-      nodes.forEach((n, ni) => {
-        n.age++;
+      // ── Layout ────────────────────────────────────────────────────────
+      const n = cats.length;                   // 6 rows
+      const PAD_L = 56, PAD_R = 72, PAD_T = h*0.14, PAD_B = h*0.14;
+      const usableH = h - PAD_T - PAD_B;
+      const ROW_GAP = usableH / n;
+      const BAR_H   = Math.min(22, ROW_GAP * 0.38);
+      const BAR_MAX_W = w - PAD_L - PAD_R - 90; // leave 90px for label col
 
-        // Respawn when node drifts off top or exceeds ttl
-        if (n.y < -20 || n.age > n.ttl) {
-          n.x = 0.08*w + Math.random()*0.82*w;
-          n.y = h + 10;
-          n.vx = (Math.random()-0.5)*0.22;
-          n.vy = -0.08 - Math.random()*0.14;
-          n.alpha = 0.2 + Math.random()*0.55;
-          n.age = 0;
-          n.ttl = 180 + Math.floor(Math.random()*240);
+      const LABEL_W = 80; // px reserved for category label on left
+
+      cats.forEach((cat, i) => {
+        const cy = PAD_T + i * ROW_GAP + ROW_GAP * 0.5;
+        const barX = PAD_L + LABEL_W;
+        const s = cat.avg;
+        const [r,g,b] = scoreRgb(s);
+
+        // Map score 0-10 → bar fill fraction (3..9 range for visual range)
+        const frac = Math.max(0, Math.min(1, (s - 2) / 8));
+        const fillW = frac * BAR_MAX_W;
+
+        // ── Track (empty bar) ─────────────────────────────────────────
+        ctx.beginPath();
+        ctx.roundRect(barX, cy - BAR_H*0.5, BAR_MAX_W, BAR_H, BAR_H*0.5);
+        ctx.fillStyle = `rgba(255,255,255,0.05)`;
+        ctx.fill();
+
+        // ── Fill ──────────────────────────────────────────────────────
+        if(fillW > BAR_H){
+          // Gradient fill: dim at left, bright at tip
+          const grad = ctx.createLinearGradient(barX, 0, barX+fillW, 0);
+          grad.addColorStop(0,   `rgba(${r},${g},${b},0.28)`);
+          grad.addColorStop(0.7, `rgba(${r},${g},${b},0.65)`);
+          grad.addColorStop(1,   `rgba(${r},${g},${b},0.90)`);
+          ctx.beginPath();
+          ctx.roundRect(barX, cy - BAR_H*0.5, fillW, BAR_H, BAR_H*0.5);
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          // Bright tip cap (pulse)
+          const pulse = 0.6 + 0.4*Math.sin(frame*0.05 + i*1.1);
+          ctx.beginPath();
+          ctx.arc(barX + fillW, cy, BAR_H*0.42, 0, Math.PI*2);
+          ctx.fillStyle = `rgba(${r},${g},${b},${(0.55+0.35*pulse).toFixed(2)})`;
+          ctx.fill();
+          // Outer glow ring
+          ctx.beginPath();
+          ctx.arc(barX + fillW, cy, BAR_H*0.72, 0, Math.PI*2);
+          ctx.strokeStyle=`rgba(${r},${g},${b},${(0.18*pulse).toFixed(2)})`;
+          ctx.lineWidth=2;
+          ctx.stroke();
         }
 
-        // Gentle sinusoidal drift
-        const t = (frame * 0.008 + n.phase) * n.speed;
-        n.x += n.vx + Math.sin(t * 1.3) * 0.15;
-        n.y += n.vy;
+        // ── Category label (left) ────────────────────────────────────
+        ctx.font=`600 10px 'JetBrains Mono',monospace`;
+        ctx.fillStyle=`rgba(${ar},${ag},${ab},0.55)`;
+        ctx.textAlign='left';
+        ctx.textBaseline='middle';
+        ctx.fillText(cat.label.toUpperCase(), PAD_L, cy);
 
-        // Bounce off left/right edges
-        if (n.x < 8)  { n.x = 8;  n.vx = Math.abs(n.vx); }
-        if (n.x > w-8){ n.x = w-8; n.vx = -Math.abs(n.vx); }
+        // ── Score number (right of bar) ────────────────────────────
+        ctx.font=`700 13px 'JetBrains Mono',monospace`;
+        ctx.fillStyle=`rgba(${r},${g},${b},0.95)`;
+        ctx.textAlign='left';
+        ctx.textBaseline='middle';
+        ctx.fillText(s.toFixed(1), barX + BAR_MAX_W + 12, cy);
 
-        // Fade in / fade out based on y position
-        const topFade   = Math.min(1, n.y / 40);
-        const alphaMult = Math.max(0, Math.min(1, topFade));
-
-        const sc = n.score;
-        const baseAlpha = n.alpha * alphaMult;
-        if (baseAlpha < 0.02) return;
-
-        // ── Connection lines to nearby nodes ─────────────
-        nodes.forEach((m, mi) => {
-          if (mi <= ni) return;
-          const dx = m.x - n.x, dy = m.y - n.y;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          const LINK_D = 110;
-          if (dist < LINK_D) {
-            const lineAlpha = (1 - dist/LINK_D) * 0.10 * alphaMult;
-            ctx.beginPath();
-            ctx.moveTo(n.x, n.y);
-            ctx.lineTo(m.x, m.y);
-            ctx.strokeStyle = `rgba(${accent.r},${accent.g},${accent.b},${lineAlpha.toFixed(3)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        });
-
-        // ── Node glow ────────────────────────────────────
-        const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 5);
-        const glowStr = scoreCol(sc, 0.18 * baseAlpha);
-        glow.addColorStop(0, scoreCol(sc, 0.55 * baseAlpha));
-        glow.addColorStop(1, scoreCol(sc, 0));
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r * 4.5, 0, Math.PI*2);
-        ctx.fillStyle = glow;
-        ctx.fill();
-
-        // ── Node dot ────────────────────────────────────
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
-        ctx.fillStyle = scoreCol(sc, 0.80 * baseAlpha);
-        ctx.fill();
-
-        // ── Label (only for named, non-placeholder nodes) ─
-        if (n.label && baseAlpha > 0.20) {
-          const labelAlpha = Math.min(0.65, baseAlpha * 0.90);
-          ctx.font = `600 8px 'JetBrains Mono', monospace`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = `rgba(173,184,208,${labelAlpha.toFixed(2)})`;
-          ctx.fillText(n.label, n.x + n.r + 4, n.y);
-          if (sc != null) {
-            ctx.font = `500 7.5px 'JetBrains Mono', monospace`;
-            ctx.fillStyle = scoreCol(sc, labelAlpha * 0.85);
-            ctx.fillText(sc.toFixed(1), n.x + n.r + 4, n.y + 10);
-          }
+        // ── Subtle row separator ──────────────────────────────────
+        if(i < n-1){
+          const sepY = PAD_T + (i+1)*ROW_GAP;
+          ctx.beginPath();
+          ctx.moveTo(PAD_L, sepY);
+          ctx.lineTo(w - PAD_R, sepY);
+          ctx.strokeStyle=`rgba(${ar},${ag},${ab},0.07)`;
+          ctx.lineWidth=0.5;
+          ctx.stroke();
         }
       });
 
-      // ── Vertical fade mask on right edge (blends into text panel) ──
-      const fadeW = Math.min(100, w * 0.18);
-      const grad = ctx.createLinearGradient(w - fadeW, 0, w, 0);
-      grad.addColorStop(0, 'rgba(4,4,5,0)');
-      grad.addColorStop(1, 'rgba(4,4,5,0.92)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(w - fadeW, 0, fadeW, h);
+      // ── Right-edge fade to blend into text panel ──────────────────────
+      const rFade = ctx.createLinearGradient(w-100,0,w,0);
+      rFade.addColorStop(0,'rgba(4,4,5,0)');
+      rFade.addColorStop(1,'rgba(4,4,5,0.97)');
+      ctx.fillStyle=rFade;
+      ctx.fillRect(w-100,0,100,h);
 
-      // ── Vertical fade on top + bottom ──
-      const topGrad = ctx.createLinearGradient(0,0,0,50);
-      topGrad.addColorStop(0,'rgba(4,4,5,0.9)');
-      topGrad.addColorStop(1,'rgba(4,4,5,0)');
-      ctx.fillStyle = topGrad;
-      ctx.fillRect(0,0,w,50);
+      // ── Top/bottom fades ──────────────────────────────────────────────
+      const tF=ctx.createLinearGradient(0,0,0,60);
+      tF.addColorStop(0,'rgba(4,4,5,0.88)');
+      tF.addColorStop(1,'rgba(4,4,5,0)');
+      ctx.fillStyle=tF; ctx.fillRect(0,0,w,60);
 
-      const botGrad = ctx.createLinearGradient(0,h-60,0,h);
-      botGrad.addColorStop(0,'rgba(4,4,5,0)');
-      botGrad.addColorStop(1,'rgba(4,4,5,0.7)');
-      ctx.fillStyle = botGrad;
-      ctx.fillRect(0,h-60,w,60);
+      const bF=ctx.createLinearGradient(0,h-70,0,h);
+      bF.addColorStop(0,'rgba(4,4,5,0)');
+      bF.addColorStop(1,'rgba(4,4,5,0.80)');
+      ctx.fillStyle=bF; ctx.fillRect(0,h-70,w,70);
 
       ctx.restore();
       frame++;
-      _hfRAF = requestAnimationFrame(draw);
+      _hfRAF=requestAnimationFrame(draw);
     }
 
     draw();
