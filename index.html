@@ -13523,51 +13523,58 @@ canvas{
   display: none !important;
 }
 
-/* ── Banner: min-height scales with viewport — arc needs room to breathe ── */
-/* Formula: top-offset(240px) + arc-canvas-height + 60px bottom breathing room */
+/* ── Banner: min-height = top-offset + arc-canvas-height + breathing room ── */
 .ov-banner {
   overflow: visible !important;
   position: relative !important;
-  min-height: 820px !important;
+  min-height: 720px !important;
   padding-bottom: 0 !important;
 }
 @media (min-width: 1440px) {
-  .ov-banner { min-height: 860px !important; }
-}
-@media (min-width: 1920px) {
-  .ov-banner { min-height: 940px !important; }
-}
-@media (min-width: 2560px) {
-  .ov-banner { min-height: 1020px !important; }
-}
-@media (max-width: 1280px) {
   .ov-banner { min-height: 760px !important; }
 }
+@media (min-width: 1920px) {
+  .ov-banner { min-height: 820px !important; }
+}
+@media (min-width: 2560px) {
+  .ov-banner { min-height: 900px !important; }
+}
+@media (max-width: 1280px) {
+  .ov-banner { min-height: 680px !important; }
+}
 @media (max-width: 900px) {
-  .ov-banner { min-height: 620px !important; }
+  .ov-banner { min-height: 560px !important; }
 }
 @media (max-width: 700px) {
   .ov-banner { min-height: 0 !important; padding-bottom: 0 !important; overflow: hidden !important; }
 }
 
-/* ── Arc section: absolute, canvas starts below text block ── */
-/* top = text-block-height + breathing room. Lower = more arc visible above. */
+/* ── Arc section: starts just below the title block, arc fades into hero via top mask ── */
 .ov-charts {
   position: absolute !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  top: 240px !important;  /* was 280px — give arc 40px more vertical room */
+  top: 120px !important;
   z-index: 1 !important;
   background: transparent !important;
   overflow: visible !important;
   pointer-events: none !important;
 }
 @media (min-width: 1440px) {
-  .ov-charts { top: 260px !important; }
+  .ov-charts { top: 130px !important; }
+}
+@media (min-width: 1920px) {
+  .ov-charts { top: 145px !important; }
 }
 @media (min-width: 2560px) {
-  .ov-charts { top: 290px !important; }
+  .ov-charts { top: 160px !important; }
+}
+@media (max-width: 1280px) {
+  .ov-charts { top: 110px !important; }
+}
+@media (max-width: 900px) {
+  .ov-charts { top: 100px !important; }
 }
 /* restore pointer events for the canvas wrap only (footer is hidden) */
 .ov-arc-canvas-wrap,
