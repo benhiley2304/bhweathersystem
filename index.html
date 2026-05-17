@@ -13603,21 +13603,21 @@ canvas{
   -webkit-mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0,0,0,0.60) 4%,
-    black 10%,
-    black 62%,
-    rgba(0,0,0,0.70) 76%,
-    rgba(0,0,0,0.30) 88%,
+    rgba(0,0,0,0.85) 3%,
+    black 7%,
+    black 60%,
+    rgba(0,0,0,0.65) 75%,
+    rgba(0,0,0,0.25) 88%,
     transparent 100%
   ) !important;
   mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0,0,0,0.60) 4%,
-    black 10%,
-    black 62%,
-    rgba(0,0,0,0.70) 76%,
-    rgba(0,0,0,0.30) 88%,
+    rgba(0,0,0,0.85) 3%,
+    black 7%,
+    black 60%,
+    rgba(0,0,0,0.65) 75%,
+    rgba(0,0,0,0.25) 88%,
     transparent 100%
   ) !important;
 }
@@ -18958,10 +18958,10 @@ function _drawLiveDot(canvas, data, phase) {
   const LEFT_W = 108;
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
-  const ARC_OR_PRELIM = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
-  const ARC_CX  = Math.min(W * 0.60, W - ARC_OR_PRELIM - PAD_R);  // centred in canvas — fills hero middle
-  const ARC_CY = H * 0.54;
-  const ARC_OR = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
+  const ARC_OR_PRELIM = H * 1.10;  // dramatic oversize — arc fills hero
+  const ARC_CX  = W * 0.80;        // pivot far right, bars sweep across hero
+  const ARC_CY  = H * 1.05;        // pivot below canvas — giant rising wheel
+  const ARC_OR  = H * 1.10;
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S = 0, MAX_S = 10;
   const SWEEP = 210 * Math.PI / 180;
@@ -19085,10 +19085,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // ── Layout constants ─────────────────────────────────────────────────
   const LEFT_W = 145;                      // jarvis data panel width
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
-  const ARC_OR_PRE = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
-  const ARC_CX = Math.min(W * 0.60, W - ARC_OR_PRE - PAD_R);
-  const ARC_CY = H * 0.54;
-  const ARC_OR = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
+  const ARC_OR_PRE = H * 1.10;  // dramatic oversize — arc fills hero
+  const ARC_CX  = W * 0.80;     // pivot far right, bars sweep across hero
+  const ARC_CY  = H * 1.05;     // pivot below canvas — giant rising wheel
+  const ARC_OR  = H * 1.10;
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S  = 0, MAX_S = 10;
   const SWEEP  = 210 * Math.PI / 180;
@@ -19103,19 +19103,14 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
   // Radial atmosphere: two layers — warm colour bloom + dark inner void
   // Layer 1: subtle colour atmosphere around the arc
-  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.4, ARC_CX, ARC_CY, ARC_OR * 2.0);
-  vigGrd.addColorStop(0,   rgb(curC, 0.07));
-  vigGrd.addColorStop(0.4, rgb(curC, 0.04));
+  // Very subtle colour bloom only — arc centre is off-canvas so no dark void needed
+  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.4, ARC_CX, ARC_CY, ARC_OR * 1.5);
+  vigGrd.addColorStop(0,   rgb(curC, 0.04));
+  vigGrd.addColorStop(0.5, rgb(curC, 0.02));
   vigGrd.addColorStop(1,   'rgba(0,0,0,0)');
   ctx.fillStyle = vigGrd;
   ctx.fillRect(0, 0, W, H);
-  // Layer 2: frosted dark void disc — makes bars pop; fills inner arc area
-  const voidGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, 0, ARC_CX, ARC_CY, ARC_IR * 1.05);
-  voidGrd.addColorStop(0,   'rgba(1,2,8,0.28)');
-  voidGrd.addColorStop(0.65,'rgba(1,2,8,0.12)');
-  voidGrd.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = voidGrd;
-  ctx.fillRect(0, 0, W, H);
+  // Void disc removed — pivot is below canvas, inner circle not visible
   // Etched concentric rings inside the void — architectural / precision instrument feel
   [0.68, 0.45, 0.22].forEach((frac, idx) => {
     const er = ARC_IR * frac;
@@ -19866,10 +19861,10 @@ function _setupArcTooltip(canvas, data) {
     const LEFT_W2 = 108;
     // Arc geometry
     const ARC_X  = PAD_L + LEFT_W2;
-    const ARC_OR_P = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
-    const ARC_CX = Math.min(W * 0.60, W - ARC_OR_P - PAD_R);
-    const ARC_CY = H * 0.54;
-    const ARC_OR = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
+    const ARC_OR_P = H * 1.10;  // dramatic oversize — arc fills hero
+    const ARC_CX  = W * 0.80;    // pivot far right, bars sweep across hero
+    const ARC_CY  = H * 1.05;    // pivot below canvas — giant rising wheel
+    const ARC_OR  = H * 1.10;
     const ARC_IR = ARC_OR * 0.30;
     const SWEEP  = 210 * Math.PI / 180;
     const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
