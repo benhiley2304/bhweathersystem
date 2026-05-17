@@ -13643,7 +13643,34 @@ canvas{
   pointer-events: none !important;
 }
 
-/* ── R25c: Bold artsy hero — split word treatment, outline text, watermark, vertical sidebar ── */
+/* ══════════════════════════════════════════════════════════════════════
+   R25L — GRAPHIC DESIGN OVERHAUL: Premium, striking, futuristic hero
+   Key improvements:
+   - Glass panel with backdrop-filter on right text block
+   - Deep atmospheric background with radial colour bloom
+   - word2 outline/stroke treatment (not flat ghost)
+   - Intermediate hierarchy: score label between headline + rule
+   - Eyebrow elevated with accent pip
+   - Stronger spatial composition and depth
+══════════════════════════════════════════════════════════════════════ */
+
+/* ── Banner: deep atmospheric background ── */
+.ov-banner {
+  background:
+    radial-gradient(ellipse 110% 90% at 42% 60%, rgba(20,26,20,0.98) 0%, rgba(4,4,5,1) 75%) !important;
+}
+
+/* ── Deep atmospheric bloom — coloured glow behind the arc ── */
+.ov-banner-bg {
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  /* Base gradient depth */
+  background:
+    radial-gradient(ellipse 60% 60% at 48% 72%, rgba(0,0,0,0) 0%, rgba(2,4,3,0.35) 100%) !important;
+}
+
 .ov-banner-inner {
   position: absolute !important;
   inset: 0 !important;
@@ -13664,35 +13691,64 @@ canvas{
   gap: 0 !important;
 }
 
-/* Eyebrow: top-left corner label */
+/* Eyebrow: top-left corner label — elevated with accent pip */
 .ov-banner-eyebrow {
   position: absolute !important;
   top: 28px !important;
   left: 40px !important;
   font-size: 7.5px !important;
-  letter-spacing: 0.22em !important;
-  color: rgba(173,184,208,0.45) !important;
+  letter-spacing: 0.24em !important;
+  color: rgba(200,169,110,0.70) !important;
   border-bottom: none !important;
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
   pointer-events: none !important;
   text-transform: uppercase !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.ov-banner-eyebrow::before {
+  content: '' !important;
+  display: inline-block !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: var(--hero-accent, rgba(200,169,110,0.9)) !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 0 6px var(--hero-accent, rgba(200,169,110,0.9)) !important;
+  animation: eyebrowPip 2.5s ease-in-out infinite alternate !important;
+}
+@keyframes eyebrowPip {
+  from { opacity: 0.5; box-shadow: 0 0 4px var(--hero-accent, rgba(200,169,110,0.9)); }
+  to   { opacity: 1.0; box-shadow: 0 0 10px var(--hero-accent, rgba(200,169,110,0.9)); }
 }
 
-/* ── Right text panel ── */
+/* ── Right text panel — glassmorphism premium ── */
 .ov-banner-text-right {
   position: relative !important;
-  width: 500px !important;
+  width: 520px !important;
   flex-shrink: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
   align-items: flex-end !important;
-  padding: 52px 52px 0 24px !important;
+  padding: 52px 56px 0 32px !important;
   gap: 0 !important;
   pointer-events: auto !important;
   overflow: visible !important;
-  border-left: 1px solid rgba(200,169,110,0.07) !important;
+  /* Frosted glass effect */
+  border-left: 1px solid rgba(200,169,110,0.12) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.025) 0%,
+    rgba(255,255,255,0.010) 50%,
+    rgba(255,255,255,0.005) 100%
+  ) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  /* Subtle inner glow on left border */
+  box-shadow: inset 1px 0 0 rgba(200,169,110,0.06), -20px 0 60px rgba(0,0,0,0.25) !important;
 }
 
 /* Giant score watermark — tilted, bleeds across panel + into arc */
@@ -13714,7 +13770,7 @@ canvas{
   white-space: nowrap !important;
 }
 
-/* Word 1 — filled, massive */
+/* Word 1 — filled, massive, luminous */
 .ov-hero-word1 {
   font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
   font-size: 152px !important;
@@ -13723,7 +13779,9 @@ canvas{
   line-height: 0.86 !important;
   text-align: right !important;
   color: currentColor !important;
-  filter: drop-shadow(0 0 80px currentColor) !important;
+  /* Deep glow + subtle text shadow for depth */
+  filter: drop-shadow(0 0 60px currentColor) drop-shadow(0 2px 4px rgba(0,0,0,0.6)) !important;
+  text-shadow: 0 0 80px currentColor !important;
   opacity: 1 !important;
   position: relative !important;
   z-index: 2 !important;
@@ -13734,7 +13792,7 @@ canvas{
   margin-top: 12px !important;
 }
 
-/* Word 2 — outline ghost, same size */
+/* Word 2 — stroke/outline treatment, intentional design not broken ghost */
 .ov-hero-word2 {
   font-family: var(--nexus-head), 'Space Grotesk', sans-serif !important;
   font-size: 152px !important;
@@ -13742,43 +13800,62 @@ canvas{
   letter-spacing: -0.055em !important;
   line-height: 0.86 !important;
   text-align: right !important;
-  /* Use currentColor at low opacity for the outline ghost */
-  color: currentColor !important;
-  opacity: 0.22 !important;
+  /* Stroke outline effect — clearly intentional design */
+  color: transparent !important;
+  -webkit-text-stroke: 1.5px currentColor !important;
+  text-stroke: 1.5px currentColor !important;
+  opacity: 0.55 !important;
   position: relative !important;
   z-index: 2 !important;
   display: block !important;
   text-transform: uppercase !important;
-  margin-bottom: 32px !important;
+  margin-bottom: 0 !important;
   white-space: nowrap !important;
   overflow: visible !important;
-  filter: drop-shadow(0 0 40px currentColor) !important;
+  filter: drop-shadow(0 0 30px currentColor) !important;
 }
 
-/* Accent rule — full width of panel, colour-matched */
+/* Intermediate regime label — bridges 152px headline and 9.5px body copy */
+.ov-hero-regime-label {
+  display: block !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.32em !important;
+  text-transform: uppercase !important;
+  color: currentColor !important;
+  opacity: 0.50 !important;
+  text-align: right !important;
+  margin: 14px 0 22px 0 !important;
+  position: relative !important;
+  z-index: 2 !important;
+  white-space: nowrap !important;
+}
+
+/* Accent rule — full width of panel, colour-matched, stronger presence */
 .ov-hero-rule {
   display: block !important;
   width: 100% !important;
   height: 1px !important;
   background: linear-gradient(to left, currentColor, rgba(255,255,255,0)) !important;
-  opacity: 0.18 !important;
-  margin: 0 0 18px 0 !important;
+  opacity: 0.28 !important;
+  margin: 0 0 16px 0 !important;
   position: relative !important;
   z-index: 2 !important;
   flex-shrink: 0 !important;
 }
 
-/* Description — sparse, wide-tracked, uppercase */
+/* Description — elevated contrast */
 .ov-banner-desc {
   font-size: 9.5px !important;
   letter-spacing: 0.20em !important;
   text-transform: uppercase !important;
-  color: rgba(173,184,208,0.45) !important;
+  color: rgba(173,184,208,0.62) !important;
   font-weight: 500 !important;
   text-align: right !important;
   max-width: 340px !important;
   line-height: 2.0 !important;
-  margin-bottom: 24px !important;
+  margin-bottom: 20px !important;
   position: relative !important;
   z-index: 2 !important;
 }
@@ -13788,7 +13865,7 @@ canvas{
   font-size: 7.5px !important;
   letter-spacing: 0.22em !important;
   text-transform: uppercase !important;
-  color: rgba(138,152,184,0.35) !important;
+  color: rgba(138,152,184,0.50) !important;
   justify-content: flex-end !important;
   flex-direction: row-reverse !important;
   gap: 10px !important;
@@ -13826,20 +13903,7 @@ canvas{
   display: none !important;
 }
 
-/* Eyebrow */
-.ov-banner-eyebrow {
-  position: absolute !important;
-  top: 28px !important;
-  left: 40px !important;
-  font-size: 7.5px !important;
-  letter-spacing: 0.22em !important;
-  color: rgba(173,184,208,0.35) !important;
-  border-bottom: none !important;
-  padding-bottom: 0 !important;
-  margin-bottom: 0 !important;
-  pointer-events: none !important;
-  text-transform: uppercase !important;
-}
+/* Eyebrow — second definition after mobile overrides, keep consistent */
 
 /* Left panel — macro overview */
 .ov-banner-left {
@@ -13961,7 +14025,13 @@ canvas{
 }
 
 /* Responsive */
-@media (min-width: 1920px) {
+@media (min-width: 2560px) {
+  .ov-banner-text-right { width: 640px !important; padding: 60px 72px 0 32px !important; }
+  .ov-hero-word1, .ov-hero-word2 { font-size: 200px !important; }
+  .ov-banner-text-right::before { font-size: 500px !important; right: -90px !important; }
+  .ov-hero-regime-label { font-size: 10px !important; }
+}
+@media (min-width: 1920px) and (max-width: 2559px) {
   .ov-banner-text-right { width: 580px !important; padding: 56px 64px 0 28px !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 178px !important; }
   .ov-banner-text-right::before { font-size: 440px !important; right: -80px !important; }
@@ -13976,6 +14046,7 @@ canvas{
   .ov-hero-word1, .ov-hero-word2 { font-size: 96px !important; }
   .ov-banner-text-right::before { font-size: 250px !important; }
   .ov-banner-eyebrow { left: 28px !important; }
+  .ov-hero-regime-label { font-size: 8px !important; }
 }
 
 /* Mobile */
@@ -13994,10 +14065,11 @@ canvas{
   .ov-macro-eyebrow { margin-bottom: 16px !important; padding-bottom: 10px !important; }
   .ov-macro-footer { margin-top: 14px !important; padding-top: 10px !important; }
   .ov-banner-eyebrow { position: relative !important; top: auto !important; left: auto !important; margin-bottom: 10px !important; }
-  .ov-banner-text-right { width: 100% !important; align-items: flex-start !important; padding: 20px 0 0 0 !important; border-left: none !important; border-top: 1px solid rgba(200,169,110,0.08) !important; }
+  .ov-banner-text-right { width: 100% !important; align-items: flex-start !important; padding: 20px 0 0 0 !important; border-left: none !important; border-top: 1px solid rgba(200,169,110,0.08) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }
   .ov-banner-text-right::before { display: none !important; }
   .ov-hero-word1, .ov-hero-word2 { font-size: 56px !important; }
-  .ov-hero-word2 { margin-bottom: 14px !important; }
+  .ov-hero-word2 { margin-bottom: 0 !important; }
+  .ov-hero-regime-label { font-size: 8px !important; margin: 8px 0 12px 0 !important; text-align: left !important; }
   .ov-hero-sidebar { display: none !important; }
   .ov-banner-desc { text-align: left !important; text-transform: none !important; letter-spacing: 0.02em !important; }
   .ov-banner-sub { flex-direction: row !important; justify-content: flex-start !important; }
@@ -14666,9 +14738,17 @@ function renderOverview(){
   // Update banner bg gradient to match regime colour
   const bnBg=document.getElementById('ov-banner-bg');
   if(bnBg){
-    const c1=regLabel.includes('On')?'rgba(48,217,136,0.10)':regLabel.includes('Off')?'rgba(240,64,64,0.10)':'rgba(92,158,255,0.08)';
-    const c2=regLabel.includes('On')?'rgba(38,201,122,0.05)':regLabel.includes('Off')?'rgba(220,90,58,0.05)':'rgba(92,158,255,0.04)';
-    bnBg.style.background=`radial-gradient(ellipse 80% 130% at 85% 50%,${c1} 0%,transparent 65%),radial-gradient(ellipse 50% 70% at 10% 90%,${c2} 0%,transparent 60%)`;
+    // Rich atmospheric bloom — arc glow zone (centre-left) + right panel depth
+    const isOn=regLabel.includes('On'), isOff=regLabel.includes('Off');
+    const bloom1=isOn?'rgba(34,201,122,0.14)':isOff?'rgba(224,58,42,0.14)':'rgba(92,158,255,0.10)';
+    const bloom2=isOn?'rgba(0,180,90,0.07)':isOff?'rgba(200,40,40,0.07)':'rgba(60,100,180,0.05)';
+    const bloom3=isOn?'rgba(10,40,25,0.40)':isOff?'rgba(40,10,10,0.40)':'rgba(10,15,35,0.35)';
+    // Main arc bloom (centre-left), soft shoulder bloom (lower right), deep vignette
+    bnBg.style.background=[
+      `radial-gradient(ellipse 70% 80% at 45% 65%,${bloom1} 0%,transparent 65%)`,
+      `radial-gradient(ellipse 40% 50% at 80% 80%,${bloom2} 0%,transparent 55%)`,
+      `radial-gradient(ellipse 100% 60% at 50% 100%,${bloom3} 0%,transparent 80%)`
+    ].join(',');
   }
   // ── Regime atmosphere wash ──────────────────────────────────────────────
   (function(){
@@ -14889,8 +14969,9 @@ function renderOverview(){
           w1 = parts[0]; w2 = parts.slice(1).join(' ') || parts[0];
         }
         return `<span class="ov-hero-word1" style="color:${regCol}">${w1}</span>
-                <span class="ov-hero-word2" style="color:${regCol}">${w2}</span>`;
+                <span class="ov-hero-word2" style="color:${regCol};-webkit-text-stroke-color:${regCol}">${w2}</span>`;
       })()}
+      <span class="ov-hero-regime-label" style="color:${regCol}">${regScore!=null?regScore.toFixed(1)+' / 10 — Macro Regime Indicator':'Macro Regime Indicator'}</span>
       <span class="ov-hero-rule" style="background:linear-gradient(to left,${regCol},transparent)"></span>
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
       <div class="ov-banner-sub">
@@ -19406,10 +19487,10 @@ function _drawLiveDot(canvas, data, phase) {
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
   // Arc: 80% ring visible, centred horizontally
-  const ARC_OR_PRELIM = H * 0.90;
+  const ARC_OR_PRELIM = H * 1.00;
   const ARC_CX  = W * 0.50;
   const ARC_CY  = H * 0.56;
-  const ARC_OR  = H * 0.90;
+  const ARC_OR  = H * 1.00;
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S = 0, MAX_S = 10;
   const SWEEP = 210 * Math.PI / 180;
@@ -19534,10 +19615,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   const LEFT_W = 145;                      // jarvis data panel width
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
   // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-  const ARC_OR_PRE = H * 0.90;
+  const ARC_OR_PRE = H * 1.00;
   const ARC_CX  = W * 0.50;
   const ARC_CY  = H * 0.56;
-  const ARC_OR  = H * 0.90;
+  const ARC_OR  = H * 1.00;
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S  = 0, MAX_S = 10;
   const SWEEP  = 210 * Math.PI / 180;
@@ -20033,10 +20114,10 @@ function _setupArcTooltip(canvas, data) {
     // Arc geometry
     const ARC_X  = PAD_L + LEFT_W2;
     // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-    const ARC_OR_P = H * 0.90;
+    const ARC_OR_P = H * 1.00;
     const ARC_CX  = W * 0.50;
     const ARC_CY  = H * 0.56;
-    const ARC_OR  = H * 0.90;
+    const ARC_OR  = H * 1.00;
     const ARC_IR = ARC_OR * 0.30;
     const SWEEP  = 210 * Math.PI / 180;
     const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
