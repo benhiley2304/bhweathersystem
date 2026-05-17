@@ -13642,10 +13642,10 @@ canvas{
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(13,14,12,0.08) 30%,
-    rgba(13,14,12,0.50) 60%,
-    rgba(13,14,12,0.88) 82%,
-    #0d0e0c 100%
+    rgba(12,12,11,0.08) 30%,
+    rgba(12,12,11,0.50) 60%,
+    rgba(12,12,11,0.88) 82%,
+    #0c0c0b 100%
   ) !important;
   z-index: 2 !important;
   pointer-events: none !important;
@@ -13685,7 +13685,8 @@ canvas{
 
 /* ── Banner: warm editorial charcoal — not cold void ── */
 .ov-banner {
-  background: #0d0e0c !important;
+  /* R26E: #0d0e0c had G>R>B giving a green tint — changed to neutral warm dark */
+  background: #0c0c0b !important;
 }
 
 /* ── Atmospheric lift — warm amber-cream pool top-right, subtle regime tint ── */
@@ -13699,7 +13700,8 @@ canvas{
     radial-gradient(ellipse 65% 70% at 92% 3%, rgba(200,169,110,0.20) 0%, transparent 60%),
     radial-gradient(ellipse 45% 50% at 100% 0%, rgba(220,195,140,0.16) 0%, transparent 48%),
     radial-gradient(ellipse 35% 40% at 80% 18%, rgba(200,169,110,0.09) 0%, transparent 52%),
-    radial-gradient(ellipse 80% 65% at 38% 55%, rgba(34,201,122,0.035) 0%, rgba(0,0,0,0) 58%) !important;
+    /* R26E: green tint layer removed — banner bg colour is the atmosphere */
+    transparent) !important;
 }
 
 /* Banner inner: absolute overlay, full-bleed — no flex column layout */
@@ -14710,11 +14712,9 @@ function renderOverview(){
     // Warm amber top-right editorial light pool (always present, editorial warmth)
     // + subtle regime tint in the arc zone (left-centre)
     const isOn=regLabel.includes('On'), isOff=regLabel.includes('Off');
-    // R26C: regime tint pulled back — was creating heavy swamp atmosphere
-    const liftA  = isOn ? 0.035 : isOff ? 0.032 : 0.025;
-    const baseC  = isOn ? `rgba(34,201,122,${liftA})`
-                 : isOff? `rgba(210,60,40,${liftA})`
-                 :         `rgba(92,140,220,${liftA})`;
+    // R26E: regime tint removed from ov-banner-bg — banner colour is the atmosphere
+    const liftA  = 0;
+    const baseC  = 'rgba(0,0,0,0)';
     // Warm amber editorial pool top-right — boosted for more atmospheric depth
     // Regime colour tints the arc zone (left-centre)
     bnBg.style.background = [
