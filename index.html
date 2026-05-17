@@ -13502,25 +13502,27 @@ canvas{
    text, layered behind text via z-index. No hard contained box.
 ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Banner: no overflow clipping, use padding-bottom to reserve arc space ── */
+/* ── Banner: reserve vertical space for the arc which is absolute-positioned at bottom ── */
+/* min-height = top-offset(80px) + arc-height(460px) + footer(44px) = 584px              */
+/* The banner-inner text content pushes the height further, which is fine                */
 .ov-banner {
   overflow: visible !important;
   position: relative !important;
-  /* Reserve room for the arc which will be absolute-positioned */
-  /* Arc height: max 460px + footer 44px = 504px. Overlap by ~180px into text for bleed effect */
-  padding-bottom: 320px !important;
+  /* Reserve enough for arc + footer below top:80px */
+  min-height: 570px !important;
+  padding-bottom: 0 !important;
 }
 @media (min-width: 1440px) {
-  .ov-banner { padding-bottom: 340px !important; }
+  .ov-banner { min-height: 590px !important; }
 }
 @media (min-width: 2560px) {
-  .ov-banner { padding-bottom: 360px !important; }
+  .ov-banner { min-height: 610px !important; }
 }
 @media (max-width: 900px) {
-  .ov-banner { padding-bottom: 260px !important; }
+  .ov-banner { min-height: 480px !important; }
 }
 @media (max-width: 700px) {
-  .ov-banner { padding-bottom: 0 !important; overflow: hidden !important; }
+  .ov-banner { min-height: 0 !important; padding-bottom: 0 !important; overflow: hidden !important; }
 }
 
 /* ── Arc section: absolute, overlapping the whole banner from bottom ── */
