@@ -19649,24 +19649,18 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
     ctx.save();
 
-    // Panel background: deep glass panel with subtle border
-    const panelGrd = ctx.createLinearGradient(lx, 0, lx + lW, 0);
-    panelGrd.addColorStop(0, 'rgba(0,0,0,0)');
-    panelGrd.addColorStop(0.1, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.04)`);
-    panelGrd.addColorStop(0.9, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.02)`);
-    panelGrd.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = panelGrd;
-    ctx.fillRect(lx, 0, lW, H);
+    // Panel background: transparent — no colour bleed
+    // (removed: was creating green glow across entire banner)
 
-    // Right-edge divider with glow
+    // Right-edge divider: thin, very subtle — no glow bleed
     const dvG = ctx.createLinearGradient(0, 0, 0, H);
     dvG.addColorStop(0,    `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
-    dvG.addColorStop(0.15, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.40)`);
-    dvG.addColorStop(0.5,  `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`);
-    dvG.addColorStop(0.85, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.40)`);
+    dvG.addColorStop(0.15, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.12)`);
+    dvG.addColorStop(0.5,  `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.18)`);
+    dvG.addColorStop(0.85, `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.12)`);
     dvG.addColorStop(1,    `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0)`);
     ctx.beginPath(); ctx.moveTo(ARC_X - 1, 0); ctx.lineTo(ARC_X - 1, H);
-    ctx.strokeStyle = dvG; ctx.lineWidth = 0.75; ctx.stroke();
+    ctx.strokeStyle = dvG; ctx.lineWidth = 0.5; ctx.stroke();
 
     // Section 1: HEADER AREA (top 26% of H)
     const headerH = Math.round(H * 0.26);
@@ -19690,7 +19684,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.save();
     ctx.font = `100 ${heroSz}px "SF Pro Display","Helvetica Neue",sans-serif`;
     ctx.textAlign = 'center';
-    ctx.shadowBlur = 14; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.50)`;
+    ctx.shadowBlur = 6; ctx.shadowColor = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.30)`;
     ctx.fillStyle = 'rgba(255,255,255,0.98)';
     ctx.fillText(dispScore, lCX, 18 + heroSz);
     ctx.shadowBlur = 0;
