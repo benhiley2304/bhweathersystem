@@ -13523,9 +13523,8 @@ canvas{
   display: none !important;
 }
 
-/* ── Hide top-right panel: sector breadth bars + score orb + climate score ── */
-.ov-banner-centre,
-.ov-banner-right {
+/* ── Hide sector breadth centre panel only — right energy orb is RESTORED ── */
+.ov-banner-centre {
   display: none !important;
 }
 
@@ -13598,11 +13597,11 @@ canvas{
   position: relative !important;
   width: 100% !important;
   background: transparent !important;
+  /* R26A: top mask loosened — arc rings no longer over-fade at top */
   -webkit-mask-image: linear-gradient(
     180deg,
-    transparent 0%,
-    rgba(0,0,0,0.90) 1.5%,
-    black 4%,
+    rgba(0,0,0,0.70) 0%,
+    black 3%,
     black 60%,
     rgba(0,0,0,0.65) 75%,
     rgba(0,0,0,0.25) 88%,
@@ -13610,9 +13609,8 @@ canvas{
   ) !important;
   mask-image: linear-gradient(
     180deg,
-    transparent 0%,
-    rgba(0,0,0,0.90) 1.5%,
-    black 4%,
+    rgba(0,0,0,0.70) 0%,
+    black 3%,
     black 60%,
     rgba(0,0,0,0.65) 75%,
     rgba(0,0,0,0.25) 88%,
@@ -13735,6 +13733,36 @@ canvas{
   background: rgba(200,169,110,0.5) !important;
   flex-shrink: 0 !important;
   margin-right: 10px !important;
+}
+
+/* ── Energy orb: absolutely pinned left side of banner, below eyebrow ── */
+.ov-banner-right {
+  display: flex !important;
+  position: absolute !important;
+  left: 48px !important;
+  top: 70px !important;
+  z-index: 8 !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  pointer-events: none !important;
+  width: 130px !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  background: radial-gradient(ellipse 180% 160% at 50% 40%, rgba(6,7,8,0.52) 0%, transparent 72%) !important;
+}
+@media (min-width: 2560px) {
+  .ov-banner-right { left: 64px !important; top: 84px !important; width: 150px !important; }
+}
+@media (min-width: 1920px) {
+  .ov-banner-right { left: 56px !important; top: 78px !important; width: 140px !important; }
+}
+@media (max-width: 1280px) {
+  .ov-banner-right { left: 36px !important; top: 66px !important; width: 120px !important; }
+}
+@media (max-width: 900px) {
+  .ov-banner-right { display: none !important; }
 }
 
 /* ── RIGHT TEXT PANEL: Floating absolutely positioned full-height overlay ── */
@@ -14705,7 +14733,9 @@ function renderOverview(){
       c2 = 'rgba(60,100,180,0.02)';
       c3 = 'rgba(10,20,50,0.03)';
     }
-    wash.style.background = `radial-gradient(ellipse 65% 55% at 72% 30%,${c1} 0%,transparent 70%),radial-gradient(ellipse 45% 60% at 20% 75%,${c2} 0%,transparent 65%),radial-gradient(ellipse 80% 40% at 50% 100%,${c3} 0%,transparent 60%)`;
+    // R26A fix: keep regime tints in the banner/hero zone (top 30% of viewport)
+    // Previously at 72%/30% which bled into mid-page on large screens
+    wash.style.background = `radial-gradient(ellipse 70% 45% at 62% 8%,${c1} 0%,transparent 65%),radial-gradient(ellipse 50% 35% at 30% 18%,${c2} 0%,transparent 60%),radial-gradient(ellipse 85% 30% at 50% 0%,${c3} 0%,transparent 55%)`;
     wash.classList.add('visible');
     // Expose regime colour as CSS var for horizon line
     document.documentElement.style.setProperty('--reg-col', regCol + '99');
@@ -19422,10 +19452,11 @@ function _drawLiveDot(canvas, data, phase) {
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
   // Arc: 80% ring visible, centred horizontally
-  const ARC_OR_PRELIM = H * 1.00;
+  // R26A: CY raised to 0.62, OR reduced to 0.90 so top rings show fully
+  const ARC_OR_PRELIM = H * 0.90;
   const ARC_CX  = W * 0.50;
-  const ARC_CY  = H * 0.56;
-  const ARC_OR  = H * 1.00;
+  const ARC_CY  = H * 0.62;
+  const ARC_OR  = H * 0.90;
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S = 0, MAX_S = 10;
   const SWEEP = 210 * Math.PI / 180;
@@ -19550,10 +19581,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   const LEFT_W = 145;                      // jarvis data panel width
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
   // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-  const ARC_OR_PRE = H * 1.00;
+  // R26A: CY raised to 0.62, OR reduced to 0.90 so top rings show fully
+  const ARC_OR_PRE = H * 0.90;
   const ARC_CX  = W * 0.50;
-  const ARC_CY  = H * 0.56;
-  const ARC_OR  = H * 1.00;
+  const ARC_CY  = H * 0.62;
+  const ARC_OR  = H * 0.90;
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S  = 0, MAX_S = 10;
   const SWEEP  = 210 * Math.PI / 180;
@@ -19970,10 +20002,11 @@ function _setupArcTooltip(canvas, data) {
     // Arc geometry
     const ARC_X  = PAD_L + LEFT_W2;
     // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-    const ARC_OR_P = H * 1.00;
+    // R26A: CY raised to 0.62, OR reduced to 0.90 so top rings show fully
+    const ARC_OR_P = H * 0.90;
     const ARC_CX  = W * 0.50;
-    const ARC_CY  = H * 0.56;
-    const ARC_OR  = H * 1.00;
+    const ARC_CY  = H * 0.62;
+    const ARC_OR  = H * 0.90;
     const ARC_IR = ARC_OR * 0.30;
     const SWEEP  = 210 * Math.PI / 180;
     const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
