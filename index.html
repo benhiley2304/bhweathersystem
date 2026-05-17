@@ -19892,19 +19892,39 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Arc section — full canvas width (no clip needed)
   ctx.save();
 
-  // Arc background — minimal, no heavy glow
+  // ── Ambient mist — very soft radial bloom centred on the ring (R26M) ──
+  // Three nested radial gradients: inner core haze + mid halo + outer breath
+  ctx.save();
+  [
+    { r0: ARC_IR * 0.5, r1: ARC_OR * 1.35, a: 0.038 },
+    { r0: ARC_IR * 0.8, r1: ARC_OR * 1.10, a: 0.055 },
+    { r0: ARC_IR * 0.95, r1: ARC_OR * 0.98, a: 0.032 },
+  ].forEach(({ r0, r1, a }) => {
+    const mist = ctx.createRadialGradient(ARC_CX, ARC_CY, r0, ARC_CX, ARC_CY, r1);
+    mist.addColorStop(0,   rgb(curC, a));
+    mist.addColorStop(0.5, rgb(curC, a * 0.5));
+    mist.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = mist;
+    ctx.fillRect(0, 0, W, H);
+  });
+  ctx.restore();
 
   // ── Two clean architectural arcs — inner track + outer bound ──
-  // R26D: drastically reduced opacity — large ring was dominating the background
+  // R26M: brightened rings + soft glow shadow
   [
-    { r: ARC_IR,  a: 0.06, lw: 0.5, dash: [] },
-    { r: ARC_OR,  a: 0.08, lw: 0.6, dash: [] },
-  ].forEach(({ r, a, lw, dash }) => {
+    { r: ARC_IR,  a: 0.22, lw: 1.0, glow: 0.18 },
+    { r: ARC_OR,  a: 0.28, lw: 1.2, glow: 0.22 },
+  ].forEach(({ r, a, lw, glow }) => {
+    ctx.save();
     ctx.beginPath();
     ctx.arc(ARC_CX, ARC_CY, r, START_A, START_A + SWEEP);
     ctx.strokeStyle = rgb(curC, a);
     ctx.lineWidth = lw;
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = rgb(curC, glow);
     ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
   });
 
   // Draw 52 weekly radial segments — rich gradient fills
