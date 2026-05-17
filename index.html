@@ -627,7 +627,7 @@ a{color:inherit;text-decoration:none}
 }
 .ov-banner-canvas{
   position:absolute;inset:0;width:100%;height:100%;
-  opacity:0.32;mix-blend-mode:screen;
+  opacity:0.45;mix-blend-mode:screen;
 }
 /* Ambient shimmer sweep across hero */
 @keyframes heroshim{
@@ -10455,7 +10455,7 @@ canvas{
   }
   .mob-hero-desc {
     font-size: 11.5px !important;
-    color: rgba(173,184,208,0.62) !important;
+    color: rgba(200,215,235,0.78) !important;
     line-height: 1.45 !important;
   }
   /* Stats row */
@@ -11002,7 +11002,7 @@ canvas{
   font-weight: 700 !important;
   letter-spacing: 0.12em !important;
   text-transform: uppercase !important;
-  color: rgba(200,169,110,0.70) !important;
+  color: rgba(200,169,110,0.88) !important;
 }
 
 /* ─── 7. COT PANEL CHARTS ─── */
@@ -13208,7 +13208,7 @@ canvas{
 
 /* ── 8. Overview desktop meta line brightness ── */
 .ov-meta-line, .ov-breadcrumb {
-  color: rgba(173,184,208,0.62) !important;
+  color: rgba(200,215,235,0.78) !important;
   font-size: 9px !important;
 }
 
@@ -13634,9 +13634,9 @@ canvas{
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(4,4,5,0.20) 30%,
-    rgba(4,4,5,0.55) 60%,
-    rgba(4,4,5,0.88) 82%,
+    rgba(4,4,5,0.12) 25%,
+    rgba(4,4,5,0.42) 52%,
+    rgba(4,4,5,0.80) 78%,
     #040405 100%
   ) !important;
   z-index: 2 !important;
@@ -13654,10 +13654,10 @@ canvas{
    - Stronger spatial composition and depth
 ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Banner: deep atmospheric background ── */
+/* ── Banner: lifted atmospheric background — midtone not black ── */
 .ov-banner {
   background:
-    radial-gradient(ellipse 110% 90% at 42% 60%, rgba(20,26,20,0.98) 0%, rgba(4,4,5,1) 75%) !important;
+    radial-gradient(ellipse 120% 100% at 44% 58%, rgba(12,22,16,0.97) 0%, rgba(5,7,6,1) 60%, rgba(4,4,5,1) 100%) !important;
 }
 
 /* ── Deep atmospheric bloom — coloured glow behind the arc ── */
@@ -13666,9 +13666,10 @@ canvas{
   inset: 0 !important;
   pointer-events: none !important;
   z-index: 1 !important;
-  /* Base gradient depth */
+  /* Layered depth — overridden by JS with regime colour, this is fallback */
   background:
-    radial-gradient(ellipse 60% 60% at 48% 72%, rgba(0,0,0,0) 0%, rgba(2,4,3,0.35) 100%) !important;
+    radial-gradient(ellipse 70% 80% at 44% 65%, rgba(34,201,122,0.08) 0%, rgba(0,0,0,0) 65%),
+    radial-gradient(ellipse 100% 50% at 50% 100%, rgba(2,6,4,0.55) 0%, rgba(0,0,0,0) 80%) !important;
 }
 
 .ov-banner-inner {
@@ -13764,7 +13765,7 @@ canvas{
   line-height: 1 !important;
   letter-spacing: -0.08em !important;
   color: currentColor !important;
-  opacity: 0.042 !important;
+  opacity: 0.065 !important;
   pointer-events: none !important;
   z-index: 0 !important;
   white-space: nowrap !important;
@@ -13779,9 +13780,9 @@ canvas{
   line-height: 0.86 !important;
   text-align: right !important;
   color: currentColor !important;
-  /* Deep glow + subtle text shadow for depth */
-  filter: drop-shadow(0 0 60px currentColor) drop-shadow(0 2px 4px rgba(0,0,0,0.6)) !important;
-  text-shadow: 0 0 80px currentColor !important;
+  /* Deep luminous glow + depth shadow */
+  filter: drop-shadow(0 0 90px currentColor) drop-shadow(0 0 30px currentColor) drop-shadow(0 2px 4px rgba(0,0,0,0.6)) !important;
+  text-shadow: 0 0 100px currentColor, 0 0 40px currentColor !important;
   opacity: 1 !important;
   position: relative !important;
   z-index: 2 !important;
@@ -13803,7 +13804,7 @@ canvas{
   /* Stroke outline: text fill transparent, stroke uses color var */
   color: currentColor !important;
   -webkit-text-fill-color: transparent !important;
-  -webkit-text-stroke: 1.5px currentColor !important;
+  -webkit-text-stroke: 2px currentColor !important;
   paint-order: stroke fill !important;
   opacity: 0.55 !important;
   position: relative !important;
@@ -13825,7 +13826,7 @@ canvas{
   letter-spacing: 0.32em !important;
   text-transform: uppercase !important;
   color: currentColor !important;
-  opacity: 0.50 !important;
+  opacity: 0.72 !important;
   text-align: right !important;
   margin: 14px 0 22px 0 !important;
   position: relative !important;
@@ -13839,7 +13840,7 @@ canvas{
   width: 100% !important;
   height: 1px !important;
   background: linear-gradient(to left, currentColor, rgba(255,255,255,0)) !important;
-  opacity: 0.28 !important;
+  opacity: 0.38 !important;
   margin: 0 0 16px 0 !important;
   position: relative !important;
   z-index: 2 !important;
@@ -13851,7 +13852,7 @@ canvas{
   font-size: 9.5px !important;
   letter-spacing: 0.20em !important;
   text-transform: uppercase !important;
-  color: rgba(173,184,208,0.62) !important;
+  color: rgba(200,215,235,0.78) !important;
   font-weight: 500 !important;
   text-align: right !important;
   max-width: 340px !important;
@@ -13866,7 +13867,7 @@ canvas{
   font-size: 7.5px !important;
   letter-spacing: 0.22em !important;
   text-transform: uppercase !important;
-  color: rgba(138,152,184,0.50) !important;
+  color: rgba(160,178,210,0.65) !important;
   justify-content: flex-end !important;
   flex-direction: row-reverse !important;
   gap: 10px !important;
@@ -14741,14 +14742,16 @@ function renderOverview(){
   if(bnBg){
     // Rich atmospheric bloom — arc glow zone (centre-left) + right panel depth
     const isOn=regLabel.includes('On'), isOff=regLabel.includes('Off');
-    const bloom1=isOn?'rgba(34,201,122,0.14)':isOff?'rgba(224,58,42,0.14)':'rgba(92,158,255,0.10)';
-    const bloom2=isOn?'rgba(0,180,90,0.07)':isOff?'rgba(200,40,40,0.07)':'rgba(60,100,180,0.05)';
-    const bloom3=isOn?'rgba(10,40,25,0.40)':isOff?'rgba(40,10,10,0.40)':'rgba(10,15,35,0.35)';
-    // Main arc bloom (centre-left), soft shoulder bloom (lower right), deep vignette
+    const bloom1=isOn?'rgba(34,201,122,0.22)':isOff?'rgba(224,58,42,0.22)':'rgba(92,158,255,0.16)';
+    const bloom2=isOn?'rgba(0,200,100,0.12)':isOff?'rgba(200,40,40,0.12)':'rgba(60,100,180,0.08)';
+    const bloom3=isOn?'rgba(0,160,80,0.07)':isOff?'rgba(180,30,30,0.07)':'rgba(40,70,140,0.05)';
+    const bloom4=isOn?'rgba(8,30,18,0.55)':isOff?'rgba(30,6,6,0.55)':'rgba(8,12,28,0.50)';
+    // Arc bloom (centre), wide shoulder, upper highlight, deep base vignette
     bnBg.style.background=[
-      `radial-gradient(ellipse 70% 80% at 45% 65%,${bloom1} 0%,transparent 65%)`,
-      `radial-gradient(ellipse 40% 50% at 80% 80%,${bloom2} 0%,transparent 55%)`,
-      `radial-gradient(ellipse 100% 60% at 50% 100%,${bloom3} 0%,transparent 80%)`
+      `radial-gradient(ellipse 65% 75% at 44% 62%,${bloom1} 0%,transparent 60%)`,
+      `radial-gradient(ellipse 85% 55% at 44% 80%,${bloom2} 0%,transparent 65%)`,
+      `radial-gradient(ellipse 50% 40% at 30% 30%,${bloom3} 0%,transparent 70%)`,
+      `radial-gradient(ellipse 100% 55% at 50% 100%,${bloom4} 0%,transparent 85%)`
     ].join(',');
   }
   // ── Regime atmosphere wash ──────────────────────────────────────────────
@@ -19635,45 +19638,106 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Radial atmosphere: two layers — warm colour bloom + dark inner void
   // Layer 1: subtle colour atmosphere around the arc
   // Very subtle colour bloom only — arc centre is off-canvas so no dark void needed
-  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.4, ARC_CX, ARC_CY, ARC_OR * 1.5);
-  vigGrd.addColorStop(0,   rgb(curC, 0.04));
-  vigGrd.addColorStop(0.5, rgb(curC, 0.02));
+  // ── Deep atmospheric glow centred on arc origin ──
+  const vigGrd = ctx.createRadialGradient(ARC_CX, ARC_CY, ARC_IR * 0.2, ARC_CX, ARC_CY, ARC_OR * 1.6);
+  vigGrd.addColorStop(0,   rgb(curC, 0.18));   // bright core
+  vigGrd.addColorStop(0.25, rgb(curC, 0.10));
+  vigGrd.addColorStop(0.55, rgb(curC, 0.04));
   vigGrd.addColorStop(1,   'rgba(0,0,0,0)');
   ctx.fillStyle = vigGrd;
   ctx.fillRect(0, 0, W, H);
-  // Void disc removed — pivot is below canvas, inner circle not visible
-  // Etched concentric rings inside the void — architectural / precision instrument feel
+
+  // ── Secondary wide bloom for environmental depth ──
+  const bloom2 = ctx.createRadialGradient(W * 0.35, H * 0.3, 0, W * 0.35, H * 0.3, W * 0.6);
+  bloom2.addColorStop(0,   rgb(curC, 0.06));
+  bloom2.addColorStop(0.5, rgb(curC, 0.02));
+  bloom2.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = bloom2;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Etched concentric rings — precision instrument feel, brighter ──
   [0.68, 0.45, 0.22].forEach((frac, idx) => {
     const er = ARC_IR * frac;
     ctx.beginPath();
     ctx.arc(ARC_CX, ARC_CY, er, 0, Math.PI * 2);
-    const etchA = [0.10, 0.07, 0.05][idx];
+    const etchA = [0.22, 0.14, 0.09][idx];
     ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${etchA})`;
-    ctx.lineWidth = 0.5;
-    if (idx === 1) ctx.setLineDash([2, 6]);
+    ctx.lineWidth = idx === 0 ? 0.8 : 0.5;
+    if (idx === 1) ctx.setLineDash([3, 7]);
     ctx.stroke();
     ctx.setLineDash([]);
   });
 
-  // Subtle horizontal scan bands (HUD effect)
+  // ── Scan-line texture — tinted, more visible ──
   ctx.save();
-  for (let y = 0; y < H; y += 8) {
-    ctx.fillStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.012)`;  // regime-tinted scan bands
+  for (let y = 0; y < H; y += 6) {
+    ctx.fillStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.022)`;
     ctx.fillRect(0, y, W, 1);
   }
   ctx.restore();
 
-  // Fine star field
+  // ── Star field — more stars, brighter, better spread ──
   ctx.save();
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 180; i++) {
     const rx = ((i * 9301 + 49297) % 233280) / 233280;
     const ry = ((i * 6271  + 12345) % 233280) / 233280;
     const rr = ((i * 1103  + 7691)  % 233280) / 233280;
-    const sz = 0.3 + rr * 0.5;
+    const sz = 0.35 + rr * 0.7;
+    const baseAlpha = 0.06 + rr * 0.18;
     ctx.beginPath();
     ctx.arc(rx * W, ry * H, sz, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${120 + Math.round(rr*135)},${180 + Math.round(rr*60)},255,${0.02 + rr * 0.05})`;
+    // Mix: regime-tinted warm stars + cool silver stars
+    if (i % 3 === 0) {
+      ctx.fillStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${baseAlpha})`;
+    } else {
+      ctx.fillStyle = `rgba(${180 + Math.round(rr*75)},${210 + Math.round(rr*45)},255,${baseAlpha * 0.7})`;
+    }
     ctx.fill();
+  }
+  ctx.restore();
+
+  // ── Subtle noise grain layer for depth/texture ──
+  ctx.save();
+  ctx.globalAlpha = 0.018;
+  for (let gx = 0; gx < W; gx += 3) {
+    for (let gy = 0; gy < H; gy += 3) {
+      const n = ((gx * 374761393 + gy * 668265263) & 0xFFFFFF) / 0xFFFFFF;
+      if (n > 0.7) {
+        ctx.fillStyle = `rgba(255,255,255,${n * 0.3})`;
+        ctx.fillRect(gx, gy, 1, 1);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // ── Perspective horizon grid — fills the empty field with editorial depth ──
+  ctx.save();
+  const gridAlpha = 0.045;
+  const gridCol = `rgba(${curC[0]},${curC[1]},${curC[2]},${gridAlpha})`;
+  const vp = { x: ARC_CX, y: ARC_CY * 0.5 }; // vanishing point — upper arc centre
+  // Horizontal lines (parallel, evenly spaced)
+  for (let row = 1; row <= 8; row++) {
+    const yp = H * (0.18 + row * 0.10);
+    if (yp >= H) break;
+    ctx.beginPath();
+    ctx.moveTo(0, yp);
+    ctx.lineTo(W, yp);
+    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${gridAlpha * (1 - row * 0.09)})`;
+    ctx.lineWidth = 0.4;
+    ctx.stroke();
+  }
+  // Perspective radiating lines from vanishing point
+  const radials = 14;
+  for (let ri = 0; ri < radials; ri++) {
+    const angle = Math.PI * (-0.15 + ri * 1.3 / (radials - 1));
+    const len = W * 1.2;
+    ctx.beginPath();
+    ctx.moveTo(vp.x, vp.y);
+    ctx.lineTo(vp.x + Math.cos(angle) * len, vp.y + Math.sin(angle) * len);
+    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},${gridAlpha * 0.7})`;
+    ctx.lineWidth = 0.35;
+    ctx.stroke();
   }
   ctx.restore();
 
@@ -19689,12 +19753,14 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
   // Arc background — minimal, no heavy glow
 
-  // Guide rings: inner, mid-ghost, outer, outer-halo
+  // Guide rings: inner, mid-ghost, outer, outer-halo — brighter, more presence
   [
-    { r: ARC_IR,                           a: 0.28, lw: 0.9,  dash: [] },
-    { r: ARC_IR + (ARC_OR - ARC_IR)*0.5,  a: 0.05, lw: 0.4,  dash: [2,8] },
-    { r: ARC_OR,                           a: 0.32, lw: 1.0,  dash: [] },
-    { r: ARC_OR + 3,                       a: 0.08, lw: 1.2,  dash: [] },  // soft halo ring
+    { r: ARC_IR,                           a: 0.45, lw: 1.2,  dash: [] },
+    { r: ARC_IR + (ARC_OR - ARC_IR)*0.33, a: 0.10, lw: 0.5,  dash: [3,9] },
+    { r: ARC_IR + (ARC_OR - ARC_IR)*0.67, a: 0.07, lw: 0.4,  dash: [2,8] },
+    { r: ARC_OR,                           a: 0.50, lw: 1.4,  dash: [] },
+    { r: ARC_OR + 4,                       a: 0.18, lw: 1.5,  dash: [] },  // halo glow ring
+    { r: ARC_OR + 10,                      a: 0.07, lw: 2.0,  dash: [] },  // outer atmosphere
   ].forEach(({ r, a, lw, dash }) => {
     ctx.beginPath();
     ctx.arc(ARC_CX, ARC_CY, r, START_A, START_A + SWEEP);
@@ -19715,7 +19781,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.beginPath();
     ctx.moveTo(ARC_CX + Math.cos(ang) * (ARC_IR * 0.18), ARC_CY + Math.sin(ang) * (ARC_IR * 0.18));
     ctx.lineTo(ARC_CX + Math.cos(ang) * crossLen, ARC_CY + Math.sin(ang) * crossLen);
-    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.15)`;
+    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.28)`;
     ctx.lineWidth = 0.6;
     ctx.stroke();
   }
@@ -19726,8 +19792,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     if (isDiag) continue; // only at cardinal directions
     ctx.beginPath();
     ctx.arc(ARC_CX, ARC_CY, ARC_IR * 0.85, ang - 0.07, ang + 0.07);
-    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.28)`;
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = `rgba(${curC[0]},${curC[1]},${curC[2]},0.45)`;
+    ctx.lineWidth = 1.6;
     ctx.stroke();
   }
   // Inner focus ring
