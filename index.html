@@ -223,9 +223,9 @@ a{color:inherit;text-decoration:none}
 /* V6: Factor card upgraded */
 .f-card:hover{
   background:linear-gradient(135deg,var(--surf3,rgba(26,30,44,1)) 0%,var(--surf2,rgba(20,23,34,1)) 100%);
-  border-color:rgba(92,158,255,0.25);
+  border-color:rgba(200,169,110,0.22);
   transform:translateY(-1px);
-  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  box-shadow:0 4px 20px rgba(0,0,0,0.45),0 0 0 1px rgba(200,169,110,0.06);
 }
 .f-card::after{
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
@@ -300,7 +300,7 @@ a{color:inherit;text-decoration:none}
   cursor:pointer;transition:background 150ms;position:relative;
 }
 .mkt-row:hover{background:rgba(255,255,255,0.035)}
-.mkt-row:hover::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:2px;border-radius:0 2px 2px 0;background:rgba(255,255,255,0.18)}
+.mkt-row:hover::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:2px;border-radius:0 2px 2px 0;background:rgba(255,255,255,0.30)}
 .mkt-row:hover .mr-name{color:var(--text)}
 .mkt-row.sel{background:var(--surf2);border-bottom-color:rgba(255,255,255,0.07)}
 .mkt-row.sel::before{
@@ -319,11 +319,11 @@ a{color:inherit;text-decoration:none}
   background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,0.20) 20%,rgba(200,169,110,0.20) 80%,transparent 100%);
   margin:0;flex-shrink:0;
 }
-.mr-id{font-family:var(--mono);font-size:10px;font-weight:700;color:rgba(255,255,255,0.62);letter-spacing:0.04em;width:28px;flex-shrink:0}
+.mr-id{font-family:var(--mono);font-size:10px;font-weight:700;color:rgba(255,255,255,0.78);letter-spacing:0.04em;width:28px;flex-shrink:0}
 .mr-body{flex:1;min-width:0}
-.mr-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(218,226,242,0.97);transition:color 120ms;letter-spacing:-0.01em}
+.mr-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(228,234,248,1.0);transition:color 120ms;letter-spacing:-0.01em}
 .mkt-row.sel .mr-name,.mkt-row:hover .mr-name{color:var(--text)}
-.mr-bar{height:5px;background:rgba(255,255,255,0.05);border-radius:3px;margin-top:7px;position:relative;overflow:visible}
+.mr-bar{height:5px;background:rgba(255,255,255,0.09);border-radius:3px;margin-top:7px;position:relative;overflow:visible}
 .mr-bar-f{position:absolute;top:0;bottom:0;border-radius:3px;transition:all 600ms cubic-bezier(0.34,1.56,0.64,1);opacity:0.88}
 .mr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
 /* V3: Score badge — the key number, prominent */
@@ -334,7 +334,7 @@ a{color:inherit;text-decoration:none}
   text-shadow:0 1px 2px rgba(0,0,0,0.8);
 }
 
-.mr-bias{font-size:7.5px;font-weight:700;white-space:nowrap;opacity:0.80;letter-spacing:0.04em;text-transform:uppercase}
+.mr-bias{font-size:7.5px;font-weight:700;white-space:nowrap;opacity:1.0;letter-spacing:0.06em;text-transform:uppercase}
 .mr-num{font-family:var(--mono);font-size:8.5px;color:rgba(180,195,225,0.80);letter-spacing:0.04em}
 .mr-pip{width:7px;height:7px;border-radius:2px;flex-shrink:0}
 
@@ -2772,25 +2772,25 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 /* Asset graphic — large immersive background element */
 .d-head-graphic{
-  position:absolute;right:0;top:0;bottom:0;left:20%;
+  position:absolute;right:0;top:0;bottom:0;left:8%;
   pointer-events:none;opacity:1;transition:opacity 400ms var(--ease);
   z-index:0;overflow:hidden;border-radius:0;
 }
 .d-head-graphic-inner{
   position:absolute;inset:0;z-index:0;
-  background-size:cover;background-position:center right;background-repeat:no-repeat;
+  background-size:cover;background-position:center center;background-repeat:no-repeat;
   transition:transform 8s ease;
 }
 .d-head:hover .d-head-graphic-inner{transform:scale(1.04);}
-/* Left fade: hard bg → photo reveal from 30% to 70% */
+/* Left fade: hard bg → photo reveal from 8% to 55% */
 .d-head-graphic::before{
   content:'';position:absolute;inset:0;z-index:2;
   background:linear-gradient(90deg,
     var(--bg) 0%,
-    rgba(5,7,13,0.95) 15%,
-    rgba(5,7,13,0.60) 40%,
-    rgba(5,7,13,0.15) 70%,
-    rgba(5,7,13,0.05) 100%
+    rgba(5,7,13,0.92) 8%,
+    rgba(5,7,13,0.55) 28%,
+    rgba(5,7,13,0.15) 55%,
+    rgba(5,7,13,0.04) 100%
   );
 }
 /* Uniform dark tint to keep photo moody and dark */
@@ -2802,8 +2802,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .d-head-l,.d-score-hero,.d-wheel{position:relative;z-index:1}
 .d-head:hover .d-head-graphic{opacity:1;}
 .d-head-l{flex:1;min-width:0;position:relative;z-index:2}
-.d-cat{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.38);font-family:var(--mono);margin-bottom:5px;overflow:hidden}
-.d-name{font-size:21px;font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:var(--text)}
+.d-cat{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:var(--mono);margin-bottom:5px;overflow:hidden}
+.d-name{font-size:22px;font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:#f8faff}
 .d-bias-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
 .d-bias-pill{padding:3px 12px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:0.05em;border:1px solid rgba(255,255,255,0.12)}
 /* Hero score block */
@@ -2879,7 +2879,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   gap:0;
   min-height:92px;
   /* Top-edge glow strip in accent colour — very subtle */
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .f-card:last-child{border-right:none}
 /* Background graphic layer */
@@ -2937,9 +2937,9 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   position:relative;
 }
 .f-lbl{
-  font-size:7.5px;
+  font-size:8px;
   font-weight:700;
-  letter-spacing:0.11em;
+  letter-spacing:0.10em;
   text-transform:uppercase;
   color:var(--dim);
   transition:color 150ms;
@@ -10577,15 +10577,15 @@ canvas{
 }
 /* Restyle section header text */
 .ov-macro-sect-header {
-  font-family: var(--nexus-head) !important;
-  font-size: 7px !important;
-  font-weight: 700 !important;
+  font-family: var(--mono) !important;
+  font-size: 7.5px !important;
+  font-weight: 800 !important;
   letter-spacing: 0.22em !important;
-  color: rgba(173,184,208,0.30) !important;
+  color: rgba(200,169,110,0.55) !important;
   text-transform: uppercase !important;
   margin: 20px 16px 12px !important;
   gap: 0 !important;
-  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  border-bottom: 1px solid rgba(200,169,110,0.12) !important;
   padding-bottom: 8px !important;
 }
 
@@ -11150,7 +11150,7 @@ canvas{
 .nav-sub {
   font-size: 7px !important;
   letter-spacing: 0.06em !important;
-  color: rgba(173,184,208,0.28) !important;
+  color: rgba(173,184,208,0.45) !important;
 }
 
 /* ─── 5. SIDEBAR HEADER ─── */
@@ -11159,19 +11159,19 @@ canvas{
 }
 /* RANKINGS label */
 .sb-head-title, [class*="sb-rankings"] {
-  font-family: var(--nexus-head) !important;
+  font-family: var(--mono) !important;
   font-size: 7.5px !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   letter-spacing: 0.22em !important;
-  color: rgba(173,184,208,0.30) !important;
+  color: rgba(200,169,110,0.55) !important;
   text-transform: uppercase !important;
 }
 /* Market count badge */
 .sb-mkt-count {
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 10px !important;
-  font-weight: 500 !important;
-  color: rgba(173,184,208,0.35) !important;
+  font-weight: 600 !important;
+  color: rgba(173,184,208,0.55) !important;
 }
 
 /* ─── 6. SIDEBAR MARKET ROWS — tighter, cleaner ─── */
@@ -13686,9 +13686,10 @@ canvas{
   z-index: 1 !important;
   /* Fallback only — JS overrides this with regime-aware values */
   background:
-    radial-gradient(ellipse 60% 65% at 88% 5%, rgba(200,169,110,0.13) 0%, transparent 62%),
-    radial-gradient(ellipse 35% 40% at 97% 0%, rgba(220,195,140,0.09) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 70% at 42% 55%, rgba(34,201,122,0.05) 0%, rgba(0,0,0,0) 70%) !important;
+    radial-gradient(ellipse 65% 70% at 92% 3%, rgba(200,169,110,0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 50% at 100% 0%, rgba(220,195,140,0.16) 0%, transparent 48%),
+    radial-gradient(ellipse 35% 40% at 80% 18%, rgba(200,169,110,0.09) 0%, transparent 52%),
+    radial-gradient(ellipse 80% 65% at 38% 55%, rgba(34,201,122,0.07) 0%, rgba(0,0,0,0) 58%) !important;
 }
 
 /* Banner inner: absolute overlay, full-bleed — no flex column layout */
@@ -14669,17 +14670,18 @@ function renderOverview(){
     // Warm amber top-right editorial light pool (always present, editorial warmth)
     // + subtle regime tint in the arc zone (left-centre)
     const isOn=regLabel.includes('On'), isOff=regLabel.includes('Off');
-    const liftA  = isOn ? 0.055 : isOff ? 0.05 : 0.04;
+    const liftA  = isOn ? 0.07 : isOff ? 0.065 : 0.05;
     const baseC  = isOn ? `rgba(34,201,122,${liftA})`
                  : isOff? `rgba(210,60,40,${liftA})`
                  :         `rgba(92,140,220,${liftA})`;
-    // Warm amber editorial pool top-right — always visible, like studio warm lighting
-    // Regime colour tints the arc zone (left-centre), amber warms the text side (right)
+    // Warm amber editorial pool top-right — boosted for more atmospheric depth
+    // Regime colour tints the arc zone (left-centre)
     bnBg.style.background = [
-      `radial-gradient(ellipse 65% 70% at 90% 4%,rgba(200,169,110,0.14) 0%,transparent 62%)`,
-      `radial-gradient(ellipse 40% 45% at 98% 0%,rgba(220,195,140,0.10) 0%,transparent 50%)`,
-      `radial-gradient(ellipse 30% 35% at 78% 20%,rgba(200,169,110,0.06) 0%,transparent 55%)`,
-      `radial-gradient(ellipse 75% 65% at 40% 52%,${baseC} 0%,transparent 60%)`
+      `radial-gradient(ellipse 65% 70% at 92% 3%,rgba(200,169,110,0.20) 0%,transparent 60%)`,
+      `radial-gradient(ellipse 45% 50% at 100% 0%,rgba(220,195,140,0.16) 0%,transparent 48%)`,
+      `radial-gradient(ellipse 35% 40% at 80% 18%,rgba(200,169,110,0.09) 0%,transparent 52%)`,
+      `radial-gradient(ellipse 55% 60% at 65% 30%,rgba(200,169,110,0.04) 0%,transparent 55%)`,
+      `radial-gradient(ellipse 80% 65% at 38% 55%,${baseC} 0%,transparent 58%)`
     ].join(',');
   }
   // ── Regime atmosphere wash ──────────────────────────────────────────────
