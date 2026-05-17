@@ -13846,7 +13846,8 @@ canvas{
   flex: 1 !important;
   min-width: 0 !important;
   pointer-events: auto !important;
-  padding: 0 0 0 52px !important;
+  /* 160px clears the LEFT_W=145px energy meter strip on the arc canvas */
+  padding: 0 0 0 160px !important;
   gap: 0 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -13861,11 +13862,13 @@ canvas{
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
-  padding: 64px 56px 40px 0 !important;
+  padding: 56px 48px 36px 0 !important;
   min-width: 0 !important;
   width: 100% !important;
   flex: 1 !important;
   align-self: stretch !important;
+  position: relative !important;
+  z-index: 6 !important;
 }
 .ov-macro-eyebrow {
   font-size: 7px !important;
@@ -13886,11 +13889,12 @@ canvas{
 /* 5-col grid: tag | info-stack | track | reading | status */
 .ov-macro-row {
   display: grid !important;
-  grid-template-columns: 46px 1fr 200px 90px 110px !important;
+  grid-template-columns: 46px minmax(130px,220px) 240px 100px 120px !important;
   align-items: center !important;
-  gap: 0 16px !important;
+  gap: 0 18px !important;
   flex: 1 !important;
   min-height: 52px !important;
+  max-width: 900px !important;
   border-bottom: 1px solid rgba(255,255,255,0.035) !important;
   transition: background 0.25s !important;
 }
