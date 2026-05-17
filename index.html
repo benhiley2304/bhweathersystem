@@ -14865,37 +14865,8 @@ function renderOverview(){
     { label: 'Real Yield',        tag: 'RY',  reading: _ryRead,  score: _ryScore,  sub: _rySub  },
   ];
 
-  // Build 4 editorial headline lines from the macro data
-  // Format: LABEL — VALUE  (two-part, tab-separated visual)
-  const _mkLine = (label, value, col, status) => ({ label, value, col, status });
-
-  const _heroLines = [
-    _mkLine('CREDIT SPREADS',    _crRead,  _hCol(_crScore),  _hStatus(_crScore)),
-    _mkLine('YIELD CURVE',       _ycRead,  _hCol(_ycScore),  _hStatus(_ycScore)),
-    _mkLine('INFLATION',         _infRead, _hCol(_infScore), _hStatus(_infScore)),
-    _mkLine('FED BALANCE SHEET', _fbRead,  _hCol(_fbScore),  _hStatus(_fbScore)),
-  ];
-
-  const _heroLeftHtml = `
-    <div class="ov-macro-panel">
-      <div class="ov-macro-eyebrow">Economic Environment</div>
-      <div class="ov-macro-lines">
-        ${_heroLines.map(line => `
-          <div class="ov-macro-line">
-            <div class="ov-macro-line-label">${line.label}</div>
-            <div class="ov-macro-line-right">
-              <span class="ov-macro-line-value">${line.value}</span>
-              <span class="ov-macro-line-status" style="color:${line.col}">${line.status}</span>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      <div class="ov-macro-footer">
-        <span>${total} markets tracked</span>
-        <span>${regScore != null ? regScore.toFixed(1) + '\u202f/\u202f10' : ''}</span>
-      </div>
-    </div>
-  `;
+  // Left panel — intentionally empty, arc + right panel carry the visual weight
+  const _heroLeftHtml = '';
 
   document.getElementById('ov-banner-inner').innerHTML=`
     <div class="ov-banner-left nexus-reveal" style="animation-delay:0ms">
