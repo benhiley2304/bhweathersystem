@@ -14588,6 +14588,192 @@ canvas{
 
 /* ─── END R28 ─── */
 
+/* ════════════════════════════════════════════════════════════
+   R29 — FULL VISUAL AUDIT & BRIGHTNESS POLISH
+   Issues addressed:
+   1. News day-group labels (.ov-news-day-label) — 30% opacity → lifted
+   2. Rate path eyebrow + meta labels (.ov-rp-eyebrow, .ov-rp-meta-lbl) — 38% → lifted
+   3. Sidebar .mr-id — inline colour low opacity, override with brightness+color
+   4. News row preview text — nudge up readability
+   5. G10 CB card inner text elements brightness
+   6. Equity / Yield / Credit section sub-labels
+   7. Global surface brightness micro-lift
+   8. .ov-mc-eyebrow bumped from 0.55→0.65 opacity for CB cards
+   9. .ov-news-row-right (timestamp/source) text size and opacity
+  10. Breaking News tag chip brightness
+════════════════════════════════════════════════════════════ */
+
+/* 1. News date separators — barely visible "Today" / "Yesterday" labels */
+.ov-news-day-label {
+  color: rgba(200, 169, 110, 0.62) !important;
+  font-size: 7.5px !important;
+  letter-spacing: 0.18em !important;
+  font-weight: 700 !important;
+}
+
+/* 2. Rate path card sub-labels */
+.ov-rp-eyebrow {
+  color: rgba(173, 184, 208, 0.58) !important;
+  font-size: 7.5px !important;
+}
+.ov-rp-meta-lbl {
+  color: rgba(173, 184, 208, 0.58) !important;
+  font-size: 7.5px !important;
+}
+.ov-rp-meta-val {
+  color: rgba(228, 236, 252, 0.92) !important;
+  font-size: 11.5px !important;
+}
+.ov-rp-stat-lbl {
+  color: rgba(173, 184, 208, 0.68) !important;
+}
+
+/* 3. Sidebar .mr-id — category colour is set inline but very dim; boost */
+.mr-id {
+  filter: brightness(1.9) !important;
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+}
+
+/* 4. News row preview text — slightly larger + brighter */
+.ov-news-row-preview {
+  color: rgba(173, 184, 208, 0.78) !important;
+  font-size: 9.5px !important;
+  line-height: 1.45 !important;
+}
+
+/* 5. News row title — maintain brightness, nudge size */
+.ov-news-row-title {
+  color: rgba(232, 240, 255, 0.97) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+}
+
+/* 6. G10 CB rate cards — inner sub-label text */
+.ov-rp-card .ov-mc-eyebrow,
+.ov-rate-cb-wrap .ov-mc-eyebrow {
+  color: rgba(200, 169, 110, 0.65) !important;
+  font-size: 7.5px !important;
+}
+
+/* 7. Macro card eyebrow — global lift to 0.65 */
+.ov-mc-eyebrow {
+  color: rgba(200, 169, 110, 0.65) !important;
+  font-size: 7.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+}
+
+/* 8. News row right panel — timestamp / source */
+.ov-news-row-right {
+  font-size: 8px !important;
+}
+.ov-news-row-right > * {
+  color: rgba(173, 184, 208, 0.58) !important;
+}
+
+/* 9. Breaking news AI tag chip */
+.ov-ai-news-tag {
+  color: rgba(190, 202, 228, 0.82) !important;
+  font-size: 7px !important;
+}
+
+/* 10. Equity conditions sub-labels — check all card inner labels */
+[class*='ov-ec-'] {
+  color: rgba(173, 184, 208, 0.68) !important;
+}
+
+/* 11. Section header amber — lift to 0.78 for better contrast against dark bg */
+.ov-section-title,
+.ov-sig-wrap-title,
+.ov-macro-sect-header,
+.ov-ai-brief-label,
+.sb-top h2,
+.ov-news-section-head {
+  color: rgba(200, 169, 110, 0.78) !important;
+}
+
+/* 12. Mc-sect-lbl sub-headers — tiny amber labels under main section titles */
+.mc-sect-lbl {
+  color: rgba(200, 169, 110, 0.62) !important;
+  font-size: 7.5px !important;
+}
+
+/* 13. Nav subtitle under BH WEATHER SYSTEM */
+.nav-subtitle,
+.nav-sub {
+  color: rgba(173, 184, 208, 0.72) !important;
+  font-size: 7.5px !important;
+}
+
+/* 14. Banner description text */
+.ov-banner-desc {
+  color: rgba(215, 226, 244, 0.86) !important;
+  font-size: 11.5px !important;
+}
+.ov-banner-sub {
+  color: rgba(173, 184, 208, 0.72) !important;
+  font-size: 8px !important;
+}
+
+/* 15. Heatmap cell labels and score markers */
+.ov-hm-label,
+.ov-hm-mkt-name {
+  color: rgba(228, 236, 252, 0.88) !important;
+}
+.ov-hm-score {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* 16. General surface card — very slight lift across all ov-mc-card */
+.ov-mc-card,
+.ov-mc-panel {
+  background: rgba(22, 24, 28, 0.97) !important;
+}
+
+/* 17. Cat-btn text (filter tabs) */
+.cat-btn {
+  color: rgba(196, 208, 232, 0.82) !important;
+  font-size: 7.5px !important;
+}
+.cat-btn.active {
+  color: rgba(200, 169, 110, 0.95) !important;
+}
+
+/* 18. Sidebar score badges */
+.mr-score-badge {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+}
+
+/* 19. Market ranking score number */
+.mr-score-num,
+.mr-score {
+  color: rgba(242, 246, 255, 0.95) !important;
+}
+
+/* 20. Rate path 12m / 18m pricing labels */
+.ov-rp-pct-lbl,
+.ov-rp-pricing-lbl {
+  color: rgba(173, 184, 208, 0.68) !important;
+  font-size: 7.5px !important;
+}
+
+@media (max-width: 900px) {
+  .ov-news-row-title {
+    font-size: 11px !important;
+  }
+  .mr-id {
+    font-size: 8px !important;
+  }
+  .ov-mc-eyebrow {
+    font-size: 7px !important;
+  }
+}
+
+/* ─── END R29 ─── */
+
 </style>
 </head>
 <body>
