@@ -13517,40 +13517,51 @@ canvas{
   display: none !important;
 }
 
-/* ── Banner: reserve space for taller arc (top:280px + arc:680px = 960px) ── */
+/* ── Banner: min-height scales with viewport — arc needs room to breathe ── */
+/* Formula: top-offset(240px) + arc-canvas-height + 60px bottom breathing room */
 .ov-banner {
   overflow: visible !important;
   position: relative !important;
-  min-height: 840px !important;
+  min-height: 820px !important;
   padding-bottom: 0 !important;
 }
 @media (min-width: 1440px) {
-  .ov-banner { min-height: 900px !important; }
+  .ov-banner { min-height: 860px !important; }
+}
+@media (min-width: 1920px) {
+  .ov-banner { min-height: 940px !important; }
 }
 @media (min-width: 2560px) {
-  .ov-banner { min-height: 980px !important; }
+  .ov-banner { min-height: 1020px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner { min-height: 780px !important; }
+  .ov-banner { min-height: 760px !important; }
 }
 @media (max-width: 900px) {
-  .ov-banner { min-height: 640px !important; }
+  .ov-banner { min-height: 620px !important; }
 }
 @media (max-width: 700px) {
   .ov-banner { min-height: 0 !important; padding-bottom: 0 !important; overflow: hidden !important; }
 }
 
-/* ── Arc section: absolute, overlapping the whole banner from below text ── */
+/* ── Arc section: absolute, canvas starts below text block ── */
+/* top = text-block-height + breathing room. Lower = more arc visible above. */
 .ov-charts {
   position: absolute !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  top: 280px !important;
+  top: 240px !important;  /* was 280px — give arc 40px more vertical room */
   z-index: 1 !important;
   background: transparent !important;
   overflow: visible !important;
   pointer-events: none !important;
+}
+@media (min-width: 1440px) {
+  .ov-charts { top: 260px !important; }
+}
+@media (min-width: 2560px) {
+  .ov-charts { top: 290px !important; }
 }
 /* restore pointer events for the canvas wrap only (footer is hidden) */
 .ov-arc-canvas-wrap,
@@ -13558,7 +13569,9 @@ canvas{
   pointer-events: auto !important;
 }
 
-/* ── Arc canvas wrap: top AND bottom mask fade — dissolves into hero above and page below ── */
+/* ── Arc canvas wrap: subtle top fade + strong bottom dissolve ── */
+/* Top fade is LIGHT — arc bars near 10-12 o'clock should be mostly visible */
+/* Bottom fade is strong — arc dissolves seamlessly into macro panels */
 .ov-arc-canvas-wrap {
   position: relative !important;
   width: 100% !important;
@@ -13566,25 +13579,23 @@ canvas{
   -webkit-mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0,0,0,0.15) 6%,
-    rgba(0,0,0,0.55) 18%,
-    rgba(0,0,0,0.88) 32%,
-    black 46%,
-    black 68%,
-    rgba(0,0,0,0.80) 80%,
-    rgba(0,0,0,0.40) 90%,
+    rgba(0,0,0,0.35) 5%,
+    rgba(0,0,0,0.75) 13%,
+    black 22%,
+    black 62%,
+    rgba(0,0,0,0.70) 76%,
+    rgba(0,0,0,0.30) 88%,
     transparent 100%
   ) !important;
   mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0,0,0,0.15) 6%,
-    rgba(0,0,0,0.55) 18%,
-    rgba(0,0,0,0.88) 32%,
-    black 46%,
-    black 68%,
-    rgba(0,0,0,0.80) 80%,
-    rgba(0,0,0,0.40) 90%,
+    rgba(0,0,0,0.35) 5%,
+    rgba(0,0,0,0.75) 13%,
+    black 22%,
+    black 62%,
+    rgba(0,0,0,0.70) 76%,
+    rgba(0,0,0,0.30) 88%,
     transparent 100%
   ) !important;
 }
@@ -18925,10 +18936,10 @@ function _drawLiveDot(canvas, data, phase) {
   const LEFT_W = 108;
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
-  const ARC_OR_PRELIM = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
-  const ARC_CX  = Math.min(W * 0.72, W - ARC_OR_PRELIM - PAD_R * 2);  // right-shifted, capped so arc stays in canvas
-  const ARC_CY = H * 0.52;
-  const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+  const ARC_OR_PRELIM = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
+  const ARC_CX  = Math.min(W * 0.70, W - ARC_OR_PRELIM - PAD_R);  // right-shifted, capped so arc stays in canvas
+  const ARC_CY = H * 0.54;  // slightly lower centre so top bars emerge cleanly
+  const ARC_OR = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S = 0, MAX_S = 10;
   const SWEEP = 210 * Math.PI / 180;
@@ -19052,10 +19063,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // ── Layout constants ─────────────────────────────────────────────────
   const LEFT_W = 145;                      // jarvis data panel width
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
-  const ARC_OR_PRE = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
-  const ARC_CX = Math.min(W * 0.72, W - ARC_OR_PRE - PAD_R * 2);  // right-shifted, capped to canvas bounds
-  const ARC_CY = H * 0.52;
-  const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+  const ARC_OR_PRE = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
+  const ARC_CX = Math.min(W * 0.70, W - ARC_OR_PRE - PAD_R);  // right-shifted, capped to canvas bounds
+  const ARC_CY = H * 0.54;
+  const ARC_OR = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S  = 0, MAX_S = 10;
   const SWEEP  = 210 * Math.PI / 180;
@@ -19833,10 +19844,10 @@ function _setupArcTooltip(canvas, data) {
     const LEFT_W2 = 108;
     // Arc geometry
     const ARC_X  = PAD_L + LEFT_W2;
-    const ARC_OR_P = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
-    const ARC_CX = Math.min(W * 0.72, W - ARC_OR_P - PAD_R * 2);
-    const ARC_CY = H * 0.52;
-    const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+    const ARC_OR_P = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
+    const ARC_CX = Math.min(W * 0.70, W - ARC_OR_P - PAD_R);
+    const ARC_CY = H * 0.54;
+    const ARC_OR = Math.min(Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46), H * 0.65);
     const ARC_IR = ARC_OR * 0.30;
     const SWEEP  = 210 * Math.PI / 180;
     const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
