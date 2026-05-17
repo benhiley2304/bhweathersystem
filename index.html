@@ -18925,7 +18925,8 @@ function _drawLiveDot(canvas, data, phase) {
   const LEFT_W = 108;
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
-  const ARC_CX  = W * 0.72;  // right-shifted: open upper-left gap aligns over text block
+  const ARC_OR_PRELIM = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+  const ARC_CX  = Math.min(W * 0.72, W - ARC_OR_PRELIM - PAD_R * 2);  // right-shifted, capped so arc stays in canvas
   const ARC_CY = H * 0.52;
   const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
   const ARC_IR = ARC_OR * 0.30;
@@ -19051,7 +19052,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // ── Layout constants ─────────────────────────────────────────────────
   const LEFT_W = 145;                      // jarvis data panel width
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
-  const ARC_CX = W * 0.72;
+  const ARC_OR_PRE = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+  const ARC_CX = Math.min(W * 0.72, W - ARC_OR_PRE - PAD_R * 2);  // right-shifted, capped to canvas bounds
   const ARC_CY = H * 0.52;
   const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
   const ARC_IR = ARC_OR * 0.30;
@@ -19831,7 +19833,8 @@ function _setupArcTooltip(canvas, data) {
     const LEFT_W2 = 108;
     // Arc geometry
     const ARC_X  = PAD_L + LEFT_W2;
-    const ARC_CX = W * 0.72;
+    const ARC_OR_P = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
+    const ARC_CX = Math.min(W * 0.72, W - ARC_OR_P - PAD_R * 2);
     const ARC_CY = H * 0.52;
     const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
     const ARC_IR = ARC_OR * 0.30;
