@@ -13508,18 +13508,18 @@ canvas{
 .ov-banner {
   overflow: visible !important;
   position: relative !important;
-  /* Reserve enough for arc + footer below top:80px */
-  min-height: 570px !important;
+  /* top:280px + arc(460px) + footer(44px) = 784px minimum */
+  min-height: 760px !important;
   padding-bottom: 0 !important;
 }
 @media (min-width: 1440px) {
-  .ov-banner { min-height: 590px !important; }
+  .ov-banner { min-height: 784px !important; }
 }
 @media (min-width: 2560px) {
-  .ov-banner { min-height: 610px !important; }
+  .ov-banner { min-height: 820px !important; }
 }
 @media (max-width: 900px) {
-  .ov-banner { min-height: 480px !important; }
+  .ov-banner { min-height: 680px !important; }
 }
 @media (max-width: 700px) {
   .ov-banner { min-height: 0 !important; padding-bottom: 0 !important; overflow: hidden !important; }
@@ -13531,8 +13531,9 @@ canvas{
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  /* Start from 80px down — arc fades in from transparent, bleeds behind text stats */
-  top: 80px !important;
+  /* Push arc down so text content sits above the vivid bar zone */
+  /* Arc top is faded transparent via mask — so this bleed still looks seamless */
+  top: 280px !important;
   z-index: 1 !important;
   background: transparent !important;
   overflow: visible !important;
@@ -13554,18 +13555,18 @@ canvas{
   -webkit-mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0,0,0,0.15) 12%,
-    rgba(0,0,0,0.50) 28%,
-    rgba(0,0,0,0.82) 45%,
-    black 62%
+    rgba(0,0,0,0.20) 8%,
+    rgba(0,0,0,0.60) 20%,
+    rgba(0,0,0,0.90) 35%,
+    black 50%
   ) !important;
   mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(0,0,0,0.15) 12%,
-    rgba(0,0,0,0.50) 28%,
-    rgba(0,0,0,0.82) 45%,
-    black 62%
+    rgba(0,0,0,0.20) 8%,
+    rgba(0,0,0,0.60) 20%,
+    rgba(0,0,0,0.90) 35%,
+    black 50%
   ) !important;
 }
 
@@ -18886,7 +18887,7 @@ function _drawLiveDot(canvas, data, phase) {
   const LEFT_W = 108;
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
-  const ARC_CX = ARC_X + (W - ARC_X - PAD_R) * 0.38;
+  const ARC_CX  = W * 0.50;  // centred on full canvas width
   const ARC_CY = H * 0.56;
   const ARC_OR = Math.min(H * 0.90, (W - ARC_X - PAD_R) * 0.46);
   const ARC_IR = ARC_OR * 0.30;
