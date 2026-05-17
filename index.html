@@ -13612,20 +13612,18 @@ canvas{
   /* R26A: top mask loosened — arc rings no longer over-fade at top */
   -webkit-mask-image: linear-gradient(
     180deg,
-    rgba(0,0,0,0.22) 0%,
-    black 5%,
-    black 72%,
-    rgba(0,0,0,0.40) 83%,
-    rgba(0,0,0,0.08) 94%,
+    black 0%,
+    black 74%,
+    rgba(0,0,0,0.35) 85%,
+    rgba(0,0,0,0.06) 95%,
     transparent 100%
   ) !important;
   mask-image: linear-gradient(
     180deg,
-    rgba(0,0,0,0.22) 0%,
-    black 5%,
-    black 72%,
-    rgba(0,0,0,0.40) 83%,
-    rgba(0,0,0,0.08) 94%,
+    black 0%,
+    black 74%,
+    rgba(0,0,0,0.35) 85%,
+    rgba(0,0,0,0.06) 95%,
     transparent 100%
   ) !important;
 }
@@ -19897,13 +19895,12 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // Three nested radial gradients: inner core haze + mid halo + outer breath
   ctx.save();
   [
-    { r0: ARC_IR * 0.5, r1: ARC_OR * 1.35, a: 0.038 },
-    { r0: ARC_IR * 0.8, r1: ARC_OR * 1.10, a: 0.055 },
-    { r0: ARC_IR * 0.95, r1: ARC_OR * 0.98, a: 0.032 },
+    { r0: ARC_IR * 0.7, r1: ARC_OR * 1.15, a: 0.028 },
+    { r0: ARC_IR * 0.88, r1: ARC_OR * 1.02, a: 0.042 },
   ].forEach(({ r0, r1, a }) => {
     const mist = ctx.createRadialGradient(ARC_CX, ARC_CY, r0, ARC_CX, ARC_CY, r1);
     mist.addColorStop(0,   rgb(curC, a));
-    mist.addColorStop(0.5, rgb(curC, a * 0.5));
+    mist.addColorStop(0.6, rgb(curC, a * 0.35));
     mist.addColorStop(1,   'rgba(0,0,0,0)');
     ctx.fillStyle = mist;
     ctx.fillRect(0, 0, W, H);
