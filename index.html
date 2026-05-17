@@ -20983,22 +20983,22 @@ function initAppBg(regLabel){
     frame++;
     const r=_appBgR,g=_appBgG,b=_appBgB;
 
-    // Three large radial nebula blobs — very soft
+    // Three large radial nebula blobs — extremely faint (R26I: slashed from 0.026→0.004)
     [[W()*0.18,H()*0.22,W()*0.30],[W()*0.82,H()*0.65,W()*0.26],[W()*0.50,H()*0.40,W()*0.20]].forEach(([bx,by,br])=>{
       const bg=ctx.createRadialGradient(bx,by,0,bx,by,br);
-      bg.addColorStop(0,`rgba(${r},${g},${b},0.026)`);
+      bg.addColorStop(0,`rgba(${r},${g},${b},0.004)`);
       bg.addColorStop(1,`rgba(${r},${g},${b},0)`);
       ctx.fillStyle=bg;
       ctx.fillRect(0,0,W(),H());
     });
 
-    // Constellation lines
+    // Constellation lines — barely perceptible
     for(let i=0;i<pts.length;i++){
       for(let j=i+1;j<pts.length;j++){
         const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if(dist<CONNECT_DIST){
-          const la=(1-dist/CONNECT_DIST)*0.065;
+          const la=(1-dist/CONNECT_DIST)*0.014;
           ctx.beginPath();
           ctx.moveTo(pts[i].x,pts[i].y);
           ctx.lineTo(pts[j].x,pts[j].y);
@@ -21009,17 +21009,17 @@ function initAppBg(regLabel){
       }
     }
 
-    // Particles
+    // Particles — very low alpha halos
     for(const p of pts){
       p.x+=p.vx; p.y+=p.vy;
       if(p.x<-30)p.x=W()+30; if(p.x>W()+30)p.x=-30;
       if(p.y<-30)p.y=H()+30; if(p.y>H()+30)p.y=-30;
       const pulse=Math.sin(frame*p.pulseSpeed+p.phase)*0.5+0.5;
       const a=p.alpha*(0.5+pulse*0.5);
-      // Soft halo
+      // Soft halo — reduced from 0.5→0.12
       const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*6);
-      grad.addColorStop(0,`rgba(${r},${g},${b},${(a*0.5).toFixed(3)})`);
-      grad.addColorStop(0.5,`rgba(${r},${g},${b},${(a*0.08).toFixed(3)})`);
+      grad.addColorStop(0,`rgba(${r},${g},${b},${(a*0.12).toFixed(3)})`);
+      grad.addColorStop(0.5,`rgba(${r},${g},${b},${(a*0.02).toFixed(3)})`);
       grad.addColorStop(1,`rgba(${r},${g},${b},0)`);
       ctx.beginPath();
       ctx.arc(p.x,p.y,p.size*6,0,Math.PI*2);
@@ -21028,7 +21028,7 @@ function initAppBg(regLabel){
       // Core
       ctx.beginPath();
       ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
-      ctx.fillStyle=`rgba(${r},${g},${b},${Math.min(1,a*1.8).toFixed(3)})`;
+      ctx.fillStyle=`rgba(${r},${g},${b},${Math.min(1,a*1.2).toFixed(3)})`;
       ctx.fill();
     }
 
