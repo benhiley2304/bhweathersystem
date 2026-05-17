@@ -13643,7 +13643,7 @@ canvas{
   pointer-events: none !important;
 }
 
-/* ── R25: Hero redesign — arc centred, text anchored right ── */
+/* ── R25b: Artsy hero — arc centred, massive right-anchored typography ── */
 .ov-banner-inner {
   position: absolute !important;
   inset: 0 !important;
@@ -13655,101 +13655,169 @@ canvas{
   gap: 0 !important;
 }
 
-/* Left spacer — lets arc breathe */
+/* Left spacer */
 .ov-banner-left {
   flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: flex-end !important;
-  padding: 0 0 48px 48px !important;
-  gap: 0 !important;
   min-width: 0 !important;
   pointer-events: none !important;
+  padding: 0 !important;
+  gap: 0 !important;
 }
 
 /* Eyebrow: top-left corner label */
 .ov-banner-eyebrow {
   position: absolute !important;
   top: 28px !important;
-  left: 48px !important;
-  font-size: 8px !important;
-  letter-spacing: 0.18em !important;
-  color: var(--faint) !important;
+  left: 40px !important;
+  font-size: 7.5px !important;
+  letter-spacing: 0.22em !important;
+  color: rgba(173,184,208,0.45) !important;
   border-bottom: none !important;
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
   pointer-events: none !important;
+  text-transform: uppercase !important;
 }
 
-/* Right text panel */
+/* Right text panel — wide, generous */
 .ov-banner-text-right {
-  width: 360px !important;
+  position: relative !important;
+  width: 520px !important;
   flex-shrink: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
   align-items: flex-end !important;
   text-align: right !important;
-  padding: 0 48px 0 0 !important;
-  gap: 10px !important;
+  padding: 0 44px 0 0 !important;
+  gap: 0 !important;
   pointer-events: auto !important;
+  isolation: isolate !important;
 }
 
-/* Regime headline — right aligned, larger */
-.ov-banner-regime {
-  font-size: 52px !important;
-  text-align: right !important;
+/* Score watermark — huge faint number behind everything */
+.ov-banner-text-right::before {
+  content: attr(data-score) !important;
+  position: absolute !important;
+  right: 36px !important;
+  top: 50% !important;
+  transform: translateY(-54%) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 280px !important;
+  font-weight: 700 !important;
   line-height: 1 !important;
+  letter-spacing: -0.06em !important;
+  color: currentColor !important;
+  opacity: 0.04 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  white-space: nowrap !important;
 }
 
-.ov-banner-desc {
+/* Headline — massive, all-caps, condensed feel */
+.ov-banner-regime {
+  font-size: 108px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.045em !important;
+  line-height: 0.92 !important;
   text-align: right !important;
-  max-width: 320px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  /* Translucent layering: main text + soft underlay glow */
+  filter: drop-shadow(0 0 40px currentColor) !important;
+  opacity: 0.92 !important;
+  margin-bottom: 18px !important;
 }
 
+/* Ghost title echo — offset behind for depth */
+.ov-banner-regime::before {
+  content: attr(data-label) !important;
+  position: absolute !important;
+  inset: 0 !important;
+  color: currentColor !important;
+  opacity: 0.07 !important;
+  transform: translate(6px, 8px) !important;
+  filter: blur(2px) !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* Thin accent rule between headline and desc */
+.ov-hero-rule {
+  display: block !important;
+  width: 60px !important;
+  height: 1px !important;
+  background: currentColor !important;
+  opacity: 0.3 !important;
+  margin: 0 0 14px auto !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Description — sparse, wide tracking */
+.ov-banner-desc {
+  font-size: 10px !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: rgba(173,184,208,0.55) !important;
+  font-weight: 500 !important;
+  text-align: right !important;
+  max-width: 340px !important;
+  line-height: 1.8 !important;
+  margin-bottom: 20px !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Markets tracked row */
 .ov-banner-sub {
+  font-size: 8px !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(138,152,184,0.4) !important;
   justify-content: flex-end !important;
   flex-direction: row-reverse !important;
+  margin-top: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+.ov-banner-dot { opacity: 0.5 !important; }
+
+/* Score pill — subtle, right aligned */
+.ov-banner-text-right .ov-regime-score-pill {
+  margin-left: auto !important;
+  margin-bottom: 16px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  font-size: 8px !important;
+  opacity: 0.75 !important;
 }
 
-/* Hide stats + price strip in right panel — keep it clean */
+/* Hide stats + price strip */
 .ov-banner-text-right .ov-banner-stats,
 .ov-banner-text-right .ov-price-strip {
   display: none !important;
 }
 
-/* Score pill — right aligned */
-.ov-banner-text-right .ov-regime-score-pill {
-  margin-left: auto !important;
+/* Responsive */
+@media (min-width: 1920px) {
+  .ov-banner-text-right { width: 580px !important; padding-right: 52px !important; }
+  .ov-banner-regime { font-size: 124px !important; }
+  .ov-banner-text-right::before { font-size: 320px !important; right: 44px !important; }
 }
-
-/* Thin right-border accent on text panel */
-.ov-banner-text-right::after {
-  content: '' !important;
-  position: absolute !important;
-  right: 0 !important;
-  top: 20% !important;
-  bottom: 20% !important;
-  width: 2px !important;
-  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.12) 60%, transparent) !important;
-  border-radius: 1px !important;
-}
-
-/* Responsive: tighten at smaller desktops */
 @media (max-width: 1440px) {
-  .ov-banner-text-right { width: 320px !important; padding-right: 40px !important; }
-  .ov-banner-left { padding: 0 0 40px 40px !important; }
-  .ov-banner-eyebrow { left: 40px !important; }
-  .ov-banner-regime { font-size: 44px !important; }
+  .ov-banner-text-right { width: 440px !important; padding-right: 36px !important; }
+  .ov-banner-regime { font-size: 88px !important; }
+  .ov-banner-text-right::before { font-size: 230px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner-text-right { width: 280px !important; padding-right: 32px !important; }
-  .ov-banner-left { padding: 0 0 36px 32px !important; }
-  .ov-banner-eyebrow { left: 32px !important; }
-  .ov-banner-regime { font-size: 38px !important; }
+  .ov-banner-text-right { width: 380px !important; padding-right: 28px !important; }
+  .ov-banner-regime { font-size: 72px !important; }
+  .ov-banner-text-right::before { font-size: 190px !important; }
+  .ov-banner-eyebrow { left: 28px !important; }
 }
 
-/* Mobile: revert to stacked */
+/* Mobile */
 @media (max-width: 700px) {
   .ov-banner-inner {
     position: relative !important;
@@ -13759,12 +13827,14 @@ canvas{
     padding: 16px !important;
     gap: 8px !important;
   }
-  .ov-banner-left { padding: 0 !important; pointer-events: auto !important; }
+  .ov-banner-left { pointer-events: auto !important; }
   .ov-banner-eyebrow { position: relative !important; top: auto !important; left: auto !important; }
   .ov-banner-text-right { width: 100% !important; align-items: flex-start !important; text-align: left !important; padding: 0 !important; }
-  .ov-banner-regime { font-size: 32px !important; text-align: left !important; }
-  .ov-banner-desc { text-align: left !important; }
+  .ov-banner-text-right::before { display: none !important; }
+  .ov-banner-regime { font-size: 40px !important; text-align: left !important; margin-bottom: 8px !important; }
+  .ov-banner-desc { text-align: left !important; text-transform: none !important; letter-spacing: 0.01em !important; }
   .ov-banner-sub { flex-direction: row !important; justify-content: flex-start !important; }
+  .ov-hero-rule { margin: 0 0 10px 0 !important; }
 }
 
 /* ── Banner bg and particle canvas ── */
@@ -14567,8 +14637,9 @@ function renderOverview(){
     <div class="ov-banner-left nexus-reveal" style="animation-delay:0ms">
       <div class="ov-banner-eyebrow">BH Weather System &mdash; Market Overview</div>
     </div>
-    <div class="ov-banner-text-right nexus-reveal" style="animation-delay:60ms;position:relative">
+    <div class="ov-banner-text-right nexus-reveal" style="animation-delay:60ms;position:relative;color:${regCol}" data-score="${regScore!=null?regScore.toFixed(1):''}">
       <div class="ov-banner-regime regime-glow-text" style="color:${regCol}" data-label="${regLabel}">${regLabel}</div>
+      <span class="ov-hero-rule" style="background:${regCol}"></span>
       ${regScore!=null?`<div class="ov-regime-score-pill" style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:${regCol};background:${regCol}14;border:1px solid ${regCol}44;border-radius:4px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 18px ${regCol}33,inset 0 1px 0 rgba(255,255,255,0.10);animation:pillBreath 3.5s ease-in-out infinite" title="Composite climate score — 5.0 = neutral, 10 = max risk-on, 0 = max risk-off"><span style="opacity:0.55;font-size:7.5px;letter-spacing:0.12em">SCORE</span><span>${regScore.toFixed(1)}</span><span style="opacity:0.35;font-size:7px">/ 10</span></div>`:''}
       ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
       <div class="ov-banner-sub">
