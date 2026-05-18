@@ -27523,6 +27523,11 @@ function regimeTab(m){
     if(_mScore10 !== null){
       const msCol = _mScore10 >= 6.5 ? '#22c97a' : _mScore10 <= 3.5 ? '#e03a2a' : _mScore10 >= 5.5 ? '#7aaa88' : _mScore10 <= 4.5 ? '#b87333' : '#6e7d80';
       const msLabel = _mScore10 >= 7.5 ? 'Strong Tailwind' : _mScore10 >= 6.0 ? 'Mild Tailwind' : _mScore10 <= 2.5 ? 'Strong Headwind' : _mScore10 <= 4.0 ? 'Mild Headwind' : 'Neutral';
+      // Markets where global macro regime has demonstrably low explanatory power.
+      // Supply cycles, weather, and idiosyncratic factors overwhelmingly dominate.
+      // The composite score is shown but caveated so the user isn't misled.
+      const _LOW_MACRO_SENS = new Set(['NG','ZC','ZS','ZW','KC','SB','CC','CT','RC','LE','HE','GF']);
+      const _isLowMacro = _LOW_MACRO_SENS.has(m.id);
       // Contribution bars for the composite
       const _contribs = [
         { label: 'Credit Spreads', val: _mComp.credit ?? 0, key: 'credit' },
@@ -27532,21 +27537,25 @@ function regimeTab(m){
         { label: 'Real Yield', val: _mComp.real_yield ?? 0, key: 'real_yield' },
       ].filter(x => Math.abs(x.val) >= 0.001);
       const maxAbsContrib = Math.max(0.01, ..._contribs.map(c => Math.abs(c.val)));
-      html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid ${msCol}25;border-top:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid ${_isLowMacro?'rgba(173,184,208,0.15)':msCol+'25'};border-top:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
           <div style="text-align:center;min-width:52px">
-            <div style="font-family:var(--mono);font-size:28px;font-weight:800;color:${msCol};line-height:1">${_mScore10.toFixed(1)}</div>
+            <div style="font-family:var(--mono);font-size:28px;font-weight:800;color:${_isLowMacro?'var(--faint)':msCol};line-height:1">${_mScore10.toFixed(1)}</div>
             <div style="font-size:7.5px;color:var(--faint);margin-top:1px">/ 10</div>
           </div>
           <div style="flex:1">
-            <div style="font-size:12px;font-weight:700;color:${msCol};margin-bottom:3px">${msLabel}</div>
-            <div style="font-size:9px;color:var(--dim);line-height:1.4">Macro environment for <strong>${m.name}</strong> — weighted composite of 5 signals</div>
+            <div style="font-size:12px;font-weight:700;color:${_isLowMacro?'var(--dim)':msCol};margin-bottom:3px">${_isLowMacro?'Low Macro Sensitivity':msLabel}</div>
+            <div style="font-size:9px;color:var(--dim);line-height:1.4">Macro environment for <strong>${m.name}</strong> &mdash; weighted composite of 5 signals</div>
           </div>
         </div>
+        ${_isLowMacro?`<div style="display:flex;align-items:flex-start;gap:7px;padding:7px 10px;border-radius:7px;background:rgba(173,184,208,0.06);border:1px solid rgba(173,184,208,0.15);margin-bottom:10px">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#adb8d0" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><circle cx="6" cy="6" r="5"/><path d="M6 4v3M6 8.5h.01" stroke-linecap="round"/></svg>
+          <div style="font-size:8.5px;color:var(--faint);line-height:1.5">Global macro regime has <strong style="color:var(--dim)">low explanatory power</strong> for this market. Supply cycles, weather, and idiosyncratic factors dominate. Refer to the <strong style="color:var(--dim)">COT and Seasonal</strong> tabs for primary signals.</div>
+        </div>`:''}
         <div style="display:flex;flex-direction:column;gap:5px">
           ${_contribs.map(c => {
             const cv = c.val;
-            const cc = cv > 0.02 ? '#22c97a' : cv < -0.02 ? '#e03a2a' : '#4a5268';
+            const cc = _isLowMacro ? '#4a5268' : (cv > 0.02 ? '#22c97a' : cv < -0.02 ? '#e03a2a' : '#4a5268');
             const barW = Math.min(100, Math.abs(cv) / maxAbsContrib * 100);
             const dir = cv > 0.02 ? 'Tailwind' : cv < -0.02 ? 'Headwind' : 'Neutral';
             return `<div style="display:flex;align-items:center;gap:8px">

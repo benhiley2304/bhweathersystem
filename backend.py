@@ -5796,15 +5796,159 @@ def compute_risk_regime() -> dict:
 
     try:
         # Macro composites: equity + bond + commodity etc.
+        # Each asset-class dict stores:
+        #   composite_10 : 0-10 overall macro score for this asset class
+        #   credit       : signed contribution from credit spreads (+ = tailwind)
+        #   yield_curve  : signed contribution from yield curve shape
+        #   fed_bs       : signed contribution from Fed balance sheet trend
+        #   inflation    : signed contribution from CPI / inflation level
+        #   real_yield   : signed contribution from TIPS real yield
+        # All contributions are asset-class-oriented: positive = tailwind for that asset.
+        # Contributions are used by the frontend Macro Dashboard waterfall bar chart.
+        #
+        # Signal ranges (for normalisation reference):
+        #   credit_sig_norm : -1..+1  (+1 = tight spreads / risk-on)
+        #   dxy_sig_norm    : -1..+1  (+1 = USD weakened = risk-on for risk assets)
+        #   t10y2y          : ~-2..+2 (+ve = normal/steepening, -ve = inverted)
+        #   bs_chg3m_pct    : ~-3..+3 (+ve = QE/expanding, -ve = QT/contracting)
+        #   cpi_yoy         : ~0..8   (neutral anchor = 2%)
+        #   ry_val (DFII10) : ~-1..+3 (neutral anchor = 1%; positive = restrictive)
+
+        # Extract macro sub-signals safely (all can be None if FRED fetch failed)
+        _mc_ry_val    = (macro_dashboard.get("real_yield")  or {}).get("value", None)
+        _mc_bs_pct    = (macro_dashboard.get("fed_balance") or {}).get("chg_3m_pct", None)
+        _mc_t10y2y    = (macro_dashboard.get("yield_curve") or {}).get("t10y2y", None)
+        _mc_cpi       = (macro_dashboard.get("inflation")   or {}).get("cpi_yoy", None)
+
+        # Use 0.0 when data unavailable — frontend filters out zero contributions naturally
+        _s_ry   = float(_mc_ry_val) if _mc_ry_val is not None else 0.0   # real yield level
+        _s_bs   = float(_mc_bs_pct) if _mc_bs_pct is not None else 0.0   # BS 3m % chg
+        _s_yc   = float(_mc_t10y2y) if _mc_t10y2y is not None else 0.0   # 10Y-2Y spread
+        _s_cpi  = float(_mc_cpi)    if _mc_cpi    is not None else 0.0   # CPI YoY
+        _s_cr   = float(credit_sig_norm)                                   # credit signal
+
+        # Normalised intermediate values
+        _n_ry  = max(-1.5, min(1.5, (_s_ry - 1.0) / 1.5))   # centred at 1%; +ve = restrictive
+        _n_bs  = max(-1.0, min(1.0, _s_bs / 3.0))            # +ve = expanding (QE)
+        _n_yc  = max(-1.0, min(1.0, _s_yc / 2.0))            # +ve = normal/steepening
+        _n_cpi = max(-1.0, min(1.0, (_s_cpi - 2.0) / 4.0))  # centred at 2%; +ve = elevated
+
         eq_comp = round(5 + eq_raw * 1.5, 1)
+
+        # ── EQUITY: risk-on positive; rate headwind when real yield elevated ──
+        _eq_cr  = round(_s_cr  *  0.25, 3)   # tight spreads = tailwind
+        _eq_yc  = round(_n_yc  *  0.20, 3)   # normal/steep curve = growth = tailwind
+        _eq_bs  = round(_n_bs  *  0.20, 3)   # QE/expanding = tailwind; QT = headwind
+        _eq_inf = round(-max(0.0, _n_cpi) * 0.15, 3)  # only penalise above-neutral inflation
+        _eq_ry  = round(-_n_ry *  0.20, 3)   # high real yield = discount rate headwind
+
+        # ── BOND (price-oriented): risk-off / curve inversion / QE = price tailwind ──
+        # All signals inverted vs equity: risk-on environment = bond price headwind
+        _bo_cr  = round(-_s_cr *  0.20, 3)   # tight credit = risk-on = bond price headwind
+        _bo_yc  = round(-_n_yc *  0.25, 3)   # steepening = rising long yields = price headwind
+        _bo_bs  = round(_n_bs  *  0.20, 3)   # QE buys treasuries = price tailwind
+        _bo_inf = round(-_n_cpi * 0.25, 3)   # inflation erodes real return + forces hikes
+        _bo_ry  = round(-_n_ry *  0.10, 3)   # high real yield = duration compression = headwind
+
+        # ── GOLD: real yield dominant driver; safe-haven bid when risk-off ──
+        _gc_cr  = round(-_s_cr *  0.08, 3)   # tight credit = risk-on = mild safe-haven headwind
+        _gc_yc  = round(-_n_yc *  0.05, 3)   # near-irrelevant; captured by real yield
+        _gc_bs  = round(_n_bs  *  0.20, 3)   # QE = debasement narrative = gold tailwind
+        _gc_inf = 0.0                          # near-zero direct (fully captured by real yield)
+        _gc_ry  = round(-_n_ry *  0.40, 3)   # DOMINANT: high real yield = gold headwind
+
+        # ── COMMODITY: growth-driven; mild inflation tailwind; DXY channel ──
+        _co_cr  = round(_s_cr  *  0.20, 3)   # tight credit = growth demand = tailwind
+        _co_yc  = round(_n_yc  *  0.15, 3)   # steepening = growth = tailwind
+        _co_bs  = round(_n_bs  *  0.10, 3)   # liquidity mild tailwind
+        _co_inf = round(_n_cpi *  0.15, 3)   # commodities drive CPI = mild tailwind when elevated
+        _co_ry  = round(-(_s_ry / 4.0) * 0.10, 3)  # USD channel: high real yield = stronger USD = mild headwind
+
+        # ── FX_FOREIGN (non-USD G10 pairs vs USD): carry + risk-on positive ──
+        # FIX: was "5 - dxy_sig_norm * 3" which was INVERTED — dxy_sig_norm > 0 means USD weakened
+        # = bullish for foreign FX, so composite must be 5 + dxy_sig_norm * 3
+        _fx_cr  = round(_s_cr  *  0.20, 3)   # risk-on = carry demand = tailwind
+        _fx_yc  = round(-_n_yc *  0.15, 3)   # steepening US curve = US rate advantage = headwind for FX
+        _fx_bs  = round(_n_bs  *  0.15, 3)   # QE = weaker USD = FX tailwind
+        _fx_inf = round(-_n_cpi * 0.10, 3)   # high US CPI = Fed hikes = USD strength = headwind
+        _fx_ry  = round(-_n_ry *  0.20, 3)   # high US real yield = capital to USD = FX headwind
+
+        # ── CRYPTO: liquidity dominant; real yield competition; risk appetite ──
+        _cr_cr  = round(_s_cr  *  0.20, 3)   # risk appetite = tailwind
+        _cr_yc  = round(_n_yc  *  0.10, 3)   # mild growth signal
+        _cr_bs  = round(_n_bs  *  0.40, 3)   # DOMINANT: liquidity = speculative demand
+        _cr_inf = round(-max(0.0, _n_cpi) * 0.10, 3)  # high inflation = Fed tightening = headwind
+        _cr_ry  = round(-_n_ry *  0.30, 3)   # high real yield = competition for speculative capital
+
+        # ── FX_USD (Dollar Index): inverse of fx_foreign ──
+        _dx_cr  = round(-_s_cr *  0.20, 3)   # risk-on = capital leaves USD safe haven = headwind
+        _dx_yc  = round(_n_yc  *  0.15, 3)   # steepening = higher US long yields = USD mild tailwind
+        _dx_bs  = round(-_n_bs *  0.25, 3)   # QE = dollar supply dilution = headwind
+        _dx_inf = round(_n_cpi *  0.20, 3)   # high US CPI = Fed hawkish = USD carry tailwind
+        _dx_ry  = round(_n_ry  *  0.20, 3)   # high US real yield = capital inflow = USD tailwind
+
+        def _c10(v): return max(0, min(10, v))
+
         macro_dashboard["macro_composites"] = {
-            "equity":     {"composite_10": max(0, min(10, eq_comp))},
-            "bond":       {"composite_10": max(0, min(10, round(5 - eq_raw * 1.2, 1)))},
-            "gold":       {"composite_10": max(0, min(10, round(5 - regime_score * 0.8, 1)))},
-            "commodity":  {"composite_10": max(0, min(10, round(5 + regime_score * 0.6, 1)))},
-            "fx_foreign": {"composite_10": max(0, min(10, round(5 - dxy_sig_norm * 3, 1)))},
-            "crypto":     {"composite_10": max(0, min(10, round(5 + regime_score * 1.0, 1)))},
-            "credit":     round(credit_sig_norm, 2),
+            "equity": {
+                "composite_10": _c10(eq_comp),
+                "credit":       _eq_cr,
+                "yield_curve":  _eq_yc,
+                "fed_bs":       _eq_bs,
+                "inflation":    _eq_inf,
+                "real_yield":   _eq_ry,
+            },
+            "bond": {
+                "composite_10": _c10(round(5 - eq_raw * 1.2, 1)),
+                "credit":       _bo_cr,
+                "yield_curve":  _bo_yc,
+                "fed_bs":       _bo_bs,
+                "inflation":    _bo_inf,
+                "real_yield":   _bo_ry,
+            },
+            "gold": {
+                "composite_10": _c10(round(5 - regime_score * 0.8, 1)),
+                "credit":       _gc_cr,
+                "yield_curve":  _gc_yc,
+                "fed_bs":       _gc_bs,
+                "inflation":    _gc_inf,
+                "real_yield":   _gc_ry,
+            },
+            "commodity": {
+                "composite_10": _c10(round(5 + regime_score * 0.6, 1)),
+                "credit":       _co_cr,
+                "yield_curve":  _co_yc,
+                "fed_bs":       _co_bs,
+                "inflation":    _co_inf,
+                "real_yield":   _co_ry,
+            },
+            "fx_foreign": {
+                # composite_10 corrected: dxy_sig_norm > 0 means USD weakened = bullish FX foreign
+                "composite_10": _c10(round(5 + dxy_sig_norm * 3, 1)),
+                "credit":       _fx_cr,
+                "yield_curve":  _fx_yc,
+                "fed_bs":       _fx_bs,
+                "inflation":    _fx_inf,
+                "real_yield":   _fx_ry,
+            },
+            "fx_usd": {
+                "composite_10": _c10(round(5 - regime_score * 0.9, 1)),
+                "credit":       _dx_cr,
+                "yield_curve":  _dx_yc,
+                "fed_bs":       _dx_bs,
+                "inflation":    _dx_inf,
+                "real_yield":   _dx_ry,
+            },
+            "crypto": {
+                "composite_10": _c10(round(5 + regime_score * 1.0, 1)),
+                "credit":       _cr_cr,
+                "yield_curve":  _cr_yc,
+                "fed_bs":       _cr_bs,
+                "inflation":    _cr_inf,
+                "real_yield":   _cr_ry,
+            },
+            # Legacy top-level scalars retained for any other consumers
+            "credit":      round(credit_sig_norm, 2),
             "yield_curve": round((macro_dashboard.get("yield_curve", {}).get("t10y2y", 0) or 0) / 2, 2),
         }
     except Exception as _e: print(f"[macro_composites] {_e}")
@@ -6182,9 +6326,12 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
     # ~61% industrial (solar PV, EVs, grid; up from 55% a decade ago) + ~39% precious.
     # Net: mild positive risk-on, heavily dampened. Rate sensitivity ~1.22x gold
     # but partially buffered by industrial demand during expansion.
+    # Real yield added at 0.20 weight (vs 0.65 for gold): silver's ~39% precious
+    # metal component means real yield matters but is dampened by industrial leg.
+    # _ry_adj > 0 = real rates below 1% neutral = precious metal tailwind.
     # ════════════════════════════════════════════════════════════════════
     elif m == "SI":
-        score_raw = raw_score * 0.45 + us_rate_adj * (-0.35) + 5.0
+        score_raw = raw_score * 0.45 + us_rate_adj * (-0.30) + _ry_adj * 0.20 + 5.0
         normalized = _sc(score_raw)
         if raw_score > 0.5:
             label = "Risk-on (Industrial Demand)"
@@ -10105,4 +10252,3 @@ _logging.getLogger("uvicorn.access").addFilter(_NoHealthFilter())
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
-# Deploy trigger Thu May 14 12:32:11 UTC 2026
