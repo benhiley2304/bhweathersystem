@@ -15625,10 +15625,32 @@ h3.label,
 /* The arc canvas wrap is z-index:1; raise it so left panel is always on top */
 .ov-arc-canvas-wrap {
   z-index: 3 !important;
+  /* Remove card-like background/radius that clips the canvas edges */
+  background: transparent !important;
+  border-radius: 0 !important;
+  /* Push the bottom fade much lower so Jarvis wheel base is fully visible */
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    black 0%,
+    black 88%,
+    rgba(0,0,0,0.40) 94%,
+    rgba(0,0,0,0.10) 98%,
+    transparent 100%
+  ) !important;
+  mask-image: linear-gradient(
+    180deg,
+    black 0%,
+    black 88%,
+    rgba(0,0,0,0.40) 94%,
+    rgba(0,0,0,0.10) 98%,
+    transparent 100%
+  ) !important;
 }
-/* Eyebrow masthead — already at z-index 15, ensure it wins */
+/* Eyebrow masthead — full brightness, override all earlier dim rules */
 .ov-banner-eyebrow {
   z-index: 20 !important;
+  opacity: 1 !important;
+  color: rgba(220,195,155,0.90) !important;
 }
 /* The bottom fade: shrink slightly so it doesn't eat left column bottom area */
 .ov-banner::after {
