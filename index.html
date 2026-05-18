@@ -13613,17 +13613,17 @@ canvas{
   -webkit-mask-image: linear-gradient(
     180deg,
     black 0%,
-    black 74%,
-    rgba(0,0,0,0.35) 85%,
-    rgba(0,0,0,0.06) 95%,
+    black 80%,
+    rgba(0,0,0,0.50) 90%,
+    rgba(0,0,0,0.15) 97%,
     transparent 100%
   ) !important;
   mask-image: linear-gradient(
     180deg,
     black 0%,
-    black 74%,
-    rgba(0,0,0,0.35) 85%,
-    rgba(0,0,0,0.06) 95%,
+    black 80%,
+    rgba(0,0,0,0.50) 90%,
+    rgba(0,0,0,0.15) 97%,
     transparent 100%
   ) !important;
 }
@@ -13965,20 +13965,31 @@ canvas{
   z-index: 2 !important;
 }
 
-/* Markets + timestamp row */
+/* Markets + timestamp rows — two stacked lines */
 .ov-banner-sub {
   font-size: 7px !important;
   letter-spacing: 0.22em !important;
   text-transform: uppercase !important;
-  color: rgba(150,168,200,0.40) !important;
+  color: rgba(150,168,200,0.50) !important;
   justify-content: flex-end !important;
-  flex-direction: row-reverse !important;
-  gap: 10px !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 4px !important;
   margin-top: 0 !important;
   position: relative !important;
   z-index: 2 !important;
 }
-.ov-banner-dot { opacity: 0.40 !important; width: 4px !important; height: 4px !important; }
+.ov-banner-sub-line {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+.ov-banner-sub-updated {
+  color: rgba(150,168,200,0.35) !important;
+  letter-spacing: 0.18em !important;
+}
+.ov-banner-dot { opacity: 0.55 !important; width: 4px !important; height: 4px !important; }
 
 /* Vertical sidebar text — hidden on desktop, shown only if no overflow risk */
 .ov-hero-sidebar {
@@ -15609,6 +15620,26 @@ h3.label,
 }
 /* ─── END R31-MOB-HERO ─── */
 
+/* ── R31 BANNER READABILITY — lift left-panel canvas above bottom fade ── */
+/* The ov-banner::after gradient (z-index:2) was eating the left panel canvas */
+/* The arc canvas wrap is z-index:1; raise it so left panel is always on top */
+.ov-arc-canvas-wrap {
+  z-index: 3 !important;
+}
+/* Eyebrow masthead — already at z-index 15, ensure it wins */
+.ov-banner-eyebrow {
+  z-index: 20 !important;
+}
+/* The bottom fade: shrink slightly so it doesn't eat left column bottom area */
+.ov-banner::after {
+  height: 120px !important;
+}
+/* Reduce the ::before (bottom fade from original CSS) */
+.ov-banner::before {
+  /* top accent rule — keep as-is, just ensure it sits over fade */
+  z-index: 12 !important;
+}
+
 /* ─── END R31 ─── */
 
 </style>
@@ -16493,8 +16524,11 @@ function renderOverview(){
         <span class="ov-hero-rule" style="background:linear-gradient(to left,${regCol},transparent)"></span>
         ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
         <div class="ov-banner-sub">
-          <span class="ov-banner-dot" style="background:${regCol}"></span>
-          ${total} markets tracked &nbsp;&middot;&nbsp; Updated ${DATA.updated_at?new Date(DATA.updated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC':'just now'}
+          <span class="ov-banner-sub-line">
+            <span class="ov-banner-dot" style="background:${regCol}"></span>
+            ${total} markets tracked
+          </span>
+          <span class="ov-banner-sub-line ov-banner-sub-updated">Updated ${DATA.updated_at?new Date(DATA.updated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC':'just now'}</span>
         </div>
       </div>
       <span class="ov-hero-sidebar">Market Climate &mdash; ${regScore!=null?regScore.toFixed(1)+' / 10':''}</span>
@@ -21213,7 +21247,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     ctx.font = '700 6.5px "SF Mono",monospace';
     ctx.letterSpacing = '0.20em';
     ctx.textAlign = 'center';
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.82)`;
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},1.0)`;
     ctx.fillText('CLIMATE SCORE', lCX, 13);
     ctx.letterSpacing = '0';
 
@@ -21245,7 +21279,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
     ctx.font = '400 6.5px "SF Mono",monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.55)`;
+    ctx.fillStyle = `rgba(${_lC[0]},${_lC[1]},${_lC[2]},0.80)`;
     ctx.fillText('/ 10', lCX, 20 + heroSz + 10);
 
     const labelFull = _liveLabel
@@ -21306,15 +21340,15 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       const isZero = tick === 0;
       const tickW  = isZero ? 18 : (tick % 2 === 0 ? 12 : 6);
       const tickX0 = barX0 - tickW - 1;
-      const alpha  = isZero ? 0.50 : (tick % 2 === 0 ? 0.28 : 0.13);
+      const alpha  = isZero ? 0.65 : (tick % 2 === 0 ? 0.42 : 0.22);
       ctx.beginPath(); ctx.moveTo(tickX0, ty); ctx.lineTo(barX0 - 1, ty);
       ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = isZero ? 0.8 : 0.5; ctx.stroke();
       if (tick % 2 === 0) {
         ctx.font = isZero ? '600 5.5px "SF Mono",monospace' : '400 5px "SF Mono",monospace';
         ctx.textAlign = 'right';
-        const lColor = tick > 0 ? `rgba(48,217,136,${isZero?0.65:0.42})` :
-                       tick < 0 ? `rgba(240,80,80,${isZero?0.65:0.42})` :
-                       `rgba(255,255,255,${isZero?0.72:0.42})`;
+        const lColor = tick > 0 ? `rgba(48,217,136,${isZero?0.88:0.72})` :
+                       tick < 0 ? `rgba(240,80,80,${isZero?0.88:0.72})` :
+                       `rgba(255,255,255,${isZero?0.92:0.68})`;
         ctx.fillStyle = lColor;
         ctx.fillText(tick === 0 ? '0' : (tick > 0 ? '+'+tick : tick), tickX0 - 1, ty + 1.5);
       }
@@ -21355,9 +21389,9 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       ctx.beginPath(); ctx.moveTo(brkX, loY); ctx.lineTo(brkX + tickL, loY); ctx.stroke();
       ctx.font = '400 4.5px "SF Mono",monospace';
       ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(48,217,136,0.70)';
+      ctx.fillStyle = 'rgba(48,217,136,0.90)';
       ctx.fillText(scoreMax.toFixed(1), brkX + tickL + 2, hiY + 1.5);
-      ctx.fillStyle = scoreMin < 5 ? 'rgba(240,80,80,0.70)' : 'rgba(48,217,136,0.70)';
+      ctx.fillStyle = scoreMin < 5 ? 'rgba(240,80,80,0.90)' : 'rgba(48,217,136,0.90)';
       ctx.fillText(scoreMin.toFixed(1), brkX + tickL + 2, loY + 1.5);
       const avgT = scoreAvg / 10;
       const avgY = barY1 + (1 - avgT) * barTotalH;
@@ -21386,11 +21420,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
         const sx2 = lx + i * colW + colW * 0.5;
         ctx.font = '400 4.5px "SF Mono",monospace';
         ctx.textAlign = 'center';
-        ctx.fillStyle = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.35)`;
+        ctx.fillStyle = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.62)`;
         ctx.fillText(st.lbl, sx2, botY);
         ctx.font = '700 7.5px "SF Mono",monospace';
-        ctx.shadowBlur = 4; ctx.shadowColor = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.5)`;
-        ctx.fillStyle = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.90)`;
+        ctx.shadowBlur = 4; ctx.shadowColor = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},0.65)`;
+        ctx.fillStyle = `rgba(${st.col[0]},${st.col[1]},${st.col[2]},1.0)`;
         ctx.fillText(st.val, sx2, botY + 11);
         ctx.shadowBlur = 0;
       });
