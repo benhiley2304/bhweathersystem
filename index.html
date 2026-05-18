@@ -16290,6 +16290,18 @@ function sHex(s){
   if(s>=1.5)  return '#e03a2a';  // bear          — vivid red
   return '#c41a2e';               // strong bear   — deep crimson
 }
+// Colour for signed contribution values (-2..+2). Positive = bullish = green; negative = bearish = red.
+// Separate from sHex() which requires a 0-10 scale input.
+function contribCol(v){
+  if(v === null || v === undefined || isNaN(v)) return '#6e7d80';
+  if(v >  1.2) return '#00f09a';  // strong positive
+  if(v >  0.4) return '#22c97a';  // positive
+  if(v >  0.1) return '#5aaa7a';  // mild positive
+  if(v > -0.1) return '#6e7d80';  // neutral
+  if(v > -0.4) return '#c44030';  // mild negative
+  if(v > -1.2) return '#e03a2a';  // negative
+  return '#c41a2e';               // strong negative
+}
 function sBg(s){
   if(s>=6.0)  return 'rgba(16,185,129,0.10)';
   if(s>=4.5)  return 'rgba(71,85,105,0.14)';
@@ -25329,11 +25341,11 @@ function macroTab(m){
           if(fv==null&&uv==null) continue;
           const fvn=fv??0, uvn=uv??0;
           const edge=fvn-uvn;
-          const edgeCol=sHex(edge);
+          const edgeCol=contribCol(edge);
           html+=`<div class="fx-cat-row">
             <span class="fx-cat-name">${cap(cat)}</span>
-            <span style="color:${sHex(fvn)}">${fv!=null?(fvn>=0?'+':'')+fvn.toFixed(1):'—'}</span>
-            <span style="color:${sHex(uvn)}">${uv!=null?(uvn>=0?'+':'')+uvn.toFixed(1):'—'}</span>
+            <span style="color:${contribCol(fvn)}">${fv!=null?(fvn>=0?'+':'')+fvn.toFixed(1):'—'}</span>
+            <span style="color:${contribCol(uvn)}">${uv!=null?(uvn>=0?'+':'')+uvn.toFixed(1):'—'}</span>
             <span style="color:${edgeCol};font-weight:600">${edge>=0?'+':''}${edge.toFixed(1)}</span>
           </div>`;
         }
@@ -25476,7 +25488,7 @@ function macroTab(m){
         html+=`<div class="sec-h" style="margin-top:14px">Macro Drivers &mdash; ${_fgnCur3}/USD <span style="font-weight:400;font-size:8px;color:var(--faint);text-transform:none;letter-spacing:0">${_fgnCur3} edge vs USD (ranked by impact)</span></div>`;
         html+=`<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">`;
         for(const [_ck2,_cv2] of _fxDrvs2){
-          const _cc2=sHex(_cv2);
+          const _cc2=contribCol(_cv2);
           const _cRGB2=_cv2>0?'48,217,136':_cv2<0?'240,64,64':'74,82,104';
           const _dir2=_cv2>0.1?`Bullish ${_fgnCur3}`:_cv2<-0.1?`Bearish ${_fgnCur3}`:'Neutral';
           const _dirIcon2=_cv2>0.1?'▲':_cv2<-0.1?'▼':'■';
@@ -25519,7 +25531,7 @@ function macroTab(m){
       html+=`<div class="sec-h" style="margin-top:4px">Macro Drivers &mdash; Dollar Index <span style="font-weight:400;font-size:8px;color:var(--faint);text-transform:none;letter-spacing:0">why these matter for this asset</span></div>`;
       html+=`<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">`;
       for(const drv of _dxDrivers){
-        const c=sHex(drv.val);
+        const c=contribCol(drv.val);
         // Pull per-indicator detail for this category from usdCatDet
         // cat_details keys: gdp, pmi, retail, cpi, ppi, unemp, jobs
         // 'rates' uses DGS2 (not in FF cat_details) — show an explanatory row instead
@@ -25643,9 +25655,9 @@ function macroTab(m){
         const edge=bvn-qvn;
         html+=`<div class="fx-cat-row">
           <span class="fx-cat-name">${cap(cat)}</span>
-          <span style="color:${sHex(bvn)}">${bv!=null?(bvn>=0?'+':'')+bvn.toFixed(1):'&mdash;'}</span>
-          <span style="color:${sHex(qvn)}">${qv!=null?(qvn>=0?'+':'')+qvn.toFixed(1):'&mdash;'}</span>
-          <span style="color:${sHex(edge)};font-weight:600">${edge>=0?'+':''}${edge.toFixed(1)}</span>
+          <span style="color:${contribCol(bvn)}">${bv!=null?(bvn>=0?'+':'')+bvn.toFixed(1):'&mdash;'}</span>
+          <span style="color:${contribCol(qvn)}">${qv!=null?(qvn>=0?'+':'')+qvn.toFixed(1):'&mdash;'}</span>
+          <span style="color:${contribCol(edge)};font-weight:600">${edge>=0?'+':''}${edge.toFixed(1)}</span>
         </div>`;
       }
       html+=`</div>`;
@@ -25745,7 +25757,7 @@ function macroTab(m){
       html+=`<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px">`;
       const maxAbs = Math.max(...rows.map(r=>Math.abs(r.val)), 0.1);
       for(const row of rows){
-        const c = sHex(row.val);
+        const c = contribCol(row.val);
         const barW = Math.min(100, Math.abs(row.val) / maxAbs * 100);
         const cRGBsc = row.val>0?'48,217,136':row.val<0?'240,64,64':'74,82,104';
         html+=`<div style="display:flex;align-items:center;gap:7px;padding:5px 9px;background:rgba(${cRGBsc},0.04);border-radius:6px;border:1px solid rgba(${cRGBsc},0.1)">
@@ -26120,7 +26132,7 @@ function macroTab(m){
       // For GC (Gold): show all assessed factors even if zero contribution
       const _showZero = m.id === 'GC';
       if(!_showZero && Math.abs(_val) < 0.05) continue; // skip near-zero — looks broken as "+0.00"
-      const _col = sHex(_val);
+      const _col = contribCol(_val);
       const _pct = Math.min(100, Math.abs(_val)/2*100);
       const _expl = _amc.explain[_cat] || cap(_cat);
       // Direction indicator
