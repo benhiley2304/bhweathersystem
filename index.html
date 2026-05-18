@@ -13557,8 +13557,11 @@ canvas{
 @media (min-width: 2560px) {
   .ov-banner { min-height: 720px !important; }
 }
+@media (max-width: 1440px) and (min-width: 1281px) {
+  .ov-banner { min-height: 590px !important; }
+}
 @media (max-width: 1280px) {
-  .ov-banner { min-height: 540px !important; }
+  .ov-banner { min-height: 560px !important; }
 }
 @media (max-width: 900px) {
   .ov-banner { min-height: 520px !important; }
@@ -15646,6 +15649,27 @@ h3.label,
     transparent 100%
   ) !important;
 }
+/* Laptop: start dissolve earlier so arc base doesn't bleed out of banner */
+@media (max-width: 1440px) {
+  .ov-arc-canvas-wrap {
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      black 0%,
+      black 72%,
+      rgba(0,0,0,0.50) 82%,
+      rgba(0,0,0,0.15) 92%,
+      transparent 100%
+    ) !important;
+    mask-image: linear-gradient(
+      180deg,
+      black 0%,
+      black 72%,
+      rgba(0,0,0,0.50) 82%,
+      rgba(0,0,0,0.15) 92%,
+      transparent 100%
+    ) !important;
+  }
+}
 /* Eyebrow masthead — full brightness, override all earlier dim rules */
 .ov-banner-eyebrow {
   z-index: 20 !important;
@@ -15654,7 +15678,20 @@ h3.label,
 }
 /* The bottom fade: shrink slightly so it doesn't eat left column bottom area */
 .ov-banner::after {
-  height: 120px !important;
+  height: 180px !important;
+}
+/* Laptop breakpoints: stronger bottom fade to cover arc overshoot */
+@media (max-width: 1440px) {
+  .ov-banner::after {
+    height: 200px !important;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(12,12,11,0.15) 40%,
+      rgba(12,12,11,0.65) 75%,
+      #0c0c0b 100%
+    ) !important;
+  }
 }
 /* Reduce the ::before (bottom fade from original CSS) */
 .ov-banner::before {
