@@ -14992,6 +14992,477 @@ canvas[id^="rel-"] {
 
 /* ─── END R30 ─── */
 
+/* ════════════════════════════════════════════════════════════
+   R31 — FULL DESIGN POLISH & COORDINATION
+   Areas: sidebar glass, section headers, macro cards, factor
+   strip, nav glass, news, COT panels, mobile stats, scrollbar,
+   reveal animations, heatmap, market leaders, detail glass,
+   signal rows, tooltips, pill/tag system, phase labels,
+   breadcrumb, score badges, rate-path labels
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 1. NAV HEADER — glass blur ── */
+#app-header, .app-header {
+  background: rgba(4,4,5,0.82) !important;
+  backdrop-filter: blur(18px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(200,169,110,0.12) !important;
+}
+
+/* ── 2. SIDEBAR — glass hover / selection ── */
+.mkt-row {
+  border-left: 2px solid transparent;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.mkt-row:hover {
+  background: rgba(200,169,110,0.07) !important;
+  border-left-color: rgba(200,169,110,0.35) !important;
+  backdrop-filter: blur(6px);
+}
+.mkt-row.selected, .mkt-row.active {
+  background: rgba(200,169,110,0.12) !important;
+  border-left-color: var(--accent) !important;
+  box-shadow: inset 0 0 20px rgba(200,169,110,0.05);
+}
+
+/* ── 3. SECTION HEADERS — amber left-rule glow ── */
+.section-label,
+.panel-label,
+.overview-label,
+.sub-label,
+h3.label,
+.chart-label,
+.detail-section-label {
+  padding-left: 10px !important;
+  border-left: 2px solid var(--accent) !important;
+  box-shadow: -3px 0 12px rgba(200,169,110,0.25);
+  color: var(--accent2) !important;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
+/* ── 4. MACRO PANEL CARDS — glass surface ── */
+.macro-card,
+.macro-panel,
+.ov-card,
+.overview-card {
+  background: rgba(17,18,20,0.72) !important;
+  backdrop-filter: blur(12px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+  border: 1px solid rgba(200,169,110,0.1) !important;
+  border-radius: 10px !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.macro-card:hover,
+.macro-panel:hover {
+  border-color: rgba(200,169,110,0.22) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,169,110,0.08);
+}
+
+/* ── 5. FACTOR STRIP F-CARDS — active tab reinforcement ── */
+.f-card {
+  border: 1px solid rgba(200,169,110,0.08);
+  border-radius: 8px;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.f-card:hover {
+  background: rgba(200,169,110,0.07) !important;
+  border-color: rgba(200,169,110,0.22) !important;
+}
+.f-card.active, .f-card.selected {
+  background: rgba(200,169,110,0.13) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 16px rgba(200,169,110,0.18), 0 2px 8px rgba(0,0,0,0.3);
+  color: var(--accent2) !important;
+}
+
+/* ── 6. DETAIL HERO — breadcrumb + badge polish ── */
+.breadcrumb, .back-row, .detail-breadcrumb {
+  font-size: 0.72rem;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+.breadcrumb .sep {
+  color: rgba(200,169,110,0.4);
+  margin: 0 5px;
+}
+.asset-badge, .detail-badge {
+  background: rgba(200,169,110,0.12);
+  border: 1px solid rgba(200,169,110,0.28);
+  color: var(--accent2);
+  border-radius: 5px;
+  padding: 2px 9px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* ── 7. NEWS SECTION — spacing + source chips ── */
+.news-item, .news-row {
+  border-bottom: 1px solid rgba(200,169,110,0.07);
+  padding: 9px 0;
+  transition: background 0.15s ease;
+}
+.news-item:hover, .news-row:hover {
+  background: rgba(200,169,110,0.04);
+}
+.news-source, .source-chip {
+  display: inline-block;
+  background: rgba(200,169,110,0.1);
+  border: 1px solid rgba(200,169,110,0.2);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-right: 6px;
+}
+
+/* ── 8. COT STACKED SECTION — panel spacing ── */
+.cot-stacked, .cot-panel, .cot-section {
+  background: rgba(17,18,20,0.65) !important;
+  border: 1px solid rgba(200,169,110,0.09) !important;
+  border-radius: 10px;
+  padding: 14px !important;
+}
+
+/* ── 9. MOBILE HERO STATS — glass cards ── */
+@media (max-width: 768px) {
+  .hero-stat, .stat-pill, .score-stat, .detail-stat {
+    background: rgba(22,23,24,0.82) !important;
+    backdrop-filter: blur(10px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
+    border: 1px solid rgba(200,169,110,0.14) !important;
+    border-radius: 8px !important;
+    padding: 7px 12px !important;
+  }
+}
+
+/* ── 10. GLASS CONTAINER TREATMENT ── */
+.glass-panel, .data-panel, .info-card, .regime-panel {
+  background: rgba(17,18,20,0.70) !important;
+  backdrop-filter: blur(14px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+  border: 1px solid rgba(200,169,110,0.1) !important;
+  border-radius: 10px !important;
+}
+
+/* ── 11. SIGNAL / WILLCO BANNERS — glass + hover lift ── */
+.signal-banner, .willco-banner, .regime-banner {
+  background: rgba(17,18,20,0.78) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(200,169,110,0.15) !important;
+  border-radius: 9px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.signal-banner:hover, .willco-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+}
+
+/* ── 12. SCORE / REGIME BADGE ── */
+.score-badge, .regime-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 7px;
+  padding: 4px 14px;
+  border: 1px solid currentColor;
+  background: rgba(0,0,0,0.3);
+}
+
+/* ── 13. PHASE LABELS ── */
+.phase-label, .cycle-label, .phase-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  border-left: 2px solid var(--accent);
+  padding-left: 7px;
+}
+
+/* ── 14. SCROLLBAR — amber tinted ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgba(4,4,5,0.6); }
+::-webkit-scrollbar-thumb {
+  background: rgba(200,169,110,0.28);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(200,169,110,0.5);
+}
+
+/* ── 15. REVEAL ANIMATIONS — staggered ── */
+.nexus-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s cubic-bezier(.22,1,.36,1), transform 0.5s cubic-bezier(.22,1,.36,1);
+}
+.nexus-reveal-scale {
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.45s cubic-bezier(.22,1,.36,1), transform 0.45s cubic-bezier(.22,1,.36,1);
+}
+.nexus-card-visible {
+  opacity: 1 !important;
+  transform: none !important;
+}
+.nexus-reveal:nth-child(2) { transition-delay: 0.04s; }
+.nexus-reveal:nth-child(3) { transition-delay: 0.08s; }
+.nexus-reveal:nth-child(4) { transition-delay: 0.12s; }
+.nexus-reveal:nth-child(5) { transition-delay: 0.16s; }
+.nexus-reveal:nth-child(6) { transition-delay: 0.20s; }
+
+/* ── 16. RATE PATH LABELS ── */
+.rate-label, .path-label, .rate-path-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--dim);
+  letter-spacing: 0.05em;
+}
+
+/* ── 17. HEATMAP CELL HOVER ── */
+.heatmap-cell, .heat-cell {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.heatmap-cell:hover, .heat-cell:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  filter: brightness(1.12);
+  z-index: 2;
+  position: relative;
+}
+
+/* ── 18. MARKET LEADER CARDS — glass ── */
+.leader-card, .market-leader, .mkt-leader-card {
+  background: rgba(17,18,20,0.72) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(200,169,110,0.1) !important;
+  border-radius: 9px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.leader-card:hover, .market-leader:hover, .mkt-leader-card:hover {
+  border-color: rgba(200,169,110,0.25) !important;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.38);
+  transform: translateY(-2px);
+}
+
+/* ── 19. DETAIL VIEW SCORE PANEL GLASS ── */
+.score-panel, .detail-score, .dp-score {
+  background: rgba(17,18,20,0.8) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(200,169,110,0.14) !important;
+  border-radius: 10px;
+}
+
+/* ── 20. SIGNAL ROWS — glass border ── */
+.signal-row {
+  border-bottom: 1px solid rgba(200,169,110,0.07);
+  transition: background 0.15s ease;
+}
+.signal-row:hover {
+  background: rgba(200,169,110,0.04);
+}
+
+/* ── 21. COMP ROW — hover treatment ── */
+.comp-row, .comparison-row {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s ease;
+}
+.comp-row:hover, .comparison-row:hover {
+  background: rgba(200,169,110,0.04);
+}
+
+/* ── 22. PILL / TAG UNIFORM TREATMENT ── */
+.pill, .tag, .chip, .badge-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 5px;
+  padding: 2px 9px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: rgba(200,169,110,0.1);
+  border: 1px solid rgba(200,169,110,0.2);
+  color: var(--accent2);
+  white-space: nowrap;
+}
+
+/* ── 23. TOOLTIP GLASS ── */
+.tooltip, .nexus-tooltip, [data-tooltip]::after {
+  background: rgba(10,11,13,0.92) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(200,169,110,0.2) !important;
+  color: var(--text) !important;
+  border-radius: 7px !important;
+  font-size: 0.72rem !important;
+  padding: 7px 11px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+}
+
+/* ── R31 MOBILE/DESKTOP UNITY ── */
+/* Ensure factor card strip looks identical on both viewports */
+@media (max-width: 768px) {
+  .f-card {
+    border: 1px solid rgba(200,169,110,0.08);
+    border-radius: 8px;
+  }
+  .f-card.active, .f-card.selected {
+    background: rgba(200,169,110,0.13) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 14px rgba(200,169,110,0.15);
+  }
+  .mkt-row:hover {
+    background: rgba(200,169,110,0.07) !important;
+  }
+  .section-label, .panel-label, .sub-label {
+    border-left: 2px solid var(--accent) !important;
+    padding-left: 9px !important;
+    font-size: 0.64rem;
+  }
+}
+
+/* ── R31 SUBTLE AMBIENT GLOW — hero / arc area ── */
+.hero-section, .arc-section, .ov-hero {
+  position: relative;
+}
+.hero-section::after, .arc-section::after, .ov-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(200,169,110,0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── R31 REFINEMENTS — text hierarchy ── */
+.dim-label { color: var(--faint) !important; font-size: 0.68rem; }
+.accent-value { color: var(--accent2) !important; font-family: 'JetBrains Mono', monospace; }
+
+/* ── R31 INTER-SECTION DIVIDERS ── */
+.section-divider, .panel-divider {
+  border: none;
+  border-top: 1px solid rgba(200,169,110,0.08);
+  margin: 18px 0;
+}
+
+/* ── R31 TARGETED SELECTORS — actual app class names ── */
+
+/* Sidebar: sel state uses .mkt-row.sel, hover uses .mkt-row:hover */
+.mkt-row.sel {
+  background: rgba(200,169,110,0.12) !important;
+  border-left: 2px solid var(--accent) !important;
+}
+.mkt-row:hover::before { display: none !important; }
+.mkt-row:hover {
+  border-left: 2px solid rgba(200,169,110,0.35) !important;
+}
+
+/* Factor cards: .f-card.act is active tab */
+.f-card.act {
+  background: rgba(200,169,110,0.13) !important;
+  border: 1px solid rgba(200,169,110,0.55) !important;
+  box-shadow: 0 0 18px rgba(200,169,110,0.15), 0 2px 8px rgba(0,0,0,0.35) !important;
+}
+
+/* Macro cards: .ov-macro-card */
+.ov-macro-card {
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  border: 1px solid rgba(200,169,110,0.10) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.ov-macro-card:hover {
+  border-color: rgba(200,169,110,0.22) !important;
+  box-shadow: 0 4px 22px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,169,110,0.07) !important;
+}
+
+/* COT stacked section */
+.cot-stacked {
+  border: 1px solid rgba(200,169,110,0.09) !important;
+  border-radius: 10px !important;
+}
+
+/* News rows: .ov-news-row */
+.ov-news-row {
+  transition: background 0.15s ease !important;
+}
+.ov-news-row:hover {
+  background: rgba(200,169,110,0.05) !important;
+  border-radius: 6px !important;
+}
+
+/* Market climate tiles .ov-tile — subtle glass */
+.ov-tile {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
+}
+.ov-tile:hover {
+  transform: translateY(-2px) scale(1.01) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4) !important;
+}
+
+/* Scrollbar — scope to sidebar + detail panel too */
+#mkt-list::-webkit-scrollbar,
+#detail::-webkit-scrollbar { width: 4px; }
+#mkt-list::-webkit-scrollbar-thumb,
+#detail::-webkit-scrollbar-thumb {
+  background: rgba(200,169,110,0.22);
+  border-radius: 3px;
+}
+#mkt-list::-webkit-scrollbar-track,
+#detail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Heatmap grid cells */
+.ov-heatmap-grid > div {
+  transition: transform 0.15s ease, filter 0.15s ease !important;
+}
+.ov-heatmap-grid > div:hover {
+  transform: scale(1.05) !important;
+  filter: brightness(1.1) !important;
+  z-index: 3;
+  position: relative;
+}
+
+/* Regime badge — mono font reinforcement */
+.regime-badge {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Overview banner text area */
+.ov-banner-text-right {
+  transition: border-color 0.3s ease;
+}
+
+/* Score pills */
+.ov-score-pill {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ov-score-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+}
+
+/* Zone separators in sidebar */
+.mkt-row-zone-sep {
+  border-top: 1px solid rgba(200,169,110,0.08) !important;
+  margin: 4px 0 !important;
+}
+
+/* ─── END R31 ─── */
+
 </style>
 </head>
 <body>
