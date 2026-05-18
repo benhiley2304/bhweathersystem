@@ -16697,16 +16697,21 @@ function renderOverview(){
           BH WEATHER SYSTEM &nbsp;·&nbsp; ${total} MARKETS &nbsp;·&nbsp; ${updStr}
         </div>
         <div class="mob-hero-regime" style="--mob-regime-col:${regCol}">${(()=>{
-          // Split regLabel into two-line desktop-style hero text
-          // e.g. 'Risk-On' -> RISK (stroke) + ON (fill)
-          //      'Strong Risk-On' -> STRONG RISK (stroke) + ON (fill)
-          const words = regLabel.replace(/-/g,' ').toUpperCase().split(' ').filter(Boolean);
-          const w2 = words[words.length - 1]; // last word: solid fill
-          let w1 = words.slice(0, -1).join(' ') || ''; // rest: stroke
-          // Neutral edge case — show MARKET / NEUTRAL
-          if (!w1) w1 = 'MARKET';
-          // Font size: shrink for longer first word to prevent overflow
-          const szRem = w1.length > 7 ? '58px' : '72px';
+          // Split regLabel into two-line hero text — qualifier line 1, direction line 2
+          // e.g. 'Risk-On'       -> RISK / ON
+          //      'Lean Risk-On'  -> LEAN / RISK-ON
+          //      'Strong Risk-On'-> STRONG / RISK-ON
+          const up2 = regLabel.toUpperCase();
+          let w1, w2;
+          if (up2.includes('LEAN') && up2.includes('RISK-ON'))        { w1 = 'LEAN';   w2 = 'RISK-ON'; }
+          else if (up2.includes('LEAN') && up2.includes('RISK OFF'))  { w1 = 'LEAN';   w2 = 'RISK-OFF'; }
+          else if (up2.includes('STRONG') && up2.includes('RISK-ON')) { w1 = 'STRONG'; w2 = 'RISK-ON'; }
+          else if (up2.includes('STRONG') && up2.includes('RISK OFF')){ w1 = 'STRONG'; w2 = 'RISK-OFF'; }
+          else if (up2.includes('RISK-ON') || up2.includes('RISK ON'))   { w1 = 'RISK'; w2 = 'ON'; }
+          else if (up2.includes('RISK-OFF') || up2.includes('RISK OFF')) { w1 = 'RISK'; w2 = 'OFF'; }
+          else { const parts = up2.replace(/-/g,' ').split(' '); w1 = parts.slice(0,-1).join(' ') || 'MARKET'; w2 = parts[parts.length-1]; }
+          // Font size: shrink w2 when long (RISK-ON)
+          const szRem = w2.length > 4 ? '58px' : '72px';
           return `<span class="mob-regime-w1" style="font-size:${szRem}">${w1}</span><span class="mob-regime-w2" style="font-size:${szRem}">${w2}</span>`;
         })()}</div>
         <div class="mob-hero-rule"></div>
@@ -16837,22 +16842,28 @@ function renderOverview(){
     <div class="ov-banner-eyebrow nexus-reveal" style="animation-delay:0ms">BH Weather System &mdash; Market Overview</div>
     <div class="ov-banner-text-right nexus-reveal" style="animation-delay:60ms;color:${regCol};border-left-color:${regCol}20;--hero-accent:${regCol}" data-score="${regScore!=null?regScore.toFixed(1):''}">
       ${(()=>{
-        // Big regime headline — always show "RISK" line 1, "ON" or "OFF" line 2
+        // Big regime headline — show qualifier on line 1, direction on line 2
+        // e.g. 'Risk-On'       → RISK / ON
+        //      'Lean Risk-On'  → LEAN / RISK-ON
+        //      'Strong Risk-On'→ STRONG / RISK-ON
+        //      'Risk-Off'      → RISK / OFF
+        //      'Lean Risk-Off' → LEAN / RISK-OFF
+        //      'Neutral'       → MARKET / NEUTRAL
         const up = regLabel.toUpperCase();
-        // Extract the core regime direction for the giant words
         let w1, w2;
-        if (up.includes('RISK-ON') || up.includes('RISK ON')) {
-          w1 = 'RISK'; w2 = 'ON';
-        } else if (up.includes('RISK-OFF') || up.includes('RISK OFF')) {
-          w1 = 'RISK'; w2 = 'OFF';
-        } else {
-          // fallback: first word / rest
-          const parts = up.replace('-',' ').split(' ');
-          w1 = parts[0]; w2 = parts.slice(1).join(' ') || parts[0];
-        }
+        if (up.includes('LEAN') && up.includes('RISK-ON'))   { w1 = 'LEAN';   w2 = 'RISK-ON'; }
+        else if (up.includes('LEAN') && up.includes('RISK OFF')) { w1 = 'LEAN';   w2 = 'RISK-OFF'; }
+        else if (up.includes('STRONG') && up.includes('RISK-ON'))  { w1 = 'STRONG'; w2 = 'RISK-ON'; }
+        else if (up.includes('STRONG') && up.includes('RISK OFF')) { w1 = 'STRONG'; w2 = 'RISK-OFF'; }
+        else if (up.includes('RISK-ON') || up.includes('RISK ON'))   { w1 = 'RISK';   w2 = 'ON'; }
+        else if (up.includes('RISK-OFF') || up.includes('RISK OFF')) { w1 = 'RISK';   w2 = 'OFF'; }
+        else { const parts = up.replace(/-/g,' ').split(' '); w1 = parts[0] || 'MARKET'; w2 = parts.slice(1).join(' ') || up; }
+        // Shrink font when w2 is long (RISK-ON = 7 chars with hyphen)
+        const longW2 = w2.length > 4;
+        const sizeOverride = longW2 ? 'font-size:clamp(72px,10.5vw,148px)' : '';
         return `<div class="ov-hero-headline-block">
                   <span class="ov-hero-word1" style="color:${regCol}">${w1}</span>
-                  <span class="ov-hero-word2" style="color:${regCol}">${w2}</span>
+                  <span class="ov-hero-word2" style="color:${regCol};${sizeOverride}">${w2}</span>
                 </div>`;
       })()}
       <div class="ov-hero-bottom-block">
