@@ -15472,12 +15472,25 @@ function goHome(){
   }
   // stop detail canvas
   if(_dHeadAnimId){cancelAnimationFrame(_dHeadAnimId);_dHeadAnimId=null;}
-  // restart overview canvas
+  // restart overview canvas — defer by two rAFs so browser reflows banner
+  // dimensions before we read offsetWidth/offsetHeight (fixes stretch glitch)
   if(DATA){
     const reg=DATA.regime||{};
     const regLabel=reg.regime||'';
     const regCol=regLabel.includes('Strong Risk-On')?'#00f09a':regLabel.includes('Risk-On')?'#22c97a':regLabel.includes('Lean Risk-On')?'#5aaa7a':regLabel.includes('Strong Risk-Off')?'#c41a2e':regLabel.includes('Risk-Off')?'#e03a2a':regLabel.includes('Lean Risk-Off')?'#d63a24':'#7b8ba8';
-    initOvCanvas(regCol);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      initOvCanvas(regCol);
+      // Also re-render arc canvas after reflow (fixes stretch glitch on back-nav)
+      if(_arcData){
+        const arcC=document.getElementById('ov-arc-canvas');
+        if(arcC){
+          if(_arcPulseId){cancelAnimationFrame(_arcPulseId);_arcPulseId=null;}
+          if(_arcAnimId){cancelAnimationFrame(_arcAnimId);_arcAnimId=null;}
+          _renderClimateArcAnimated(arcC,_arcData,1);
+          _setupArcTooltip(arcC,_arcData);
+        }
+      }
+    }));
   }
   // scroll to overview (desktop: scroll within detail col; mobile: back to top)
   if(window.innerWidth<=700){
