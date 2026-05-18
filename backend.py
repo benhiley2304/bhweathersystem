@@ -4391,9 +4391,11 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
         reason = f"Storage: {ng_s:+.1f}, Growth: {growth_s2:+.1f}"
 
     # ── Copper (HG) ────────────────────────────────────────────────────────
+    # Hot CPI → Fed hikes → USD stronger → copper (USD-priced) headwind.
+    # Growth is the dominant driver (50%). Both inflation and rates are bearish via USD channel.
     elif m == "HG":
-        raw = growth_s2 * 0.50 + jobs_s * 0.25 + infl_avg * 0.10 - dgs2_s * 0.15
-        reason = f"Growth: {growth_s2:+.1f}"
+        raw = growth_s2 * 0.50 + jobs_s * 0.25 - infl_avg * 0.10 - dgs2_s * 0.15
+        reason = f"Growth: {growth_s2:+.1f}, CPI: {-infl_avg:+.1f}, 2Y: {-dgs2_s:+.1f}"
 
     # ── Soft Commodities / Agri ───────────────────────────────────────────
     elif m in ("ZC", "ZS", "ZW", "KC", "SB", "CT", "CC", "RC"):
@@ -4401,20 +4403,27 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
         reason = f"Infl: {infl_avg:+.1f}, Growth: {growth_s:+.1f}"
 
     # ── Livestock ─────────────────────────────────────────────────────────
+    # Hot CPI → consumer squeeze → reduced protein demand (demand destruction > supply squeeze
+    # for near-term contracts). USD strength also hurts export competitiveness.
+    # Net: modest bearish for hot CPI. Growth + jobs are the primary bullish drivers.
     elif m in ("LE", "HE", "GF"):
-        raw = growth_s * 0.35 + jobs_s * 0.25 + infl_avg * 0.20 - dgs2_s * 0.20
-        reason = f"Growth: {growth_s:+.1f}, Jobs: {jobs_s:+.1f}"
+        raw = growth_s * 0.35 + jobs_s * 0.30 - infl_avg * 0.10 - dgs2_s * 0.25
+        reason = f"Growth: {growth_s:+.1f}, Jobs: {jobs_s:+.1f}, CPI: {-infl_avg:+.1f}"
 
     # ── Platinum, Palladium ───────────────────────────────────────────────
+    # Hot CPI → USD hawkish → commodity headwind (USD-priced industrial metals).
+    # PL/PA have minor precious metal hedge component but industrial demand dominates.
     elif m in ("PL", "PA"):
-        raw = growth_s2 * 0.40 + infl_avg * 0.20 + jobs_s * 0.20 - dgs2_s * 0.20
-        reason = f"Growth: {growth_s2:+.1f}"
+        raw = growth_s2 * 0.40 - infl_avg * 0.15 + jobs_s * 0.25 - dgs2_s * 0.20
+        reason = f"Growth: {growth_s2:+.1f}, Jobs: {jobs_s:+.1f}, CPI: {-infl_avg:+.1f}, 2Y: {-dgs2_s:+.1f}"
 
     # ── Crypto ────────────────────────────────────────────────────────────
+    # Risk-on assets: growth + jobs bullish.
+    # Hot CPI → Fed hikes → risk-off → crypto headwind (bearish via rate path).
+    # Rising 2Y → tighter financial conditions → risk asset headwind.
     elif m in ("BTC", "ETH"):
-        # Risk-on: growth + jobs bullish, rising rates slightly bearish
-        raw = (growth_s * 0.30 + jobs_s * 0.20 - dgs2_s * 0.15 + infl_avg * 0.10) / 0.75
-        reason = f"Growth: {growth_s:+.1f}, Rates: {-dgs2_s:+.1f}"
+        raw = (growth_s * 0.30 + jobs_s * 0.20 - dgs2_s * 0.15 - infl_avg * 0.10) / 0.75
+        reason = f"Growth: {growth_s:+.1f}, Rates: {-dgs2_s:+.1f}, CPI: {-infl_avg:+.1f}"
 
     # ── FX Cross Pairs — use ff_macro leg differential ──────────────────────
     elif m in ("EURJPY", "GBPJPY", "AUDJPY", "NZDJPY", "CADJPY", "CHFJPY",

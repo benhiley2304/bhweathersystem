@@ -25566,10 +25566,10 @@ function macroTab(m){
     // ── Macro Drivers — Dollar Index ──
     {
       const _dxDrivers = [
-        {key:'Growth', val: cats.growth||0, explain:'GDP and PMI beats = higher rate expectations = USD bullish via carry'},
-        {key:'Jobs', val: cats.jobs||0, explain:'NFP strength = Fed hawkishness = rate differential stays wide = USD support'},
-        {key:'Inflation', val: cats.inflation||0, explain:'Hot CPI = real rates rise = USD rally signal; cool CPI = dollar headwind'},
-        {key:'Rates', val: cats.rates||0, explain:'2Y yield path = primary USD driver (higher for longer = bullish carry)'},
+        {key:'Growth', val: cats.growth||0, explain:'GDP and PMI beats = BULLISH — higher US growth attracts capital inflows, confirming the US exceptionalism narrative vs G10 peers.'},
+        {key:'Jobs', val: cats.jobs||0, explain:'Strong NFP = BULLISH — best single-release signal for DX. Hawkish Fed expectations widen the rate differential vs ECB/BoJ/BoE = USD bid.'},
+        {key:'Inflation', val: cats.inflation||0, explain:'Hot CPI/PCE = BULLISH — markets price more Fed hikes = yield differential widens vs G10 peers = USD strengthens. Rate divergence is the primary FX driver, not the inflation itself.'},
+        {key:'Rates', val: cats.rates||0, explain:'Rising 2Y yield = BULLISH — higher US yields attract global capital inflows = USD demand. The rate differential channel is the most direct macro driver for the Dollar Index.'},
       ];
       html+=`<div class="sec-h" style="margin-top:4px">Macro Drivers &mdash; Dollar Index <span style="font-weight:400;font-size:8px;color:var(--faint);text-transform:none;letter-spacing:0">why these matter for this asset</span></div>`;
       html+=`<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">`;
@@ -25945,196 +25945,232 @@ function macroTab(m){
     </div>`,
     'CC': `<div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:7px;background:rgba(92,158,255,0.05);border:1px solid rgba(92,158,255,0.18);margin-bottom:12px;font-size:9.5px;color:#7bb8ff;line-height:1.5">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#5c9eff" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><circle cx="6" cy="6" r="5"/><path d="M6 4v3M6 8.5h.01" stroke-linecap="round"/></svg>
-      <div><strong style="color:#a8cfff">Cocoa Macro Note</strong> — Dual-market asset (NY + London). Macro score: USD channel via 2Y yield (inverted) drives demand destruction/recovery signals. CPI inverse signal: higher US inflation = USD strength = commodity headwind. West African weather/crop events dominate over macro — treat macro as a secondary tailwind/headwind. European grinding demand (linked to EUR/GBP economic health) is a relevant but unscored positive factor.</div>
+      <div><strong style="color:#a8cfff">Cocoa Macro Note</strong> — Dual-market asset (NY + London). Macro score: USD channel via 2Y yield is the primary macro driver — rising USD = headwind for dollar-priced cocoa. Hot CPI signals Fed hawkishness, which strengthens USD and compounds the headwind. West African weather/crop events (Ivory Coast, Ghana) dominate over macro — treat macro as a secondary background signal. European grinding demand (linked to EUR/GBP economic health) is a relevant but unscored positive factor.</div>
     </div>`,
     'KC': `<div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:7px;background:rgba(92,158,255,0.05);border:1px solid rgba(92,158,255,0.18);margin-bottom:12px;font-size:9.5px;color:#7bb8ff;line-height:1.5">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#5c9eff" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><circle cx="6" cy="6" r="5"/><path d="M6 4v3M6 8.5h.01" stroke-linecap="round"/></svg>
-      <div><strong style="color:#a8cfff">Coffee (Arabica) Macro Note</strong> — Pure CFTC Arabica. Macro score: USD channel inverse (stronger USD = commodity headwind). CPI inverse: inflation = USD strength risk. Brazil weather and crop cycle events dominate over macro — COT and seasonality are the primary signals. Macro used as a background tailwind/headwind only. Cross-reference RC (Robusta) for a complementary view on the broader coffee complex.</div>
+      <div><strong style="color:#a8cfff">Coffee (Arabica) Macro Note</strong> — Pure CFTC Arabica. Macro score: USD direction via 2Y yield is the primary macro transmission — rising USD = headwind for dollar-priced Arabica exports. Hot CPI signals Fed hawkishness, strengthening USD and compounding the headwind. Brazil weather and crop cycle events dominate over macro — COT and seasonality are the primary signals here. Macro provides a background directional signal only. Cross-reference RC (Robusta) for a complementary view on the broader coffee complex.</div>
     </div>`,
   };
   if(UK_MACRO_NOTES[m.id]) html += UK_MACRO_NOTES[m.id];
 
   // ── Asset-specific macro drivers (replaces generic Global Macro Context) ──
+  // ratesSign: +1 = rising 2Y yield is BULLISH for this asset (DX only)
+  //            -1 = rising 2Y yield is BEARISH (all other assets)
+  // inflSign:  +1 = hot CPI/PCE is BULLISH (DX — higher inflation = more hikes = USD bid)
+  //            -1 = hot CPI/PCE is BEARISH (equities, bonds, gold, most commodities)
+  // These signs are applied when the reason string does not embed the sign (fallback to cats[])
   const ASSET_MACRO_CONTEXT = {
-    ES: {cats:['growth','jobs','inflation','rates'], explain:{
-      growth:'GDP and PMI beat = higher earnings expectations = bullish equities',
-      jobs:'NFP/ADP strength = consumer spending + growth confirmation = bullish',
-      inflation:'Hot CPI/PCE = rate hike fear = bearish for equities via P/E compression',
-      rates:'Rising 2Y yield = tighter financial conditions = equity headwind'
+    // ── Equities ────────────────────────────────────────────────────────────
+    ES: {cats:['growth','jobs','inflation','rates'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'GDP/PMI beat = higher earnings expectations = bullish equities. The primary fundamental driver for S&P 500.',
+      jobs:'Strong NFP/ADP = consumer spending confidence + business investment = bullish equities. Also confirms the economic expansion cycle.',
+      inflation:'Hot CPI/PCE = BEARISH — forces Fed to hike, compressing P/E multiples via higher discount rates. Cool CPI removes that headwind.',
+      rates:'Rising 2Y yield = BEARISH — tighter financial conditions, higher discount rates, P/E compression. Rate cuts are the single largest equities tailwind.'
     }},
-    NQ: {cats:['inflation','rates','growth','jobs'], explain:{
-      inflation:'Hot CPI = #1 bearish signal for NASDAQ (duration compression via higher discount rates)',
-      rates:'Rising 2Y yield = highest impact on long-duration tech multiples',
-      growth:'Revenue expectations: GDP and services PMI beat = bullish',
-      jobs:'Indirect channel — jobs strength feeds rate path more than direct tech revenue'
+    NQ: {cats:['rates','inflation','growth','jobs'], ratesSign:-1, inflSign:-1, explain:{
+      rates:'Rising 2Y yield = BEARISH — the most impactful macro variable for NASDAQ. Long-duration tech cash flows are discounted at higher rates, crushing P/E multiples. Every 25bp 2Y rise = meaningful NQ headwind.',
+      inflation:'Hot CPI = BEARISH — forces Fed hawkishness, driving 2Y yields higher. The indirect rate path effect is the primary inflation transmission channel for growth stocks.',
+      growth:'GDP/Services PMI beat = bullish revenue expectations for mega-cap tech. Growth confirms the earnings cycle.',
+      jobs:'Strong jobs = more hawkish Fed path = rates stay higher for longer = NQ multiple compression. Indirect bearish channel via the rate path — not a direct consumer spending driver for tech.'
     }},
-    YM: {cats:['inflation','growth','jobs','rates'], explain:{
-      inflation:'Hot CPI = #1 single macro driver for YM (LSEG). Erodes Dow industrial margins AND triggers rate-hike risk. Cool CPI removes both headwinds simultaneously.',
-      growth:'Mfg PMI and GDP = direct driver for CAT, HON, Boeing. Retail beats lift HD, MCD, Nike (major YM weights). Dow is most growth-representative of the three indices.',
-      jobs:'NFP = top-5 mover for YM. Strong jobs = consumer discretionary spending = Dow consumer names benefit.',
-      rates:'YM is LEAST rate-sensitive equity index (value/dividend tilt vs. growth). But rising 2Y = general de-rating headwind for all equities.'
+    YM: {cats:['inflation','growth','jobs','rates'], ratesSign:-1, inflSign:-1, explain:{
+      inflation:'Hot CPI = BEARISH — erodes Dow industrial margins AND triggers rate-hike risk. Cool CPI removes both headwinds simultaneously. The single most impactful macro driver for Dow components.',
+      growth:'Mfg PMI and GDP beat = direct earnings driver for CAT, HON, Boeing. Retail beats lift HD, MCD, Nike. Dow is the most growth-sensitive of the three major indices.',
+      jobs:'Strong NFP = consumer discretionary spending = bullish Dow consumer names. Top-5 macro mover for YM.',
+      rates:'Rising 2Y yield = BEARISH — general equity de-rating. YM is LEAST rate-sensitive of the three indices (value/dividend tilt vs. growth) but still faces a headwind from higher discount rates.'
     }},
-    RTY: {cats:['rates','inflation','jobs','growth'], explain:{
-      rates:'2Y yield = HIGHEST sensitivity of any equity index. RTY carries 50%+ floating-rate debt (bank loans, revolving credit). Every 25bp 2Y rise = direct balance sheet hit for small-cap borrowers. The single most important variable to watch.',
-      inflation:'Hot CPI = double bearish for small caps: (1) rate hike risk = higher floating-rate borrowing costs, (2) input cost squeeze on thin margins. Small caps cannot pass costs like large caps.',
-      jobs:'Domestic NFP/ADP = small-cap revenue (90%+ US revenue exposure). Strong jobs = consumer spending at local/regional businesses = RTY earnings tailwind.',
-      growth:'GDP beat = domestic earnings tailwind. Less important than rates for RTY — the rate channel overwhelms the growth channel when the two conflict.'
+    RTY: {cats:['rates','inflation','jobs','growth'], ratesSign:-1, inflSign:-1, explain:{
+      rates:'Rising 2Y yield = BEARISH — highest rate sensitivity of any equity index. RTY carries 50%+ floating-rate debt (bank loans, revolving credit). Every 25bp 2Y rise = direct balance sheet hit for small-cap borrowers. The dominant macro variable for Russell 2000.',
+      inflation:'Hot CPI = BEARISH — double headwind for small caps: (1) rate hike risk = higher floating-rate borrowing costs, (2) input cost squeeze on thin margins. Small caps cannot pass costs like large caps can.',
+      jobs:'Strong domestic NFP/ADP = small-cap revenue tailwind (90%+ US revenue exposure). Consumer spending at local/regional businesses directly drives RTY earnings.',
+      growth:'GDP beat = domestic earnings tailwind. Less important than rates for RTY — the rate channel dominates when the two conflict.'
     }},
-    GC: {cats:['rates','inflation','jobs','growth'], explain:{
-      rates:'Real yield = nominal 2Y yield − inflation expectations. Rising 2Y = real yield rise = primary gold headwind. Gold is a zero-yielding asset — the opportunity cost rises as real yields increase.',
-      inflation:'Hot CPI = hawkish Fed = real yields spike = BEARISH gold. Cool CPI = Fed stays dovish = nominal yields fall = real yields compress = BULLISH gold. Disinflation in the pipeline (cool PPI) is the strongest forward signal — PPI leads CPI by 2-3 months.',
-      jobs:'Strong NFP = hawkish Fed = higher-for-longer rates = real yield headwind = bearish gold. The most reliable single-release gold signal.',
-      growth:'GDP/PMI beat = risk-on = safe-haven demand falls. Growth strength diverts capital from gold into equities.'
+    Z: {cats:['growth','inflation','rates'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'Global risk appetite (US macro 50%) + UK economic composite (GBP/FRED blend). Overseas revenues (~70% of FTSE 100 EPS) mean global growth matters most — a US/global growth beat is bullish.',
+      inflation:'Hot UK CPI = BEARISH — BoE hawkishness = GBP strength = overseas EPS translation drag. Mild headwind for FTSE given its international revenue base.',
+      rates:'Rising gilt yields = BEARISH — valuation compression for domestic FTSE names. Global 2Y direction also matters via rate contagion into UK credit conditions.'
     }},
-    SI: {cats:['rates','growth','inflation','jobs'], explain:{
-      rates:'Real yield drives the precious metal leg (41% of silver). Rising 2Y = real yield up = bearish precious component. Amplifies gold real-yield signal but diluted by industrial demand.',
-      growth:'59% industrial demand: GDP growth drives solar panel production (25% of SI demand), EV batteries, electronics. Manufacturing PMI = most direct industrial silver signal.',
-      inflation:'Hot CPI/PPI = hawkish Fed = real yield rise = bearish precious leg. Cool CPI/PPI = real yield compression = bullish. PPI cooling also reduces input costs for industrial users (double benefit). SI inflation sensitivity is diluted vs GC due to the industrial demand component.',
-      jobs:'Strong NFP = hawkish = real yield pressure on the precious 41% leg. Less impactful than for GC because industrial demand channel partially offsets.'
+    // ── Precious Metals ─────────────────────────────────────────────────────
+    GC: {cats:['rates','inflation','jobs','growth'], ratesSign:-1, inflSign:-1, explain:{
+      rates:'Rising 2Y yield = BEARISH — real yield (nominal 2Y minus inflation expectations) is the primary gold driver. Gold yields nothing; as real yields rise, the opportunity cost of holding gold increases. The single most important macro variable for GC.',
+      inflation:'Hot CPI = BEARISH (via rate mechanism) — Fed hikes in response, driving nominal yields higher than breakevens, spiking real yields. Cool CPI = Fed stays dovish = real yields compress = BULLISH gold. Disinflation signals (cool PPI) are the strongest leading indicator — PPI leads CPI by 2-3 months.',
+      jobs:'Strong NFP = BEARISH — hawkish Fed reaction = higher-for-longer rates = real yield headwind. The most reliable single-release gold signal of the macro calendar.',
+      growth:'GDP/PMI beat = BEARISH — risk-on environment reduces safe-haven demand, diverting capital from gold into equities and risk assets.'
     }},
-    PL: {cats:['growth','rates','inflation'], explain:{
-      growth:'Auto production demand: 65% of platinum is diesel catalytic converters (primarily EU vehicles). Score captures US macro as a global growth proxy — but EU auto production data is the truer signal. Score is attenuated 0.80x to reflect the EU-specific demand gap in the formula.',
-      rates:'Rising 2Y = USD strength = headwind for this USD-priced metal. Also: higher auto financing rates reduce vehicle purchases in any market.',
-      inflation:'Hot CPI = USD hawkish = commodity headwind. Note: PL has a minor inflation-hedge precious metal characteristic (20% jewelry demand) but this is secondary to the industrial auto catalyst driver.'
+    SI: {cats:['rates','growth','inflation','jobs'], ratesSign:-1, inflSign:-1, explain:{
+      rates:'Rising 2Y yield = BEARISH — real yield mechanism drives the precious metal component (41% of silver demand). Same transmission as gold but diluted by industrial demand.',
+      growth:'GDP/Mfg PMI beat = BULLISH — 59% industrial demand (solar panels 25%, EV batteries, electronics). Manufacturing PMI is the most direct industrial silver signal. EV adoption is a structural tailwind.',
+      inflation:'Hot CPI/PPI = BEARISH (via real yield) — hawkish Fed drives nominal yields above breakevens = real yield rise = bearish precious leg. PPI cooling = double benefit (lower input costs for industrial users AND lower real yields).',
+      jobs:'Strong NFP = BEARISH — hawkish rate pressure on the precious 41% leg. Less impactful than for GC because industrial demand partially offsets.'
     }},
-    PA: {cats:['growth','jobs','rates'], explain:{
-      growth:'80-85% of palladium is gasoline engine catalytic converters. GDP and Mfg PMI capture near-term auto production demand. STRUCTURAL NOTE: EV adoption is a secular headwind — EVs use zero palladium. Each 1% rise in EV market share reduces palladium demand structurally. Score only captures the cyclical demand signal.',
-      jobs:'NFP and unemployment = consumer vehicle purchasing power. The most direct demand signal for PA — employed consumers buy more gasoline vehicles. Retail spending is also a proxy for auto sales activity.',
-      rates:'Rising 2Y = USD stronger (commodity headwind) AND higher auto financing costs (dampens vehicle demand). Both channels are bearish for PA.'
+    PL: {cats:['growth','rates','inflation'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'Auto production demand = BULLISH — 65% of platinum is diesel catalytic converters (primarily EU vehicles). US Mfg PMI is a global growth proxy; EU auto production data is the truer signal. Score is attenuated to reflect the EU-specific demand gap.',
+      rates:'Rising 2Y yield = BEARISH — USD strength headwind for this USD-priced metal. Higher auto financing rates also reduce vehicle purchases, dampening catalyst demand.',
+      inflation:'Hot CPI = BEARISH — USD hawkishness = commodity headwind. Minor precious metal inflation-hedge characteristic (20% jewelry demand) is secondary to the industrial auto catalyst driver.'
     }},
-    HG: {cats:['growth','inflation','rates'], explain:{
-      growth:'GDP/Mfg PMI beat = copper demand (Dr. Copper is the purest economic health indicator). China consumes 50-55% of global supply — US Mfg PMI is a reasonable proxy but Chinese PMI is more direct. EV tailwind: each EV uses 4x more copper than a conventional vehicle (wiring, motors, charging infrastructure).',
-      inflation:'Hot CPI = Fed more hawkish = dollar strength = headwind for USD-priced copper. Also: high inflation squeezes manufacturer margins = less copper-intensive capex spending.',
-      rates:'Rising 2Y = dollar strengthens = copper (USD-priced) faces headwind from currency translation. The highest single-weight component in the HG formula (0.19) — the 2Y yield direction is the primary macro driver after Mfg PMI.'
+    PA: {cats:['growth','jobs','rates'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'Auto production demand = BULLISH — 80-85% of palladium is gasoline engine catalytic converters. GDP/Mfg PMI capture cyclical demand. STRUCTURAL NOTE: EV adoption is a secular headwind — EVs use zero palladium. Score captures the cyclical signal only.',
+      jobs:'Strong NFP = BULLISH — consumer vehicle purchasing power. Employed consumers buy more gasoline vehicles. The most direct demand signal for PA on the macro calendar.',
+      rates:'Rising 2Y yield = BEARISH — USD stronger (commodity headwind) AND higher auto financing costs (dampens vehicle sales). Both channels bearish for PA simultaneously.'
     }},
-    CL: {cats:['growth','rates','jobs'], explain:{
-      growth:'GDP/PMI beat = energy demand growth = bullish crude (primary macro driver)',
-      rates:'Rising 2Y = USD stronger = crude headwind via dollar-denominated pricing',
-      jobs:'Employment = commuting + industrial energy consumption = demand baseline'
+    // ── Metals / Industrial ─────────────────────────────────────────────────
+    HG: {cats:['growth','inflation','rates'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'GDP/Mfg PMI beat = BULLISH — copper demand (Dr. Copper is the purest leading economic indicator). China consumes 50-55% of global supply. EV tailwind: each EV uses 4x more copper than a conventional vehicle.',
+      inflation:'Hot CPI = BEARISH — Fed hawkishness = USD strengthens = headwind for USD-priced copper. High inflation also squeezes manufacturer margins, reducing copper-intensive capex.',
+      rates:'Rising 2Y yield = BEARISH — dollar strengthens, creating a currency translation headwind for this USD-denominated commodity. The 2Y yield direction is the primary macro driver after Mfg PMI.'
     }},
-    B: {cats:['growth','rates','jobs'], explain:{
-      growth:'Global GDP/PMI = primary Brent demand driver. European economic conditions (EUR+GBP) weighted alongside US',
-      rates:'USD channel via 2Y = dominant macro signal for Brent (dollar-priced commodity)',
-      jobs:'Employment = global demand confirmation channel. Secondary to USD mechanism.'
+    // ── Energy ──────────────────────────────────────────────────────────────
+    CL: {cats:['growth','rates','jobs'], ratesSign:-1, inflSign:1, explain:{
+      growth:'GDP/PMI beat = BULLISH — global energy demand growth. The primary macro driver for crude.',
+      rates:'Rising 2Y yield = BEARISH — USD strengthens, creating a headwind for this dollar-denominated commodity. Higher financing costs also reduce energy capex.',
+      jobs:'Strong employment = BULLISH — commuting, industrial energy consumption, and economic activity all drive demand baseline.'
     }},
-    GO: {cats:['growth','rates','inflation'], explain:{
-      growth:'European industrial activity = diesel/Gas Oil demand',
-      rates:'USD channel via 2Y — dominant macro driver',
-      inflation:'Hot CPI = USD strong = European import cost headwind'
+    B: {cats:['growth','rates','jobs'], ratesSign:-1, inflSign:1, explain:{
+      growth:'Global GDP/PMI = BULLISH — the primary Brent demand driver. European economic conditions (EUR+GBP) weighted alongside US macro.',
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = dominant headwind for dollar-priced Brent. The primary macro transmission channel.',
+      jobs:'Strong employment = BULLISH — global demand confirmation. Secondary to the USD mechanism but meaningful at extremes.'
     }},
-    NG: {cats:['growth','supply','rates'], explain:{
-      growth:'Industrial/power demand — Mfg PMI beats = higher energy consumption. Macro demand backdrop is the primary fundamental input',
-      supply:'Storage vs 5-year seasonal average = the dominant NG-specific signal. Deficit = structurally bullish; surplus = bearish',
-      rates:'USD channel (mild): 2Y rising = USD strength = marginal NG headwind. Far weaker than crude\'s dollar sensitivity'
+    GO: {cats:['growth','rates','inflation'], ratesSign:-1, inflSign:1, explain:{
+      growth:'European industrial activity = BULLISH — diesel/Gas Oil demand driven by EU manufacturing and transport.',
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = dominant macro headwind for this dollar-priced refined product.',
+      inflation:'Hot CPI = BEARISH (via USD) — more aggressive Fed/global CB response strengthens dollar, raising European import costs.'
     }},
-    RB: {cats:['growth','rates','inflation','jobs'], explain:{
-      growth:'Consumer driving demand = retail sales + GDP',
-      rates:'USD channel = dominant macro signal for refined products',
-      inflation:'Hot CPI = USD strong = gasoline import cost headwind',
-      jobs:'Employment = commuting demand'
+    NG: {cats:['growth','supply','rates'], ratesSign:-1, inflSign:1, explain:{
+      growth:'Industrial/power demand = BULLISH — Mfg PMI beats = higher energy consumption. The macro demand backdrop is the primary fundamental input alongside storage.',
+      supply:'Storage vs 5-year seasonal average = the DOMINANT NG-specific signal. Storage deficit = structurally bullish; surplus = bearish. This is the single most impactful factor for natural gas.',
+      rates:'Rising 2Y yield = BEARISH (mild) — USD strength creates a marginal headwind. Far weaker than crude\'s dollar sensitivity given NG\'s more localised North American pricing.'
     }},
-    HO: {cats:['growth','rates','inflation'], explain:{
-      growth:'Industrial/heating demand = Mfg PMI + GDP',
-      rates:'USD channel via 2Y',
-      inflation:'Hot CPI = USD strong = HO headwind'
+    RB: {cats:['growth','rates','inflation','jobs'], ratesSign:-1, inflSign:1, explain:{
+      growth:'Consumer driving demand = BULLISH — retail sales and GDP beat drive gasoline consumption.',
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = dominant macro headwind for dollar-priced refined products.',
+      inflation:'Hot CPI = BEARISH (via USD) — hawkish Fed strengthens dollar, pressuring USD-denominated refined products.',
+      jobs:'Strong employment = BULLISH — commuting demand directly drives gasoline consumption.'
     }},
-    ZB: {cats:['inflation','jobs','growth','rates'], explain:{
-      inflation:'Hot CPI/PPI = long-end yield spike = 30Y price falls. PPI is the HIGHEST-CONVICTION leading signal for ZB: PPI leads CPI by 2-3 months, and 30Y breakeven inflation is most sensitive to pipeline pressure. Cool PPI today = lower CPI in 2-3mo = 30Y yield compression ahead.',
-      jobs:'Strong NFP = Fed holds higher for longer = entire curve stays elevated = bond headwind. Wage growth is particularly important for ZB (signals persistent inflation).',
-      growth:'GDP/PMI beat = no recession = no flight-to-safety bond bid. Growth removes the bull case for 30Y (no rate cut needed, no safe-haven bid).',
-      rates:'Rising 2Y = front-end tightening = bear flattener risk (short end rises faster than long end). DGS2 direction sets the tone but ZB responds most to long-end inflation signals.'
+    HO: {cats:['growth','rates','inflation'], ratesSign:-1, inflSign:1, explain:{
+      growth:'Industrial/heating demand = BULLISH — Mfg PMI and GDP beat drive heating oil consumption.',
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = headwind for this dollar-priced energy product.',
+      inflation:'Hot CPI = BEARISH (via USD) — hawkish Fed response strengthens dollar, pressuring USD-denominated commodities.'
     }},
-    ZN: {cats:['inflation','jobs','growth','rates'], explain:{
-      inflation:'Hot CPI/PPI = 10Y yield rises = ZN price falls. PPI is meaningful for 10Y too (2-3mo CPI lead) though less extreme than 30Y ZB. CPI is the primary in-period signal.',
-      jobs:'NFP = #1 volume driver for 10Y: generates 5-10bp yield moves in the first minute on major surprises (194K contracts traded). The benchmark bond is most responsive to payrolls.',
-      growth:'GDP/PMI beat = no recession bid = risk assets preferred over bonds = bearish ZN.',
-      rates:'Front-end 2Y signal for 10Y direction. The 2-10 spread is the key curve signal to watch alongside ZN.'
+    // ── Bonds ───────────────────────────────────────────────────────────────
+    ZB: {cats:['inflation','jobs','growth','rates'], ratesSign:-1, inflSign:-1, explain:{
+      inflation:'Hot CPI/PPI = BEARISH — long-end yield spikes = 30Y bond price falls. PPI is the HIGHEST-CONVICTION leading signal for ZB: pipeline inflation leads CPI by 2-3 months. Cool PPI today = lower CPI ahead = 30Y yield compression = bond price rises.',
+      jobs:'Strong NFP = BEARISH — Fed holds higher for longer = entire yield curve stays elevated = bond headwind. Wage growth is particularly important (signals persistent inflation = higher long-end yields).',
+      growth:'GDP/PMI beat = BEARISH — no recession = no flight-to-safety bond bid. Growth removes the bull case for 30Y (no rate cuts needed, no safe-haven demand).',
+      rates:'Rising 2Y yield = BEARISH — front-end tightening drives bear flattener risk. DGS2 direction sets the tone, but ZB responds most to long-end inflation signals and the inflation premium.'
     }},
-    ZF: {cats:['inflation','jobs','rates','growth'], explain:{
-      inflation:'Hot CPI = mid-curve yield rises = ZF price falls. Positioned at 5Y = balanced sensitivity to both near-term Fed policy and medium-term inflation outlook.',
-      jobs:'NFP = high sensitivity for mid-curve (Fed reaction function drives 5Y most directly).',
-      rates:'2Y level = direct mid-curve anchor. 5Y is most sensitive to the rate cycle turning point (first cut/hike pricing).',
-      growth:'GDP beat = bearish rate-cut pricing at the 5Y point on the curve.'
+    ZN: {cats:['inflation','jobs','growth','rates'], ratesSign:-1, inflSign:-1, explain:{
+      inflation:'Hot CPI/PPI = BEARISH — 10Y yield rises = ZN price falls. CPI is the primary in-period signal; PPI provides 2-3 month forward visibility though slightly less extreme than for 30Y ZB.',
+      jobs:'Strong NFP = BEARISH — #1 volume driver for 10Y. Generates 5-10bp yield moves on major surprises. The benchmark 10Y is the most watched payrolls reaction vehicle.',
+      growth:'GDP/PMI beat = BEARISH — no recession bid. Risk assets are preferred over bonds when growth is strong.',
+      rates:'Rising 2Y yield = BEARISH — front-end signal for 10Y direction. The 2-10 spread is the key curve signal to watch alongside ZN positioning.'
     }},
-    ZT: {cats:['inflation','jobs','rates','growth'], explain:{
-      inflation:'CPI is MOST impactful for the 2Y (direct rate hike pricing). Historically a 10bp upside CPI surprise = ~15bp 2Y yield move. The 2Y is essentially a Fed Funds proxy — hot CPI = direct rate hike pricing.',
-      jobs:'NFP = #1 mover for near-term Fed expectations. 2Y is most sensitive to jobs of all bond maturities.',
-      rates:'2Y already closely tracks DGS2 — the additional marginal signal from current rate levels is small compared to forward-looking CPI/NFP.',
-      growth:'GDP beat is less impactful for 2Y than for longer maturities — the 2Y is anchored to near-term Fed decisions, not long-run growth.'
+    ZF: {cats:['inflation','jobs','rates','growth'], ratesSign:-1, inflSign:-1, explain:{
+      inflation:'Hot CPI = BEARISH — mid-curve yields rise = ZF price falls. The 5Y is balanced between near-term Fed policy and medium-term inflation outlook.',
+      jobs:'Strong NFP = BEARISH — high sensitivity for the mid-curve. The Fed reaction function drives 5Y yields most directly — payrolls shape the hiking/cutting cycle.',
+      rates:'Rising 2Y yield = BEARISH — direct mid-curve anchor. The 5Y is most sensitive to the rate cycle turning point (first cut/hike pricing).',
+      growth:'GDP beat = BEARISH — reduces rate-cut pricing at the 5Y point on the curve.'
     }},
-    LE: {cats:['growth','jobs','inflation','rates'], explain:{
-      growth:'Consumer beef demand = retail + GDP',
-      jobs:'Employment = consumer purchasing power',
-      inflation:'Hot CPI = consumer squeeze (bearish demand)',
-      rates:'USD strength = export competitiveness headwind'
+    ZT: {cats:['inflation','jobs','rates','growth'], ratesSign:-1, inflSign:-1, explain:{
+      inflation:'Hot CPI = BEARISH — most impactful for 2Y (direct rate hike pricing). A 10bp upside CPI surprise historically = ~15bp 2Y yield rise. The 2Y is essentially a Fed Funds proxy.',
+      jobs:'Strong NFP = BEARISH — #1 mover for near-term Fed expectations. The 2Y is the most sensitive bond maturity to payrolls surprises.',
+      rates:'Rising 2Y yield = BEARISH — the 2Y note tracks DGS2 directly. Marginal additional signal is small versus forward-looking CPI/NFP inputs.',
+      growth:'GDP beat = BEARISH (mild) — less impactful for 2Y than longer maturities. The 2Y is anchored to near-term Fed decisions, not long-run growth.'
     }},
-    GF: {cats:['growth','jobs','rates'], explain:{
-      growth:'Cattle feeder demand = consumer end-market',
-      jobs:'Employment = beef purchasing capacity',
-      rates:'USD strength = export headwind'
+    R: {cats:['jobs','growth','inflation','rates'], ratesSign:-1, inflSign:-1, explain:{
+      jobs:'Rising UK unemployment = BULLISH — primary BoE dovishness signal. Higher unemployment = rate cuts more likely = Long Gilt bullish. This is the largest single weight in the formula.',
+      growth:'Weaker UK growth = BULLISH — BoE cutting cycle = Gilt price rises. US risk-off also = flight-to-safety = Gilt support. Growth beats are bearish for the Gilt.',
+      inflation:'Hot UK CPI = BEARISH — BoE holds or hikes = Gilt prices fall. The dominant inflation input for the BoE reaction function and the most impactful macro variable.',
+      rates:'Rising global 2Y yield = BEARISH — rate contagion into UK gilt yields regardless of BoE stance. Global rate direction anchors the long end of the UK curve.'
     }},
-    HE: {cats:['growth','jobs','rates','inflation'], explain:{
-      growth:'Pork demand = retail + China imports',
-      jobs:'Consumer purchasing power',
-      rates:'USD = export headwind (China imports are price-sensitive)',
-      inflation:'Hot CPI = consumer squeeze'
+    // ── Livestock ──────────────────────────────────────────────────────────
+    LE: {cats:['growth','jobs','inflation','rates'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'GDP/retail beat = BULLISH — consumer beef demand driven by economic confidence and discretionary spending.',
+      jobs:'Strong employment = BULLISH — consumer purchasing power. Employed households increase beef consumption (trade-up effect).',
+      inflation:'Hot CPI = BEARISH — consumer squeeze reduces discretionary protein spending. Cost-of-living pressure = downgrade to cheaper alternatives.',
+      rates:'Rising 2Y yield = BEARISH — USD strength = US beef export competitiveness headwind. Also higher borrowing costs for cattle operations.'
     }},
-    ZC: {cats:['rates','inflation','growth'], explain:{
-      rates:'USD direction = dominant grain export competitiveness driver',
-      inflation:'Hot CPI = USD strong = US corn export headwind',
-      growth:'Mild demand positive (USDA + weather dominate — macro is ~5% of signal)'
+    GF: {cats:['growth','jobs','rates'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'GDP/consumer beat = BULLISH — cattle feeder demand driven by end-market consumer activity.',
+      jobs:'Strong employment = BULLISH — beef purchasing capacity tied directly to household income.',
+      rates:'Rising 2Y yield = BEARISH — USD strength = export competitiveness headwind. Higher financing costs for feeder operations.'
     }},
-    ZS: {cats:['rates','inflation','growth'], explain:{
-      rates:'USD direction (China imports 60% of global soy)',
-      inflation:'Hot CPI = USD strong = soy export headwind',
-      growth:'Demand positive but USDA + China demand dominate'
+    HE: {cats:['growth','jobs','rates','inflation'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'GDP/retail beat = BULLISH — pork demand driven by domestic consumer + Chinese import cycle.',
+      jobs:'Strong employment = BULLISH — consumer purchasing power for protein.',
+      rates:'Rising 2Y yield = BEARISH — USD strength = export headwind. China imports are particularly price-sensitive to USD movements.',
+      inflation:'Hot CPI = BEARISH — consumer squeeze reduces discretionary protein spending.'
     }},
-    ZW: {cats:['rates','inflation','growth'], explain:{
-      rates:'USD direction = wheat export competitiveness',
-      inflation:'Hot CPI = USD strong = wheat export headwind',
-      growth:'Mild demand positive (weather + Black Sea supply dominate)'
+    // ── Agricultural Softs ─────────────────────────────────────────────────
+    // NOTE: For softs, hot CPI is mildly BULLISH (infl_avg +0.30 in formula) — reflecting that
+    // commodity price inflation lifts agricultural prices and hot CPI = tight supplies narrative.
+    // The dominant macro channel is USD direction (bearish when USD strong = export headwind).
+    ZC: {cats:['rates','inflation','growth'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = US corn export competitiveness headwind. The dominant macro signal for agricultural grains.',
+      inflation:'Hot CPI = MILDLY BULLISH — reflects commodity price inflation (tight grain supplies feed CPI). But the dominant transmission is USD: hot CPI = Fed hikes = USD stronger = export headwind. Net effect is contextual; supply/weather dominate.',
+      growth:'GDP beat = MILDLY BULLISH (mild demand positive). USDA supply data and weather events dominate — macro is a minor factor (~5% of true signal).'
     }},
-    KC: {cats:['rates','inflation','growth'], explain:{
-      rates:'USD channel = dominant macro link for Arabica',
-      inflation:'Hot CPI = USD strength = coffee headwind',
-      growth:'Consumer demand mild positive (Brazil weather dominates)'
+    ZS: {cats:['rates','inflation','growth'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = soybean export competitiveness headwind. China imports 60% of global supply and is highly price-sensitive to USD movements.',
+      inflation:'Hot CPI = MILDLY BULLISH — commodity price inflation often reflects tight oilseed supplies. USD transmission ultimately dominates at extremes.',
+      growth:'GDP beat = MILDLY BULLISH. USDA supply data and China demand dominate — macro demand is a secondary signal.'
     }},
-    SB: {cats:['rates','inflation','growth'], explain:{
-      rates:'USD direction = sugar export competitiveness',
-      inflation:'Hot CPI = USD strong = sugar headwind',
-      growth:'Demand mild (Brazilian Real + biofuel/oil prices dominate)'
+    ZW: {cats:['rates','inflation','growth'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = wheat export competitiveness headwind. A strong dollar makes US wheat less competitive globally.',
+      inflation:'Hot CPI = MILDLY BULLISH — food price inflation often reflects tight wheat supplies. Black Sea supply disruptions dominate the supply signal.',
+      growth:'GDP beat = MILDLY BULLISH (mild demand positive). Weather and Black Sea supply dominate the directional signal.'
     }},
-    CC: {cats:['rates','inflation','growth'], explain:{
-      rates:'USD channel via 2Y',
-      inflation:'Hot CPI = USD strong = cocoa demand headwind',
-      growth:'Consumer demand (West African supply + EU grinding dominate)'
+    KC: {cats:['rates','inflation','growth'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = Arabica export headwind. The dominant macro link for ICE coffee.',
+      inflation:'Hot CPI = MILDLY BULLISH — consumer staple inflation reflects tight supply conditions. Brazil weather events dominate the fundamental signal.',
+      growth:'GDP beat = MILDLY BULLISH — consumer demand mild positive. Brazilian crop conditions overwhelm macro demand signals.'
     }},
-    CT: {cats:['rates','inflation','growth'], explain:{
-      rates:'USD channel = export competitiveness',
-      inflation:'Hot CPI = USD strong = cotton headwind',
-      growth:'Apparel demand = consumer + China import cycle'
+    SB: {cats:['rates','inflation','growth'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = sugar export competitiveness headwind.',
+      inflation:'Hot CPI = MILDLY BULLISH — food commodity inflation includes sugar. Brazilian Real direction and biofuel/oil price spread dominate.',
+      growth:'GDP beat = MILDLY BULLISH (demand mild positive). Brazilian ethanol/sugarcane economics dominate the fundamental signal.'
     }},
-    RC: {cats:['rates','inflation','growth'], explain:{
-      rates:'USD channel = Robusta priced in USD',
-      inflation:'Hot CPI = USD strong = Robusta headwind',
-      growth:'Consumer demand mild (Vietnamese supply + weather dominate)'
+    CC: {cats:['rates','inflation','growth'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = headwind for dollar-priced cocoa.',
+      inflation:'Hot CPI = MILDLY BULLISH — food commodity inflation. West African supply (Ivory Coast/Ghana) and EU grinding data dominate.',
+      growth:'GDP beat = MILDLY BULLISH — consumer demand. West African supply and EU processing conditions are the primary fundamental drivers.'
     }},
-    Z: {cats:['growth','inflation','rates'], explain:{
-      growth:'Global risk appetite (US macro composite 50%) + UK economic composite (GBP/FRED blend) — overseas revenue (~70% of FTSE 100 EPS) means global growth matters most',
-      inflation:'UK CPI rising = BoE hawkish = GBP strength = overseas EPS translation drag. Mild headwind for FTSE due to its international revenue base',
-      rates:'UK gilt yield direction + global 2Y rate level (15% weight). Rising gilt yields = valuation compression, especially for domestic FTSE names'
+    CT: {cats:['rates','inflation','growth'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = US cotton export competitiveness headwind.',
+      inflation:'Hot CPI = MILDLY BULLISH — fibre/apparel inflation reflects supply tightness. USD direction ultimately dominates.',
+      growth:'GDP beat = MILDLY BULLISH — apparel demand driven by consumer spending + China import cycle.'
     }},
-    R: {cats:['jobs','growth','inflation','rates'], explain:{
-      jobs:'UK unemployment trend = primary BoE dovishness signal. Rising unemployment = rate cuts more likely = Long Gilt bullish (largest weight)',
-      growth:'UK economic composite (inv) + US risk-off channel. Weaker UK growth = BoE cutting = Gilt bullish. US risk-off = flight-to-safety = Gilt support',
-      inflation:'UK CPI (inv): rising UK inflation = BoE holds/hikes = Gilt bearish. The dominant inflation input for BoE reaction function',
-      rates:'2Y yield level (global rate anchor). Rising global rates = Long Gilt headwind via rate contagion regardless of BoE stance'
+    RC: {cats:['rates','inflation','growth'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = headwind for dollar-priced Robusta coffee.',
+      inflation:'Hot CPI = MILDLY BULLISH — consumer staple inflation reflects supply tightness. Vietnamese crop conditions dominate.',
+      growth:'GDP beat = MILDLY BULLISH (mild demand positive). Vietnamese supply and weather are the primary fundamental signals.'
     }},
-    DEFAULT: {cats:['rates','inflation','growth','jobs'], explain:{
-      rates:'USD direction: rising 2Y = stronger dollar = commodity headwind',
-      inflation:'Hot CPI = USD strength = export demand headwind',
-      growth:'GDP beat = mild demand positive (dominated by supply factors)',
-      jobs:'NFP via dollar/policy channel'
+    // ── Dollar Index ────────────────────────────────────────────────────────
+    // DX is unique: rising rates and hot inflation are BULLISH (higher rates = USD bid, hot CPI = more hikes expected)
+    DX: {cats:['jobs','growth','inflation','rates'], ratesSign:1, inflSign:1, explain:{
+      jobs:'Strong NFP = BULLISH — hawkish Fed expectations = USD bid. Best single-release signal for DX direction.',
+      growth:'GDP/PMI beat = BULLISH — higher US growth = USD attractive vs peers. Confirms the US exceptionalism narrative.',
+      inflation:'Hot CPI/PCE = BULLISH — more Fed hikes expected = yield differential widens vs G10 peers = USD strengthens. Rate divergence is the primary FX driver.',
+      rates:'Rising 2Y yield = BULLISH — higher US yields attract capital inflows = USD demand. The rate differential channel is the most direct macro driver for the Dollar Index.'
+    }},
+    // ── Crypto ──────────────────────────────────────────────────────────────
+    BTC: {cats:['growth','jobs','rates','inflation'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'GDP/PMI beat = BULLISH — risk-on appetite increases demand for speculative assets. Strong growth = broader risk asset bid.',
+      jobs:'Strong NFP = BEARISH (via rates) — hawkish Fed = higher rates = risk-off for speculative assets. The jobs-to-rates transmission is the key channel.',
+      rates:'Rising 2Y yield = BEARISH — tighter financial conditions reduce appetite for risk assets. BTC trades increasingly as a high-beta risk asset, not a true inflation hedge.',
+      inflation:'Hot CPI = BEARISH (via rates) — forces Fed hawkishness = higher real rates = risk-off. The inflation-hedge narrative for BTC has not held empirically during recent rate cycles.'
+    }},
+    ETH: {cats:['growth','jobs','rates','inflation'], ratesSign:-1, inflSign:-1, explain:{
+      growth:'GDP/PMI beat = BULLISH — risk-on appetite. ETH benefits from broader risk asset flows and tech/DeFi sentiment.',
+      jobs:'Strong NFP = BEARISH (via rates) — hawkish Fed = risk-off = ETH headwind. Rate path transmission is more impactful than direct consumer demand.',
+      rates:'Rising 2Y yield = BEARISH — tighter financial conditions compress risk asset multiples. ETH is highly correlated with risk-off/on regime.',
+      inflation:'Hot CPI = BEARISH (via rates) — higher expected hikes = risk-off = ETH headwind. Same transmission mechanism as BTC.'
+    }},
+    DEFAULT: {cats:['rates','inflation','growth','jobs'], ratesSign:-1, inflSign:1, explain:{
+      rates:'Rising 2Y yield = BEARISH — USD strengthens = commodity export headwind',
+      inflation:'Hot CPI = mildly BULLISH — commodity price inflation reflects supply tightness',
+      growth:'GDP beat = mild demand positive (supply factors dominate)',
+      jobs:'Employment beat = mild demand positive via dollar/policy channel'
     }},
   };
   const _amc = ASSET_MACRO_CONTEXT[m.id] || ASSET_MACRO_CONTEXT.DEFAULT;
@@ -26159,18 +26195,30 @@ function macroTab(m){
   }
 
   // Render driver cards — use parsed reason values where available, fall back to global cats
+  // Helper: get the correctly-signed display value for a category
+  // - reason-string values already have the correct sign (backend embeds negation in text)
+  // - cats[] fallback values need the asset's ratesSign / inflSign applied
+  const _signedVal = (_cat) => {
+    if(_componentsByCat[_cat] !== undefined) return _componentsByCat[_cat];
+    const _raw = cats[_cat] ?? null;
+    if(_raw === null) return null;
+    if(_cat === 'rates')    return _raw * (_amc.ratesSign ?? -1);
+    if(_cat === 'inflation') return _raw * (_amc.inflSign  ?? -1);
+    return _raw; // growth, jobs, supply — sign is already correct in cats[]
+  };
+
   // Sort by absolute value descending (most impactful driver first)
   const _amcCats = (_amc.cats || []).slice().sort((_ca,_cb)=>{
-    const _va = _componentsByCat[_ca]!==undefined?_componentsByCat[_ca]:(cats[_ca]??0);
-    const _vb = _componentsByCat[_cb]!==undefined?_componentsByCat[_cb]:(cats[_cb]??0);
+    const _va = _signedVal(_ca) ?? 0;
+    const _vb = _signedVal(_cb) ?? 0;
     return Math.abs(_vb)-Math.abs(_va);
   });
   if(_amcCats.length){
     html+=`<div class="sec-h" style="margin-top:4px">Macro Drivers &mdash; ${m.name} <span style="font-size:7.5px;font-weight:400;color:var(--faint);text-transform:none;letter-spacing:0">(ranked by impact)</span></div>`;
     html+=`<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">`;
     for(const _cat of _amcCats){
-      // Prefer reason-string derived value, fall back to global category score
-      const _val = _componentsByCat[_cat] !== undefined ? _componentsByCat[_cat] : (cats[_cat] ?? null);
+      // Use sign-corrected value for display
+      const _val = _signedVal(_cat);
       if(_val === null) continue; // skip if no data at all
       // For GC (Gold): show all assessed factors even if zero contribution
       const _showZero = m.id === 'GC';
@@ -26198,7 +26246,7 @@ function macroTab(m){
     }
     html+=`</div>`;
     // For GC: add note that zero-contribution factors are shown for completeness
-    if(m.id==='GC') html+=`<div style="padding:5px 9px;border-radius:5px;background:rgba(245,200,66,0.04);border:1px solid rgba(245,200,66,0.14);font-size:8px;color:rgba(245,200,66,0.65);line-height:1.4;margin-bottom:12px">Factors with 0.00 contribution are listed for completeness. Gold's inflation sensitivity is fully captured via the Real Yield channel — raw CPI has near-zero direct beta to gold prices.</div>`;
+    if(m.id==='GC') html+=`<div style="padding:5px 9px;border-radius:5px;background:rgba(245,200,66,0.04);border:1px solid rgba(245,200,66,0.14);font-size:8px;color:rgba(245,200,66,0.65);line-height:1.4;margin-bottom:12px">Note: Gold\'s inflation sensitivity is captured entirely via the real yield mechanism (nominal 2Y yield − inflation expectations). Hot CPI triggers Fed hikes, which drives nominal yields above breakevens and spikes real yields — that is the bearish transmission channel. Direct CPI-to-gold beta is near-zero empirically; the real yield is what moves gold.</div>`;
   }
 
   if(compArr.length){
@@ -27107,48 +27155,60 @@ function regimeTab(m){
   const rateBarCol  = rateNorm >= 0.7 ? '#3b82c4' : rateNorm <= 0.3 ? '#e03a2a' : '#adb8d0';
   const rateBarPct  = Math.round(rateNorm * 100);
 
-  // Asset-specific rate interpretation
+  // Asset-specific rate interpretation (displayed in the Rate Path section of the Climate tab)
+  // All entries should explain the DIRECTION: rising rates = ?, cutting = ?
   const RATE_INTERP = {
-    'GC':'Rate cuts → less yield competition → Gold bullish. Hikes → headwind.',
-    'SI':'Broadly tracks gold — rate cuts modestly supportive.',
-    'ZB':'Cuts → bond prices rise (yields fall). Hikes → bond prices fall.',
-    'ZN':'Same as ZB — rate cuts = bond price tailwind.',
-    'ZF':'Highest terminal-rate sensitivity — the 5Y is directly anchored to Fed cut cycle pricing. Rate cuts reprice the mid-curve fastest of any duration point.',
-    'ZT':'Maximum near-term Fed sensitivity — the 2Y is a Fed Funds proxy. CPI and NFP each move it 10-15bp per major surprise. Rate cuts are directly and immediately bullish.',
-    'RTY':'Small caps carry higher debt loads — rate cuts meaningfully bullish.',
-    'ES':'Rate cuts moderately supportive for equities via discount rate effect.',
-    'NQ':'Growth/tech most sensitive — rate cuts strongly bullish (long duration).',
-    'YM':'Large caps, moderate rate sensitivity.',
-    'DX':'Rate cuts typically bearish for USD (yield differential narrows).',
-    '6E':'Captures US rate path vs ECB differential — see CB section below.',
-    '6B':'US rate path vs BoE — see CB section below.',
-    '6A':'US rate path vs RBA — see CB section below.',
-    '6J':'US rate path vs BoJ — see CB section below.',
-    '6C':'US rate path vs BoC — see CB section below.',
-    '6S':'US rate path vs SNB — see CB section below.',
-    '6N':'US rate path vs RBNZ — see CB section below.',
-    'CL':'Low direct rate sensitivity — macro/supply driven.',
-    'NG':'Very low rate sensitivity — weather/storage driven.',
-    'GF':'Low rate sensitivity.',
-    'LE':'Low rate sensitivity.',
-    'HE':'Low rate sensitivity.',
-    'ZC':'Low rate sensitivity.',
-    'ZW':'Low rate sensitivity.',
-    'ZS':'Low rate sensitivity.',
-    'SB':'Low rate sensitivity.',
-    'KC':'Low rate sensitivity.',
-    'CT':'Low rate sensitivity.',
-    'CC':'Low rate sensitivity.',
-    'HG':'Moderate — rate cuts support growth/construction demand.',
-    'PL':'Moderate — tracks gold partially.',
-    'PA':'Moderate — industrial/auto demand driven.',
-    'BTC':'High risk asset — rate cuts broadly supportive.',
-    'ETH':'High risk asset — rate cuts broadly supportive.',
-    'B':'Low direct rate sensitivity — global demand/OPEC+ supply driven. USD channel moderate.',
-    'GO':'Low rate sensitivity — European energy supply/demand and diesel crack spread dominant.',
-    'RC':'Very low rate sensitivity — supply shocks (weather, disease) and USD channel dominant.',
-    'Z':'Rate cuts supportive for equities broadly. FTSE 100 additionally sensitive to BoE rate path (affects GBP and UK earnings translation).',
-    'R':'BoE rate path is the primary driver. Rate cuts = Long Gilt price rises. UK CPI and employment data move BoE expectations directly.',
+    // Precious metals
+    'GC':'Rate cuts = BULLISH — compresses real yields (the primary gold driver). Rate hikes = BEARISH — real yields rise, increasing the opportunity cost of holding a zero-yielding asset. 100bp real yield rise historically = ~18% gold decline.',
+    'SI':'Rate cuts = MILDLY BULLISH — compresses real yield headwind on the precious 41% of silver demand. Industrial leg (59%) partially offsets. Rate hikes = modest headwind, dampened by industrial demand.',
+    'PL':'Rate hikes = BEARISH — USD strengthens (commodity headwind) + higher auto financing costs reduce vehicle demand. Rate cuts = mildly supportive via weaker USD and improved auto sales.',
+    'PA':'Rate hikes = BEARISH — USD strengthens (commodity headwind) + auto financing costs rise = reduced vehicle demand. Rate cuts = mildly supportive. Supply-side factors dominate over rate path.',
+    // Bonds
+    'ZB':'Rate hikes = BEARISH — 30Y price falls as long-end yields rise. Rate cuts = BULLISH — bond prices rise as yields compress. Duration is highest here — every 25bp matters most at the long end.',
+    'ZN':'Rate hikes = BEARISH — 10Y benchmark yield rises = ZN price falls. Rate cuts = BULLISH — the 10Y is the most-watched global bond; rate-cut expectations drive the strongest price response here.',
+    'ZF':'Rate hikes = BEARISH — 5Y mid-curve is most sensitive to the turn in the rate cycle. The 5Y reprices fastest when the market prices the peak/trough of a hiking/cutting cycle.',
+    'ZT':'Rate hikes = BEARISH — the 2Y is a direct Fed Funds proxy. Every CPI/NFP surprise reprices it 10-15bp. Rate-cut pricing directly and immediately supports the 2Y price. Most rate-sensitive bond to near-term Fed signals.',
+    'R':'BoE hikes = BEARISH — Gilt yields rise = price falls. BoE cuts = BULLISH. UK rate path (not Fed) is the primary driver. Watch BoE vs Fed divergence — if BoE cuts while Fed holds, Gilts outperform US Treasuries.',
+    // Equities
+    'RTY':'Rate hikes = BEARISH — highest rate sensitivity of any equity index. 50%+ of RTY balance sheets carry floating-rate debt. Every 25bp rise in 2Y = direct balance sheet cost increase for small-cap borrowers. Rate cuts = strong dual tailwind (sentiment + eventual debt relief).',
+    'NQ':'Rate hikes = BEARISH — the single most impactful macro variable for NASDAQ. Long-duration tech cash flows are discounted at higher rates, crushing P/E multiples. Rate cuts = strongest equity tailwind here (ratio ~1.75x vs SPX on rate sensitivity).',
+    'ES':'Rate hikes = BEARISH — higher discount rates compress P/E multiples across the S&P 500. Rate cuts moderately bullish via the discount rate and financial conditions channel.',
+    'YM':'Rate hikes = BEARISH (mild) — YM is the least rate-sensitive equity index due to its value/dividend composition. Rate cuts modestly supportive but far less impactful than for NQ or RTY.',
+    'Z':'Rate hikes = BEARISH — rising gilt yields compress valuations for domestic FTSE names. BoE and global rate contagion both matter. Rate cuts supportive but international revenue base dampens the rate path impact vs pure domestic markets.',
+    // FX
+    'DX':'Rate hikes = BULLISH — widening yield differential vs G10 peers attracts capital inflows = USD demand. Rate cuts = BEARISH — yield advantage erodes = USD weakens. Rate path is the primary medium-term driver of DXY.',
+    '6E':'Rate differential (ECB vs Fed) is the primary driver. ECB cutting while Fed holds = EUR/USD bearish. ECB hiking while Fed cuts = EUR/USD bullish. See Central Bank section below for detail.',
+    '6B':'Rate differential (BoE vs Fed) is the primary driver. BoE holding while Fed cuts = GBP/USD bullish. Fed hiking while BoE pauses = GBP/USD bearish. See Central Bank section below.',
+    '6A':'Rate differential (RBA vs Fed). RBA hawkish vs Fed = AUD/USD bullish. RBA dovish while Fed hikes = AUD/USD bearish. AUD also has a strong commodity/China demand channel alongside the rate differential.',
+    '6J':'Rate differential (BoJ vs Fed). BoJ normalising (hiking) while Fed cuts = JPY strengthens = 6J bullish. Fed hiking while BoJ stays at zero = JPY weakens = 6J bearish. BoJ normalisation is the dominant 2024-2026 structural driver.',
+    '6C':'Rate differential (BoC vs Fed). BoC cutting ahead of Fed = CAD/USD bearish. CAD also driven by oil prices — rate path and commodity price interact.',
+    '6S':'Rate differential (SNB vs Fed). SNB cutting aggressively while Fed holds = CHF/USD bearish. CHF also has safe-haven characteristics — risk-off can override the rate differential in crisis conditions.',
+    '6N':'Rate differential (RBNZ vs Fed). RBNZ cutting while Fed holds = NZD/USD bearish. NZD closely tracks AUD and commodity/China demand signals.',
+    // Energy
+    'CL':'Rate hikes = BEARISH (via USD) — stronger dollar makes oil more expensive for non-USD buyers, suppressing demand. Direct rate sensitivity is low. USD channel is the primary macro transmission. Supply/OPEC+ dominates.',
+    'B':'Rate hikes = BEARISH (via USD) — same USD channel as WTI. Brent also has geopolitical premium not captured by macro score. OPEC+ supply decisions dominate directional bias.',
+    'GO':'Rate hikes = BEARISH (via USD) — European diesel benchmark; USD strength = import cost headwind for non-USD buyers. EU manufacturing activity is the primary demand signal.',
+    'NG':'Very low rate sensitivity — natural gas pricing is dominated by weather, storage levels, and LNG export dynamics. Rate path provides only a weak directional background signal.',
+    'RB':'Rate hikes = BEARISH (via USD) — refined product; USD strength = headwind. Driving/commuting demand is the underlying consumption driver.',
+    'HO':'Rate hikes = BEARISH (via USD) — heating oil; USD strength = headwind for global buyers. Seasonal demand and crude oil price are the dominant factors.',
+    // Industrial metals
+    'HG':'Rate hikes = BEARISH — USD strengthens = copper (USD-priced) headwind. Also: higher rates cool construction/capex activity = reduced copper demand. Rate cuts = BULLISH — weak USD + improved industrial activity. Copper is the purest growth metal; rate path matters via both the USD and economic activity channels.',
+    // Livestock
+    'LE':'Rate hikes = BEARISH (mild) — USD strength reduces export competitiveness; higher borrowing costs squeeze cattle operations. Consumer beef demand is the primary driver; rate path is secondary.',
+    'HE':'Rate hikes = BEARISH (mild) — USD strength = export headwind (China pork imports are price-sensitive). Consumer demand and seasonal factors dominate.',
+    'GF':'Rate hikes = BEARISH (mild) — USD strength = export headwind. Higher financing costs for feeder cattle operations. Consumer demand is the primary driver.',
+    // Agricultural softs
+    'ZC':'Rate hikes = BEARISH — USD strengthens = corn export competitiveness headwind. A stronger dollar makes US grain less attractive to global buyers. USDA supply data and weather dominate fundamentals; rate path is a secondary factor.',
+    'ZS':'Rate hikes = BEARISH — USD strengthens = soybean export headwind. China imports 60% of global supply and is highly sensitive to USD movements. USDA and China demand are the primary fundamental signals.',
+    'ZW':'Rate hikes = BEARISH — USD strengthens = wheat export headwind. Black Sea supply disruptions and weather dominate. Rate path provides only a secondary background signal.',
+    'SB':'Rate hikes = BEARISH — USD strengthens = sugar export headwind. Brazilian Real direction and biofuel/ethanol economics are the dominant fundamental drivers.',
+    'KC':'Rate hikes = BEARISH — USD strengthens = Arabica export headwind. Brazil weather and crop cycle dominate fundamental direction. Rate path is a secondary macro background signal.',
+    'CT':'Rate hikes = BEARISH — USD strengthens = cotton export headwind. China import cycle and apparel demand are the primary demand signals.',
+    'CC':'Rate hikes = BEARISH — USD strengthens = cocoa headwind for global buyers. West African supply and EU grinding data dominate. Rate path is a background signal only.',
+    'RC':'Rate hikes = BEARISH — USD strengthens = Robusta export headwind. Vietnamese weather and supply conditions dominate. Macro provides very low-conviction background signal here.',
+    // Crypto
+    'BTC':'Rate hikes = BEARISH — tighter financial conditions reduce risk appetite. BTC correlates ~0.68-0.78 with the Nasdaq (CoinMetrics, post-ETF). Fed liquidity (balance sheet expansion) is also a meaningful driver. Rate cuts = BULLISH via improved risk appetite and lower opportunity cost.',
+    'ETH':'Rate hikes = BEARISH — higher rate sensitivity than BTC (deeper drawdowns in 2022 rate-hike cycle). DeFi yields become less competitive vs risk-free rates. Rate cuts = BULLISH via both risk-on appetite and improved DeFi yield attractiveness.',
   };
   const rateInterp = RATE_INTERP[m.id] || 'Moderate sensitivity to US rate path.';
 
