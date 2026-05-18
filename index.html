@@ -15851,6 +15851,133 @@ h3.label,
 
 /* ── END R31 FULL AUDIT POLISH ── */
 
+/* ══════════════════════════════════════════════════════════════════════════
+   R32 — DETAIL PAGE GLASS OVERHAUL
+   Applies particle backdrop / home-screen glass aesthetic to ALL asset
+   detail page sections. Cards and containers become transparent & glassy,
+   letting the particle background bleed through.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Section header dividers — premium pill style ── */
+.detail-section-header,
+[id^="t-regime"] .section-header-pill,
+[id^="t-macro"] .section-header-pill {
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* Market Structure & Rate Path divider pills */
+#d-content [style*="border-radius:20px"][style*="rgba(148,163,184,0.08)"],
+#d-content [style*="border-radius:20px"][style*="rgba(245,200,66,0.08)"] {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ── 2. CSS variable CSS catch-all ── */
+/* Catch any remaining --surf2/--surf3 containers in #d-content */
+#d-content [style*="background:var(--surf2)"],
+#d-content [style*="background: var(--surf2)"] {
+  background: rgba(255,255,255,0.025) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+#d-content [style*="background:var(--surf3)"],
+#d-content [style*="background: var(--surf3)"] {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+#ov-cp-signal-slot [style*="background:var(--surf2)"],
+#ov-cp-signal-slot [style*="background:var(--surf3)"] {
+  background: rgba(255,255,255,0.025) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* ── 3. Macro tab asset-class composite cards ── */
+.macro-asset {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* ── 4. COT chart containers in detail — already handled, just backdrop ── */
+#d-content .cot-stacked-wrap,
+#d-content [class*="cot-chart"],
+#d-content [id*="cot-chart"] {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ── 5. Seasonal / chart container glass ── */
+#d-content [id*="seas-chart"],
+#d-content [class*="seas-wrap"],
+#d-content [class*="seasonal-wrap"] {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ── 6. Ensure detail body is fully transparent so particles show ── */
+#d-content .tab {
+  background: transparent !important;
+}
+
+/* ── 7. Rate path card — already glass, just ensure top shine ── */
+.ov-rp-card {
+  background: linear-gradient(155deg,rgba(14,18,28,0.75) 0%,rgba(8,10,18,0.65) 100%) !important;
+}
+
+/* ── 8. ov-rp-stat tiles — ensure glass ── */
+.ov-rp-stat {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* ── 9. regime-interp-card glass ── */
+.d-regime-interp, .regime-interp-card {
+  background: rgba(255,255,255,0.02) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* ── 10. Rel val chart-ref box glass ── */
+.rv-chart-ref, [class*="rv-chart"],
+[id*="rv-chart-wrap"] {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ── 11. Phase/History tabs ── */
+#t-phase [style*="background:var(--surf"],
+#t-history [style*="background:var(--surf"] {
+  background: rgba(255,255,255,0.025) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* ── 12. COT phase toggle buttons - glass ── */
+.cot-phase-toggle,
+[id*="cot-toggle"],
+[class*="phase-toggle"] {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ── 13. Asset-specific context cards (climate drivers etc) ── */
+[class*="asset-context"],
+[class*="asset-regime"] {
+  background: rgba(255,255,255,0.02) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* ── END R32 DETAIL PAGE GLASS OVERHAUL ── */
+
 </style>
 </head>
 <body>
@@ -24893,7 +25020,7 @@ function momTab(m){
         <span style="display:flex;align-items:center;gap:3px;font-size:8px;color:rgba(245,200,66,0.9)"><span style="width:14px;height:1.5px;background:rgba(245,200,66,0.9);display:inline-block;border-top:1.5px dashed rgba(245,200,66,0.9);height:0"></span>200 SMA</span>
       </span>
     </div>
-    <div style="position:relative;height:280px;background:var(--surf2);border-radius:0 0 10px 10px;padding:0">
+    <div style="position:relative;height:280px;background:rgba(255,255,255,0.015);border-radius:0 0 10px 10px;padding:0">
       <canvas id="mom-candle-c" style="display:block;width:100%;height:100%"></canvas>
       <div id="mom-candle-load" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dim)">Loading chart…</div>
     </div>
@@ -24938,7 +25065,7 @@ function momTab(m){
     </div>
   </div>
   <!-- Interpretation note -->
-  <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;font-size:9px;color:var(--dim);line-height:1.55">
+  <div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px;font-size:9px;color:var(--dim);line-height:1.55">
     <span style="color:var(--text);font-weight:600">How it scores: </span>
     200 SMA position (30%) measures long-term trend. 50 EMA slope (30%) captures medium-term momentum. 13W ROC (20%) shows quarterly rate of change. 52W range position (20%) shows where price sits in the annual cycle.
   </div>`;
@@ -25400,7 +25527,7 @@ function macroTab(m){
             const ic=sc>0?'#22c97a':sc<0?'#e03a2a':'#4a5268';
             const tag=sc>0?'BEAT':sc<0?'MISS':'LINE';
             const tagBg=sc>0?'rgba(48,217,136,0.12)':sc<0?'rgba(240,64,64,0.12)':'rgba(90,100,128,0.12)';
-            return `<div style="display:flex;align-items:center;gap:7px;padding:4px 7px;background:var(--surf3);border-radius:5px">
+            return `<div style="display:flex;align-items:center;gap:7px;padding:4px 7px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:5px">
               <span style="font-size:8.5px;color:var(--dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.name||'—'}</span>
               ${it.actual?`<span style="font-family:var(--mono);font-size:8px;color:${ic};white-space:nowrap">${it.actual}</span>`:''}  
               <span style="font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px;background:${tagBg};color:${ic};flex-shrink:0">${tag}</span>
@@ -25712,7 +25839,7 @@ function macroTab(m){
       const c2 = row.val >= 0 ? '#22c97a' : '#e03a2a';
       const bw = Math.min(100, Math.abs(row.val) / maxAbs2 * 100);
       const latestStr = row.latest != null ? ` <span style="color:var(--dim);font-weight:400">(${fmtPct(row.latest)})</span>` : '';
-      html += `<div style="display:grid;grid-template-columns:1fr 60px 80px;align-items:center;gap:6px;padding:5px 8px;background:var(--surf2);border-radius:5px;border-left:2px solid ${c2}">
+      html += `<div style="display:grid;grid-template-columns:1fr 60px 80px;align-items:center;gap:6px;padding:5px 8px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);border-radius:5px;border-left:2px solid ${c2}">
         <span style="font-size:8.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${row.label}${latestStr}</span>
         <div style="height:4px;background:var(--surf4);border-radius:2px;overflow:hidden">
           <div style="width:${bw}%;height:100%;background:${c2};border-radius:2px"></div>
@@ -26060,7 +26187,7 @@ function relvalTab(m){
   // lines may be empty on first load (lazy-loaded from /api/relval) — only bail if truly no peers configured
   const noPeersConfigured = !d.avg_stoch && !d.signal_type && !lines.length;
   if(noPeersConfigured){
-    return `<div style="padding:32px 20px;text-align:center;color:var(--faint);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;border:1px solid var(--bdr);border-radius:10px;margin:16px 0;background:var(--surf2)">No peer comparisons defined for this market</div>`;
+    return `<div style="padding:32px 20px;text-align:center;color:var(--faint);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin:16px 0;background:rgba(255,255,255,0.02)">No peer comparisons defined for this market</div>`;
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -26176,7 +26303,7 @@ function relvalTab(m){
   html += `<div style="display:grid;grid-template-columns:auto 1fr;gap:10px;margin-bottom:11px;align-items:stretch">
 
     <!-- Gauge + traffic light panel -->
-    <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:11px;padding:10px 12px;display:flex;flex-direction:column;align-items:center;min-width:130px">
+    <div style="background:rgba(255,255,255,0.025);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:11px;padding:10px 12px;display:flex;flex-direction:column;align-items:center;min-width:130px">
       <!-- Gauge SVG -->
       <svg viewBox="0 0 120 70" width="118" height="69" style="overflow:visible;margin-bottom:2px">
         <!-- Background arc track -->
@@ -26232,7 +26359,7 @@ function relvalTab(m){
     <div style="display:flex;flex-direction:column;gap:6px">
 
       <!-- Traffic light row -->
-      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:9px 11px;display:flex;align-items:center;gap:10px">
+      <div style="background:rgba(255,255,255,0.025);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:9px 11px;display:flex;align-items:center;gap:10px">
         <!-- Light column -->
         <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
           <div style="width:13px;height:13px;border-radius:50%;background:${tlRed};box-shadow:${tlRedGlow};transition:all 0.4s ease"></div>
@@ -26249,13 +26376,13 @@ function relvalTab(m){
 
       <!-- Z-score + trend gate row -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1">
-        <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:8px 10px">
+        <div style="background:rgba(255,255,255,0.025);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:8px 10px">
           <div style="font-size:6.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Z-Score</div>
           <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:${zCol};line-height:1">${zComp!=null?(zComp>0?'+':'')+zComp.toFixed(2):'—'}</div>
           <div style="font-size:6.5px;color:${zCol};font-weight:600;margin-top:3px">${zAbs==null?'—':zAbs>=2?'Extreme':zAbs>=1.2?'Elevated':'Normal'}</div>
           <div style="font-size:6px;color:var(--faint);margin-top:1px">Std deviations vs 52W avg</div>
         </div>
-        <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:8px 10px">
+        <div style="background:rgba(255,255,255,0.025);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:8px 10px">
           <div style="font-size:6.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">Trend</div>
           <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
             <div style="width:8px;height:8px;border-radius:50%;background:${tgc.c};box-shadow:0 0 6px ${tgc.c}80;flex-shrink:0"></div>
@@ -26297,7 +26424,7 @@ function relvalTab(m){
     const pNX = pCX + pNLen * Math.cos(pRad);
     const pNY = pCY - pNLen * Math.sin(pRad);
 
-    html += `<div class="rv-peer-card" style="background:var(--surf2);border:1px solid ${zone.col}28;border-left:3px solid ${zone.col};border-radius:8px;padding:9px 11px 8px;position:relative;overflow:hidden">
+    html += `<div class="rv-peer-card" style="background:rgba(255,255,255,0.025);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid ${zone.col}28;border-left:3px solid ${zone.col};border-radius:8px;padding:9px 11px 8px;position:relative;overflow:hidden">
       <!-- Subtle zone tint bg -->
       <div style="position:absolute;top:0;right:0;width:60px;height:100%;background:linear-gradient(270deg,${zone.col}08 0%,transparent 100%);pointer-events:none"></div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
@@ -26349,7 +26476,7 @@ function relvalTab(m){
       <div style="font-size:6.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">2-Year History</div>
       <div style="display:flex;gap:0">
         <button onclick="rvToggleChart('stoch')" id="rv-btn-stoch" style="font-size:7px;padding:2px 9px;border-radius:3px 0 0 3px;border:1px solid var(--accent);cursor:pointer;font-weight:700;background:var(--accent);color:#fff;transition:all 0.15s">Stoch%</button>
-        <button onclick="rvToggleChart('ratio')" id="rv-btn-ratio" style="font-size:7px;padding:2px 9px;border-radius:0 3px 3px 0;border:1px solid var(--bdr);cursor:pointer;font-weight:700;background:var(--surf3);color:var(--dim);transition:all 0.15s">Ratio%</button>
+        <button onclick="rvToggleChart('ratio')" id="rv-btn-ratio" style="font-size:7px;padding:2px 9px;border-radius:0 3px 3px 0;border:1px solid var(--bdr);cursor:pointer;font-weight:700;background:rgba(255,255,255,0.04);color:var(--dim);transition:all 0.15s">Ratio%</button>
       </div>
     </div>
     <!-- Zone legend strips above chart -->
@@ -26969,7 +27096,7 @@ function regimeTab(m){
   const rateSectionTitle = isUKAsset ? 'BoE Rate Path' : 'US Rate Expectations';
   const rateSectionSource = isUKAsset ? 'BoE SONIA 6m trend (FRED IUDSOIA)' : 'ZQ Fed Funds futures';
 
-  html += `<div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+  html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;margin-bottom:10px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">${rateSectionTitle}</div>
       <div style="font-size:9px;font-weight:700;color:${rateBarCol};background:${rateBarCol}18;border:1px solid ${rateBarCol}33;border-radius:4px;padding:2px 7px">${rateLabel||'—'}</div>
@@ -26983,15 +27110,15 @@ function regimeTab(m){
         const boeBiasLabel = boeD.label||(boeD.bias===1?'Hiking':boeD.bias===-1?'Cutting':'Flat');
         const boeBiasCol = boeBiasLabel==='Paused'?'#9aa5be':boeD.bias===1?'#e03a2a':boeD.bias===-1?'#22c97a':'#4a5268';
         return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
-          <div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">SONIA Rate</div>
             <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:var(--text)">${boeRate}</div>
           </div>
-          <div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">6M Change</div>
             <div style="font-family:var(--mono);font-size:16px;font-weight:800;color:${boeD.trend_6m<-0.1?'#22c97a':boeD.trend_6m>0.1?'#e03a2a':'var(--text)'}">${boeTrend6}</div>
           </div>
-          <div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">BoE Bias</div>
             <div style="font-family:var(--mono);font-size:14px;font-weight:800;color:${boeBiasCol}">${boeBiasLabel}</div>
           </div>
@@ -27037,7 +27164,7 @@ function regimeTab(m){
         <div style="font-size:8px;color:var(--faint)">Bearish (hikes)</div>
         <div style="font-size:8px;color:var(--faint)">Bullish (cuts)</div>
       </div>
-      <div style="height:4px;background:var(--surf3);border-radius:2px;overflow:hidden">
+      <div style="height:4px;background:rgba(255,255,255,0.04);border-radius:2px;overflow:hidden">
         <div style="height:100%;width:${rateBarPct}%;background:${rateBarCol};border-radius:2px;transition:width 600ms var(--ease)"></div>
       </div>
     </div>
@@ -27077,7 +27204,7 @@ function regimeTab(m){
     const _cbSectionLabel = m.id==='Z' ? 'BoE Rate Path — FTSE Context'
                            : m.id==='R' ? 'BoE Rate Path — Gilt Driver'
                            : 'CB Rate Differential';
-    html += `<div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+    html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;margin-bottom:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">${_cbSectionLabel}</div>
         <div style="font-size:9px;font-weight:700;color:${diffCol};background:${diffCol}18;border:1px solid ${diffCol}33;border-radius:4px;padding:2px 7px">${id.label||'—'}</div>
@@ -27096,7 +27223,7 @@ function regimeTab(m){
             _wBias  +=(_cbd.bias||0)*_w;
           }
           const _worldBias=_wBias>0.2?1:_wBias<-0.2?-1:0;
-          const _worldCard=`<div style="background:var(--surf3);border:1px solid ${_worldBias===1?'#e03a2a44':_worldBias===-1?'#22c97a44':'var(--bdr2)'};border-radius:8px;padding:10px 12px;text-align:center">
+          const _worldCard=`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid ${_worldBias===1?'rgba(224,58,42,0.2)':_worldBias===-1?'rgba(34,201,122,0.2)':'rgba(255,255,255,0.07)'};border-radius:8px;padding:10px 12px;text-align:center">
             <div style="font-size:8px;font-weight:700;letter-spacing:0.08em;color:var(--faint);margin-bottom:5px">World Basket</div>
             <div style="font-family:var(--mono);font-size:17px;font-weight:800;color:var(--text);line-height:1">${_wRate.toFixed(2)}%</div>
             <div style="margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px">
@@ -27118,7 +27245,7 @@ function regimeTab(m){
             </div>
             ${_worldCard}
           </div>
-          ${_dxCarryDiff!==null?`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surf3);border-radius:7px;margin-bottom:8px">
+          ${_dxCarryDiff!==null?`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.03);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06);border-radius:7px;margin-bottom:8px">
             <div style="flex:1">
               <div style="font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:2px">Carry Differential</div>
               <div style="font-size:10px;color:var(--dim)">Fed ${(usRate||0).toFixed(2)}% vs World avg ${_wRate.toFixed(2)}% (EUR/JPY/GBP/CAD weighted)</div>
@@ -27135,7 +27262,7 @@ function regimeTab(m){
           </div>
           ${_cbCard('US', intlRates['US']||{}, false)}
         </div>
-        ${carryDiff!==null?`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surf3);border-radius:7px;margin-bottom:8px">
+        ${carryDiff!==null?`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.03);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06);border-radius:7px;margin-bottom:8px">
           <div style="flex:1">
             <div style="font-size:7.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:2px">Carry Differential</div>
             <div style="font-size:10px;color:var(--dim)">${foreignRate!==null&&usRate!==null?`${CB_NAMES[fCb]||fCb} ${foreignRate.toFixed(2)}% vs Fed ${usRate.toFixed(2)}%`:''}</div>
@@ -27151,7 +27278,7 @@ function regimeTab(m){
       ${stale>14?`<div style="font-size:8px;color:var(--faint);font-style:italic">Data ${stale}d old (monthly FRED release) &mdash; staleness discount applied</div>`:''}
     </div>
 
-    <div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:12px 16px;margin-bottom:10px">
+    <div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 16px;margin-bottom:10px">
       <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px">G10 Rate Paths</div>
       <div style="display:flex;flex-direction:column;gap:4px">
         ${CB_ORDER.filter(cb=>intlRates[cb]).map(cb=>{
@@ -27167,7 +27294,7 @@ function regimeTab(m){
           const staleBadge = (cbd.stale_days||0)>14?` <span style="font-size:7px;color:var(--faint);opacity:0.7">${cbd.stale_days}d</span>`:'';
           return `<div style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;background:${isActive?'var(--surf3)':'transparent'};border:1px solid ${isActive?'var(--bdr2)':'transparent'}">
             <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${isActive?bc:'var(--faint)'};width:36px;flex-shrink:0">${CB_NAMES[cb]||cb}</div>
-            <div style="flex:1;height:3px;background:var(--surf3);border-radius:2px;overflow:hidden;position:relative">
+            <div style="flex:1;height:3px;background:rgba(255,255,255,0.04);border-radius:2px;overflow:hidden;position:relative">
               <div style="position:absolute;${t6>=0?'left:50%':'right:50%'};height:100%;width:${barW/2}%;background:${barCol};border-radius:1px"></div>
               <div style="position:absolute;left:50%;top:-1px;width:1px;height:5px;background:var(--bdr3)"></div>
             </div>
@@ -27203,17 +27330,17 @@ function regimeTab(m){
     <div style="flex:1;height:1px;background:var(--bdr)"></div>
   </div>`;
   // ════════════════════════════════════════════════════════════════════════
-  html += `<div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+  html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;margin-bottom:10px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">Risk Climate</div>
       <div style="font-size:9px;font-weight:700;color:${regColor};background:${regColor}18;border:1px solid ${regColor}33;border-radius:4px;padding:2px 7px">${regName}</div>
     </div>
     ${vixLvl!==null?`<div style="display:flex;gap:6px;margin-bottom:10px">
-      <div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 12px;flex:1;text-align:center">
+      <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:8px 12px;flex:1;text-align:center">
         <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">VIX</div>
         <div style="font-family:var(--mono);font-size:18px;font-weight:800;color:${vixLvl>=30?'#e03a2a':vixLvl>=23?'#e06030':vixLvl<=14?'#22c97a':'var(--text)'}">${vixLvl.toFixed(1)}</div>
       </div>
-      ${vix3mLvl!==null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 12px;flex:1;text-align:center">
+      ${vix3mLvl!==null?`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:8px 12px;flex:1;text-align:center">
         <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">VIX 3M</div>
         <div style="font-family:var(--mono);font-size:18px;font-weight:800;color:var(--text)">${vix3mLvl.toFixed(1)}</div>
         <div style="font-size:8px;color:${vixTs>=1?'#22c97a':vixTs<=-2?'#e03a2a':'var(--dim)'};margin-top:2px">${vixTs>=1?'Contango':vixTs<=-2?'Inverted':'Flat'}</div>
@@ -27224,10 +27351,10 @@ function regimeTab(m){
         if(!v) return '';
         const sv  = typeof v.signal==='number'?v.signal:0;
         const sc2 = sv>0.5?'#22c97a':sv<-0.5?'#e03a2a':sv>0?'#5aaa88':sv<0?'#c47a4a':'#4a5268';
-        const bg  = sv>0?'rgba(38,201,122,0.06)':sv<0?'rgba(240,64,64,0.06)':'var(--surf3)';
+        const bg  = sv>0?'rgba(38,201,122,0.05)':sv<0?'rgba(240,64,64,0.05)':'rgba(255,255,255,0.025)';
         const bdr = sv!==0?sc2+'33':'var(--bdr)';
         const bar = Math.min(100,Math.abs(sv)/2*100);
-        return `<div style="background:${bg};border:1px solid ${bdr};border-radius:7px;padding:9px 11px;overflow:hidden;position:relative">
+        return `<div style="background:${bg};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid ${bdr};border-radius:7px;padding:9px 11px;overflow:hidden;position:relative">
           <div style="position:absolute;bottom:0;left:0;height:2px;width:${bar}%;background:${sc2};opacity:0.4"></div>
           <div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--faint);margin-bottom:4px">${k}</div>
           <div style="font-size:8.5px;font-weight:700;color:${sc2};margin-bottom:2px">${sv>0?'Risk-On':sv<0?'Risk-Off':'Neutral'}</div>
@@ -27389,7 +27516,7 @@ function regimeTab(m){
         { label: 'Real Yield', val: _mComp.real_yield ?? 0, key: 'real_yield' },
       ].filter(x => Math.abs(x.val) >= 0.001);
       const maxAbsContrib = Math.max(0.01, ..._contribs.map(c => Math.abs(c.val)));
-      html += `<div style="background:var(--surf2);border:1px solid ${msCol}33;border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid ${msCol}25;border-top:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
           <div style="text-align:center;min-width:52px">
             <div style="font-family:var(--mono);font-size:28px;font-weight:800;color:${msCol};line-height:1">${_mScore10.toFixed(1)}</div>
@@ -27408,9 +27535,9 @@ function regimeTab(m){
             const dir = cv > 0.02 ? 'Tailwind' : cv < -0.02 ? 'Headwind' : 'Neutral';
             return `<div style="display:flex;align-items:center;gap:8px">
               <div style="font-size:8px;color:var(--dim);width:112px;flex-shrink:0;line-height:1.2">${c.label}</div>
-              <div style="flex:1;height:3px;background:var(--surf3);border-radius:2px;overflow:hidden;position:relative">
+              <div style="flex:1;height:3px;background:rgba(255,255,255,0.04);border-radius:2px;overflow:hidden;position:relative">
                 <div style="position:absolute;${cv>=0?'left:50%':'right:50%'};height:100%;width:${barW/2}%;background:${cc};border-radius:1px"></div>
-                <div style="position:absolute;left:50%;top:-1px;width:1px;height:5px;background:var(--bdr3)"></div>
+                <div style="position:absolute;left:50%;top:-1px;width:1px;height:5px;background:rgba(255,255,255,0.12)"></div>
               </div>
               <div style="font-size:8px;font-weight:700;color:${cc};width:72px;text-align:right;white-space:nowrap">${dir} ${cv>=0?'+':''}${cv.toFixed(3)}</div>
             </div>`;
@@ -27434,23 +27561,23 @@ function regimeTab(m){
       // Gauge: HY OAS context zones (crisis=600+, stress=450-600, elevated=300-450, normal=200-300, tight=<200)
       const hyGaugePct = Math.min(100, Math.max(0, ((hyBps - 150) / (700 - 150)) * 100));
       const hyZoneCol = hyBps < 250 ? '#22c97a' : hyBps < 350 ? '#5c9eff' : hyBps < 500 ? '#f5c842' : hyBps < 650 ? '#e06030' : '#e03a2a';
-      html += `<div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px 16px;margin-bottom:8px">
+      html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;margin-bottom:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">Credit Spreads</div>
           <div style="font-size:9px;font-weight:700;color:${trendCol};background:${trendCol}18;border:1px solid ${trendCol}33;border-radius:4px;padding:2px 7px">${trendArrow} ${hyTrend}</div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
-          <div style="background:var(--surf3);border:1px solid ${hyZoneCol}33;border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">HY OAS</div>
             <div style="font-family:var(--mono);font-size:19px;font-weight:800;color:${hyZoneCol}">${hyBps}</div>
             <div style="font-size:7.5px;color:var(--dim);margin-top:1px">bps</div>
           </div>
-          <div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">IG OAS</div>
             <div style="font-family:var(--mono);font-size:19px;font-weight:800;color:var(--text)">${igBps??'—'}</div>
             <div style="font-size:7.5px;color:var(--dim);margin-top:1px">bps</div>
           </div>
-          <div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">HY / IG</div>
             <div style="font-family:var(--mono);font-size:19px;font-weight:800;color:var(--text)">${hyRatio??'—'}x</div>
             <div style="font-size:7.5px;color:var(--dim);margin-top:1px">ratio</div>
@@ -27469,11 +27596,11 @@ function regimeTab(m){
           <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${hyZoneCol};text-align:center;margin-top:4px">${hyBps} bps${hyDelta4w!=null?` &nbsp;·&nbsp; ${hyDelta4w>=0?'+':''}${hyDelta4w.toFixed(2)}% 4w`:''}</div>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:9px">
-          ${hyDelta4w!=null?`<div style="background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;flex:1;text-align:center">
+          ${hyDelta4w!=null?`<div style="background:rgba(255,255,255,0.03);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:5px 9px;flex:1;text-align:center">
             <div style="font-size:7px;color:var(--faint);font-weight:700;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:2px">4-Week Chg</div>
             <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${hyDelta4w<0?'#22c97a':hyDelta4w>0?'#e03a2a':'var(--dim)'}">${hyDelta4w>=0?'+':''}${hyDelta4w.toFixed(2)}%</div>
           </div>`:''}
-          ${hyDelta3m!=null?`<div style="background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;flex:1;text-align:center">
+          ${hyDelta3m!=null?`<div style="background:rgba(255,255,255,0.03);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:5px 9px;flex:1;text-align:center">
             <div style="font-size:7px;color:var(--faint);font-weight:700;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:2px">3-Month Chg</div>
             <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${hyDelta3m<0?'#22c97a':hyDelta3m>0?'#e03a2a':'var(--dim)'}">${hyDelta3m>=0?'+':''}${hyDelta3m.toFixed(2)}%</div>
           </div>`:''}
@@ -27502,7 +27629,7 @@ function regimeTab(m){
       const svgCol = primary > 0.5 ? '#22c97a' : primary < -0.5 ? '#e03a2a' : '#f5c842';
       const midY = 30 - slope * 0.4;
       const endY = 30 - slope;
-      html += `<div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px 16px;margin-bottom:8px">
+      html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;margin-bottom:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">Yield Curve</div>
           <div style="font-size:9px;font-weight:700;color:${cRegCol};background:${cRegCol}18;border:1px solid ${cRegCol}33;border-radius:4px;padding:2px 7px">${creg}</div>
@@ -27525,13 +27652,13 @@ function regimeTab(m){
             <text x="110" y="58" font-size="6" fill="#5a6480" text-anchor="middle">10Y</text>
           </svg>
           <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            ${t3m!=null?`<div style="background:var(--surf3);border:1px solid ${t3m>0.5?'#22c97a33':t3m<-0.5?'#e03a2a33':'var(--bdr2)'};border-radius:7px;padding:8px 10px;text-align:center">
+            ${t3m!=null?`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid ${t3m>0.5?'rgba(34,201,122,0.2)':t3m<-0.5?'rgba(224,58,42,0.2)':'rgba(255,255,255,0.07)'};border-radius:7px;padding:8px 10px;text-align:center">
               <div style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">10Y − 3M</div>
               <div style="font-family:var(--mono);font-size:20px;font-weight:800;color:${t3m>0.5?'#22c97a':t3m<-0.5?'#e03a2a':'#f5c842'}">${t3m>=0?'+':''}${t3m.toFixed(2)}</div>
               <div style="font-size:7.5px;color:var(--dim);margin-top:1px">pp spread</div>
               ${t3m3m!=null?`<div style="font-size:7.5px;margin-top:3px;color:${t3m3m>0?'#22c97a':t3m3m<0?'#e03a2a':'var(--dim)'}">${t3m3m>=0?'+':''}${t3m3m.toFixed(2)}pp 3m</div>`:''}
             </div>`:''}
-            ${t2y!=null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+            ${t2y!=null?`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
               <div style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">10Y − 2Y</div>
               <div style="font-family:var(--mono);font-size:20px;font-weight:800;color:${t2y>0.5?'#22c97a':t2y<-0.5?'#e03a2a':'#f5c842'}">${t2y>=0?'+':''}${t2y.toFixed(2)}</div>
               <div style="font-size:7.5px;color:var(--dim);margin-top:1px">pp spread</div>
@@ -27560,20 +27687,20 @@ function regimeTab(m){
       const dgs10Col= dgs10Chg===null?'var(--text)':dgs10Chg>0.2?'#e03a2a':dgs10Chg<-0.2?'#22c97a':'var(--text)';
 
       if(cpiYoy!==null || ryVal!==null || dgs10Val!==null){
-        html += `<div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px 16px;margin-bottom:8px">
+        html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;margin-bottom:8px">
           <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);margin-bottom:10px">Rates & Inflation</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
-            ${dgs10Val!=null?`<div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+            ${dgs10Val!=null?`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
               <div style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">US 10Y Yield</div>
               <div style="font-family:var(--mono);font-size:19px;font-weight:800;color:${dgs10Col}">${dgs10Val.toFixed(2)}%</div>
               ${dgs10Chg!=null?`<div style="font-size:7.5px;margin-top:2px;color:${dgs10Chg>0.1?'#e03a2a':dgs10Chg<-0.1?'#22c97a':'var(--dim)'}">${dgs10Chg>=0?'+':''}${dgs10Chg.toFixed(2)}% 3m</div>`:''}
             </div>`:''}
-            ${cpiYoy!=null?`<div style="background:var(--surf3);border:1px solid ${cpiCol}22;border-radius:7px;padding:8px 10px;text-align:center">
+            ${cpiYoy!=null?`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid ${cpiCol}33;border-radius:7px;padding:8px 10px;text-align:center">
               <div style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">CPI YoY</div>
               <div style="font-family:var(--mono);font-size:19px;font-weight:800;color:${cpiCol}">${cpiYoy.toFixed(1)}%</div>
               <div style="font-size:7.5px;margin-top:2px;color:${cpiTrCol}">${cpiArrow} ${cpiReg}</div>
             </div>`:''}
-            ${ryVal!=null?`<div style="background:var(--surf3);border:1px solid ${ryCol}22;border-radius:7px;padding:8px 10px;text-align:center">
+            ${ryVal!=null?`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid ${ryCol}33;border-radius:7px;padding:8px 10px;text-align:center">
               <div style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Real Yield</div>
               <div style="font-family:var(--mono);font-size:19px;font-weight:800;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</div>
               <div style="font-size:7.5px;margin-top:2px;color:var(--dim)">${ryVal<0?'Gold tailwind':ryVal>2?'Bonds compete':'Positive'}</div>
@@ -27597,25 +27724,25 @@ function regimeTab(m){
       const bar6w = chg6m!=null ? Math.min(100, Math.abs(chg6m) / 5 * 100) : 0;
       const bar3c = chg3m!=null ? (chg3m>0.3?'#22c97a':chg3m<-0.3?'#e03a2a':'#5c9eff') : '#4a5268';
       const bar6c = chg6m!=null ? (chg6m>0.5?'#22c97a':chg6m<-0.5?'#e03a2a':'#5c9eff') : '#4a5268';
-      html += `<div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px 16px;margin-bottom:8px">
+      html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;margin-bottom:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">Fed Balance Sheet</div>
           <div style="font-size:9px;font-weight:700;color:${fedCol};background:${fedCol}18;border:1px solid ${fedCol}33;border-radius:4px;padding:2px 7px">${trend}</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
-          <div style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:7px;padding:8px 10px;text-align:center">
+          <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Total Assets</div>
             <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:var(--text)">\$${level.toFixed(2)}T</div>
           </div>
-          ${chg3m!=null?`<div style="background:var(--surf3);border:1px solid ${bar3c}22;border-radius:7px;padding:8px 10px;text-align:center">
+          ${chg3m!=null?`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid ${bar3c}33;border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">3M Change</div>
             <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:${bar3c}">${chg3m>=0?'+':''}${chg3m.toFixed(2)}%</div>
-            <div style="margin-top:4px;height:3px;background:var(--surf4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${bar3w}%;background:${bar3c};border-radius:2px;${chg3m<0?'margin-left:auto':''}"></div></div>
+            <div style="margin-top:4px;height:3px;background:rgba(255,255,255,0.04);border-radius:2px;overflow:hidden"><div style="height:100%;width:${bar3w}%;background:${bar3c};border-radius:2px;${chg3m<0?'margin-left:auto':''}"></div></div>
           </div>`:''}
-          ${chg6m!=null?`<div style="background:var(--surf3);border:1px solid ${bar6c}22;border-radius:7px;padding:8px 10px;text-align:center">
+          ${chg6m!=null?`<div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid ${bar6c}33;border-radius:7px;padding:8px 10px;text-align:center">
             <div style="font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">6M Change</div>
             <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:${bar6c}">${(chg6m||0)>=0?'+':''}${(chg6m||0).toFixed(2)}%</div>
-            <div style="margin-top:4px;height:3px;background:var(--surf4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${bar6w}%;background:${bar6c};border-radius:2px;${(chg6m||0)<0?'margin-left:auto':''}"></div></div>
+            <div style="margin-top:4px;height:3px;background:rgba(255,255,255,0.04);border-radius:2px;overflow:hidden"><div style="height:100%;width:${bar6w}%;background:${bar6c};border-radius:2px;${(chg6m||0)<0?'margin-left:auto':''}"></div></div>
           </div>`:''}
         </div>
         <div style="font-size:8.5px;color:var(--dim);line-height:1.5;font-style:italic">${_macroInterp('fed_balance', m.id)}</div>
@@ -27862,7 +27989,7 @@ function regimeTab(m){
       </div>
       <div style="flex:1;height:1px;background:var(--bdr)"></div>
     </div>
-    <div style="background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+    <div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;margin-bottom:10px">
       <div style="font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:12px">${arc.title}</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${arc.factors.map((f,_fi) => {
@@ -27900,7 +28027,7 @@ function regimeTab(m){
   // ════════════════════════════════════════════════════════════════════════
   // 5b. CLIMATE SCORE HISTORY SPARKLINE
   // ════════════════════════════════════════════════════════════════════════
-  html += `<div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+  html += `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">52W Climate Score History</div>
       <div id="climate-hist-chg-${m.id}" style="font-size:7.5px;font-weight:700;color:var(--faint)"></div>
@@ -27915,7 +28042,7 @@ function regimeTab(m){
   html += `<div style="font-size:7.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--bdr)">Market Context</div>`;
   // Skeleton placeholder — loadRegimeNarrative() will replace this
   html += `<div id="regime-narr-slot-${m.id}">
-    <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+    <div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
       <div style="width:6px;height:6px;border-radius:50%;background:rgba(92,158,255,0.4);animation:pulse 1.4s ease-in-out infinite"></div>
       <div style="font-size:9px;color:var(--faint)">Loading market context…</div>
     </div>
@@ -27964,7 +28091,7 @@ async function loadRegimeNarrative(marketId) {
     let html = '';
 
     if (ncError === 'no_api_key') {
-      html = `<div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:12px 14px;margin-bottom:10px">
+      html = `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:12px 14px;margin-bottom:10px">
         <div style="font-size:9px;color:var(--faint);line-height:1.5">AI context disabled — add <code style="font-family:var(--mono);background:var(--surf3);padding:1px 5px;border-radius:3px">PPLX_API_KEY</code> to enable.</div>
       </div>`;
     } else if (narrative) {
@@ -27980,7 +28107,7 @@ async function loadRegimeNarrative(marketId) {
         <div style="font-size:10.5px;color:var(--text);line-height:1.6">${narrative}</div>
       </div>`;
     } else {
-      html = `<div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:10px 14px;margin-bottom:10px">
+      html = `<div style="background:rgba(255,255,255,0.02);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:10px 14px;margin-bottom:10px">
         <div style="font-size:9px;color:var(--faint)">No specific AI context available for ${mktName} this cycle.</div>
       </div>`;
     }
@@ -27996,7 +28123,7 @@ async function loadRegimeNarrative(marketId) {
           const ago = n.dateline ? (() => { const mn = Math.round((Date.now()/1000 - n.dateline)/60); return mn < 60 ? mn+'m' : Math.round(mn/60)+'h'; })() : '';
           const ic  = n.impact === 'high' ? '#e03a2a' : '#c47a4a';
           const ibg = n.impact === 'high' ? 'rgba(240,64,64,0.08)' : 'rgba(196,122,74,0.08)';
-          html += `<div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:9px 11px">
+          html += `<div style="background:rgba(255,255,255,0.025);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:9px 11px">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
               <span style="background:${ibg};color:${ic};font-size:7px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:2px 6px;border-radius:3px">${n.impact}</span>
               ${n.source ? `<span style="font-size:8px;color:var(--faint)">${n.source}</span>` : ''}
@@ -28179,12 +28306,12 @@ function pcrTabStub(m){
     <div style="padding:16px 16px 8px">
       <!-- Header stats row -->
       <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-        <div style="flex:1;min-width:110px;background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:13px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
+        <div style="flex:1;min-width:110px;background:rgba(255,255,255,0.025);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:13px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08)">
           <div style="font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">P/C OI Ratio</div>
           <div style="font-size:24px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1">${(d.pcr_oi!=null?d.pcr_oi:d.current_daily)||'—'}</div>
           <div style="font-size:8px;color:var(--dim);margin-top:4px">${isEtfOrCrypto?(d.exchange||'Live snapshot'):'as of '+(d.latest_date||'—')}</div>
         </div>
-        <div style="flex:1;min-width:110px;background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:13px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
+        <div style="flex:1;min-width:110px;background:rgba(255,255,255,0.025);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:13px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08)">
           <div style="font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">${isEtfOrCrypto?'Vol P/C':'20-Day MA'}</div>
           <div style="font-size:24px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1">${isEtfOrCrypto?(d.pcr_vol!=null?d.pcr_vol:'—'):(d.ma20||'—')}</div>
           <div style="font-size:8px;color:var(--dim);margin-top:4px">${isEtfOrCrypto?'volume-based ratio':'smoothed signal'}</div>
@@ -28194,7 +28321,7 @@ function pcrTabStub(m){
           <div style="font-size:15px;font-weight:700;color:${col};line-height:1.2;margin-top:2px">${label}</div>
           <div style="font-size:8px;color:${col};opacity:0.7;margin-top:4px">${d.signal||''}</div>
         </div>
-        <div style="flex:1;min-width:110px;background:var(--surf3);border:1px solid var(--bdr3);border-radius:10px;padding:13px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.07)">
+        <div style="flex:1;min-width:110px;background:rgba(255,255,255,0.025);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:13px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08)">
           <div style="font-size:7.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">${isEtfOrCrypto&&d.exchange?'Total OI':'Percentile'}</div>
           <div style="font-size:24px;font-weight:700;color:${col};font-family:var(--mono);line-height:1">${isEtfOrCrypto&&d.exchange?(d.total_oi!=null?d.total_oi.toLocaleString():'—'):(d.percentile!=null?(d.percentile+'%'):'—')}</div>
           <div style="font-size:8px;color:var(--dim);margin-top:4px">${isEtfOrCrypto&&d.exchange?'open interest (contracts)':'of history (fear)'}</div>
