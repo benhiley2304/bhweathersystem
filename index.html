@@ -13558,10 +13558,10 @@ canvas{
   .ov-banner { min-height: 720px !important; }
 }
 @media (max-width: 1440px) and (min-width: 1281px) {
-  .ov-banner { min-height: 590px !important; }
+  .ov-banner { min-height: 660px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner { min-height: 560px !important; }
+  .ov-banner { min-height: 620px !important; }
 }
 @media (max-width: 900px) {
   .ov-banner { min-height: 520px !important; }
@@ -15680,15 +15680,16 @@ h3.label,
 .ov-banner::after {
   height: 180px !important;
 }
-/* Laptop breakpoints: stronger bottom fade to cover arc overshoot */
+/* Laptop breakpoints: stronger bottom fade + hard colour curtain to cover arc overshoot */
 @media (max-width: 1440px) {
   .ov-banner::after {
-    height: 200px !important;
+    height: 220px !important;
     background: linear-gradient(
       to bottom,
       transparent 0%,
-      rgba(12,12,11,0.15) 40%,
-      rgba(12,12,11,0.65) 75%,
+      rgba(12,12,11,0.20) 35%,
+      rgba(12,12,11,0.72) 65%,
+      #0c0c0b 85%,
       #0c0c0b 100%
     ) !important;
   }
@@ -21528,7 +21529,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   progress = (progress === undefined) ? 1 : progress;
   const DPR = Math.max(2, window.devicePixelRatio || 2);
   const W   = canvas.offsetWidth || 900;
-  const H   = window.innerWidth <= 700 ? 200 : Math.max(320, Math.min(680, Math.round(W * 0.38)));
+  // At laptop widths (700–1440px) the arc extends to CY+OR = H*1.18 which bleeds
+  // past the canvas. Use a taller canvas at mid-widths so it contains the geometry.
+  const _iw = window.innerWidth;
+  const _hRatio = _iw <= 700 ? 0 : _iw <= 1440 ? 0.46 : 0.38;
+  const H   = _iw <= 700 ? 200 : Math.max(380, Math.min(680, Math.round(W * _hRatio)));
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
   canvas.style.width  = W + 'px';
