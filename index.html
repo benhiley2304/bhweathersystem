@@ -21062,11 +21062,11 @@ function _drawLiveDot(canvas, data, phase) {
   const ARC_X  = PAD_L + LEFT_W;
   const PAD_R  = 20;
   // Arc: 80% ring visible, centred horizontally
-  // R26C: OR reduced to 0.72 so top rings stay within canvas (CY=0.62, top = CY-OR = -0.10H)
-  const ARC_OR_PRELIM = H * 0.72;
+  // CY=0.46, OR=0.56 → top bleed = -0.10H (same as before), bottom = 1.02H (fits canvas)
+  const ARC_OR_PRELIM = H * 0.56;
   const ARC_CX  = W * 0.50;
-  const ARC_CY  = H * 0.62;
-  const ARC_OR  = H * 0.72;
+  const ARC_CY  = H * 0.46;
+  const ARC_OR  = H * 0.56;
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S = 0, MAX_S = 10;
   const SWEEP = 210 * Math.PI / 180;
@@ -21191,11 +21191,11 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   const LEFT_W = 145;                      // jarvis data panel width
   const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
   // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-  // R26C: OR reduced to 0.72 so top rings stay within canvas
-  const ARC_OR_PRE = H * 0.72;
+  // CY=0.46, OR=0.56 → top bleed = -0.10H (same as before), bottom = 1.02H (fits canvas)
+  const ARC_OR_PRE = H * 0.56;
   const ARC_CX  = W * 0.50;
-  const ARC_CY  = H * 0.62;
-  const ARC_OR  = H * 0.72;
+  const ARC_CY  = H * 0.46;
+  const ARC_OR  = H * 0.56;
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S  = 0, MAX_S = 10;
   const SWEEP  = 210 * Math.PI / 180;
@@ -21870,11 +21870,11 @@ function _setupArcTooltip(canvas, data) {
     // Arc geometry
     const ARC_X  = PAD_L + LEFT_W2;
     // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
-    // R26C: OR reduced to 0.72 so top rings stay within canvas
-    const ARC_OR_P = H * 0.72;
+    // CY=0.46, OR=0.56 → top bleed = -0.10H (same as before), bottom = 1.02H (fits canvas)
+    const ARC_OR_P = H * 0.56;
     const ARC_CX  = W * 0.50;
-    const ARC_CY  = H * 0.62;
-    const ARC_OR  = H * 0.72;
+    const ARC_CY  = H * 0.46;
+    const ARC_OR  = H * 0.56;
     const ARC_IR = ARC_OR * 0.30;
     const SWEEP  = 210 * Math.PI / 180;
     const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
