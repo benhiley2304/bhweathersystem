@@ -13557,11 +13557,11 @@ canvas{
 @media (min-width: 2560px) {
   .ov-banner { min-height: 720px !important; }
 }
-@media (max-width: 1440px) and (min-width: 1281px) {
-  .ov-banner { min-height: 660px !important; }
+@media (max-width: 1600px) and (min-width: 1281px) {
+  .ov-banner { min-height: 680px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner { min-height: 620px !important; }
+  .ov-banner { min-height: 640px !important; }
 }
 @media (max-width: 900px) {
   .ov-banner { min-height: 520px !important; }
@@ -15649,23 +15649,23 @@ h3.label,
     transparent 100%
   ) !important;
 }
-/* Laptop: start dissolve earlier so arc base doesn't bleed out of banner */
-@media (max-width: 1440px) {
+/* Laptop: start dissolve earlier — covers MacBook Air M4 15" (1470px) and all smaller laptops */
+@media (max-width: 1600px) {
   .ov-arc-canvas-wrap {
     -webkit-mask-image: linear-gradient(
       180deg,
       black 0%,
-      black 62%,
-      rgba(0,0,0,0.55) 74%,
-      rgba(0,0,0,0.18) 86%,
+      black 60%,
+      rgba(0,0,0,0.50) 72%,
+      rgba(0,0,0,0.12) 84%,
       transparent 100%
     ) !important;
     mask-image: linear-gradient(
       180deg,
       black 0%,
-      black 62%,
-      rgba(0,0,0,0.55) 74%,
-      rgba(0,0,0,0.18) 86%,
+      black 60%,
+      rgba(0,0,0,0.50) 72%,
+      rgba(0,0,0,0.12) 84%,
       transparent 100%
     ) !important;
   }
@@ -15680,16 +15680,16 @@ h3.label,
 .ov-banner::after {
   height: 180px !important;
 }
-/* Laptop breakpoints: stronger bottom fade + hard colour curtain to cover arc overshoot */
-@media (max-width: 1440px) {
+/* Laptop breakpoints (up to 1600px covers MacBook Air M4 15" at 1470px logical) */
+@media (max-width: 1600px) {
   .ov-banner::after {
-    height: 220px !important;
+    height: 240px !important;
     background: linear-gradient(
       to bottom,
       transparent 0%,
-      rgba(12,12,11,0.20) 35%,
-      rgba(12,12,11,0.72) 65%,
-      #0c0c0b 85%,
+      rgba(12,12,11,0.20) 30%,
+      rgba(12,12,11,0.75) 60%,
+      #0c0c0b 82%,
       #0c0c0b 100%
     ) !important;
   }
@@ -21532,7 +21532,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // At laptop widths (700–1440px) the arc extends to CY+OR = H*1.18 which bleeds
   // past the canvas. Use a taller canvas at mid-widths so it contains the geometry.
   const _iw = window.innerWidth;
-  const _hRatio = _iw <= 700 ? 0 : _iw <= 1440 ? 0.46 : 0.38;
+  // MacBook Air M4 15" renders at ~1470px logical — use 1600px threshold to catch all laptop displays
+  const _hRatio = _iw <= 700 ? 0 : _iw <= 1600 ? 0.46 : 0.38;
   const H   = _iw <= 700 ? 200 : Math.max(380, Math.min(680, Math.round(W * _hRatio)));
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
