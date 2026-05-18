@@ -15461,6 +15461,153 @@ h3.label,
   margin: 4px 0 !important;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   R31-MOB-HERO — Mobile hero redesign to match desktop
+   Big two-line stroke/fill typographic treatment
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+
+  /* Hero container: taller, more dramatic */
+  #mob-hero {
+    min-height: 220px !important;
+    background-color: #040507 !important;
+    border-bottom: 1px solid rgba(200,169,110,0.18) !important;
+  }
+
+  /* Inner: column layout with content */
+  #mob-hero-inner {
+    padding: 20px 18px 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  /* Eyebrow: unchanged */
+  .mob-hero-eyebrow {
+    font-size: 7px !important;
+    letter-spacing: 0.16em !important;
+    color: rgba(200,169,110,0.55) !important;
+    margin-bottom: 12px !important;
+  }
+
+  /* Regime block: new two-line desktop-style hero */
+  .mob-hero-regime {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1 !important;
+    font-size: unset !important;
+    font-weight: unset !important;
+    letter-spacing: unset !important;
+    color: unset !important;
+    /* Override all earlier single-line treatments */
+    -webkit-text-fill-color: unset !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    animation: none !important;
+  }
+
+  /* Word 1: hollow stroke (matches desktop .ov-hero-word1) */
+  .mob-regime-w1 {
+    font-family: var(--nexus-head, 'Space Grotesk'), sans-serif !important;
+    font-size: 72px !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.05em !important;
+    line-height: 0.88 !important;
+    display: block !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    color: var(--mob-regime-col, currentColor) !important;
+    -webkit-text-fill-color: transparent !important;
+    -webkit-text-stroke: 2px var(--mob-regime-col, currentColor) !important;
+    paint-order: stroke fill !important;
+    opacity: 0.72 !important;
+    margin: 0 !important;
+  }
+
+  /* Word 2: solid fill + shimmer gradient (matches desktop .ov-hero-word2) */
+  .mob-regime-w2 {
+    font-family: var(--nexus-head, 'Space Grotesk'), sans-serif !important;
+    font-size: 72px !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.05em !important;
+    line-height: 0.92 !important;
+    display: block !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    color: var(--mob-regime-col, currentColor) !important;
+    -webkit-text-fill-color: transparent !important;
+    -webkit-text-stroke: 0 !important;
+    background: linear-gradient(115deg,
+      var(--mob-regime-col, currentColor) 0%,
+      var(--mob-regime-col, currentColor) 22%,
+      rgba(255,255,255,0.95) 40%,
+      var(--mob-regime-col, currentColor) 58%,
+      var(--mob-regime-col, currentColor) 100%) !important;
+    background-size: 280% 100% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    animation: heroGradientShimmer 7s cubic-bezier(0.45,0,0.55,1) infinite !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+    margin: 0 !important;
+  }
+
+  /* Thin rule below headline */
+  .mob-hero-rule {
+    display: block !important;
+    width: 100% !important;
+    height: 1px !important;
+    background: linear-gradient(to right, var(--mob-regime-col, rgba(200,169,110,0.4)), transparent) !important;
+    opacity: 0.35 !important;
+    margin: 14px 0 12px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Description: tighter, positioned below rule */
+  .mob-hero-desc {
+    font-size: 10.5px !important;
+    color: rgba(255,255,255,0.52) !important;
+    line-height: 1.45 !important;
+    letter-spacing: 0.01em !important;
+    margin-bottom: 14px !important;
+    max-width: calc(100% - 90px) !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  /* Stats row: same as before */
+  .mob-hero-stats {
+    display: flex !important;
+    gap: 6px !important;
+  }
+
+  /* Stat cards: slightly tighter */
+  .mob-hero-stat {
+    flex: 1 !important;
+    border-radius: 9px !important;
+    padding: 8px 9px !important;
+  }
+
+  /* Score arc: position relative to new taller hero */
+  #mob-hero-arc {
+    top: 18px !important;
+    right: 14px !important;
+    width: 74px !important;
+    height: 74px !important;
+  }
+
+  /* Bracket: bottom-right */
+  .mob-hero-bracket-br {
+    bottom: 14px !important;
+    right: 16px !important;
+  }
+
+}
+/* ─── END R31-MOB-HERO ─── */
+
 /* ─── END R31 ─── */
 
 </style>
@@ -16181,7 +16328,16 @@ function renderOverview(){
           <div class="mob-hero-pip" style="background:${regCol}"></div>
           BH WEATHER SYSTEM &nbsp;·&nbsp; ${total} MARKETS &nbsp;·&nbsp; ${updStr}
         </div>
-        <div class="mob-hero-regime" style="--mob-regime-col:${regCol}">${regLabel}</div>
+        <div class="mob-hero-regime" style="--mob-regime-col:${regCol}">${(()=>{
+          // Split regLabel into two-line desktop-style hero text
+          // e.g. 'Risk-On' -> RISK (stroke) + ON (fill)
+          //      'Strong Risk-On' -> STRONG RISK (stroke) + ON (fill)
+          const words = regLabel.replace(/-/g,' ').toUpperCase().split(' ').filter(Boolean);
+          const w2 = words[words.length - 1]; // last word: solid fill
+          const w1 = words.slice(0, -1).join(' ') || ''; // rest: stroke
+          return `<span class="mob-regime-w1">${w1 || '&mdash;'}</span><span class="mob-regime-w2">${w2}</span>`;
+        })()}</div>
+        <div class="mob-hero-rule"></div>
         <div class="mob-hero-desc">${mobDesc}</div>
         <div class="mob-hero-stats">
           <div class="mob-hero-stat">
