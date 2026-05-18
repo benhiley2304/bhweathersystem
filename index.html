@@ -16472,8 +16472,8 @@ function goHome(){
         if(arcC){
           if(_arcPulseId){cancelAnimationFrame(_arcPulseId);_arcPulseId=null;}
           if(_arcAnimId){cancelAnimationFrame(_arcAnimId);_arcAnimId=null;}
-          _renderClimateArcAnimated(arcC,_arcData,1);
-          _setupArcTooltip(arcC,_arcData);
+          _renderClimateArcAnimated(arcC,_arcData,1,_arcLive);
+          _setupArcTooltip(arcC,_arcData,_arcLive);
         }
       }
     }));
@@ -21218,6 +21218,7 @@ function ovDonutSvg(bull,neut,bear,total,avg){
 
 // ── Climate Arc: 12-month global regime visualisation ──────────────────────
 let _arcData = null;
+let _arcLive = {};   // live={liveScore,liveLabel,liveCol} for latest-bar tooltip override
 let _arcAnimId = null;     // draw-on animation RAF id
 let _arcPulseId = null;    // live dot pulse RAF id
 let _arcPulsePhase = 0;    // pulse animation phase
@@ -21238,8 +21239,9 @@ async function loadClimateArc(live={}) {
       return;
     }
     _arcData = data;
+    _arcLive = live || {};
     _renderClimateArcAnimated(canvas, data, 1, live);
-    _setupArcTooltip(canvas, data);
+    _setupArcTooltip(canvas, data, live);
   } catch (e) {
     console.warn('Climate arc load failed:', e);
     document.getElementById('ov-arc-foot-note').textContent = 'Climate history unavailable';
@@ -22159,10 +22161,11 @@ function _buildPhaseSummary(data) {
   el.innerHTML = pills;
 }
 
-function _setupArcTooltip(canvas, data) {
+function _setupArcTooltip(canvas, data, live) {
   const tooltip = document.getElementById('ov-arc-tooltip');
   const crosshair = document.getElementById('ov-arc-crosshair');
   if (!tooltip || !canvas) return;
+  live = live || {};
 
   const N = data.scores.length;
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -22219,13 +22222,15 @@ function _setupArcTooltip(canvas, data) {
       if (crosshair) crosshair.classList.remove('visible');
       return;
     }
-    const score = data.scores[idx];
-    const label = data.labels[idx];
+    // For the most recent bar, use live values so tooltip matches the left-panel display
+    const isLatest = idx === N - 1;
+    const score = isLatest && live.liveScore != null ? live.liveScore : data.scores[idx];
+    const label = isLatest && live.liveLabel ? live.liveLabel : data.labels[idx];
     const sig   = data.signals ? data.signals[idx] : null;
     const dt    = new Date(data.dates[idx]);
     const dateStr = MONTHS[dt.getMonth()] + ' ' + dt.getDate() + ', ' + dt.getFullYear();
     const rgb   = _scoreToColor(score);
-    const col   = _rgbStr(rgb, 1.0);
+    const col   = isLatest && live.liveCol ? live.liveCol : _rgbStr(rgb, 1.0);
     // Hide old crosshair — doesn't apply to polar layout
     if (crosshair) crosshair.classList.remove('visible');
 
@@ -29092,7 +29097,7 @@ let _arcResizeTimer=null;
 window.addEventListener('resize',()=>{
   clearTimeout(_arcResizeTimer);
   _arcResizeTimer=setTimeout(()=>{
-    if(_arcData){const c=document.getElementById('ov-arc-canvas');if(c){if(_arcPulseId){cancelAnimationFrame(_arcPulseId);_arcPulseId=null;}if(_arcOrbRedrawId){cancelAnimationFrame(_arcOrbRedrawId);_arcOrbRedrawId=null;}const dc=document.getElementById('ov-arc-dot-canvas');if(dc)dc.remove();  _renderClimateArc(c,_arcData);_setupArcTooltip(c,_arcData);/* pulse dot removed R13 */}}
+    if(_arcData){const c=document.getElementById('ov-arc-canvas');if(c){if(_arcPulseId){cancelAnimationFrame(_arcPulseId);_arcPulseId=null;}if(_arcOrbRedrawId){cancelAnimationFrame(_arcOrbRedrawId);_arcOrbRedrawId=null;}const dc=document.getElementById('ov-arc-dot-canvas');if(dc)dc.remove();  _renderClimateArc(c,_arcData,1,_arcLive);_setupArcTooltip(c,_arcData,_arcLive);/* pulse dot removed R13 */}}
   },150);
 });
 
