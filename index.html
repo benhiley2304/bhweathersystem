@@ -15469,9 +15469,10 @@ h3.label,
 
   /* Hero container: taller, more dramatic */
   #mob-hero {
-    min-height: 220px !important;
+    min-height: 240px !important;
     background-color: #040507 !important;
     border-bottom: 1px solid rgba(200,169,110,0.18) !important;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.8) !important;
   }
 
   /* Inner: column layout with content */
@@ -16334,8 +16335,12 @@ function renderOverview(){
           //      'Strong Risk-On' -> STRONG RISK (stroke) + ON (fill)
           const words = regLabel.replace(/-/g,' ').toUpperCase().split(' ').filter(Boolean);
           const w2 = words[words.length - 1]; // last word: solid fill
-          const w1 = words.slice(0, -1).join(' ') || ''; // rest: stroke
-          return `<span class="mob-regime-w1">${w1 || '&mdash;'}</span><span class="mob-regime-w2">${w2}</span>`;
+          let w1 = words.slice(0, -1).join(' ') || ''; // rest: stroke
+          // Neutral edge case — show MARKET / NEUTRAL
+          if (!w1) w1 = 'MARKET';
+          // Font size: shrink for longer first word to prevent overflow
+          const szRem = w1.length > 7 ? '58px' : '72px';
+          return `<span class="mob-regime-w1" style="font-size:${szRem}">${w1}</span><span class="mob-regime-w2" style="font-size:${szRem}">${w2}</span>`;
         })()}</div>
         <div class="mob-hero-rule"></div>
         <div class="mob-hero-desc">${mobDesc}</div>
