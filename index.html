@@ -2826,6 +2826,42 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .d-score-hero-bar{width:100%;height:3.5px;border-radius:2px;margin-top:10px;background:rgba(255,255,255,0.07);overflow:visible;position:relative}
 .d-confluence-badge{display:inline-flex;align-items:center;gap:3px;margin-top:6px;padding:2px 6px;border-radius:10px;font-size:7.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:rgba(245,200,66,0.12);color:var(--gold);border:1px solid rgba(245,200,66,0.25);white-space:nowrap}
 .d-confluence-badge .cf-dot{width:4px;height:4px;border-radius:50%;background:var(--gold);flex-shrink:0}
+/* New rich confluence callout on score hero */
+.d-conf-callout{display:flex;align-items:center;gap:6px;margin-top:8px;padding:5px 9px;border-radius:6px;border:1px solid;background:rgba(0,0,0,0.2);max-width:100%;min-width:0}
+.d-conf-pip{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.d-conf-text{font-size:9.5px;font-style:italic;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.d-conf-bonus{font-family:var(--mono);font-size:9px;font-weight:700;border-radius:3px;padding:1px 5px;flex-shrink:0;white-space:nowrap}
+
+/* ── HIGH CONVICTION MODULE (sidebar, above rankings) ── */
+#hc-module{border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(200,169,110,0.04) 0%,transparent 100%);padding:12px 14px 10px}
+.hc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.hc-header-left{display:flex;align-items:center;gap:6px}
+.hc-label{font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);font-family:var(--head)}
+.hc-glow-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px 2px rgba(200,169,110,0.5);flex-shrink:0}
+.hc-count{font-size:9px;color:var(--faint);background:var(--surf3);border-radius:9px;padding:1px 6px;font-family:var(--mono)}
+.hc-card{position:relative;display:flex;align-items:center;gap:8px;padding:8px 11px 8px 13px;margin-bottom:4px;border-radius:6px;background:var(--surf2);border:1px solid rgba(255,255,255,0.06);overflow:hidden;cursor:pointer;transition:background 150ms,border-color 150ms}
+.hc-card:last-child{margin-bottom:0}
+.hc-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.hc-card.hc-bull::before{background:var(--s1)}
+.hc-card.hc-bear::before{background:var(--sm1)}
+.hc-card:hover{background:var(--surf3);border-color:rgba(255,255,255,0.09)}
+.hc-card-inner{flex:1;min-width:0}
+.hc-card-top{display:flex;align-items:center;gap:6px}
+.hc-card-tid{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);min-width:20px;flex-shrink:0}
+.hc-card-name{font-size:11px;font-weight:600;color:var(--text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc-card-score{font-family:var(--head);font-size:13px;font-weight:700;min-width:24px;text-align:center;flex-shrink:0}
+.hc-card-score.hc-bull{color:var(--s1)}
+.hc-card-score.hc-bear{color:var(--sm1)}
+.hc-card-badge{font-size:8px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;flex-shrink:0;white-space:nowrap}
+.hc-card-badge.hc-bull{background:rgba(38,201,122,0.1);color:var(--s1)}
+.hc-card-badge.hc-bear{background:rgba(214,58,36,0.1);color:var(--sm1)}
+.hc-card-reason{font-size:9px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;display:block}
+.hc-conf-chip{font-size:8px;font-weight:600;color:var(--accent);background:rgba(200,169,110,0.1);border-radius:3px;padding:1px 4px;flex-shrink:0;white-space:nowrap}
+
+/* ── CONFLUENCE DOT in rankings list ── */
+.mr-conf-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px 1px rgba(200,169,110,0.55);flex-shrink:0;margin-right:4px}
+.mr-conf-dot.bear{background:var(--sm1);box-shadow:0 0 5px 1px rgba(214,58,36,0.5)}
+.mr-conf-ph{width:5px;height:5px;flex-shrink:0;margin-right:4px}
 .d-score-hero-bar-f{height:100%;border-radius:2px;transition:width 400ms ease}
 /* Sub-scores breakdown inside score hero */
 .d-sub-scores{
@@ -16104,6 +16140,7 @@ h3.label,
         <h2>Rankings</h2>
         <span id="sb-count">—</span>
       </div>
+      <div id="hc-module"></div>
       <div class="cat-row" id="cat-row">
         <button class="cat-btn on" data-cat="all">All</button>
         <button class="cat-btn" data-cat="equity">Equity</button>
@@ -16447,8 +16484,66 @@ document.getElementById('cat-row').addEventListener('click',e=>{
   renderList();
 });
 
+/* ──────────────────────────────────────────────────
+   HIGH CONVICTION MODULE
+   Criteria: |score−5| ≥1.5 AND |confluence_bonus| ≥0.15
+────────────────────────────────────────────────── */
+function renderHCModule(allMarkets){
+  const el = document.getElementById('hc-module');
+  if(!el) return;
+  const SCORE_THRESH = 1.5;   // |score-5| must be >= this
+  const CONF_THRESH  = 0.15;  // |confluence_bonus| must be >= this
+  const hits = allMarkets
+    .filter(m => Math.abs((m.weighted_score||5)-5) >= SCORE_THRESH && Math.abs(m.confluence_bonus||0) >= CONF_THRESH)
+    .sort((a,b) => {
+      // sort by conviction strength: |score-5| + |bonus|
+      const ca = Math.abs((a.weighted_score||5)-5) + Math.abs(a.confluence_bonus||0);
+      const cb = Math.abs((b.weighted_score||5)-5) + Math.abs(b.confluence_bonus||0);
+      return cb - ca;
+    })
+    .slice(0,5); // cap at 5 cards
+
+  if(!hits.length){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='';
+
+  const cards = hits.map(m=>{
+    const ws  = m.weighted_score||5;
+    const col = sHex(ws);
+    const bull = ws >= 5;
+    const dir  = bull ? 'hc-bull' : 'hc-bear';
+    const bonus= m.confluence_bonus||0;
+    const bonusStr = (bonus>=0?'+':'')+bonus.toFixed(2);
+    // Strip the trailing +/−X.XX from the reason string (we show it as a chip)
+    const reason = (m.confluence_reason||'').replace(/[+−\-][\d.]+$/, '').trim();
+    const shortName = m.name.length > 16 ? m.name.slice(0,15)+'…' : m.name;
+    const biasShort = (m.bias||'').replace('Very ','').replace('Mildly ','').replace('mildly ','');
+    const tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
+    return `<div class="hc-card ${dir}" onclick="selectMkt('${m.id}')">
+      <div class="hc-card-inner">
+        <div class="hc-card-top">
+          <span class="hc-card-tid">${tidDisplay}</span>
+          <span class="hc-card-name">${shortName}</span>
+          <span class="hc-card-score ${dir}">${ws.toFixed(1)}</span>
+          <span class="hc-card-badge ${dir}">${biasShort}</span>
+        </div>
+        ${reason ? `<span class="hc-card-reason">${reason}${bonus?' · <span class="hc-conf-chip">${bonusStr}</span>':''}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML =
+    `<div class="hc-header">
+      <div class="hc-header-left">
+        <div class="hc-glow-dot"></div>
+        <span class="hc-label">High Conviction</span>
+      </div>
+      <span class="hc-count">${hits.length} active</span>
+    </div>` + cards;
+}
+
 function renderList(){
   if(!DATA)return;
+  renderHCModule(DATA.markets);
   const markets=DATA.markets.filter(m=>selCat==='all'||m.category===selCat);
   if(!markets.length){
     document.getElementById('mkt-list').innerHTML='<div style="padding:14px;color:var(--faint);font-size:10px">No markets</div>';
@@ -16477,12 +16572,18 @@ function renderList(){
 
     // Shorten ticker for display: FX crosses like GBPAUD -> GBP, NZDCAD -> NZD etc
     const _tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
+    // Confluence dot: show gold dot for bull confluence, red dot for bear confluence
+    const _cfBonus = m.confluence_bonus||0;
+    const _cfDot = Math.abs(_cfBonus)>=0.15
+      ? `<div class="mr-conf-dot${_cfBonus<0?' bear':''}"></div>`
+      : `<div class="mr-conf-ph"></div>`;
     return sepHtml + `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" data-zone="${_zone}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id" style="color:${_catCol}">${_tidDisplay}</span>
       <div class="mr-body">
         <div class="mr-name">${m.name}</div>
         ${sliderHtml}
       </div>
+      ${_cfDot}
       <div class="mr-right">
         <span class="mr-score-badge" style="color:${col}">${ws.toFixed(1)}</span>
         <span class="mr-bias" style="color:${col}">${biasShort}</span>
@@ -23694,7 +23795,20 @@ function dHead(m,ws,col,bg){
       <div class="d-score-hero-num" style="color:${col}">${ws.toFixed(1)}</div>
       <div class="d-score-hero-denom" style="color:${col}">/10</div>
       <div class="d-score-hero-label" style="color:${col}">${m.bias}</div>
-      ${(m.confluence_bonus&&Math.abs(m.confluence_bonus)>=0.15)?`<div class="d-confluence-badge"><span class="cf-dot"></span>Confluence</div>`:''}
+      ${(()=>{
+        if(!m.confluence_bonus||Math.abs(m.confluence_bonus)<0.15) return '';
+        const _cb=m.confluence_bonus;
+        const _cr=(m.confluence_reason||'').replace(/[+\-−][\d.]+$/, '').trim();
+        const _bs=((_cb>=0)?'+':'')+_cb.toFixed(2);
+        const _bc=_cb>=0?'var(--gold)':'var(--sm1)';
+        const _bgc=_cb>=0?'rgba(245,200,66,0.1)':'rgba(214,58,36,0.1)';
+        const _bdc=_cb>=0?'rgba(245,200,66,0.22)':'rgba(214,58,36,0.22)';
+        return `<div class="d-conf-callout" style="border-color:${_bdc}">
+          <div class="d-conf-pip" style="background:${_bc};box-shadow:0 0 5px 1px ${_bc}66"></div>
+          <span class="d-conf-text" style="color:${_bc}">${_cr||'Confluence active'}</span>
+          <span class="d-conf-bonus" style="background:${_bgc};color:${_bc}">${_bs}</span>
+        </div>`;
+      })()}
       <div class="d-score-hero-bar" style="background:linear-gradient(90deg,#c41a2e 0%,#d63a24 30%,#4a5268 50%,#3b82c4 70%,#22c97a 100%) !important">
         <div class="d-score-hero-bar-f" style="position:absolute;left:${barPct}%;top:0;width:0;height:100%;background:${col}"></div>
       </div>
