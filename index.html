@@ -16898,6 +16898,390 @@ h3.label,
 }
 /* ── END OVERVIEW TAB CSS ── */
 
+/* ══════════════════════════════════════════════════════════
+   FULL VISUAL AUDIT POLISH — May 2026
+   Addresses: header height, nav tab contrast, attribution
+   table bars, score denom, confluence, weight legend,
+   COT commentary contrast, mobile mini-grid, rate path
+   colours, general typography consistency.
+══════════════════════════════════════════════════════════ */
+
+/* 1. HEADER — compact the photo banner (was ~230px, now ~160px)
+   The d-head-l padding controls intrinsic height */
+.d-head-l{
+  padding:10px 16px 10px 20px !important;
+  gap:4px !important;
+}
+.d-head-centre{
+  padding:10px 18px !important;
+}
+.d-score-hero{
+  padding:10px 14px !important;
+}
+/* Slightly smaller asset name in header to keep header tight */
+.d-name{
+  font-size:20px !important;
+  line-height:1.05 !important;
+}
+/* Reduce photo opacity slightly — more subdued, premium */
+.d-head-graphic::after{
+  background:rgba(5,7,13,0.55) !important;
+}
+/* Move COT Phase / Score History buttons to look like secondary ghost buttons */
+.d-head-l>div:last-child button{
+  font-size:7px !important;
+  padding:2px 7px !important;
+  opacity:0.75;
+}
+.d-head-l>div:last-child button:hover{
+  opacity:1;
+}
+
+/* 2. NAV TAB STRIP — higher contrast inactive tabs */
+.ov-nt{
+  font-size:10.5px !important;
+  font-weight:600 !important;
+  color:rgba(173,184,208,0.65) !important;
+  letter-spacing:0.025em !important;
+  padding:10px 14px !important;
+}
+.ov-nt:hover{
+  color:rgba(173,184,208,0.95) !important;
+  background:rgba(255,255,255,0.025);
+}
+.ov-nt.on{
+  color:var(--text) !important;
+  border-bottom-color:var(--accent) !important;
+}
+/* Score chips in nav — slightly more readable */
+.ov-nchip{
+  font-size:9px !important;
+  padding:2px 5px !important;
+  border-radius:3px !important;
+}
+
+/* 3. FACTOR STRIP (score cards) — tighter, cleaner active highlight */
+.factor-strip{
+  border-bottom:1px solid rgba(255,255,255,0.06) !important;
+}
+.f-card{
+  border-right:1px solid rgba(255,255,255,0.04) !important;
+  transition:background 120ms !important;
+}
+.f-card.act{
+  background:rgba(200,169,110,0.06) !important;
+  border-bottom:2px solid var(--accent) !important;
+}
+.f-lbl{
+  font-size:8px !important;
+  letter-spacing:0.1em !important;
+  font-weight:700 !important;
+  text-transform:uppercase !important;
+  color:var(--faint) !important;
+}
+.f-wt{
+  font-size:8px !important;
+  opacity:0.7 !important;
+}
+.f-val{
+  font-size:17px !important;
+  letter-spacing:-0.03em !important;
+  line-height:1.1 !important;
+}
+.f-sub{
+  font-size:8.5px !important;
+  color:var(--faint) !important;
+  line-height:1.3 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+/* 4. OVERVIEW VERDICT CARD — better score hierarchy */
+.ov-vsn{
+  font-size:40px !important;
+  font-weight:700 !important;
+  letter-spacing:-0.04em !important;
+}
+.ov-vsd{
+  font-size:10px !important;
+  color:var(--dim) !important;
+  opacity:1 !important;
+  font-weight:500 !important;
+}
+.ov-vk{
+  font-size:8px !important;
+  letter-spacing:0.15em !important;
+  color:var(--accent) !important;
+  opacity:0.9 !important;
+  margin-bottom:8px !important;
+}
+.ov-vstmt{
+  font-size:12.5px !important;
+  line-height:1.75 !important;
+  color:var(--dim) !important;
+}
+
+/* 5. PILLS — more breathing room, larger text */
+.ov-pl{
+  padding:4px 9px 4px 7px !important;
+  font-size:9.5px !important;
+  border-radius:4px !important;
+}
+.ov-plk{
+  font-size:9.5px !important;
+  font-weight:700 !important;
+}
+.ov-plv{
+  font-size:9px !important;
+  color:var(--dim) !important;
+}
+
+/* 6. ATTRIBUTION TABLE — taller score bars for readability */
+.ov-abar-track{
+  height:4px !important;
+  background:rgba(255,255,255,0.09) !important;
+  border-radius:2px !important;
+}
+.ov-abar-fill{
+  height:100% !important;
+  border-radius:2px !important;
+}
+.ov-acont-bar-track{
+  height:4px !important;
+  background:rgba(255,255,255,0.09) !important;
+  border-radius:2px !important;
+}
+.ov-acont-bar-fill{
+  height:100% !important;
+  border-radius:2px !important;
+}
+.ov-afn{
+  font-size:11.5px !important;
+  font-weight:600 !important;
+  color:var(--text) !important;
+}
+.ov-afi{
+  font-size:9.5px !important;
+  color:var(--faint) !important;
+}
+.ov-asc{
+  font-size:13px !important;
+  font-weight:700 !important;
+}
+.ov-awt{
+  font-size:11px !important;
+  color:var(--dim) !important;
+}
+.ov-acont-val{
+  font-size:13px !important;
+  font-weight:700 !important;
+}
+/* Composite total row — gold accent, bolder */
+.ov-atotal{
+  background:rgba(200,169,110,0.05) !important;
+  border-top:1px solid rgba(200,169,110,0.15) !important;
+}
+.ov-at-lbl{
+  font-size:11.5px !important;
+  font-weight:700 !important;
+  color:var(--accent) !important;
+}
+.ov-at-num{
+  font-size:18px !important;
+  font-weight:700 !important;
+  color:var(--accent) !important;
+}
+
+/* 7. CONFLUENCE STRIP — better padding and text size */
+.ov-conf-strip{
+  padding:10px 14px !important;
+  gap:12px !important;
+}
+.ov-conf-badge{
+  font-size:9.5px !important;
+  padding:4px 10px !important;
+}
+.ov-conf-text{
+  font-size:10.5px !important;
+  color:var(--dim) !important;
+  line-height:1.55 !important;
+}
+.ov-conf-text strong{
+  color:var(--text) !important;
+  font-weight:600 !important;
+}
+
+/* 8. WEIGHT BAR — taller, more readable legend */
+.ov-wt-card{
+  padding:12px 16px !important;
+}
+.ov-wt-lbl{
+  font-size:8px !important;
+  letter-spacing:0.12em !important;
+  font-weight:700 !important;
+  margin-bottom:10px !important;
+  color:var(--faint) !important;
+}
+.ov-wt-bar{
+  height:5px !important;
+  border-radius:2px !important;
+  gap:2px !important;
+  margin-bottom:12px !important;
+}
+.ov-wt-it{
+  font-size:10px !important;
+  color:var(--dim) !important;
+  gap:5px !important;
+}
+.ov-wt-sq{
+  width:8px !important;
+  height:8px !important;
+  border-radius:2px !important;
+}
+.ov-wt-pct{
+  font-size:9.5px !important;
+  color:var(--faint) !important;
+}
+.ov-wt-leg{
+  gap:6px 16px !important;
+}
+
+/* 9. MOBILE — hide redundant mini score grid at bottom of overview
+   (it duplicates the attribution table shown above it) */
+@media(max-width:700px){
+  .ov-mini-score-grid,
+  #t-overview .f-mini-grid,
+  .ov-mini-cards,
+  .ov-score-mini-row{
+    display:none !important;
+  }
+  .ov-wt-it{
+    font-size:9.5px !important;
+  }
+  .ov-conf-text{
+    font-size:10px !important;
+  }
+}
+
+/* 10. COT TAB — commentary text more readable */
+.cot-comm-text,
+.cot-group-sub,
+.cot-block-desc,
+.cot-spec-sub,
+.cot-spec-desc,
+[class*="cot-desc"],
+[class*="cot-sub"]{
+  font-size:10px !important;
+  color:var(--dim) !important;
+  line-height:1.6 !important;
+}
+/* COT toggle buttons (Net Contracts / Briese Index) — better contrast */
+.cot-toggle-btn,
+[class*="toggle-btn"],
+.cot-view-toggle,
+.cot-tgl-btn{
+  color:var(--dim) !important;
+  border-color:rgba(255,255,255,0.12) !important;
+}
+.cot-toggle-btn.on,
+.cot-toggle-btn.act,
+[class*="toggle-btn"].on{
+  color:var(--text) !important;
+  border-color:var(--accent) !important;
+  background:rgba(200,169,110,0.08) !important;
+}
+
+/* 11. CLIMATE / REGIME TAB — rate path hike numbers
+   +29bp HIKE in red is alarming — use accent gold for hike neutral read */
+.rate-path-card .rp-val.hike,
+.rate-path-hike,
+[class*="rate-hike"],
+.rate-path-val{
+  color:var(--accent) !important;
+}
+/* Keep explicit bear/bullish colours elsewhere */
+.rate-path-card .rp-label-bear{ color:var(--sm1) !important; }
+.rate-path-card .rp-label-bull{ color:var(--s2) !important; }
+
+/* 12. MACRO TAB — component score bar labels */
+.mac-comp-label,
+.mac-driver-label,
+[class*="mac-lbl"]{
+  font-size:10px !important;
+  color:var(--dim) !important;
+  font-weight:500 !important;
+}
+
+/* 13. RELVAL TAB — signal card edge sharpness */
+.rv-signal-card,
+.relval-signal-card,
+[class*="rv-card"]{
+  border-radius:8px !important;
+  overflow:hidden !important;
+}
+
+/* 14. GLOBAL — timestamps and secondary metadata brighter */
+.ts-label,
+.updated-ts,
+[class*="upd-ts"],
+[class*="last-upd"]{
+  color:rgba(173,184,208,0.55) !important;
+  font-size:9px !important;
+}
+
+/* 15. GLOBAL — dim separators / dots between menv pills */
+.menv-sep,
+.env-sep,
+.pill-sep{
+  opacity:0.3 !important;
+}
+
+/* 16. RISK ON display text — tighten to Space Grotesk for premium feel
+   The word marks use var(--head) already; ensure no mono bleed-through */
+.arc-hero-w1,
+.arc-hero-w2,
+.hs-risk-w1,
+.hs-risk-w2,
+[class*="big-w"],
+[class*="hero-word"]{
+  font-family:var(--head) !important;
+  letter-spacing:-0.04em !important;
+}
+
+/* 17. SCORE DENOM (/10) — more visible */
+.d-score-hero-denom{
+  font-size:11px !important;
+  opacity:0.5 !important;
+  font-family:var(--head) !important;
+}
+.ov-vsd{
+  font-size:10.5px !important;
+  color:var(--dim) !important;
+  opacity:0.9 !important;
+}
+
+/* 18. Attribution table column header text — bigger */
+.ov-ah{
+  font-size:8.5px !important;
+  letter-spacing:0.09em !important;
+  color:var(--faint) !important;
+  font-weight:700 !important;
+}
+
+/* 19. OV-NAV — background match detail surface for seamless feel */
+.ov-nav{
+  background:var(--surf) !important;
+  border-bottom:1px solid rgba(255,255,255,0.07) !important;
+}
+
+/* 20. GLOBAL link-like elements — gold accent consistent */
+a, .link-gold{
+  color:var(--accent) !important;
+}
+
+/* ── END VISUAL AUDIT POLISH ── */
+
 </style>
 </head>
 <body>
@@ -20446,7 +20830,7 @@ function renderMacroDataPanels(reg){
           </div>`:''}
           ${cuts12m!=null?(()=>{
               const path_bp = -cuts12m * 25;
-              const pathCol = path_bp>0?'#e03a2a':path_bp<0?'#22c97a':'#adb8d0';
+              const pathCol = path_bp>0?'#c8a96e':path_bp<0?'#30d988':'#adb8d0';
               const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
               const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
               return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
@@ -26236,7 +26620,9 @@ function factorStrip(m){
   const s=m.scores;
   const w=m.weights||{}; // per-market weight map from backend
   const hasPcr = PCR_EQUITY_IDS.has(m.id) && s.pcr && (m.weights?.pcr||0) > 0;
-  return `<div class="factor-strip">
+  // Hide factor strip on initial render when overview tab is selected
+  const fsDisplay = selTab === 'overview' ? 'display:none;' : '';
+  return `<div class="factor-strip" style="${fsDisplay}">
     ${fCard('cot',s.cot,w,m)}
     ${fCard('seasonal',s.seasonal,w)}
     ${fCard('momentum',s.momentum,w)}
@@ -29602,8 +29988,9 @@ function regimeTab(m){
         const p12IsCut  = path12bp!=null && path12bp < -2;
         const p18IsHike = path18bp!=null && path18bp > 2;
         const p18IsCut  = path18bp!=null && path18bp < -2;
-        const p12Col  = p12IsHike ? '#e03a2a' : p12IsCut ? '#22c97a' : 'var(--dim)';
-        const p18Col  = p18IsHike ? '#e03a2a' : p18IsCut ? '#22c97a' : 'var(--dim)';
+        // Hike = amber/gold (neutral informational), Cut = green, Hold = dim
+        const p12Col  = p12IsHike ? '#c8a96e' : p12IsCut ? '#30d988' : 'var(--dim)';
+        const p18Col  = p18IsHike ? '#c8a96e' : p18IsCut ? '#30d988' : 'var(--dim)';
         const p12Dir  = p12IsHike ? 'HIKE' : p12IsCut ? 'CUT' : 'HOLD';
         const p18Dir  = p18IsHike ? 'HIKE' : p18IsCut ? 'CUT' : 'HOLD';
         const p12Str  = path12bp!=null ? (path12bp>0?'+':'')+path12bp+'bp' : '—';
