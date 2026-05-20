@@ -16633,6 +16633,271 @@ h3.label,
 
 /* ── END R32 DETAIL PAGE GLASS OVERHAUL ── */
 
+/* ══════════════════════════════════════════════════════
+   OVERVIEW TAB — verdict card, attribution table,
+   confluence strip, weight bar, nav chips
+══════════════════════════════════════════════════════ */
+
+/* ── Nav strip (overview tab row) ── */
+.ov-nav{
+  flex-shrink:0;display:flex;align-items:stretch;
+  background:var(--surf);border-bottom:1px solid rgba(255,255,255,0.055);
+  overflow-x:auto;scrollbar-width:none;
+}
+.ov-nav::-webkit-scrollbar{display:none;}
+.ov-nt{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:9px 13px;white-space:nowrap;flex-shrink:0;
+  font-size:10.5px;font-weight:500;color:var(--faint);
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s;
+  letter-spacing:.01em;
+  user-select:none;
+}
+.ov-nt:hover{color:var(--dim);}
+.ov-nt.on{color:var(--text);border-bottom-color:var(--accent);}
+.ov-nchip{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  padding:1px 5px;border-radius:2px;
+  background:var(--chip-bg,rgba(255,255,255,0.07));
+  color:var(--chip-c,var(--faint));
+}
+
+/* ── Overview panel wrapper ── */
+#t-overview{
+  display:none;
+  padding:13px 16px 48px;
+}
+#t-overview.on{display:block;}
+@media(max-width:700px){
+  #t-overview{padding:11px 12px 40px;}
+}
+
+/* ── Verdict card ── */
+.ov-verdict{
+  background:var(--surf);border:1px solid rgba(255,255,255,0.055);
+  border-radius:6px;padding:14px 16px 12px;
+  margin-bottom:10px;position:relative;overflow:hidden;
+}
+.ov-verdict::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--ov-stripe,var(--faint));opacity:.7;
+}
+.ov-v-top{
+  display:flex;align-items:flex-start;gap:14px;
+  margin-bottom:11px;padding-left:10px;
+}
+.ov-v-score-col{
+  flex-shrink:0;display:flex;flex-direction:column;
+  align-items:center;padding-top:1px;min-width:44px;
+}
+.ov-vsn{
+  font-family:var(--head);font-size:38px;font-weight:700;
+  letter-spacing:-.03em;line-height:1;color:var(--text);
+}
+.ov-vsd{
+  font-family:var(--mono);font-size:9px;color:var(--faint);
+  text-align:center;letter-spacing:.04em;margin-top:2px;
+}
+.ov-vsbar{
+  width:40px;height:2px;border-radius:0;
+  background:linear-gradient(to right,#f04040,#d63a24,#4a5268,#26c97a,#30d988);
+  position:relative;margin-top:6px;
+}
+.ov-vsdot{
+  position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:6px;height:6px;border-radius:50%;
+  background:#fff;box-shadow:0 0 4px rgba(255,255,255,.6);
+}
+.ov-vdiv{
+  width:1px;background:rgba(255,255,255,0.055);
+  align-self:stretch;flex-shrink:0;
+}
+.ov-v-text{flex:1;padding-left:2px;}
+.ov-vk{
+  font-size:8px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:6px;opacity:.8;
+}
+.ov-vstmt{
+  font-family:var(--head);font-size:12.5px;font-weight:400;
+  line-height:1.7;color:var(--dim);letter-spacing:-.003em;
+}
+.ov-vstmt .hb{color:var(--s2);font-weight:600;}
+.ov-vstmt .hr{color:var(--sm2);font-weight:600;}
+.ov-vstmt .hn{color:var(--text);font-weight:600;}
+
+/* signal pills */
+.ov-pills{
+  display:flex;flex-wrap:wrap;gap:4px;
+  padding:9px 10px 0 10px;
+  margin-top:9px;border-top:1px solid rgba(255,255,255,0.032);
+}
+.ov-pl{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:3px 7px 3px 6px;border-radius:3px;
+  font-size:9.5px;font-weight:500;
+}
+.ov-pl.b{background:rgba(48,217,136,0.06);border:1px solid rgba(48,217,136,0.13);}
+.ov-pl.b .ov-plk{color:var(--s2);}
+.ov-pl.r{background:rgba(214,58,36,0.06);border:1px solid rgba(214,58,36,0.13);}
+.ov-pl.r .ov-plk{color:var(--sm1);}
+.ov-pl.n{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);}
+.ov-pl.n .ov-plk{color:var(--dim);}
+.ov-pld{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+.ov-pl.b .ov-pld{background:var(--s2);}
+.ov-pl.r .ov-pld{background:var(--sm1);}
+.ov-pl.n .ov-pld{background:var(--faint);}
+.ov-plk{font-weight:600;font-size:9.5px;}
+.ov-plv{font-size:9px;color:var(--faint);margin-left:1px;}
+
+/* ── Attribution table ── */
+.ov-attr-wrap{
+  background:var(--surf);border:1px solid rgba(255,255,255,0.055);
+  border-radius:6px;overflow:hidden;margin-bottom:10px;
+}
+.ov-attr-head{
+  display:grid;
+  grid-template-columns:minmax(160px,1fr) 140px 52px 50px 100px;
+  padding:8px 16px 7px;
+  border-bottom:1px solid rgba(255,255,255,0.055);
+  background:rgba(255,255,255,0.018);
+}
+.ov-ah{
+  font-size:8px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--faint);
+}
+.ov-ah.r{text-align:right;}
+.ov-arow{
+  display:grid;
+  grid-template-columns:minmax(160px,1fr) 140px 52px 50px 100px;
+  align-items:center;padding:11px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.032);
+  cursor:pointer;transition:background .12s;
+  position:relative;
+}
+.ov-arow:last-of-type{border-bottom:none;}
+.ov-arow:hover{background:rgba(255,255,255,0.022);}
+.ov-arow:hover .ov-arr{opacity:1;}
+.ov-af{display:flex;flex-direction:column;gap:2px;padding-right:12px;}
+.ov-afn{font-size:11.5px;font-weight:600;color:var(--text);}
+.ov-afi{font-size:9.5px;color:var(--faint);line-height:1.3;}
+.ov-abar-wrap{padding-right:14px;display:flex;align-items:center;}
+.ov-abar-track{
+  width:100%;height:2px;border-radius:0;
+  background:rgba(255,255,255,0.07);overflow:hidden;position:relative;
+}
+.ov-abar-fill{height:100%;border-radius:0;background:var(--ov-rc);transition:width .3s ease;opacity:.9;}
+.ov-asc{
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  text-align:right;color:var(--ov-rc);padding-right:4px;
+}
+.ov-awt{
+  font-family:var(--mono);font-size:10.5px;text-align:right;
+  color:var(--faint);padding:0 6px;
+}
+.ov-acont{
+  display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+  padding-left:12px;border-left:1px solid rgba(255,255,255,0.04);
+}
+.ov-acont-bar-wrap{width:100%;}
+.ov-acont-bar-track{height:2px;border-radius:0;background:rgba(255,255,255,0.08);overflow:hidden;}
+.ov-acont-bar-fill{height:100%;border-radius:0;background:var(--ov-rc);opacity:.8;}
+.ov-acont-val{
+  font-family:var(--mono);font-size:13px;font-weight:700;
+  color:var(--ov-rc);line-height:1;white-space:nowrap;
+}
+.ov-acont-pts{font-family:var(--mono);font-size:9px;color:var(--faint);margin-left:1px;}
+.ov-arr{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-size:10px;color:var(--faint);opacity:0;transition:opacity .12s;
+  pointer-events:none;
+}
+.ov-atotal{
+  display:grid;
+  grid-template-columns:minmax(160px,1fr) 140px 52px 50px 100px;
+  align-items:center;padding:11px 16px;
+  background:rgba(200,169,110,0.03);
+  border-top:1px solid rgba(200,169,110,0.10);
+}
+.ov-at-lbl{font-size:11px;font-weight:600;color:var(--accent);}
+.ov-at-score-lbl{font-size:8.5px;color:var(--faint);text-align:right;letter-spacing:.03em;padding-right:4px;}
+.ov-at-wt-lbl{font-family:var(--mono);font-size:10px;color:var(--faint);text-align:right;padding:0 6px;}
+.ov-at-contrib{
+  display:flex;align-items:baseline;justify-content:flex-end;gap:4px;
+  padding-left:12px;border-left:1px solid rgba(200,169,110,0.13);
+}
+.ov-at-num{
+  font-family:var(--head);font-size:17px;font-weight:700;
+  color:var(--accent);line-height:1;
+}
+.ov-at-sub{font-size:9.5px;color:var(--faint);}
+
+/* ── Confluence strip ── */
+.ov-conf-strip{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;
+  background:rgba(200,169,110,0.03);
+  border:1px solid rgba(200,169,110,0.10);
+  border-radius:6px;margin-bottom:10px;
+}
+.ov-conf-badge{
+  font-family:var(--mono);font-size:9.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;
+  background:rgba(200,169,110,0.08);color:var(--accent);
+  padding:3px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0;
+  border:1px solid rgba(200,169,110,0.12);
+}
+.ov-conf-text{font-size:10px;color:var(--faint);line-height:1.5;}
+.ov-conf-text strong{color:var(--dim);font-weight:500;}
+
+/* ── Weight bar card ── */
+.ov-wt-card{
+  background:var(--surf);border:1px solid rgba(255,255,255,0.055);
+  border-radius:6px;padding:11px 14px;
+}
+.ov-wt-lbl{
+  font-size:8px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:9px;
+}
+.ov-wt-bar{
+  height:3px;border-radius:0;display:flex;gap:1px;
+  overflow:hidden;margin-bottom:10px;
+}
+.ov-wt-seg{height:100%;}
+.ov-wt-leg{display:flex;flex-wrap:wrap;gap:5px 14px;}
+.ov-wt-it{display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--dim);}
+.ov-wt-sq{width:6px;height:6px;border-radius:1px;flex-shrink:0;}
+.ov-wt-pct{font-family:var(--mono);font-size:9px;color:var(--faint);margin-left:1px;}
+
+/* ── Mobile overrides ── */
+@media(max-width:700px){
+  .ov-attr-head{
+    grid-template-columns:1fr 44px 42px 84px;
+    padding:8px 12px 7px;
+  }
+  .ov-arow{
+    grid-template-columns:1fr 44px 42px 84px;
+    padding:10px 12px;
+  }
+  .ov-atotal{
+    grid-template-columns:1fr 44px 42px 84px;
+    padding:11px 12px;
+  }
+  .ov-abar-wrap{display:none;}
+  .ov-ah-bar{display:none;}
+  .ov-arow:hover .ov-arr{display:none;}
+  .ov-acont-bar-wrap{display:none;}
+  .ov-acont-val{font-size:12px;}
+  .ov-at-contrib{padding-left:10px;}
+  .ov-at-num{font-size:15px;}
+  .ov-v-top{gap:10px;}
+  .ov-vsn{font-size:32px;}
+  .ov-vstmt{font-size:12px;line-height:1.65;}
+  .ov-nt{padding:8px 10px;font-size:10px;}
+  .ov-arr{display:none;}
+}
+/* ── END OVERVIEW TAB CSS ── */
+
 </style>
 </head>
 <body>
@@ -16933,7 +17198,7 @@ async function _loadWithRetry(force, maxAttempts=20) {
 
 let DATA        = null;   // /api/scores payload
 let selMkt      = null;   // selected market id string
-let selTab      = 'cot';
+let selTab      = 'overview';
 let selCat      = 'all';
 let cotMode     = 'net';  // 'net' | 'idx'
 let modalChart  = null;
@@ -17255,7 +17520,7 @@ function goHome(){
 }
 
 function selectMkt(id){
-  selMkt=id; selTab='cot';
+  selMkt=id; selTab='overview';
   document.querySelectorAll('.mkt-row').forEach(r=>r.classList.toggle('sel',r.dataset.id===id));
   const m=DATA.markets.find(x=>x.id===id);
   if(m)renderDetail(m);
@@ -24221,6 +24486,8 @@ function renderDetail(m){
 
   dc.innerHTML=
     dHead(m,ws,col,bg)+
+    buildOvNav(m)+
+    buildOverview(m)+
     factorStrip(m)+
     `<div class="tab${selTab==='cot'?' on':''}" id="t-cot">${cotTab(m)}</div>`+
     `<div class="tab${selTab==='seasonal'?' on':''}" id="t-seasonal">${seasTabStub(m)}</div>`+
@@ -24555,6 +24822,693 @@ function assetGraphic(m){
   return '';
 }
 
+/* ══════════════════════════════════════════════════════
+   OVERVIEW TAB — per-asset narrative data + builder
+══════════════════════════════════════════════════════ */
+
+// Factor display config for overview table
+const OV_FACTOR_CFG = {
+  cot:      {label:'COT Positioning',  tab:'cot',     accent:'#5c9eff'},
+  seasonal: {label:'Seasonality',      tab:'seasonal', accent:'#26c97a'},
+  momentum: {label:'Momentum',         tab:'momentum', accent:'#8a98b8'},
+  macro:    {label:'Fundamentals',     tab:'macro',   accent:'#6a7898'},
+  relval:   {label:'Relative Value',   tab:'relval',  accent:'#f04040'},
+  regime:   {label:'Climate & Rates',  tab:'regime',  accent:'#5cb8ff'},
+  pcr:      {label:'Put / Call Ratio', tab:'pcr',     accent:'#d63a24'},
+  climate:  {label:'Climate & Rates',  tab:'regime',  accent:'#5cb8ff'},
+};
+
+// Per-asset curated narrative data
+// Falls back to generic auto-generated text if asset not listed
+const OV_NARRATIVES = {
+  ES: {
+    eyebrow: 'Macro Outlook \u00b7 S&P 500 \u00b7 US Equities',
+    narrative: `The S&P 500 is a <span class="hn">broad US large-cap index</span>, sensitive to the earnings cycle, rate expectations, and macro regime. Labour market resilience (NFP consistently beating) is underpinning the <span class="hb">soft-landing narrative</span>, keeping recession risk off the table near-term. Credit spreads remain tight and the yield curve is re-steepening — the risk regime is constructive. The structural drag is valuation: <span class="hr">fwd P/E near the 90th historical percentile</span>, priced for a flawless soft landing with limited margin for earnings misses. COT specs are incrementally long and the Jun–Jul seasonal window is supportive. <span class="hn">Net: cautiously bullish</span> — regime and flow support, but multiple expansion is largely done.`,
+    pills: [
+      {c:'b',k:'Credit Spreads',  v:'IG tight — risk regime on'},
+      {c:'b',k:'Yield Curve',     v:'2s10s re-steepening — constructive'},
+      {c:'b',k:'COT',             v:'Specs adding net longs'},
+      {c:'b',k:'Seasonal',        v:'Jun–Jul bullish historically'},
+      {c:'n',k:'Labour',          v:'NFP resilient — cuts pushed out'},
+      {c:'n',k:'ISM Mfg',         v:'Sub-50 — manufacturing still soft'},
+      {c:'r',k:'Valuation',       v:'Fwd P/E near 90th percentile'},
+      {c:'r',k:'EPS Growth',      v:'Decelerating — ~6% vs history'},
+    ]
+  },
+  NQ: {
+    eyebrow: 'Macro Outlook \u00b7 Nasdaq 100 \u00b7 US Tech',
+    narrative: `The Nasdaq 100 tracks the top 100 US tech &amp; growth companies, dominated by mega-caps carrying <span class="hb">minimal debt and large cash reserves</span> — structurally less rate-sensitive than the broader market. The AI capex cycle remains firmly intact: NVDA data centre revenue and hyperscaler spend are accelerating, resetting NQ earnings growth to <span class="hb">~14% vs S&P 500 ~6%</span> — a compelling quality growth differential. Momentum is the strongest of all equity indices, COT funds continue adding, and the seasonal window is supportive. <span class="hn">Net: bullish</span> — AI earnings momentum, quality growth premium, and institutional flow aligned.`,
+    pills: [
+      {c:'b',k:'AI Capex Cycle',   v:'Hyperscaler spend accelerating'},
+      {c:'b',k:'EPS Growth',       v:'NQ ~14% vs S&P ~6%'},
+      {c:'b',k:'Rate Insensitivity',v:'Low debt, large cash reserves'},
+      {c:'b',k:'Momentum',         v:'Above all key MAs'},
+      {c:'b',k:'COT',              v:'Funds adding tech longs'},
+      {c:'b',k:'Seasonal',         v:'Jun–Jul bullish 9/10 yrs'},
+      {c:'r',k:'Valuation',        v:'Fwd P/E ~28\u00d7 — premium to history'},
+      {c:'r',k:'Concentration',    v:'Top 7 names ~48% of index'},
+    ]
+  },
+  YM: {
+    eyebrow: 'Macro Outlook \u00b7 Dow Jones \u00b7 US Large Cap',
+    narrative: `The Dow Jones tracks 30 blue-chip US industrials and financials, more value-oriented and <span class="hn">cyclically exposed</span> than the S&P or Nasdaq. It tends to lead in early-cycle recoveries but lags in late-cycle tech-driven rallies. The macro backdrop — tight credit spreads, re-steepening yield curve, and stable labour — supports the broader risk-on environment. Financials within the index benefit from a steeper curve. However, <span class="hr">manufacturing PMI sub-50</span> remains a headwind for industrial names. COT and seasonal signals provide tactical support. <span class="hn">Net: neutral to mildly bullish</span> — broader macro constructive but less sector tailwind than NQ.`,
+    pills: [
+      {c:'b',k:'Credit Spreads',  v:'Tight — risk-on backdrop'},
+      {c:'b',k:'Yield Curve',     v:'Steeper curve aids financials'},
+      {c:'b',k:'COT',             v:'Institutional support present'},
+      {c:'n',k:'ISM Mfg',         v:'Sub-50 — industrial headwind'},
+      {c:'n',k:'Earnings',        v:'Value sector EPS growth modest'},
+      {c:'r',k:'Sector Mix',      v:'Less AI/growth exposure vs NQ'},
+    ]
+  },
+  RTY: {
+    eyebrow: 'Macro Outlook \u00b7 Russell 2000 \u00b7 US Small Cap',
+    narrative: `The Russell 2000 tracks US small-caps — domestically focused, <span class="hr">highly rate-sensitive</span> due to floating-rate debt, and deeply cyclical. Small-caps are the most levered play on a US soft landing and Fed pivot. With the Fed on hold and rate cuts delayed, the financing cost pressure on small-cap balance sheets remains a headwind. However, <span class="hb">a steeper yield curve and stable credit environment</span> reduce tail risk. COT positioning is mixed and seasonality is neutral in this window. <span class="hn">Net: neutral</span> — rate sensitivity limits upside until a clear Fed pivot is priced.`,
+    pills: [
+      {c:'b',k:'Credit',           v:'Spreads tight — limits default risk'},
+      {c:'b',k:'Domestic Focus',   v:'Insulated from FX/trade risk'},
+      {c:'n',k:'Rate Sensitivity', v:'Floating debt — Fed pause is drag'},
+      {c:'n',k:'COT',              v:'Positioning mixed, no clear edge'},
+      {c:'r',k:'Financing Cost',   v:'Higher-for-longer = balance sheet stress'},
+      {c:'r',k:'Earnings',         v:'Small-cap EPS more volatile'},
+    ]
+  },
+  GC: {
+    eyebrow: 'Macro Outlook \u00b7 Gold \u00b7 Safe Haven / Real Asset',
+    narrative: `Gold is driven primarily by <span class="hn">real interest rates, USD direction, and safe-haven demand</span>. With the Fed on hold, real yields remain positive — a moderate carry headwind for a non-yielding asset. However, central bank buying (EM CBs accumulating structurally) and de-dollarisation flows are providing a <span class="hb">persistent structural bid</span>. DXY softening adds a tailwind as gold is dollar-denominated. Geopolitical risk premium remains embedded in the price. COT specs are net long but not at extremes. <span class="hn">Net: neutral</span> — structural support offset by real rate headwind; needs a Fed pivot or risk-off catalyst to break significantly higher.`,
+    pills: [
+      {c:'b',k:'CB Buying',       v:'EM central banks structurally bid'},
+      {c:'b',k:'DXY Softening',   v:'Weaker dollar — gold tailwind'},
+      {c:'b',k:'Geopolitical',    v:'Risk premium still embedded'},
+      {c:'n',k:'Real Rates',      v:'Positive real yields — carry headwind'},
+      {c:'n',k:'COT',             v:'Net long but not extreme'},
+      {c:'n',k:'Seasonal',        v:'Jun–Jul historically mixed'},
+      {c:'r',k:'Fed on Hold',     v:'No near-term pivot catalyst'},
+    ]
+  },
+  SI: {
+    eyebrow: 'Macro Outlook \u00b7 Silver \u00b7 Precious / Industrial',
+    narrative: `Silver has a dual driver: <span class="hn">precious metal correlations to gold/real rates</span> and significant industrial demand (solar, EVs, electronics). The green energy transition is creating a <span class="hb">structural demand tailwind</span> from silver\'s use in solar panel manufacturing. Gold\'s direction remains the key short-term driver — silver tends to amplify gold moves with higher beta. COT specs are net long. Real rate headwinds apply similarly to gold. The gold/silver ratio remains historically elevated, suggesting silver has more room to outperform if metals rally. <span class="hn">Net: neutral to mildly bullish</span> — structural demand and gold tailwind offset by rate pressure.`,
+    pills: [
+      {c:'b',k:'Solar Demand',    v:'Structural green energy tailwind'},
+      {c:'b',k:'Gold Correlation',v:'Amplifies gold upside (higher beta)'},
+      {c:'b',k:'G/S Ratio',       v:'Historically elevated — silver cheap vs gold'},
+      {c:'n',k:'Real Rates',      v:'Headwind — same as gold'},
+      {c:'n',k:'COT',             v:'Net long, moderate conviction'},
+      {c:'r',k:'Industrial Risk', v:'Sensitive to global growth slowdown'},
+    ]
+  },
+  CL: {
+    eyebrow: 'Macro Outlook \u00b7 Crude Oil \u00b7 Energy',
+    narrative: `Crude oil is driven by the <span class="hn">supply/demand balance, OPEC+ discipline, and the global growth cycle</span>. OPEC+ has maintained cohesive production discipline and signalled willingness to extend cuts. US shale rig count is down year-over-year, tightening the supply picture. On demand, <span class="hb">China PMI has recovered above 50</span> and US driving season (May–Aug) is the strongest seasonal window of the year. COT specs are building net longs and the risk-on macro regime supports risk assets broadly. The key bear risk is a sharper-than-expected US demand slowdown. <span class="hn">Net: bullish</span> — tight supply, recovering demand, and seasonal tailwind aligned.`,
+    pills: [
+      {c:'b',k:'OPEC+ Cuts',      v:'Cohesive — extension signalled'},
+      {c:'b',k:'Shale Slowdown',   v:'US rig count declining YoY'},
+      {c:'b',k:'China PMI',        v:'Above 50 — demand recovering'},
+      {c:'b',k:'Driving Season',   v:'May–Aug peak demand window'},
+      {c:'b',k:'COT',              v:'Specs adding net longs'},
+      {c:'n',k:'USD',              v:'Modest softening — mild tailwind'},
+      {c:'r',k:'US Slowdown',      v:'Demand risk if ISM deteriorates'},
+    ]
+  },
+  NG: {
+    eyebrow: 'Macro Outlook \u00b7 Natural Gas \u00b7 Energy',
+    narrative: `Natural gas is among the most weather-sensitive and <span class="hr">volatile commodities</span>, driven by storage levels, LNG export demand, and seasonal heating/cooling cycles. US storage levels are the primary near-term price anchor. LNG export capacity expansions are providing a <span class="hb">structural demand tailwind</span> as US gas finds global buyers. However, mild weather patterns reduce heating/cooling demand, and the seasonal window heading into summer is typically soft. COT specs are cautiously positioned. The AI data centre power demand narrative is a longer-term bullish structural driver. <span class="hn">Net: neutral to lean bearish</span> — near-term seasonal headwind dominates.`,
+    pills: [
+      {c:'b',k:'LNG Exports',     v:'Growing US LNG capacity'},
+      {c:'b',k:'AI Power Demand', v:'Data centres — longer-term structural'},
+      {c:'n',k:'Storage',         v:'US storage near 5-year average'},
+      {c:'n',k:'COT',             v:'Specs cautiously positioned'},
+      {c:'r',k:'Summer Seasonal', v:'Mild weather = weak demand window'},
+      {c:'r',k:'Supply',          v:'Shale associated gas growing'},
+    ]
+  },
+  ZB: {
+    eyebrow: 'Macro Outlook \u00b7 T-Bond (30yr) \u00b7 Fixed Income',
+    narrative: `30-year T-Bonds are driven by <span class="hn">long-end inflation expectations, Fed policy trajectory, and safe-haven demand</span>. With the Fed on hold and core PCE sticky above target, duration is under pressure from higher-for-longer pricing. However, <span class="hb">any deterioration in growth data</span> would trigger a flight-to-quality bid and duration rally. The yield curve is re-steepening — long-end is underperforming short-end, which is structurally bearish for bond prices. COT commercial hedgers (the "smart money" in rates) remain short. <span class="hn">Net: neutral to lean bearish</span> — higher-for-longer and supply pressure weigh, but recession risk provides a floor.`,
+    pills: [
+      {c:'b',k:'Safe Haven',      v:'Recession risk floor for duration'},
+      {c:'b',k:'Flight to Quality',v:'Any growth shock = bond rally'},
+      {c:'n',k:'Fed on Hold',     v:'Cuts delayed — front-end pressure'},
+      {c:'r',k:'Core PCE',        v:'Sticky above target — inflation premium'},
+      {c:'r',k:'Curve Steepening',v:'Long-end underperforming — bear steepen'},
+      {c:'r',k:'Supply',          v:'Treasury issuance headwind'},
+    ]
+  },
+  ZN: {
+    eyebrow: 'Macro Outlook \u00b7 T-Note (10yr) \u00b7 Fixed Income',
+    narrative: `10-year T-Notes are the <span class="hn">global risk-free rate benchmark</span>, pricing the intersection of Fed policy, growth, and inflation expectations. Sticky core PCE and a resilient labour market are keeping the 10yr yield elevated and pushing out cut timing. The yield curve re-steepening dynamic (2s10s widening) reflects the market pricing more long-end term premium. <span class="hb">Any growth scare or bank stress event</span> would generate a sharp duration rally. COT large specs are modestly short. <span class="hn">Net: neutral</span> — rates range-bound until a clear growth or inflation catalyst breaks the equilibrium.`,
+    pills: [
+      {c:'b',k:'Growth Scare Bid', v:'Any slowdown = sharp duration rally'},
+      {c:'b',k:'Global Demand',    v:'Foreign CB reserve buying supportive'},
+      {c:'n',k:'Range-Bound',      v:'4.2–4.7% range expected near-term'},
+      {c:'r',k:'Inflation',        v:'Core PCE sticky — premium required'},
+      {c:'r',k:'Term Premium',     v:'Re-steepening = long-end headwind'},
+      {c:'r',k:'Supply',           v:'Large Treasury auction calendar'},
+    ]
+  },
+  '6E': {
+    eyebrow: 'Macro Outlook \u00b7 EUR/USD \u00b7 G10 FX',
+    narrative: `EUR/USD is driven by <span class="hn">ECB vs Fed policy divergence, eurozone growth, and global risk appetite</span>. The Fed is on hold while the ECB has begun a cutting cycle, narrowing the rate differential in favour of EUR. Eurozone composite PMI has recovered, led by services, while German manufacturing remains a drag at sub-50. <span class="hb">Policy divergence is the primary bull case</span> — if the Fed holds and ECB pauses its cutting pace, the spread compression trade supports EUR. Risk-on macro regime also supports higher-beta EUR vs USD as safe haven. <span class="hn">Net: neutral with a mild bullish lean</span> — divergence trade live but pace of ECB cuts is the key variable.`,
+    pills: [
+      {c:'b',k:'Policy Divergence',v:'ECB cutting, Fed on hold'},
+      {c:'b',k:'Eurozone PMI',     v:'Services-led recovery underway'},
+      {c:'b',k:'Risk Appetite',    v:'Risk-on regime favours EUR'},
+      {c:'b',k:'COT',              v:'Specs modestly long EUR'},
+      {c:'n',k:'German Mfg',       v:'PMI sub-50 — industrial drag'},
+      {c:'n',k:'ECB Pace',         v:'Cutting cycle may pause near neutral'},
+      {c:'r',k:'USD Resilience',   v:'Strong US data could reverse move'},
+    ]
+  },
+  '6B': {
+    eyebrow: 'Macro Outlook \u00b7 GBP/USD \u00b7 G10 FX',
+    narrative: `GBP/USD reflects the interplay of <span class="hn">BoE policy, UK growth, and global risk appetite</span>. The BoE is in a cutting cycle but constrained by sticky UK services inflation (above 5%). UK wage growth remains elevated, making the BoE more cautious than the ECB. GBP benefits from the risk-on global environment and its status as a higher-yielding G10 currency. <span class="hb">UK economic resilience</span> relative to the eurozone is a relative strength argument. The UK is less exposed to German industrial weakness. COT specs are modestly long GBP. <span class="hn">Net: neutral</span> — services inflation and BoE caution balance the risk-on tailwind.`,
+    pills: [
+      {c:'b',k:'Risk-On',          v:'GBP benefits from risk appetite'},
+      {c:'b',k:'Relative Growth',  v:'UK outperforming eurozone peers'},
+      {c:'b',k:'COT',              v:'Specs modestly long GBP'},
+      {c:'n',k:'BoE Caution',      v:'Services CPI > 5% — slow cut pace'},
+      {c:'n',k:'Wage Growth',      v:'Elevated — second-round inflation risk'},
+      {c:'r',k:'UK Fiscal',        v:'Deficit and gilt supply headwind'},
+    ]
+  },
+  '6J': {
+    eyebrow: 'Macro Outlook \u00b7 JPY/USD \u00b7 G10 FX',
+    narrative: `JPY is in a structurally different position to other G10 currencies: <span class="hn">BoJ is normalising policy while all others cut</span>, closing the rate differential that drove the historic yen weakness. BoJ has begun hiking from deeply negative rates — a <span class="hb">multi-year tailwind for JPY</span> as carry unwind accelerates. Risk-off events (equity selloffs, recession fears) also trigger sharp JPY rallies via carry unwind. The JPY is deeply undervalued on purchasing power parity. COT short-JPY positioning is historically elevated, creating a <span class="hr">large potential squeeze</span>. <span class="hn">Net: bullish JPY / bearish 6J (USD/JPY)</span> — BoJ convergence and overcrowded short position are the core thesis.`,
+    pills: [
+      {c:'b',k:'BoJ Hikes',        v:'Policy convergence — JPY tailwind'},
+      {c:'b',k:'PPP',              v:'JPY deeply undervalued on real terms'},
+      {c:'b',k:'Carry Unwind',     v:'Large short position = squeeze risk'},
+      {c:'n',k:'Risk-On',          v:'Risk-on suppresses safe-haven JPY bid'},
+      {c:'r',k:'Rate Differential',v:'USD/JPY spread still wide historically'},
+      {c:'r',k:'Pace of BoJ',      v:'Gradual hike path limits rapid move'},
+    ]
+  },
+  '6A': {
+    eyebrow: 'Macro Outlook \u00b7 AUD/USD \u00b7 G10 FX',
+    narrative: `AUD is a <span class="hn">high-beta risk and commodity currency</span>, highly correlated to China growth, iron ore prices, and global risk appetite. China\'s PMI recovery above 50 is a positive demand signal for Australian commodity exports. The RBA has been on hold relative to other central banks, providing relative yield support. The risk-on global macro environment supports AUD as a carry/growth proxy. <span class="hb">Iron ore and copper strength</span> reinforce the commodity income story. Key risks are a China growth disappointment or a global risk-off event. <span class="hn">Net: mildly bullish</span> — commodity tailwind and risk-on regime supportive.`,
+    pills: [
+      {c:'b',k:'China PMI',        v:'Above 50 — commodity demand recovering'},
+      {c:'b',k:'Iron Ore',         v:'Elevated prices — AUD income positive'},
+      {c:'b',k:'Risk Appetite',    v:'High-beta risk currency in risk-on'},
+      {c:'b',k:'RBA Hold',         v:'Relative yield support vs ECB cuts'},
+      {c:'n',k:'USD Strength',     v:'DXY direction is the main offset'},
+      {c:'r',k:'China Risk',       v:'Property sector overhang still present'},
+    ]
+  },
+  '6C': {
+    eyebrow: 'Macro Outlook \u00b7 CAD/USD \u00b7 G10 FX',
+    narrative: `CAD is driven by <span class="hn">oil prices, Canada-US rate differentials, and trade dynamics</span>. With crude oil on a bullish footing (OPEC+ cuts, demand recovery), CAD receives a commodity income tailwind. However, the Bank of Canada has been more aggressive in cutting than the Fed, narrowing the rate differential in USD\'s favour. <span class="hr">Trade uncertainty with the US</span> (tariff risk, USMCA dynamics) adds a risk premium to CAD. The risk-on environment is broadly supportive. <span class="hn">Net: neutral</span> — oil tailwind is offset by BoC-Fed divergence and trade uncertainty.`,
+    pills: [
+      {c:'b',k:'Oil Prices',       v:'Crude bullish — CAD commodity income'},
+      {c:'b',k:'Risk-On',          v:'CAD benefits from risk appetite'},
+      {c:'n',k:'BoC Cuts',         v:'More aggressive than Fed — spread narrows'},
+      {c:'n',k:'COT',              v:'Positioning neutral'},
+      {c:'r',k:'Trade Risk',       v:'US tariff uncertainty — CAD risk premium'},
+      {c:'r',k:'Housing',          v:'Canadian housing vulnerability'},
+    ]
+  },
+  DX: {
+    eyebrow: 'Macro Outlook \u00b7 US Dollar Index \u00b7 DXY / G10 FX',
+    narrative: `The DXY measures the US dollar against a basket of major currencies (EUR 57.6%). It is driven by <span class="hn">Fed policy relative to other G10 central banks, US growth exceptionalism, and safe-haven demand</span>. With the ECB cutting and other G10 CBs easing while the Fed holds, <span class="hb">policy divergence has been a structural USD tailwind</span>. However, as other CBs pause their cutting cycles and global growth recovers, the differential narrows. Risk-on environments reduce safe-haven USD demand. COT specs are modestly long USD but positioning is not extreme. <span class="hn">Net: neutral</span> — policy divergence fading as a tailwind; range-bound until a clear Fed direction shift.`,
+    pills: [
+      {c:'b',k:'Policy Divergence',v:'Fed on hold while others cut'},
+      {c:'b',k:'US Exceptionalism',v:'Growth outperformance supports USD'},
+      {c:'b',k:'Safe Haven',       v:'Geopolitical risk = USD bid floor'},
+      {c:'n',k:'COT',              v:'Specs modestly long, not extreme'},
+      {c:'r',k:'Divergence Fading',v:'ECB pause narrows rate spread'},
+      {c:'r',k:'Risk-On',          v:'Risk appetite reduces USD safe-haven bid'},
+    ]
+  },
+  ZC: {
+    eyebrow: 'Macro Outlook \u00b7 Corn \u00b7 Grain / Agriculture',
+    narrative: `Corn pricing is dominated by <span class="hn">US crop production, weather, export demand, and energy linkage</span> via ethanol. USDA planting intentions and crop condition reports are the primary seasonal drivers. <span class="hb">South American production uncertainty</span> (La Nina / El Nina weather cycles) creates supply risk. Export demand from China and Mexico is the key demand variable. Ethanol blend mandates tie corn to oil prices. COT large specs provide trend direction signals. <span class="hn">Net: determined by current USDA data and crop conditions</span> — review seasonal and COT tabs for the active signal.`,
+    pills: [
+      {c:'b',k:'Export Demand',    v:'China/Mexico corn import cycle'},
+      {c:'b',k:'Ethanol Link',     v:'Oil price correlation via blending'},
+      {c:'n',k:'USDA Reports',     v:'Planting intentions — key catalyst'},
+      {c:'n',k:'COT',              v:'Large spec positioning — trend indicator'},
+      {c:'r',k:'Supply',           v:'US crop production is primary driver'},
+      {c:'r',k:'Weather',          v:'La Nina/El Nina disruption risk'},
+    ]
+  },
+  ZS: {
+    eyebrow: 'Macro Outlook \u00b7 Soybeans \u00b7 Grain / Agriculture',
+    narrative: `Soybeans are driven by <span class="hn">US/Brazil crop competition, Chinese crush demand, and vegetable oil markets</span>. Brazil has become the dominant supplier, creating <span class="hr">significant US export competition headwinds</span>. China\'s soybean crush demand for animal feed and biofuel is the primary demand anchor. The US/China trade relationship adds geopolitical risk. South American weather and planting cycles drive inter-season volatility. COT large specs signal the professional positioning direction. <span class="hn">Net: determined by current crop fundamentals</span> — review COT and seasonal tabs for the active signal.`,
+    pills: [
+      {c:'b',k:'China Demand',     v:'Crush demand for feed and biofuel'},
+      {c:'n',k:'US/Brazil',        v:'Competition for export market share'},
+      {c:'n',k:'COT',              v:'Large spec — trend signal'},
+      {c:'r',k:'Brazil Supply',    v:'Record crops — structural headwind'},
+      {c:'r',k:'Trade Policy',     v:'US/China tariff risk on ag exports'},
+    ]
+  },
+  ZW: {
+    eyebrow: 'Macro Outlook \u00b7 Wheat \u00b7 Grain / Agriculture',
+    narrative: `Wheat pricing is driven by <span class="hn">global production (Russia, Ukraine, US, EU), weather events, and food security dynamics</span>. The ongoing Russia-Ukraine conflict remains an embedded risk premium in European wheat markets. US winter wheat crop conditions are the near-term domestic driver. <span class="hb">Global food security demand</span> from importing nations provides a demand floor. COT positioning and seasonal patterns (harvest-driven) provide tactical timing signals. <span class="hn">Net: geopolitically sensitive</span> — risk premium fluctuates with conflict news; COT and seasonal dominate near-term.`,
+    pills: [
+      {c:'b',k:'Food Security',    v:'Structural import demand from EM'},
+      {c:'b',k:'Geopolitical',     v:'Russia/Ukraine risk premium embedded'},
+      {c:'n',k:'US Conditions',    v:'Winter wheat crop status — key local'},
+      {c:'n',k:'COT',              v:'Positioning provides trend signal'},
+      {c:'r',k:'Global Supply',    v:'Russia/EU supply competing with US'},
+      {c:'r',k:'Harvest Pressure', v:'Seasonal selling at harvest windows'},
+    ]
+  },
+  LE: {
+    eyebrow: 'Macro Outlook \u00b7 Live Cattle \u00b7 Livestock',
+    narrative: `Live cattle pricing is driven by <span class="hn">US cattle inventory cycles, consumer beef demand, and feed cost inputs</span>. US cattle-on-feed numbers (USDA monthly reports) are the primary supply-side driver. <span class="hb">Record-tight cattle supply cycles</span> (multi-year herd liquidation) have been a structural bullish driver. Consumer demand for beef remains resilient despite elevated prices. Feed cost (corn, hay) impacts producer margins. Export demand to Japan, South Korea, and Mexico adds international dimension. <span class="hn">Net: structurally bullish</span> driven by historically tight herd supply.`,
+    pills: [
+      {c:'b',k:'Herd Supply',      v:'Multi-year liquidation cycle — tight'},
+      {c:'b',k:'Consumer Demand',  v:'Beef demand resilient at elevated prices'},
+      {c:'b',k:'Export Demand',    v:'Strong Asian and Mexican buying'},
+      {c:'n',k:'Feed Costs',       v:'Corn/hay input costs impact margins'},
+      {c:'r',k:'Slaughter Rate',   v:'Herd rebuilding pace affects supply'},
+    ]
+  },
+  HE: {
+    eyebrow: 'Macro Outlook \u00b7 Lean Hog \u00b7 Livestock',
+    narrative: `Lean hog pricing is driven by <span class="hn">US pork production cycles, export demand (especially China), and seasonal processing patterns</span>. Unlike cattle, hogs have shorter production cycles (6 months) making the market more responsive to price signals. <span class="hb">Chinese pork import demand</span> is a major international price driver. USDA hogs &amp; pigs reports signal upcoming supply. Summer grilling season (May–Aug) is typically supportive seasonally. COT specs follow seasonal and demand trends. <span class="hn">Net: seasonal and COT driven</span> — review seasonal tab for current window signal.`,
+    pills: [
+      {c:'b',k:'Summer Demand',    v:'Grilling season May–Aug supportive'},
+      {c:'b',k:'China Imports',    v:'Pork demand driver for hog prices'},
+      {c:'n',k:'USDA Reports',     v:'Hogs & Pigs — primary supply signal'},
+      {c:'n',k:'COT',              v:'Spec positioning — follow seasonals'},
+      {c:'r',k:'Production',       v:'Short cycle = rapid supply response'},
+    ]
+  },
+  CC: {
+    eyebrow: 'Macro Outlook \u00b7 Cocoa \u00b7 Soft Commodity',
+    narrative: `Cocoa pricing is primarily driven by <span class="hn">West African crop production (Ivory Coast and Ghana = ~65% of world supply)</span> and demand from European and US confectionery manufacturers. <span class="hr">Extreme weather and supply disruptions</span> in West Africa have driven multi-decade price highs in recent years. El Nino weather patterns impact pod development. Demand is relatively inelastic — chocolate consumption is stable through cycles. The ICE soft commodity market sees institutional COT positioning as the best tactical signal. <span class="hn">Net: driven by West African crop conditions</span> — supply shocks dominate fundamentals.`,
+    pills: [
+      {c:'b',k:'Supply Disruption',v:'West Africa weather / crop shocks'},
+      {c:'b',k:'Demand Inelastic', v:'Chocolate consumption stable through cycles'},
+      {c:'n',k:'El Nino/La Nina',  v:'Weather patterns affect pod development'},
+      {c:'n',k:'COT',              v:'Spec positioning — directional signal'},
+      {c:'r',k:'Price Spike Risk', v:'Supply shocks driving extreme volatility'},
+    ]
+  },
+  KC: {
+    eyebrow: 'Macro Outlook \u00b7 Coffee \u00b7 Soft Commodity',
+    narrative: `Coffee pricing is driven by <span class="hn">Brazilian and Vietnamese crop cycles, weather, and global consumer demand</span>. Brazil dominates arabica supply; Vietnam is the key robusta producer. <span class="hr">Frost risk in Brazil</span> (June–August) is the primary annual supply shock risk for arabica. Consumer demand is structurally growing in emerging markets. The USD impact is significant as coffee is dollar-denominated and Brazil\'s BRL/USD affects export economics. COT large spec positioning is the primary tactical timing signal. <span class="hn">Net: weather and crop cycle dependent</span> — frost season is the key near-term risk/opportunity.`,
+    pills: [
+      {c:'b',k:'EM Demand',        v:'Structural growth in emerging market consumption'},
+      {c:'b',k:'Brazil Frost',     v:'Jun–Aug frost risk = supply shock potential'},
+      {c:'n',k:'COT',              v:'Large spec positioning — key signal'},
+      {c:'n',k:'USD',              v:'BRL/USD affects Brazilian export economics'},
+      {c:'r',k:'Bumper Crop Risk', v:'Off-year cycles can pressure prices'},
+    ]
+  },
+  SB: {
+    eyebrow: 'Macro Outlook \u00b7 Sugar \u00b7 Soft Commodity',
+    narrative: `Sugar pricing is driven by <span class="hn">Brazilian and Indian production, ethanol economics, and global food demand</span>. Brazil\'s sugar/ethanol flex mills switch allocation between sugar and ethanol based on relative profitability, linking sugar prices to oil markets. <span class="hb">Indian production and government export policies</span> can sharply affect global supply. El Nino/La Nina patterns affect monsoon reliability in Asia. Global sugar consumption is structurally stable. COT large spec positioning provides the tactical timing signal. <span class="hn">Net: supply-side and ethanol economics driven</span>.`,
+    pills: [
+      {c:'b',k:'Ethanol Link',     v:'Brazil flex mills: oil/sugar dynamic'},
+      {c:'b',k:'Tight Supply',     v:'India export restrictions = support'},
+      {c:'n',k:'COT',              v:'Spec positioning — directional signal'},
+      {c:'n',k:'Weather',          v:'Monsoon affects Asian cane crops'},
+      {c:'r',k:'India Policy',     v:'Export policy shifts = volatility source'},
+    ]
+  },
+  CT: {
+    eyebrow: 'Macro Outlook \u00b7 Cotton \u00b7 Soft Commodity',
+    narrative: `Cotton pricing is driven by <span class="hn">US crop conditions, Chinese import demand, and global textile production</span>. The USDA supply/demand report is the primary price catalyst. Chinese cotton imports are the dominant demand driver globally. <span class="hr">US drought conditions</span> in Texas (primary growing state) are the main supply risk. Synthetic fibre competition (polyester from oil) provides a price ceiling as cotton becomes relatively expensive. COT positioning and seasonal patterns around planting/harvest cycles provide tactical timing. <span class="hn">Net: crop condition and Chinese demand dependent</span>.`,
+    pills: [
+      {c:'b',k:'China Demand',     v:'Textile imports — dominant driver'},
+      {c:'n',k:'US Crop',          v:'Texas conditions — supply risk'},
+      {c:'n',k:'COT',              v:'Spec positioning — trend signal'},
+      {c:'r',k:'Synthetic Comp',   v:'Polyester substitution caps upside'},
+      {c:'r',k:'USDA Report',      v:'S&D updates are primary catalysts'},
+    ]
+  },
+  PA: {
+    eyebrow: 'Macro Outlook \u00b7 Palladium \u00b7 Platinum Group Metal',
+    narrative: `Palladium is driven by <span class="hn">autocatalyst demand (gasoline vehicle catalytic converters), Russian supply, and EV substitution risk</span>. Russian mines produce ~40% of global palladium supply, making sanctions and geopolitical risk a permanent embedded premium. Autocatalyst demand is the dominant end use — closely correlated with global vehicle production (ex-EV). <span class="hr">The EV transition is a structural long-term bearish driver</span> as battery-electric vehicles don\'t require palladium catalysts. The platinum/palladium substitution (cheaper platinum replacing palladium in gasoline catalysts) is ongoing. <span class="hn">Net: structural headwind from EV transition</span> offset by near-term supply risk.`,
+    pills: [
+      {c:'b',k:'Russian Supply',   v:'Sanctions risk — premium embedded'},
+      {c:'b',k:'Autocatalyst',     v:'ICE vehicle demand supports near-term'},
+      {c:'n',k:'COT',              v:'Thin market — use with caution'},
+      {c:'r',k:'EV Transition',    v:'Battery EVs don\'t use palladium catalysts'},
+      {c:'r',k:'Pt/Pd Substitution',v:'Automakers switching to platinum'},
+    ]
+  },
+  HG: {
+    eyebrow: 'Macro Outlook \u00b7 Copper \u00b7 Industrial Metal',
+    narrative: `Copper is the <span class="hn">"Doctor of the Economy"</span> — the most economically sensitive industrial metal, widely used in construction, manufacturing, and the energy transition. China accounts for ~55% of global copper demand, making Chinese PMI and infrastructure activity the primary demand signal. <span class="hb">Green energy transition demand</span> (EVs, grid expansion, solar wiring) is creating a structural long-term demand increment. Supply constraints from aging Chilean and Peruvian mines add to the structural bull case. A risk-on global environment and China recovery are near-term tailwinds. <span class="hn">Net: constructively bullish</span> on structural transition demand, supported by risk-on macro.`,
+    pills: [
+      {c:'b',k:'China PMI',        v:'Primary demand driver — above 50'},
+      {c:'b',k:'Green Transition', v:'EV/grid/solar structural demand growth'},
+      {c:'b',k:'Supply Constraints',v:'Aging mines in Chile/Peru'},
+      {c:'b',k:'Risk-On',          v:'Global risk appetite supports copper'},
+      {c:'n',k:'COT',              v:'Spec positioning reflects trend'},
+      {c:'r',k:'China Property',   v:'Construction weakness = demand overhang'},
+    ]
+  },
+  B: {
+    eyebrow: 'Macro Outlook \u00b7 Brent Crude \u00b7 Energy (ICE)',
+    narrative: `ICE Brent Crude is the global benchmark for oil pricing, driven by <span class="hn">OPEC+ supply discipline, global demand, and geopolitical risk premium</span>. Brent carries a geopolitical premium over WTI (CL) given its exposure to Middle East and Russian supply dynamics. OPEC+ cohesion and Saudi policy are the dominant near-term supply signals. <span class="hb">Global demand recovery</span> — particularly from Asia — and a weaker USD are supportive. The driving season (May–Aug) adds seasonal demand. <span class="hn">Net: constructively bullish</span> — tight supply, recovering demand, and seasonal tailwind aligned. ICE COT data provides the positioning read.`,
+    pills: [
+      {c:'b',k:'OPEC+ Discipline', v:'Cohesive cuts maintained'},
+      {c:'b',k:'Global Demand',    v:'Asian recovery underway'},
+      {c:'b',k:'Driving Season',   v:'May–Aug peak demand window'},
+      {c:'b',k:'Geopolitical',     v:'ME/Russia premium supports floor'},
+      {c:'n',k:'USD',              v:'Softening dollar = mild tailwind'},
+      {c:'r',k:'Demand Risk',      v:'US slowdown would hit crude hard'},
+    ]
+  },
+  G: {
+    eyebrow: 'Macro Outlook \u00b7 Gas Oil \u00b7 Energy (ICE)',
+    narrative: `ICE Gas Oil (Gasoil/Diesel) tracks the middle distillate complex, driven by <span class="hn">heating demand, diesel consumption, and refinery economics</span>. As a refined product, gasoil pricing is influenced by crude oil as the feedstock plus crack spread dynamics. <span class="hb">European diesel demand</span> and low refinery inventory levels support the crack spread. Seasonal heating demand (Oct–Mar) is the key demand driver, with summer seeing lower distillate use. ICE COT positioning from commercial hedgers and large specs provides the key tactical signal. <span class="hn">Net: seasonal and crack spread dependent</span> — follow COT and seasonal tabs.`,
+    pills: [
+      {c:'b',k:'Crack Spread',     v:'Gasoil/crude spread signals margin'},
+      {c:'b',k:'Low Inventory',    v:'European distillate stocks below avg'},
+      {c:'n',k:'Crude Link',       v:'Feedstock cost follows Brent direction'},
+      {c:'n',k:'COT (ICE)',        v:'Commercial/spec positioning signal'},
+      {c:'r',k:'Summer Seasonal',  v:'Lower heating/distillate demand'},
+    ]
+  },
+  RC: {
+    eyebrow: 'Macro Outlook \u00b7 Robusta Coffee \u00b7 Soft (ICE)',
+    narrative: `ICE Robusta Coffee is driven by <span class="hn">Vietnamese crop production, European roaster demand, and arabica/robusta spread dynamics</span>. Vietnam is the world\'s dominant robusta producer. <span class="hb">High arabica prices have increased robusta substitution</span> by roasters, boosting robusta demand and supporting the spread. Monsoon reliability in Vietnam is the primary supply risk. European instant coffee and espresso markets are the primary end buyers. ICE COT data provides institutional positioning. <span class="hn">Net: supported by arabica substitution demand</span> but vulnerable to Vietnamese crop recovery.`,
+    pills: [
+      {c:'b',k:'Arabica Substitution',v:'High arabica drives roaster switching'},
+      {c:'b',k:'Instant Coffee',    v:'EU instant coffee demand steady'},
+      {c:'n',k:'Vietnam Crop',      v:'Primary supply — monsoon dependent'},
+      {c:'n',k:'COT (ICE)',         v:'Spec/commercial positioning signal'},
+      {c:'r',k:'Crop Recovery',     v:'Better Vietnam supply = price pressure'},
+    ]
+  },
+  Z: {
+    eyebrow: 'Macro Outlook \u00b7 FTSE 100 \u00b7 UK Equity (ICE)',
+    narrative: `The FTSE 100 is a <span class="hn">global, commodity-heavy index</span> — with ~30% in Energy/Mining — making it more correlated to commodity cycles than other major equity indices. A weaker GBP is structurally bullish for FTSE earnings (foreign currency revenues dominate). <span class="hb">FTSE 100 is attractively valued</span> relative to US counterparts on a P/E basis, making it a value rotation candidate in risk-on environments. The UK economic backdrop (BoE cutting cycle, resilient services) is supportive. COT data from ICE provides the institutional positioning signal. <span class="hn">Net: constructively positive</span> — cheap valuation, commodity exposure, and weak GBP earnings tailwind.`,
+    pills: [
+      {c:'b',k:'Valuation',        v:'FTSE P/E cheap vs US indices'},
+      {c:'b',k:'GBP Weakness',     v:'Weak GBP boosts foreign earnings'},
+      {c:'b',k:'Commodity Exposure',v:'Energy/Mining ~30% — commodity tailwind'},
+      {c:'b',k:'BoE Cutting',      v:'Rate cuts support UK risk assets'},
+      {c:'n',k:'UK Growth',        v:'Resilient services but weak manufacturing'},
+      {c:'r',k:'Global Risk-Off',  v:'Commodity selloff hits FTSE hard'},
+    ]
+  },
+  R: {
+    eyebrow: 'Macro Outlook \u00b7 Long Gilt \u00b7 UK Fixed Income (ICE)',
+    narrative: `UK Long Gilts are driven by <span class="hn">BoE policy, UK inflation, fiscal dynamics, and global duration risk sentiment</span>. The BoE is in a cutting cycle, which is structurally supportive for gilt prices (as yields fall). However, sticky UK services inflation (>5%) limits the pace of cuts. <span class="hr">UK fiscal credibility</span> remains in focus following the Truss episode — any gilt supply shock or fiscal deterioration creates sharp selloffs. Global duration dynamics (US Treasury direction) heavily influence gilts. ICE COT positioning provides the institutional signal. <span class="hn">Net: cautiously constructive</span> — BoE cutting supports but inflation stickiness and fiscal risk cap the rally.`,
+    pills: [
+      {c:'b',k:'BoE Cutting Cycle',v:'Rate cuts drive gilt price higher'},
+      {c:'b',k:'Safe Haven Bid',   v:'Risk-off events generate gilt demand'},
+      {c:'n',k:'Services Inflation',v:'>5% — limits pace of BoE cuts'},
+      {c:'n',k:'COT (ICE)',        v:'Institutional positioning signal'},
+      {c:'r',k:'UK Fiscal Risk',   v:'Supply/deficit risk from budget pressures'},
+      {c:'r',k:'Global Duration',  v:'US Treasury selloff drags gilts lower'},
+    ]
+  },
+};
+
+// Accent colours per factor for attribution table
+function ovFactorAccent(factorKey, score){
+  const cfg = OV_FACTOR_CFG[factorKey];
+  if(!cfg) return sHex(score??5);
+  // Use score-based colour for bull/bear signal, accent for tab identity
+  return sHex(score??5);
+}
+
+function buildOverview(m){
+  const ws = m.weighted_score;
+  const wts = m.weights || {};
+  const scores = m.scores || {};
+  const bias = (m.bias||'Neutral').toLowerCase();
+  const col = sHex(ws);
+
+  // Stripe colour: green=bull, red=bear, gold=neutral
+  const stripeCol = ws >= 6.5 ? '#26c97a' : ws <= 3.5 ? '#d63a24' : 'var(--accent)';
+
+  // Dot position on gradient bar (0-100%)
+  const dotPct = Math.min(97, Math.max(3, (ws/10)*100));
+
+  // Narrative data
+  const nav = OV_NARRATIVES[m.id] || {};
+  const eyebrow = nav.eyebrow || `Macro Outlook \u00b7 ${m.name} \u00b7 ${m.category||'Market'}`;
+
+  // Auto-generate narrative if not in curated list
+  const narrative = nav.narrative || (()=>{
+    const parts = [];
+    const s = scores;
+    if(s?.cot?.score!=null){ const v=s.cot.score; parts.push(v>=6.5?'<span class="hb">COT positioning bullish</span>':v<=3.5?'<span class="hr">COT positioning bearish</span>':'COT positioning neutral'); }
+    if(s?.seasonal?.score!=null){ const v=s.seasonal.score; parts.push(v>=6.5?'seasonal window <span class="hb">favourable</span>':v<=3.5?'seasonal window <span class="hr">adverse</span>':'seasonal window neutral'); }
+    if(s?.regime?.score!=null||s?.climate?.score!=null){ const v=(s.regime?.score??s.climate?.score); parts.push(v>=6.5?'risk climate <span class="hb">supportive</span>':v<=3.5?'risk climate <span class="hr">adverse</span>':'risk climate mixed'); }
+    const biasHtml = ws>=6.5?`<span class="hb">Bullish</span>`:ws<=3.5?`<span class="hr">Bearish</span>`:`<span class="hn">Neutral</span>`;
+    return (parts.length ? parts.join(', ')+'. ' : '') + `Overall bias ${biasHtml}.`;
+  })();
+
+  // Pills
+  const pillsData = nav.pills || [];
+  const pillsHtml = pillsData.map(p=>
+    `<div class="ov-pl ${p.c}"><span class="ov-pld"></span><span class="ov-plk">${p.k}</span><span class="ov-plv">${p.v}</span></div>`
+  ).join('');
+
+  // ── Attribution table rows ──
+  // Ordered by weight (highest first), PCR last if present
+  const FACTOR_ORDER = ['cot','momentum','macro','regime','seasonal','relval','climate','pcr'];
+  const hasPcr = PCR_EQUITY_IDS.has(m.id) && scores.pcr && (wts.pcr||0) > 0;
+
+  // Deduplicate regime/climate — backend may use either key
+  const normalisedWts = {};
+  const normalisedScores = {};
+  for(const [k,v] of Object.entries(wts)){
+    const key = k==='climate'?'regime':k;
+    normalisedWts[key] = (normalisedWts[key]||0) + v;
+  }
+  for(const [k,v] of Object.entries(scores)){
+    const key = k==='climate'?'regime':k;
+    if(!normalisedScores[key]) normalisedScores[key] = v;
+  }
+
+  // Build ordered factor list
+  const factorKeys = FACTOR_ORDER.filter(k => {
+    if(k==='pcr') return hasPcr;
+    if(k==='climate') return false; // handled via regime
+    return (normalisedWts[k]||0) > 0 || normalisedScores[k];
+  });
+
+  // Sort by weight descending
+  factorKeys.sort((a,b)=>((normalisedWts[b]||0)-(normalisedWts[a]||0)));
+
+  // Max contribution for bar scaling
+  let totalContrib = 0;
+  const contribs = {};
+  for(const k of factorKeys){
+    const sc = normalisedScores[k]?.score ?? 5;
+    const wt = normalisedWts[k] || 0;
+    const contrib = sc * wt;
+    contribs[k] = contrib;
+    totalContrib += contrib;
+  }
+  const maxContrib = Math.max(...Object.values(contribs), 0.01);
+
+  // Attribution rows
+  const FACTOR_LABELS = {
+    cot:'COT Positioning', seasonal:'Seasonality', momentum:'Momentum',
+    macro:'Fundamentals', relval:'Relative Value', regime:'Climate & Rates',
+    pcr:'Put / Call Ratio', climate:'Climate & Rates'
+  };
+  const FACTOR_TABS = {
+    cot:'cot', seasonal:'seasonal', momentum:'momentum',
+    macro:'macro', relval:'relval', regime:'regime',
+    pcr:'pcr', climate:'regime'
+  };
+  const FACTOR_ACCENTS = {
+    cot:'#5c9eff', seasonal:'#26c97a', momentum:'#8a98b8',
+    macro:'#6a7898', relval:'#f04040', regime:'#5cb8ff',
+    pcr:'#d63a24', climate:'#5cb8ff'
+  };
+  const FACTOR_INTERPS = {
+    cot: (sc)=> sc>=7?'Net long — specs bullishly positioned':sc<=3?'Net short — specs bearishly positioned':'Mixed — positioning near neutral',
+    seasonal: (sc,m)=> sc>=7?'Seasonal window favourable':sc<=3?'Seasonal window adverse':'Seasonal window neutral',
+    momentum: (sc)=> sc>=7?'Price above key MAs, trend intact':sc<=3?'Price below key MAs, downtrend':'+/- MAs — no clear directional trend',
+    macro: (sc)=> sc>=7?'Macro fundamentals supportive':sc<=3?'Macro headwinds dominant':'Mixed macro — balanced risk',
+    relval: (sc)=> sc>=7?'Attractively valued vs peers':sc<=3?'Expensive vs peers — stretched valuation':'Fair value relative to peers',
+    regime: (sc)=> sc>=7?'Risk climate supportive — VIX low, spreads tight':sc<=3?'Risk climate adverse — elevated vol, wide spreads':'Market climate mixed — watch closely',
+    climate: (sc)=> sc>=7?'Risk climate supportive — VIX low, spreads tight':sc<=3?'Risk climate adverse':'Market climate mixed',
+    pcr: (sc)=> sc>=7?'Put/Call ratio: low — bullish options flow':sc<=3?'Put/Call ratio: high — bearish hedging demand':'Put/Call ratio near neutral'
+  };
+
+  const attrRows = factorKeys.map(k=>{
+    const sc = normalisedScores[k]?.score ?? 5;
+    const wt = normalisedWts[k] || 0;
+    const pct = Math.round(wt*100);
+    const contrib = contribs[k];
+    const contribBarPct = Math.round((contrib/maxContrib)*100);
+    const scoreBarPct = Math.min(100,Math.max(0,(sc/10)*100));
+    const rcol = sHex(sc);
+    const tabId = FACTOR_TABS[k]||k;
+    const label = FACTOR_LABELS[k]||k;
+    const interpFn = FACTOR_INTERPS[k]||(()=>'');
+    const interp = interpFn(sc, m);
+    return `<div class="ov-arow" style="--ov-rc:${rcol}" onclick="switchTab('${tabId}')">
+      <div class="ov-af"><span class="ov-afn">${label}</span><span class="ov-afi">${interp}</span></div>
+      <div class="ov-abar-wrap"><div class="ov-abar-track"><div class="ov-abar-fill" style="width:${scoreBarPct}%"></div></div></div>
+      <div class="ov-asc">${sc.toFixed(1)}</div>
+      <div class="ov-awt">${pct}%</div>
+      <div class="ov-acont">
+        <div class="ov-acont-bar-wrap"><div class="ov-acont-bar-track"><div class="ov-acont-bar-fill" style="width:${contribBarPct}%"></div></div></div>
+        <div class="ov-acont-val">${contrib>=0?'+':''}${contrib.toFixed(2)}<span class="ov-acont-pts"> pts</span></div>
+      </div>
+      <span class="ov-arr">→</span>
+    </div>`;
+  }).join('');
+
+  // Total row
+  const totalWt = factorKeys.reduce((acc,k)=>acc+(normalisedWts[k]||0),0);
+  const totalWtPct = Math.round(totalWt*100);
+
+  // ── Confluence strip ──
+  const bullCount = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).length;
+  const bearCount = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).length;
+  const total = factorKeys.length;
+  const confBadge = `${bullCount} of ${total} bullish`;
+  let confText = '';
+  if(bullCount >= Math.ceil(total*0.7)){
+    const aligned = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
+    confText = `<strong>Strong confluence</strong> \u2014 ${aligned} all pointing bullish.`;
+  } else if(bearCount >= Math.ceil(total*0.7)){
+    const aligned = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
+    confText = `<strong>Strong bearish confluence</strong> \u2014 ${aligned} all pointing bearish.`;
+  } else if(bullCount > bearCount){
+    const bull = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
+    const bear = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
+    confText = `<strong>Moderate confluence</strong> \u2014 ${bull||'Some factors'} lean bullish${ bear ? `. ${bear} diverge bearishly` : '.' }`;
+  } else if(bearCount > bullCount){
+    const bull = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
+    const bear = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
+    confText = `<strong>Moderate bearish confluence</strong> \u2014 ${bear||'Some factors'} lean bearish${ bull ? `. ${bull} diverge bullishly` : '.' }`;
+  } else {
+    confText = `<strong>Mixed signals</strong> \u2014 factors are evenly split. No strong directional confluence.`;
+  }
+
+  // Confluence bonus from live data
+  if(m.confluence_bonus && Math.abs(m.confluence_bonus) >= 0.15){
+    const cb = m.confluence_bonus;
+    const cr = (m.confluence_reason||'').replace(/^Confluence:\s*/i,'').replace(/[+\-−][\d.]+$/,'').trim();
+    const bs = (cb>=0?'+':'')+cb.toFixed(2);
+    confText += ` <span style="color:${cb>=0?'var(--accent)':'var(--sm1)'};font-weight:600">${cr||'Confluence bonus'}: ${bs}</span>`;
+  }
+
+  // ── Weight bar ──
+  const WTS_COLORS = {
+    cot:'#5c9eff', seasonal:'#26c97a', momentum:'#8a98b8',
+    macro:'#6a7898', relval:'#f04040', regime:'#5cb8ff',
+    pcr:'#d63a24'
+  };
+  const wtSegs = factorKeys.map(k=>{
+    const pct = Math.round((normalisedWts[k]||0)*100);
+    const c = WTS_COLORS[k]||'#8a98b8';
+    return `<div class="ov-wt-seg" style="width:${pct}%;background:${c};opacity:.85"></div>`;
+  }).join('');
+  const wtLeg = factorKeys.map(k=>{
+    const pct = Math.round((normalisedWts[k]||0)*100);
+    const c = WTS_COLORS[k]||'#8a98b8';
+    const lbl = FACTOR_LABELS[k]||k;
+    return `<div class="ov-wt-it"><div class="ov-wt-sq" style="background:${c}"></div>${lbl}<span class="ov-wt-pct">${pct}%</span></div>`;
+  }).join('');
+
+  // ── Nav strip with score chips ──
+  // (built and injected into DOM separately via buildOvNav)
+  // This function returns the overview PANEL content only
+  return `<div id="t-overview" class="on">
+
+    <!-- VERDICT CARD -->
+    <div class="ov-verdict" style="--ov-stripe:${stripeCol}">
+      <div class="ov-v-top">
+        <div class="ov-v-score-col">
+          <div class="ov-vsn" style="color:${col}">${ws.toFixed(1)}</div>
+          <div class="ov-vsd">/10</div>
+          <div class="ov-vsbar"><div class="ov-vsdot" style="left:${dotPct}%"></div></div>
+        </div>
+        <div class="ov-vdiv"></div>
+        <div class="ov-v-text">
+          <div class="ov-vk">${eyebrow}</div>
+          <div class="ov-vstmt">${narrative}</div>
+        </div>
+      </div>
+      ${pillsHtml ? `<div class="ov-pills">${pillsHtml}</div>` : ''}
+    </div>
+
+    <!-- ATTRIBUTION TABLE -->
+    <div class="ov-attr-wrap">
+      <div class="ov-attr-head">
+        <div class="ov-ah">Factor</div>
+        <div class="ov-ah ov-ah-bar"></div>
+        <div class="ov-ah r">Score</div>
+        <div class="ov-ah r">Weight</div>
+        <div class="ov-ah r" style="padding-left:12px;border-left:1px solid rgba(255,255,255,0.04)">Contribution</div>
+      </div>
+      ${attrRows}
+      <div class="ov-atotal">
+        <div class="ov-at-lbl">Composite Total</div>
+        <div></div>
+        <div class="ov-at-score-lbl">Σ weighted</div>
+        <div class="ov-at-wt-lbl">${totalWtPct}%</div>
+        <div class="ov-at-contrib">
+          <div class="ov-at-num">${totalContrib.toFixed(2)}</div>
+          <div class="ov-at-sub">≈ ${ws.toFixed(1)} / 10</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFLUENCE STRIP -->
+    <div class="ov-conf-strip">
+      <div class="ov-conf-badge">${confBadge}</div>
+      <div class="ov-conf-text">${confText}</div>
+    </div>
+
+    <!-- WEIGHT BREAKDOWN BAR -->
+    <div class="ov-wt-card">
+      <div class="ov-wt-lbl">Composite Weighting</div>
+      <div class="ov-wt-bar">${wtSegs}</div>
+      <div class="ov-wt-leg">${wtLeg}</div>
+    </div>
+
+  </div>`;
+}
+
+// Build the nav strip HTML for overview (injected above the factor-strip)
+function buildOvNav(m){
+  const scores = m.scores || {};
+  const wts = m.weights || {};
+
+  // Normalise regime/climate
+  const norm = {};
+  for(const [k,v] of Object.entries(scores)){
+    norm[k==='climate'?'regime':k] = v;
+  }
+
+  const LABELS = {
+    cot:'Positioning', seasonal:'Seasonal', momentum:'Momentum',
+    macro:'Fundamentals', relval:'Rel. Value', regime:'Climate',
+    pcr:'Put/Call', phase:'COT Phase', history:'Score History'
+  };
+  const TABS = ['cot','seasonal','momentum','macro','relval','regime'];
+  const hasPcr = PCR_EQUITY_IDS.has(m.id) && norm.pcr && (wts.pcr||0) > 0;
+  if(hasPcr) TABS.push('pcr');
+  TABS.push('phase','history');
+
+  const chips = TABS.map(t=>{
+    const sc = norm[t]?.score;
+    const chipHtml = sc!=null ? (()=>{
+      const c = sHex(sc);
+      const bg = sc>=6.5?'rgba(48,217,136,0.12)':sc<=3.5?'rgba(214,58,36,0.12)':'rgba(173,184,208,0.10)';
+      return `<span class="ov-nchip" style="--chip-bg:${bg};--chip-c:${c}">${sc.toFixed(1)}</span>`;
+    })() : '';
+    const isOn = selTab===t;
+    return `<div class="ov-nt${isOn?' on':''}" onclick="switchTab('${t}')">${LABELS[t]||t}${chipHtml}</div>`;
+  }).join('');
+
+  const isOvOn = selTab==='overview';
+  return `<div class="ov-nav"><div class="ov-nt${isOvOn?' on':''}" onclick="switchTab('overview')">Overview</div>${chips}</div>`;
+}
+
+/* ══════════════════════════════════════════════════════ */
+
 function dHead(m,ws,col,bg){
   const barPct=Math.min(100,Math.max(0,(ws/10)*100));
   const wts=m.weights||{};
@@ -24657,10 +25611,9 @@ function dHead(m,ws,col,bg){
       </div>
     </div>
 
-    <!-- CENTRE: narrative + factor bars -->
+    <!-- CENTRE: clean identity (factor rows moved to Overview tab) -->
     <div class="d-head-centre">
-      <div class="d-head-narrative">${_narrative}</div>
-      <div class="d-head-factors">${factorRows}</div>
+      ${_confHtml}
     </div>
 
     <!-- RIGHT: composite score -->
@@ -25377,7 +26330,24 @@ function drawWheel(ws,col){
 
 function switchTab(tab){
   selTab=tab;
-  // Update tab content visibility
+
+  // Overview panel: show when tab==='overview', hide otherwise
+  const ovPanel = document.getElementById('t-overview');
+  const fStrip  = document.querySelector('.factor-strip');
+  if(ovPanel)  ovPanel.classList.toggle('on', tab==='overview');
+  if(fStrip){
+    // Hide the factor strip when overview is active
+    fStrip.style.display = (tab==='overview') ? 'none' : '';
+  }
+
+  // Update ov-nav chip active states
+  document.querySelectorAll('.ov-nt').forEach(el=>{
+    const onclick = el.getAttribute('onclick')||'';
+    const match = onclick.match(/switchTab\('(.*)'\)/);
+    if(match) el.classList.toggle('on', match[1]===tab);
+  });
+
+  // Update tab content visibility (existing .tab divs)
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='t-'+tab));
   // Update factor card active state (deactivate all when history is selected)
   document.querySelectorAll('.f-card').forEach(c=>{
@@ -25416,7 +26386,7 @@ function switchTab(tab){
 
 // ─── Mobile swipe navigation (IDEA-08) ────────────────────────────────────
 (function initSwipeNav(){
-  const TAB_ORDER = ['cot','seasonal','momentum','macro','relval','regime'];
+  const TAB_ORDER = ['overview','cot','seasonal','momentum','macro','relval','regime'];
   let _swipeStartX = 0, _swipeStartY = 0;
   document.addEventListener('touchstart', function(e){
     if(e.touches.length !== 1) return;
