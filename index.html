@@ -2855,7 +2855,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .hc-card-badge{font-size:8px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;flex-shrink:0;white-space:nowrap}
 .hc-card-badge.hc-bull{background:rgba(38,201,122,0.1);color:var(--s1)}
 .hc-card-badge.hc-bear{background:rgba(214,58,36,0.1);color:var(--sm1)}
-.hc-card-reason{font-size:9px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;display:block}
+.hc-card-bottom{display:flex;align-items:center;gap:5px;margin-top:3px;min-width:0}
+.hc-card-reason{font-size:9px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .hc-conf-chip{font-size:8px;font-weight:600;color:var(--accent);background:rgba(200,169,110,0.1);border-radius:3px;padding:1px 4px;flex-shrink:0;white-space:nowrap}
 
 /* ── CONFLUENCE DOT in rankings list ── */
@@ -16581,7 +16582,7 @@ function renderHCModule(allMarkets){
           <span class="hc-card-score ${dir}">${ws.toFixed(1)}</span>
           <span class="hc-card-badge ${dir}">${biasShort}</span>
         </div>
-        ${reason ? '<span class="hc-card-reason">'+reason+(bonus?' · <span class="hc-conf-chip">'+bonusStr+'</span>':'')+'</span>' : ''}
+        ${reason ? '<div class="hc-card-bottom"><span class="hc-card-reason">'+reason+'</span>'+(bonus?'<span class="hc-conf-chip">'+bonusStr+'</span>':'')+'</div>' : ''}
       </div>
     </div>`;
   }).join('');
