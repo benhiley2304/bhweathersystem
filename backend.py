@@ -7794,10 +7794,13 @@ async def _do_scores_refresh(force: bool = False):
         if mid in PCR_EQUITY_SYMBOLS:
             scores["pcr"] = pcr_data["score"]
     
-        # Pass the nested detail dict so confluence signals (convergence_signal, comm_momentum_signal, etc.)
-        # are accessible at the top level of cot_detail. compute_cot_score buries these inside ["detail"];
-        # compute_cross_cot_score exposes them at both levels. .get("detail", cot_data) handles both.
-        bias = compute_weighted_bias(scores, market_id=mid, cot_detail=cot_data.get("detail", cot_data))
+        # Build a merged cot_detail dict for compute_weighted_bias:
+        # compute_cot_score buries signals (convergence_signal, etc.) inside ["detail"] but keeps
+        # "score" only at the top level. compute_cross_cot_score puts everything at both levels.
+        # We merge: start with detail signals, then overlay top-level score so both are accessible.
+        _cot_detail_inner = cot_data.get("detail", {}) or {}
+        _cot_detail_merged = {**_cot_detail_inner, "score": cot_data.get("score", 5.0)}
+        bias = compute_weighted_bias(scores, market_id=mid, cot_detail=_cot_detail_merged)
     
         scores_out = {
             "cot":      {"score": cot_data["score"],      "label": cot_data["label"],      "detail": cot_data.get("detail", cot_data)},
