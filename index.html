@@ -2838,7 +2838,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .hc-header-left{display:flex;align-items:center;gap:6px}
 .hc-label{font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);font-family:var(--head)}
 .hc-glow-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px 2px rgba(200,169,110,0.5);flex-shrink:0}
-.hc-count{font-size:9px;color:var(--faint);background:var(--surf3);border-radius:9px;padding:1px 6px;font-family:var(--mono)}
+.hc-count{font-size:8px;font-weight:700;letter-spacing:0.07em;color:var(--accent2);background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);border-radius:9px;padding:1px 7px;font-family:var(--mono);text-transform:uppercase}
 .hc-card{position:relative;display:flex;align-items:center;gap:8px;padding:8px 11px 8px 13px;margin-bottom:4px;border-radius:6px;background:var(--surf2);border:1px solid rgba(255,255,255,0.06);overflow:hidden;cursor:pointer;transition:background 150ms,border-color 150ms}
 .hc-card:last-child{margin-bottom:0}
 .hc-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
@@ -2864,36 +2864,55 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .mr-conf-ph{width:5px;height:5px;flex-shrink:0;margin-right:4px}
 
 /* ── MACRO ENV PILL STRIP ── */
-.ov-macro-env-strip{
-  display:flex;flex-wrap:wrap;gap:6px;
+.ov-macro-env-wrap{
   padding:10px 14px 8px;
-  margin:0 0 2px;
   border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.ov-macro-env-hdr{
+  display:flex;align-items:center;gap:7px;margin-bottom:7px;
+}
+.ov-macro-env-hdr-lbl{
+  font-size:8px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;
+  color:var(--faint);font-family:var(--head);
+}
+.ov-macro-env-hdr-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.09),transparent)}
+.ov-macro-env-strip{
+  display:flex;flex-wrap:wrap;gap:5px;
 }
 .ov-menv-pill{
   display:flex;align-items:center;gap:5px;
-  padding:4px 9px 4px 7px;
-  border-radius:6px;
-  background:rgba(255,255,255,0.035);
+  padding:4px 8px 4px 6px;
+  border-radius:5px;
+  background:rgba(255,255,255,0.03);
   border:1px solid rgba(255,255,255,0.07);
   cursor:default;
   transition:background 180ms ease,border-color 180ms ease;
 }
-.ov-menv-pill:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12)}
+.ov-menv-pill:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.13)}
 .ov-menv-pip{
-  width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  width:5px;height:5px;border-radius:50%;flex-shrink:0;
   box-shadow:0 0 5px 1px var(--menv-pip-glow,rgba(255,255,255,0.2));
 }
-.ov-menv-lbl{font-size:9px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)}
+.ov-menv-lbl{font-size:8.5px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)}
+.ov-menv-sep{font-size:8px;color:rgba(255,255,255,0.15);margin:0 1px}
 .ov-menv-val{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--menv-col,var(--text))}
+/* State tiers */
 .ov-menv-pill.menv-bull .ov-menv-pip{--menv-pip-glow:rgba(38,201,122,0.5)}
 .ov-menv-pill.menv-bear .ov-menv-pip{--menv-pip-glow:rgba(214,58,36,0.5)}
 .ov-menv-pill.menv-neut .ov-menv-pip{--menv-pip-glow:rgba(122,130,170,0.4)}
+/* Inflation-specific amber (hot) and cool-blue (disinflationary) tiers */
+.ov-menv-pill.menv-hot{--menv-col:#f59e0b;border-color:rgba(245,158,11,0.18)}
+.ov-menv-pill.menv-hot .ov-menv-pip{--menv-pip-glow:rgba(245,158,11,0.55);background:#f59e0b !important}
+.ov-menv-pill.menv-cool{--menv-col:#60a5fa;border-color:rgba(96,165,250,0.15)}
+.ov-menv-pill.menv-cool .ov-menv-pip{--menv-pip-glow:rgba(96,165,250,0.5);background:#60a5fa !important}
+/* Bull/bear border accent */
+.ov-menv-pill.menv-bull{border-color:rgba(38,201,122,0.16)}
+.ov-menv-pill.menv-bear{border-color:rgba(214,58,36,0.16)}
 @media(max-width:700px){
-  .ov-macro-env-strip{padding:8px 10px 6px;gap:5px}
+  .ov-macro-env-wrap{padding:7px 10px 6px}
   .ov-menv-pill{padding:3px 7px 3px 6px}
   .ov-menv-lbl{font-size:8px}
-  .ov-menv-val{font-size:9px}
+  .ov-menv-val{font-size:9.5px}
 }
 
 .d-score-hero-bar-f{height:100%;border-radius:2px;transition:width 400ms ease}
@@ -16550,7 +16569,7 @@ function renderHCModule(allMarkets){
     const bonus= m.confluence_bonus||0;
     const bonusStr = (bonus>=0?'+':'')+bonus.toFixed(2);
     // Strip the trailing +/−X.XX from the reason string (we show it as a chip)
-    const reason = (m.confluence_reason||'').replace(/[+−\-][\d.]+$/, '').trim();
+    const reason = (m.confluence_reason||'').replace(/^Confluence:\s*/i,'').replace(/[+−\-][\d.]+$/, '').trim();
     const shortName = m.name.length > 16 ? m.name.slice(0,15)+'…' : m.name;
     const biasShort = (m.bias||'').replace('Very ','').replace('Mildly ','').replace('mildly ','');
     const tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
@@ -16573,7 +16592,7 @@ function renderHCModule(allMarkets){
         <div class="hc-glow-dot"></div>
         <span class="hc-label">High Conviction</span>
       </div>
-      <span class="hc-count">${hits.length} active</span>
+      <span class="hc-count">${hits.length} ${hits.length===1?'Signal':'Signals'}</span>
     </div>` + cards;
 }
 
@@ -17259,10 +17278,8 @@ function renderOverview(){
     const cr=md.credit||{};
     const fb=md.fed_balance||{};
 
-    // Score → colour + tier
+    // Score → colour + tier (growth / rates / jobs: positive = bullish)
     function _menvPill(rawScore){
-      // raw scores in category_scores are deltas (-2..+2 typically)
-      // Convert to bull/neut/bear tier
       const s=rawScore||0;
       if(s>=0.4)  return{cls:'menv-bull',col:'#26c97a',pip:'#26c97a'};
       if(s<=-0.4) return{cls:'menv-bear',col:'#e03a2a',pip:'#e03a2a'};
@@ -17270,13 +17287,31 @@ function renderOverview(){
     }
     function _menvLabel(rawScore){
       const s=rawScore||0;
-      if(s>=1.0)  return'Strong+';
+      if(s>=1.0)  return'Strong';
       if(s>=0.4)  return'Positive';
-      if(s<=-1.0) return'Weak-';
+      if(s<=-1.0) return'Weak';
       if(s<=-0.4) return'Negative';
       return'Neutral';
     }
-    // Labour composite on 0-10 scale → same treatment
+    // Inflation: uses a separate hot/cool/neutral scale
+    // High inflation score = CPI running ABOVE expectations → amber (stagflationary risk)
+    // Low inflation score = CPI running BELOW expectations → cool blue (disinflationary)
+    function _inflTier(rawScore){
+      const s=rawScore||0;
+      if(s>=0.4)  return{cls:'menv-hot', col:'#f59e0b',pip:'#f59e0b'}; // amber: running hot
+      if(s<=-0.4) return{cls:'menv-cool',col:'#60a5fa',pip:'#60a5fa'}; // blue: easing/cool
+      return{cls:'menv-neut',col:'#7b8ba8',pip:'#7b8ba8'};
+    }
+    function _inflLabel(rawScore, cpiYoy){
+      const s=rawScore||0;
+      const cpiStr=cpiYoy!=null?` ${cpiYoy.toFixed(1)}%`:'';
+      if(s>=1.2)  return`Hot${cpiStr}`;
+      if(s>=0.4)  return`Elevated${cpiStr}`;
+      if(s<=-0.8) return`Cooling${cpiStr}`;
+      if(s<=-0.4) return`Easing${cpiStr}`;
+      return`On Track${cpiStr}`;
+    }
+    // Labour composite on 0-10 scale
     function _labourTier(score10){
       if(score10==null)return{cls:'menv-neut',col:'#7b8ba8',pip:'#7b8ba8'};
       if(score10>=6.5)return{cls:'menv-bull',col:'#26c97a',pip:'#26c97a'};
@@ -17291,63 +17326,67 @@ function renderOverview(){
       if(score10>=4.0)return'Soft';
       return'Weak';
     }
-    // Credit spread tier
+    // Credit spreads: Tightening=risk-on=bullish, Widening=risk-off=bearish
     function _creditTier(hyTrend, score){
-      // hy_trend: Tightening=bullish, Widening=bearish
       if(hyTrend==='Tightening'&&(score||0)>=0.3)return{cls:'menv-bull',col:'#26c97a',pip:'#26c97a'};
       if(hyTrend==='Widening'||(score||0)<=-0.3)return{cls:'menv-bear',col:'#e03a2a',pip:'#e03a2a'};
       return{cls:'menv-neut',col:'#7b8ba8',pip:'#7b8ba8'};
     }
-    function _creditLabel(hyTrend){
-      if(hyTrend==='Tightening')return'Tightening';
-      if(hyTrend==='Widening')return'Widening';
-      return'Stable';
+    function _creditLabel(hyTrend, hyOasBps){
+      const bpsStr=hyOasBps!=null?` ${Math.round(hyOasBps)}bp`:'';
+      if(hyTrend==='Tightening')return`Tight${bpsStr}`;
+      if(hyTrend==='Widening')return`Wide${bpsStr}`;
+      return`Stable${bpsStr}`;
     }
-    // Fed balance: Expanding=supportive, Contracting=tightening
+    // Fed BS: Expanding=dovish/supportive=bullish; Contracting=hawkish=bearish
     function _fedTier(trend){
       if(trend==='Expanding')return{cls:'menv-bull',col:'#26c97a',pip:'#26c97a'};
       if(trend==='Contracting')return{cls:'menv-bear',col:'#e03a2a',pip:'#e03a2a'};
       return{cls:'menv-neut',col:'#7b8ba8',pip:'#7b8ba8'};
     }
 
+    // CPI YoY for inflation label
+    const _cpiYoy=(md.inflation||{}).cpi_yoy;
+
     // Build pills array
     const PILLS=[
       (()=>{
         const t=_menvPill(catScores.growth);const l=_menvLabel(catScores.growth);
-        return{label:'Growth',val:l,cls:t.cls,col:t.col,pip:t.pip,title:`GDP/PMI composite score: ${(catScores.growth||0).toFixed(2)}`};
+        return{label:'Growth',val:l,cls:t.cls,col:t.col,pip:t.pip,
+          title:`GDP/PMI/retail mix: ${(catScores.growth||0)>=0?'+':''}${(catScores.growth||0).toFixed(2)} vs expectations`};
       })(),
       (()=>{
-        const t=_menvPill(catScores.inflation);const l=_menvLabel(catScores.inflation);
-        return{label:'Inflation',val:l,cls:t.cls,col:t.col,pip:t.pip,title:`Inflation composite score: ${(catScores.inflation||0).toFixed(2)}`};
+        const t=_inflTier(catScores.inflation);const l=_inflLabel(catScores.inflation,_cpiYoy);
+        return{label:'Inflation',val:l,cls:t.cls,col:t.col,pip:t.pip,
+          title:`CPI/PPI/PCE running ${(catScores.inflation||0)>=0?'above':'below'} expectations (score: ${(catScores.inflation||0).toFixed(2)}). Amber = stagflationary pressure.`};
       })(),
       (()=>{
-        const sc10=lab.jobs_composite_10;
-        const t=_labourTier(sc10);const lv=_labourLabel(sc10);
-        return{label:'Labour',val:lv,cls:t.cls,col:t.col,pip:t.pip,title:`Labour market composite: ${sc10!=null?sc10.toFixed(1):'—'}/10`};
+        const sc10=lab.jobs_composite_10;const lv=_labourLabel(sc10);
+        const t=_labourTier(sc10);
+        return{label:'Labour',val:lv,cls:t.cls,col:t.col,pip:t.pip,
+          title:`Labour composite ${sc10!=null?sc10.toFixed(1):'—'}/10 — NFP ${lab.nfp_mom!=null?'+'+lab.nfp_mom+'K':'—'}, U-rate ${lab.unrate!=null?lab.unrate+'%':'—'}`};
       })(),
       (()=>{
         const t=_menvPill(catScores.rates);const l=_menvLabel(catScores.rates);
-        return{label:'Rates',val:l,cls:t.cls,col:t.col,pip:t.pip,title:`Rates/yields composite: ${(catScores.rates||0).toFixed(2)}`};
+        const yc=(md.yield_curve||{});const t10y2y=yc.t10y2y!=null?` • 10Y−2Y ${yc.t10y2y.toFixed(2)}%`:'';
+        return{label:'Rates',val:l,cls:t.cls,col:t.col,pip:t.pip,
+          title:`Rates/yields composite: ${(catScores.rates||0).toFixed(2)}${t10y2y}`};
       })(),
       (()=>{
-        const t=_creditTier(cr.hy_trend, cr.hy_score);const l=_creditLabel(cr.hy_trend);
-        const hyOas=cr.hy_oas_bps!=null?`HY ${Math.round(cr.hy_oas_bps)}bps`:'';
-        return{label:'Credit',val:l,cls:t.cls,col:t.col,pip:t.pip,title:`Credit spreads: ${hyOas}`};
+        const t=_creditTier(cr.hy_trend, cr.hy_score);const l=_creditLabel(cr.hy_trend, cr.hy_oas_bps);
+        return{label:'Credit',val:l,cls:t.cls,col:t.col,pip:t.pip,
+          title:`HY spreads ${cr.hy_oas_bps!=null?Math.round(cr.hy_oas_bps)+'bps':'—'} (${cr.hy_pct!=null?Math.round(cr.hy_pct)+'th pct':'—'}) — ${cr.hy_trend||'Stable'}`};
       })(),
       (()=>{
-        const t=_fedTier(fb.trend);const l=fb.trend||'—';
-        const lvl=fb.level!=null?`$${fb.level.toFixed(2)}T`:'';
-        return{label:'Fed BS',val:l,cls:t.cls,col:t.col,pip:t.pip,title:`Fed balance sheet: ${lvl}`};
+        const t=_fedTier(fb.trend);const lvl=fb.level!=null?`$${fb.level.toFixed(1)}T`:'—';
+        return{label:'Fed BS',val:fb.trend||'—',cls:t.cls,col:t.col,pip:t.pip,
+          title:`Fed balance sheet ${lvl} — 3M change: ${fb.chg_3m_pct!=null?((fb.chg_3m_pct>=0?'+':'')+fb.chg_3m_pct.toFixed(1)+'%'):'—'}`};
       })(),
     ];
 
-    el.innerHTML=`<div class="ov-macro-env-strip">${
-      PILLS.map(p=>`<div class="ov-menv-pill ${p.cls}" title="${p.title}" style="--menv-col:${p.col}">
-        <div class="ov-menv-pip" style="background:${p.pip}"></div>
-        <span class="ov-menv-lbl">${p.label}</span>
-        <span class="ov-menv-val">${p.val}</span>
-      </div>`).join('')
-    }</div>`;
+    el.innerHTML=`<div class="ov-macro-env-wrap"><div class="ov-macro-env-hdr"><span class="ov-macro-env-hdr-lbl">Macro Environment</span><div class="ov-macro-env-hdr-line"></div></div><div class="ov-macro-env-strip">${
+      PILLS.map(p=>`<div class="ov-menv-pill ${p.cls}" title="${p.title}" style="--menv-col:${p.col}"><div class="ov-menv-pip" style="background:${p.pip}"></div><span class="ov-menv-lbl">${p.label}</span><span class="ov-menv-sep">•</span><span class="ov-menv-val">${p.val}</span></div>`).join('')
+    }</div></div>`;
   })();
 
   // ── 3b. GLOBAL CLIMATE PANEL ────────────────────────
@@ -23936,7 +23975,7 @@ function dHead(m,ws,col,bg){
       ${(()=>{
         if(!m.confluence_bonus||Math.abs(m.confluence_bonus)<0.15) return '';
         const _cb=m.confluence_bonus;
-        const _cr=(m.confluence_reason||'').replace(/[+\-−][\d.]+$/, '').trim();
+        const _cr=(m.confluence_reason||'').replace(/^Confluence:\s*/i,'').replace(/[+\-−][\d.]+$/, '').trim();
         const _bs=((_cb>=0)?'+':'')+_cb.toFixed(2);
         const _bc=_cb>=0?'var(--gold)':'var(--sm1)';
         const _bgc=_cb>=0?'rgba(245,200,66,0.1)':'rgba(214,58,36,0.1)';
