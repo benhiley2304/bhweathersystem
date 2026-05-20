@@ -9996,6 +9996,129 @@ async def yield_curve_history():
     return _SafeJSONResponse(content=result)
 
 
+# ── Upcoming Events cache ─────────────────────────────────────────────────────
+_UPCOMING_EVENTS_CACHE: dict = {"data": None, "time": 0}
+_UPCOMING_EVENTS_TTL: int = 3600  # 1 hour
+
+def _get_future_week_strings(n_weeks: int = 3) -> list:
+    """Generate next n_weeks FF week URL strings (starting from current week)."""
+    import calendar as _cal
+    from datetime import date, timedelta
+    today = date.today()
+    day_of_week = today.weekday()  # Mon=0, Sun=6
+    days_since_sunday = (day_of_week + 1) % 7
+    current_sunday = today - timedelta(days=days_since_sunday)
+    months_short = ["jan", "feb", "mar", "apr", "may", "jun",
+                    "jul", "aug", "sep", "oct", "nov", "dec"]
+    week_strings = []
+    for i in range(n_weeks):
+        sunday = current_sunday + timedelta(weeks=i)
+        mon = months_short[sunday.month - 1]
+        week_strings.append(f"{mon}{sunday.day}.{sunday.year}")
+    return week_strings
+
+FLAG_MAP = {
+    "USD": "🇺🇸", "EUR": "🇪🇺", "GBP": "🇬🇧", "JPY": "🇯🇵",
+    "AUD": "🇦🇺", "CAD": "🇨🇦", "NZD": "🇳🇿", "CHF": "🇨🇭",
+    "CNY": "🇨🇳", "CNH": "🇨🇳",
+}
+
+def _parse_ff_datetime(dateline: str) -> str | None:
+    """Parse FF dateline like 'Wed May 21 2026 08:30:00 GMT+0000' → ISO UTC."""
+    import re as _re
+    from datetime import datetime, timezone
+    if not dateline:
+        return None
+    try:
+        # Strip timezone name in parens if present, e.g. "(UTC)"
+        dateline = _re.sub(r'\s*\(.*?\)', '', dateline).strip()
+        # Try: "Wed May 21 2026 08:30:00 GMT+0000"
+        m = _re.match(r'\w+ (\w+ \d+ \d+ \d+:\d+:\d+)', dateline)
+        if m:
+            dt = datetime.strptime(m.group(1), "%b %d %Y %H:%M:%S")
+            return dt.replace(tzinfo=timezone.utc).isoformat()
+        # Try ISO
+        dt = datetime.fromisoformat(dateline)
+        return dt.isoformat()
+    except Exception:
+        return dateline
+
+@app.get("/api/upcoming-events")
+async def upcoming_events(force: bool = False):
+    """
+    Return high-impact economic events for the next 7 days from ForexFactory.
+    Cached for 1 hour. Uses the existing _fetch_ff_week_html infrastructure.
+    """
+    global _UPCOMING_EVENTS_CACHE
+    now = time.time()
+    if not force and _UPCOMING_EVENTS_CACHE["data"] and (now - _UPCOMING_EVENTS_CACHE["time"]) < _UPCOMING_EVENTS_TTL:
+        return _UPCOMING_EVENTS_CACHE["data"]
+
+    from datetime import datetime, timezone, timedelta
+    import concurrent.futures as _cf
+
+    week_strings = _get_future_week_strings(3)  # current + next 2 weeks
+    all_events: list = []
+
+    with _cf.ThreadPoolExecutor(max_workers=3) as ex:
+        futs = {ex.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
+        for fut in _cf.as_completed(futs):
+            try:
+                all_events.extend(fut.result())
+            except Exception:
+                pass
+
+    now_utc = datetime.now(timezone.utc)
+    cutoff = now_utc + timedelta(days=7)
+
+    filtered = []
+    for ev in all_events:
+        # High-impact only
+        ic = (ev.get("impactClass") or "").lower()
+        if "high" not in ic and "red" not in ic:
+            continue
+        # Parse datetime
+        dl = ev.get("dateline") or ""
+        dt_str = _parse_ff_datetime(dl)
+        # Try to filter by time window
+        dt_utc = None
+        try:
+            from datetime import datetime, timezone
+            dt_utc = datetime.fromisoformat(dt_str.replace("Z", "+00:00")) if dt_str else None
+        except Exception:
+            dt_utc = None
+
+        if dt_utc:
+            if dt_utc < now_utc or dt_utc > cutoff:
+                continue
+
+        currency = ev.get("currency", "")
+        filtered.append({
+            "name":          ev.get("name", ""),
+            "currency":      currency,
+            "flag":          FLAG_MAP.get(currency, ""),
+            "datetime_utc":  dt_str,
+            "prior":         ev.get("previous", "") or "",
+            "forecast":      ev.get("forecast", "") or "",
+            "actual":        ev.get("actual", "") or "",
+            "impact":        "High",
+        })
+
+    # Sort by datetime ascending
+    def sort_key(e):
+        try:
+            from datetime import datetime
+            return datetime.fromisoformat(e["datetime_utc"].replace("Z", "+00:00"))
+        except Exception:
+            return datetime.max.replace(tzinfo=None)
+
+    filtered.sort(key=lambda e: e.get("datetime_utc") or "")
+
+    result = {"events": filtered, "count": len(filtered), "generated_utc": now_utc.isoformat()}
+    _UPCOMING_EVENTS_CACHE["data"] = result
+    _UPCOMING_EVENTS_CACHE["time"] = now
+    return result
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}

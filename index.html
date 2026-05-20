@@ -2949,6 +2949,356 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .d-wheel-v{display:none}
 .d-wheel-l{display:none}
 
+/* ══ SCORE RECEIPT TABLE ════════════════════════════════════════════════ */
+.d-receipt{
+  width:100%;padding:12px 14px 14px;
+  border-top:1px solid rgba(255,255,255,0.07);
+  margin-top:6px;
+}
+.d-receipt-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.d-receipt-lbl{
+  font-size:8px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;
+  color:var(--faint);font-family:var(--head);
+}
+.receipt-tbl{
+  width:100%;border-collapse:collapse;
+}
+.receipt-tbl thead th{
+  font-size:8px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;
+  color:var(--faint);padding:0 0 6px;
+  text-align:left;font-family:var(--head);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.receipt-tbl thead th:not(:first-child){text-align:right}
+.receipt-tbl tbody tr:hover td{background:rgba(255,255,255,0.02)}
+.receipt-tbl td{
+  font-size:10.5px;padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle;
+}
+.rt-factor{color:var(--dim);font-weight:400;padding-left:0}
+.rt-score{
+  font-family:var(--head);font-size:11px;font-weight:700;
+  text-align:right;min-width:30px;
+}
+.rt-micro{display:inline-flex;align-items:center;gap:4px}
+.rt-micro-bar{width:24px;height:2px;background:var(--surf3);border-radius:1px;overflow:hidden}
+.rt-micro-fill{height:100%;border-radius:1px}
+.rt-wt{
+  font-family:var(--mono);font-size:9.5px;color:var(--faint);
+  text-align:right;min-width:30px;
+}
+.rt-contrib{
+  font-family:var(--mono);font-size:10.5px;color:var(--text);
+  text-align:right;min-width:32px;
+}
+.rt-divider td{border-bottom:1px solid rgba(255,255,255,0.07);padding:2px 0}
+.rt-base td{padding-top:6px;font-size:10px;color:var(--faint);border-bottom:none}
+.rt-base .rt-contrib{color:var(--dim)}
+.rt-conf td{padding:2px 0;border-bottom:none}
+.rt-conf .rt-factor{font-weight:600;color:var(--accent)}
+.rt-conf .rt-contrib{font-weight:700;color:var(--accent2);font-size:11px}
+.rt-final td{padding:5px 0 1px;border-top:1px solid rgba(255,255,255,0.07);border-bottom:none}
+.rt-final .rt-factor{font-family:var(--head);font-size:11px;font-weight:600;color:var(--text);letter-spacing:0.02em}
+.rt-final .rt-contrib{font-family:var(--head);font-size:13px;font-weight:700}
+.d-how-link{
+  display:flex;align-items:center;gap:4px;
+  margin-top:10px;padding-top:8px;
+  border-top:1px solid rgba(255,255,255,0.05);
+}
+.d-how-link button{
+  font-size:10px;color:var(--accent);font-weight:500;
+  background:none;border:none;cursor:pointer;padding:0;
+  text-decoration:none;font-family:inherit;
+  transition:opacity 0.15s;
+}
+.d-how-link button:hover{opacity:0.7}
+.d-how-link-arrow{font-size:11px;color:var(--accent);pointer-events:none}
+@media(max-width:700px){
+  .rt-wt{display:none}
+  .d-receipt{padding:10px 12px 12px}
+}
+
+/* ══ METHODOLOGY MODAL ══════════════════════════════════════════════════ */
+#meth-modal-back{
+  position:fixed;inset:0;z-index:9900;
+  background:rgba(4,4,5,0.82);backdrop-filter:blur(6px);
+  display:none;align-items:flex-start;justify-content:center;
+  padding:32px 16px 32px;
+  overflow-y:auto;
+}
+#meth-modal-back.open{display:flex}
+.meth-modal{
+  background:var(--surf);border:1px solid rgba(200,169,110,0.16);
+  border-radius:12px;width:720px;max-width:100%;
+  box-shadow:0 40px 100px rgba(0,0,0,0.75),0 0 0 1px rgba(255,255,255,0.03) inset;
+  overflow:hidden;flex-shrink:0;
+}
+.meth-modal-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  background:linear-gradient(180deg,rgba(200,169,110,0.05) 0%,transparent 100%);
+}
+.meth-modal-title-grp{display:flex;align-items:center;gap:11px}
+.meth-modal-icon{
+  width:34px;height:34px;border-radius:8px;
+  background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.meth-modal-title{font-family:var(--head);font-size:15px;font-weight:700;color:var(--text)}
+.meth-modal-sub{font-size:10px;color:var(--faint);margin-top:2px}
+.meth-close{
+  width:28px;height:28px;border-radius:6px;
+  background:var(--surf2);border:1px solid rgba(255,255,255,0.06);
+  color:var(--faint);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:500;transition:background 0.15s,color 0.15s;
+}
+.meth-close:hover{background:var(--surf3);color:var(--text)}
+.meth-body{padding:20px 22px 22px}
+.meth-section{margin-bottom:22px}
+.meth-section:last-child{margin-bottom:0}
+.meth-section-lbl{
+  font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:11px;
+  display:flex;align-items:center;gap:9px;font-family:var(--head);
+}
+.meth-section-lbl::after{content:'';flex:1;height:1px;background:rgba(200,169,110,0.1)}
+/* Score pipeline */
+.meth-pipeline{
+  display:flex;gap:0;border:1px solid rgba(255,255,255,0.06);
+  border-radius:8px;overflow:hidden;margin-bottom:12px;
+}
+.meth-pipe-step{
+  flex:1;padding:12px 8px 10px;text-align:center;
+  background:var(--surf2);border-right:1px solid rgba(255,255,255,0.06);
+  position:relative;transition:background 0.15s;
+}
+.meth-pipe-step:last-child{border-right:none}
+.meth-pipe-step:hover{background:var(--surf3)}
+.meth-pipe-step:not(:last-child)::after{
+  content:'›';position:absolute;right:-8px;top:50%;
+  transform:translateY(-50%);font-size:13px;color:var(--surf4);z-index:1;pointer-events:none;
+}
+.meth-pipe-icon{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--accent2);line-height:1;margin-bottom:4px}
+.meth-pipe-icon.final{color:var(--s1)}
+.meth-pipe-lbl{font-size:8.5px;color:var(--faint);line-height:1.35;letter-spacing:0.03em;text-transform:uppercase}
+/* Formula box */
+.meth-formula{
+  background:var(--bg);border:1px solid rgba(255,255,255,0.06);
+  border-radius:7px;padding:11px 14px;
+  font-family:var(--mono);font-size:11px;color:var(--accent2);
+  line-height:1.8;margin-bottom:11px;
+}
+.mf-comment{color:var(--faint)}
+.mf-key{color:var(--s1)}
+.mf-val{color:#f5c842}
+/* Info note */
+.meth-note{
+  background:rgba(92,158,255,0.05);border:1px solid rgba(92,158,255,0.12);
+  border-radius:7px;padding:10px 13px;
+  font-size:10px;color:var(--dim);line-height:1.55;
+  display:flex;gap:9px;align-items:flex-start;
+}
+.meth-note-i{font-size:12px;flex-shrink:0;color:#5c9eff;font-family:var(--head);font-weight:700;margin-top:1px}
+/* Factor grid */
+.meth-factor-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.meth-fc{
+  background:var(--surf2);border:1px solid rgba(255,255,255,0.06);
+  border-radius:8px;padding:12px 13px 11px;
+  position:relative;overflow:hidden;transition:border-color 0.15s;
+}
+.meth-fc:hover{border-color:rgba(255,255,255,0.09)}
+.meth-fc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px}
+.meth-fc.fc-cot::before{background:#f5c842}
+.meth-fc.fc-mom::before{background:#a78bfa}
+.meth-fc.fc-seas::before{background:var(--accent)}
+.meth-fc.fc-clim::before{background:#8b5cf6}
+.meth-fc.fc-relval::before{background:#fb923c}
+.meth-fc.fc-macro::before{background:#5c9eff}
+.meth-fc.fc-hist::before{background:var(--dim)}
+.meth-fc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.meth-fc-name{font-size:11px;font-weight:600;color:var(--text);font-family:var(--head)}
+.meth-fc-wt{font-family:var(--mono);font-size:9.5px;color:var(--accent);background:rgba(200,169,110,0.1);border-radius:3px;padding:1px 5px}
+.meth-fc-desc{font-size:9.5px;color:var(--faint);line-height:1.45;margin-bottom:7px}
+.meth-fc-pills{display:flex;flex-wrap:wrap;gap:3px}
+.meth-pill{font-size:8.5px;font-weight:600;padding:2px 6px;border-radius:3px;letter-spacing:0.03em}
+.meth-pill.bull{background:rgba(38,201,122,0.1);color:var(--s1)}
+.meth-pill.bear{background:rgba(214,58,36,0.1);color:var(--sm1)}
+.meth-pill.neut{background:rgba(74,82,104,0.2);color:var(--faint)}
+/* Confluence box */
+.meth-conf-box{
+  background:linear-gradient(135deg,rgba(200,169,110,0.07) 0%,rgba(200,169,110,0.02) 100%);
+  border:1px solid rgba(200,169,110,0.18);border-radius:9px;padding:14px 16px;
+}
+.meth-conf-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.meth-conf-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 7px 2px rgba(200,169,110,0.5);flex-shrink:0;
+}
+.meth-conf-title{font-size:11px;font-weight:600;color:var(--accent2);font-family:var(--head)}
+.meth-conf-body{font-size:10px;color:var(--dim);line-height:1.55;margin-bottom:12px}
+.meth-thresh-rows{display:flex;flex-direction:column;gap:0}
+.meth-thresh-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid rgba(200,169,110,0.07)}
+.meth-thresh-row:first-child{border-top:none;padding-top:0}
+.meth-thresh-badge{
+  font-family:var(--head);font-size:11px;font-weight:700;
+  min-width:40px;text-align:center;padding:3px 5px;border-radius:5px;flex-shrink:0;
+}
+.meth-thresh-pos{background:rgba(200,169,110,0.12);color:var(--accent2)}
+.meth-thresh-neg{background:rgba(214,58,36,0.1);color:var(--sm1)}
+.meth-thresh-desc{font-size:9.5px;color:var(--faint);line-height:1.4}
+.meth-thresh-desc strong{color:var(--dim);font-weight:600}
+/* Score scale strip */
+.meth-scale-bar{height:28px;border-radius:7px;overflow:hidden;display:flex;margin-bottom:7px;gap:2px}
+.meth-scale-cell{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10.5px;font-weight:600;border-radius:4px;
+}
+.meth-scale-foot{
+  display:flex;justify-content:space-between;
+  font-size:8.5px;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase;
+  font-family:var(--head);margin-bottom:7px;
+}
+.meth-scale-caption{
+  font-size:9.5px;color:var(--faint);text-align:center;line-height:1.5;
+  background:var(--surf2);border:1px solid rgba(255,255,255,0.06);
+  border-radius:6px;padding:8px 12px;
+}
+.meth-scale-caption strong{color:var(--dim)}
+.meth-footer{
+  padding:11px 22px;border-top:1px solid rgba(255,255,255,0.06);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surf2);
+}
+.meth-footer-note{font-size:9.5px;color:var(--faint)}
+/* ? trigger button */
+.meth-q-btn{
+  width:18px;height:18px;border-radius:50%;
+  background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.22);
+  color:var(--accent);font-size:9.5px;font-weight:700;line-height:1;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  transition:background 0.15s,border-color 0.15s;flex-shrink:0;
+  font-family:var(--head);
+}
+.meth-q-btn:hover{background:rgba(200,169,110,0.18);border-color:rgba(200,169,110,0.4)}
+@media(max-width:700px){
+  .meth-factor-grid{grid-template-columns:1fr}
+  .meth-body{padding:16px 16px 18px}
+  #meth-modal-back{padding:16px 10px}
+}
+
+/* ══ FACTOR TAB SUMMARY BAR ═════════════════════════════════════════════ */
+.tab-summary{
+  display:flex;align-items:flex-start;gap:9px;
+  padding:10px 13px;border-radius:7px;
+  background:var(--surf2);border:1px solid rgba(255,255,255,0.055);
+  margin-bottom:13px;
+}
+.tab-summary-pip{width:4px;height:4px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.tab-summary-text{font-size:11px;font-style:italic;color:var(--dim);line-height:1.5}
+
+/* ══ UPCOMING EVENTS STRIP (HOME) ═══════════════════════════════════════ */
+.ov-events-wrap{
+  padding:10px 14px 8px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.ov-events-hdr{
+  display:flex;align-items:center;gap:8px;margin-bottom:9px;
+}
+.ov-events-hdr-lbl{
+  font-size:8.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--faint);font-family:var(--head);
+}
+.ov-events-hdr-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.08),transparent)}
+.ov-events-strip{display:flex;gap:6px;flex-wrap:wrap}
+.ev-pill{
+  display:flex;align-items:center;gap:0;
+  background:var(--surf2);border:1px solid rgba(255,255,255,0.06);
+  border-radius:7px;padding:8px 11px;
+  cursor:default;transition:border-color 0.15s;position:relative;overflow:hidden;
+  flex:1;min-width:160px;
+}
+.ev-pill.ev-urgent::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:2px;background:var(--sm1);
+}
+.ev-pill.ev-soon::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:2px;background:var(--accent);
+}
+.ev-flag{font-size:13px;margin-right:7px;flex-shrink:0}
+.ev-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.ev-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-meta{font-size:9.5px;color:var(--faint);white-space:nowrap}
+.ev-countdown{
+  font-family:var(--mono);font-size:10.5px;font-weight:500;
+  color:var(--accent);margin-left:10px;flex-shrink:0;white-space:nowrap;
+}
+.ev-countdown.ev-urgent{color:var(--sm1)}
+@media(max-width:700px){
+  .ov-events-strip{flex-direction:column}
+  .ev-pill{min-width:0}
+}
+
+/* ══ UPCOMING EVENTS TABLE (DETAIL) ════════════════════════════════════ */
+.d-events-card{
+  background:var(--surf);border:1px solid rgba(255,255,255,0.06);
+  border-radius:10px;overflow:hidden;margin:0 0 14px;
+}
+.d-events-card-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 16px 9px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  background:linear-gradient(180deg,rgba(200,169,110,0.03) 0%,transparent 100%);
+}
+.d-events-card-title{display:flex;align-items:center;gap:6px}
+.d-events-card-dot{
+  width:5px;height:5px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 5px 1px rgba(200,169,110,0.4);flex-shrink:0;
+}
+.d-events-card-lbl{
+  font-size:9.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--accent);font-family:var(--head);
+}
+.d-events-card-sub{font-size:9.5px;color:var(--faint)}
+.d-events-tbl{width:100%;border-collapse:collapse}
+.d-events-tbl thead tr{background:var(--surf2)}
+.d-events-tbl thead th{
+  font-size:8.5px;letter-spacing:0.09em;text-transform:uppercase;
+  color:var(--faint);font-weight:600;text-align:left;
+  padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);
+  font-family:var(--head);white-space:nowrap;
+}
+.d-events-tbl thead th:not(:first-child):not(:nth-child(2)){text-align:right}
+.d-events-tbl tbody tr{border-bottom:1px solid rgba(255,255,255,0.032);transition:background 0.1s}
+.d-events-tbl tbody tr:last-child{border-bottom:none}
+.d-events-tbl tbody tr:hover td{background:rgba(255,255,255,0.015)}
+.d-events-tbl td{padding:9px 16px;vertical-align:middle}
+.td-ev-name{font-size:11.5px;font-weight:500;color:var(--text)}
+.td-ev-flag{font-size:11px;margin-right:6px}
+.td-ev-date{font-size:10px;color:var(--dim);white-space:nowrap}
+.td-ev-num{font-family:var(--mono);font-size:10.5px;color:var(--faint);text-align:right;white-space:nowrap}
+.td-ev-timer{font-family:var(--mono);font-size:10.5px;color:var(--faint);text-align:right;white-space:nowrap}
+.td-ev-timer.soon{color:var(--accent)}
+.td-ev-timer.urgent{color:var(--sm1)}
+.td-ev-sens{text-align:right;white-space:nowrap}
+.ev-sens-tag{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:9.5px;font-weight:600;letter-spacing:0.03em;
+  padding:2px 7px;border-radius:4px;
+}
+.ev-sens-tag.bull{background:rgba(38,201,122,0.1);color:var(--s1)}
+.ev-sens-tag.bear{background:rgba(214,58,36,0.1);color:var(--sm1)}
+.ev-sens-tag.neut{background:rgba(74,82,104,0.2);color:var(--faint)}
+@media(max-width:700px){
+  .d-events-tbl thead th:nth-child(3),.d-events-tbl td:nth-child(3),
+  .d-events-tbl thead th:nth-child(4),.d-events-tbl td:nth-child(4){display:none}
+  .d-events-tbl td,.d-events-tbl thead th{padding:8px 12px}
+}
+
 /* ── Unified Factor Tab Strip ── */
 .factor-strip{
   display:grid;
@@ -16191,7 +16541,10 @@ h3.label,
   <div class="sidebar">
     <div class="sb-head">
       <div class="sb-top">
-        <h2>Rankings</h2>
+        <div style="display:flex;align-items:center;gap:6px">
+          <h2>Rankings</h2>
+          <button class="meth-q-btn" onclick="openMethModal(selMkt||'ES')" title="Scoring Methodology">?</button>
+        </div>
         <span id="sb-count">—</span>
       </div>
       <div id="hc-module"></div>
@@ -16244,6 +16597,8 @@ h3.label,
         <div class="ov-cat-bar" id="ov-cat-bar"></div>
         <!-- macro env pill strip -->
         <div id="ov-macro-env-strip"></div>
+        <!-- upcoming events strip (filled async by renderUpcomingEvents) -->
+        <div id="ov-events-strip" style="display:none"></div>
         <!-- macro data panels: yield curve, credit spreads, fed balance sheet -->
         <div id="ov-macro-panels-wrap"></div>
         <!-- global climate panel -->
@@ -16318,6 +16673,34 @@ h3.label,
     </div>
   </div>
 </div>
+
+<!-- METHODOLOGY MODAL -->
+<div id="meth-modal-back" onclick="_methBackClick(event)">
+  <div class="meth-modal" id="meth-modal-inner">
+    <div class="meth-modal-hdr">
+      <div class="meth-modal-title-grp">
+        <div class="meth-modal-icon">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:16px;height:16px;color:var(--accent)">
+            <circle cx="8" cy="8" r="6.5"/>
+            <path d="M8 5.5V8l2 1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="meth-modal-title">Scoring Methodology</div>
+          <div class="meth-modal-sub">How every score is built — BH Weather System</div>
+        </div>
+      </div>
+      <button class="meth-close" onclick="closeMethModal()">&#x2715;</button>
+    </div>
+    <div class="meth-body" id="meth-modal-body">
+      <!-- injected by openMethModal() -->
+    </div>
+    <div class="meth-footer">
+      <span class="meth-footer-note">Scores are directional bias indicators — not financial advice</span>
+    </div>
+  </div>
+</div>
+
 
 <script>
 /* ════════════════════════════════════════════
@@ -17388,6 +17771,71 @@ function renderOverview(){
     el.innerHTML=`<div class="ov-macro-env-wrap"><div class="ov-macro-env-hdr"><span class="ov-macro-env-hdr-lbl">Macro Environment</span><div class="ov-macro-env-hdr-line"></div></div><div class="ov-macro-env-strip">${
       PILLS.map(p=>`<div class="ov-menv-pill ${p.cls}" title="${p.title}" style="--menv-col:${p.col}"><div class="ov-menv-pip" style="background:${p.pip}"></div><span class="ov-menv-lbl">${p.label}</span><span class="ov-menv-sep">•</span><span class="ov-menv-val">${p.val}</span></div>`).join('')
     }</div></div>`;
+  })();
+
+  // ── 3c. UPCOMING EVENTS STRIP ────────────────────────────────────────────
+  (async function renderUpcomingEvents(){
+    const el = document.getElementById('ov-events-strip');
+    if(!el) return;
+    try {
+      const resp = await fetch(`${API}/api/upcoming-events`);
+      if(!resp.ok) { el.style.display='none'; return; }
+      const data = await resp.json();
+      const evs = (data.events||[]).slice(0,3);
+      if(!evs.length){ el.style.display='none'; return; }
+
+      const now = Date.now();
+      function fmtCountdown(dtStr){
+        if(!dtStr) return '';
+        const ms = new Date(dtStr).getTime() - now;
+        if(isNaN(ms)||ms<0) return 'Now';
+        const h = Math.floor(ms/3600000);
+        const m = Math.floor((ms%3600000)/60000);
+        if(h>=24){ const d=Math.floor(h/24); return `${d}d ${h%24}h`; }
+        if(h>0) return `${h}h ${m}m`;
+        return `${m}m`;
+      }
+      function urgencyCls(dtStr){
+        if(!dtStr) return '';
+        const h = (new Date(dtStr).getTime() - now)/3600000;
+        if(h<=2) return 'ev-urgent';
+        if(h<=24) return 'ev-soon';
+        return '';
+      }
+      function fmtDate(dtStr){
+        if(!dtStr) return '';
+        try {
+          const d = new Date(dtStr);
+          return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})
+            + ' · ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'}) + ' UTC';
+        } catch(e){ return ''; }
+      }
+
+      const pillsHtml = evs.map(ev=>{
+        const urg = urgencyCls(ev.datetime_utc);
+        const cd  = fmtCountdown(ev.datetime_utc);
+        return `<div class="ev-pill ${urg}">
+          <span class="ev-flag">${ev.flag||ev.currency}</span>
+          <div class="ev-body">
+            <div class="ev-name">${ev.name}</div>
+            <div class="ev-meta">${fmtDate(ev.datetime_utc)}${ev.forecast?` · Fcst: ${ev.forecast}`:''}</div>
+          </div>
+          <span class="ev-countdown ${urg}">${cd}</span>
+        </div>`;
+      }).join('');
+
+      el.style.display = 'block';
+      el.innerHTML = `<div class="ov-events-wrap">
+        <div class="ov-events-hdr">
+          <span class="ov-events-hdr-lbl">Upcoming Events</span>
+          <div class="ov-events-hdr-line"></div>
+        </div>
+        <div class="ov-events-strip">${pillsHtml}</div>
+      </div>`;
+    } catch(e){
+      console.warn('Upcoming events fetch failed:', e);
+      el.style.display='none';
+    }
   })();
 
   // ── 3b. GLOBAL CLIMATE PANEL ────────────────────────
@@ -23593,6 +24041,7 @@ function renderDetail(m){
   dc.innerHTML=
     dHead(m,ws,col,bg)+
     factorStrip(m)+
+    `<div id="d-events-slot-${m.id}"></div>`+
     `<div class="tab${selTab==='cot'?' on':''}" id="t-cot">${cotTab(m)}</div>`+
     `<div class="tab${selTab==='seasonal'?' on':''}" id="t-seasonal">${seasTabStub(m)}</div>`+
     `<div class="tab${selTab==='momentum'?' on':''}" id="t-momentum">${momTab(m)}</div>`+
@@ -23607,6 +24056,9 @@ function renderDetail(m){
   initDHeadCanvas(col, ws);
   animateScoreHero(ws, col);
   animateHeatmapTiles();
+
+  // ── Upcoming Events for this asset (async) ────────────────────────────
+  _loadDetailEvents(m.id);
 
   if(selTab==='cot')      initCotCharts(m.id);
   if(selTab==='seasonal') loadSeasTab(m.id,m.name);
@@ -23990,29 +24442,8 @@ function dHead(m,ws,col,bg){
       <div class="d-score-hero-bar" style="background:linear-gradient(90deg,#c41a2e 0%,#d63a24 30%,#4a5268 50%,#3b82c4 70%,#22c97a 100%) !important">
         <div class="d-score-hero-bar-f" style="position:absolute;left:${barPct}%;top:0;width:0;height:100%;background:${col}"></div>
       </div>
-      <!-- Sub-scores mini bars -->
-      ${(()=>{
-        const FACTOR_COLS={cot:'#5c9eff',seasonal:'#f5c842',momentum:'#a78bfa',macro:'#34d399',relval:'#fb923c',pcr:'#f472b6',regime:'#94a3b8'};
-        const keys=Object.keys(m.weights||{});
-        if(!keys.length) return '';
-        const rows=keys.map(k=>{
-          const sc=(m.scores[k]?.score??5);
-          const wt=(m.weights[k]||0);
-          const contrib=((sc-5)*wt/100);
-          const contribSign=contrib>=0?'+':'';
-          const pct=Math.min(100,Math.max(0,(sc/10)*100));
-          const c=FACTOR_COLS[k]||'var(--accent)';
-          const lbl=k.slice(0,3).toUpperCase();
-          const factorLabel=k.charAt(0).toUpperCase()+k.slice(1);
-          const tipText=`${factorLabel}: ${sc.toFixed(1)}/10 × ${wt}% = ${contribSign}${contrib.toFixed(2)} pts`;
-          return `<div class="d-sub-row" title="${tipText}">
-            <span class="d-sub-lbl">${lbl}</span>
-            <div class="d-sub-bar"><div style="position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,#e03a2a 0%,#c47a4a 20%,#4a5268 50%,#3b82c4 80%,#22c97a 100%);opacity:0.12"></div><div class="d-sub-bar-f" style="width:${pct}%;background:${c}"></div><div style="position:absolute;top:50%;left:${pct}%;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:${c};opacity:0.90;pointer-events:none"></div></div>
-            <span class="d-sub-num" style="color:${c}">${sc.toFixed(1)}</span>
-          </div>`;
-        }).join('');
-        return `<div class="d-sub-scores">${rows}</div>`;
-      })()}
+      <!-- Score anatomy receipt -->
+      ${buildReceipt(m)}
     </div>
 
     <!-- keep wheel in DOM for drawWheel compat -->
@@ -24020,6 +24451,359 @@ function dHead(m,ws,col,bg){
     ${assetGraphic(m)}
   </div>`;
 }
+
+/* ═════════════════════════════════════════════
+   SCORE ANATOMY RECEIPT
+═════════════════════════════════════════════ */
+// ── Event sensitivity map (loaded once from backend static data) ──────────────
+let _evSensData = null;
+async function _getEvSens(){
+  if(_evSensData) return _evSensData;
+  try {
+    const r = await fetch(`${API}/api/upcoming-events`);
+    if(!r.ok) return {};
+    const json = await r.json();
+    _evSensData = json; // cache the events data
+    return json;
+  } catch(e){ return {}; }
+}
+
+// Sensitivity lookup — pattern match event name against event_sensitivity keys
+const _EV_SENS_PATTERNS = {
+  "nonfarm payrolls":    {"ES":"bull","NQ":"bull","YM":"bull","RTY":"bull","DX":"bull","6E":"bear","6B":"bear","6J":"bull","6A":"bull","6C":"bull","GC":"bear","SI":"bear","ZB":"bear","ZN":"bear","CL":"bull"},
+  "non-farm payrolls":   {"ES":"bull","NQ":"bull","YM":"bull","RTY":"bull","DX":"bull","6E":"bear","6B":"bear","6J":"bull","6A":"bull","6C":"bull","GC":"bear","SI":"bear","ZB":"bear","ZN":"bear","CL":"bull"},
+  "unemployment rate":   {"ES":"bull","NQ":"bull","DX":"bull","6E":"bear","6B":"bear","GC":"bear","ZB":"bear","ZN":"bear"},
+  "adp employment":      {"ES":"bull","NQ":"bull","DX":"bull","6E":"bear","6B":"bear","GC":"bear","ZB":"bear","ZN":"bear"},
+  "jobless claims":      {"ES":"bull","NQ":"bull","DX":"bull","GC":"bear","ZB":"bear"},
+  "cpi":                 {"ES":"bull","NQ":"bull","YM":"bull","RTY":"bull","DX":"bull","6E":"bear","6B":"bear","GC":"bull","SI":"bull","ZB":"bull","ZN":"bull"},
+  "core cpi":            {"ES":"bull","NQ":"bull","DX":"bull","6E":"bear","6B":"bear","GC":"bull","ZB":"bull","ZN":"bull"},
+  "pce":                 {"ES":"bull","NQ":"bull","DX":"bull","6E":"bear","GC":"bull","ZB":"bull","ZN":"bull"},
+  "core pce":            {"ES":"bull","NQ":"bull","DX":"bull","GC":"bull","ZB":"bull","ZN":"bull"},
+  "fomc":                {"ES":"bull","NQ":"bull","YM":"bull","RTY":"bull","DX":"bear","6E":"bull","GC":"bull","SI":"bull","ZB":"bull","ZN":"bull","CL":"bull"},
+  "fed rate":            {"ES":"bull","NQ":"bull","DX":"bear","GC":"bull","ZB":"bull"},
+  "interest rate decision":{"6E":"bull","6B":"bull","6A":"bull","6J":"bull","6C":"bull","GC":"bear","ZB":"bear"},
+  "boe rate":            {"6B":"bull","Z":"bear","R":"bear"},
+  "bank of england":     {"6B":"bull","Z":"bear","R":"bear"},
+  "ecb rate":            {"6E":"bull","GC":"neut"},
+  "european central bank":{"6E":"bull"},
+  "boj":                 {"6J":"bull"},
+  "bank of japan":       {"6J":"bull"},
+  "rba":                 {"6A":"bull"},
+  "gdp":                 {"ES":"bull","NQ":"bull","YM":"bull","DX":"bull","6E":"bear","6B":"bear","GC":"bear","ZB":"bear","CL":"bull"},
+  "retail sales":        {"ES":"bull","NQ":"bull","DX":"bull","6E":"bear","6B":"bear","GC":"bear","ZB":"bear"},
+  "ism manufacturing":   {"ES":"bull","CL":"bull","DX":"bull","GC":"bear","ZB":"bear"},
+  "ism services":        {"ES":"bull","DX":"bull","GC":"bear","ZB":"bear"},
+  "pmi":                 {"ES":"bull","NQ":"bull","DX":"bull","6E":"bear","6B":"bear","GC":"bear","ZB":"bear","CL":"bull"},
+  "jolts":               {"ES":"bull","DX":"bull","GC":"bear","ZB":"bear"},
+  "consumer confidence": {"ES":"bull","NQ":"bull","DX":"bull","GC":"bear"},
+  "michigan":            {"ES":"bull","NQ":"bull","DX":"bull"},
+  "ppi":                 {"ES":"bull","NQ":"bull","DX":"bull","GC":"bull","ZB":"bull"},
+  "trade balance":       {"DX":"bull"},
+  "durable goods":       {"ES":"bull","DX":"bull","ZB":"bear"},
+  "housing starts":      {"ES":"bull","RTY":"bull","ZB":"bear"},
+};
+
+function _evSensForMarket(evName, marketId){
+  const en = (evName||'').toLowerCase();
+  for(const [pat, tickers] of Object.entries(_EV_SENS_PATTERNS)){
+    if(en.includes(pat)){
+      return tickers[marketId] || 'neut';
+    }
+  }
+  return null; // no match = not relevant to this market
+}
+
+// ── Detail events table loader ─────────────────────────────────────────────
+let _detailEventsCache = null;
+async function _loadDetailEvents(marketId){
+  const slot = document.getElementById(`d-events-slot-${marketId}`);
+  if(!slot) return;
+  try {
+    // Use cached data if available
+    let data = _detailEventsCache;
+    if(!data){
+      const r = await fetch(`${API}/api/upcoming-events`);
+      if(!r.ok) return;
+      data = await r.json();
+      _detailEventsCache = data;
+      setTimeout(()=>{ _detailEventsCache=null; }, 3600000); // expire 1h
+    }
+    const allEvs = data.events||[];
+    // Filter to events relevant to this market
+    const relevant = allEvs.filter(ev=>{
+      const sens = _evSensForMarket(ev.name, marketId);
+      return sens !== null; // null = no known sensitivity
+    });
+    if(!relevant.length){ slot.innerHTML=''; return; }
+
+    const now = Date.now();
+    function fmtCd(dtStr){
+      if(!dtStr) return '—';
+      const ms = new Date(dtStr).getTime()-now;
+      if(isNaN(ms)||ms<0) return 'Now';
+      const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
+      if(h>=24){const d=Math.floor(h/24);return `${d}d`;}
+      if(h>0)return `${h}h ${m}m`;
+      return `${m}m`;
+    }
+    function fmtDt(dtStr){
+      if(!dtStr) return '—';
+      try {
+        const d=new Date(dtStr);
+        return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})
+          +' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'})+' UTC';
+      } catch(e){ return dtStr; }
+    }
+    function urgCls(dtStr){
+      const h=(new Date(dtStr).getTime()-now)/3600000;
+      if(h<=2) return 'urgent'; if(h<=24) return 'soon'; return '';
+    }
+
+    const rows = relevant.map(ev=>{
+      const sens = _evSensForMarket(ev.name, marketId)||'neut';
+      const sensCol = sens==='bull'?'var(--s1)':sens==='bear'?'var(--sm1)':'var(--faint)';
+      const sensLbl = sens==='bull'?'Bullish':sens==='bear'?'Bearish':'Neutral';
+      const urg = urgCls(ev.datetime_utc);
+      return `<tr>
+        <td class="td-ev-flag">${ev.flag||ev.currency}</td>
+        <td class="td-ev-name">${ev.name}</td>
+        <td class="td-ev-date">${fmtDt(ev.datetime_utc)}</td>
+        <td class="td-ev-num">${ev.forecast||'—'}</td>
+        <td class="td-ev-num">${ev.prior||'—'}</td>
+        <td class="td-ev-timer ${urg}">${fmtCd(ev.datetime_utc)}</td>
+        <td class="td-ev-sens"><span class="ev-sens-tag ${sens}" style="color:${sensCol}">${sensLbl}</span></td>
+      </tr>`;
+    }).join('');
+
+    slot.innerHTML = `<div class="d-events-card">
+      <div class="d-events-card-hdr">
+        <div class="d-events-card-dot"></div>
+        <span class="d-events-card-lbl">Upcoming Events</span>
+        <span class="d-events-card-sub">Next 7 days · High impact only · ${relevant.length} relevant</span>
+      </div>
+      <table class="d-events-tbl">
+        <thead><tr>
+          <th></th>
+          <th>Event</th>
+          <th>Date / Time</th>
+          <th>Forecast</th>
+          <th>Prior</th>
+          <th>In</th>
+          <th>Impact</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  } catch(e){
+    console.warn('Detail events load failed:', e);
+    const slot2 = document.getElementById(`d-events-slot-${marketId}`);
+    if(slot2) slot2.innerHTML='';
+  }
+}
+
+const FACTOR_LABELS = {
+  cot:'COT Positioning', seasonal:'Seasonality', momentum:'Momentum',
+  macro:'Macro Regime', relval:'Rel. Value', regime:'Mkt Climate', pcr:'PCR'
+};
+const RECEIPT_SCORE_CLS = s => s>=7.5?'s2':s>=6.0?'s1':s>=4.5?'s0':s>=3.0?'sm1':'sm2';
+const RECEIPT_COL = s => s>=7.5?'var(--s2)':s>=6.0?'var(--s1)':s>=4.5?'var(--s0)':s>=3.0?'var(--sm1)':'var(--sm2)';
+
+function buildReceipt(m) {
+  const ws  = m.weighted_score;
+  const wts = m.weights||{};
+  const scrs = m.scores||{};
+  const cb  = m.confluence_bonus||0;
+  const keys = Object.keys(wts).filter(k=>wts[k]>0);
+
+  // base composite (sum of factor contributions, without bonus)
+  let base = 0;
+  const rows = keys.map(k=>{
+    const sc   = scrs[k]?.score ?? 5;
+    const wt   = wts[k];
+    const pct  = Math.round(wt*100);
+    const contrib = (sc/10)*wt*10;  // = sc * wt  (same as weighted sum component)
+    base += contrib;
+    const scoreCol = RECEIPT_COL(sc);
+    const fillPct  = Math.min(100,Math.max(0,(sc/10)*100));
+    const lbl = FACTOR_LABELS[k]||k;
+    return `<tr>
+      <td class="rt-factor">${lbl}</td>
+      <td class="rt-score" style="color:${scoreCol}">
+        <span class="rt-micro">
+          <span class="rt-micro-bar"><span class="rt-micro-fill" style="width:${fillPct}%;background:${scoreCol}"></span></span>
+          ${sc.toFixed(1)}
+        </span>
+      </td>
+      <td class="rt-wt">${pct}%</td>
+      <td class="rt-contrib">${contrib.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  const confHtml = Math.abs(cb)>=0.01 ? `<tr class="rt-conf">
+    <td class="rt-factor" colspan="3">+ Confluence bonus</td>
+    <td class="rt-contrib">${cb>=0?'+':''}${cb.toFixed(2)}</td>
+  </tr>` : '';
+
+  const finalCol = RECEIPT_COL(ws);
+
+  return `<div class="d-receipt">
+    <div class="d-receipt-hdr">
+      <span class="d-receipt-lbl">Score Breakdown</span>
+    </div>
+    <table class="receipt-tbl">
+      <thead><tr><th>Factor</th><th>Score</th><th class="rt-wt">Wt</th><th>Contrib</th></tr></thead>
+      <tbody>
+        ${rows}
+        <tr class="rt-divider"><td colspan="4"></td></tr>
+        <tr class="rt-base"><td class="rt-factor" colspan="3">Base composite</td><td class="rt-contrib">${base.toFixed(2)}</td></tr>
+        ${confHtml}
+        <tr class="rt-final">
+          <td class="rt-factor" colspan="3">Composite score</td>
+          <td class="rt-contrib" style="color:${finalCol}">${ws.toFixed(2)}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="d-how-link">
+      <button onclick="openMethModal('${m.id}')">How is this scored?</button>
+      <span class="d-how-link-arrow">↗</span>
+    </div>
+  </div>`;
+}
+
+/* ═════════════════════════════════════════════
+   METHODOLOGY MODAL
+═════════════════════════════════════════════ */
+function openMethModal(assetId) {
+  const m = DATA && DATA.markets ? DATA.markets.find(x=>x.id===assetId) : null;
+  const wts = m?.weights||{};
+  const keys = Object.keys(wts).filter(k=>wts[k]>0);
+
+  // Factor grid — dynamic weights
+  const FC_CFG = {
+    cot:     {cls:'fc-cot',    name:'COT Positioning',    desc:'Commercial hedger and large speculator net positioning vs 3-year historical range — converted to a 0–10 percentile score. Updated weekly (CFTC Friday release).',                                     pills:['<span class="meth-pill bull">Spec longs extreme</span>','<span class="meth-pill bear">Spec shorts extreme</span>','<span class="meth-pill neut">Mid-range</span>']},
+    momentum:{cls:'fc-mom',   name:'Momentum',           desc:'Price momentum across multiple timeframes: EMA slope, 52-week range percentile, 13-week rate of change, and position vs 200 SMA. Trend-following bias.',                                          pills:['<span class="meth-pill bull">Uptrend + high range</span>','<span class="meth-pill bear">Downtrend</span>','<span class="meth-pill neut">Flat / range-bound</span>']},
+    seasonal:{cls:'fc-seas',  name:'Seasonality',        desc:'Average historical price tendency for the current calendar period across 5, 10, and 25-year lookbacks — blended into a single directional score with recency weighting.',                         pills:['<span class="meth-pill bull">Strong seasonal tailwind</span>','<span class="meth-pill bear">Seasonal headwind</span>','<span class="meth-pill neut">Flat / mixed</span>']},
+    macro:   {cls:'fc-macro', name:'Macro Regime',       desc:'Rate path, inflation trajectory, central bank balance sheet, and economic momentum — scored relative to consensus expectations using surprise-adjusted signals.',                             pills:['<span class="meth-pill bull">Rate cuts + cooling CPI</span>','<span class="meth-pill bear">Hiking path + hot CPI</span>','<span class="meth-pill neut">On hold</span>']},
+    relval:  {cls:'fc-relval',name:'Relative Value',     desc:'Recent asset performance vs macro-relevant peers — detects divergences where an asset is stretched or cheap relative to its fundamental drivers using stochastic percentile.',               pills:['<span class="meth-pill bull">Cheap vs peers</span>','<span class="meth-pill bear">Expensive vs peers</span>','<span class="meth-pill neut">Fair value</span>']},
+    regime:  {cls:'fc-clim',  name:'Market Climate',     desc:'Geopolitical risk, news sentiment, and risk-on/risk-off regime from the macro environment tracker. Breaking events update intraday via the news pipeline.',                                  pills:['<span class="meth-pill bull">Risk-on regime</span>','<span class="meth-pill bear">Risk-off shock</span>','<span class="meth-pill neut">Consolidating</span>']},
+    pcr:     {cls:'fc-hist',  name:'Put/Call Ratio',     desc:'Equity options market sentiment via put/call ratio. High PCR = excess fear = contrarian bullish signal. Low PCR = excess complacency = contrarian bearish signal.',                         pills:['<span class="meth-pill bull">High PCR (fear)</span>','<span class="meth-pill bear">Low PCR (greed)</span>','<span class="meth-pill neut">Normal range</span>']},
+  };
+
+  const factorCards = keys.map(k=>{
+    const cfg = FC_CFG[k]||{cls:'fc-hist',name:k,desc:'',pills:[]};
+    const pct = Math.round((wts[k]||0)*100);
+    return `<div class="meth-fc ${cfg.cls}">
+      <div class="meth-fc-top">
+        <span class="meth-fc-name">${cfg.name}</span>
+        <span class="meth-fc-wt">${pct}%</span>
+      </div>
+      <div class="meth-fc-desc">${cfg.desc}</div>
+      <div class="meth-fc-pills">${cfg.pills.join('')}</div>
+    </div>`;
+  }).join('');
+
+  const body = `
+    <!-- 1. Score Pipeline -->
+    <div class="meth-section">
+      <div class="meth-section-lbl">Score Pipeline</div>
+      <div class="meth-pipeline">
+        <div class="meth-pipe-step"><div class="meth-pipe-icon">${keys.length}</div><div class="meth-pipe-lbl">Factor<br>Scores</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon">&times;</div><div class="meth-pipe-lbl">Asset<br>Weights</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon">&Sigma;</div><div class="meth-pipe-lbl">Weighted<br>Sum</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon">&plusmn;</div><div class="meth-pipe-lbl">Confluence<br>Bonus</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon final">1–10</div><div class="meth-pipe-lbl">Final<br>Score</div></div>
+      </div>
+      <div class="meth-formula">
+        <span class="mf-comment">// Weighted composite (0–10)</span><br>
+        score = <span class="mf-key">&Sigma;</span>( factor_score &times; weight ) + <span class="mf-key">confluence_bonus</span><br><br>
+        <span class="mf-comment">// Each factor&apos;s contribution</span><br>
+        contribution = ( factor_score &divide; <span class="mf-val">10</span> ) &times; weight &times; <span class="mf-val">10</span>
+      </div>
+      <div class="meth-note">
+        <span class="meth-note-i">i</span>
+        <span>Weights are <strong style="color:var(--dim)">asset-specific</strong> — ${m?'<strong style="color:var(--text)">'+(m.name||assetId)+'</strong> weights reflect its primary economic drivers.':'each asset\'s weight profile reflects its primary economic drivers.'}</span>
+      </div>
+    </div>
+
+    <!-- 2. Factor Grid -->
+    <div class="meth-section">
+      <div class="meth-section-lbl">The ${keys.length} Scoring Factors</div>
+      <div class="meth-factor-grid">${factorCards}</div>
+    </div>
+
+    <!-- 3. Confluence Bonus -->
+    <div class="meth-section">
+      <div class="meth-section-lbl">Confluence Bonus</div>
+      <div class="meth-conf-box">
+        <div class="meth-conf-hdr">
+          <div class="meth-conf-dot"></div>
+          <span class="meth-conf-title">When multiple factors align, the composite score is amplified</span>
+        </div>
+        <div class="meth-conf-body">The confluence bonus activates when COT positioning reaches an extreme AND at least one independent factor (macro, climate, or seasonality) confirms the same directional view. This rewards genuine multi-factor alignment — not a single dominant driver inflating the score.</div>
+        <div class="meth-thresh-rows">
+          <div class="meth-thresh-row">
+            <div class="meth-thresh-badge meth-thresh-pos">+0.35</div>
+            <div class="meth-thresh-desc">COT extreme (≥6.5 bull / ≤3.5 bear) + story active + <strong>2 confirmers</strong> each ≥6.2 / ≤3.8</div>
+          </div>
+          <div class="meth-thresh-row">
+            <div class="meth-thresh-badge meth-thresh-pos">+0.20</div>
+            <div class="meth-thresh-desc">COT extreme + story active + <strong>1 confirmer</strong> ≥6.2 / ≤3.8</div>
+          </div>
+          <div class="meth-thresh-row">
+            <div class="meth-thresh-badge meth-thresh-neg">−0.20</div>
+            <div class="meth-thresh-desc">COT extreme in the <strong>opposite direction</strong> to overall score — flags potential reversal risk</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Score Scale -->
+    <div class="meth-section">
+      <div class="meth-section-lbl">Score Scale (1–10)</div>
+      <div class="meth-scale-bar">
+        <div class="meth-scale-cell" style="background:var(--sm2);color:#fff">1</div>
+        <div class="meth-scale-cell" style="background:var(--sm2);color:#fff">2</div>
+        <div class="meth-scale-cell" style="background:var(--sm1);color:#fff">3</div>
+        <div class="meth-scale-cell" style="background:rgba(214,58,36,.5);color:#ffb8aa">4</div>
+        <div class="meth-scale-cell" style="background:var(--surf3);color:var(--faint)">5</div>
+        <div class="meth-scale-cell" style="background:rgba(38,201,122,.18);color:var(--s1)">6</div>
+        <div class="meth-scale-cell" style="background:rgba(38,201,122,.35);color:var(--s1)">7</div>
+        <div class="meth-scale-cell" style="background:rgba(38,201,122,.55);color:#fff">8</div>
+        <div class="meth-scale-cell" style="background:var(--s1);color:#031a0e">9</div>
+        <div class="meth-scale-cell" style="background:var(--s2);color:#031a0e">10</div>
+      </div>
+      <div class="meth-scale-foot"><span>Strong Bearish</span><span>Neutral</span><span>Strong Bullish</span></div>
+      <div class="meth-scale-caption"><strong>5 = neutral.</strong> Scores ≥7 or ≤3 indicate a meaningful directional lean. Scores ≥8 or ≤2 represent high conviction. The composite is clamped to the 1–10 range after confluence adjustment.</div>
+    </div>
+
+    <!-- 5. Update cadence -->
+    <div class="meth-section">
+      <div class="meth-note">
+        <span class="meth-note-i" style="color:var(--accent)">↻</span>
+        <span><strong style="color:var(--dim)">Update cadence:</strong> COT data refreshes weekly (Friday evening). Macro scores update on new economic releases. Climate and news scores update intraday. The composite always reflects the most recently available data across all factors at the time of load.</span>
+      </div>
+    </div>`;
+
+  document.getElementById('meth-modal-body').innerHTML = body;
+  document.getElementById('meth-modal-back').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMethModal() {
+  document.getElementById('meth-modal-back').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function _methBackClick(e) {
+  if (e.target === document.getElementById('meth-modal-back')) closeMethModal();
+}
+
+// Close on Escape
+document.addEventListener('keydown', function(e){
+  if (e.key==='Escape') {
+    closeMethModal();
+  }
+});
 
 // Per-factor background SVG graphics + accent colours
 const FACTOR_META = {
@@ -24549,11 +25333,28 @@ function cotCycleClock(phase, isBull, isBear){
 /* ════════════════════════════════════════════
    COT TAB
 ════════════════════════════════════════════ */
+function _tabSummary(text, col) {
+  return `<div class="tab-summary"><div class="tab-summary-pip" style="background:${col||'var(--faint)'}"></div><span class="tab-summary-text">${text}</span></div>`;
+}
+
 function cotTab(m){
   const d=m.scores.cot?.detail||{};
   if(d.comm_index==null){
     return `<div style="padding:8px;color:var(--faint);font-size:11px">No COT data available for ${m.name}. CFTC may not report this instrument separately.</div>`;
   }
+  // ── Tab summary sentence ──
+  const _cotSc = m.scores.cot?.score??5;
+  const _cotCol = sHex(_cotSc);
+  const _cotLbl = m.scores.cot?.label||'';
+  const _cotSummaryText = (()=>{
+    const sc=_cotSc;
+    if(sc>=7) return `Positioning is <strong style="color:${_cotCol}">${_cotLbl||'bullish'}</strong> — large speculators are net long and approaching extremes. COT historically leads price by 2–3 weeks.`;
+    if(sc>=5.5) return `Positioning shows a <strong style="color:${_cotCol}">${_cotLbl||'mild bullish'}</strong> lean — specs incrementally building longs. Watch for continuation or a fade near resistance.`;
+    if(sc>=4.5) return `Positioning is <strong style="color:var(--faint)">neutral</strong> — no clear speculator conviction from either side. Price action and other factors carry more weight here.`;
+    if(sc>=3) return `Positioning has a <strong style="color:${_cotCol}">${_cotLbl||'mild bearish'}</strong> lean — specs are trimming longs or building shorts incrementally.`;
+    return `Positioning is <strong style="color:${_cotCol}">${_cotLbl||'bearish'}</strong> — speculative shorts at elevated levels. Extreme readings often precede mean-reversion; look for confirming signals.`;
+  })();
+  const _cotPrefix = _tabSummary(_cotSummaryText, _cotCol);
 
   // ── CROSS PAIR BRANCH ─────────────────────────────────────────────────────
   if(d.cross){
@@ -24647,7 +25448,7 @@ function cotTab(m){
       </div>
     </div>`;
 
-    return html;
+    return _cotPrefix + html;
   }
 
   // ── STANDARD MARKET BRANCH ────────────────────────────────────────────────
@@ -24991,7 +25792,7 @@ function cotTab(m){
     </div>`;
   }
 
-  return html;
+  return _cotPrefix + html;
 }
 
 /* ════════════════════════════════════════════
@@ -25262,7 +26063,17 @@ function seasTabStub(m){
   const cycleKey=d.cycle_key||'';
   const cycleLabel={'post_election':'Post-Election','midterm':'Midterm','pre_election':'Pre-Election','election':'Election Year'}[cycleKey]||cycleKey;
 
-  return `<div class="seas-score-card">
+  // ── Tab summary sentence ──
+  const _seasSummaryText = (()=>{
+    if(sc>=7.5) return `Seasonal window is <strong style="color:${col}">strongly bullish</strong> — historical tendency shows consistent gains over the next 3–4 weeks. Seasonal tailwind confirmed.`;
+    if(sc>=6)   return `Seasonal window is <strong style="color:${col}">bullish</strong> — historical patterns lean positive over the current window. Moderate seasonal tailwind.`;
+    if(sc>=5)   return `Seasonal window is <strong style="color:var(--faint)">neutral to mildly bullish</strong> — no strong historical directional bias. Price action and other factors dominate.`;
+    if(sc>=3.5) return `Seasonal window is <strong style="color:${col}">bearish</strong> — historical patterns show a tendency for weakness over the coming weeks. Seasonal headwind.`;
+    return `Seasonal window is <strong style="color:${col}">strongly bearish</strong> — persistent historical weakness over this period. Seasonal headwind is well-established.`;
+  })();
+  const _seasPrefix = _tabSummary(_seasSummaryText, col);
+
+  return _seasPrefix + `<div class="seas-score-card">
     <div class="ss-badge" style="background:${bg};">
       <div class="ss-badge-score" style="color:${col}">${sc.toFixed(1)}</div>
       <div class="ss-badge-label" style="color:${col}">/10</div>
@@ -25359,7 +26170,17 @@ function momTab(m){
   const sma200Col=sma200Above===true?'#22c97a':sma200Above===false?'#e03a2a':'var(--dim)';
   const sma200Lbl=sma200Above===true?`Above (+${sma200Diff!=null?Math.abs(sma200Diff).toFixed(2):0}%)`:sma200Above===false?`Below (${sma200Diff!=null?sma200Diff.toFixed(2):0}%)`:'N/A';
 
-  return `
+  // ── Tab summary sentence ──
+  const _momSummaryText = (()=>{
+    if(sc>=7.5) return `Trend is <strong style="color:${col}">strongly ${lbl||'bullish'}</strong> — price above 200 SMA, EMA slope rising, momentum extended. Trend-following favoured.`;
+    if(sc>=6)   return `Trend is <strong style="color:${col}">${lbl||'bullish'}</strong> — price holding above key moving averages with positive EMA slope. Momentum supportive.`;
+    if(sc>=5)   return `Trend is <strong style="color:var(--faint)">mixed</strong> — price near key MAs with no strong directional conviction. Watch for a breakout or breakdown.`;
+    if(sc>=3.5) return `Trend is <strong style="color:${col}">${lbl||'bearish'}</strong> — price below key moving averages, EMA slope negative. Downside momentum in play.`;
+    return `Trend is <strong style="color:${col}">strongly ${lbl||'bearish'}</strong> — price well below 200 SMA, EMAs declining. Momentum strongly negative.`;
+  })();
+  const _momPrefix = _tabSummary(_momSummaryText, col);
+
+  return _momPrefix + `
   <!-- Score header -->
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
     <div style="min-width:52px;text-align:center">
@@ -26571,6 +27392,15 @@ function macroTab(m){
     }
     html+=`</div>`;
   }
+  // ── Tab summary ──
+  const _macroSummaryText = (()=>{
+    if(msc>=7.5) return `Macro backdrop is <strong style="color:${mcol}">strongly supportive</strong> — growth expanding, jobs resilient, inflation cooling, rates stabilising. Fundamental tailwind.`;
+    if(msc>=6)   return `Macro backdrop is <strong style="color:${mcol}">supportive</strong> — key macro drivers lean constructive. Moderate fundamental tailwind for this asset.`;
+    if(msc>=5)   return `Macro backdrop is <strong style="color:var(--faint)">neutral</strong> — no dominant macro directional push. Mixed readings across growth, inflation and rates.`;
+    if(msc>=3.5) return `Macro backdrop is <strong style="color:${mcol}">challenging</strong> — growth slowing, rates elevated, or inflation persistent. Macro headwind present.`;
+    return `Macro backdrop is <strong style="color:${mcol}">strongly challenging</strong> — multiple macro factors unfavourable. Significant fundamental headwind.`;
+  })();
+  html = _tabSummary(_macroSummaryText, mcol) + html;
   return html;
 }
 
@@ -26924,6 +27754,18 @@ function relvalTab(m){
     </div>
   </div>`;
 
+  // ── Tab summary ──
+  const _rvSc = rv.score ?? 5;
+  const _rvCol = sHex(_rvSc);
+  const _rvSummaryText = (()=>{
+    const zc = zComp != null ? zComp.toFixed(1) : null;
+    if(_rvSc>=7.5) return `Asset is <strong style="color:${_rvCol}">strongly cheap</strong> vs peers — stochastic composite depressed${zc?', z-score '+zc:''}. Relative mean-reversion potential is elevated.`;
+    if(_rvSc>=6)   return `Asset appears <strong style="color:${_rvCol}">cheap</strong> relative to peers — below average on stochastic composite. Modest mean-reversion tailwind.`;
+    if(_rvSc>=4.5) return `Asset is <strong style="color:var(--faint)">fairly valued</strong> vs peers — stochastic composite near midpoint. No strong relative signal.`;
+    if(_rvSc>=3)   return `Asset appears <strong style="color:${_rvCol}">expensive</strong> vs peers — above-average stochastic composite. Modest relative mean-reversion headwind.`;
+    return `Asset is <strong style="color:${_rvCol}">strongly expensive</strong> vs peers — stochastic composite elevated${zc?', z-score '+zc:''}. Relative mean-reversion risk is high.`;
+  })();
+  html = _tabSummary(_rvSummaryText, _rvCol) + html;
   return html;
 }
 
@@ -28480,6 +29322,18 @@ function regimeTab(m){
     </div>
   </div>`;
 
+  // ── Tab summary ──
+  const _regSc = rawScore ?? 5;
+  const _regCol = sHex(_regSc);
+  const _regSummaryText = (()=>{
+    const rn = (regName||'').toLowerCase();
+    if(_regSc>=7.5) return `Regime is <strong style="color:${_regCol}">strongly risk-on</strong> — equities leading, credit spreads tight, VIX subdued. ${m.name} should benefit from the current macro environment.`;
+    if(_regSc>=6)   return `Regime is <strong style="color:${_regCol}">risk-on</strong> — broad risk appetite positive. ${m.name} positioned constructively within the current macro backdrop.`;
+    if(_regSc>=4.5) return `Regime is <strong style="color:var(--faint)">mixed / transitional</strong> — conflicting signals between risk and safe-haven assets. Position sizing should reflect elevated uncertainty.`;
+    if(_regSc>=3)   return `Regime is <strong style="color:${_regCol}">risk-off</strong> — defensives leading, credit spreads widening, volatility elevated. ${m.name} faces macro headwinds.`;
+    return `Regime is <strong style="color:${_regCol}">strongly risk-off</strong> — broad risk aversion, safe-haven flows dominant. Macro environment is challenging for ${m.name}.`;
+  })();
+  html = _tabSummary(_regSummaryText, _regCol) + html;
   return html;
 }
 
