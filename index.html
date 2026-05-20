@@ -24045,7 +24045,6 @@ function renderDetail(m){
   dc.innerHTML=
     dHead(m,ws,col,bg)+
     factorStrip(m)+
-    `<div id="d-events-slot-${m.id}"></div>`+
     `<div class="tab${selTab==='cot'?' on':''}" id="t-cot">${cotTab(m)}</div>`+
     `<div class="tab${selTab==='seasonal'?' on':''}" id="t-seasonal">${seasTabStub(m)}</div>`+
     `<div class="tab${selTab==='momentum'?' on':''}" id="t-momentum">${momTab(m)}</div>`+
@@ -24061,8 +24060,7 @@ function renderDetail(m){
   animateScoreHero(ws, col);
   animateHeatmapTiles();
 
-  // ── Upcoming Events for this asset (async) ────────────────────────────
-  _loadDetailEvents(m.id);
+
 
   if(selTab==='cot')      initCotCharts(m.id);
   if(selTab==='seasonal') loadSeasTab(m.id,m.name);
