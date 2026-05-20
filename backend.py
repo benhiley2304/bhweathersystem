@@ -620,11 +620,22 @@ REL_VAL_CONFIG = {
     },
     # ── Energy ──────────────────────────────────────────────────────────────────
     "NG": {
+        # NG relval: compare vs macro anchors (bonds + dollar) rather than energy siblings.
+        # NG/CL and NG/HO are spread trades driven by weather/storage vs OPEC — not genuine
+        # fair-value pairs. NG cheap vs ZB = commodity undervalued vs safe-haven (same logic
+        # as CL/ZB, 94% WR). NG cheap vs DX = double undervaluation (USD-priced, demand-driven).
+        # HO retained as secondary intra-energy check (NG/HO spread = heating vs power demand).
         "peers": [
-            {"id": "CL",  "yf": "CL=F",           "label": "vs Crude",    "color": "#34d399"},
-            {"id": "HO",  "yf": "HO=F",           "label": "vs Heat Oil",  "color": "#fb923c"},
+            {"id": "ZB",  "yf": "ZB=F",       "label": "vs T-Bond",   "color": "#5c9eff",
+             "logic": "NG cheap vs bonds = real asset undervalued vs safe-haven; demand signal"},
+            {"id": "DX",  "yf": "DX-Y.NYB",   "label": "vs DXY",     "color": "#a78bfa",
+             "logic": "NG priced in USD: cheap NG vs strong DXY = double undervaluation signal"},
+            {"id": "HO",  "yf": "HO=F",       "label": "vs Heat Oil", "color": "#fb923c",
+             "logic": "Intra-energy check: NG/HO captures relative heating vs power demand"},
         ],
         "periods": [13, 26],
+        "cheap_thr": 20,
+        "exp_thr":   80,
     },
     "RB": {
         "peers": [
@@ -669,11 +680,18 @@ REL_VAL_CONFIG = {
         "periods": [13, 26],
     },
     "HE": {
+        # HE relval: HE/LE (hog-cattle spread) and HE/ZC (hog-corn = feed cost ratio) are
+        # intra-sector spreads, not macro valuation signals. Replacing with ZB (bonds as macro
+        # anchor) + ZC (feed cost as a cost-of-production signal, retained as secondary check).
         "peers": [
-            {"id": "LE",  "yf": "LE=F",           "label": "vs Live Cattle","color": "#d97706"},
-            {"id": "ZC",  "yf": "ZC=F",           "label": "vs Corn",      "color": "#fde68a"},
+            {"id": "ZB",  "yf": "ZB=F",       "label": "vs T-Bond",   "color": "#5c9eff",
+             "logic": "Lean Hogs cheap vs bonds = commodity undervalued vs safe-haven"},
+            {"id": "ZC",  "yf": "ZC=F",       "label": "vs Corn",     "color": "#fde68a",
+             "logic": "HE/ZC ratio captures profit margin proxy (hog price vs feed cost)"},
         ],
         "periods": [13, 26],
+        "cheap_thr": 20,
+        "exp_thr":   80,
     },
     "GF": {
         "peers": [
@@ -7776,7 +7794,10 @@ async def _do_scores_refresh(force: bool = False):
         if mid in PCR_EQUITY_SYMBOLS:
             scores["pcr"] = pcr_data["score"]
     
-        bias = compute_weighted_bias(scores, market_id=mid, cot_detail=cot_data)
+        # Pass the nested detail dict so confluence signals (convergence_signal, comm_momentum_signal, etc.)
+        # are accessible at the top level of cot_detail. compute_cot_score buries these inside ["detail"];
+        # compute_cross_cot_score exposes them at both levels. .get("detail", cot_data) handles both.
+        bias = compute_weighted_bias(scores, market_id=mid, cot_detail=cot_data.get("detail", cot_data))
     
         scores_out = {
             "cot":      {"score": cot_data["score"],      "label": cot_data["label"],      "detail": cot_data.get("detail", cot_data)},
