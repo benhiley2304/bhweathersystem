@@ -16673,82 +16673,126 @@ h3.label,
   #t-overview{padding:11px 12px 40px;}
 }
 
+/* ══════════════════════════════════════════════════════
+   OVERVIEW TAB — Complete redesign May 2026
+   Mobile-first: tighter verdict card, horizontal pills,
+   reordered sections, confluence before composite total
+══════════════════════════════════════════════════════ */
+
 /* ── Verdict card ── */
 .ov-verdict{
   background:var(--surf);border:1px solid rgba(255,255,255,0.055);
-  border-radius:6px;padding:14px 16px 12px;
+  border-radius:6px;padding:16px 18px 14px;
   margin-bottom:10px;position:relative;overflow:hidden;
 }
 .ov-verdict::before{
-  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
-  background:var(--ov-stripe,var(--faint));opacity:.7;
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--ov-stripe,var(--faint));opacity:.85;
+  border-radius:3px 0 0 3px;
 }
 .ov-v-top{
-  display:flex;align-items:flex-start;gap:14px;
-  margin-bottom:11px;padding-left:10px;
+  display:flex;align-items:center;gap:16px;
+  padding-left:12px;
 }
+/* Score column — tight, left side */
 .ov-v-score-col{
   flex-shrink:0;display:flex;flex-direction:column;
-  align-items:center;padding-top:1px;min-width:44px;
+  align-items:center;min-width:56px;
 }
 .ov-vsn{
-  font-family:var(--head);font-size:38px;font-weight:700;
-  letter-spacing:-.03em;line-height:1;color:var(--text);
+  font-family:var(--head);font-size:40px;font-weight:700;
+  letter-spacing:-.04em;line-height:1;color:var(--text);
 }
 .ov-vsd{
   font-family:var(--mono);font-size:9px;color:var(--faint);
-  text-align:center;letter-spacing:.04em;margin-top:2px;
+  letter-spacing:.05em;margin-top:3px;
 }
 .ov-vsbar{
-  width:40px;height:2px;border-radius:0;
+  width:48px;height:3px;border-radius:0;
   background:linear-gradient(to right,#f04040,#d63a24,#4a5268,#26c97a,#30d988);
-  position:relative;margin-top:6px;
+  position:relative;margin-top:7px;
 }
 .ov-vsdot{
   position:absolute;top:50%;transform:translate(-50%,-50%);
-  width:6px;height:6px;border-radius:50%;
-  background:#fff;box-shadow:0 0 4px rgba(255,255,255,.6);
+  width:7px;height:7px;border-radius:50%;
+  background:#fff;box-shadow:0 0 5px rgba(255,255,255,.7);
 }
+/* Verdict label chip */
+.ov-verdict-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:3px;margin-top:7px;
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;
+  border:1px solid;
+}
+.ov-verdict-chip.bull{color:#26c97a;background:rgba(48,217,136,0.08);border-color:rgba(48,217,136,0.18);}
+.ov-verdict-chip.bear{color:#f04040;background:rgba(240,64,64,0.08);border-color:rgba(240,64,64,0.18);}
+.ov-verdict-chip.neut{color:var(--accent);background:rgba(200,169,110,0.07);border-color:rgba(200,169,110,0.18);}
 .ov-vdiv{
-  width:1px;background:rgba(255,255,255,0.055);
+  width:1px;background:rgba(255,255,255,0.06);
   align-self:stretch;flex-shrink:0;
 }
-.ov-v-text{flex:1;padding-left:2px;}
+/* Text side */
+.ov-v-text{flex:1;min-width:0;}
 .ov-vk{
-  font-size:8px;font-weight:600;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--accent);margin-bottom:6px;opacity:.8;
+  font-size:8px;font-weight:700;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:5px;opacity:.75;
 }
 .ov-vstmt{
   font-family:var(--head);font-size:12.5px;font-weight:400;
-  line-height:1.7;color:var(--dim);letter-spacing:-.003em;
+  line-height:1.68;color:var(--dim);letter-spacing:-.003em;
 }
 .ov-vstmt .hb{color:var(--s2);font-weight:600;}
 .ov-vstmt .hr{color:var(--sm2);font-weight:600;}
 .ov-vstmt .hn{color:var(--text);font-weight:600;}
 
-/* signal pills */
+/* ── Signal pills — horizontal scroll row ── */
 .ov-pills{
-  display:flex;flex-wrap:wrap;gap:4px;
-  padding:9px 10px 0 10px;
-  margin-top:9px;border-top:1px solid rgba(255,255,255,0.032);
+  display:flex;flex-wrap:nowrap;gap:5px;
+  overflow-x:auto;overflow-y:hidden;
+  padding:10px 12px 2px 12px;
+  margin-top:10px;border-top:1px solid rgba(255,255,255,0.032);
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
 }
+.ov-pills::-webkit-scrollbar{display:none;}
 .ov-pl{
-  display:inline-flex;align-items:center;gap:3px;
-  padding:3px 7px 3px 6px;border-radius:3px;
-  font-size:9.5px;font-weight:500;
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 9px 4px 7px;border-radius:3px;
+  font-size:9.5px;font-weight:500;flex-shrink:0;
+  white-space:nowrap;
 }
-.ov-pl.b{background:rgba(48,217,136,0.06);border:1px solid rgba(48,217,136,0.13);}
+.ov-pl.b{background:rgba(48,217,136,0.07);border:1px solid rgba(48,217,136,0.15);}
 .ov-pl.b .ov-plk{color:var(--s2);}
-.ov-pl.r{background:rgba(214,58,36,0.06);border:1px solid rgba(214,58,36,0.13);}
+.ov-pl.r{background:rgba(214,58,36,0.07);border:1px solid rgba(214,58,36,0.15);}
 .ov-pl.r .ov-plk{color:var(--sm1);}
-.ov-pl.n{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);}
+.ov-pl.n{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);}
 .ov-pl.n .ov-plk{color:var(--dim);}
-.ov-pld{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+.ov-pld{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
 .ov-pl.b .ov-pld{background:var(--s2);}
 .ov-pl.r .ov-pld{background:var(--sm1);}
 .ov-pl.n .ov-pld{background:var(--faint);}
-.ov-plk{font-weight:600;font-size:9.5px;}
-.ov-plv{font-size:9px;color:var(--faint);margin-left:1px;}
+.ov-plk{font-weight:700;font-size:9.5px;}
+.ov-plv{font-size:9px;color:var(--faint);margin-left:2px;}
+
+/* ── Confluence strip ── now appears BEFORE composite total ── */
+.ov-conf-strip{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 14px;
+  background:rgba(200,169,110,0.025);
+  border:1px solid rgba(200,169,110,0.10);
+  border-radius:6px;margin-bottom:10px;
+}
+.ov-conf-badge{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;
+  background:rgba(200,169,110,0.09);color:var(--accent);
+  padding:3px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0;
+  border:1px solid rgba(200,169,110,0.14);
+  margin-top:1px;
+}
+.ov-conf-text{font-size:10.5px;color:var(--faint);line-height:1.55;}
+.ov-conf-text strong{color:var(--dim);font-weight:600;}
 
 /* ── Attribution table ── */
 .ov-attr-wrap{
@@ -16757,34 +16801,34 @@ h3.label,
 }
 .ov-attr-head{
   display:grid;
-  grid-template-columns:minmax(160px,1fr) 140px 52px 50px 100px;
+  grid-template-columns:minmax(150px,1fr) 130px 54px 52px 110px;
   padding:8px 16px 7px;
   border-bottom:1px solid rgba(255,255,255,0.055);
   background:rgba(255,255,255,0.018);
 }
 .ov-ah{
-  font-size:8px;font-weight:600;letter-spacing:.1em;
+  font-size:8px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;color:var(--faint);
 }
 .ov-ah.r{text-align:right;}
 .ov-arow{
   display:grid;
-  grid-template-columns:minmax(160px,1fr) 140px 52px 50px 100px;
+  grid-template-columns:minmax(150px,1fr) 130px 54px 52px 110px;
   align-items:center;padding:11px 16px;
-  border-bottom:1px solid rgba(255,255,255,0.032);
+  border-bottom:1px solid rgba(255,255,255,0.03);
   cursor:pointer;transition:background .12s;
   position:relative;
 }
 .ov-arow:last-of-type{border-bottom:none;}
-.ov-arow:hover{background:rgba(255,255,255,0.022);}
+.ov-arow:hover{background:rgba(255,255,255,0.024);}
 .ov-arow:hover .ov-arr{opacity:1;}
 .ov-af{display:flex;flex-direction:column;gap:2px;padding-right:12px;}
 .ov-afn{font-size:11.5px;font-weight:600;color:var(--text);}
 .ov-afi{font-size:9.5px;color:var(--faint);line-height:1.3;}
 .ov-abar-wrap{padding-right:14px;display:flex;align-items:center;}
 .ov-abar-track{
-  width:100%;height:2px;border-radius:0;
-  background:rgba(255,255,255,0.07);overflow:hidden;position:relative;
+  width:100%;height:3px;border-radius:0;
+  background:rgba(255,255,255,0.07);overflow:hidden;
 }
 .ov-abar-fill{height:100%;border-radius:0;background:var(--ov-rc);transition:width .3s ease;opacity:.9;}
 .ov-asc{
@@ -16800,7 +16844,7 @@ h3.label,
   padding-left:12px;border-left:1px solid rgba(255,255,255,0.04);
 }
 .ov-acont-bar-wrap{width:100%;}
-.ov-acont-bar-track{height:2px;border-radius:0;background:rgba(255,255,255,0.08);overflow:hidden;}
+.ov-acont-bar-track{height:3px;border-radius:0;background:rgba(255,255,255,0.08);overflow:hidden;}
 .ov-acont-bar-fill{height:100%;border-radius:0;background:var(--ov-rc);opacity:.8;}
 .ov-acont-val{
   font-family:var(--mono);font-size:13px;font-weight:700;
@@ -16812,14 +16856,22 @@ h3.label,
   font-size:10px;color:var(--faint);opacity:0;transition:opacity .12s;
   pointer-events:none;
 }
+/* Composite total row */
 .ov-atotal{
   display:grid;
-  grid-template-columns:minmax(160px,1fr) 140px 52px 50px 100px;
-  align-items:center;padding:11px 16px;
+  grid-template-columns:minmax(150px,1fr) 130px 54px 52px 110px;
+  align-items:center;padding:12px 16px;
   background:rgba(200,169,110,0.03);
   border-top:1px solid rgba(200,169,110,0.10);
 }
-.ov-at-lbl{font-size:11px;font-weight:600;color:var(--accent);}
+.ov-at-lbl{
+  font-size:11px;font-weight:700;color:var(--accent);
+  display:flex;flex-direction:column;gap:2px;
+}
+.ov-at-lbl-note{
+  font-size:8.5px;font-weight:400;color:var(--faint);
+  letter-spacing:0;text-transform:none;
+}
 .ov-at-score-lbl{font-size:8.5px;color:var(--faint);text-align:right;letter-spacing:.03em;padding-right:4px;}
 .ov-at-wt-lbl{font-family:var(--mono);font-size:10px;color:var(--faint);text-align:right;padding:0 6px;}
 .ov-at-contrib{
@@ -16827,74 +16879,67 @@ h3.label,
   padding-left:12px;border-left:1px solid rgba(200,169,110,0.13);
 }
 .ov-at-num{
-  font-family:var(--head);font-size:17px;font-weight:700;
+  font-family:var(--head);font-size:18px;font-weight:700;
   color:var(--accent);line-height:1;
 }
 .ov-at-sub{font-size:9.5px;color:var(--faint);}
 
-/* ── Confluence strip ── */
-.ov-conf-strip{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 12px;
-  background:rgba(200,169,110,0.03);
-  border:1px solid rgba(200,169,110,0.10);
-  border-radius:6px;margin-bottom:10px;
-}
-.ov-conf-badge{
-  font-family:var(--mono);font-size:9.5px;font-weight:700;
-  letter-spacing:.04em;text-transform:uppercase;
-  background:rgba(200,169,110,0.08);color:var(--accent);
-  padding:3px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0;
-  border:1px solid rgba(200,169,110,0.12);
-}
-.ov-conf-text{font-size:10px;color:var(--faint);line-height:1.5;}
-.ov-conf-text strong{color:var(--dim);font-weight:500;}
-
 /* ── Weight bar card ── */
 .ov-wt-card{
   background:var(--surf);border:1px solid rgba(255,255,255,0.055);
-  border-radius:6px;padding:11px 14px;
+  border-radius:6px;padding:12px 16px;
 }
 .ov-wt-lbl{
-  font-size:8px;font-weight:600;letter-spacing:.1em;
+  font-size:8px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;color:var(--faint);margin-bottom:9px;
 }
 .ov-wt-bar{
-  height:3px;border-radius:0;display:flex;gap:1px;
-  overflow:hidden;margin-bottom:10px;
+  height:4px;border-radius:0;display:flex;gap:1px;
+  overflow:hidden;margin-bottom:11px;
 }
 .ov-wt-seg{height:100%;}
-.ov-wt-leg{display:flex;flex-wrap:wrap;gap:5px 14px;}
-.ov-wt-it{display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--dim);}
-.ov-wt-sq{width:6px;height:6px;border-radius:1px;flex-shrink:0;}
+.ov-wt-leg{display:flex;flex-wrap:wrap;gap:6px 16px;}
+.ov-wt-it{display:flex;align-items:center;gap:5px;font-size:9.5px;color:var(--dim);}
+.ov-wt-sq{width:7px;height:7px;border-radius:1px;flex-shrink:0;}
 .ov-wt-pct{font-family:var(--mono);font-size:9px;color:var(--faint);margin-left:1px;}
 
 /* ── Mobile overrides ── */
 @media(max-width:700px){
+  /* Verdict card — tighter on mobile */
+  .ov-verdict{padding:13px 14px 11px;}
+  .ov-v-top{gap:11px;padding-left:10px;}
+  .ov-vsn{font-size:34px;}
+  .ov-vsd{font-size:8.5px;}
+  .ov-vsbar{width:42px;}
+  .ov-vstmt{font-size:11.5px;line-height:1.6;}
+  .ov-vk{font-size:7.5px;}
+  /* Pills row stays horizontal on mobile — just scrolls */
+  .ov-pills{padding:9px 10px 2px;margin-top:8px;}
+  /* Attribution table — drop score bar column on mobile */
   .ov-attr-head{
-    grid-template-columns:1fr 44px 42px 84px;
-    padding:8px 12px 7px;
+    grid-template-columns:1fr 46px 44px 88px;
+    padding:7px 12px;
   }
   .ov-arow{
-    grid-template-columns:1fr 44px 42px 84px;
+    grid-template-columns:1fr 46px 44px 88px;
     padding:10px 12px;
   }
   .ov-atotal{
-    grid-template-columns:1fr 44px 42px 84px;
-    padding:11px 12px;
+    grid-template-columns:1fr 46px 44px 88px;
+    padding:10px 12px;
   }
   .ov-abar-wrap{display:none;}
   .ov-ah-bar{display:none;}
-  .ov-arow:hover .ov-arr{display:none;}
+  .ov-arr{display:none;}
   .ov-acont-bar-wrap{display:none;}
   .ov-acont-val{font-size:12px;}
   .ov-at-contrib{padding-left:10px;}
   .ov-at-num{font-size:15px;}
-  .ov-v-top{gap:10px;}
-  .ov-vsn{font-size:32px;}
-  .ov-vstmt{font-size:12px;line-height:1.65;}
+  /* Confluence strip — stack on mobile */
+  .ov-conf-strip{flex-direction:column;align-items:flex-start;gap:6px;padding:9px 12px;}
+  .ov-conf-text{font-size:10px;}
+  /* Nav tabs */
   .ov-nt{padding:8px 10px;font-size:10px;}
-  .ov-arr{display:none;}
 }
 /* ── END OVERVIEW TAB CSS ── */
 
@@ -25227,7 +25272,7 @@ const OV_FACTOR_CFG = {
 const OV_NARRATIVES = {
   ES: {
     eyebrow: 'Macro Outlook \u00b7 S&P 500 \u00b7 US Equities',
-    narrative: `The S&P 500 is a <span class="hn">broad US large-cap index</span>, sensitive to the earnings cycle, rate expectations, and macro regime. Labour market resilience (NFP consistently beating) is underpinning the <span class="hb">soft-landing narrative</span>, keeping recession risk off the table near-term. Credit spreads remain tight and the yield curve is re-steepening — the risk regime is constructive. The structural drag is valuation: <span class="hr">fwd P/E near the 90th historical percentile</span>, priced for a flawless soft landing with limited margin for earnings misses. COT specs are incrementally long and the Jun–Jul seasonal window is supportive. <span class="hn">Net: cautiously bullish</span> — regime and flow support, but multiple expansion is largely done.`,
+    narrative: `The S&P 500 is driven by the <span class="hn">earnings cycle, rate expectations, and risk regime</span>. Fundamentally, labour resilience underpins the soft-landing narrative and credit spreads remain tight — <span class="hb">climate score is constructive</span>. COT large specs maintain a net long bias. The Jun\u2013Jul seasonal window is historically favourable. Momentum is intact above key moving averages. On relval, <span class="hr">fwd P/E near the 90th percentile</span> caps upside. Macro regime is positive but fragile. <span class="hn">Net: cautiously bullish</span> — climate and flow aligned, relval limits conviction.`,
     pills: [
       {c:'b',k:'Credit Spreads',  v:'IG tight — risk regime on'},
       {c:'b',k:'Yield Curve',     v:'2s10s re-steepening — constructive'},
@@ -25241,7 +25286,7 @@ const OV_NARRATIVES = {
   },
   NQ: {
     eyebrow: 'Macro Outlook \u00b7 Nasdaq 100 \u00b7 US Tech',
-    narrative: `The Nasdaq 100 tracks the top 100 US tech &amp; growth companies, dominated by mega-caps carrying <span class="hb">minimal debt and large cash reserves</span> — structurally less rate-sensitive than the broader market. The AI capex cycle remains firmly intact: NVDA data centre revenue and hyperscaler spend are accelerating, resetting NQ earnings growth to <span class="hb">~14% vs S&P 500 ~6%</span> — a compelling quality growth differential. Momentum is the strongest of all equity indices, COT funds continue adding, and the seasonal window is supportive. <span class="hn">Net: bullish</span> — AI earnings momentum, quality growth premium, and institutional flow aligned.`,
+    narrative: `The Nasdaq 100 tracks top-100 US tech and growth companies. Fundamentally, the AI capex cycle is intact — hyperscaler spend and NVDA revenue are accelerating, driving <span class="hb">NQ EPS growth ~14% vs S&P ~6%</span>. Mega-cap balance sheets (low debt, large cash) make NQ less rate-sensitive. COT funds continue adding tech longs. The Jun\u2013Jul seasonal window is bullish 9/10 years historically. Momentum is the strongest of all equities above all key MAs. On relval, <span class="hr">fwd P/E ~28x is a premium</span> but justified by growth differential. Climate regime is constructive for risk assets. <span class="hn">Net: bullish</span> — AI momentum, institutional flow, and seasonal aligned.`,
     pills: [
       {c:'b',k:'AI Capex Cycle',   v:'Hyperscaler spend accelerating'},
       {c:'b',k:'EPS Growth',       v:'NQ ~14% vs S&P ~6%'},
@@ -25255,7 +25300,7 @@ const OV_NARRATIVES = {
   },
   YM: {
     eyebrow: 'Macro Outlook \u00b7 Dow Jones \u00b7 US Large Cap',
-    narrative: `The Dow Jones tracks 30 blue-chip US industrials and financials, more value-oriented and <span class="hn">cyclically exposed</span> than the S&P or Nasdaq. It tends to lead in early-cycle recoveries but lags in late-cycle tech-driven rallies. The macro backdrop — tight credit spreads, re-steepening yield curve, and stable labour — supports the broader risk-on environment. Financials within the index benefit from a steeper curve. However, <span class="hr">manufacturing PMI sub-50</span> remains a headwind for industrial names. COT and seasonal signals provide tactical support. <span class="hn">Net: neutral to mildly bullish</span> — broader macro constructive but less sector tailwind than NQ.`,
+    narrative: `The Dow Jones tracks 30 blue-chip industrials and financials — more value-oriented and cyclically sensitive than the broader US market. Fundamentally, <span class="hb">tight credit spreads and a re-steepening yield curve</span> support financials within the index. Macro regime is constructive but manufacturing PMI sub-50 is a drag. COT positioning shows institutional support. Seasonal patterns are moderately bullish in this window. Momentum lags NQ but is broadly intact. Relval is more reasonable than tech — <span class="hb">lower P/E offers a better margin of safety</span>. Climate regime is positive. <span class="hn">Net: neutral to mildly bullish</span> — macro and climate constructive but less sector momentum than tech.`,
     pills: [
       {c:'b',k:'Credit Spreads',  v:'Tight — risk-on backdrop'},
       {c:'b',k:'Yield Curve',     v:'Steeper curve aids financials'},
@@ -25267,7 +25312,7 @@ const OV_NARRATIVES = {
   },
   RTY: {
     eyebrow: 'Macro Outlook \u00b7 Russell 2000 \u00b7 US Small Cap',
-    narrative: `The Russell 2000 tracks US small-caps — domestically focused, <span class="hr">highly rate-sensitive</span> due to floating-rate debt, and deeply cyclical. Small-caps are the most levered play on a US soft landing and Fed pivot. With the Fed on hold and rate cuts delayed, the financing cost pressure on small-cap balance sheets remains a headwind. However, <span class="hb">a steeper yield curve and stable credit environment</span> reduce tail risk. COT positioning is mixed and seasonality is neutral in this window. <span class="hn">Net: neutral</span> — rate sensitivity limits upside until a clear Fed pivot is priced.`,
+    narrative: `The Russell 2000 is the most rate-sensitive US equity index due to heavy floating-rate debt exposure. Fundamentally, <span class="hr">higher-for-longer Fed policy is the primary headwind</span> — financing costs compress small-cap margins. The macro regime (soft-landing, stable credit spreads) reduces tail risk but does not resolve the rate burden. COT positioning is mixed with no clear directional conviction. Seasonal window is broadly neutral. Momentum is lagging — RTY underperforming large-caps confirms the rate headwind. Relval is historically attractive on absolute P/E. Climate regime is supportive but insufficient without a Fed pivot catalyst. <span class="hn">Net: neutral</span> — rate sensitivity limits upside; watch for Fed pivot signals.`,
     pills: [
       {c:'b',k:'Credit',           v:'Spreads tight — limits default risk'},
       {c:'b',k:'Domestic Focus',   v:'Insulated from FX/trade risk'},
@@ -25279,7 +25324,7 @@ const OV_NARRATIVES = {
   },
   GC: {
     eyebrow: 'Macro Outlook \u00b7 Gold \u00b7 Safe Haven / Real Asset',
-    narrative: `Gold is driven primarily by <span class="hn">real interest rates, USD direction, and safe-haven demand</span>. With the Fed on hold, real yields remain positive — a moderate carry headwind for a non-yielding asset. However, central bank buying (EM CBs accumulating structurally) and de-dollarisation flows are providing a <span class="hb">persistent structural bid</span>. DXY softening adds a tailwind as gold is dollar-denominated. Geopolitical risk premium remains embedded in the price. COT specs are net long but not at extremes. <span class="hn">Net: neutral</span> — structural support offset by real rate headwind; needs a Fed pivot or risk-off catalyst to break significantly higher.`,
+    narrative: `Gold is fundamentally driven by <span class="hn">real interest rates, USD direction, and safe-haven demand</span>. Real yields remain a mild carry headwind while the Fed is on hold. COT specs are net long but not at extremes — positioning gives tactical room to run. The seasonal window into summer is historically mixed for gold. Momentum remains constructive above the 50-day MA. Climate score is neutral — risk-on suppresses safe-haven demand somewhat. On relval, <span class="hb">EM central bank structural buying provides a de-dollarisation floor</span>. A softer DXY adds a further tailwind. <span class="hn">Net: neutral with a bull lean</span> — structural CB bid and DXY weakness supportive; real yields remain the key risk.`,
     pills: [
       {c:'b',k:'CB Buying',       v:'EM central banks structurally bid'},
       {c:'b',k:'DXY Softening',   v:'Weaker dollar — gold tailwind'},
@@ -25292,7 +25337,7 @@ const OV_NARRATIVES = {
   },
   SI: {
     eyebrow: 'Macro Outlook \u00b7 Silver \u00b7 Precious / Industrial',
-    narrative: `Silver has a dual driver: <span class="hn">precious metal correlations to gold/real rates</span> and significant industrial demand (solar, EVs, electronics). The green energy transition is creating a <span class="hb">structural demand tailwind</span> from silver\'s use in solar panel manufacturing. Gold\'s direction remains the key short-term driver — silver tends to amplify gold moves with higher beta. COT specs are net long. Real rate headwinds apply similarly to gold. The gold/silver ratio remains historically elevated, suggesting silver has more room to outperform if metals rally. <span class="hn">Net: neutral to mildly bullish</span> — structural demand and gold tailwind offset by rate pressure.`,
+    narrative: `Silver has a dual fundamental driver: precious metal sensitivity to real rates and USD, plus growing <span class="hb">industrial demand from solar panel manufacturing and EV production</span>. COT specs are net long — institutional positioning supports the bull case. The seasonal window is broadly neutral. Momentum follows gold directionally with higher beta — amplified upside and downside. On relval, <span class="hb">the gold/silver ratio is historically elevated</span> suggesting silver is cheap relative to gold. Real rate headwinds apply similarly to gold. Climate regime is neutral for safe-haven metals. <span class="hn">Net: neutral to mildly bullish</span> — structural green demand and elevated G/S ratio are the core bull thesis.`,
     pills: [
       {c:'b',k:'Solar Demand',    v:'Structural green energy tailwind'},
       {c:'b',k:'Gold Correlation',v:'Amplifies gold upside (higher beta)'},
@@ -25304,7 +25349,7 @@ const OV_NARRATIVES = {
   },
   CL: {
     eyebrow: 'Macro Outlook \u00b7 Crude Oil \u00b7 Energy',
-    narrative: `Crude oil is driven by the <span class="hn">supply/demand balance, OPEC+ discipline, and the global growth cycle</span>. OPEC+ has maintained cohesive production discipline and signalled willingness to extend cuts. US shale rig count is down year-over-year, tightening the supply picture. On demand, <span class="hb">China PMI has recovered above 50</span> and US driving season (May–Aug) is the strongest seasonal window of the year. COT specs are building net longs and the risk-on macro regime supports risk assets broadly. The key bear risk is a sharper-than-expected US demand slowdown. <span class="hn">Net: bullish</span> — tight supply, recovering demand, and seasonal tailwind aligned.`,
+    narrative: `Crude oil fundamentals are shaped by <span class="hn">OPEC+ supply discipline, demand recovery, and the global growth cycle</span>. OPEC+ cohesion is intact with extension signals — a bullish supply backdrop. China PMI above 50 confirms recovering Asian demand. The May–Aug driving season is <span class="hb">the strongest seasonal window of the year</span> for crude. COT large specs are building net longs — institutional positioning is supportive. Momentum is constructive and price is above key MAs. The macro and climate regime (risk-on, tight spreads) supports energy as a risk asset. On relval, crude is at mid-range versus historical benchmarks. <span class="hn">Net: bullish</span> — supply, seasonal, COT, and macro all aligned.`,
     pills: [
       {c:'b',k:'OPEC+ Cuts',      v:'Cohesive — extension signalled'},
       {c:'b',k:'Shale Slowdown',   v:'US rig count declining YoY'},
@@ -25317,7 +25362,7 @@ const OV_NARRATIVES = {
   },
   NG: {
     eyebrow: 'Macro Outlook \u00b7 Natural Gas \u00b7 Energy',
-    narrative: `Natural gas is among the most weather-sensitive and <span class="hr">volatile commodities</span>, driven by storage levels, LNG export demand, and seasonal heating/cooling cycles. US storage levels are the primary near-term price anchor. LNG export capacity expansions are providing a <span class="hb">structural demand tailwind</span> as US gas finds global buyers. However, mild weather patterns reduce heating/cooling demand, and the seasonal window heading into summer is typically soft. COT specs are cautiously positioned. The AI data centre power demand narrative is a longer-term bullish structural driver. <span class="hn">Net: neutral to lean bearish</span> — near-term seasonal headwind dominates.`,
+    narrative: `Natural gas is the most weather-sensitive commodity in the system. Fundamentally, <span class="hb">LNG export expansion</span> is creating structural demand as US gas finds global buyers — a multi-year bullish structural driver. AI data centre power demand adds a longer-term tailwind. COT specs are cautiously positioned — no strong institutional conviction either way. The summer seasonal window is the <span class="hr">weakest of the year</span> for natural gas as heating demand drops. Momentum is mixed with no clear directional trend above/below key MAs. US storage near the 5-year average limits short-term upside. Climate regime is neutral. <span class="hn">Net: neutral to lean bearish near-term</span> — seasonal headwind dominates; structural LNG story is a longer-term catalyst.`,
     pills: [
       {c:'b',k:'LNG Exports',     v:'Growing US LNG capacity'},
       {c:'b',k:'AI Power Demand', v:'Data centres — longer-term structural'},
@@ -25329,7 +25374,7 @@ const OV_NARRATIVES = {
   },
   ZB: {
     eyebrow: 'Macro Outlook \u00b7 T-Bond (30yr) \u00b7 Fixed Income',
-    narrative: `30-year T-Bonds are driven by <span class="hn">long-end inflation expectations, Fed policy trajectory, and safe-haven demand</span>. With the Fed on hold and core PCE sticky above target, duration is under pressure from higher-for-longer pricing. However, <span class="hb">any deterioration in growth data</span> would trigger a flight-to-quality bid and duration rally. The yield curve is re-steepening — long-end is underperforming short-end, which is structurally bearish for bond prices. COT commercial hedgers (the "smart money" in rates) remain short. <span class="hn">Net: neutral to lean bearish</span> — higher-for-longer and supply pressure weigh, but recession risk provides a floor.`,
+    narrative: `30-year T-Bonds are the longest duration instrument in the system — most sensitive to <span class="hn">inflation expectations, fiscal credibility, and long-end term premium</span>. Fundamentally, sticky core PCE and resilient labour are keeping the higher-for-longer narrative alive, weighing on duration. COT commercial hedgers (rates “smart money”) remain net short — a bearish positioning signal. The seasonal window for bonds is broadly neutral at this time of year. Momentum is adverse — price below key MAs confirms bear steepening. On relval, <span class="hr">elevated term premium and supply issuance are structural headwinds</span>. Climate regime (tight spreads, risk-on) suppresses safe-haven bond demand. <span class="hn">Net: lean bearish</span> — higher-for-longer and supply pressure; recession risk provides the only floor.`,
     pills: [
       {c:'b',k:'Safe Haven',      v:'Recession risk floor for duration'},
       {c:'b',k:'Flight to Quality',v:'Any growth shock = bond rally'},
@@ -25341,7 +25386,7 @@ const OV_NARRATIVES = {
   },
   ZN: {
     eyebrow: 'Macro Outlook \u00b7 T-Note (10yr) \u00b7 Fixed Income',
-    narrative: `10-year T-Notes are the <span class="hn">global risk-free rate benchmark</span>, pricing the intersection of Fed policy, growth, and inflation expectations. Sticky core PCE and a resilient labour market are keeping the 10yr yield elevated and pushing out cut timing. The yield curve re-steepening dynamic (2s10s widening) reflects the market pricing more long-end term premium. <span class="hb">Any growth scare or bank stress event</span> would generate a sharp duration rally. COT large specs are modestly short. <span class="hn">Net: neutral</span> — rates range-bound until a clear growth or inflation catalyst breaks the equilibrium.`,
+    narrative: `10-year T-Notes are the <span class="hn">global risk-free rate benchmark</span> — pricing the intersection of Fed policy, growth, and inflation expectations. Fundamentally, sticky core PCE and resilient labour are keeping yields elevated and delaying cut timing. COT large specs are modestly net short — institutional positioning leans bearish on duration. Seasonal patterns for 10yr bonds are broadly neutral. Momentum is mixed — range-bound price action with no clear directional trend. On relval, current yield levels are historically elevated, offering some asymmetry to the downside (price up). Climate score (risk-on) keeps safe-haven demand subdued. <span class="hn">Net: neutral</span> — range-bound 4.2–4.7%; watch for NFP or PCE surprise to catalyse the next move.`,
     pills: [
       {c:'b',k:'Growth Scare Bid', v:'Any slowdown = sharp duration rally'},
       {c:'b',k:'Global Demand',    v:'Foreign CB reserve buying supportive'},
@@ -25353,7 +25398,7 @@ const OV_NARRATIVES = {
   },
   '6E': {
     eyebrow: 'Macro Outlook \u00b7 EUR/USD \u00b7 G10 FX',
-    narrative: `EUR/USD is driven by <span class="hn">ECB vs Fed policy divergence, eurozone growth, and global risk appetite</span>. The Fed is on hold while the ECB has begun a cutting cycle, narrowing the rate differential in favour of EUR. Eurozone composite PMI has recovered, led by services, while German manufacturing remains a drag at sub-50. <span class="hb">Policy divergence is the primary bull case</span> — if the Fed holds and ECB pauses its cutting pace, the spread compression trade supports EUR. Risk-on macro regime also supports higher-beta EUR vs USD as safe haven. <span class="hn">Net: neutral with a mild bullish lean</span> — divergence trade live but pace of ECB cuts is the key variable.`,
+    narrative: `EUR/USD is fundamentally driven by <span class="hn">ECB vs Fed policy divergence and eurozone growth</span>. The ECB has begun cutting while the Fed holds — narrowing the rate differential and compressing in EUR’s favour. Eurozone composite PMI is recovering, though German manufacturing remains a sub-50 drag. COT specs are modestly long EUR. The seasonal window is broadly neutral for EUR/USD. Momentum has turned constructive with price firming above key MAs. On relval, EUR looks fair vs USD at current levels. The <span class="hb">risk-on climate regime</span> reduces safe-haven USD demand and supports risk currencies like EUR. <span class="hn">Net: mild bullish lean</span> — divergence trade is live; ECB cut pace is the key swing factor.`,
     pills: [
       {c:'b',k:'Policy Divergence',v:'ECB cutting, Fed on hold'},
       {c:'b',k:'Eurozone PMI',     v:'Services-led recovery underway'},
@@ -25366,7 +25411,7 @@ const OV_NARRATIVES = {
   },
   '6B': {
     eyebrow: 'Macro Outlook \u00b7 GBP/USD \u00b7 G10 FX',
-    narrative: `GBP/USD reflects the interplay of <span class="hn">BoE policy, UK growth, and global risk appetite</span>. The BoE is in a cutting cycle but constrained by sticky UK services inflation (above 5%). UK wage growth remains elevated, making the BoE more cautious than the ECB. GBP benefits from the risk-on global environment and its status as a higher-yielding G10 currency. <span class="hb">UK economic resilience</span> relative to the eurozone is a relative strength argument. The UK is less exposed to German industrial weakness. COT specs are modestly long GBP. <span class="hn">Net: neutral</span> — services inflation and BoE caution balance the risk-on tailwind.`,
+    narrative: `GBP/USD is fundamentally driven by <span class="hn">BoE policy, UK services inflation, and global risk appetite</span>. The BoE is cutting but constrained by services CPI above 5% and elevated wage growth — a slower pace than the ECB. Fundamentally, UK economic resilience relative to the eurozone is a relative strength argument. COT specs are modestly long GBP — institutional bias is mildly bullish. Seasonal patterns for GBP/USD are broadly neutral at this time of year. Momentum has firmed, with price holding above the key MAs. On relval, GBP remains a higher-yielding G10 currency, which is supportive. The <span class="hb">risk-on climate regime</span> broadly favours risk currencies over the dollar. <span class="hn">Net: neutral</span> — risk-on and COT support, but services inflation and BoE caution cap conviction.`,
     pills: [
       {c:'b',k:'Risk-On',          v:'GBP benefits from risk appetite'},
       {c:'b',k:'Relative Growth',  v:'UK outperforming eurozone peers'},
@@ -25378,7 +25423,7 @@ const OV_NARRATIVES = {
   },
   '6J': {
     eyebrow: 'Macro Outlook \u00b7 JPY/USD \u00b7 G10 FX',
-    narrative: `JPY is in a structurally different position to other G10 currencies: <span class="hn">BoJ is normalising policy while all others cut</span>, closing the rate differential that drove the historic yen weakness. BoJ has begun hiking from deeply negative rates — a <span class="hb">multi-year tailwind for JPY</span> as carry unwind accelerates. Risk-off events (equity selloffs, recession fears) also trigger sharp JPY rallies via carry unwind. The JPY is deeply undervalued on purchasing power parity. COT short-JPY positioning is historically elevated, creating a <span class="hr">large potential squeeze</span>. <span class="hn">Net: bullish JPY / bearish 6J (USD/JPY)</span> — BoJ convergence and overcrowded short position are the core thesis.`,
+    narrative: `JPY is in a structurally different position from all other G10 currencies: <span class="hn">BoJ is hiking while others cut</span>, steadily closing the rate differential that drove historic yen weakness. Fundamentally, policy convergence is the primary multi-year JPY tailwind. COT positioning shows historically elevated short-JPY positions — a <span class="hr">large potential short squeeze</span> if BoJ accelerates or risk-off events trigger carry unwind. Seasonal window is broadly neutral for JPY crosses. Momentum in USD/JPY has been range-bound as the market awaits the next BoJ catalyst. On relval, JPY is <span class="hb">deeply undervalued on purchasing power parity</span>. Climate score is risk-on — which mildly suppresses JPY safe-haven demand in the near-term. <span class="hn">Net: bullish JPY (bearish 6J)</span> — BoJ convergence and squeeze risk are the core thesis.`,
     pills: [
       {c:'b',k:'BoJ Hikes',        v:'Policy convergence — JPY tailwind'},
       {c:'b',k:'PPP',              v:'JPY deeply undervalued on real terms'},
@@ -25390,7 +25435,7 @@ const OV_NARRATIVES = {
   },
   '6A': {
     eyebrow: 'Macro Outlook \u00b7 AUD/USD \u00b7 G10 FX',
-    narrative: `AUD is a <span class="hn">high-beta risk and commodity currency</span>, highly correlated to China growth, iron ore prices, and global risk appetite. China\'s PMI recovery above 50 is a positive demand signal for Australian commodity exports. The RBA has been on hold relative to other central banks, providing relative yield support. The risk-on global macro environment supports AUD as a carry/growth proxy. <span class="hb">Iron ore and copper strength</span> reinforce the commodity income story. Key risks are a China growth disappointment or a global risk-off event. <span class="hn">Net: mildly bullish</span> — commodity tailwind and risk-on regime supportive.`,
+    narrative: `AUD is a <span class="hn">high-beta risk and commodity currency</span> — most correlated to China growth, iron ore, and global risk sentiment in G10 FX. Fundamentally, China PMI above 50 is a positive demand signal for Australian exports. The RBA\'s more gradual cutting pace versus the ECB provides relative yield support. COT specs have shifted to a mildly long AUD bias. The seasonal window is broadly neutral. Momentum has turned constructive as AUD recovers with the commodity complex. On relval, AUD screens reasonably valued versus its commodity-adjusted fair value. The <span class="hb">risk-on climate regime</span> strongly favours high-beta risk currencies like AUD. <span class="hn">Net: mildly bullish</span> — China demand, commodity strength, and risk-on climate aligned.`,
     pills: [
       {c:'b',k:'China PMI',        v:'Above 50 — commodity demand recovering'},
       {c:'b',k:'Iron Ore',         v:'Elevated prices — AUD income positive'},
@@ -25402,7 +25447,7 @@ const OV_NARRATIVES = {
   },
   '6C': {
     eyebrow: 'Macro Outlook \u00b7 CAD/USD \u00b7 G10 FX',
-    narrative: `CAD is driven by <span class="hn">oil prices, Canada-US rate differentials, and trade dynamics</span>. With crude oil on a bullish footing (OPEC+ cuts, demand recovery), CAD receives a commodity income tailwind. However, the Bank of Canada has been more aggressive in cutting than the Fed, narrowing the rate differential in USD\'s favour. <span class="hr">Trade uncertainty with the US</span> (tariff risk, USMCA dynamics) adds a risk premium to CAD. The risk-on environment is broadly supportive. <span class="hn">Net: neutral</span> — oil tailwind is offset by BoC-Fed divergence and trade uncertainty.`,
+    narrative: `CAD is driven by <span class="hn">oil prices, BoC vs Fed policy divergence, and Canada-US trade dynamics</span>. Fundamentally, crude oil on a bullish footing provides CAD a commodity income tailwind. However, the BoC has cut more aggressively than the Fed — <span class="hr">narrowing the rate differential against USD</span>. COT positioning is broadly neutral with no strong institutional bias. The seasonal window is mixed for CAD. Momentum is range-bound reflecting these offsetting forces. On relval, CAD screens slightly cheap versus oil-adjusted fair value. US tariff and USMCA uncertainty adds a risk premium. The <span class="hn">risk-on climate</span> is broadly supportive for commodity currencies. <span class="hn">Net: neutral</span> — oil tailwind and BoC-Fed divergence are the dominant offsetting forces.`,
     pills: [
       {c:'b',k:'Oil Prices',       v:'Crude bullish — CAD commodity income'},
       {c:'b',k:'Risk-On',          v:'CAD benefits from risk appetite'},
@@ -25414,7 +25459,7 @@ const OV_NARRATIVES = {
   },
   DX: {
     eyebrow: 'Macro Outlook \u00b7 US Dollar Index \u00b7 DXY / G10 FX',
-    narrative: `The DXY measures the US dollar against a basket of major currencies (EUR 57.6%). It is driven by <span class="hn">Fed policy relative to other G10 central banks, US growth exceptionalism, and safe-haven demand</span>. With the ECB cutting and other G10 CBs easing while the Fed holds, <span class="hb">policy divergence has been a structural USD tailwind</span>. However, as other CBs pause their cutting cycles and global growth recovers, the differential narrows. Risk-on environments reduce safe-haven USD demand. COT specs are modestly long USD but positioning is not extreme. <span class="hn">Net: neutral</span> — policy divergence fading as a tailwind; range-bound until a clear Fed direction shift.`,
+    narrative: `The DXY measures USD against a basket (EUR 57.6% dominant). It is driven by <span class="hn">Fed policy versus G10 peers, US growth exceptionalism, and safe-haven demand</span>. Fundamentally, the Fed holding while others cut has been a structural USD tailwind — but this divergence is fading as ECB pauses and global growth recovers. COT specs are modestly long USD — positioning is not at extremes, limiting squeeze risk. The seasonal window is broadly neutral for DXY. Momentum has been consolidating — no clear directional trend above/below key MAs. On relval, USD is stretched versus long-run purchasing power parity. The <span class="hr">risk-on climate regime</span> reduces safe-haven USD demand. <span class="hn">Net: neutral</span> — divergence trade fading; range-bound until a clear Fed direction shift emerges.`,
     pills: [
       {c:'b',k:'Policy Divergence',v:'Fed on hold while others cut'},
       {c:'b',k:'US Exceptionalism',v:'Growth outperformance supports USD'},
@@ -25426,7 +25471,7 @@ const OV_NARRATIVES = {
   },
   ZC: {
     eyebrow: 'Macro Outlook \u00b7 Corn \u00b7 Grain / Agriculture',
-    narrative: `Corn pricing is dominated by <span class="hn">US crop production, weather, export demand, and energy linkage</span> via ethanol. USDA planting intentions and crop condition reports are the primary seasonal drivers. <span class="hb">South American production uncertainty</span> (La Nina / El Nina weather cycles) creates supply risk. Export demand from China and Mexico is the key demand variable. Ethanol blend mandates tie corn to oil prices. COT large specs provide trend direction signals. <span class="hn">Net: determined by current USDA data and crop conditions</span> — review seasonal and COT tabs for the active signal.`,
+    narrative: `Corn fundamentals are dominated by <span class="hn">US crop production, USDA supply/demand data, and ethanol economics</span>. Planting and crop condition reports are the primary seasonal catalysts. COT large specs are the key institutional positioning signal — their direction historically leads price by several weeks. The seasonal window varies strongly by crop cycle stage (planting = bearish, early summer = volatile). Momentum reflects current price trend relative to seasonal norms and MAs. On relval, corn screens relative to historical nearby futures ranges. <span class="hb">South American competition</span> (Brazil/Argentina) and ethanol blend mandates add additional demand from the energy complex. Climate score reflects macro environment for commodities broadly. <span class="hn">Net: review COT and seasonal tabs</span> — crop cycle is the dominant near-term driver.`,
     pills: [
       {c:'b',k:'Export Demand',    v:'China/Mexico corn import cycle'},
       {c:'b',k:'Ethanol Link',     v:'Oil price correlation via blending'},
@@ -25438,7 +25483,7 @@ const OV_NARRATIVES = {
   },
   ZS: {
     eyebrow: 'Macro Outlook \u00b7 Soybeans \u00b7 Grain / Agriculture',
-    narrative: `Soybeans are driven by <span class="hn">US/Brazil crop competition, Chinese crush demand, and vegetable oil markets</span>. Brazil has become the dominant supplier, creating <span class="hr">significant US export competition headwinds</span>. China\'s soybean crush demand for animal feed and biofuel is the primary demand anchor. The US/China trade relationship adds geopolitical risk. South American weather and planting cycles drive inter-season volatility. COT large specs signal the professional positioning direction. <span class="hn">Net: determined by current crop fundamentals</span> — review COT and seasonal tabs for the active signal.`,
+    narrative: `Soybean fundamentals are driven by <span class="hn">US/Brazil crop competition, Chinese crush demand, and vegetable oil markets</span>. Brazil\'s dominance as the world\'s largest supplier has shifted the structural supply balance — <span class="hr">US export competitiveness is a persistent headwind</span>. China\'s crush demand for animal feed and biodiesel is the primary demand anchor. COT large specs are the definitive institutional positioning signal. The seasonal window follows the US planting-to-harvest cycle — review the seasonal tab for the current phase. Momentum tracks price trend versus key MAs. On relval, beans are benchmarked against long-run supply/demand averages. US/China trade policy adds geopolitical risk premium. Climate and macro regime reflect the broader commodity backdrop. <span class="hn">Net: COT and seasonal driven</span> — crop fundamentals dominate direction.`,
     pills: [
       {c:'b',k:'China Demand',     v:'Crush demand for feed and biofuel'},
       {c:'n',k:'US/Brazil',        v:'Competition for export market share'},
@@ -25449,7 +25494,7 @@ const OV_NARRATIVES = {
   },
   ZW: {
     eyebrow: 'Macro Outlook \u00b7 Wheat \u00b7 Grain / Agriculture',
-    narrative: `Wheat pricing is driven by <span class="hn">global production (Russia, Ukraine, US, EU), weather events, and food security dynamics</span>. The ongoing Russia-Ukraine conflict remains an embedded risk premium in European wheat markets. US winter wheat crop conditions are the near-term domestic driver. <span class="hb">Global food security demand</span> from importing nations provides a demand floor. COT positioning and seasonal patterns (harvest-driven) provide tactical timing signals. <span class="hn">Net: geopolitically sensitive</span> — risk premium fluctuates with conflict news; COT and seasonal dominate near-term.`,
+    narrative: `Wheat pricing is driven by <span class="hn">global production (Russia, Ukraine, US, EU), weather events, and geopolitical risk</span>. The Russia-Ukraine conflict remains an embedded risk premium in European wheat markets — any escalation triggers sharp price moves. US winter wheat crop conditions are the near-term domestic driver. COT large specs are the key institutional positioning signal — follow their direction. The seasonal window is harvest-driven (summer = bearish pressure). Momentum reflects current price trend relative to crop news and MAs. On relval, wheat is benchmarked versus long-run S/D averages. <span class="hb">Global food security demand</span> from net-importing nations provides a structural demand floor. Climate and macro regime reflect broader commodity backdrop. <span class="hn">Net: geopolitically sensitive</span> — COT and seasonal dominate near-term; conflict news is the primary volatility driver.`,
     pills: [
       {c:'b',k:'Food Security',    v:'Structural import demand from EM'},
       {c:'b',k:'Geopolitical',     v:'Russia/Ukraine risk premium embedded'},
@@ -25461,7 +25506,7 @@ const OV_NARRATIVES = {
   },
   LE: {
     eyebrow: 'Macro Outlook \u00b7 Live Cattle \u00b7 Livestock',
-    narrative: `Live cattle pricing is driven by <span class="hn">US cattle inventory cycles, consumer beef demand, and feed cost inputs</span>. US cattle-on-feed numbers (USDA monthly reports) are the primary supply-side driver. <span class="hb">Record-tight cattle supply cycles</span> (multi-year herd liquidation) have been a structural bullish driver. Consumer demand for beef remains resilient despite elevated prices. Feed cost (corn, hay) impacts producer margins. Export demand to Japan, South Korea, and Mexico adds international dimension. <span class="hn">Net: structurally bullish</span> driven by historically tight herd supply.`,
+    narrative: `Live cattle fundamentals are driven by <span class="hn">US cattle inventory cycles, consumer beef demand, and feed cost inputs</span>. The structural backdrop is bullish: <span class="hb">multi-year herd liquidation has created historically tight cattle supplies</span> — and rebuilding takes 3-5 years. USDA cattle-on-feed reports are the primary monthly catalyst. COT large specs track the institutional positioning trend. The seasonal window is supportive in the grilling season (May–Aug). Momentum remains constructive given the tight supply backdrop. On relval, cattle screens elevated but supported by fundamental scarcity. Feed costs (corn, hay) are the main margin risk. Climate regime reflects macro demand environment. <span class="hn">Net: structurally bullish</span> — tight supply cycle is the dominant long-term driver.`,
     pills: [
       {c:'b',k:'Herd Supply',      v:'Multi-year liquidation cycle — tight'},
       {c:'b',k:'Consumer Demand',  v:'Beef demand resilient at elevated prices'},
@@ -25472,7 +25517,7 @@ const OV_NARRATIVES = {
   },
   HE: {
     eyebrow: 'Macro Outlook \u00b7 Lean Hog \u00b7 Livestock',
-    narrative: `Lean hog pricing is driven by <span class="hn">US pork production cycles, export demand (especially China), and seasonal processing patterns</span>. Unlike cattle, hogs have shorter production cycles (6 months) making the market more responsive to price signals. <span class="hb">Chinese pork import demand</span> is a major international price driver. USDA hogs &amp; pigs reports signal upcoming supply. Summer grilling season (May–Aug) is typically supportive seasonally. COT specs follow seasonal and demand trends. <span class="hn">Net: seasonal and COT driven</span> — review seasonal tab for current window signal.`,
+    narrative: `Lean hog pricing is driven by <span class="hn">US pork production cycles, Chinese import demand, and seasonal processing patterns</span>. Unlike cattle, hogs have a short 6-month production cycle — prices respond quickly to supply changes. <span class="hb">Chinese pork import demand</span> is a major international price driver. COT large specs follow seasonal and demand trends — their positioning is the key institutional signal. The seasonal window is supportive in the grilling season (May–Aug). Momentum reflects price action versus key MAs and seasonal expectations. USDA Hogs &amp; Pigs reports are the primary supply catalyst. On relval, hogs are benchmarked versus historical futures ranges. Climate regime reflects the broader macro backdrop for livestock. <span class="hn">Net: seasonal and COT driven</span> — review seasonal tab for the active window signal.`,
     pills: [
       {c:'b',k:'Summer Demand',    v:'Grilling season May–Aug supportive'},
       {c:'b',k:'China Imports',    v:'Pork demand driver for hog prices'},
@@ -25483,7 +25528,7 @@ const OV_NARRATIVES = {
   },
   CC: {
     eyebrow: 'Macro Outlook \u00b7 Cocoa \u00b7 Soft Commodity',
-    narrative: `Cocoa pricing is primarily driven by <span class="hn">West African crop production (Ivory Coast and Ghana = ~65% of world supply)</span> and demand from European and US confectionery manufacturers. <span class="hr">Extreme weather and supply disruptions</span> in West Africa have driven multi-decade price highs in recent years. El Nino weather patterns impact pod development. Demand is relatively inelastic — chocolate consumption is stable through cycles. The ICE soft commodity market sees institutional COT positioning as the best tactical signal. <span class="hn">Net: driven by West African crop conditions</span> — supply shocks dominate fundamentals.`,
+    narrative: `Cocoa fundamentals are dominated by <span class="hn">West African crop production (Ivory Coast and Ghana = ~65% of world supply)</span> and EU/US confectionery demand. Supply disruptions from weather and disease have driven multi-decade price highs recently — fundamentally this is a supply-constrained market. COT positioning on ICE is the primary institutional signal — commercial hedgers and spec funds signal the professional view. The seasonal window follows crop mid/main season cycles — review the seasonal tab. Momentum reflects the current price trend relative to crop news and MAs. Demand is relatively inelastic: <span class="hb">chocolate consumption is stable through economic cycles</span>, providing a demand floor. On relval, cocoa is benchmarked versus long-run historical price ranges. <span class="hn">Net: supply-shock driven</span> — West African crop conditions dominate fundamentals.`,
     pills: [
       {c:'b',k:'Supply Disruption',v:'West Africa weather / crop shocks'},
       {c:'b',k:'Demand Inelastic', v:'Chocolate consumption stable through cycles'},
@@ -25494,7 +25539,7 @@ const OV_NARRATIVES = {
   },
   KC: {
     eyebrow: 'Macro Outlook \u00b7 Coffee \u00b7 Soft Commodity',
-    narrative: `Coffee pricing is driven by <span class="hn">Brazilian and Vietnamese crop cycles, weather, and global consumer demand</span>. Brazil dominates arabica supply; Vietnam is the key robusta producer. <span class="hr">Frost risk in Brazil</span> (June–August) is the primary annual supply shock risk for arabica. Consumer demand is structurally growing in emerging markets. The USD impact is significant as coffee is dollar-denominated and Brazil\'s BRL/USD affects export economics. COT large spec positioning is the primary tactical timing signal. <span class="hn">Net: weather and crop cycle dependent</span> — frost season is the key near-term risk/opportunity.`,
+    narrative: `Coffee fundamentals are driven by <span class="hn">Brazilian and Vietnamese crop cycles, weather events, and structural EM demand growth</span>. Brazil dominates arabica supply and <span class="hr">June–August frost risk</span> is the primary annual supply shock catalyst. COT large specs are the definitive institutional timing signal. The seasonal window follows the Brazilian crop cycle — frost season creates the key risk/opportunity window. Momentum reflects current price trend and MA structure. On relval, coffee is benchmarked versus long-run historical price ranges — BRL/USD affects Brazilian export economics meaningfully. Consumer demand is structurally growing in emerging markets. Climate regime reflects the broader macro backdrop for soft commodities. <span class="hn">Net: weather and COT driven</span> — frost season and COT positioning are the key near-term signals.`,
     pills: [
       {c:'b',k:'EM Demand',        v:'Structural growth in emerging market consumption'},
       {c:'b',k:'Brazil Frost',     v:'Jun–Aug frost risk = supply shock potential'},
@@ -25505,7 +25550,7 @@ const OV_NARRATIVES = {
   },
   SB: {
     eyebrow: 'Macro Outlook \u00b7 Sugar \u00b7 Soft Commodity',
-    narrative: `Sugar pricing is driven by <span class="hn">Brazilian and Indian production, ethanol economics, and global food demand</span>. Brazil\'s sugar/ethanol flex mills switch allocation between sugar and ethanol based on relative profitability, linking sugar prices to oil markets. <span class="hb">Indian production and government export policies</span> can sharply affect global supply. El Nino/La Nina patterns affect monsoon reliability in Asia. Global sugar consumption is structurally stable. COT large spec positioning provides the tactical timing signal. <span class="hn">Net: supply-side and ethanol economics driven</span>.`,
+    narrative: `Sugar fundamentals are driven by <span class="hn">Brazilian production economics, Indian supply policy, and ethanol market dynamics</span>. Brazil\'s flex mills switch between sugar and ethanol based on relative prices — directly linking sugar to crude oil valuations. <span class="hb">Indian export restrictions</span> can sharply tighten global supply. COT large specs are the definitive institutional timing signal. The seasonal window follows Brazilian and Indian harvest cycles. Momentum tracks current price trend versus MAs. On relval, sugar is benchmarked versus long-run historical price ranges. El Nino/La Nina affects monsoon reliability in Asia. Climate regime reflects broader commodity macro backdrop. <span class="hn">Net: supply-side and ethanol economics driven</span> — COT and Brazilian crop policy are the key signals.`,
     pills: [
       {c:'b',k:'Ethanol Link',     v:'Brazil flex mills: oil/sugar dynamic'},
       {c:'b',k:'Tight Supply',     v:'India export restrictions = support'},
@@ -25516,7 +25561,7 @@ const OV_NARRATIVES = {
   },
   CT: {
     eyebrow: 'Macro Outlook \u00b7 Cotton \u00b7 Soft Commodity',
-    narrative: `Cotton pricing is driven by <span class="hn">US crop conditions, Chinese import demand, and global textile production</span>. The USDA supply/demand report is the primary price catalyst. Chinese cotton imports are the dominant demand driver globally. <span class="hr">US drought conditions</span> in Texas (primary growing state) are the main supply risk. Synthetic fibre competition (polyester from oil) provides a price ceiling as cotton becomes relatively expensive. COT positioning and seasonal patterns around planting/harvest cycles provide tactical timing. <span class="hn">Net: crop condition and Chinese demand dependent</span>.`,
+    narrative: `Cotton fundamentals are driven by <span class="hn">US crop conditions, Chinese import demand, and global textile economics</span>. USDA supply/demand reports are the primary price catalysts. Chinese cotton imports are the dominant demand driver globally. <span class="hr">US drought conditions in Texas</span> (primary growing state) are the main supply risk. COT large specs provide the institutional positioning signal. The seasonal window follows planting and harvest cycles — review the seasonal tab. Momentum tracks current price trend versus MAs. On relval, cotton is benchmarked versus long-run S/D averages. Synthetic fibre (polyester from oil) provides a price ceiling as cotton becomes relatively expensive. Climate regime reflects broader commodity macro. <span class="hn">Net: crop condition and Chinese demand dependent</span> — COT and USDA reports dominate.`,
     pills: [
       {c:'b',k:'China Demand',     v:'Textile imports — dominant driver'},
       {c:'n',k:'US Crop',          v:'Texas conditions — supply risk'},
@@ -25527,7 +25572,7 @@ const OV_NARRATIVES = {
   },
   PA: {
     eyebrow: 'Macro Outlook \u00b7 Palladium \u00b7 Platinum Group Metal',
-    narrative: `Palladium is driven by <span class="hn">autocatalyst demand (gasoline vehicle catalytic converters), Russian supply, and EV substitution risk</span>. Russian mines produce ~40% of global palladium supply, making sanctions and geopolitical risk a permanent embedded premium. Autocatalyst demand is the dominant end use — closely correlated with global vehicle production (ex-EV). <span class="hr">The EV transition is a structural long-term bearish driver</span> as battery-electric vehicles don\'t require palladium catalysts. The platinum/palladium substitution (cheaper platinum replacing palladium in gasoline catalysts) is ongoing. <span class="hn">Net: structural headwind from EV transition</span> offset by near-term supply risk.`,
+    narrative: `Palladium fundamentals are dominated by <span class="hn">autocatalyst demand (gasoline ICE vehicles), Russian supply concentration, and structural EV substitution risk</span>. ~40% of global supply comes from Russian mines — sanctions create a permanent embedded geopolitical premium. COT positioning is thin in palladium — use with caution as a signal. The seasonal window is broadly neutral. Momentum is broadly adverse — structural headwinds are weighing on price over time. On relval, palladium has fallen significantly from multi-year peaks as the <span class="hr">EV transition and Pt/Pd autocatalyst substitution</span> compress long-run demand expectations. Climate regime reflects broad macro but is secondary to structural factors here. <span class="hn">Net: structural headwind from EV transition</span> — Russian supply risk is the only meaningful near-term upside catalyst.`,
     pills: [
       {c:'b',k:'Russian Supply',   v:'Sanctions risk — premium embedded'},
       {c:'b',k:'Autocatalyst',     v:'ICE vehicle demand supports near-term'},
@@ -25538,7 +25583,7 @@ const OV_NARRATIVES = {
   },
   HG: {
     eyebrow: 'Macro Outlook \u00b7 Copper \u00b7 Industrial Metal',
-    narrative: `Copper is the <span class="hn">"Doctor of the Economy"</span> — the most economically sensitive industrial metal, widely used in construction, manufacturing, and the energy transition. China accounts for ~55% of global copper demand, making Chinese PMI and infrastructure activity the primary demand signal. <span class="hb">Green energy transition demand</span> (EVs, grid expansion, solar wiring) is creating a structural long-term demand increment. Supply constraints from aging Chilean and Peruvian mines add to the structural bull case. A risk-on global environment and China recovery are near-term tailwinds. <span class="hn">Net: constructively bullish</span> on structural transition demand, supported by risk-on macro.`,
+    narrative: `Copper is the <span class="hn">“Doctor of the Economy”</span> — the most economically sensitive industrial metal. China (~55% of global demand) is the primary demand driver — PMI and infrastructure activity are the key signals. Fundamentally, <span class="hb">green energy transition demand</span> (EVs, grid expansion, solar wiring) is creating a structural long-term demand increment that mines cannot easily supply. COT large specs track the institutional trend. The seasonal window is broadly neutral for copper. Momentum has recovered alongside China’s PMI. On relval, copper is benchmarked versus long-run supply/demand cycles. Supply constraints from aging Chilean and Peruvian mines add structural scarcity. The <span class="hb">risk-on climate regime</span> strongly supports industrial metals. <span class="hn">Net: constructively bullish</span> — transition demand, China recovery, and risk-on regime aligned.`,
     pills: [
       {c:'b',k:'China PMI',        v:'Primary demand driver — above 50'},
       {c:'b',k:'Green Transition', v:'EV/grid/solar structural demand growth'},
@@ -25550,7 +25595,7 @@ const OV_NARRATIVES = {
   },
   B: {
     eyebrow: 'Macro Outlook \u00b7 Brent Crude \u00b7 Energy (ICE)',
-    narrative: `ICE Brent Crude is the global benchmark for oil pricing, driven by <span class="hn">OPEC+ supply discipline, global demand, and geopolitical risk premium</span>. Brent carries a geopolitical premium over WTI (CL) given its exposure to Middle East and Russian supply dynamics. OPEC+ cohesion and Saudi policy are the dominant near-term supply signals. <span class="hb">Global demand recovery</span> — particularly from Asia — and a weaker USD are supportive. The driving season (May–Aug) adds seasonal demand. <span class="hn">Net: constructively bullish</span> — tight supply, recovering demand, and seasonal tailwind aligned. ICE COT data provides the positioning read.`,
+    narrative: `ICE Brent Crude is the global oil benchmark. Fundamentally driven by <span class="hn">OPEC+ supply discipline, global demand recovery, and geopolitical risk premium</span>. Brent carries a premium over WTI given Middle East and Russian supply exposure. OPEC+ cohesion is the primary supply signal — extension is supportive. ICE COT positioning (commercials hedging, large specs following momentum) provides the institutional read. The May–Aug driving season is <span class="hb">the strongest seasonal window of the year</span>. Momentum is constructive above key MAs. On relval, Brent is benchmarked versus historical range and WTI/Brent spread. The <span class="hb">risk-on macro and climate regime</span> supports energy as a risk asset. <span class="hn">Net: constructively bullish</span> — supply, seasonal, COT, and climate aligned.`,
     pills: [
       {c:'b',k:'OPEC+ Discipline', v:'Cohesive cuts maintained'},
       {c:'b',k:'Global Demand',    v:'Asian recovery underway'},
@@ -25562,7 +25607,7 @@ const OV_NARRATIVES = {
   },
   G: {
     eyebrow: 'Macro Outlook \u00b7 Gas Oil \u00b7 Energy (ICE)',
-    narrative: `ICE Gas Oil (Gasoil/Diesel) tracks the middle distillate complex, driven by <span class="hn">heating demand, diesel consumption, and refinery economics</span>. As a refined product, gasoil pricing is influenced by crude oil as the feedstock plus crack spread dynamics. <span class="hb">European diesel demand</span> and low refinery inventory levels support the crack spread. Seasonal heating demand (Oct–Mar) is the key demand driver, with summer seeing lower distillate use. ICE COT positioning from commercial hedgers and large specs provides the key tactical signal. <span class="hn">Net: seasonal and crack spread dependent</span> — follow COT and seasonal tabs.`,
+    narrative: `ICE Gas Oil (Gasoil/Diesel) tracks the middle distillate complex. Fundamentally driven by <span class="hn">heating demand, diesel consumption, and refinery crack spread economics</span>. As a refined product, gasoil pricing is influenced by Brent crude as feedstock — the crack spread reveals refinery margin and demand signal. ICE COT positioning from commercial hedgers and large specs provides the primary institutional signal. The seasonal window is <span class="hr">summer-adverse</span> for heating distillates — Oct–Mar is the peak demand window. Momentum follows crude with some spread dynamics. On relval, gasoil is benchmarked versus the Brent/gasoil crack spread and historical ranges. <span class="hb">European diesel demand and low inventory</span> provide the structural demand floor. Climate regime reflects broader energy and macro backdrop. <span class="hn">Net: seasonal and crack spread dependent</span> — follow COT and seasonal tabs for current signal.`,
     pills: [
       {c:'b',k:'Crack Spread',     v:'Gasoil/crude spread signals margin'},
       {c:'b',k:'Low Inventory',    v:'European distillate stocks below avg'},
@@ -25573,7 +25618,7 @@ const OV_NARRATIVES = {
   },
   RC: {
     eyebrow: 'Macro Outlook \u00b7 Robusta Coffee \u00b7 Soft (ICE)',
-    narrative: `ICE Robusta Coffee is driven by <span class="hn">Vietnamese crop production, European roaster demand, and arabica/robusta spread dynamics</span>. Vietnam is the world\'s dominant robusta producer. <span class="hb">High arabica prices have increased robusta substitution</span> by roasters, boosting robusta demand and supporting the spread. Monsoon reliability in Vietnam is the primary supply risk. European instant coffee and espresso markets are the primary end buyers. ICE COT data provides institutional positioning. <span class="hn">Net: supported by arabica substitution demand</span> but vulnerable to Vietnamese crop recovery.`,
+    narrative: `ICE Robusta Coffee is fundamentally driven by <span class="hn">Vietnamese crop production, European roaster demand, and arabica/robusta spread economics</span>. Vietnam is the world\'s dominant robusta producer — monsoon reliability is the primary supply risk. <span class="hb">High arabica prices have driven roaster substitution</span> toward robusta, structurally boosting demand. ICE COT positioning (commercial hedgers and large specs) provides the primary institutional directional signal. The seasonal window follows Vietnamese crop and monsoon cycles — review seasonal tab. Momentum tracks current price trend versus MAs. On relval, robusta is benchmarked versus the arabica/robusta spread and historical ranges. European instant coffee and espresso markets are the key end buyers. Climate regime reflects broader soft commodity macro backdrop. <span class="hn">Net: supported by arabica substitution</span> — vulnerable to a strong Vietnamese crop recovery.`,
     pills: [
       {c:'b',k:'Arabica Substitution',v:'High arabica drives roaster switching'},
       {c:'b',k:'Instant Coffee',    v:'EU instant coffee demand steady'},
@@ -25584,7 +25629,7 @@ const OV_NARRATIVES = {
   },
   Z: {
     eyebrow: 'Macro Outlook \u00b7 FTSE 100 \u00b7 UK Equity (ICE)',
-    narrative: `The FTSE 100 is a <span class="hn">global, commodity-heavy index</span> — with ~30% in Energy/Mining — making it more correlated to commodity cycles than other major equity indices. A weaker GBP is structurally bullish for FTSE earnings (foreign currency revenues dominate). <span class="hb">FTSE 100 is attractively valued</span> relative to US counterparts on a P/E basis, making it a value rotation candidate in risk-on environments. The UK economic backdrop (BoE cutting cycle, resilient services) is supportive. COT data from ICE provides the institutional positioning signal. <span class="hn">Net: constructively positive</span> — cheap valuation, commodity exposure, and weak GBP earnings tailwind.`,
+    narrative: `The FTSE 100 is a <span class="hn">global, commodity-heavy index</span> — with ~30% in Energy/Mining, making it more correlated to commodity cycles than US indices. Fundamentally, <span class="hb">FTSE is attractively valued</span> versus US peers on P/E — a value rotation candidate in risk-on environments. A weaker GBP structurally boosts FTSE foreign currency earnings. ICE COT positioning provides the institutional directional signal. The seasonal window follows UK-specific patterns — review seasonal tab. Momentum reflects the current price trend versus key MAs. On relval, FTSE screens as one of the most attractively valued major indices globally. The BoE cutting cycle supports UK risk assets broadly. The <span class="hb">risk-on climate regime</span> and commodity strength provide additional tailwinds. <span class="hn">Net: constructively positive</span> — cheap valuation, commodity exposure, BoE cuts, and climate aligned.`,
     pills: [
       {c:'b',k:'Valuation',        v:'FTSE P/E cheap vs US indices'},
       {c:'b',k:'GBP Weakness',     v:'Weak GBP boosts foreign earnings'},
@@ -25596,7 +25641,7 @@ const OV_NARRATIVES = {
   },
   R: {
     eyebrow: 'Macro Outlook \u00b7 Long Gilt \u00b7 UK Fixed Income (ICE)',
-    narrative: `UK Long Gilts are driven by <span class="hn">BoE policy, UK inflation, fiscal dynamics, and global duration risk sentiment</span>. The BoE is in a cutting cycle, which is structurally supportive for gilt prices (as yields fall). However, sticky UK services inflation (>5%) limits the pace of cuts. <span class="hr">UK fiscal credibility</span> remains in focus following the Truss episode — any gilt supply shock or fiscal deterioration creates sharp selloffs. Global duration dynamics (US Treasury direction) heavily influence gilts. ICE COT positioning provides the institutional signal. <span class="hn">Net: cautiously constructive</span> — BoE cutting supports but inflation stickiness and fiscal risk cap the rally.`,
+    narrative: `UK Long Gilts are driven by <span class="hn">BoE policy, UK services inflation, fiscal dynamics, and global duration sentiment</span>. Fundamentally, the BoE cutting cycle is structurally supportive for gilt prices as yields fall — but sticky services inflation above 5% limits the pace. ICE COT positioning provides the primary institutional signal for gilt direction. The seasonal window is broadly neutral for gilts. Momentum reflects current yield trend and MA structure. On relval, gilts offer reasonable yield versus historical ranges but trail US Treasuries. <span class="hr">UK fiscal credibility</span> is a permanent risk — any deficit deterioration or supply shock creates sharp selloffs (Truss episode is the template). Global duration dynamics (US Treasury direction) heavily influence gilts. The <span class="hb">BoE cutting cycle</span> is the primary macro tailwind. <span class="hn">Net: cautiously constructive</span> — BoE cuts support but fiscal risk and inflation stickiness cap the rally.`,
     pills: [
       {c:'b',k:'BoE Cutting Cycle',v:'Rate cuts drive gilt price higher'},
       {c:'b',k:'Safe Haven Bid',   v:'Risk-off events generate gilt demand'},
@@ -25795,6 +25840,17 @@ function buildOverview(m){
     return `<div class="ov-wt-it"><div class="ov-wt-sq" style="background:${c}"></div>${lbl}<span class="ov-wt-pct">${pct}%</span></div>`;
   }).join('');
 
+  // Verdict chip label
+  const chipCls = ws>=6.5?'bull':ws<=3.5?'bear':'neut';
+  const chipLabel = ws>=6.5?'Bullish':ws<=3.5?'Bearish':'Neutral';
+
+  // Confluence adjustment note for total row
+  const hasConfBonus = m.confluence_bonus && Math.abs(m.confluence_bonus) >= 0.15;
+  const confBonusStr = hasConfBonus ? ((m.confluence_bonus>=0?'+':'')+m.confluence_bonus.toFixed(2)+' adj') : '';
+  const totalLabelNote = hasConfBonus
+    ? `<span class="ov-at-lbl-note">Includes ${confBonusStr} confluence</span>`
+    : `<span class="ov-at-lbl-note">\u03A3 weighted factor scores</span>`;
+
   // ── Nav strip with score chips ──
   // (built and injected into DOM separately via buildOvNav)
   // This function returns the overview PANEL content only
@@ -25807,6 +25863,7 @@ function buildOverview(m){
           <div class="ov-vsn" style="color:${col}">${ws.toFixed(1)}</div>
           <div class="ov-vsd">/10</div>
           <div class="ov-vsbar"><div class="ov-vsdot" style="left:${dotPct}%"></div></div>
+          <div class="ov-verdict-chip ${chipCls}">${chipLabel}</div>
         </div>
         <div class="ov-vdiv"></div>
         <div class="ov-v-text">
@@ -25815,6 +25872,12 @@ function buildOverview(m){
         </div>
       </div>
       ${pillsHtml ? `<div class="ov-pills">${pillsHtml}</div>` : ''}
+    </div>
+
+    <!-- CONFLUENCE STRIP — shown BEFORE attribution so user sees alignment before the table -->
+    <div class="ov-conf-strip">
+      <div class="ov-conf-badge">${confBadge}</div>
+      <div class="ov-conf-text">${confText}</div>
     </div>
 
     <!-- ATTRIBUTION TABLE -->
@@ -25828,21 +25891,15 @@ function buildOverview(m){
       </div>
       ${attrRows}
       <div class="ov-atotal">
-        <div class="ov-at-lbl">Composite Total</div>
+        <div class="ov-at-lbl">Composite Total${totalLabelNote}</div>
         <div></div>
         <div class="ov-at-score-lbl">Σ weighted</div>
         <div class="ov-at-wt-lbl">${totalWtPct}%</div>
         <div class="ov-at-contrib">
-          <div class="ov-at-num">${totalContrib.toFixed(2)}</div>
-          <div class="ov-at-sub">≈ ${ws.toFixed(1)} / 10</div>
+          <div class="ov-at-num">${ws.toFixed(1)}</div>
+          <div class="ov-at-sub">/ 10</div>
         </div>
       </div>
-    </div>
-
-    <!-- CONFLUENCE STRIP -->
-    <div class="ov-conf-strip">
-      <div class="ov-conf-badge">${confBadge}</div>
-      <div class="ov-conf-text">${confText}</div>
     </div>
 
     <!-- WEIGHT BREAKDOWN BAR -->
