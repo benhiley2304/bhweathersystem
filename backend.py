@@ -10023,22 +10023,36 @@ FLAG_MAP = {
     "CNY": "🇨🇳", "CNH": "🇨🇳",
 }
 
-def _parse_ff_datetime(dateline: str) -> str | None:
-    """Parse FF dateline like 'Wed May 21 2026 08:30:00 GMT+0000' → ISO UTC."""
+def _parse_ff_datetime(dateline) -> str | None:
+    """Parse FF dateline — handles Unix timestamp (int/float) or string formats."""
     import re as _re
     from datetime import datetime, timezone
+    if dateline is None:
+        return None
+    # Handle Unix timestamp (integer or float)
+    if isinstance(dateline, (int, float)):
+        try:
+            dt = datetime.fromtimestamp(dateline, tz=timezone.utc)
+            return dt.isoformat()
+        except Exception:
+            return None
+    dateline = str(dateline).strip()
     if not dateline:
         return None
     try:
-        # Strip timezone name in parens if present, e.g. "(UTC)"
+        # Unix timestamp as string
+        if dateline.isdigit() or (dateline.replace('.','',1).isdigit()):
+            dt = datetime.fromtimestamp(float(dateline), tz=timezone.utc)
+            return dt.isoformat()
+        # Strip timezone name in parens e.g. "(UTC)"
         dateline = _re.sub(r'\s*\(.*?\)', '', dateline).strip()
-        # Try: "Wed May 21 2026 08:30:00 GMT+0000"
+        # "Wed May 21 2026 08:30:00 GMT+0000"
         m = _re.match(r'\w+ (\w+ \d+ \d+ \d+:\d+:\d+)', dateline)
         if m:
             dt = datetime.strptime(m.group(1), "%b %d %Y %H:%M:%S")
             return dt.replace(tzinfo=timezone.utc).isoformat()
-        # Try ISO
-        dt = datetime.fromisoformat(dateline)
+        # ISO format
+        dt = datetime.fromisoformat(dateline.replace("Z","+00:00"))
         return dt.isoformat()
     except Exception:
         return dateline
@@ -10077,14 +10091,15 @@ async def upcoming_events(force: bool = False):
         ic = (ev.get("impactClass") or "").lower()
         if "high" not in ic and "red" not in ic:
             continue
-        # Parse datetime
-        dl = ev.get("dateline") or ""
+        # Parse datetime — dateline may be Unix int or string
+        dl = ev.get("dateline")
         dt_str = _parse_ff_datetime(dl)
         # Try to filter by time window
         dt_utc = None
         try:
             from datetime import datetime, timezone
-            dt_utc = datetime.fromisoformat(dt_str.replace("Z", "+00:00")) if dt_str else None
+            if dt_str:
+                dt_utc = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
         except Exception:
             dt_utc = None
 
@@ -10097,7 +10112,8 @@ async def upcoming_events(force: bool = False):
             "name":          ev.get("name", ""),
             "currency":      currency,
             "flag":          FLAG_MAP.get(currency, ""),
-            "datetime_utc":  dt_str,
+            "datetime_utc":  dt_str or "",
+            "datetime_ts":   dl if isinstance(dl, (int,float)) else None,
             "prior":         ev.get("previous", "") or "",
             "forecast":      ev.get("forecast", "") or "",
             "actual":        ev.get("actual", "") or "",

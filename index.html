@@ -17787,7 +17787,7 @@ function renderOverview(){
       const now = Date.now();
       function fmtCountdown(dtStr){
         if(!dtStr) return '';
-        const ms = new Date(dtStr).getTime() - now;
+        const ms = (typeof dtStr==='number' ? dtStr*1000 : new Date(dtStr).getTime()) - now;
         if(isNaN(ms)||ms<0) return 'Now';
         const h = Math.floor(ms/3600000);
         const m = Math.floor((ms%3600000)/60000);
@@ -17797,7 +17797,8 @@ function renderOverview(){
       }
       function urgencyCls(dtStr){
         if(!dtStr) return '';
-        const h = (new Date(dtStr).getTime() - now)/3600000;
+        const ms = typeof dtStr==='number' ? dtStr*1000 : new Date(dtStr).getTime();
+        const h = (ms - now)/3600000;
         if(h<=2) return 'ev-urgent';
         if(h<=24) return 'ev-soon';
         return '';
@@ -17805,20 +17806,23 @@ function renderOverview(){
       function fmtDate(dtStr){
         if(!dtStr) return '';
         try {
-          const d = new Date(dtStr);
+          // Handle ISO string or Unix timestamp
+          const d = typeof dtStr==='number' ? new Date(dtStr*1000) : new Date(dtStr);
+          if(isNaN(d.getTime())) return '';
           return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})
             + ' · ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'}) + ' UTC';
         } catch(e){ return ''; }
       }
 
       const pillsHtml = evs.map(ev=>{
-        const urg = urgencyCls(ev.datetime_utc);
-        const cd  = fmtCountdown(ev.datetime_utc);
+        const dtK = ev.datetime_utc || ev.datetime_ts || '';
+        const urg = urgencyCls(dtK);
+        const cd  = fmtCountdown(dtK);
         return `<div class="ev-pill ${urg}">
           <span class="ev-flag">${ev.flag||ev.currency}</span>
           <div class="ev-body">
             <div class="ev-name">${ev.name}</div>
-            <div class="ev-meta">${fmtDate(ev.datetime_utc)}${ev.forecast?` · Fcst: ${ev.forecast}`:''}</div>
+            <div class="ev-meta">${fmtDate(dtK)}${ev.forecast?` · Fcst: ${ev.forecast}`:''}</div>
           </div>
           <span class="ev-countdown ${urg}">${cd}</span>
         </div>`;
@@ -24539,7 +24543,7 @@ async function _loadDetailEvents(marketId){
     const now = Date.now();
     function fmtCd(dtStr){
       if(!dtStr) return '—';
-      const ms = new Date(dtStr).getTime()-now;
+      const ms = (typeof dtStr==='number' ? dtStr*1000 : new Date(dtStr).getTime())-now;
       if(isNaN(ms)||ms<0) return 'Now';
       const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
       if(h>=24){const d=Math.floor(h/24);return `${d}d`;}
@@ -24549,28 +24553,31 @@ async function _loadDetailEvents(marketId){
     function fmtDt(dtStr){
       if(!dtStr) return '—';
       try {
-        const d=new Date(dtStr);
+        const d = typeof dtStr==='number' ? new Date(dtStr*1000) : new Date(dtStr);
+        if(isNaN(d.getTime())) return '—';
         return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})
           +' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'})+' UTC';
-      } catch(e){ return dtStr; }
+      } catch(e){ return '—'; }
     }
     function urgCls(dtStr){
-      const h=(new Date(dtStr).getTime()-now)/3600000;
+      const ms = typeof dtStr==='number' ? dtStr*1000 : new Date(dtStr).getTime();
+      const h=(ms-now)/3600000;
       if(h<=2) return 'urgent'; if(h<=24) return 'soon'; return '';
     }
 
     const rows = relevant.map(ev=>{
-      const sens = _evSensForMarket(ev.name, marketId)||'neut';
+      const dtKey = ev.datetime_utc || ev.datetime_ts || '';
+    const sens = _evSensForMarket(ev.name, marketId)||'neut';
       const sensCol = sens==='bull'?'var(--s1)':sens==='bear'?'var(--sm1)':'var(--faint)';
       const sensLbl = sens==='bull'?'Bullish':sens==='bear'?'Bearish':'Neutral';
-      const urg = urgCls(ev.datetime_utc);
+      const urg = urgCls(dtKey);
       return `<tr>
         <td class="td-ev-flag">${ev.flag||ev.currency}</td>
         <td class="td-ev-name">${ev.name}</td>
-        <td class="td-ev-date">${fmtDt(ev.datetime_utc)}</td>
+        <td class="td-ev-date">${fmtDt(dtKey)}</td>
         <td class="td-ev-num">${ev.forecast||'—'}</td>
         <td class="td-ev-num">${ev.prior||'—'}</td>
-        <td class="td-ev-timer ${urg}">${fmtCd(ev.datetime_utc)}</td>
+        <td class="td-ev-timer ${urg}">${fmtCd(dtKey)}</td>
         <td class="td-ev-sens"><span class="ev-sens-tag ${sens}" style="color:${sensCol}">${sensLbl}</span></td>
       </tr>`;
     }).join('');
