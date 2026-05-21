@@ -22356,46 +22356,75 @@ body {
   }
 }
 
-/* ── 3. Detail header: cinematic photo visibility ── */
-/* Final authoritative override — must come AFTER all R-block rules */
+/* ── 3. Detail header: cinematic photo — FINAL authoritative fix ── */
+/* The key issue: .d-head has background:rgba(3,5,8,0.97) which blocks the photo.
+   On mobile we strip that background so the photo graphic shows through. */
 @media (max-width: 700px) {
+  /* Remove opaque background from header — photo provides the visual */
+  .d-head {
+    background: rgba(3,5,8,0.12) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* Photo: full-width, high visibility */
   .d-head-graphic {
-    opacity: 0.72 !important;
+    opacity: 0.88 !important;
     width: 100% !important;
     left: 0 !important;
     right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
     z-index: 0 !important;
+    position: absolute !important;
   }
   .d-head:active .d-head-graphic,
   .d-head:focus-within .d-head-graphic {
-    opacity: 0.80 !important;
+    opacity: 0.95 !important;
   }
+  /* Left-to-right fade: protect text on left, reveal image on right */
   .d-head-graphic::before {
     background: linear-gradient(90deg,
-      rgba(4,4,5,1.00) 0%,
-      rgba(4,4,5,0.97) 22%,
-      rgba(4,4,5,0.82) 42%,
-      rgba(4,4,5,0.45) 65%,
-      rgba(4,4,5,0.08) 100%
-    ) !important;
-  }
-  /* FX flags: softer fade so both flags are visible */
-  .d-head-graphic[data-type="fx"]::before {
-    background: linear-gradient(90deg,
-      rgba(4,4,5,0.90) 0%,
-      rgba(4,4,5,0.72) 28%,
-      rgba(4,4,5,0.35) 55%,
+      rgba(4,4,5,0.95) 0%,
+      rgba(4,4,5,0.88) 25%,
+      rgba(4,4,5,0.65) 50%,
+      rgba(4,4,5,0.28) 72%,
       rgba(4,4,5,0.04) 100%
     ) !important;
   }
-  /* Ensure text content in header is above the photo */
+  /* Bottom-to-top fade into tab bar */
+  .d-head-graphic::after {
+    background: linear-gradient(180deg,
+      rgba(4,4,5,0.15) 0%,
+      transparent 30%,
+      transparent 65%,
+      rgba(4,4,5,0.55) 100%
+    ) !important;
+  }
+  /* FX flags: even softer left-fade so both flags visible */
+  .d-head-graphic[data-type="fx"]::before {
+    background: linear-gradient(90deg,
+      rgba(4,4,5,0.88) 0%,
+      rgba(4,4,5,0.65) 28%,
+      rgba(4,4,5,0.28) 55%,
+      rgba(4,4,5,0.04) 100%
+    ) !important;
+  }
+  /* Identity text and score must sit above the photo */
   .d-head-l {
-    z-index: 2 !important;
     position: relative !important;
+    z-index: 2 !important;
+    background: transparent !important;
   }
   .d-score-hero {
-    z-index: 2 !important;
     position: relative !important;
+    z-index: 2 !important;
+    background: rgba(4,5,7,0.55) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+  }
+  .d-head-centre {
+    display: none !important;
   }
 }
 
