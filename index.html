@@ -21437,6 +21437,545 @@ body {
 
 /* ── END R40c ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R41 — OVERVIEW GLASS MASTERCLASS
+   Full premium glass system: ambient glows, depth layers,
+   chip architecture redesign, factor row micro-details,
+   confluence card hierarchy, composite total prominence.
+   Design ref: iOS control centre + menv-card system.
+══════════════════════════════════════════════════════════════ */
+
+/* ── 1. OVERVIEW CONTAINER — subtle ambient particle layer ── */
+#t-overview {
+  position: relative !important;
+}
+
+/* ── 2. VERDICT CARD — deepen the glass, add inner depth ── */
+.ov-verdict {
+  background: linear-gradient(155deg,
+    rgba(18,21,27,0.92) 0%,
+    rgba(12,14,19,0.88) 45%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.09) 100%
+  ) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 2px solid rgba(var(--ov-stripe-rgb,38,201,122),0.45) !important;
+  box-shadow:
+    0 4px 32px rgba(0,0,0,0.60),
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 0 0 1px rgba(var(--ov-stripe-rgb,38,201,122),0.06) inset !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+.ov-verdict:hover {
+  transform: translateY(-2px) !important;
+  box-shadow:
+    0 12px 48px rgba(0,0,0,0.70),
+    0 0 0 1px rgba(var(--ov-stripe-rgb,38,201,122),0.14) inset,
+    0 1px 0 rgba(255,255,255,0.09) inset !important;
+}
+/* Pulse line — tighter, brighter */
+.ov-verdict::before {
+  left: 0 !important; right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.80) 30%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.80) 70%,
+    transparent 100%
+  ) !important;
+  opacity: 0.55 !important;
+  top: -1px !important;
+}
+/* Corner ambient glow — top right radiates score colour */
+.ov-verdict::after {
+  top: -60px !important;
+  right: -60px !important;
+  width: 280px !important;
+  height: 280px !important;
+  background: radial-gradient(ellipse,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.13) 0%,
+    transparent 65%
+  ) !important;
+  opacity: 1 !important;
+  bottom: auto !important;
+  left: auto !important;
+  height: 280px !important;
+  border-radius: 50% !important;
+}
+
+/* ── 3. SCORE COLUMN — premium glass pill ── */
+.ov-v-score-col {
+  background: linear-gradient(180deg,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.10) 0%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.04) 60%,
+    rgba(0,0,0,0.20) 100%
+  ) !important;
+  border-right: 1px solid rgba(var(--ov-stripe-rgb,38,201,122),0.20) !important;
+  min-width: 120px !important;
+}
+/* Radial disc — larger, more atmospheric */
+.ov-v-score-col::before {
+  background: radial-gradient(
+    ellipse 120% 80% at 50% 35%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.22) 0%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.06) 45%,
+    transparent 70%
+  ) !important;
+}
+/* Score number — crisp, no glow, just weight + colour */
+.ov-vsn {
+  text-shadow: none !important;
+  filter: none !important;
+  letter-spacing: -0.08em !important;
+}
+
+/* ── 4. VERDICT CHIP — more polished badge ── */
+.ov-verdict-chip {
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  font-size: 7.5px !important;
+  letter-spacing: 0.14em !important;
+  border-radius: 3px !important;
+  padding: 3px 8px !important;
+}
+.ov-verdict-chip.bull {
+  background: rgba(38,201,122,0.14) !important;
+  border: 1px solid rgba(38,201,122,0.32) !important;
+  color: #30d988 !important;
+}
+.ov-verdict-chip.bear {
+  background: rgba(240,64,64,0.14) !important;
+  border: 1px solid rgba(240,64,64,0.30) !important;
+  color: #f04040 !important;
+}
+.ov-verdict-chip.neut {
+  background: rgba(157,170,191,0.10) !important;
+  border: 1px solid rgba(157,170,191,0.22) !important;
+  color: var(--dim) !important;
+}
+
+/* ── 5. FACTOR TABLE — elevated glass panel with score-tinted total ── */
+.ov-attr-wrap {
+  background: linear-gradient(155deg,
+    rgba(18,21,27,0.90) 0%,
+    rgba(12,14,19,0.86) 60%,
+    rgba(200,169,110,0.04) 100%
+  ) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 2px solid rgba(255,255,255,0.18) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  box-shadow:
+    0 4px 32px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.07) !important;
+}
+.ov-attr-wrap::before {
+  left: 0 !important; right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0.22) 25%,
+    rgba(255,255,255,0.22) 75%,
+    transparent 100%
+  ) !important;
+  opacity: 0.6 !important;
+  top: -1px !important;
+}
+.ov-attr-wrap:hover {
+  transform: translateY(-1px) !important;
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.09) !important;
+}
+
+/* Factor rows — micro glass on hover */
+.ov-arow {
+  transition: background 120ms, border-left-color 120ms !important;
+  border-left: 2px solid transparent !important;
+  padding-left: 14px !important;
+}
+.ov-arow:hover {
+  background: rgba(255,255,255,0.028) !important;
+  border-left-color: var(--ov-rc, rgba(255,255,255,0.15)) !important;
+}
+
+/* Factor score value — bolder */
+.ov-asc {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+}
+
+/* Factor bar — slightly taller, rounded */
+.ov-abar-track {
+  height: 4px !important;
+  border-radius: 2px !important;
+  background: rgba(255,255,255,0.06) !important;
+}
+.ov-abar-fill {
+  border-radius: 2px !important;
+}
+
+/* Contribution bar — also rounded */
+.ov-acont-bar-track {
+  height: 4px !important;
+  border-radius: 2px !important;
+}
+.ov-acont-bar-fill {
+  border-radius: 2px !important;
+}
+
+/* Contribution value — bigger */
+.ov-acont-val {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+}
+
+/* ── 6. COMPOSITE TOTAL — featured glass row ── */
+.ov-atotal {
+  background: linear-gradient(135deg,
+    rgba(var(--ov-stripe-rgb,200,169,110),0.10) 0%,
+    rgba(var(--ov-stripe-rgb,200,169,110),0.05) 50%,
+    rgba(0,0,0,0.20) 100%
+  ) !important;
+  border-top: 1px solid rgba(var(--ov-stripe-rgb,200,169,110),0.28) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+/* Subtle radial behind the total score */
+.ov-atotal::before {
+  content: '' !important;
+  position: absolute !important;
+  right: -20px !important;
+  top: -30px !important;
+  width: 150px !important;
+  height: 100px !important;
+  background: radial-gradient(
+    ellipse,
+    rgba(var(--ov-stripe-rgb,200,169,110),0.18) 0%,
+    transparent 70%
+  ) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+.ov-atotal > * { position: relative !important; z-index: 1 !important; }
+
+/* Total score number — much bigger and colour-matched */
+.ov-at-num {
+  font-family: var(--head) !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.06em !important;
+  line-height: 1 !important;
+  color: var(--accent) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+.ov-at-lbl {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--dim) !important;
+}
+
+/* ── 7. CONFLUENCE STRIP — complete redesign ── */
+/* Make the strip a featured glass section, not just a sidebar row */
+.ov-conf-strip {
+  display: grid !important;
+  grid-template-columns: minmax(160px, 220px) 1fr !important;
+  gap: 12px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  margin-bottom: 12px !important;
+}
+.ov-conf-strip::before { display: none !important; }
+
+@media (max-width: 700px) {
+  .ov-conf-strip {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Summary card — left side featured glass */
+.ov-conf-summary {
+  background: linear-gradient(155deg,
+    rgba(18,21,27,0.94) 0%,
+    rgba(12,14,19,0.90) 50%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.10) 100%
+  ) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: 2px solid rgba(var(--ov-stripe-rgb,38,201,122),0.50) !important;
+  border-radius: 12px !important;
+  padding: 16px 18px !important;
+  box-shadow:
+    0 4px 28px rgba(0,0,0,0.58),
+    inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-height: 0 !important;
+}
+/* Pulse line */
+.ov-conf-summary::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -1px !important; left: 0 !important; right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.85) 25%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.85) 75%,
+    transparent 100%
+  ) !important;
+  opacity: 0.55 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+/* Ambient glow in corner */
+.ov-conf-summary::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: -30px !important; right: -30px !important;
+  width: 130px !important; height: 130px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(ellipse,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.18) 0%,
+    transparent 70%
+  ) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  opacity: 1 !important;
+  bottom: -30px !important;
+  left: auto !important;
+}
+.ov-conf-summary > * { position: relative !important; z-index: 1 !important; }
+
+/* Summary title typography */
+.ov-conf-summary-title {
+  font-family: var(--head) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.01em !important;
+  margin-bottom: 6px !important;
+  line-height: 1.3 !important;
+}
+/* Summary description */
+.ov-conf-summary-sub {
+  font-size: 10.5px !important;
+  color: var(--faint) !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0 !important;
+}
+.ov-conf-summary-sub strong {
+  color: var(--dim) !important;
+  font-weight: 600 !important;
+}
+
+/* Chips container — flex wrap grid */
+.ov-conf-chips {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
+  gap: 8px !important;
+  align-content: start !important;
+}
+
+/* ── 8. FACTOR CHIPS — premium glass metric badges ── */
+.ov-conf-fchip {
+  background: linear-gradient(155deg,
+    rgba(18,22,28,0.92) 0%,
+    rgba(12,15,21,0.88) 55%,
+    rgba(var(--chip-rgb,74,82,104),0.10) 100%
+  ) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 2px solid rgba(var(--chip-rgb,74,82,104),0.50) !important;
+  border-radius: 10px !important;
+  box-shadow:
+    0 2px 16px rgba(0,0,0,0.50),
+    inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 12px 14px 11px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  cursor: pointer !important;
+  transition: box-shadow 180ms, transform 180ms, border-top-color 180ms !important;
+  min-height: 0 !important;
+}
+.ov-conf-fchip:hover {
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(var(--chip-rgb,74,82,104),0.12) inset,
+    inset 0 1px 0 rgba(255,255,255,0.11) !important;
+  transform: translateY(-3px) !important;
+  border-top-color: rgba(var(--chip-rgb,74,82,104),0.75) !important;
+}
+/* Top pulse line */
+.ov-conf-fchip::before {
+  top: -1px !important; left: 0 !important; right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(var(--chip-rgb,74,82,104),0.90) 25%,
+    rgba(var(--chip-rgb,74,82,104),0.90) 75%,
+    transparent 100%
+  ) !important;
+  opacity: 0.50 !important;
+  z-index: 2 !important;
+}
+/* Ambient corner glow — radiates from chip's score colour */
+.ov-conf-fchip::after {
+  content: '' !important;
+  position: absolute !important;
+  top: -20px !important; right: -20px !important;
+  width: 80px !important; height: 80px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(ellipse,
+    rgba(var(--chip-rgb,74,82,104),0.25) 0%,
+    transparent 70%
+  ) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  opacity: 1 !important;
+}
+.ov-conf-fchip > * { position: relative !important; z-index: 1 !important; }
+
+/* Chip label — mono uppercase, faint */
+.ov-conf-fchip-name {
+  font-family: var(--mono) !important;
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--faint) !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+}
+
+/* Chip score — large, colour-matched, no glow */
+.ov-conf-fchip-score {
+  font-family: var(--head) !important;
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.07em !important;
+  line-height: 1 !important;
+  color: var(--chip-col) !important;
+  text-shadow: none !important;
+  filter: none !important;
+  margin: 2px 0 1px !important;
+}
+
+/* Chip direction — micro label in score colour */
+.ov-conf-fchip-dir {
+  font-family: var(--mono) !important;
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: var(--chip-col) !important;
+  opacity: 0.80 !important;
+  line-height: 1 !important;
+}
+
+/* ── 9. WEIGHT BAR CARD — elevated glass ── */
+.ov-wt-card {
+  background: linear-gradient(155deg,
+    rgba(18,21,27,0.90) 0%,
+    rgba(12,14,19,0.86) 60%,
+    rgba(200,169,110,0.04) 100%
+  ) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 1px solid rgba(255,255,255,0.15) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 14px 18px 16px !important;
+}
+.ov-wt-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) !important;
+  pointer-events: none !important;
+}
+.ov-wt-card > * { position: relative !important; z-index: 1 !important; }
+
+/* Weight bar — taller, rounded, more readable */
+.ov-wt-bar {
+  height: 6px !important;
+  border-radius: 3px !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+  gap: 2px !important;
+}
+.ov-wt-seg {
+  border-radius: 0 !important;
+  opacity: 0.85 !important;
+}
+.ov-wt-seg:first-child { border-radius: 3px 0 0 3px !important; }
+.ov-wt-seg:last-child  { border-radius: 0 3px 3px 0 !important; }
+
+/* Legend items — more refined */
+.ov-wt-it {
+  font-size: 10px !important;
+  color: var(--dim) !important;
+}
+.ov-wt-sq {
+  width: 8px !important; height: 8px !important;
+  border-radius: 2px !important;
+  opacity: 0.85 !important;
+}
+
+/* ── 10. RESPONSIVE — preserve chip grid on mobile ── */
+@media (max-width: 700px) {
+  .ov-conf-chips {
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)) !important;
+    gap: 6px !important;
+  }
+  .ov-conf-fchip-score {
+    font-size: 26px !important;
+  }
+  .ov-conf-fchip {
+    padding: 10px 12px 9px !important;
+  }
+  .ov-at-num {
+    font-size: 22px !important;
+  }
+}
+@media (min-width: 1100px) {
+  .ov-conf-chips {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+  }
+  .ov-conf-fchip-score {
+    font-size: 36px !important;
+  }
+  .ov-vsn {
+    font-size: 76px !important;
+    letter-spacing: -0.09em !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+  .ov-at-num {
+    font-size: 32px !important;
+  }
+}
+
+/* ── END R41 ── */
+
 
 </style>
 </head>
@@ -31064,7 +31603,7 @@ function buildOverview(m){
       </div>
 
       <!-- RIGHT: Factor attribution table -->
-      <div class="ov-attr-wrap">
+      <div class="ov-attr-wrap" style="--ov-stripe-rgb:${stripeRgb}">
         <div class="ov-attr-head">
           <div class="ov-ah">Factor</div>
           <div class="ov-ah ov-ah-bar"></div>
@@ -31088,8 +31627,8 @@ function buildOverview(m){
     </div><!-- end .ov-r39-grid -->
 
     <!-- CONFLUENCE STRIP — factor chips with individual scores -->
-    <div class="ov-conf-strip">
-      <div class="ov-conf-summary">
+    <div class="ov-conf-strip" style="--ov-stripe-rgb:${stripeRgb}">
+      <div class="ov-conf-summary" style="--ov-stripe-rgb:${stripeRgb}">
         <div class="ov-conf-summary-title">${confTitle}</div>
         <div class="ov-conf-summary-sub">${confText}</div>
       </div>
