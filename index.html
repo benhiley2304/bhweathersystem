@@ -19737,6 +19737,108 @@ body {
 
 /* ── END R37 ── */
 
+/* ════════════════════════════════════════════════════════════════
+   R38 — SCORE PANEL REDESIGN
+   Replaces the cheap rainbow slider bar with a premium arc gauge
+════════════════════════════════════════════════════════════════ */
+
+/* --- Reset the old bar elements --- */
+.d-score-hero-bar { display: none !important; }
+.d-score-hero-bar-f { display: none !important; }
+
+/* --- Arc gauge container (injected via JS) --- */
+.d-score-arc-wrap {
+  width: 96px;
+  height: 56px;
+  position: relative;
+  flex-shrink: 0;
+  margin: 4px 0 2px;
+}
+.d-score-arc-wrap svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* --- Panel glass upgrade --- */
+.d-score-hero {
+  background: rgba(8,10,14,0.72) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-left: 1px solid rgba(255,255,255,0.09) !important;
+  padding: 12px 18px !important;
+  gap: 0 !important;
+}
+
+/* Ambient score-colour glow behind the number */
+.d-score-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 38%, var(--score-glow-col, transparent) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.18;
+  transition: background 400ms;
+}
+
+/* Stack all hero children above the glow */
+.d-score-hero > * { position: relative; z-index: 1; }
+
+/* COMPOSITE label */
+.d-score-hero > div:first-child {
+  font-size: 7px !important;
+  letter-spacing: 0.18em !important;
+  color: rgba(190,200,220,0.45) !important;
+  margin-bottom: 1px !important;
+}
+
+/* Big number */
+.d-score-hero-num {
+  font-size: 46px !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+/* /10 */
+.d-score-hero-denom {
+  font-size: 11px !important;
+  opacity: 0.28 !important;
+  margin-top: -1px !important;
+}
+
+/* Bias label */
+.d-score-hero-label {
+  font-size: 7.5px !important;
+  letter-spacing: 0.15em !important;
+  margin-top: 3px !important;
+  opacity: 0.70 !important;
+}
+
+/* Confluence callout — tighten */
+.d-score-hero .d-conf-callout {
+  margin-top: 7px !important;
+  width: 100% !important;
+  max-width: 168px !important;
+}
+
+/* How is this scored link */
+.d-score-hero > button {
+  margin-top: 5px !important;
+  font-size: 7px !important;
+  opacity: 0.5 !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* Mobile: hide arc (already hidden bar), keep compact */
+@media (max-width: 700px) {
+  .d-score-arc-wrap { display: none !important; }
+  .d-score-hero::after { display: none !important; }
+}
+
+/* ── END R38 ── */
+
 
 </style>
 </head>
@@ -27714,12 +27816,14 @@ function assetGraphic(m){
     </div>`;
   }
 
-  // ── Procedural SVG graphics by category (R38) ──────────────────────────────
-  // Each graphic fills the d-head-graphic container (absolute, right side of banner)
-  // W=520, H=200 viewBox — width:100% so it stretches to fill whatever column width
-  const W=520, H=200;
-  const uid2 = 'g' + (Math.random()*0xFFFFF|0).toString(16);
+  // Photo background (cinematic, per asset)
+  // ── GOLD & PRECIOUS METALS (placeholder — falls through to photo) ──────────
+  if(false) { // placeholder to preserve diff structure
+    const _never = true;
+  }
 
+  // ── (R38 procedural SVGs removed — using cinematic photos instead) ──────────
+  if(false) {
   // ── GOLD & PRECIOUS METALS (GC, SI, PL, PA, HG) ──────────────────────────
   if(['GC','SI','PL','PA','HG','B'].includes(id) || cat==='metals') {
     // Colour palette per metal
@@ -27732,17 +27836,17 @@ function assetGraphic(m){
     };
     const mp = metalPalette[id] || metalPalette.GC;
 
-    // Crystal lattice: hexagonal grid of nodes + connecting lines
+    // Crystal lattice: hexagonal grid of nodes + connecting lines — denser, brighter
     let nodes = [], lines = '', circles = '', glows = '';
-    const cols=9, rows=6, nx=W*0.08, ny=8;
-    const cw=(W*0.88)/(cols-1), ch=(H-16)/(rows-1);
+    const cols=11, rows=7, nx=W*0.04, ny=4;
+    const cw=(W*0.94)/(cols-1), ch=(H-8)/(rows-1);
     for(let r=0;r<rows;r++){
       for(let c=0;c<cols;c++){
         const ox = r%2===0 ? 0 : cw*0.5;
         const x = nx + c*cw + ox;
         const y = ny + r*ch;
         // Skip nodes too close to left edge (text area)
-        if(x < W*0.12) continue;
+        if(x < W*0.10) continue;
         nodes.push({x,y,r,c});
       }
     }
@@ -27752,8 +27856,8 @@ function assetGraphic(m){
         const dx=n2.x-n.x, dy=n2.y-n.y;
         const dist=Math.sqrt(dx*dx+dy*dy);
         if(dist>2 && dist<cw*1.15){
-          const alpha = 0.08 + 0.14*(1-dist/(cw*1.15));
-          lines += `<line x1="${n.x.toFixed(1)}" y1="${n.y.toFixed(1)}" x2="${n2.x.toFixed(1)}" y2="${n2.y.toFixed(1)}" stroke="${mp.hi}" stroke-opacity="${alpha.toFixed(2)}" stroke-width="0.8"/>`;
+          const alpha = 0.10 + 0.20*(1-dist/(cw*1.15));
+          lines += `<line x1="${n.x.toFixed(1)}" y1="${n.y.toFixed(1)}" x2="${n2.x.toFixed(1)}" y2="${n2.y.toFixed(1)}" stroke="${mp.hi}" stroke-opacity="${alpha.toFixed(2)}" stroke-width="0.9"/>`;
         }
       });
     });
@@ -27761,14 +27865,14 @@ function assetGraphic(m){
     nodes.forEach((n,i)=>{
       const fx=W*0.72, fy=H*0.50;
       const d=Math.sqrt((n.x-fx)**2+(n.y-fy)**2);
-      const maxD=Math.sqrt(W*W+H*H)*0.5;
-      const t=1-(d/maxD);
-      const r2=0.8+t*3.5;
-      const opacity=0.18+t*0.65;
+      const maxD=Math.sqrt(W*W+H*H)*0.48;
+      const t=Math.max(0,1-(d/maxD));
+      const r2=1.0+t*4.5;
+      const opacity=0.22+t*0.72;
       circles += `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r2.toFixed(1)}" fill="${mp.hi}" opacity="${opacity.toFixed(2)}"/>`;
       // Bright glow on focal nodes
-      if(t>0.65){
-        glows += `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${(r2*4).toFixed(1)}" fill="${mp.hi}" opacity="0.06"/>`;
+      if(t>0.55){
+        glows += `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${(r2*5).toFixed(1)}" fill="${mp.hi}" opacity="0.08"/>`;
       }
     });
 
@@ -27799,10 +27903,10 @@ function assetGraphic(m){
         <g mask="url(#mgM${uid2})">
           ${lines}${glows}${circles}
         </g>
-        <!-- Central radiant orb -->
-        <ellipse cx="${W*0.72}" cy="${H*0.50}" rx="28" ry="28" fill="${mp.hi}" opacity="0.12" filter="url(#mgF${uid2})"/>
-        <ellipse cx="${W*0.72}" cy="${H*0.50}" rx="10" ry="10" fill="${mp.hi}" opacity="0.28" filter="url(#mgF${uid2})"/>
-        <circle cx="${W*0.72}" cy="${H*0.50}" r="3.5" fill="${mp.hi}" opacity="0.90"/>
+        <!-- Central radiant orb — brighter, more visible -->
+        <ellipse cx="${W*0.72}" cy="${H*0.50}" rx="42" ry="42" fill="${mp.hi}" opacity="0.14" filter="url(#mgF${uid2})"/>
+        <ellipse cx="${W*0.72}" cy="${H*0.50}" rx="18" ry="18" fill="${mp.hi}" opacity="0.32" filter="url(#mgF${uid2})"/>
+        <circle cx="${W*0.72}" cy="${H*0.50}" r="4.5" fill="${mp.hi}" opacity="0.95"/>
         <!-- Metal ID label -->
         <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${mp.hi}" opacity="0.40">${id}</text>
         <!-- Left text-protection fade -->
@@ -27952,15 +28056,15 @@ function assetGraphic(m){
     // Yield curve arcs — a family of curves at different maturities, then diverging
     // X-axis: 3M→30Y (log), Y-axis: yield level
     const curves = [
-      { pts:[[0.05,0.62],[0.18,0.48],[0.35,0.42],[0.58,0.38],[0.78,0.36],[0.95,0.34]], op:0.18, sw:1.0 }, // 12M ago
-      { pts:[[0.05,0.58],[0.18,0.46],[0.35,0.40],[0.58,0.40],[0.78,0.42],[0.95,0.44]], op:0.28, sw:1.2 }, // 6M ago
-      { pts:[[0.05,0.52],[0.18,0.44],[0.35,0.40],[0.58,0.44],[0.78,0.50],[0.95,0.56]], op:0.45, sw:1.5 }, // 3M ago
-      { pts:[[0.05,0.44],[0.18,0.42],[0.35,0.42],[0.58,0.50],[0.78,0.58],[0.95,0.64]], op:0.80, sw:2.2 }, // now
+      { pts:[[0.02,0.60],[0.14,0.46],[0.30,0.40],[0.52,0.36],[0.74,0.34],[0.95,0.32]], op:0.22, sw:1.0 }, // 12M ago
+      { pts:[[0.02,0.55],[0.14,0.44],[0.30,0.38],[0.52,0.38],[0.74,0.40],[0.95,0.42]], op:0.35, sw:1.3 }, // 6M ago
+      { pts:[[0.02,0.50],[0.14,0.42],[0.30,0.38],[0.52,0.44],[0.74,0.52],[0.95,0.58]], op:0.55, sw:1.8 }, // 3M ago
+      { pts:[[0.02,0.42],[0.14,0.40],[0.30,0.40],[0.52,0.50],[0.74,0.60],[0.95,0.68]], op:1.00, sw:2.5 }, // now
     ];
-    const opacities=['rgba(92,158,255,0.18)','rgba(92,158,255,0.28)','rgba(92,158,255,0.48)','#5c9eff'];
+    const opacities=['rgba(92,158,255,0.22)','rgba(92,158,255,0.38)','rgba(92,158,255,0.58)','#5c9eff'];
     let ycPaths = '';
     curves.forEach((c,ci)=>{
-      const pts2 = c.pts.map(([px,py])=>[W*0.28+px*(W*0.68), H*0.12+py*(H*0.76)]);
+      const pts2 = c.pts.map(([px,py])=>[W*0.16+px*(W*0.80), H*0.10+py*(H*0.80)]);
       let d = `M${pts2[0][0].toFixed(1)},${pts2[0][1].toFixed(1)}`;
       for(let i=0;i<pts2.length-1;i++){
         const p0=pts2[Math.max(0,i-1)],p1=pts2[i],p2=pts2[i+1],p3=pts2[Math.min(pts2.length-1,i+2)];
@@ -27970,32 +28074,32 @@ function assetGraphic(m){
       }
       // Area fill under last (now) curve
       if(ci===curves.length-1){
-        const areaD=d+` L${pts2[pts2.length-1][0].toFixed(1)},${(H*0.88).toFixed(1)} L${pts2[0][0].toFixed(1)},${(H*0.88).toFixed(1)} Z`;
-        ycPaths += `<path d="${areaD}" fill="${bc.hi}" opacity="0.05"/>`;
+        const areaD=d+` L${pts2[pts2.length-1][0].toFixed(1)},${(H*0.92).toFixed(1)} L${pts2[0][0].toFixed(1)},${(H*0.92).toFixed(1)} Z`;
+        ycPaths += `<path d="${areaD}" fill="${bc.hi}" opacity="0.08"/>`;
         // Glow
-        ycPaths += `<path d="${d}" fill="none" stroke="${bc.hi}" stroke-width="4" stroke-opacity="0.10" stroke-linecap="round"/>`;
+        ycPaths += `<path d="${d}" fill="none" stroke="${bc.hi}" stroke-width="5" stroke-opacity="0.14" stroke-linecap="round"/>`;
       }
       ycPaths += `<path d="${d}" fill="none" stroke="${opacities[ci]}" stroke-width="${c.sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
       // Dots on the now curve
       if(ci===curves.length-1){
         pts2.forEach(p=>{
-          ycPaths += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.8" fill="#030508" stroke="${bc.hi}" stroke-width="1.4"/>`;
+          ycPaths += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2" fill="#030508" stroke="${bc.hi}" stroke-width="1.6"/>`;
         });
       }
     });
     // X-axis tenor labels
-    const tenors=[['3M',0.05],['1Y',0.18],['2Y',0.35],['5Y',0.58],['10Y',0.78],['30Y',0.95]];
+    const tenors=[['3M',0.02],['1Y',0.14],['2Y',0.30],['5Y',0.52],['10Y',0.74],['30Y',0.95]];
     let xLabels='';
     tenors.forEach(([lbl,t])=>{
-      const x=W*0.28+t*(W*0.68);
-      xLabels+=`<text x="${x.toFixed(1)}" y="${(H*0.92).toFixed(1)}" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="${bc.hi}" opacity="0.40">${lbl}</text>`;
-      xLabels+=`<line x1="${x.toFixed(1)}" y1="${(H*0.87).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(H*0.89).toFixed(1)}" stroke="${bc.hi}" stroke-opacity="0.25" stroke-width="0.8"/>`;
+      const x=W*0.16+t*(W*0.80);
+      xLabels+=`<text x="${x.toFixed(1)}" y="${(H*0.94).toFixed(1)}" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="${bc.hi}" opacity="0.50">${lbl}</text>`;
+      xLabels+=`<line x1="${x.toFixed(1)}" y1="${(H*0.89).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(H*0.91).toFixed(1)}" stroke="${bc.hi}" stroke-opacity="0.35" stroke-width="0.8"/>`;
     });
     // Horizontal grid
     let bGrid='';
     for(let g=0;g<5;g++){
-      const gy=H*0.12+g*(H*0.76/4);
-      bGrid+=`<line x1="${(W*0.28).toFixed(1)}" y1="${gy.toFixed(1)}" x2="${(W*0.96).toFixed(1)}" y2="${gy.toFixed(1)}" stroke="${bc.hi}" stroke-opacity="0.06" stroke-width="0.7" stroke-dasharray="3,6"/>`;
+      const gy=H*0.10+g*(H*0.80/4);
+      bGrid+=`<line x1="${(W*0.16).toFixed(1)}" y1="${gy.toFixed(1)}" x2="${(W*0.97).toFixed(1)}" y2="${gy.toFixed(1)}" stroke="${bc.hi}" stroke-opacity="0.07" stroke-width="0.7" stroke-dasharray="3,5"/>`;
     }
 
     return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
@@ -28003,13 +28107,13 @@ function assetGraphic(m){
         <defs>
           <linearGradient id="bbBg${uid2}" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stop-color="${bc.lo}" stop-opacity="0"/>
-            <stop offset="25%" stop-color="${bc.lo}" stop-opacity="0.45"/>
-            <stop offset="70%" stop-color="${bc.lo}" stop-opacity="0.65"/>
-            <stop offset="100%" stop-color="${bc.lo}" stop-opacity="0.45"/>
+            <stop offset="18%" stop-color="${bc.lo}" stop-opacity="0.55"/>
+            <stop offset="65%" stop-color="${bc.lo}" stop-opacity="0.80"/>
+            <stop offset="100%" stop-color="${bc.lo}" stop-opacity="0.55"/>
           </linearGradient>
           <linearGradient id="bbMask${uid2}" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="black"/><stop offset="22%" stop-color="black"/>
-            <stop offset="38%" stop-color="white"/><stop offset="100%" stop-color="white"/>
+            <stop offset="0%" stop-color="black"/><stop offset="16%" stop-color="black"/>
+            <stop offset="28%" stop-color="white"/><stop offset="100%" stop-color="white"/>
           </linearGradient>
           <mask id="bbMaskEl${uid2}"><rect width="${W}" height="${H}" fill="url(#bbMask${uid2})"/></mask>
         </defs>
@@ -28037,42 +28141,42 @@ function assetGraphic(m){
     };
     const ap = agriPalette[id] || { hi:'#90b850', mid:'#507030', lo:'#101408', label:id };
 
-    // Topographic contour lines — concentric irregular closed paths
+    // Topographic contour lines — denser, more visible, elevated opacity
     let topoLines = '';
-    const tcx=W*0.64, tcy=H*0.52;
-    for(let i=1;i<=12;i++){
+    const tcx=W*0.64, tcy=H*0.50;
+    for(let i=1;i<=16;i++){
       const pts3=[];
-      const nPoints=16;
+      const nPoints=24;
       for(let j=0;j<nPoints;j++){
         const angle=(j/nPoints)*Math.PI*2;
-        const baseR=i*17;
+        const baseR=i*15;
         // Add irregular wobble seeded by i+j
-        const wobble=1+0.28*Math.sin(j*2.3+i*1.1)+0.15*Math.cos(j*3.7+i*2.3);
-        const rx=baseR*(1+0.18*Math.cos(angle*1.5+i*0.8))*wobble;
-        const ry=baseR*(0.62+0.12*Math.sin(angle*2.1+i*0.6))*wobble;
+        const wobble=1+0.32*Math.sin(j*2.3+i*1.1)+0.18*Math.cos(j*3.7+i*2.3);
+        const rx=baseR*(1+0.20*Math.cos(angle*1.5+i*0.8))*wobble;
+        const ry=baseR*(0.65+0.15*Math.sin(angle*2.1+i*0.6))*wobble;
         pts3.push([tcx+rx*Math.cos(angle), tcy+ry*Math.sin(angle)]);
       }
       const path='M'+pts3.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')+' Z';
-      const alpha=(0.20-(i*0.010)).toFixed(3);
-      const sw=i%4===0?1.2:0.7;
-      topoLines+=`<path d="${path}" fill="none" stroke="${ap.hi}" stroke-opacity="${alpha}" stroke-width="${sw}"/>`;
+      const alpha=(0.32-(i*0.014)).toFixed(3);
+      const sw=i%4===0?1.5:0.9;
+      topoLines+=`<path d="${path}" fill="none" stroke="${ap.hi}" stroke-opacity="${Math.max(0.06,parseFloat(alpha)).toFixed(3)}" stroke-width="${sw}"/>`;
     }
     // Fill the inner rings with subtle gradient
     let topoFills = '';
-    for(let i=1;i<=5;i++){
+    for(let i=1;i<=7;i++){
       const pts3=[];
-      const nPoints=16;
+      const nPoints=24;
       for(let j=0;j<nPoints;j++){
         const angle=(j/nPoints)*Math.PI*2;
-        const baseR=i*17;
-        const wobble=1+0.28*Math.sin(j*2.3+i*1.1)+0.15*Math.cos(j*3.7+i*2.3);
-        const rx=baseR*(1+0.18*Math.cos(angle*1.5+i*0.8))*wobble;
-        const ry=baseR*(0.62+0.12*Math.sin(angle*2.1+i*0.6))*wobble;
+        const baseR=i*15;
+        const wobble=1+0.32*Math.sin(j*2.3+i*1.1)+0.18*Math.cos(j*3.7+i*2.3);
+        const rx=baseR*(1+0.20*Math.cos(angle*1.5+i*0.8))*wobble;
+        const ry=baseR*(0.65+0.15*Math.sin(angle*2.1+i*0.6))*wobble;
         pts3.push([tcx+rx*Math.cos(angle), tcy+ry*Math.sin(angle)]);
       }
       const path='M'+pts3.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')+' Z';
-      const alpha=(0.035-(i*0.005)).toFixed(3);
-      topoFills+=`<path d="${path}" fill="${ap.hi}" opacity="${alpha}"/>`;
+      const alpha=(0.055-(i*0.006)).toFixed(3);
+      topoFills+=`<path d="${path}" fill="${ap.hi}" opacity="${Math.max(0.008,parseFloat(alpha)).toFixed(3)}"/>`;
     }
 
     return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
@@ -28094,9 +28198,10 @@ function assetGraphic(m){
         <g mask="url(#agMaskEl${uid2})">
           ${topoFills}${topoLines}
         </g>
-        <!-- Peak marker -->
-        <circle cx="${tcx.toFixed(1)}" cy="${tcy.toFixed(1)}" r="14" fill="${ap.hi}" opacity="0.06" filter="url(#agF${uid2})"/>
-        <circle cx="${tcx.toFixed(1)}" cy="${tcy.toFixed(1)}" r="3" fill="${ap.hi}" opacity="0.70"/>
+        <!-- Peak marker — larger glow -->
+        <circle cx="${tcx.toFixed(1)}" cy="${tcy.toFixed(1)}" r="28" fill="${ap.hi}" opacity="0.10" filter="url(#agF${uid2})"/>
+        <circle cx="${tcx.toFixed(1)}" cy="${tcy.toFixed(1)}" r="10" fill="${ap.hi}" opacity="0.18" filter="url(#agF${uid2})"/>
+        <circle cx="${tcx.toFixed(1)}" cy="${tcy.toFixed(1)}" r="3.5" fill="${ap.hi}" opacity="0.90"/>
         <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${ap.hi}" opacity="0.38">${ap.label}</text>
       </svg>
       <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 16%,rgba(4,4,5,0.52) 36%,rgba(4,4,5,0.06) 58%,transparent 74%);pointer-events:none"></div>
@@ -28152,32 +28257,31 @@ function assetGraphic(m){
       ETH: { hi:'#a0b0ff', mid:'#4050d0', lo:'#080c20', glow:'140,160,255' },
     };
     const cc2 = cryptoCol[id] || cryptoCol.BTC;
-    // Hexagonal mesh — tight grid of hex outlines
-    let hexes = '', hexGlows = '';
-    const hR=20, hH=hR*Math.sqrt(3)/2;
-    const cols2=Math.ceil(W/( hR*3))+1;
-    const rows2=Math.ceil(H/(hH*2))+1;
-    for(let r=0;r<rows2;r++){
-      for(let c=0;c<cols2;c++){
+    // Hexagonal mesh — wide coverage, focal glow, inner fills
+    let hexes = '';
+    const hR=22, hH=hR*Math.sqrt(3)/2;
+    const cols2=Math.ceil((W*0.80)/(hR*3))+2;
+    const rows2=Math.ceil(H/(hH*2))+2;
+    const fx=W*0.65, fy=H*0.50;
+    const maxD=320; // wider spread
+    for(let r=-1;r<rows2;r++){
+      for(let c=-1;c<cols2;c++){
         const ox=c%2===0?0:hR*1.5;
-        const hx=W*0.25+c*(hR*3)-hR*1.5+ox;
-        const hy=r*(hH*2)-(hH);
-        // Focal: distance from a hotspot at 65% x, 50% y
-        const fx=W*0.65, fy=H*0.50;
+        const hx=W*0.20+c*(hR*3)+ox;
+        const hy=r*(hH*2);
         const dist=Math.sqrt((hx-fx)**2+(hy-fy)**2);
-        const maxD=200;
         const t=Math.max(0,1-dist/maxD);
-        if(t<0.04) continue; // skip distant hexes
+        if(t<0.02) continue; // skip very distant hexes
         const pts5=[];
         for(let a=0;a<6;a++){
           const angle=Math.PI/6+a*(Math.PI/3);
-          pts5.push([hx+hR*0.88*Math.cos(angle), hy+hR*0.88*Math.sin(angle)]);
+          pts5.push([hx+hR*0.90*Math.cos(angle), hy+hR*0.90*Math.sin(angle)]);
         }
         const hexPath='M'+pts5.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')+'Z';
-        const alpha=(0.06+t*0.22).toFixed(3);
-        hexes += `<path d="${hexPath}" fill="none" stroke="${cc2.hi}" stroke-opacity="${alpha}" stroke-width="0.8"/>`;
-        if(t>0.70){
-          hexes += `<path d="${hexPath}" fill="${cc2.hi}" opacity="${(t*0.06).toFixed(3)}"/>`;
+        const alpha=(0.05+t*0.32).toFixed(3);
+        hexes += `<path d="${hexPath}" fill="none" stroke="${cc2.hi}" stroke-opacity="${alpha}" stroke-width="0.9"/>`;
+        if(t>0.55){
+          hexes += `<path d="${hexPath}" fill="${cc2.hi}" opacity="${(t*0.08).toFixed(3)}"/>`;
         }
       }
     }
@@ -28203,9 +28307,10 @@ function assetGraphic(m){
         <rect width="${W}" height="${H}" fill="url(#crBg${uid2})"/>
         <rect width="${W}" height="${H}" fill="url(#crGlow${uid2})"/>
         <g mask="url(#crMaskEl${uid2})">${hexes}</g>
-        <!-- Core glow orb -->
-        <circle cx="${(W*0.65).toFixed(1)}" cy="${(H*0.50).toFixed(1)}" r="30" fill="${cc2.hi}" opacity="0.10" filter="url(#crF${uid2})"/>
-        <circle cx="${(W*0.65).toFixed(1)}" cy="${(H*0.50).toFixed(1)}" r="4" fill="${cc2.hi}" opacity="0.85"/>
+        <!-- Core glow orb — prominent focal point -->
+        <circle cx="${(W*0.65).toFixed(1)}" cy="${(H*0.50).toFixed(1)}" r="50" fill="${cc2.hi}" opacity="0.10" filter="url(#crF${uid2})"/>
+        <circle cx="${(W*0.65).toFixed(1)}" cy="${(H*0.50).toFixed(1)}" r="18" fill="${cc2.hi}" opacity="0.20" filter="url(#crF${uid2})"/>
+        <circle cx="${(W*0.65).toFixed(1)}" cy="${(H*0.50).toFixed(1)}" r="5" fill="${cc2.hi}" opacity="0.92"/>
         <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${cc2.hi}" opacity="0.38">${id}</text>
       </svg>
       <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 16%,rgba(4,4,5,0.52) 36%,rgba(4,4,5,0.06) 58%,transparent 74%);pointer-events:none"></div>
@@ -28260,8 +28365,9 @@ function assetGraphic(m){
       <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 16%,rgba(4,4,5,0.50) 36%,rgba(4,4,5,0.06) 58%,transparent 74%);pointer-events:none"></div>
     </div></div>`;
   }
+  } // end if(false) — R38 procedural SVGs disabled
 
-  // Photo fallback (kept for any assets not yet covered)
+  // Photo fallback — cinematic HD photos per asset
   const photoUrl = ASSET_PHOTO_URLS[id];
   if(photoUrl){
     return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="background-image:url('${photoUrl}')"></div></div>`;
@@ -29524,18 +29630,74 @@ function dHead(m,ws,col,bg){
       ${_confHtml}
     </div>
 
-    <!-- RIGHT: composite score -->
-    <div class="d-score-hero">
-      <div style="font-size:8px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--faint);font-family:var(--mono);margin-bottom:2px">COMPOSITE</div>
+    <!-- RIGHT: composite score (R38 — premium arc gauge) -->
+    ${(()=>{
+      // Arc gauge SVG — horseshoe arc, red→neutral→green
+      // Arc spans from 215° to 325° (140° sweep, opening at bottom)
+      const R=40, cx=52, cy=52; // viewBox 104x72
+      const startDeg=210, endDeg=330, sweep=endDeg-startDeg; // 120° sweep
+      const toRad=d=>d*Math.PI/180;
+      const px=(deg,r)=>(cx+r*Math.cos(toRad(deg))).toFixed(2);
+      const py=(deg,r)=>(cy+r*Math.sin(toRad(deg))).toFixed(2);
+      // Track arc path (thick, dim)
+      const trackPath=`M${px(startDeg,R)},${py(startDeg,R)} A${R},${R} 0 1 1 ${px(endDeg,R)},${py(endDeg,R)}`;
+      // Score position on arc (0–10 mapped to start→end)
+      const scoreFrac=Math.min(1,Math.max(0,(ws-0)/10));
+      const scoreDeg=startDeg+scoreFrac*sweep;
+      const dotX=cx+R*Math.cos(toRad(scoreDeg));
+      const dotY=cy+R*Math.sin(toRad(scoreDeg));
+      // Gradient IDs (unique per render)
+      const arcUid='a'+(Math.random()*0xFFFFF|0).toString(16);
+      // Score colour for the dot glow (raw hex, strip #)
+      const colHex=col.replace('#','');
+      return `<div class="d-score-hero" style="--score-glow-col:${col}">
+      <div style="font-size:7px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(190,200,220,0.45);font-family:var(--mono);margin-bottom:1px">COMPOSITE</div>
       <div class="d-score-hero-num" style="color:${col}">${ws.toFixed(1)}</div>
       <div class="d-score-hero-denom" style="color:${col}">/10</div>
       <div class="d-score-hero-label" style="color:${col}">${m.bias}</div>
-      <div class="d-score-hero-bar" style="background:linear-gradient(90deg,#c41a2e 0%,#d63a24 30%,#4a5268 50%,#3b82c4 70%,#22c97a 100%) !important">
-        <div class="d-score-hero-bar-f" style="position:absolute;left:${barPct}%;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:${col};box-shadow:0 0 6px 2px ${col}88;margin-left:-3.5px"></div>
+      <div class="d-score-arc-wrap">
+        <svg viewBox="0 0 104 72" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+          <defs>
+            <!-- Arc track gradient: red → neutral → green (horizontal userSpace) -->
+            <linearGradient id="arcGrad${arcUid}" gradientUnits="userSpaceOnUse"
+              x1="${(cx-R).toFixed(2)}" y1="0" x2="${(cx+R).toFixed(2)}" y2="0">
+              <stop offset="0%"   stop-color="#d63a24" stop-opacity="0.90"/>
+              <stop offset="35%"  stop-color="#8a4820" stop-opacity="0.65"/>
+              <stop offset="50%"  stop-color="#4a5268" stop-opacity="0.58"/>
+              <stop offset="65%"  stop-color="#1a6444" stop-opacity="0.65"/>
+              <stop offset="100%" stop-color="#26c97a" stop-opacity="0.90"/>
+            </linearGradient>
+            <!-- Dot outer glow -->
+            <filter id="arcGlow${arcUid}" x="-120%" y="-120%" width="440%" height="440%">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Track (dim) -->
+          <path d="${trackPath}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" stroke-linecap="round"/>
+          <!-- Filled arc up to score position (large-arc-flag: sweep degrees > 180) -->
+          ${scoreFrac>0?`<path d="M${px(startDeg,R)},${py(startDeg,R)} A${R},${R} 0 ${scoreFrac*sweep>180?1:0} 1 ${dotX.toFixed(2)},${dotY.toFixed(2)}" fill="none" stroke="url(#arcGrad${arcUid})" stroke-width="4" stroke-linecap="round"/>`:''}
+
+          <!-- Tick marks at 0, 2.5, 5, 7.5, 10 -->
+          ${[0,0.25,0.5,0.75,1].map(f=>{
+            const td=startDeg+f*sweep;
+            const ox=cx+R*Math.cos(toRad(td)), oy=cy+R*Math.sin(toRad(td));
+            const ix=cx+(R-5)*Math.cos(toRad(td)), iy=cy+(R-5)*Math.sin(toRad(td));
+            return `<line x1="${ox.toFixed(2)}" y1="${oy.toFixed(2)}" x2="${ix.toFixed(2)}" y2="${iy.toFixed(2)}" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>`;
+          }).join('')}
+          <!-- Dot indicator -->
+          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="5.5" fill="${col}" opacity="0.22" filter="url(#arcGlow${arcUid})"/>
+          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="3.5" fill="${col}"/>
+          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="1.5" fill="#ffffff" opacity="0.70"/>
+          <!-- Min/max labels -->
+          <text x="${px(startDeg,R-12)}" y="${py(startDeg,R-9)}" text-anchor="middle" font-family="var(--mono)" font-size="6" fill="rgba(214,58,36,0.55)" font-weight="700">0</text>
+          <text x="${px(endDeg,R-12)}" y="${py(endDeg,R-9)}" text-anchor="middle" font-family="var(--mono)" font-size="6" fill="rgba(38,201,122,0.55)" font-weight="700">10</text>
+        </svg>
       </div>
       ${_confHtml}
-      <button onclick="openMethModal('${m.id}')" style="margin-top:6px;font-size:8px;color:var(--faint);background:none;border:none;cursor:pointer;letter-spacing:0.03em;text-decoration:underline;text-underline-offset:2px;padding:0">How is this scored?</button>
-    </div>
+      <button onclick="openMethModal('${m.id}')" style="margin-top:5px;font-size:7px;color:var(--faint);background:none;border:none;cursor:pointer;letter-spacing:0.04em;text-decoration:underline;text-underline-offset:2px;padding:0;opacity:0.5">How is this scored?</button>
+    </div>`;
+    })()}
 
     <!-- keep wheel in DOM for drawWheel compat -->
     <div class="d-wheel"><canvas id="wheel-c" width="1" height="1"></canvas></div>
