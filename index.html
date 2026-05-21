@@ -4305,6 +4305,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
     position:relative;z-index:5;
   }
   .d-score-hero>div:first-child{display:none} /* hide COMPOSITE label */
+  .d-score-hero-label{display:none} /* bias already shown in header pill */
   .d-score-hero-num{font-size:32px;letter-spacing:-0.04em}
   .d-score-hero-denom{font-size:9px}
   .d-score-hero-bar{width:auto;flex:1;max-width:130px;margin-top:0;height:3px !important;}
@@ -19443,24 +19444,159 @@ body {
 
 /* ── MOBILE ── */
 @media (max-width: 700px) {
-  .ov-attr-head, .ov-arow, .ov-atotal {
-    grid-template-columns: 1fr 70px 44px 120px !important;
+
+  /* ── VERDICT CARD: stack score above narrative ── */
+  .ov-verdict {
+    flex-direction: column !important;
+    padding: 0 !important;
   }
-  .ov-ah-bar, .ov-abar-wrap { display: none !important; }
-  .ov-arow { padding: 12px 14px 12px 18px !important; }
-  .ov-attr-head { padding: 8px 14px 8px 18px !important; }
-  .ov-atotal { padding: 12px 14px 12px 18px !important; }
-  .ov-afn { font-size: 11.5px !important; }
-  .ov-asc { font-size: 17px !important; }
+  .ov-v-top {
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+  .ov-v-score-col {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 14px !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    padding: 14px 16px !important;
+    min-width: unset !important;
+    width: 100% !important;
+  }
+  .ov-vsn-wrap { width: 72px !important; height: 72px !important; margin: 0 !important; flex-shrink: 0 !important; }
+  .ov-vsn { font-size: 22px !important; }
+  .ov-verdict-chip { margin-top: 0 !important; }
+  .ov-vdiv { display: none !important; }
+  .ov-v-text {
+    padding: 12px 16px 14px !important;
+    max-height: 120px !important;
+    overflow: hidden !important;
+  }
+  .ov-vstmt {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 4 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+  }
+  .ov-vk { font-size: 8px !important; margin-bottom: 4px !important; }
+
+  /* ── TABLE: 3-col layout — name | score | contribution ── */
+  /* Drop bar column and weight column — too cramped */
+  .ov-attr-head, .ov-arow, .ov-atotal {
+    grid-template-columns: 1fr 42px 90px !important;
+  }
+  /* Hide bar col + weight col headers */
+  .ov-ah-bar,
+  .ov-ah:nth-child(4) { display: none !important; }
+  /* Hide bar widget + weight cell in rows */
+  .ov-abar-wrap,
+  .ov-awt { display: none !important; }
+  /* Hide weight cell in total row */
+  .ov-at-wt-lbl { display: none !important; }
+  /* Row padding tighter */
+  .ov-arow { padding: 11px 14px 11px 16px !important; }
+  .ov-attr-head { padding: 7px 14px 7px 16px !important; }
+  .ov-atotal { padding: 11px 14px 11px 16px !important; }
+  /* Factor name smaller, clamp description to 2 lines */
+  .ov-afn { font-size: 11px !important; font-weight: 600 !important; }
+  .ov-afi {
+    font-size: 9px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  /* Score number smaller but still glowing */
+  .ov-asc { font-size: 16px !important; text-align: center !important; padding-right: 0 !important; }
+  /* Contribution column */
+  .ov-acont { padding-left: 10px !important; }
   .ov-acont-val { font-size: 13px !important; }
-  .ov-at-num { font-size: 22px !important; }
+  .ov-acont-pts { font-size: 8px !important; }
+  /* Total row */
+  .ov-at-num { font-size: 20px !important; }
+  .ov-at-lbl { font-size: 10px !important; }
+  .ov-at-lbl-note { font-size: 7.5px !important; }
+
+  /* ── CONFLUENCE STRIP: stacked ── */
+  .ov-conf-strip {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 12px 16px !important;
+  }
   .ov-conf-meter { width: 100% !important; justify-content: center !important; }
-}
-@media (max-width: 700px) {
-  .ov-conf-strip { flex-direction: column !important; gap: 10px !important; }
+
+  /* ── WEIGHT BAR: tighter ── */
+  .ov-wt-card { padding: 10px 14px !important; }
+  .ov-wt-leg { flex-wrap: wrap !important; gap: 5px 12px !important; }
 }
 
 /* ── END R35 ── */
+
+/* ══════════════════════════════════════════════════════════════
+   R36 — CLIPPING & TRUNCATION FIXES
+   1. d-head left column: wider, allow asset name to breathe
+   2. d-cat breadcrumb: stop truncating category text
+   3. cat-row filter chips: proper horizontal scroll, not clipped
+   4. Sidebar overflow: allow cat-row scroll to work
+═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. D-HEAD: wider left column at all sizes ── */
+/* Was: 190px / 200px / 220px — too narrow for long tickers + categories */
+.d-head {
+  grid-template-columns: minmax(220px, 240px) 1fr 180px !important;
+}
+@media (min-width: 1100px) {
+  .d-head { grid-template-columns: minmax(240px, 260px) 1fr 200px !important; }
+}
+@media (min-width: 1440px) {
+  .d-head { grid-template-columns: minmax(260px, 280px) 1fr 220px !important; }
+}
+@media (min-width: 1920px) {
+  .d-head { grid-template-columns: minmax(280px, 300px) 1fr 240px !important; }
+}
+
+/* ── 2. D-CAT BREADCRUMB: never clip, wrap gracefully ── */
+.d-cat {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  line-height: 1.3 !important;
+}
+
+/* ── 3. CAT-ROW: bulletproof scrollable filter row ── */
+/* sidebar has overflow:hidden — cat-row must stay within and scroll internally */
+.cat-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  gap: 4px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  /* ensure buttons don't push width past container */
+  max-width: 100% !important;
+}
+.cat-row::-webkit-scrollbar { display: none !important; }
+.cat-btn { flex-shrink: 0 !important; white-space: nowrap !important; }
+
+/* ── 4. SIDEBAR + mkt-list: clean clip ── */
+.sidebar {
+  overflow: hidden !important;
+}
+.mkt-list {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  flex: 1 !important;
+}
+
+/* ── END R36 ── */
 
 
 </style>
