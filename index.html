@@ -30069,9 +30069,9 @@ function assetGraphic(m){
   const id=m.id;
   const cat=m.category;
 
-  // FX pairs — cinematic full-bleed dual-flag banner
-  // Left half: base currency flag; Right half: quote currency flag
-  // Seam: elegant diagonal blend with light leak and depth
+  // FX pairs — cinematic full-bleed dual-flag banner R44
+  // Flags rendered at correct aspect ratio (cover-fill, no stretch)
+  // Seam: wide graduated blend zone — soft overlap, luminous light-leak at centre
   if((cat==='fx'||cat==='fx_cross') && id!=='DX'){
     let baseId=id, quoteId='DX';
     if(m.cross && m.base_leg && m.quote_leg){ baseId=m.base_leg; quoteId=m.quote_leg; }
@@ -30082,193 +30082,344 @@ function assetGraphic(m){
     const qTint = FLAG_TINT[qFlag] || '92,158,255';
     const bCode = bFlag;
     const qCode = qFlag;
-
     const uid = Math.random().toString(36).slice(2,8);
 
-    // ── Full-panel flag builders (W×H rectangle, no circle clip) ──
-    // These render the flag artwork at banner scale for full-bleed panels
-    function flagPanel(code, W, H){
+    // ── Flag geometry ──────────────────────────────────────────────────────────
+    // Each flag is rendered as SVG elements in its NATIVE coordinate space
+    // (nativeW × nativeH). The caller wraps it in a <g transform="scale(sx,sy)">
+    // that implements "object-fit: cover" semantics (uniform scale, centred).
+    //
+    // Native sizes (all × 100 height for easy maths):
+    //   US  190×100  (19:10)   GBP 200×100  (2:1)    EUR 300×200  (3:2)
+    //   JPY 300×200  (3:2)     AUD 200×100  (2:1)    CAD 200×100  (2:1)
+    //   NZD 200×100  (2:1)     CHF 150×100  (3:2)    MXN 280×160  (7:4)
+    //
+    // flagArtwork(code) → { nW, nH, svg }
+
+    function flagArtwork(code){
       switch(code){
-        case 'USD': return `
-          <rect width="${W}" height="${H}" fill="#B22234"/>
-          ${Array.from({length:13},(_,i)=>`<rect y="${i*H/13}" width="${W}" height="${H/13}" fill="${i%2===0?'#B22234':'#fff'}"/>`).join('')}
-          <rect width="${W*0.40}" height="${H*7/13}" fill="#3C3B6E"/>
-          ${Array.from({length:5},(_,row)=>Array.from({length:row%2===0?6:5},(_,col)=>`<circle cx="${W*0.40/(row%2===0?6:5)*(col+0.5)+(row%2===0?0:W*0.40/10)}" cy="${H*7/13/5*(row+0.5)}" r="${Math.min(W,H)*0.025}" fill="#fff"/>`).join('')).join('')}`;
-        case 'EUR': return `
-          <rect width="${W}" height="${H}" fill="#003399"/>
-          ${Array.from({length:12},(_,i)=>{const a=i*Math.PI/6-Math.PI/2;const cx=W/2+Math.cos(a)*Math.min(W,H)*0.35;const cy=H/2+Math.sin(a)*Math.min(W,H)*0.35;const sr=Math.min(W,H)*0.062;return `<polygon points="${[0,1,2,3,4].map(j=>{const pa=a+j*Math.PI*2/5-Math.PI/2;const pr=j%2===0?sr:sr*0.44;return `${cx+Math.cos(pa)*pr},${cy+Math.sin(pa)*pr}`}).join(' ')}" fill="#FFDD00"/>`;}).join('')}`;
-        case 'GBP': return `
-          <rect width="${W}" height="${H}" fill="#012169"/>
-          <line x1="0" y1="0" x2="${W}" y2="${H}" stroke="#fff" stroke-width="${Math.min(W,H)*0.14}"/>
-          <line x1="${W}" y1="0" x2="0" y2="${H}" stroke="#fff" stroke-width="${Math.min(W,H)*0.14}"/>
-          <line x1="0" y1="0" x2="${W}" y2="${H}" stroke="#C8102E" stroke-width="${Math.min(W,H)*0.08}"/>
-          <line x1="${W}" y1="0" x2="0" y2="${H}" stroke="#C8102E" stroke-width="${Math.min(W,H)*0.08}"/>
-          <rect x="0" y="${H*0.37}" width="${W}" height="${H*0.26}" fill="#fff"/>
-          <rect x="${W*0.37}" y="0" width="${W*0.26}" height="${H}" fill="#fff"/>
-          <rect x="0" y="${H*0.42}" width="${W}" height="${H*0.16}" fill="#C8102E"/>
-          <rect x="${W*0.42}" y="0" width="${W*0.16}" height="${H}" fill="#C8102E"/>`;
-        case 'JPY': return `
-          <rect width="${W}" height="${H}" fill="#fff"/>
-          <circle cx="${W/2}" cy="${H/2}" r="${Math.min(W,H)*0.30}" fill="#BC002D"/>`;
-        case 'AUD': return `
-          <rect width="${W}" height="${H}" fill="#00008B"/>
-          <line x1="0" y1="0" x2="${W*0.5}" y2="${H*0.5}" stroke="#fff" stroke-width="${Math.min(W,H)*0.12}"/>
-          <line x1="${W*0.5}" y1="0" x2="0" y2="${H*0.5}" stroke="#fff" stroke-width="${Math.min(W,H)*0.12}"/>
-          <line x1="0" y1="0" x2="${W*0.5}" y2="${H*0.5}" stroke="#C8102E" stroke-width="${Math.min(W,H)*0.068}"/>
-          <line x1="${W*0.5}" y1="0" x2="0" y2="${H*0.5}" stroke="#C8102E" stroke-width="${Math.min(W,H)*0.068}"/>
-          <rect x="0" y="${H*0.20}" width="${W*0.5}" height="${H*0.10}" fill="#fff"/>
-          <rect x="${W*0.20}" y="0" width="${W*0.10}" height="${H*0.5}" fill="#fff"/>
-          <rect x="0" y="${H*0.235}" width="${W*0.5}" height="${H*0.03}" fill="#C8102E"/>
-          <rect x="${W*0.235}" y="0" width="${W*0.03}" height="${H*0.5}" fill="#C8102E"/>
-          <circle cx="${W*0.72}" cy="${H*0.22}" r="${Math.min(W,H)*0.06}" fill="#fff"/>
-          <circle cx="${W*0.86}" cy="${H*0.38}" r="${Math.min(W,H)*0.052}" fill="#fff"/>
-          <circle cx="${W*0.78}" cy="${H*0.60}" r="${Math.min(W,H)*0.052}" fill="#fff"/>
-          <circle cx="${W*0.62}" cy="${H*0.52}" r="${Math.min(W,H)*0.052}" fill="#fff"/>`;
-        case 'CAD': return `
-          <rect width="${W}" height="${H}" fill="#fff"/>
-          <rect x="0" y="0" width="${W*0.25}" height="${H}" fill="#FF0000"/>
-          <rect x="${W*0.75}" y="0" width="${W*0.25}" height="${H}" fill="#FF0000"/>
-          <path d="M${W/2},${H*0.22} L${W*0.56},${H*0.40} L${W*0.70},${H*0.36} L${W*0.62},${H*0.52} L${W*0.68},${H*0.56} L${W/2},${H*0.56} L${W*0.32},${H*0.56} L${W*0.38},${H*0.52} L${W*0.30},${H*0.36} L${W*0.44},${H*0.40} Z" fill="#FF0000"/>
-          <rect x="${W*0.47}" y="${H*0.56}" width="${W*0.06}" height="${H*0.22}" fill="#FF0000"/>`;
-        case 'NZD': return `
-          <rect width="${W}" height="${H}" fill="#00247D"/>
-          <line x1="0" y1="0" x2="${W*0.5}" y2="${H*0.5}" stroke="#fff" stroke-width="${Math.min(W,H)*0.12}"/>
-          <line x1="${W*0.5}" y1="0" x2="0" y2="${H*0.5}" stroke="#fff" stroke-width="${Math.min(W,H)*0.12}"/>
-          <line x1="0" y1="0" x2="${W*0.5}" y2="${H*0.5}" stroke="#CC142B" stroke-width="${Math.min(W,H)*0.068}"/>
-          <line x1="${W*0.5}" y1="0" x2="0" y2="${H*0.5}" stroke="#CC142B" stroke-width="${Math.min(W,H)*0.068}"/>
-          <rect x="0" y="${H*0.20}" width="${W*0.5}" height="${H*0.10}" fill="#fff"/>
-          <rect x="${W*0.20}" y="0" width="${W*0.10}" height="${H*0.5}" fill="#fff"/>
-          <rect x="0" y="${H*0.235}" width="${W*0.5}" height="${H*0.03}" fill="#CC142B"/>
-          <rect x="${W*0.235}" y="0" width="${W*0.03}" height="${H*0.5}" fill="#CC142B"/>
-          <circle cx="${W*0.72}" cy="${H*0.18}" r="${Math.min(W,H)*0.058}" fill="#CC142B" stroke="#fff" stroke-width="2"/>
-          <circle cx="${W*0.86}" cy="${H*0.36}" r="${Math.min(W,H)*0.050}" fill="#CC142B" stroke="#fff" stroke-width="2"/>
-          <circle cx="${W*0.76}" cy="${H*0.58}" r="${Math.min(W,H)*0.050}" fill="#CC142B" stroke="#fff" stroke-width="2"/>
-          <circle cx="${W*0.60}" cy="${H*0.44}" r="${Math.min(W,H)*0.050}" fill="#CC142B" stroke="#fff" stroke-width="2"/>`;
-        case 'CHF': return `
-          <rect width="${W}" height="${H}" fill="#FF0000"/>
-          <rect x="${W*0.38}" y="${H*0.18}" width="${W*0.24}" height="${H*0.64}" fill="#fff"/>
-          <rect x="${W*0.18}" y="${H*0.38}" width="${W*0.64}" height="${H*0.24}" fill="#fff"/>`;
-        case 'MXN': return `
-          <rect width="${W}" height="${H}" fill="#006847"/>
-          <rect x="${W*0.333}" y="0" width="${W*0.334}" height="${H}" fill="#fff"/>
-          <rect x="${W*0.667}" y="0" width="${W*0.333}" height="${H}" fill="#CE1126"/>
-          <circle cx="${W/2}" cy="${H/2}" r="${Math.min(W,H)*0.16}" fill="none" stroke="#8B4513" stroke-width="3"/>`;
-        default: return `<rect width="${W}" height="${H}" fill="#1a1e2c"/>`;
+
+        case 'USD': { // US flag — 19:10 ratio
+          const nW=190, nH=100;
+          // 13 stripes, red outer, white inner
+          const stripes = Array.from({length:13},(_,i)=>`<rect y="${i*nH/13}" width="${nW}" height="${nH/13}" fill="${i%2===0?'#B22234':'#FFFFFF'}"/>`).join('');
+          // Canton: 0.76×0.538 of flag
+          const cW=nW*0.40, cH=nH*7/13;
+          // 50 stars: 6 rows of 5 (even) + 5 rows of 4 (odd) staggered, r=2.3
+          const sr=2.3;
+          const rows=[[6,5],[5,4],[6,5],[5,4],[6,5],[5,4],[6,5],[5,4],[6,5]]; // actually 9 rows for 50 stars
+          // Simpler: 5 col × 6 rows + 4 col × 4 rows staggered = 30+20 = 50
+          const colsEven=6, colsOdd=5, totalRows=9;
+          const xStepE=cW/(colsEven), xStepO=cW/(colsOdd);
+          const yStep=cH/(totalRows);
+          let stars='';
+          for(let r=0;r<totalRows;r++){
+            const isEven=(r%2===0);
+            const cols=isEven?colsEven:colsOdd;
+            const xStep=isEven?xStepE:xStepO;
+            const xOff=isEven?xStep/2:xStep/2;
+            for(let c=0;c<cols;c++){
+              const cx=xOff+c*xStep;
+              const cy=yStep/2+r*yStep;
+              // 5-pointed star
+              const pts=Array.from({length:10},(_,j)=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?sr:sr*0.4;return `${cx+Math.cos(a)*pr},${cy+Math.sin(a)*pr}`;}).join(' ');
+              stars+=`<polygon points="${pts}" fill="#FFFFFF"/>`;
+            }
+          }
+          const svg=`${stripes}<rect width="${cW}" height="${cH}" fill="#3C3B6E"/>${stars}`;
+          return {nW,nH,svg};
+        }
+
+        case 'GBP': { // UK flag — 2:1
+          const nW=200, nH=100;
+          // Navy background
+          // White diagonal saltire (St Andrew) — full diagonals
+          // Red diagonal cross of St Patrick (offset)
+          // White & red horizontal + vertical crosses (St George)
+          const svg=`
+            <rect width="${nW}" height="${nH}" fill="#012169"/>
+            <!-- St Andrew (full white diagonals) -->
+            <line x1="0" y1="0" x2="${nW}" y2="${nH}" stroke="#FFFFFF" stroke-width="20"/>
+            <line x1="${nW}" y1="0" x2="0" y2="${nH}" stroke="#FFFFFF" stroke-width="20"/>
+            <!-- St Patrick (red diagonal, offset — upper-left quadrant: red on top-right of white) -->
+            <polyline points="0,0 ${nW/2-12.5},${nH/2} ${nW/2-12.5},0" stroke="#C8102E" stroke-width="13.3" fill="none"/>
+            <polyline points="${nW},0 ${nW/2+12.5},${nH/2} ${nW/2+12.5},0" stroke="#C8102E" stroke-width="13.3" fill="none"/>
+            <polyline points="0,${nH} ${nW/2-12.5},${nH/2} ${nW/2-12.5},${nH}" stroke="#C8102E" stroke-width="13.3" fill="none"/>
+            <polyline points="${nW},${nH} ${nW/2+12.5},${nH/2} ${nW/2+12.5},${nH}" stroke="#C8102E" stroke-width="13.3" fill="none"/>
+            <!-- St George (white arm of cross) -->
+            <rect x="0" y="${nH*0.5-nH*0.15}" width="${nW}" height="${nH*0.30}" fill="#FFFFFF"/>
+            <rect x="${nW*0.5-nW*0.075}" y="0" width="${nW*0.15}" height="${nH}" fill="#FFFFFF"/>
+            <!-- St George (red arm of cross — narrower) -->
+            <rect x="0" y="${nH*0.5-nH*0.10}" width="${nW}" height="${nH*0.20}" fill="#C8102E"/>
+            <rect x="${nW*0.5-nW*0.05}" y="0" width="${nW*0.10}" height="${nH}" fill="#C8102E"/>`;
+          return {nW,nH,svg};
+        }
+
+        case 'EUR': { // EU flag — 3:2 (900×600 internal coords)
+          const nW=900, nH=600;
+          // Blue field, 12 gold stars in a circle
+          const cx=nW/2, cy=nH/2, R=nH*0.35;
+          let stars='';
+          for(let i=0;i<12;i++){
+            const a=i*Math.PI/6-Math.PI/2;
+            const scx=cx+Math.cos(a)*R;
+            const scy=cy+Math.sin(a)*R;
+            const sr=nH*0.054;
+            const pts=Array.from({length:10},(_,j)=>{const pa=j*Math.PI/5-Math.PI/2;const pr=j%2===0?sr:sr*0.4;return `${scx+Math.cos(pa)*pr},${scy+Math.sin(pa)*pr}`;}).join(' ');
+            stars+=`<polygon points="${pts}" fill="#FFDD00"/>`;
+          }
+          return {nW,nH,svg:`<rect width="${nW}" height="${nH}" fill="#003399"/>${stars}`};
+        }
+
+        case 'JPY': { // Japan — 3:2
+          const nW=300, nH=200;
+          return {nW,nH,svg:`<rect width="${nW}" height="${nH}" fill="#FFFFFF"/><circle cx="${nW/2}" cy="${nH/2}" r="${nH*0.30}" fill="#BC002D"/>`};
+        }
+
+        case 'AUD': { // Australia — 2:1
+          const nW=200, nH=100;
+          // Navy blue background
+          // Union Jack in top-left quarter (same as GBP but scaled to canton)
+          const cW=nW*0.5, cH=nH*0.5;
+          const svg=`
+            <rect width="${nW}" height="${nH}" fill="#00008B"/>
+            <!-- Canton Union Jack (simplified, similar to GBP) -->
+            <rect width="${cW}" height="${cH}" fill="#012169"/>
+            <line x1="0" y1="0" x2="${cW}" y2="${cH}" stroke="#FFFFFF" stroke-width="${cH*0.20}"/>
+            <line x1="${cW}" y1="0" x2="0" y2="${cH}" stroke="#FFFFFF" stroke-width="${cH*0.20}"/>
+            <polyline points="0,0 ${cW/2-cW*0.065},${cH/2} ${cW/2-cW*0.065},0" stroke="#C8102E" stroke-width="${cH*0.133}" fill="none"/>
+            <polyline points="${cW},0 ${cW/2+cW*0.065},${cH/2} ${cW/2+cW*0.065},0" stroke="#C8102E" stroke-width="${cH*0.133}" fill="none"/>
+            <polyline points="0,${cH} ${cW/2-cW*0.065},${cH/2} ${cW/2-cW*0.065},${cH}" stroke="#C8102E" stroke-width="${cH*0.133}" fill="none"/>
+            <polyline points="${cW},${cH} ${cW/2+cW*0.065},${cH/2} ${cW/2+cW*0.065},${cH}" stroke="#C8102E" stroke-width="${cH*0.133}" fill="none"/>
+            <rect x="0" y="${cH*0.40}" width="${cW}" height="${cH*0.20}" fill="#FFFFFF"/>
+            <rect x="${cW*0.43}" y="0" width="${cW*0.14}" height="${cH}" fill="#FFFFFF"/>
+            <rect x="0" y="${cH*0.45}" width="${cW}" height="${cH*0.10}" fill="#C8102E"/>
+            <rect x="${cW*0.47}" y="0" width="${cW*0.06}" height="${cH}" fill="#C8102E"/>
+            <!-- Commonwealth Star (7-point) below canton -->
+            ${Array.from({length:7},(_,j)=>{const pa=j*Math.PI*2/7-Math.PI/2;const r2=nH*0.088;const r1=r2*0.45;const scx=nW*0.165;const scy=nH*0.76;const pts=Array.from({length:14},(_,k)=>{const a2=k*Math.PI/7-Math.PI/2;const pr=k%2===0?r2:r1;return `${scx+Math.cos(a2)*pr},${scy+Math.sin(a2)*pr}`;}).join(' ');return `<polygon points="${pts}" fill="#FFFFFF"/>`;}).join('')}
+            <!-- Southern Cross: 5 stars -->
+            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.076:nH*0.030;const scx=nW*0.80,scy=nH*0.22;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>
+            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.064:nH*0.026;const scx=nW*0.92,scy=nH*0.40;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>
+            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.064:nH*0.026;const scx=nW*0.84,scy=nH*0.60;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>
+            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.064:nH*0.026;const scx=nW*0.67,scy=nH*0.55;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>
+            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.036:nH*0.015;const scx=nW*0.75,scy=nH*0.34;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>`;
+          return {nW,nH,svg};
+        }
+
+        case 'CAD': { // Canada — 2:1
+          const nW=200, nH=100;
+          // Red-white-red vertical thirds, maple leaf in white
+          // Maple leaf: official 11-point approximation
+          const svg=`
+            <rect width="${nW}" height="${nH}" fill="#FFFFFF"/>
+            <rect x="0" y="0" width="${nW*0.25}" height="${nH}" fill="#FF0000"/>
+            <rect x="${nW*0.75}" y="0" width="${nW*0.25}" height="${nH}" fill="#FF0000"/>
+            <!-- Maple leaf (official 11-pointed path, centred) -->
+            <g transform="translate(${nW/2},${nH/2}) scale(${nH*0.0048})">
+              <path fill="#FF0000" d="M0,-42 L5,-28 L18,-32 L12,-19 L24,-18 L14,-8 L20,0 L8,0 L8,18 L-8,18 L-8,0 L-20,0 L-14,-8 L-24,-18 L-12,-19 L-18,-32 L-5,-28 Z"/>
+            </g>`;
+          return {nW,nH,svg};
+        }
+
+        case 'NZD': { // New Zealand — 2:1 (similar to AUD but Southern Cross red diamonds)
+          const nW=200, nH=100;
+          const cW=nW*0.5, cH=nH*0.5;
+          const svg=`
+            <rect width="${nW}" height="${nH}" fill="#00247D"/>
+            <!-- Canton Union Jack -->
+            <rect width="${cW}" height="${cH}" fill="#012169"/>
+            <line x1="0" y1="0" x2="${cW}" y2="${cH}" stroke="#FFFFFF" stroke-width="${cH*0.20}"/>
+            <line x1="${cW}" y1="0" x2="0" y2="${cH}" stroke="#FFFFFF" stroke-width="${cH*0.20}"/>
+            <polyline points="0,0 ${cW/2-cW*0.065},${cH/2} ${cW/2-cW*0.065},0" stroke="#CC142B" stroke-width="${cH*0.133}" fill="none"/>
+            <polyline points="${cW},0 ${cW/2+cW*0.065},${cH/2} ${cW/2+cW*0.065},0" stroke="#CC142B" stroke-width="${cH*0.133}" fill="none"/>
+            <polyline points="0,${cH} ${cW/2-cW*0.065},${cH/2} ${cW/2-cW*0.065},${cH}" stroke="#CC142B" stroke-width="${cH*0.133}" fill="none"/>
+            <polyline points="${cW},${cH} ${cW/2+cW*0.065},${cH/2} ${cW/2+cW*0.065},${cH}" stroke="#CC142B" stroke-width="${cH*0.133}" fill="none"/>
+            <rect x="0" y="${cH*0.40}" width="${cW}" height="${cH*0.20}" fill="#FFFFFF"/>
+            <rect x="${cW*0.43}" y="0" width="${cW*0.14}" height="${cH}" fill="#FFFFFF"/>
+            <rect x="0" y="${cH*0.45}" width="${cW}" height="${cH*0.10}" fill="#CC142B"/>
+            <rect x="${cW*0.47}" y="0" width="${cW*0.06}" height="${cH}" fill="#CC142B"/>
+            <!-- Southern Cross — 4 red stars with white border (NZ uses red 4-pointed) -->
+            ${[{cx:0.76,cy:0.22,r:0.072},{cx:0.91,cy:0.38,r:0.062},{cx:0.84,cy:0.62,r:0.062},{cx:0.65,cy:0.52,r:0.062}].map(s=>{
+              const scx=s.cx*nW, scy=s.cy*nH, r2=s.r*nH;
+              const pts=Array.from({length:10},(_,j)=>{const a=j*Math.PI/5-Math.PI/4;const pr=j%2===0?r2:r2*0.38;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ');
+              return `<polygon points="${pts}" fill="#CC142B" stroke="#FFFFFF" stroke-width="1.5"/>`;
+            }).join('')}`;
+          return {nW,nH,svg};
+        }
+
+        case 'CHF': { // Switzerland — official 1:1 but displayed 3:2
+          const nW=300, nH=200;
+          // Red background, white cross (arms are 1:6 × 7:20 proportions)
+          const armW=nW*0.20, armH=nH*0.60, cx=nW/2, cy=nH/2;
+          const svg=`
+            <rect width="${nW}" height="${nH}" fill="#FF0000"/>
+            <!-- Vertical arm -->
+            <rect x="${cx-armW/2}" y="${cy-armH/2}" width="${armW}" height="${armH}" fill="#FFFFFF"/>
+            <!-- Horizontal arm (slightly shorter than vertical per official spec) -->
+            <rect x="${cx-armH*0.54/2}" y="${cy-armW/2}" width="${armH*0.54}" height="${armW}" fill="#FFFFFF"/>`;
+          return {nW,nH,svg};
+        }
+
+        case 'MXN': { // Mexico — 4:7 ≈ 7:4 aspect
+          const nW=280, nH=160;
+          // Three vertical bands: green | white | red
+          // Central coat of arms: simplified golden eagle on cactus
+          const bW=nW/3;
+          const svg=`
+            <rect x="0" y="0" width="${bW}" height="${nH}" fill="#006847"/>
+            <rect x="${bW}" y="0" width="${bW}" height="${nH}" fill="#FFFFFF"/>
+            <rect x="${bW*2}" y="0" width="${bW}" height="${nH}" fill="#CE1126"/>
+            <!-- Coat of arms: simplified eagle silhouette -->
+            <ellipse cx="${nW/2}" cy="${nH*0.46}" rx="${nH*0.18}" ry="${nH*0.22}" fill="#8B6914" opacity="0.85"/>
+            <!-- Cactus pad -->
+            <ellipse cx="${nW/2}" cy="${nH*0.64}" rx="${nH*0.07}" ry="${nH*0.10}" fill="#006847"/>
+            <ellipse cx="${nW/2}" cy="${nH*0.76}" rx="${nH*0.10}" ry="${nH*0.07}" fill="#006847"/>
+            <!-- Eagle wings -->
+            <ellipse cx="${nW/2-nH*0.18}" cy="${nH*0.38}" rx="${nH*0.16}" ry="${nH*0.08}" fill="#8B6914" opacity="0.7" transform="rotate(-20,${nW/2-nH*0.18},${nH*0.38})"/>
+            <ellipse cx="${nW/2+nH*0.18}" cy="${nH*0.38}" rx="${nH*0.16}" ry="${nH*0.08}" fill="#8B6914" opacity="0.7" transform="rotate(20,${nW/2+nH*0.18},${nH*0.38})"/>
+            <!-- Circular laurel ring -->
+            <circle cx="${nW/2}" cy="${nH/2}" r="${nH*0.30}" fill="none" stroke="#8B6914" stroke-width="3" stroke-dasharray="8,5" opacity="0.60"/>`;
+          return {nW,nH,svg};
+        }
+
+        default: return {nW:2,nH:1,svg:`<rect width="2" height="1" fill="#1a1e2c"/>`};
       }
     }
 
-    const W=960, H=200;
-    // Diagonal split: left panel fills ~55%, right panel fills remaining ~45%
-    // Seam runs diagonally from (52%,0) to (64%,100%) — generous left side for text
-    const sx1=W*0.52, sx2=W*0.64;
+    // ── Cover-fill transform ───────────────────────────────────────────────────
+    // Given native (nW, nH) and target (tW, tH), compute the uniform scale + translate
+    // that fills the target rectangle (like CSS object-fit: cover, centred).
+    function coverTransform(nW, nH, tW, tH){
+      const scale = Math.max(tW/nW, tH/nH);
+      const dx = (tW - nW*scale)/2;
+      const dy = (tH - nH*scale)/2;
+      return `translate(${dx.toFixed(2)},${dy.toFixed(2)}) scale(${scale.toFixed(6)})`;
+    }
 
-    const bpanel = flagPanel(bFlag, W*0.65, H);
-    const qpanel = flagPanel(qFlag, W*0.50, H);
+    // ── Banner dimensions ──────────────────────────────────────────────────────
+    const W=960, H=200;
+
+    const bArt = flagArtwork(bFlag);
+    const qArt = flagArtwork(qFlag);
+
+    // Each flag fills its half of the banner
+    // Left flag: fills 0..W (full width), opacity + mask fade at right
+    // Right flag: fills 0..W (full width), opacity + mask fade at left
+    // Both rendered at full W×H with cover transform — then masked
+
+    const bXform = coverTransform(bArt.nW, bArt.nH, W, H);
+    const qXform = coverTransform(qArt.nW, qArt.nH, W, H);
+
+    // Blend zone: seam is at W*0.55 (centre of blend). Left flag fades out ~W*0.38→W*0.65. Right flag fades in ~W*0.45→W*0.72
+    const seamX = W * 0.55;
 
     return `<div class="d-head-graphic">
       <div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:#040405">
 
-        <!-- Full-bleed dual-flag SVG banner -->
         <svg style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid slice" viewBox="0 0 ${W} ${H}">
           <defs>
-            <!-- Diagonal clip: left panel -->
-            <clipPath id="cpBL${uid}"><polygon points="0,0 ${sx2},0 ${sx1},${H} 0,${H}"/></clipPath>
-            <!-- Diagonal clip: right panel -->
-            <clipPath id="cpBR${uid}"><polygon points="${sx2},0 ${W},0 ${W},${H} ${sx1},${H}"/></clipPath>
-
-            <!-- Left panel: horizontal darkening gradient — bright at far right near seam, dimmer at far left -->
-            <linearGradient id="gBLd${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#000" stop-opacity="0.55"/>
-              <stop offset="60%" stop-color="#000" stop-opacity="0.10"/>
-              <stop offset="100%" stop-color="#000" stop-opacity="0.0"/>
+            <!-- Left flag mask: opaque on left, fades right across blend zone -->
+            <linearGradient id="gML${uid}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#fff" stop-opacity="1"/>
+              <stop offset="38%"  stop-color="#fff" stop-opacity="1"/>
+              <stop offset="58%"  stop-color="#fff" stop-opacity="0.5"/>
+              <stop offset="70%"  stop-color="#fff" stop-opacity="0"/>
             </linearGradient>
+            <mask id="mL${uid}"><rect width="${W}" height="${H}" fill="url(#gML${uid})"/></mask>
 
-            <!-- Right panel: left-side darkening gradient — dark near seam, brighter at far right -->
-            <linearGradient id="gBRd${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#000" stop-opacity="0.0"/>
-              <stop offset="30%" stop-color="#000" stop-opacity="0.08"/>
-              <stop offset="100%" stop-color="#000" stop-opacity="0.42"/>
+            <!-- Right flag mask: fades in from left, opaque on right -->
+            <linearGradient id="gMR${uid}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="30%"  stop-color="#fff" stop-opacity="0"/>
+              <stop offset="42%"  stop-color="#fff" stop-opacity="0.5"/>
+              <stop offset="62%"  stop-color="#fff" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#fff" stop-opacity="1"/>
             </linearGradient>
+            <mask id="mR${uid}"><rect width="${W}" height="${H}" fill="url(#gMR${uid})"/></mask>
 
-            <!-- Seam glow gradient — luminous light-leak effect at the diagonal seam -->
-            <linearGradient id="gSeam${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="rgba(255,255,255,0)" stop-opacity="0"/>
-              <stop offset="48%" stop-color="rgba(255,255,255,0)" stop-opacity="0"/>
-              <stop offset="54%" stop-color="rgba(255,255,255,0.18)" stop-opacity="1"/>
-              <stop offset="58%" stop-color="rgba(255,255,255,0)" stop-opacity="0"/>
-              <stop offset="100%" stop-color="rgba(255,255,255,0)" stop-opacity="0"/>
+            <!-- Overall darkening: left edge and right edge vignette -->
+            <linearGradient id="gVig${uid}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#000" stop-opacity="0.50"/>
+              <stop offset="12%"  stop-color="#000" stop-opacity="0.10"/>
+              <stop offset="88%"  stop-color="#000" stop-opacity="0.10"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0.52"/>
             </linearGradient>
-
-            <!-- Top vignette -->
+            <!-- Top + bottom vignette -->
             <linearGradient id="gVT${uid}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#000" stop-opacity="0.55"/>
-              <stop offset="35%" stop-color="#000" stop-opacity="0"/>
+              <stop offset="0%"   stop-color="#000" stop-opacity="0.50"/>
+              <stop offset="30%"  stop-color="#000" stop-opacity="0"/>
             </linearGradient>
-            <!-- Bottom vignette -->
             <linearGradient id="gVB${uid}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="65%" stop-color="#000" stop-opacity="0"/>
-              <stop offset="100%" stop-color="#000" stop-opacity="0.55"/>
+              <stop offset="70%"  stop-color="#000" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0.50"/>
             </linearGradient>
+
+            <!-- Seam light leak — luminous vertical glow at blend midpoint -->
+            <linearGradient id="gLeak${uid}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#fff" stop-opacity="0"/>
+              <stop offset="46%"  stop-color="#fff" stop-opacity="0"/>
+              <stop offset="52%"  stop-color="#fff" stop-opacity="0.22"/>
+              <stop offset="55%"  stop-color="#fff" stop-opacity="0.38"/>
+              <stop offset="58%"  stop-color="#fff" stop-opacity="0.22"/>
+              <stop offset="64%"  stop-color="#fff" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+            </linearGradient>
+
+            <!-- Ambient colour blooms per flag -->
+            <radialGradient id="gAmL${uid}" cx="0%" cy="50%" r="70%" gradientUnits="objectBoundingBox">
+              <stop offset="0%"   stop-color="rgb(${bTint})" stop-opacity="0.28"/>
+              <stop offset="100%" stop-color="rgb(${bTint})" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="gAmR${uid}" cx="100%" cy="50%" r="70%" gradientUnits="objectBoundingBox">
+              <stop offset="0%"   stop-color="rgb(${qTint})" stop-opacity="0.24"/>
+              <stop offset="100%" stop-color="rgb(${qTint})" stop-opacity="0"/>
+            </radialGradient>
           </defs>
 
-          <!-- LEFT PANEL: base flag, full scale, clipped to left diagonal half -->
-          <g clip-path="url(#cpBL${uid})" opacity="0.72">
-            ${bpanel}
-          </g>
-          <!-- Darkening overlay on left panel -->
-          <g clip-path="url(#cpBL${uid})">
-            <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gBLd${uid})"/>
+          <!-- LEFT FLAG — full banner, masked to fade right -->
+          <g mask="url(#mL${uid})" opacity="0.80">
+            <g transform="${bXform}">${bArt.svg}</g>
           </g>
 
-          <!-- RIGHT PANEL: quote flag, offset to start at right side, clipped -->
-          <g clip-path="url(#cpBR${uid})" opacity="0.68">
-            <g transform="translate(${W*0.50},0)">${qpanel}</g>
-          </g>
-          <!-- Darkening overlay on right panel -->
-          <g clip-path="url(#cpBR${uid})">
-            <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gBRd${uid})"/>
+          <!-- RIGHT FLAG — full banner, masked to fade left -->
+          <g mask="url(#mR${uid})" opacity="0.74">
+            <g transform="${qXform}">${qArt.svg}</g>
           </g>
 
-          <!-- Seam light-leak glow (over both panels) -->
-          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gSeam${uid})"/>
+          <!-- Ambient colour blooms (screen blend via CSS filter) -->
+          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gAmL${uid})" opacity="0.7"/>
+          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gAmR${uid})" opacity="0.7"/>
 
-          <!-- Diagonal seam hard line — crisp luminous edge -->
-          <line x1="${sx2}" y1="0" x2="${sx1}" y2="${H}" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
-          <!-- Seam soft glow -->
-          <line x1="${sx2}" y1="0" x2="${sx1}" y2="${H}" stroke="rgba(255,255,255,0.14)" stroke-width="8"/>
+          <!-- Seam luminous light-leak -->
+          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gLeak${uid})"/>
 
-          <!-- Top + Bottom vignettes -->
+          <!-- Left/right & top/bottom vignettes -->
+          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVig${uid})"/>
           <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVT${uid})"/>
           <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVB${uid})"/>
         </svg>
-
-        <!-- Ambient colour blooms — subtle radial glows from flag tints -->
-        <div style="position:absolute;inset:0;background:
-          radial-gradient(ellipse 45% 130% at 18% 55%,rgba(${bTint},0.22) 0%,transparent 68%),
-          radial-gradient(ellipse 45% 130% at 82% 48%,rgba(${qTint},0.18) 0%,transparent 68%);
-          pointer-events:none;mix-blend-mode:screen"></div>
 
         <!-- Title text protection: left-to-right dark gradient -->
         <div style="position:absolute;inset:0;background:linear-gradient(90deg,
           rgba(3,5,8,0.96) 0%,
           rgba(3,5,8,0.88) 14%,
           rgba(3,5,8,0.60) 28%,
-          rgba(3,5,8,0.22) 42%,
+          rgba(3,5,8,0.20) 42%,
           transparent 58%);pointer-events:none"></div>
 
-        <!-- Currency pair pill — bottom right -->
+        <!-- Currency pair pill — bottom right, glass -->
         <div style="position:absolute;right:16px;bottom:10px;
-          background:rgba(0,0,0,0.60);backdrop-filter:blur(8px);
-          border:1px solid rgba(255,255,255,0.16);border-radius:6px;
-          padding:3px 10px;display:flex;align-items:center;gap:0">
+          background:rgba(0,0,0,0.55);backdrop-filter:blur(10px);
+          border:1px solid rgba(255,255,255,0.14);border-radius:6px;
+          padding:4px 11px;display:flex;align-items:center;gap:0">
           <span style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:0.12em;color:rgba(255,255,255,0.92)">${bCode}</span>
-          <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.32);margin:0 4px">/</span>
-          <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.58)">${qCode}</span>
+          <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.30);margin:0 4px">/</span>
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.56)">${qCode}</span>
         </div>
 
       </div>
     </div>`;
   }
+
 
 
   // Photo background (cinematic, per asset)
