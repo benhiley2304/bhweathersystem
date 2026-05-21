@@ -4284,11 +4284,27 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   }
   .d-head-l>.d-cat{
     order:0;
-    display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
+    display:flex;align-items:center;gap:5px;flex-wrap:nowrap;
     overflow:hidden;max-width:100%;
+    min-height:28px;
   }
-  /* Breadcrumb text — truncate if needed */
-  .d-head-l>.d-cat>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  /* Breadcrumb text — always visible, truncates gracefully */
+  .d-head-l>.d-cat>span{
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    min-width:0;flex:1;
+    font-size:9px;font-weight:700;letter-spacing:0.10em;
+    text-transform:uppercase;color:rgba(190,200,220,0.65);
+    font-family:var(--mono);
+  }
+  /* mob-back: compact, gold-tinted, never squishes ticker */
+  .d-head-l>.d-cat .mob-back{
+    flex-shrink:0 !important;
+    padding:4px 8px 4px 6px !important;
+    font-size:8px !important;
+    border-color:rgba(200,169,110,0.40) !important;
+    background:rgba(200,169,110,0.07) !important;
+    color:var(--accent) !important;
+  }
   .d-head-l>.d-name{order:1;font-size:22px;letter-spacing:-0.025em;line-height:1.1}
   .d-head-l>.d-bias-row{order:2;margin-top:2px}
   /* hide COT Phase / Score History buttons on mobile — save space */
@@ -4332,18 +4348,17 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   .d-score-hero .d-conf-bonus{font-size:8px;}
   /* How is this scored: hidden on mobile */
   .d-score-hero>button{display:none}
-  /* Photo graphic: very subtle on mobile — just a hint of texture, not a layout element */
-  /* Override earlier R-block rules that set opacity:0.65 !important */
-  .d-head-graphic{opacity:0.09 !important;width:46% !important;left:auto !important;right:0 !important;z-index:1 !important}
-  .d-head:active .d-head-graphic,.d-head:focus-within .d-head-graphic{opacity:0.12 !important}
-  /* Stronger left fade so graphic never bleeds into text */
+  /* Photo graphic: FULL-WIDTH cinematic on mobile — R45 mobile audit fix */
+  .d-head-graphic{opacity:0.72 !important;width:100% !important;left:0 !important;right:0 !important;z-index:0 !important}
+  .d-head:active .d-head-graphic,.d-head:focus-within .d-head-graphic{opacity:0.80 !important}
+  /* Left fade: protect identity text, fade to reveal image on right */
   .d-head-graphic::before{
     background:linear-gradient(90deg,
       rgba(4,4,5,1.0) 0%,
-      rgba(4,4,5,0.98) 20%,
-      rgba(4,4,5,0.90) 40%,
-      rgba(4,4,5,0.60) 65%,
-      rgba(4,4,5,0.10) 100%
+      rgba(4,4,5,0.97) 22%,
+      rgba(4,4,5,0.82) 42%,
+      rgba(4,4,5,0.45) 65%,
+      rgba(4,4,5,0.08) 100%
     ) !important;
   }
   .mob-back{display:inline-flex}
@@ -19660,34 +19675,45 @@ body {
 /* ── Sector strip: always hidden (removed from mobile) ── */
 #mob-sector-strip { display: none !important; }
 
-/* ── D-HEAD: enforce single-column grid on mobile (overrides R36 global rule) ── */
+/* ── R45: D-HEAD mobile — single-col + min-height for cinematic photo ── */
 @media (max-width: 700px) {
   .d-head {
     grid-template-columns: 1fr !important;
     grid-template-rows: auto auto !important;
+    min-height: 160px !important;
+    position: relative !important;
   }
 }
 
-/* ── Detail banner photo graphic: near-invisible on mobile ──
-   Override all earlier revision blocks that force opacity:0.65 !important */
+/* ── R45: Detail banner photo — FULL-WIDTH cinematic on mobile ── */
 @media (max-width: 700px) {
   .d-head-graphic {
-    opacity: 0.09 !important;
-    left: auto !important;
+    opacity: 0.72 !important;
+    left: 0 !important;
     right: 0 !important;
-    width: 46% !important;
+    width: 100% !important;
+    z-index: 0 !important;
   }
   .d-head:active .d-head-graphic,
   .d-head:focus-within .d-head-graphic {
-    opacity: 0.12 !important;
+    opacity: 0.80 !important;
   }
   .d-head-graphic::before {
     background: linear-gradient(90deg,
       rgba(4,4,5,1.00) 0%,
-      rgba(4,4,5,0.98) 18%,
-      rgba(4,4,5,0.90) 38%,
-      rgba(4,4,5,0.55) 62%,
+      rgba(4,4,5,0.97) 22%,
+      rgba(4,4,5,0.82) 42%,
+      rgba(4,4,5,0.45) 65%,
       rgba(4,4,5,0.08) 100%
+    ) !important;
+  }
+  /* FX flags: softer fade, flags visible */
+  .d-head-graphic[data-type="fx"]::before {
+    background: linear-gradient(90deg,
+      rgba(4,4,5,0.92) 0%,
+      rgba(4,4,5,0.78) 28%,
+      rgba(4,4,5,0.40) 55%,
+      rgba(4,4,5,0.05) 100%
     ) !important;
   }
 }
@@ -22263,6 +22289,138 @@ body {
 }
 
 /* ── END R42 ── */
+
+
+/* ════════════════════════════════════════════════════════════════
+   R45 — MOBILE VISUAL AUDIT UPGRADES
+   Key fixes:
+   1. Banner photo full-width cinematic (was 0.09 opacity — nearly invisible)
+   2. Breadcrumb never overlaps ticker
+   3. Category chip scroll fade hint
+   4. Tab bar stronger right-fade hint
+   5. Detail header proper min-height for photo presence
+════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Category chips: horizontal scroll with right-fade hint ── */
+@media (max-width: 700px) {
+  .sb-head {
+    position: relative !important;
+  }
+  /* Fade hint to indicate scrollability */
+  .sb-head::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 40px;
+    background: linear-gradient(90deg, transparent, rgba(4,4,5,0.92));
+    pointer-events: none;
+    z-index: 10;
+  }
+  /* Make category row scrollable, hide scrollbar */
+  .cat-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 4px !important;
+    padding-right: 36px !important; /* space so last chip clears fade */
+  }
+  .cat-row::-webkit-scrollbar { display: none !important; }
+  .cat-btn { flex-shrink: 0 !important; }
+}
+
+/* ── 2. Tab bar: stronger right-fade + ensure chips don't clip ── */
+@media (max-width: 700px) {
+  .tab-hdr {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none !important;
+    position: relative !important;
+  }
+  .tab-hdr::-webkit-scrollbar { display: none !important; }
+  .tab-hdr::after {
+    content: '' !important;
+    position: absolute !important;
+    right: 0; top: 0; bottom: 0;
+    width: 36px !important;
+    background: linear-gradient(90deg, transparent, rgba(4,4,5,0.88)) !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+  }
+  .t-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* ── 3. Detail header: cinematic photo visibility ── */
+/* Final authoritative override — must come AFTER all R-block rules */
+@media (max-width: 700px) {
+  .d-head-graphic {
+    opacity: 0.72 !important;
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 0 !important;
+  }
+  .d-head:active .d-head-graphic,
+  .d-head:focus-within .d-head-graphic {
+    opacity: 0.80 !important;
+  }
+  .d-head-graphic::before {
+    background: linear-gradient(90deg,
+      rgba(4,4,5,1.00) 0%,
+      rgba(4,4,5,0.97) 22%,
+      rgba(4,4,5,0.82) 42%,
+      rgba(4,4,5,0.45) 65%,
+      rgba(4,4,5,0.08) 100%
+    ) !important;
+  }
+  /* FX flags: softer fade so both flags are visible */
+  .d-head-graphic[data-type="fx"]::before {
+    background: linear-gradient(90deg,
+      rgba(4,4,5,0.90) 0%,
+      rgba(4,4,5,0.72) 28%,
+      rgba(4,4,5,0.35) 55%,
+      rgba(4,4,5,0.04) 100%
+    ) !important;
+  }
+  /* Ensure text content in header is above the photo */
+  .d-head-l {
+    z-index: 2 !important;
+    position: relative !important;
+  }
+  .d-score-hero {
+    z-index: 2 !important;
+    position: relative !important;
+  }
+}
+
+/* ── 4. Home hero mob-hero improvements ── */
+@media (max-width: 700px) {
+  /* Ensure hero canvas covers full width with no gaps */
+  #mob-hero {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  /* Regime text sizing stays large but ensure it doesn't clip at edges */
+  .mob-regime-w1, .mob-regime-w2 {
+    overflow: visible !important;
+  }
+  /* Stats row: single horizontal strip, no wrapping */
+  .mob-hero-stats {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .mob-hero-stats::-webkit-scrollbar { display: none !important; }
+}
+
+/* ── END R45 ── */
 
 
 
@@ -30243,7 +30401,7 @@ function assetGraphic(m){
           // (upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Canada_(Pantone).svg)
           // Original coords in 9600×4800 space, centred at (4800,2415).
           // Scaled so leaf height = 58% of flag height (~58px in our 200×100 space).
-          const svg=\`
+          const svg=`
             <rect width="\${nW}" height="\${nH}" fill="#FFFFFF"/>
             <rect x="0" y="0" width="\${nW*0.25}" height="\${nH}" fill="#D52B1E"/>
             <rect x="\${nW*0.75}" y="0" width="\${nW*0.25}" height="\${nH}" fill="#D52B1E"/>
@@ -30256,7 +30414,7 @@ function assetGraphic(m){
               84.46,37.48 82.95,41.03 81.89,41.58 74.09,39.93 76.77,48.16 76.28,49.29
               73.23,50.72 86.77,61.69 87.06,62.74 85.39,67.34 97.75,65.17 99.35,66.58
               98.7,79"/>
-          \`;
+          `;
           return {nW,nH,svg};
         }
 
@@ -30299,13 +30457,13 @@ function assetGraphic(m){
           const armW = side * (6/32);    // ~37.5px — arm thickness
           const armLen = side * (10/32); // ~62.5px — half-length of each arm
           const cx = nW/2, cy = nH/2;
-          const svg=\`
+          const svg=`
             <rect width="\${nW}" height="\${nH}" fill="#D52B1E"/>
             <!-- Vertical arm -->
             <rect x="\${cx - armW/2}" y="\${cy - armLen}" width="\${armW}" height="\${armLen*2}" fill="#FFFFFF"/>
             <!-- Horizontal arm — same length as vertical -->
             <rect x="\${cx - armLen}" y="\${cy - armW/2}" width="\${armLen*2}" height="\${armW}" fill="#FFFFFF"/>
-          \`;
+          `;
           return {nW,nH,svg};
         }
 
@@ -30318,7 +30476,7 @@ function assetGraphic(m){
           // Scale factor: design in 100-unit space scaled to flag dimensions
           const s=nH/100;
           const ex=cx, ey=cy-2*s; // eagle centre
-          const svg=\`
+          const svg=`
             <rect x="0"        y="0" width="\${bW}" height="\${nH}" fill="#006847"/>
             <rect x="\${bW}"   y="0" width="\${bW}" height="\${nH}" fill="#FFFFFF"/>
             <rect x="\${bW*2}" y="0" width="\${bW}" height="\${nH}" fill="#CE1126"/>
@@ -30342,7 +30500,7 @@ function assetGraphic(m){
             <path d="M\${ex-12*s},\${ey-12*s} Q\${ex-18*s},\${ey-10*s} \${ex-16*s},\${ey-7*s}" stroke="#C8A800" stroke-width="\${2.5*s}" fill="none" stroke-linecap="round"/>
             <!-- Snake (in beak, curving down-right) -->
             <path d="M\${ex-15*s},\${ey-9*s} Q\${ex-10*s},\${ey-3*s} \${ex-4*s},\${ey+1*s} Q\${ex+2*s},\${ey+6*s} \${ex+1*s},\${ey+10*s}" stroke="#2E7D32" stroke-width="\${2.2*s}" fill="none" stroke-linecap="round"/>
-          \`;
+          `;
           return {nW,nH,svg};
         }
 
