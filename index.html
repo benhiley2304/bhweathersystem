@@ -18190,6 +18190,190 @@ body {
 
 /* ── END PARTICLE TRANSPARENCY PASS ── */
 
+/* ════════════════════════════════════════════════════════════════
+   COMPREHENSIVE UI FIXES PASS
+   1. Banner image — full-bleed, zoomed, right-fade
+   2. Homepage arc reflection at widescreen — fix ov-banner solid bg
+   3. Black boxes on macro badges — remove opaque badge override
+   4. General polish
+════════════════════════════════════════════════════════════════ */
+
+/* ── FIX 1: ov-banner background — was solid #0c0c0b, now transparent
+   The body is now transparent so the particle canvas shows through;
+   the ov-banner solid bg was creating a hard seam ── */
+.ov-banner {
+  background: transparent !important;
+}
+
+/* ov-banner-bg already has an atmospheric gradient — leave it as-is.
+   The banner::after fade should use transparent as the end stop now
+   that body is transparent (particle canvas provides the dark base) */
+.ov-banner::after {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(4,4,5,0.08) 40%,
+    rgba(4,4,5,0.30) 70%,
+    rgba(4,4,5,0.55) 90%,
+    rgba(4,4,5,0.70) 100%
+  ) !important;
+  height: 140px !important;
+}
+
+@media (max-width: 1600px) {
+  .ov-banner::after {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(4,4,5,0.12) 25%,
+      rgba(4,4,5,0.45) 55%,
+      rgba(4,4,5,0.72) 78%,
+      rgba(4,4,5,0.85) 100%
+    ) !important;
+    height: 200px !important;
+  }
+}
+
+/* ── FIX 2: d-head banner image — full width coverage, zoomed in,
+   clean left-to-right fade from asset name into image
+   Was: width:55%, starting at right edge — leaving bare left half
+   Now: full width, image zoomed (scale on inner), proper dual fade ── */
+.d-head {
+  min-height: 140px !important;
+  height: auto !important;
+  grid-template-columns: 220px 1fr 180px !important;
+}
+
+/* Graphic covers the FULL header width now */
+.d-head-graphic {
+  width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 0 !important;
+}
+
+/* Zoom the inner image so it fills crisply with no letterboxing */
+.d-head-graphic-inner {
+  background-size: 120% auto !important;
+  background-position: center 30% !important;
+  transform: scale(1.08) !important;
+  transform-origin: center center !important;
+}
+.d-head:hover .d-head-graphic-inner {
+  transform: scale(1.13) !important;
+}
+
+/* Left fade — strong enough to fully protect the identity text,
+   fades to transparent on right so the image shows through cleanly */
+.d-head-graphic::before {
+  background: linear-gradient(90deg,
+    rgba(4,4,5,0.97) 0%,
+    rgba(4,4,5,0.92) 8%,
+    rgba(4,4,5,0.78) 18%,
+    rgba(4,4,5,0.50) 30%,
+    rgba(4,4,5,0.20) 48%,
+    rgba(4,4,5,0.05) 65%,
+    transparent 80%
+  ) !important;
+}
+
+/* Right edge fade — seamless dissolve at right */
+.d-head-graphic::after {
+  background: linear-gradient(180deg,
+    rgba(4,4,5,0.40) 0%,
+    transparent 20%,
+    transparent 75%,
+    rgba(4,4,5,0.55) 100%
+  ) !important;
+}
+
+/* A right-side fade pseudo to prevent abrupt stop */
+.d-head {
+  position: relative !important;
+}
+.d-head::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 15% !important;
+  background: linear-gradient(to right, transparent, rgba(4,4,5,0.65)) !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+}
+
+/* Asset name — larger, more premium typography */
+.d-cat {
+  font-size: 8px !important;
+  letter-spacing: 0.18em !important;
+  color: rgba(200,169,110,0.70) !important;
+  font-weight: 700 !important;
+}
+.d-name {
+  font-size: clamp(22px, 1.7vw, 32px) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.0 !important;
+  color: #ffffff !important;
+  text-shadow: 0 2px 24px rgba(0,0,0,0.7) !important;
+}
+
+/* Left column — slightly taller feel */
+.d-head-l {
+  padding: 16px 18px 16px 22px !important;
+  gap: 7px !important;
+}
+
+/* ── FIX 3: Economy & Markets macro status badges ─────────────────
+   Badges have JS inline styles: color:${hex};background:${hex}1a;border:...
+   Any CSS background !important would override those inline backgrounds.
+   Solution: DO NOT use !important on badge background — instead
+   ensure no earlier rule does either. The badge background from JS inline
+   styles will then naturally win over non-!important CSS.
+   Only set typography / shape properties here (no background !important). */
+.ov-mc-badge {
+  border-radius: 4px !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Fallback for badges without any inline style (should be rare) */
+.ov-mc-badge:not([style]) {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--dim);
+}
+
+/* ── FIX 5: ov-banner at 2560px — prevent arc overflow creating reflection
+   The ov-charts area has overflow:visible which causes the arc canvas
+   to bleed below the banner at ultra-wide viewports. Clip it. */
+@media (min-width: 1920px) {
+  .ov-charts {
+    overflow: hidden !important;
+  }
+  .ov-banner {
+    overflow: hidden !important;
+  }
+}
+
+/* ── FIX 6: Macro card inner sections — some had #0c0c0b as background-color
+   via the old ov-banner background value. Now they should be transparent/dark. */
+.ov-mc-card .ov-card-sep {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* ── FIX 7: Ensure no hard-coded solid backgrounds remain on layout wrappers */
+.app-main,
+#main,
+.ov-scroll,
+#overview-view,
+.ov-content-wrap {
+  background: transparent !important;
+}
+
+/* ── END COMPREHENSIVE UI FIXES PASS ── */
+
 </style>
 </head>
 <body>
