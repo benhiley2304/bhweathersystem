@@ -30069,153 +30069,207 @@ function assetGraphic(m){
   const id=m.id;
   const cat=m.category;
 
-  // FX pairs — full-width cinematic diagonal split panel (pure SVG, cross-browser)
+  // FX pairs — cinematic full-bleed dual-flag banner
+  // Left half: base currency flag; Right half: quote currency flag
+  // Seam: elegant diagonal blend with light leak and depth
   if((cat==='fx'||cat==='fx_cross') && id!=='DX'){
     let baseId=id, quoteId='DX';
     if(m.cross && m.base_leg && m.quote_leg){ baseId=m.base_leg; quoteId=m.quote_leg; }
 
-    const bf=FLAG_SVGS[LEG_FLAG[baseId]];
-    const qf=FLAG_SVGS[LEG_FLAG[quoteId]];
-    if(!bf||!qf) return '';
+    const bFlag = LEG_FLAG[baseId] || 'USD';
+    const qFlag = LEG_FLAG[quoteId] || 'USD';
+    const bTint = FLAG_TINT[bFlag] || '92,158,255';
+    const qTint = FLAG_TINT[qFlag] || '92,158,255';
+    const bCode = bFlag;
+    const qCode = qFlag;
 
-    const uid=Math.random().toString(36).slice(2,8);
-    const r=48, sz=r*2;
+    const uid = Math.random().toString(36).slice(2,8);
 
-    // Coin SVGs — unique IDs per instance to prevent clip-path collisions
-    const bSvg=bf(r).replace(/id="cp-/g,`id="cpB${uid}-`).replace(/url\(#cp-/g,`url(#cpB${uid}-`);
-    const qSvg=qf(r).replace(/id="cp-/g,`id="cpQ${uid}-`).replace(/url\(#cp-/g,`url(#cpQ${uid}-`);
+    // ── Full-panel flag builders (W×H rectangle, no circle clip) ──
+    // These render the flag artwork at banner scale for full-bleed panels
+    function flagPanel(code, W, H){
+      switch(code){
+        case 'USD': return `
+          <rect width="${W}" height="${H}" fill="#B22234"/>
+          ${Array.from({length:13},(_,i)=>`<rect y="${i*H/13}" width="${W}" height="${H/13}" fill="${i%2===0?'#B22234':'#fff'}"/>`).join('')}
+          <rect width="${W*0.40}" height="${H*7/13}" fill="#3C3B6E"/>
+          ${Array.from({length:5},(_,row)=>Array.from({length:row%2===0?6:5},(_,col)=>`<circle cx="${W*0.40/(row%2===0?6:5)*(col+0.5)+(row%2===0?0:W*0.40/10)}" cy="${H*7/13/5*(row+0.5)}" r="${Math.min(W,H)*0.025}" fill="#fff"/>`).join('')).join('')}`;
+        case 'EUR': return `
+          <rect width="${W}" height="${H}" fill="#003399"/>
+          ${Array.from({length:12},(_,i)=>{const a=i*Math.PI/6-Math.PI/2;const cx=W/2+Math.cos(a)*Math.min(W,H)*0.35;const cy=H/2+Math.sin(a)*Math.min(W,H)*0.35;const sr=Math.min(W,H)*0.062;return `<polygon points="${[0,1,2,3,4].map(j=>{const pa=a+j*Math.PI*2/5-Math.PI/2;const pr=j%2===0?sr:sr*0.44;return `${cx+Math.cos(pa)*pr},${cy+Math.sin(pa)*pr}`}).join(' ')}" fill="#FFDD00"/>`;}).join('')}`;
+        case 'GBP': return `
+          <rect width="${W}" height="${H}" fill="#012169"/>
+          <line x1="0" y1="0" x2="${W}" y2="${H}" stroke="#fff" stroke-width="${Math.min(W,H)*0.14}"/>
+          <line x1="${W}" y1="0" x2="0" y2="${H}" stroke="#fff" stroke-width="${Math.min(W,H)*0.14}"/>
+          <line x1="0" y1="0" x2="${W}" y2="${H}" stroke="#C8102E" stroke-width="${Math.min(W,H)*0.08}"/>
+          <line x1="${W}" y1="0" x2="0" y2="${H}" stroke="#C8102E" stroke-width="${Math.min(W,H)*0.08}"/>
+          <rect x="0" y="${H*0.37}" width="${W}" height="${H*0.26}" fill="#fff"/>
+          <rect x="${W*0.37}" y="0" width="${W*0.26}" height="${H}" fill="#fff"/>
+          <rect x="0" y="${H*0.42}" width="${W}" height="${H*0.16}" fill="#C8102E"/>
+          <rect x="${W*0.42}" y="0" width="${W*0.16}" height="${H}" fill="#C8102E"/>`;
+        case 'JPY': return `
+          <rect width="${W}" height="${H}" fill="#fff"/>
+          <circle cx="${W/2}" cy="${H/2}" r="${Math.min(W,H)*0.30}" fill="#BC002D"/>`;
+        case 'AUD': return `
+          <rect width="${W}" height="${H}" fill="#00008B"/>
+          <line x1="0" y1="0" x2="${W*0.5}" y2="${H*0.5}" stroke="#fff" stroke-width="${Math.min(W,H)*0.12}"/>
+          <line x1="${W*0.5}" y1="0" x2="0" y2="${H*0.5}" stroke="#fff" stroke-width="${Math.min(W,H)*0.12}"/>
+          <line x1="0" y1="0" x2="${W*0.5}" y2="${H*0.5}" stroke="#C8102E" stroke-width="${Math.min(W,H)*0.068}"/>
+          <line x1="${W*0.5}" y1="0" x2="0" y2="${H*0.5}" stroke="#C8102E" stroke-width="${Math.min(W,H)*0.068}"/>
+          <rect x="0" y="${H*0.20}" width="${W*0.5}" height="${H*0.10}" fill="#fff"/>
+          <rect x="${W*0.20}" y="0" width="${W*0.10}" height="${H*0.5}" fill="#fff"/>
+          <rect x="0" y="${H*0.235}" width="${W*0.5}" height="${H*0.03}" fill="#C8102E"/>
+          <rect x="${W*0.235}" y="0" width="${W*0.03}" height="${H*0.5}" fill="#C8102E"/>
+          <circle cx="${W*0.72}" cy="${H*0.22}" r="${Math.min(W,H)*0.06}" fill="#fff"/>
+          <circle cx="${W*0.86}" cy="${H*0.38}" r="${Math.min(W,H)*0.052}" fill="#fff"/>
+          <circle cx="${W*0.78}" cy="${H*0.60}" r="${Math.min(W,H)*0.052}" fill="#fff"/>
+          <circle cx="${W*0.62}" cy="${H*0.52}" r="${Math.min(W,H)*0.052}" fill="#fff"/>`;
+        case 'CAD': return `
+          <rect width="${W}" height="${H}" fill="#fff"/>
+          <rect x="0" y="0" width="${W*0.25}" height="${H}" fill="#FF0000"/>
+          <rect x="${W*0.75}" y="0" width="${W*0.25}" height="${H}" fill="#FF0000"/>
+          <path d="M${W/2},${H*0.22} L${W*0.56},${H*0.40} L${W*0.70},${H*0.36} L${W*0.62},${H*0.52} L${W*0.68},${H*0.56} L${W/2},${H*0.56} L${W*0.32},${H*0.56} L${W*0.38},${H*0.52} L${W*0.30},${H*0.36} L${W*0.44},${H*0.40} Z" fill="#FF0000"/>
+          <rect x="${W*0.47}" y="${H*0.56}" width="${W*0.06}" height="${H*0.22}" fill="#FF0000"/>`;
+        case 'NZD': return `
+          <rect width="${W}" height="${H}" fill="#00247D"/>
+          <line x1="0" y1="0" x2="${W*0.5}" y2="${H*0.5}" stroke="#fff" stroke-width="${Math.min(W,H)*0.12}"/>
+          <line x1="${W*0.5}" y1="0" x2="0" y2="${H*0.5}" stroke="#fff" stroke-width="${Math.min(W,H)*0.12}"/>
+          <line x1="0" y1="0" x2="${W*0.5}" y2="${H*0.5}" stroke="#CC142B" stroke-width="${Math.min(W,H)*0.068}"/>
+          <line x1="${W*0.5}" y1="0" x2="0" y2="${H*0.5}" stroke="#CC142B" stroke-width="${Math.min(W,H)*0.068}"/>
+          <rect x="0" y="${H*0.20}" width="${W*0.5}" height="${H*0.10}" fill="#fff"/>
+          <rect x="${W*0.20}" y="0" width="${W*0.10}" height="${H*0.5}" fill="#fff"/>
+          <rect x="0" y="${H*0.235}" width="${W*0.5}" height="${H*0.03}" fill="#CC142B"/>
+          <rect x="${W*0.235}" y="0" width="${W*0.03}" height="${H*0.5}" fill="#CC142B"/>
+          <circle cx="${W*0.72}" cy="${H*0.18}" r="${Math.min(W,H)*0.058}" fill="#CC142B" stroke="#fff" stroke-width="2"/>
+          <circle cx="${W*0.86}" cy="${H*0.36}" r="${Math.min(W,H)*0.050}" fill="#CC142B" stroke="#fff" stroke-width="2"/>
+          <circle cx="${W*0.76}" cy="${H*0.58}" r="${Math.min(W,H)*0.050}" fill="#CC142B" stroke="#fff" stroke-width="2"/>
+          <circle cx="${W*0.60}" cy="${H*0.44}" r="${Math.min(W,H)*0.050}" fill="#CC142B" stroke="#fff" stroke-width="2"/>`;
+        case 'CHF': return `
+          <rect width="${W}" height="${H}" fill="#FF0000"/>
+          <rect x="${W*0.38}" y="${H*0.18}" width="${W*0.24}" height="${H*0.64}" fill="#fff"/>
+          <rect x="${W*0.18}" y="${H*0.38}" width="${W*0.64}" height="${H*0.24}" fill="#fff"/>`;
+        case 'MXN': return `
+          <rect width="${W}" height="${H}" fill="#006847"/>
+          <rect x="${W*0.333}" y="0" width="${W*0.334}" height="${H}" fill="#fff"/>
+          <rect x="${W*0.667}" y="0" width="${W*0.333}" height="${H}" fill="#CE1126"/>
+          <circle cx="${W/2}" cy="${H/2}" r="${Math.min(W,H)*0.16}" fill="none" stroke="#8B4513" stroke-width="3"/>`;
+        default: return `<rect width="${W}" height="${H}" fill="#1a1e2c"/>`;
+      }
+    }
 
-    const bTint = FLAG_TINT[LEG_FLAG[baseId]] || '92,158,255';
-    const qTint = FLAG_TINT[LEG_FLAG[quoteId]] || '92,158,255';
-    const bCode = LEG_FLAG[baseId]  || baseId;
-    const qCode = LEG_FLAG[quoteId] || quoteId;
+    const W=960, H=200;
+    // Diagonal split: left panel fills ~55%, right panel fills remaining ~45%
+    // Seam runs diagonally from (52%,0) to (64%,100%) — generous left side for text
+    const sx1=W*0.52, sx2=W*0.64;
 
-    // Flag primary colours for panel fills (actual flag colours, not just tints)
-    const FLAG_PRI = {
-      USD:'#3C3B6E', EUR:'#003399', GBP:'#012169', JPY:'#BC002D',
-      AUD:'#00008B', CAD:'#FF0000', NZD:'#00247D', CHF:'#FF0000',
-      MXN:'#006847', DEFAULT:'#1a1e2c'
-    };
-    const FLAG_SEC = {
-      USD:'#B22234', EUR:'#FFDD00', GBP:'#C8102E', JPY:'#ffffff',
-      AUD:'#C8102E', CAD:'#ffffff', NZD:'#CC142B', CHF:'#ffffff',
-      MXN:'#CE1126', DEFAULT:'#20243a'
-    };
-    const bPri = FLAG_PRI[LEG_FLAG[baseId]] || FLAG_PRI.DEFAULT;
-    const bSec = FLAG_SEC[LEG_FLAG[baseId]] || FLAG_SEC.DEFAULT;
-    const qPri = FLAG_PRI[LEG_FLAG[quoteId]] || FLAG_PRI.DEFAULT;
-    const qSec = FLAG_SEC[LEG_FLAG[quoteId]] || FLAG_SEC.DEFAULT;
-
-    const W=480, H=200;
-    // Diagonal seam: top cuts at 52% width, bottom at 64%
-    const dx1=W*0.52, dx2=W*0.64;
+    const bpanel = flagPanel(bFlag, W*0.65, H);
+    const qpanel = flagPanel(qFlag, W*0.50, H);
 
     return `<div class="d-head-graphic">
-      <div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:var(--bg)">
+      <div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:#040405">
 
-        <!-- PURE-SVG diagonal split — base flag left, quote flag right -->
-        <svg style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="none" viewBox="0 0 ${W} ${H}">
+        <!-- Full-bleed dual-flag SVG banner -->
+        <svg style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid slice" viewBox="0 0 ${W} ${H}">
           <defs>
-            <!-- Diagonal clip paths -->
-            <clipPath id="cpLeft${uid}"><polygon points="0,0 ${dx2},0 ${dx1},${H} 0,${H}"/></clipPath>
-            <clipPath id="cpRight${uid}"><polygon points="${dx2},0 ${W},0 ${W},${H} ${dx1},${H}"/></clipPath>
+            <!-- Diagonal clip: left panel -->
+            <clipPath id="cpBL${uid}"><polygon points="0,0 ${sx2},0 ${sx1},${H} 0,${H}"/></clipPath>
+            <!-- Diagonal clip: right panel -->
+            <clipPath id="cpBR${uid}"><polygon points="${sx2},0 ${W},0 ${W},${H} ${sx1},${H}"/></clipPath>
 
-            <!-- Base flag gradient (left panel) — two-stop flag colours, horizontal -->
-            <linearGradient id="gBase${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="${bPri}" stop-opacity="0.72"/>
-              <stop offset="60%" stop-color="${bPri}" stop-opacity="0.55"/>
-              <stop offset="100%" stop-color="${bSec}" stop-opacity="0.30"/>
-            </linearGradient>
-            <!-- Secondary stripe — adds flag character to left panel -->
-            <linearGradient id="gBaseSt${uid}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="${bSec}" stop-opacity="0.22"/>
-              <stop offset="50%" stop-color="${bSec}" stop-opacity="0.08"/>
-              <stop offset="100%" stop-color="${bSec}" stop-opacity="0.22"/>
+            <!-- Left panel: horizontal darkening gradient — bright at far right near seam, dimmer at far left -->
+            <linearGradient id="gBLd${uid}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#000" stop-opacity="0.55"/>
+              <stop offset="60%" stop-color="#000" stop-opacity="0.10"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0.0"/>
             </linearGradient>
 
-            <!-- Quote flag gradient (right panel) -->
-            <linearGradient id="gQuote${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="${qPri}" stop-opacity="0.28"/>
-              <stop offset="40%" stop-color="${qPri}" stop-opacity="0.52"/>
-              <stop offset="100%" stop-color="${qSec}" stop-opacity="0.40"/>
+            <!-- Right panel: left-side darkening gradient — dark near seam, brighter at far right -->
+            <linearGradient id="gBRd${uid}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#000" stop-opacity="0.0"/>
+              <stop offset="30%" stop-color="#000" stop-opacity="0.08"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0.42"/>
             </linearGradient>
-            <linearGradient id="gQuoteSt${uid}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="${qSec}" stop-opacity="0.18"/>
-              <stop offset="50%" stop-color="${qSec}" stop-opacity="0.06"/>
-              <stop offset="100%" stop-color="${qSec}" stop-opacity="0.18"/>
+
+            <!-- Seam glow gradient — luminous light-leak effect at the diagonal seam -->
+            <linearGradient id="gSeam${uid}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(255,255,255,0)" stop-opacity="0"/>
+              <stop offset="48%" stop-color="rgba(255,255,255,0)" stop-opacity="0"/>
+              <stop offset="54%" stop-color="rgba(255,255,255,0.18)" stop-opacity="1"/>
+              <stop offset="58%" stop-color="rgba(255,255,255,0)" stop-opacity="0"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)" stop-opacity="0"/>
+            </linearGradient>
+
+            <!-- Top vignette -->
+            <linearGradient id="gVT${uid}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#000" stop-opacity="0.55"/>
+              <stop offset="35%" stop-color="#000" stop-opacity="0"/>
+            </linearGradient>
+            <!-- Bottom vignette -->
+            <linearGradient id="gVB${uid}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="65%" stop-color="#000" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0.55"/>
             </linearGradient>
           </defs>
 
-          <!-- Left panel: base flag colours -->
-          <g clip-path="url(#cpLeft${uid})">
-            <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gBase${uid})"/>
-            <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gBaseSt${uid})"/>
+          <!-- LEFT PANEL: base flag, full scale, clipped to left diagonal half -->
+          <g clip-path="url(#cpBL${uid})" opacity="0.72">
+            ${bpanel}
+          </g>
+          <!-- Darkening overlay on left panel -->
+          <g clip-path="url(#cpBL${uid})">
+            <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gBLd${uid})"/>
           </g>
 
-          <!-- Right panel: quote flag colours -->
-          <g clip-path="url(#cpRight${uid})">
-            <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gQuote${uid})"/>
-            <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gQuoteSt${uid})"/>
+          <!-- RIGHT PANEL: quote flag, offset to start at right side, clipped -->
+          <g clip-path="url(#cpBR${uid})" opacity="0.68">
+            <g transform="translate(${W*0.50},0)">${qpanel}</g>
+          </g>
+          <!-- Darkening overlay on right panel -->
+          <g clip-path="url(#cpBR${uid})">
+            <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gBRd${uid})"/>
           </g>
 
-          <!-- Diagonal seam — subtle luminous line -->
-          <line x1="${dx2}" y1="0" x2="${dx1}" y2="${H}" stroke="rgba(255,255,255,0.28)" stroke-width="1.5"/>
-          <!-- Seam glow -->
-          <line x1="${dx2}" y1="0" x2="${dx1}" y2="${H}" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
+          <!-- Seam light-leak glow (over both panels) -->
+          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gSeam${uid})"/>
+
+          <!-- Diagonal seam hard line — crisp luminous edge -->
+          <line x1="${sx2}" y1="0" x2="${sx1}" y2="${H}" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+          <!-- Seam soft glow -->
+          <line x1="${sx2}" y1="0" x2="${sx1}" y2="${H}" stroke="rgba(255,255,255,0.14)" stroke-width="8"/>
+
+          <!-- Top + Bottom vignettes -->
+          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVT${uid})"/>
+          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVB${uid})"/>
         </svg>
 
-        <!-- Colour atmosphere blooms — subtle radial glow from each flag's tint -->
+        <!-- Ambient colour blooms — subtle radial glows from flag tints -->
         <div style="position:absolute;inset:0;background:
-          radial-gradient(ellipse 50% 120% at 22% 50%,rgba(${bTint},0.20) 0%,transparent 70%),
-          radial-gradient(ellipse 50% 120% at 82% 50%,rgba(${qTint},0.16) 0%,transparent 70%);pointer-events:none"></div>
+          radial-gradient(ellipse 45% 130% at 18% 55%,rgba(${bTint},0.22) 0%,transparent 68%),
+          radial-gradient(ellipse 45% 130% at 82% 48%,rgba(${qTint},0.18) 0%,transparent 68%);
+          pointer-events:none;mix-blend-mode:screen"></div>
 
-        <!-- Left-to-right dark fade — protects title text completely -->
+        <!-- Title text protection: left-to-right dark gradient -->
         <div style="position:absolute;inset:0;background:linear-gradient(90deg,
-          rgba(3,5,8,0.96) 0%,rgba(3,5,8,0.86) 18%,rgba(3,5,8,0.55) 34%,rgba(3,5,8,0.15) 50%,transparent 64%);pointer-events:none"></div>
+          rgba(3,5,8,0.96) 0%,
+          rgba(3,5,8,0.88) 14%,
+          rgba(3,5,8,0.60) 28%,
+          rgba(3,5,8,0.22) 42%,
+          transparent 58%);pointer-events:none"></div>
 
-        <!-- Top/bottom vignette -->
-        <div style="position:absolute;inset:0;background:linear-gradient(180deg,
-          rgba(3,5,8,0.40) 0%,transparent 25%,transparent 75%,rgba(3,5,8,0.40) 100%);pointer-events:none"></div>
-
-        <!-- Coin pair — large, crisp, sits right of the seam -->
-        <div style="position:absolute;right:22px;top:50%;transform:translateY(-50%);display:flex;align-items:center">
-
-          <!-- BASE coin (front) -->
-          <div style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;z-index:2;
-            box-shadow:0 0 0 2px rgba(255,255,255,0.30),0 0 0 3.5px rgba(${bTint},0.55),0 10px 32px rgba(0,0,0,0.75)">
-            <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="display:block;border-radius:50%">
-              <defs><filter id="satBc${uid}" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="1.45"/></filter></defs>
-              <g filter="url(#satBc${uid})">${bSvg}</g>
-            </svg>
-            <!-- Coin specular highlight -->
-            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 58% 38% at 30% 20%,rgba(255,255,255,0.30) 0%,transparent 65%);pointer-events:none"></div>
-          </div>
-
-          <!-- QUOTE coin (behind, overlapping) -->
-          <div style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;z-index:1;
-            margin-left:-${Math.round(sz*0.30)}px;
-            box-shadow:0 0 0 2px rgba(255,255,255,0.18),0 0 0 3px rgba(${qTint},0.40),0 10px 28px rgba(0,0,0,0.65)">
-            <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="display:block;border-radius:50%">
-              <defs><filter id="satQc${uid}" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="1.45"/></filter></defs>
-              <g filter="url(#satQc${uid})">${qSvg}</g>
-            </svg>
-            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 58% 38% at 30% 20%,rgba(255,255,255,0.20) 0%,transparent 65%);pointer-events:none"></div>
-          </div>
-
-        </div>
-
-        <!-- Pair code pill — bottom right -->
-        <div style="position:absolute;right:22px;bottom:11px;
-          background:rgba(0,0,0,0.52);border:1px solid rgba(255,255,255,0.14);border-radius:5px;
-          padding:3px 9px;display:flex;align-items:center;gap:0">
-          <span style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:0.10em;color:rgba(255,255,255,0.88)">${bCode}</span>
-          <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.30);margin:0 4px">/</span>
-          <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.55)">${qCode}</span>
+        <!-- Currency pair pill — bottom right -->
+        <div style="position:absolute;right:16px;bottom:10px;
+          background:rgba(0,0,0,0.60);backdrop-filter:blur(8px);
+          border:1px solid rgba(255,255,255,0.16);border-radius:6px;
+          padding:3px 10px;display:flex;align-items:center;gap:0">
+          <span style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:0.12em;color:rgba(255,255,255,0.92)">${bCode}</span>
+          <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.32);margin:0 4px">/</span>
+          <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.58)">${qCode}</span>
         </div>
 
       </div>
     </div>`;
   }
+
 
   // Photo background (cinematic, per asset)
   // ── GOLD & PRECIOUS METALS (placeholder — falls through to photo) ──────────

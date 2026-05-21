@@ -126,7 +126,7 @@ MARKETS = [
     {"id": "YM",  "name": "Dow Jones",     "ticker": "YM1!",  "yf": "^DJI",     "category": "equity",    "cftc_code": "124603", "cftc_name": "DJIA x $5"},
     # FX
     {"id": "6E",  "name": "EUR/USD",       "ticker": "6E1!",  "yf": "EURUSD=X", "category": "fx",        "cftc_code": "099741", "cftc_name": "EURO FX"},
-    {"id": "6J",  "name": "Yen Futures",   "ticker": "6J1!",  "yf": "JPYUSD=X",    "category": "fx",        "cftc_code": "097741", "cftc_name": "JAPANESE YEN",
+    {"id": "6J",  "name": "JPY/USD",   "ticker": "6J1!",  "yf": "JPYUSD=X",    "category": "fx",        "cftc_code": "097741", "cftc_name": "JAPANESE YEN",
      "cot_note": "Long JPY futures = long yen / short USD. Bullish score = bullish JPY (bearish USD/JPY)."},
     {"id": "6B",  "name": "GBP/USD",       "ticker": "6B1!",  "yf": "GBPUSD=X", "category": "fx",        "cftc_code": "096742", "cftc_name": "BRITISH POUND"},
     {"id": "6A",  "name": "AUD/USD",       "ticker": "6A1!",  "yf": "AUDUSD=X", "category": "fx",        "cftc_code": "232741", "cftc_name": "AUSTRALIAN DOLLAR"},
