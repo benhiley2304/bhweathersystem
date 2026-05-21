@@ -21322,6 +21322,121 @@ body {
 
 /* ── END R40b ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R40c — FINAL GLASS POLISH
+   Fix: confluence summary visibility + score col ambient glow
+   + chip border intensity + overall panel depth.
+══════════════════════════════════════════════════════════════ */
+
+/* ── SCORE COLUMN — ambient radial glow from score colour (like homepage RISK-ON) ── */
+.ov-v-score-col {
+  background: rgba(var(--ov-stripe-rgb,38,201,122),0.05) !important;
+  border-right: 1px solid rgba(var(--ov-stripe-rgb,38,201,122),0.14) !important;
+  position: relative !important;
+}
+/* Subtle radial behind the number — gives it presence without glow on the text */
+.ov-v-score-col::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: radial-gradient(
+    ellipse 90% 60% at 50% 40%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.12) 0%,
+    transparent 70%
+  ) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+.ov-v-score-col > * { position: relative !important; z-index: 1 !important; }
+
+/* ── VERDICT CARD — slightly brighter top border for low-score assets ── */
+.ov-verdict {
+  border-top: 1px solid rgba(var(--ov-stripe-rgb,38,201,122),0.38) !important;
+}
+
+/* ── CONFLUENCE SUMMARY — more visible panel ── */
+.ov-conf-summary {
+  background: linear-gradient(160deg,
+    rgba(26,30,36,0.92) 0%,
+    rgba(18,21,26,0.88) 50%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.08) 100%
+  ) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-top: 1px solid rgba(var(--ov-stripe-rgb,38,201,122),0.36) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+/* Stronger pulse line */
+.ov-conf-summary::before {
+  background: linear-gradient(90deg,
+    transparent 5%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.65) 40%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.65) 60%,
+    transparent 95%
+  ) !important;
+  opacity: 1 !important;
+}
+
+/* ── FACTOR CHIPS — stronger border + more saturated top edge ── */
+.ov-conf-fchip {
+  border-top: 1px solid rgba(var(--chip-rgb,74,82,104),0.42) !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+/* Stronger pulse line on chips */
+.ov-conf-fchip::before {
+  background: linear-gradient(90deg,
+    transparent 5%,
+    rgba(var(--chip-rgb,74,82,104),0.70) 40%,
+    rgba(var(--chip-rgb,74,82,104),0.70) 60%,
+    transparent 95%
+  ) !important;
+  opacity: 1 !important;
+  height: 1px !important;
+}
+/* Score number in chip: use the colour but slightly brighter text (no glow still) */
+.ov-conf-fchip-score {
+  color: var(--chip-col) !important;
+  text-shadow: none !important;
+  filter: none !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1 !important;
+}
+.ov-conf-fchip-dir {
+  color: var(--chip-col) !important;
+  opacity: 0.75 !important;
+  font-size: 8px !important;
+  letter-spacing: 0.12em !important;
+  font-weight: 700 !important;
+}
+
+/* ── FACTOR TABLE — boost top border contrast ── */
+.ov-attr-wrap {
+  border-top: 1px solid rgba(255,255,255,0.22) !important;
+}
+
+/* ── VERDICT CARD top border — slightly stronger ── */
+.ov-verdict::before {
+  background: linear-gradient(90deg,
+    transparent 5%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.70) 40%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.70) 60%,
+    transparent 95%
+  ) !important;
+  opacity: 1 !important;
+  height: 1px !important;
+}
+
+/* ── SCORE NUMBER — slightly larger, more presence ── */
+@media (min-width: 1100px) {
+  .ov-vsn {
+    font-size: 72px !important;
+    letter-spacing: -0.07em !important;
+  }
+}
+
+/* ── END R40c ── */
+
 
 </style>
 </head>
