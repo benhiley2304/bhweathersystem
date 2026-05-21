@@ -17470,6 +17470,465 @@ a, .link-gold{
 
 /* ── END VISUAL AUDIT POLISH ── */
 
+/* ════════════════════════════════════════════════════════════════
+   ULTRA PREMIUM REDESIGN — Bloomberg × Linear
+   "No borders unless structurally necessary.
+    Score = geometry. Direction = colour only.
+    Everything on a continuous dark surface."
+════════════════════════════════════════════════════════════════ */
+
+/* ── 1. SIDEBAR MARKET ROWS: strip LEAN BULLISH pill, clean geometry ── */
+/* Hide the bias text pill — direction is already communicated by
+   the score number colour + row tinting. This is pure tag soup. */
+.mr-bias { display: none !important; }
+
+/* Thinner, more refined score bar track */
+.mr-bar {
+  height: 3px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 2px !important;
+  margin-top: 6px !important;
+}
+.mr-bar-f {
+  border-radius: 2px !important;
+  opacity: 0.75 !important;
+}
+
+/* Score badge: slightly larger, tighter tracking */
+.mr-score-badge {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+  min-width: 34px !important;
+}
+
+/* Row: slightly less vertical padding, let it breathe horizontally */
+.mkt-row {
+  padding: 9px 14px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.038) !important;
+}
+
+/* Market name: slightly bolder for contrast */
+.mr-name {
+  font-size: clamp(11.5px,0.80vw,14.5px) !important;
+  font-weight: 600 !important;
+  color: rgba(220,228,248,0.92) !important;
+  letter-spacing: -0.015em !important;
+}
+.mr-id {
+  font-size: 9.5px !important;
+  color: rgba(255,255,255,0.42) !important;
+  letter-spacing: 0.03em !important;
+}
+
+/* Remove the .mr-right gap — we just need score, no pill below it */
+.mr-right { gap: 0 !important; }
+
+/* ── 2. TAB SUMMARY BULLET: remove the box, integrate inline ── */
+/* The italic sentence is redundant with the narrative. Remove the
+   boxy card container entirely; keep just the text as a subtle
+   inline eyebrow above the content */
+.tab-summary {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 2px 10px 2px !important;
+  margin-bottom: 8px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  border-radius: 0 !important;
+  gap: 7px !important;
+}
+.tab-summary-pip {
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  margin-top: 3px !important;
+  opacity: 0.9 !important;
+  flex-shrink: 0 !important;
+}
+.tab-summary-text {
+  font-size: 11px !important;
+  font-style: normal !important;
+  color: var(--dim) !important;
+  line-height: 1.55 !important;
+  letter-spacing: 0.005em !important;
+}
+
+/* ── 3. FACTOR ATTRIBUTION TABLE: borderless, breathing columns ── */
+/* Remove outer container border + background box */
+.ov-attr-wrap {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  margin-bottom: 6px !important;
+}
+/* Header row: subtle label row, no border */
+.ov-attr-head {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 6px 4px 6px 4px !important;
+}
+.ov-ah {
+  font-size: 7.5px !important;
+  letter-spacing: 0.12em !important;
+  color: rgba(255,255,255,0.25) !important;
+}
+/* Factor rows: no border, just vertical spacing */
+.ov-arow {
+  padding: 10px 4px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.028) !important;
+}
+.ov-arow:last-of-type { border-bottom: none !important; }
+.ov-arow:hover { background: rgba(255,255,255,0.018) !important; border-radius: 6px; }
+
+/* Factor name: slightly more prominent */
+.ov-afn {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.01em !important;
+}
+.ov-afi {
+  font-size: 9px !important;
+  color: rgba(190,200,222,0.5) !important;
+}
+/* Score: monospace, clean */
+.ov-asc {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+/* Weight: subtler */
+.ov-awt {
+  font-size: 10px !important;
+  color: rgba(190,200,222,0.45) !important;
+}
+/* Contribution value: large, colour-only direction */
+.ov-acont-val {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+}
+.ov-acont {
+  border-left: 1px solid rgba(255,255,255,0.04) !important;
+}
+/* Total row: gold accent, no heavy box */
+.ov-atotal {
+  background: transparent !important;
+  border-top: 1px solid rgba(200,169,110,0.12) !important;
+  padding: 10px 4px !important;
+}
+.ov-at-num {
+  font-size: 19px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
+}
+/* Weight bar card: strip border, transparent bg */
+.ov-wt-card {
+  background: transparent !important;
+  border: none !important;
+  padding: 8px 4px 6px !important;
+}
+.ov-wt-bar {
+  height: 3px !important;
+  border-radius: 2px !important;
+  gap: 2px !important;
+}
+.ov-wt-it {
+  font-size: 9px !important;
+  color: rgba(190,200,222,0.55) !important;
+}
+
+/* ── 4. CONFLUENCE STRIP: clean, minimal ── */
+/* Remove the box, left-border line approach instead */
+.ov-conf-strip {
+  background: transparent !important;
+  border: none !important;
+  border-left: 2px solid rgba(200,169,110,0.30) !important;
+  border-radius: 0 !important;
+  padding: 4px 12px !important;
+  margin-bottom: 12px !important;
+  gap: 10px !important;
+}
+.ov-conf-badge {
+  background: transparent !important;
+  border: none !important;
+  color: var(--accent) !important;
+  font-size: 9px !important;
+  padding: 0 !important;
+  letter-spacing: 0.08em !important;
+  font-weight: 800 !important;
+  align-self: center !important;
+  flex-shrink: 0 !important;
+}
+.ov-conf-text {
+  font-size: 10.5px !important;
+  color: var(--dim) !important;
+  line-height: 1.55 !important;
+}
+.ov-conf-text strong {
+  color: var(--text) !important;
+  font-weight: 600 !important;
+}
+
+/* ── 5. COT POSITIONING CARDS: borderless, number-forward ── */
+.cot-cards {
+  gap: 6px !important;
+}
+.cot-card {
+  background: rgba(255,255,255,0.018) !important;
+  border: none !important;
+  border-top: none !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.cot-card::before {
+  display: none !important;
+}
+.cot-card::after {
+  display: none !important;
+}
+.cot-card:hover {
+  background: rgba(255,255,255,0.030) !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+/* The accent top-border that carries the COT group colour — keep just that */
+.cot-card[style*="border-top"] {
+  border-top: 2px solid var(--cc,rgba(255,255,255,0.12)) !important;
+}
+/* COT number: large and clean */
+.cot-card-val,
+[class*="cot-card-val"],
+.cc-idx {
+  font-family: var(--mono) !important;
+  font-size: clamp(30px,2.8vw,44px) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1 !important;
+  filter: none !important;
+  margin-bottom: 6px !important;
+}
+.cc-idx sup {
+  font-size: 11px !important;
+  color: rgba(255,255,255,0.30) !important;
+  font-weight: 500 !important;
+}
+.cot-card-label,
+[class*="cot-card-lbl"],
+[class*="cot-title"],
+.cot-card-title,
+.cc-head {
+  font-size: 7.5px !important;
+  letter-spacing: 0.14em !important;
+  color: rgba(255,255,255,0.30) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  opacity: 1 !important;
+  margin-bottom: 8px !important;
+}
+/* Net position: subtle */
+.cc-net {
+  font-size: 9.5px !important;
+  color: rgba(190,200,222,0.50) !important;
+  margin-bottom: 5px !important;
+}
+/* Gauge: thinner */
+.cc-gauge {
+  height: 3px !important;
+  border-radius: 2px !important;
+  margin-bottom: 8px !important;
+}
+/* EXTREME tag: subtle */
+.cc-tag {
+  font-size: 7.5px !important;
+  letter-spacing: 0.06em !important;
+  padding: 2px 7px !important;
+  border-radius: 3px !important;
+}
+/* Description: readable */
+.cc-desc {
+  font-size: 9px !important;
+  color: rgba(190,200,222,0.55) !important;
+  line-height: 1.5 !important;
+  margin-top: 6px !important;
+}
+
+/* ── 6. HOMEPAGE MACRO ENV STRIP: breathe, simpler ── */
+/* Remove individual pill borders, rely on spacing + colour */
+.ov-menv-pill {
+  background: transparent !important;
+  border: none !important;
+  padding: 3px 10px 3px 4px !important;
+  border-radius: 0 !important;
+  gap: 6px !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+}
+.ov-menv-pill:last-child {
+  border-right: none !important;
+}
+.ov-menv-pill:hover {
+  background: rgba(255,255,255,0.04) !important;
+  border-radius: 5px !important;
+  border-right-color: transparent !important;
+}
+.ov-macro-env-strip {
+  gap: 0 !important;
+  align-items: center !important;
+}
+/* Label: smaller, dimmer */
+.ov-menv-lbl {
+  font-size: 8px !important;
+  color: rgba(255,255,255,0.30) !important;
+  letter-spacing: 0.09em !important;
+}
+/* Separator dot between label and value: hide it */
+.ov-menv-sep {
+  display: none !important;
+}
+/* Value: slightly larger, colour-coded */
+.ov-menv-val {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+/* Dot: keep but smaller */
+.ov-menv-pip {
+  width: 4px !important;
+  height: 4px !important;
+}
+/* Header: slightly subtler */
+.ov-macro-env-hdr-lbl {
+  font-size: 7.5px !important;
+  color: rgba(255,255,255,0.20) !important;
+  letter-spacing: 0.15em !important;
+}
+.ov-macro-env-wrap {
+  padding: 9px 14px 7px !important;
+}
+
+/* ── 7. MACRO DRIVER ROWS (Fundamentals tab): borderless cards ── */
+/* The .ov-attr-wrap handles the table. The inline-built driver divs
+   from macroTab() JS need their border + background suppressed.
+   We target by attribute pattern used in the JS template */
+/* These are inline-styled divs — we override via a utility class
+   .mdr (added in JS patch below) */
+.mdr {
+  padding: 10px 2px !important;
+  background: transparent !important;
+  border: none !important;
+  border-left: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  border-radius: 0 !important;
+}
+.mdr:last-child { border-bottom: none !important; }
+.mdr:hover { background: rgba(255,255,255,0.018) !important; border-radius: 6px; }
+.mdr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.mdr-name {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mdr-val {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.mdr-bar-track {
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.mdr-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+.mdr-desc {
+  font-size: 9px;
+  color: var(--dim);
+  line-height: 1.5;
+  opacity: 0.75;
+}
+
+/* ── 8. SCORE HERO AREA: strip the badge box ── */
+/* The 'Mildly Bullish' pill on the hero — make it subtler */
+.d-bias-label,
+.d-bias-pill,
+[class*="bias-pill"] {
+  background: transparent !important;
+  border: none !important;
+  font-size: 10px !important;
+  letter-spacing: 0.06em !important;
+  padding: 0 !important;
+  font-weight: 700 !important;
+  opacity: 0.85 !important;
+}
+
+/* ── 9. GLOBAL: surface unification ── */
+/* Any remaining boxy containers that are purely decorative */
+.sec-h {
+  font-size: 8px !important;
+  letter-spacing: 0.14em !important;
+  color: rgba(255,255,255,0.20) !important;
+  font-weight: 700 !important;
+  padding: 14px 0 6px !important;
+  border-bottom: none !important;
+  text-transform: uppercase !important;
+}
+
+/* Narrative key-driver pills in Overview: more refined */
+.ov-pl {
+  padding: 3px 9px 3px 6px !important;
+  border-radius: 4px !important;
+  font-size: 9px !important;
+  gap: 5px !important;
+}
+.ov-pl.b { background: rgba(48,217,136,0.05) !important; border-color: rgba(48,217,136,0.12) !important; }
+.ov-pl.r { background: rgba(214,58,36,0.05) !important; border-color: rgba(214,58,36,0.12) !important; }
+.ov-pl.n { background: rgba(255,255,255,0.02) !important; border-color: rgba(255,255,255,0.06) !important; }
+.ov-plk { font-size: 9px !important; }
+.ov-plv { font-size: 8.5px !important; }
+.ov-pld { width: 4px !important; height: 4px !important; }
+/* Pills strip: top border lighter */
+.ov-pills {
+  border-top: 1px solid rgba(255,255,255,0.025) !important;
+  padding: 8px 12px 2px !important;
+  margin-top: 8px !important;
+}
+.ov-narr-tag,
+.narr-tag,
+[class*="narr-tag"] {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  font-size: 8.5px !important;
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.03em !important;
+}
+
+/* ── 10. MOBILE ADJUSTMENTS ── */
+@media (max-width: 700px) {
+  .mkt-row { padding: 8px 12px !important; }
+  .mr-bar { height: 2px !important; margin-top: 5px !important; }
+  .cot-card-val, [class*="cot-card-val"] { font-size: 28px !important; }
+  .ov-conf-strip { padding: 4px 10px !important; }
+  .ov-menv-pill { padding: 2px 8px 2px 4px !important; }
+  .tab-summary { padding: 0 2px 8px 2px !important; }
+}
+
+/* ── END ULTRA PREMIUM REDESIGN ── */
+
 </style>
 </head>
 <body>
@@ -28897,15 +29356,13 @@ function macroTab(m){
           const _cRGB2=_cv2>0?'48,217,136':_cv2<0?'240,64,64':'74,82,104';
           const _dir2=_cv2>0.1?`Bullish ${_fgnCur3}`:_cv2<-0.1?`Bearish ${_fgnCur3}`:'Neutral';
           const _dirIcon2=_cv2>0.1?'▲':_cv2<-0.1?'▼':'■';
-          html+=`<div style="padding:10px 12px;border-radius:8px;background:rgba(${_cRGB2},0.04);border:1px solid rgba(${_cRGB2},0.15);border-left:3px solid ${_cc2}">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-              <div style="display:flex;align-items:center;gap:7px">
-                <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text)">${_ck2.toUpperCase()}</span>
-                <span style="font-size:9.5px;font-weight:700;color:${_cc2};padding:1px 6px;background:rgba(${_cRGB2},0.12);border-radius:3px">${_dirIcon2} ${_dir2}</span>
-              </div>
-              <span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${_cc2}">${_cv2>=0?'+':''}${_cv2.toFixed(2)}</span>
+          html+=`<div class="mdr">
+            <div class="mdr-head">
+              <span class="mdr-name">${_ck2.toUpperCase()}</span>
+              <span class="mdr-val" style="color:${_cc2}">${_cv2>=0?'+':''}${_cv2.toFixed(2)}</span>
             </div>
-            <div style="font-size:8.5px;color:var(--dim);line-height:1.5">${_fxCatExplain[_ck2]||_ck2}</div>
+            <div class="mdr-bar-track"><div class="mdr-bar-fill" style="width:${Math.min(100,Math.abs(_cv2)/2*100)}%;background:${_cc2}"></div></div>
+            <span class="mdr-desc">${_fxCatExplain[_ck2]||_ck2}</span>
           </div>`;
         }
         html+=`</div>`;
@@ -28946,15 +29403,13 @@ function macroTab(m){
         const _cRGBdx=drv.val>0?'48,217,136':drv.val<0?'240,64,64':'74,82,104';
         const _dirIconDx=drv.val>0.1?'▲':drv.val<-0.1?'▼':'■';
         const _dirTxtDx=drv.val>0.1?'Bullish':drv.val<-0.1?'Bearish':'Neutral';
-        html+=`<div style="padding:10px 12px;border-radius:8px;background:rgba(${_cRGBdx},0.04);border:1px solid rgba(${_cRGBdx},0.15);border-left:3px solid ${c}">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <div style="display:flex;align-items:center;gap:7px">
-              <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text)">${drv.key}</span>
-              <span style="font-size:9.5px;font-weight:700;color:${c};padding:1px 6px;background:rgba(${_cRGBdx},0.12);border-radius:3px">${_dirIconDx} ${_dirTxtDx}</span>
-            </div>
-            <span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${c}">${drv.val>=0?'+':''}${drv.val.toFixed(2)}</span>
+        html+=`<div class="mdr">
+          <div class="mdr-head">
+            <span class="mdr-name">${drv.key}</span>
+            <span class="mdr-val" style="color:${c}">${drv.val>=0?'+':''}${drv.val.toFixed(2)}</span>
           </div>
-          <div style="font-size:8.5px;color:var(--dim);line-height:1.5;margin-bottom:${_catItems.length?'8':'0'}px">${drv.explain}</div>
+          <div class="mdr-bar-track"><div class="mdr-bar-fill" style="width:${Math.min(100,Math.abs(drv.val)/2*100)}%;background:${c}"></div></div>
+          <div class="mdr-desc" style="margin-bottom:${_catItems.length?'7':'0'}px">${drv.explain}</div>
           ${_catItems.length?`<div style="display:flex;flex-direction:column;gap:3px">${_catItems.map(it=>{
             const sc=it.score??0;
             const ic=sc>0?'#22c97a':sc<0?'#e03a2a':'#4a5268';
@@ -29592,18 +30047,13 @@ function macroTab(m){
       const _dir = _val > 0.1 ? 'Bullish' : _val < -0.1 ? 'Bearish' : 'Neutral';
       const _dirIcon = _val > 0.1 ? '▲' : _val < -0.1 ? '▼' : '■';
       const _cRGBa = _val>0?'48,217,136':_val<0?'240,64,64':'74,82,104';
-      html+=`<div style="padding:10px 12px;background:rgba(${_cRGBa},0.04);border-radius:8px;border:1px solid rgba(${_cRGBa},0.15);border-left:3px solid ${_col}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-          <div style="display:flex;align-items:center;gap:7px">
-            <span style="font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.07em">${cap(_cat)}</span>
-            <span style="font-size:9.5px;font-weight:700;color:${_col};padding:1px 6px;background:rgba(${_cRGBa},0.12);border-radius:3px">${_dirIcon} ${_dir}</span>
-          </div>
-          <span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${_col}">${_val>=0?'+':''}${_val.toFixed(2)}</span>
+      html+=`<div class="mdr" style="--mdr-col:${_col}">
+        <div class="mdr-head">
+          <span class="mdr-name">${cap(_cat)}</span>
+          <span class="mdr-val" style="color:${_col}">${_val>=0?'+':''}${_val.toFixed(2)}</span>
         </div>
-        <div style="height:2px;background:var(--surf4);border-radius:2px;overflow:hidden;margin-bottom:6px">
-          <div style="width:${_pct}%;height:100%;background:${_col};border-radius:2px"></div>
-        </div>
-        <div style="font-size:8.5px;color:var(--dim);line-height:1.5">${_expl}</div>
+        <div class="mdr-bar-track"><div class="mdr-bar-fill" style="width:${_pct}%;background:${_col}"></div></div>
+        <span class="mdr-desc">${_expl}</span>
       </div>`;
     }
     html+=`</div>`;
