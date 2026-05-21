@@ -17929,6 +17929,260 @@ a, .link-gold{
 
 /* ── END ULTRA PREMIUM REDESIGN ── */
 
+/* ════════════════════════════════════════════════════════════════
+   PARTICLE BACKDROP TRANSPARENCY PASS
+   Every surface becomes frosted glass so the particle
+   canvas bleeds through the entire app as a unified
+   living backdrop. Dark enough to read, transparent
+   enough to breathe.
+════════════════════════════════════════════════════════════════ */
+
+/* 1. BODY — make transparent so particle canvas shows through */
+body {
+  background: transparent !important;
+}
+/* Preserve the very darkest base-coat via the particle canvas bg colour:
+   The canvas JS fills with rgba(4,4,5,1) as its clear-rect baseline,
+   so the dark base is provided by the canvas, not the body. */
+
+/* 2. NAV BAR — frosted glass strip */
+.nav {
+  background: rgba(4,4,5,0.72) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.35) !important;
+}
+
+/* 3. SIDEBAR — frosted column, particle bleeds through */
+.sidebar {
+  background: rgba(4,4,5,0.55) !important;
+  backdrop-filter: blur(18px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
+  border-right: 1px solid rgba(255,255,255,0.055) !important;
+}
+/* Sidebar head — slightly more opaque so content is readable */
+.sb-head {
+  background: rgba(4,4,5,0.75) !important;
+  backdrop-filter: blur(20px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+  border-bottom: 1px solid rgba(200,169,110,0.12) !important;
+  box-shadow: none !important;
+}
+
+/* 4. DETAIL HEADER (d-head) — the hero banner area */
+.d-head {
+  background: rgba(4,4,5,0.52) !important;
+  backdrop-filter: blur(28px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(130%) !important;
+}
+
+/* 5. OV-NAV (tab strip bar) — currently solid var(--surf2) */
+.ov-nav {
+  background: rgba(6,6,7,0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.055) !important;
+}
+
+/* 6. OV-VERDICT (narrative card) — currently solid rgb(17,18,20) */
+.ov-verdict {
+  background: rgba(10,10,12,0.58) !important;
+  backdrop-filter: blur(20px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(120%) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 8px !important;
+}
+
+/* 7. COT CARDS — currently rgba(5,5,6,0.92) near-solid */
+.cot-card {
+  background: rgba(8,8,10,0.42) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: none !important;
+  border-top: none !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+.cot-card:hover {
+  background: rgba(12,12,14,0.58) !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* 8. COT PHASE BADGE */
+.cot-phase-badge {
+  background: rgba(8,8,10,0.50) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* 9. COT STACKED CHART AREA */
+.cot-stacked {
+  background: rgba(6,6,8,0.35) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255,255,255,0.04) !important;
+  border-radius: 10px !important;
+}
+
+/* 10. COT PANEL (chart containers inside stacked) */
+.cot-panel {
+  background: rgba(4,4,5,0.40) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-radius: 8px !important;
+}
+.cot-panel-chart {
+  background: rgba(4,4,5,0.60) !important;
+  border-radius: 6px !important;
+}
+
+/* 11. MENV INFO CARDS on homepage (Employment / Inflation / Fed) */
+.ov-mc-wrap, .macro-card, .ov-mc, [class*="ov-mc-"] {
+  background: rgba(8,8,10,0.52) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+}
+
+/* 12. SCORE HERO panel (right side of d-head) */
+.d-score-hero {
+  background: rgba(6,6,8,0.38) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: none !important;
+}
+
+/* 13. COT note/context cards (info banners in positioning tab) */
+.cot-note-card, .cot-note-warn,
+[class*="note-card"], [class*="note-warn"] {
+  background: rgba(8,8,10,0.40) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+}
+
+/* 14. SEASONAL mini chart surface */
+.seas-mini {
+  background: rgba(6,6,8,0.45) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(91,110,245,0.10) !important;
+  border-top: 1px solid rgba(91,110,245,0.20) !important;
+}
+
+/* 15. MODAL surfaces — keep more opaque for focus */
+.modal {
+  background: rgba(12,13,14,0.92) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
+}
+.modal-back {
+  background: rgba(0,0,0,0.75) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+.meth-modal {
+  background: rgba(12,13,14,0.95) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
+}
+
+/* 16. MARKET ROW mkt-row — transparent so sidebar particle shows */
+.mkt-row {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.mkt-row:hover {
+  background: rgba(255,255,255,0.03) !important;
+}
+.mkt-row.sel {
+  background: rgba(200,169,110,0.06) !important;
+}
+.mkt-row[data-zone="bull"] {
+  background: rgba(38,201,122,0.025) !important;
+}
+.mkt-row[data-zone="bear"] {
+  background: rgba(224,58,42,0.025) !important;
+}
+.mkt-row[data-zone="bull"].sel,
+.mkt-row[data-zone="bear"].sel {
+  background: rgba(200,169,110,0.06) !important;
+}
+
+/* 17. SCORE HISTORY / COT PHASE overlay panels */
+#cot-phase-wrap, #score-history-wrap {
+  background: rgba(4,4,5,0.82) !important;
+  backdrop-filter: blur(32px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(130%) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+}
+
+/* 18. ASSET MACRO SCORE card (in fundamentals tab) */
+.d-body, .d-content, .detail-body {
+  background: transparent !important;
+}
+
+/* 19. MOMENTUM / RELVAL / CLIMATE cards */
+.mom-card {
+  background: rgba(8,8,10,0.42) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+}
+.mom-card.primary {
+  background: rgba(10,10,12,0.55) !important;
+}
+[class*="rv-card"], .rv-gauge-wrap, .rv-score-card {
+  background: rgba(8,8,10,0.42) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* 20. REGIME / CLIMATE surface cards */
+.reg-card, .climate-card, [class*="reg-card"], [class*="climate-card"] {
+  background: rgba(8,8,10,0.42) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* 21. UPCOMING EVENTS strip on homepage */
+.ov-events-wrap {
+  background: transparent !important;
+}
+
+/* 22. ECONOMY & MARKETS section cards */
+.ov-mc-card,
+.ov-mc-inner,
+[class*="mc-card"],
+[class*="mc-inner"] {
+  background: rgba(8,8,10,0.52) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+  border-radius: 10px !important;
+}
+
+/* 23. MOBILE — same treatment at mobile viewport */
+@media (max-width: 700px) {
+  .ov-verdict {
+    background: rgba(8,8,10,0.62) !important;
+  }
+  .cot-card {
+    background: rgba(8,8,10,0.50) !important;
+  }
+  .sidebar {
+    background: rgba(4,4,5,0.72) !important;
+  }
+}
+
+/* ── END PARTICLE TRANSPARENCY PASS ── */
+
 </style>
 </head>
 <body>
