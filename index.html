@@ -18045,10 +18045,11 @@ body {
   border-radius: 6px !important;
 }
 
-/* 11. MENV INFO CARDS on homepage (Employment / Inflation / Fed) */
-/* Note: [class*="ov-mc-"] intentionally excludes ov-mc-badge to let JS inline colours show */
+/* 11. MENV INFO CARDS on homepage (Employment / Inflation / Fed)
+   ONLY target container/panel elements — never eyebrow/title/header/badge/particles */
 .ov-mc-wrap, .macro-card, .ov-mc,
-[class*="ov-mc-"]:not(.ov-mc-badge):not([class*="ov-mc-badge"]) {
+.ov-mc-card, .ov-mc-inner,
+.ov-mc-p1, .ov-mc-p2, .ov-mc-p3, .ov-mc-p4, .ov-mc-p5, .ov-mc-p6 {
   background: rgba(8,8,10,0.52) !important;
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
@@ -18254,15 +18255,18 @@ body {
   z-index: 0 !important;
 }
 
-/* Zoom the inner image so it fills crisply with no letterboxing */
+/* Full-bleed inner image — use cover so no letterboxing, minimal scale to avoid blur */
 .d-head-graphic-inner {
-  background-size: 120% auto !important;
-  background-position: center 30% !important;
-  transform: scale(1.08) !important;
+  background-size: cover !important;
+  background-position: center 35% !important;
+  transform: scale(1.0) !important;
   transform-origin: center center !important;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 .d-head:hover .d-head-graphic-inner {
-  transform: scale(1.13) !important;
+  transform: scale(1.04) !important;
+  transition: transform 8s ease !important;
 }
 
 /* Left fade — strong enough to fully protect the identity text,
@@ -18375,6 +18379,162 @@ body {
 }
 
 /* ── END COMPREHENSIVE UI FIXES PASS ── */
+
+/* ═══════════════════════════════════════════════════════════════
+   R33 — OVERVIEW REDESIGN + MACRO CARD BLACK-BOX FIX
+   1. Explicitly clear background from ov-mc inner text elements
+   2. Overview page 2-col layout at ≥1100px (fill wasted right space)
+   3. Tighten d-head header sizing
+═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. MACRO CARD INNER ELEMENTS: force transparent backgrounds
+   The [class*="ov-mc-"] transparency rule was giving these opaque glass backgrounds.
+   These are text/layout elements INSIDE cards — they must be transparent. */
+.ov-mc-header,
+.ov-mc-eyebrow,
+.ov-mc-title,
+.ov-mc-particles {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Also ensure ov-macro-card itself is never given the opaque glass treatment
+   (it has its own ::before glow, should stay near-transparent) */
+.ov-macro-card {
+  background: rgba(255,255,255,0.018) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+}
+
+/* ── 2. OVERVIEW TAB — 2-COLUMN LAYOUT at ≥1100px
+   Left col (55%): verdict + narrative + pills
+   Right col (45%): attribution table + weight bar
+   This eliminates the wasted right-side dead space at widescreen */
+@media (min-width: 1100px) {
+  #t-overview.on {
+    display: grid !important;
+    grid-template-columns: minmax(0, 55fr) minmax(0, 45fr) !important;
+    grid-template-rows: auto auto auto !important;
+    column-gap: 14px !important;
+    row-gap: 0 !important;
+    align-items: start !important;
+    padding: 14px 18px 40px !important;
+  }
+
+  /* Left column: verdict + confluence strip */
+  #t-overview .ov-verdict {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    margin-bottom: 10px !important;
+  }
+  #t-overview .ov-conf-strip {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Right column: attr table + weight bar — stacked, full height */
+  #t-overview .ov-attr-wrap {
+    grid-column: 2 !important;
+    grid-row: 1 / 4 !important;
+    margin-bottom: 0 !important;
+    align-self: stretch !important;
+  }
+  #t-overview .ov-wt-card {
+    grid-column: 2 !important;
+    grid-row: 4 !important;
+    margin-top: 10px !important;
+  }
+
+  /* Attribution table grid — use all available width */
+  .ov-attr-head,
+  .ov-arow,
+  .ov-atotal {
+    grid-template-columns: minmax(130px, 1fr) 1fr 52px 50px 110px !important;
+  }
+
+  /* Verdict card gets the full left column width */
+  .ov-verdict {
+    padding: 18px 20px 16px !important;
+  }
+  .ov-vsn {
+    font-size: clamp(44px, 3.2vw, 58px) !important;
+  }
+  .ov-vstmt {
+    font-size: 13.5px !important;
+    line-height: 1.65 !important;
+    max-width: 520px !important;
+  }
+  .ov-vk {
+    font-size: 8.5px !important;
+    letter-spacing: 0.18em !important;
+  }
+  /* Pills row wraps nicely in the wider left col */
+  .ov-pills {
+    flex-wrap: wrap !important;
+    gap: 5px 8px !important;
+    margin-top: 10px !important;
+  }
+}
+
+/* At 1440px: bump the attribution table to use more horizontal space */
+@media (min-width: 1440px) {
+  #t-overview.on {
+    grid-template-columns: minmax(0, 52fr) minmax(0, 48fr) !important;
+    column-gap: 18px !important;
+    padding: 16px 24px 48px !important;
+  }
+  .ov-attr-head,
+  .ov-arow,
+  .ov-atotal {
+    grid-template-columns: minmax(160px, 1fr) 1fr 58px 56px 120px !important;
+  }
+  .ov-vsn {
+    font-size: clamp(48px, 3.5vw, 64px) !important;
+  }
+  .ov-vstmt {
+    font-size: 14px !important;
+  }
+}
+
+/* ── 3. D-HEAD: tighter proportions at 1440px+
+   The header was proportioned for lower-res screens — scale it appropriately */
+@media (min-width: 1100px) {
+  .d-head {
+    grid-template-columns: 200px 1fr 200px !important;
+    min-height: 130px !important;
+  }
+  .d-head-l {
+    padding: 14px 20px 14px 20px !important;
+  }
+  .d-name {
+    font-size: clamp(24px, 1.9vw, 36px) !important;
+  }
+}
+@media (min-width: 1440px) {
+  .d-head {
+    grid-template-columns: 220px 1fr 220px !important;
+    min-height: 140px !important;
+  }
+  .d-name {
+    font-size: clamp(26px, 2.0vw, 40px) !important;
+  }
+}
+
+/* ── 4. Ensure macro card eyebrow text has no black bg — belt and braces */
+[class*="ov-macro-card"] .ov-mc-eyebrow,
+[class*="ov-macro-card"] .ov-mc-header,
+[class*="ov-macro-card"] .ov-mc-title {
+  background: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
+}
+
+/* ── END R33 ── */
 
 </style>
 </head>
