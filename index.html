@@ -22587,7 +22587,153 @@ body {
   /* ── Factor table remains unchanged (R35 rules already good) ── */
 }
 
-/* ── END R46 ── */
+/* ════════════════════════════════════════════════════════════════
+   R46b — SIGNAL FINGERPRINT BAR
+   Replaces redundant coloured factor score cards in confluence strip.
+   Weight-proportional vertical bars, labelled, click to deep-dive tab.
+════════════════════════════════════════════════════════════════ */
+
+/* ── Ov conf-strip: left summary + right fingerprint bar ── */
+.ov-conf-strip {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.ov-conf-summary {
+  flex-shrink: 0;
+  min-width: 200px;
+  max-width: 240px;
+}
+
+/* Right side: eyebrow + fingerprint bar */
+.ov-conf-right {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  padding: 12px 16px !important;
+  background: rgba(8,10,14,0.72) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 12px !important;
+  min-width: 0 !important;
+}
+
+.ov-sig-eyebrow {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(173,184,208,0.45);
+  line-height: 1;
+}
+
+/* Signal fingerprint: all segments side by side */
+.ov-signal-bar {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: 52px; /* total area including label */
+  flex: 1;
+}
+
+/* Each factor segment: width driven by weight */
+.ov-sig-seg {
+  flex: 0 0 var(--seg-pct, 14%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.ov-sig-seg:hover .ov-sig-bar {
+  filter: brightness(1.25);
+}
+
+/* Bar track */
+.ov-sig-bar {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px 3px 0 0;
+  position: relative;
+  overflow: hidden;
+  min-height: 8px;
+  transition: filter 0.15s;
+}
+
+/* Coloured fill: height = score% of bar */
+.ov-sig-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--seg-fill, 50%);
+  background: var(--seg-col, rgba(173,184,208,0.5));
+  border-radius: 3px 3px 0 0;
+  opacity: 0.85;
+  transition: height 0.4s cubic-bezier(0.22,1,0.36,1);
+}
+
+/* Label row below bar */
+.ov-sig-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1;
+  overflow: hidden;
+}
+
+.ov-sig-name {
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(173,184,208,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-sig-score {
+  font-family: var(--head);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ── Mobile: stack summary above fingerprint bar ── */
+@media (max-width: 700px) {
+  .ov-conf-strip {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .ov-conf-summary {
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+  .ov-signal-bar {
+    height: 48px !important;
+  }
+  .ov-sig-name {
+    display: none !important; /* too narrow — just show score bar */
+  }
+  .ov-sig-score {
+    font-size: 9px !important;
+  }
+}
+
+/* ── END R46b ── */
 
 
 
@@ -32398,19 +32544,33 @@ function buildOverview(m){
   const arcOffset = Math.round(arcCirc * (1 - Math.min(10, Math.max(0, ws)) / 10) * 10) / 10;
 
   // ── Factor chips for confluence section ──
-  const fChips = factorKeys.map(k=>{
+  // ── Signal fingerprint bar (replaces redundant factor score cards) ──
+  // Weight-proportional segments coloured by score, with labels below
+  const totalWtRaw = factorKeys.reduce((a,k)=>a+(normalisedWts[k]||0),0)||1;
+  const signalSegs = factorKeys.map(k=>{
     const sc = normalisedScores[k]?.score ?? 5;
-    const ccol = sHex(sc);
+    const wt = (normalisedWts[k]||0)/totalWtRaw;
+    const pct = Math.max(4, Math.round(wt*100*10)/10); // min 4% so label always has room
+    const col = sHex(sc);
+    const rgb = sRgb(sc);
+    const lbl = (FACTOR_LABELS[k]||k).replace(' & ','&amp;');
     const tabId = FACTOR_TABS[k]||k;
-    const lbl = (FACTOR_LABELS[k]||k).replace(' & ',' &amp; ');
-    const dir = sc>=6.5?'Bullish':sc<=3.5?'Bearish':'Neutral';
-    const crgb = sRgb(sc);
-    return `<div class="ov-conf-fchip" style="--chip-col:${ccol};--chip-rgb:${crgb}" onclick="switchTab('${tabId}')">
-      <div class="ov-conf-fchip-name">${lbl}</div>
-      <div class="ov-conf-fchip-score">${sc.toFixed(1)}</div>
-      <div class="ov-conf-fchip-dir">${dir}</div>
+    const fillH = Math.round((sc/10)*100); // height % of the bar fill
+    const dir = sc>=6.5?'B':sc<=3.5?'b':'N'; // B=bull, b=bear, N=neutral for aria
+    return `<div class="ov-sig-seg" style="--seg-pct:${pct}%;--seg-col:${col};--seg-rgb:${rgb};--seg-fill:${fillH}%" onclick="switchTab('${tabId}')" title="${FACTOR_LABELS[k]||k}: ${sc.toFixed(1)}/10">
+      <div class="ov-sig-bar">
+        <div class="ov-sig-fill"></div>
+      </div>
+      <div class="ov-sig-label">
+        <span class="ov-sig-name">${lbl}</span>
+        <span class="ov-sig-score" style="color:${col}">${sc.toFixed(1)}</span>
+      </div>
     </div>`;
   }).join('');
+  const signalBar = `<div class="ov-signal-bar">${signalSegs}</div>`;
+
+  // Legacy fChips kept as empty string (chips removed — replaced by signal bar)
+  const fChips = '';
 
   // This function returns the overview PANEL content only
   return `<div id="t-overview" class="on">
@@ -32471,13 +32631,16 @@ function buildOverview(m){
 
     </div><!-- end .ov-r39-grid -->
 
-    <!-- CONFLUENCE STRIP — factor chips with individual scores -->
+    <!-- CONFLUENCE STRIP — signal fingerprint bar + confluence summary -->
     <div class="ov-conf-strip" style="--ov-stripe-rgb:${stripeRgb}">
       <div class="ov-conf-summary" style="--ov-stripe-rgb:${stripeRgb}">
         <div class="ov-conf-summary-title">${confTitle}</div>
         <div class="ov-conf-summary-sub">${confText}</div>
       </div>
-      <div class="ov-conf-chips">${fChips}</div>
+      <div class="ov-conf-right">
+        <div class="ov-sig-eyebrow">SIGNAL FINGERPRINT</div>
+        ${signalBar}
+      </div>
     </div>
 
     <!-- WEIGHT BREAKDOWN BAR -->
