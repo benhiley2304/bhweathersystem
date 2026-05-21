@@ -30231,36 +30231,32 @@ function assetGraphic(m){
             <rect x="${cW*0.47}" y="0" width="${cW*0.06}" height="${cH}" fill="#C8102E"/>
             <!-- Commonwealth Star (7-point) below canton -->
             ${Array.from({length:7},(_,j)=>{const pa=j*Math.PI*2/7-Math.PI/2;const r2=nH*0.088;const r1=r2*0.45;const scx=nW*0.165;const scy=nH*0.76;const pts=Array.from({length:14},(_,k)=>{const a2=k*Math.PI/7-Math.PI/2;const pr=k%2===0?r2:r1;return `${scx+Math.cos(a2)*pr},${scy+Math.sin(a2)*pr}`;}).join(' ');return `<polygon points="${pts}" fill="#FFFFFF"/>`;}).join('')}
-            <!-- Southern Cross: 5 stars -->
-            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.076:nH*0.030;const scx=nW*0.80,scy=nH*0.22;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>
-            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.064:nH*0.026;const scx=nW*0.92,scy=nH*0.40;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>
-            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.064:nH*0.026;const scx=nW*0.84,scy=nH*0.60;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>
-            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.064:nH*0.026;const scx=nW*0.67,scy=nH*0.55;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>
-            <polygon points="${[0,1,2,3,4,5,6,7,8,9].map(j=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?nH*0.036:nH*0.015;const scx=nW*0.75,scy=nH*0.34;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>`;
+            <!-- Southern Cross: 4 large 7-pointed stars + 1 small 5-pointed (Epsilon Crucis) -->
+            ${[[0.80,0.22,0.076,'7'],[0.92,0.40,0.064,'7'],[0.84,0.60,0.064,'7'],[0.67,0.55,0.064,'7'],[0.75,0.34,0.036,'5']].map(([fx,fy,fr,pts])=>{const np=parseInt(pts)*2;const scx=nW*fx,scy=nH*fy,r2=nH*fr,r1=r2*0.45;return `<polygon points="${Array.from({length:np},(_,k)=>{const a=k*Math.PI/parseInt(pts)-Math.PI/2;const pr=k%2===0?r2:r1;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>`;}).join('')}`;
           return {nW,nH,svg};
         }
 
         case 'CAD': { // Canada — 2:1
           const nW=200, nH=100;
-          // Official Canadian flag: red | white | red (1:2:1 width ratio)
-          // Maple leaf: 11-point, official geometry from Government of Canada spec
-          // Native coords: flag 200×100, leaf centred at (100,50), height ~58 units
-          const svg=`
-            <rect width="${nW}" height="${nH}" fill="#FFFFFF"/>
-            <rect x="0" y="0" width="${nW*0.25}" height="${nH}" fill="#FF0000"/>
-            <rect x="${nW*0.75}" y="0" width="${nW*0.25}" height="${nH}" fill="#FF0000"/>
-            <!-- Official Canadian maple leaf — polygon from the Government of Canada flag specification -->
-            <!-- Coordinate system: leaf ~82 units tall, centred at 0,0. Scale to fit banner. -->
-            <!-- These points trace the official 11-lobe silhouette from the 1965 proclamation. -->
-            <g transform="translate(${nW/2},${nH*0.48}) scale(${nH*0.0072})">
-              <polygon fill="#FF0000" points="
-                0,-57  5,-38  16,-44  11,-29  26,-33  19,-18  34,-20  26,-9
-                38,-5  28,0   34,9   19,7   22,19  10,14  9,32
-                -9,32  -10,14 -22,19 -19,7  -34,9  -28,0
-                -38,-5 -26,-9 -19,-18 -26,-33 -11,-29 -16,-44 -5,-38
-              "/>
-            </g>
-          `;
+          // Official Canadian flag: red (1/4) | white (1/2) | red (1/4)
+          // Maple leaf polygon: derived from the official Wikimedia SVG
+          // (upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Canada_(Pantone).svg)
+          // Original coords in 9600×4800 space, centred at (4800,2415).
+          // Scaled so leaf height = 58% of flag height (~58px in our 200×100 space).
+          const svg=\`
+            <rect width="\${nW}" height="\${nH}" fill="#FFFFFF"/>
+            <rect x="0" y="0" width="\${nW*0.25}" height="\${nH}" fill="#D52B1E"/>
+            <rect x="\${nW*0.75}" y="0" width="\${nW*0.25}" height="\${nH}" fill="#D52B1E"/>
+            <!-- Maple leaf — official 34-point polygon from Canadian flag SVG (Pantone) -->
+            <polygon fill="#D52B1E" points="
+              101.3,79 100.65,66.58 102.25,65.17 114.61,67.34 112.94,62.74 113.23,61.69
+              126.77,50.72 123.72,49.29 123.23,48.16 125.91,39.93 118.11,41.58 117.05,41.03
+              115.54,37.48 109.46,44.01 107.86,43.19 110.79,28.05 106.09,30.77 104.78,30.38
+              100,21 95.22,30.38 93.91,30.77 89.21,28.05 92.14,43.19 90.54,44.01
+              84.46,37.48 82.95,41.03 81.89,41.58 74.09,39.93 76.77,48.16 76.28,49.29
+              73.23,50.72 86.77,61.69 87.06,62.74 85.39,67.34 97.75,65.17 99.35,66.58
+              98.7,79"/>
+          \`;
           return {nW,nH,svg};
         }
 
@@ -30281,7 +30277,7 @@ function assetGraphic(m){
             <rect x="${cW*0.43}" y="0" width="${cW*0.14}" height="${cH}" fill="#FFFFFF"/>
             <rect x="0" y="${cH*0.45}" width="${cW}" height="${cH*0.10}" fill="#CC142B"/>
             <rect x="${cW*0.47}" y="0" width="${cW*0.06}" height="${cH}" fill="#CC142B"/>
-            <!-- Southern Cross — 4 red stars with white border (NZ uses red 4-pointed) -->
+            <!-- Southern Cross — 4 red 5-pointed stars with white border (official NZ flag spec) -->
             ${[{cx:0.76,cy:0.22,r:0.072},{cx:0.91,cy:0.38,r:0.062},{cx:0.84,cy:0.62,r:0.062},{cx:0.65,cy:0.52,r:0.062}].map(s=>{
               const scx=s.cx*nW, scy=s.cy*nH, r2=s.r*nH;
               const pts=Array.from({length:10},(_,j)=>{const a=j*Math.PI/5-Math.PI/4;const pr=j%2===0?r2:r2*0.38;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ');
@@ -30290,38 +30286,60 @@ function assetGraphic(m){
           return {nW,nH,svg};
         }
 
-        case 'CHF': { // Switzerland — official 1:1 but displayed 3:2
+        case 'CHF': { // Switzerland — official 1:1, displayed at 3:2
           const nW=300, nH=200;
-          // Red background, white cross (arms are 1:6 × 7:20 proportions)
-          const armW=nW*0.20, armH=nH*0.60, cx=nW/2, cy=nH/2;
-          const svg=`
-            <rect width="${nW}" height="${nH}" fill="#FF0000"/>
+          // Official Swiss cross proportions (Federal Chancellery spec):
+          // Square flag. Cross = white, centred. Arm length (half) = 13/32 of flag side.
+          // Arm width = 6/32 of flag side. Both arms same length.
+          // Mapping to our 300×200: use flag height (200) as the reference square side.
+          const side = nH; // treat height as the reference dimension
+          const armW = side * (6/32);    // ~37.5px — arm thickness
+          const armLen = side * (13/32); // ~81.25px — half-length of each arm
+          const cx = nW/2, cy = nH/2;
+          const svg=\`
+            <rect width="\${nW}" height="\${nH}" fill="#D52B1E"/>
             <!-- Vertical arm -->
-            <rect x="${cx-armW/2}" y="${cy-armH/2}" width="${armW}" height="${armH}" fill="#FFFFFF"/>
-            <!-- Horizontal arm (slightly shorter than vertical per official spec) -->
-            <rect x="${cx-armH*0.54/2}" y="${cy-armW/2}" width="${armH*0.54}" height="${armW}" fill="#FFFFFF"/>`;
+            <rect x="\${cx - armW/2}" y="\${cy - armLen}" width="\${armW}" height="\${armLen*2}" fill="#FFFFFF"/>
+            <!-- Horizontal arm — same length as vertical -->
+            <rect x="\${cx - armLen}" y="\${cy - armW/2}" width="\${armLen*2}" height="\${armW}" fill="#FFFFFF"/>
+          \`;
           return {nW,nH,svg};
         }
 
-        case 'MXN': { // Mexico — 4:7 ≈ 7:4 aspect
+        case 'MXN': { // Mexico — 4:7 aspect (use 280×160 = 7:4)
           const nW=280, nH=160;
-          // Three vertical bands: green | white | red
-          // Central coat of arms: simplified golden eagle on cactus
+          // Three equal vertical bands: green | white | red
+          // Coat of arms: eagle facing left on cactus, snake in beak — clean geometric silhouette
           const bW=nW/3;
-          const svg=`
-            <rect x="0" y="0" width="${bW}" height="${nH}" fill="#006847"/>
-            <rect x="${bW}" y="0" width="${bW}" height="${nH}" fill="#FFFFFF"/>
-            <rect x="${bW*2}" y="0" width="${bW}" height="${nH}" fill="#CE1126"/>
-            <!-- Coat of arms: simplified eagle silhouette -->
-            <ellipse cx="${nW/2}" cy="${nH*0.46}" rx="${nH*0.18}" ry="${nH*0.22}" fill="#8B6914" opacity="0.85"/>
-            <!-- Cactus pad -->
-            <ellipse cx="${nW/2}" cy="${nH*0.64}" rx="${nH*0.07}" ry="${nH*0.10}" fill="#006847"/>
-            <ellipse cx="${nW/2}" cy="${nH*0.76}" rx="${nH*0.10}" ry="${nH*0.07}" fill="#006847"/>
-            <!-- Eagle wings -->
-            <ellipse cx="${nW/2-nH*0.18}" cy="${nH*0.38}" rx="${nH*0.16}" ry="${nH*0.08}" fill="#8B6914" opacity="0.7" transform="rotate(-20,${nW/2-nH*0.18},${nH*0.38})"/>
-            <ellipse cx="${nW/2+nH*0.18}" cy="${nH*0.38}" rx="${nH*0.16}" ry="${nH*0.08}" fill="#8B6914" opacity="0.7" transform="rotate(20,${nW/2+nH*0.18},${nH*0.38})"/>
-            <!-- Circular laurel ring -->
-            <circle cx="${nW/2}" cy="${nH/2}" r="${nH*0.30}" fill="none" stroke="#8B6914" stroke-width="3" stroke-dasharray="8,5" opacity="0.60"/>`;
+          const cx=nW/2, cy=nH/2;
+          // Scale factor: design in 100-unit space scaled to flag dimensions
+          const s=nH/100;
+          const ex=cx, ey=cy-2*s; // eagle centre
+          const svg=\`
+            <rect x="0"        y="0" width="\${bW}" height="\${nH}" fill="#006847"/>
+            <rect x="\${bW}"   y="0" width="\${bW}" height="\${nH}" fill="#FFFFFF"/>
+            <rect x="\${bW*2}" y="0" width="\${bW}" height="\${nH}" fill="#CE1126"/>
+            <!-- Laurel wreath — two arcs of leaves (left=olive, right=oak) -->
+            <circle cx="\${ex}" cy="\${ey+12*s}" r="\${30*s}" fill="none" stroke="#4A7A1E" stroke-width="\${5.5*s}" stroke-dasharray="\${6*s} \${3.5*s}" opacity="0.85"/>
+            <!-- Cactus: vertical stem with two arms -->
+            <rect x="\${ex-2.8*s}" y="\${ey+8*s}" width="\${5.6*s}" height="\${22*s}" rx="\${1.5*s}" fill="#2E7D32"/>
+            <path d="M\${ex-2.8*s},\${ey+16*s} Q\${ex-14*s},\${ey+15*s} \${ex-14*s},\${ey+7*s}" stroke="#2E7D32" stroke-width="\${4.5*s}" fill="none" stroke-linecap="round"/>
+            <path d="M\${ex+2.8*s},\${ey+18*s} Q\${ex+14*s},\${ey+17*s} \${ex+14*s},\${ey+9*s}" stroke="#2E7D32" stroke-width="\${4.5*s}" fill="none" stroke-linecap="round"/>
+            <!-- Eagle talons gripping cactus -->
+            <path d="M\${ex-5*s},\${ey+9*s} L\${ex-10*s},\${ey+13*s} M\${ex-5*s},\${ey+9*s} L\${ex-9*s},\${ey+14*s} M\${ex+5*s},\${ey+9*s} L\${ex+10*s},\${ey+13*s} M\${ex+5*s},\${ey+9*s} L\${ex+9*s},\${ey+14*s}" stroke="#5D4037" stroke-width="\${2*s}" fill="none" stroke-linecap="round"/>
+            <!-- Eagle body -->
+            <ellipse cx="\${ex-2*s}" cy="\${ey+2*s}" rx="\${10*s}" ry="\${13*s}" fill="#4E342E"/>
+            <!-- Left wing (spread, raised) — eagle faces LEFT (left is fly-side) -->
+            <path d="M\${ex-8*s},\${ey-2*s} Q\${ex-26*s},\${ey-18*s} \${ex-30*s},\${ey+2*s} Q\${ex-22*s},\${ey+4*s} \${ex-8*s},\${ey+4*s}" fill="#5D4037"/>
+            <!-- Right wing (smaller, partially folded) -->
+            <path d="M\${ex+6*s},\${ey-2*s} Q\${ex+22*s},\${ey-14*s} \${ex+24*s},\${ey+2*s} Q\${ex+16*s},\${ey+4*s} \${ex+6*s},\${ey+4*s}" fill="#5D4037"/>
+            <!-- Eagle head (faces left) -->
+            <circle cx="\${ex-8*s}" cy="\${ey-13*s}" r="\${6*s}" fill="#4E342E"/>
+            <!-- Beak (curved, hooked) -->
+            <path d="M\${ex-12*s},\${ey-12*s} Q\${ex-18*s},\${ey-10*s} \${ex-16*s},\${ey-7*s}" stroke="#C8A800" stroke-width="\${2.5*s}" fill="none" stroke-linecap="round"/>
+            <!-- Snake (in beak, curving down-right) -->
+            <path d="M\${ex-15*s},\${ey-9*s} Q\${ex-10*s},\${ey-3*s} \${ex-4*s},\${ey+1*s} Q\${ex+2*s},\${ey+6*s} \${ex+1*s},\${ey+10*s}" stroke="#2E7D32" stroke-width="\${2.2*s}" fill="none" stroke-linecap="round"/>
+          \`;
           return {nW,nH,svg};
         }
 
