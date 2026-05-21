@@ -19748,11 +19748,12 @@ body {
 
 /* --- Arc gauge container (injected via JS) --- */
 .d-score-arc-wrap {
-  width: 96px;
-  height: 56px;
+  width: 100%;
+  max-width: 148px;
+  height: 82px;
   position: relative;
   flex-shrink: 0;
-  margin: 4px 0 2px;
+  margin: 6px 0 0;
 }
 .d-score-arc-wrap svg {
   width: 100%;
@@ -19808,12 +19809,9 @@ body {
   margin-top: -1px !important;
 }
 
-/* Bias label */
+/* Bias label — hidden, now rendered inside arc SVG */
 .d-score-hero-label {
-  font-size: 7.5px !important;
-  letter-spacing: 0.15em !important;
-  margin-top: 3px !important;
-  opacity: 0.70 !important;
+  display: none !important;
 }
 
 /* Confluence callout — tighten */
@@ -29632,70 +29630,74 @@ function dHead(m,ws,col,bg){
 
     <!-- RIGHT: composite score (R38 — premium arc gauge) -->
     ${(()=>{
-      // Arc gauge SVG — horseshoe arc, red→neutral→green
-      // Arc spans from 215° to 325° (140° sweep, opening at bottom)
-      const R=40, cx=52, cy=52; // viewBox 104x72
-      const startDeg=210, endDeg=330, sweep=endDeg-startDeg; // 120° sweep
+      // Arc gauge SVG — large horseshoe arc, red→neutral→green
+      // Designed to fill the score panel width (~180px)
+      // viewBox: 160 wide x 100 tall. Arc centre at (80, 88), R=62
+      // Sweep from 210° to 330° (120°), opening faces down
+      const R=62, cx=80, cy=88; // viewBox 160x100
+      const startDeg=210, endDeg=330, sweep=120;
       const toRad=d=>d*Math.PI/180;
       const px=(deg,r)=>(cx+r*Math.cos(toRad(deg))).toFixed(2);
       const py=(deg,r)=>(cy+r*Math.sin(toRad(deg))).toFixed(2);
-      // Track arc path (thick, dim)
-      const trackPath=`M${px(startDeg,R)},${py(startDeg,R)} A${R},${R} 0 1 1 ${px(endDeg,R)},${py(endDeg,R)}`;
-      // Score position on arc (0–10 mapped to start→end)
-      const scoreFrac=Math.min(1,Math.max(0,(ws-0)/10));
+      // Full track arc path
+      const trackPath=`M${px(startDeg,R)},${py(startDeg,R)} A${R},${R} 0 0 1 ${px(endDeg,R)},${py(endDeg,R)}`;
+      // Score position
+      const scoreFrac=Math.min(1,Math.max(0,ws/10));
       const scoreDeg=startDeg+scoreFrac*sweep;
       const dotX=cx+R*Math.cos(toRad(scoreDeg));
       const dotY=cy+R*Math.sin(toRad(scoreDeg));
-      // Gradient IDs (unique per render)
+      // Unique IDs
       const arcUid='a'+(Math.random()*0xFFFFF|0).toString(16);
-      // Score colour for the dot glow (raw hex, strip #)
-      const colHex=col.replace('#','');
+      // Bias label — uppercase
+      const biasUp=(m.bias||'').toUpperCase();
       return `<div class="d-score-hero" style="--score-glow-col:${col}">
-      <div style="font-size:7px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(190,200,220,0.45);font-family:var(--mono);margin-bottom:1px">COMPOSITE</div>
+      <div style="font-size:7px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(190,200,220,0.40);font-family:var(--mono);margin-bottom:2px">COMPOSITE</div>
       <div class="d-score-hero-num" style="color:${col}">${ws.toFixed(1)}</div>
       <div class="d-score-hero-denom" style="color:${col}">/10</div>
-      <div class="d-score-hero-label" style="color:${col}">${m.bias}</div>
       <div class="d-score-arc-wrap">
-        <svg viewBox="0 0 104 72" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+        <svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg" overflow="visible">
           <defs>
-            <!-- Arc track gradient: red → neutral → green (horizontal userSpace) -->
+            <!-- Arc gradient: bear→neutral→bull, horizontal userSpace -->
             <linearGradient id="arcGrad${arcUid}" gradientUnits="userSpaceOnUse"
-              x1="${(cx-R).toFixed(2)}" y1="0" x2="${(cx+R).toFixed(2)}" y2="0">
-              <stop offset="0%"   stop-color="#d63a24" stop-opacity="0.90"/>
-              <stop offset="35%"  stop-color="#8a4820" stop-opacity="0.65"/>
-              <stop offset="50%"  stop-color="#4a5268" stop-opacity="0.58"/>
-              <stop offset="65%"  stop-color="#1a6444" stop-opacity="0.65"/>
-              <stop offset="100%" stop-color="#26c97a" stop-opacity="0.90"/>
+              x1="${(cx-R).toFixed(1)}" y1="0" x2="${(cx+R).toFixed(1)}" y2="0">
+              <stop offset="0%"   stop-color="#d63a24" stop-opacity="0.95"/>
+              <stop offset="28%"  stop-color="#8a4020" stop-opacity="0.70"/>
+              <stop offset="50%"  stop-color="#4a5268" stop-opacity="0.60"/>
+              <stop offset="72%"  stop-color="#1a6844" stop-opacity="0.70"/>
+              <stop offset="100%" stop-color="#26c97a" stop-opacity="0.95"/>
             </linearGradient>
-            <!-- Dot outer glow -->
-            <filter id="arcGlow${arcUid}" x="-120%" y="-120%" width="440%" height="440%">
-              <feGaussianBlur stdDeviation="4" result="blur"/>
+            <!-- Dot glow filter -->
+            <filter id="arcGlow${arcUid}" x="-150%" y="-150%" width="500%" height="500%">
+              <feGaussianBlur stdDeviation="5" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
+            <!-- Subtle track blur for depth -->
+            <filter id="arcSoft${arcUid}"><feGaussianBlur stdDeviation="0.6"/></filter>
           </defs>
-          <!-- Track (dim) -->
-          <path d="${trackPath}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" stroke-linecap="round"/>
-          <!-- Filled arc up to score position (large-arc-flag: sweep degrees > 180) -->
-          ${scoreFrac>0?`<path d="M${px(startDeg,R)},${py(startDeg,R)} A${R},${R} 0 ${scoreFrac*sweep>180?1:0} 1 ${dotX.toFixed(2)},${dotY.toFixed(2)}" fill="none" stroke="url(#arcGrad${arcUid})" stroke-width="4" stroke-linecap="round"/>`:''}
-
+          <!-- Outer halo track (very dim, slightly wider) -->
+          <path d="${trackPath}" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="9" stroke-linecap="round"/>
+          <!-- Main track (dim) -->
+          <path d="${trackPath}" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="5" stroke-linecap="round"/>
+          <!-- Filled progress arc -->
+          ${scoreFrac>0.005?`<path d="M${px(startDeg,R)},${py(startDeg,R)} A${R},${R} 0 0 1 ${dotX.toFixed(2)},${dotY.toFixed(2)}" fill="none" stroke="url(#arcGrad${arcUid})" stroke-width="5" stroke-linecap="round"/>`:''}
           <!-- Tick marks at 0, 2.5, 5, 7.5, 10 -->
           ${[0,0.25,0.5,0.75,1].map(f=>{
             const td=startDeg+f*sweep;
             const ox=cx+R*Math.cos(toRad(td)), oy=cy+R*Math.sin(toRad(td));
-            const ix=cx+(R-5)*Math.cos(toRad(td)), iy=cy+(R-5)*Math.sin(toRad(td));
-            return `<line x1="${ox.toFixed(2)}" y1="${oy.toFixed(2)}" x2="${ix.toFixed(2)}" y2="${iy.toFixed(2)}" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>`;
+            const ix=cx+(R-7)*Math.cos(toRad(td)), iy=cy+(R-7)*Math.sin(toRad(td));
+            const isMid=f===0.5;
+            return `<line x1="${ox.toFixed(2)}" y1="${oy.toFixed(2)}" x2="${ix.toFixed(2)}" y2="${iy.toFixed(2)}" stroke="rgba(255,255,255,${isMid?0.28:0.16})" stroke-width="${isMid?1.2:0.9}"/>`;
           }).join('')}
-          <!-- Dot indicator -->
-          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="5.5" fill="${col}" opacity="0.22" filter="url(#arcGlow${arcUid})"/>
-          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="3.5" fill="${col}"/>
-          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="1.5" fill="#ffffff" opacity="0.70"/>
-          <!-- Min/max labels -->
-          <text x="${px(startDeg,R-12)}" y="${py(startDeg,R-9)}" text-anchor="middle" font-family="var(--mono)" font-size="6" fill="rgba(214,58,36,0.55)" font-weight="700">0</text>
-          <text x="${px(endDeg,R-12)}" y="${py(endDeg,R-9)}" text-anchor="middle" font-family="var(--mono)" font-size="6" fill="rgba(38,201,122,0.55)" font-weight="700">10</text>
+          <!-- Dot indicator: glow layer + solid dot + specular -->
+          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="8" fill="${col}" opacity="0.18" filter="url(#arcGlow${arcUid})"/>
+          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="4.5" fill="${col}"/>
+          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="1.8" fill="rgba(255,255,255,0.75)"/>
+          <!-- Bias label centred inside arc opening -->
+          <text x="${cx}" y="${(cy+8).toFixed(1)}" text-anchor="middle" font-family="var(--head)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${col}" opacity="0.75">${biasUp}</text>
         </svg>
       </div>
       ${_confHtml}
-      <button onclick="openMethModal('${m.id}')" style="margin-top:5px;font-size:7px;color:var(--faint);background:none;border:none;cursor:pointer;letter-spacing:0.04em;text-decoration:underline;text-underline-offset:2px;padding:0;opacity:0.5">How is this scored?</button>
+      <button onclick="openMethModal('${m.id}')" style="margin-top:5px;font-size:7px;color:var(--faint);background:none;border:none;cursor:pointer;letter-spacing:0.04em;text-decoration:underline;text-underline-offset:2px;padding:0;opacity:0.45">How is this scored?</button>
     </div>`;
     })()}
 
