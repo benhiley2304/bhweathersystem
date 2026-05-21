@@ -18738,6 +18738,7 @@ function renderOverview(){
       const G10 = new Set(['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','NOK','SEK']);
       const now = Date.now();
       const cutoff = now + 10 * 86400000;
+      const _evSeen = new Set();
       const evs = (data.events||[])
         .filter(ev => {
           if(!G10.has(ev.currency)) return false;
@@ -18745,7 +18746,12 @@ function renderOverview(){
           if(impact !== 'high' && impact !== 'medium') return false;
           const dtMs = ev.datetime_utc ? new Date(ev.datetime_utc).getTime()
                      : ev.datetime_ts  ? ev.datetime_ts*1000 : 0;
-          return dtMs > now && dtMs < cutoff;
+          if(dtMs <= now || dtMs >= cutoff) return false;
+          // Deduplicate by name + currency + hour bucket (floor to nearest hour)
+          const dedupKey = `${ev.name}|${ev.currency}|${Math.floor(dtMs/3600000)}`;
+          if(_evSeen.has(dedupKey)) return false;
+          _evSeen.add(dedupKey);
+          return true;
         });
 
       if(!evs.length){ el.style.display='none'; return; }
