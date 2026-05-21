@@ -30277,24 +30277,27 @@ function assetGraphic(m){
             <rect x="${cW*0.43}" y="0" width="${cW*0.14}" height="${cH}" fill="#FFFFFF"/>
             <rect x="0" y="${cH*0.45}" width="${cW}" height="${cH*0.10}" fill="#CC142B"/>
             <rect x="${cW*0.47}" y="0" width="${cW*0.06}" height="${cH}" fill="#CC142B"/>
-            <!-- Southern Cross — 4 red 5-pointed stars with white border (official NZ flag spec) -->
-            ${[{cx:0.76,cy:0.22,r:0.072},{cx:0.91,cy:0.38,r:0.062},{cx:0.84,cy:0.62,r:0.062},{cx:0.65,cy:0.52,r:0.062}].map(s=>{
-              const scx=s.cx*nW, scy=s.cy*nH, r2=s.r*nH;
-              const pts=Array.from({length:10},(_,j)=>{const a=j*Math.PI/5-Math.PI/4;const pr=j%2===0?r2:r2*0.38;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ');
-              return `<polygon points="${pts}" fill="#CC142B" stroke="#FFFFFF" stroke-width="1.5"/>`;
+            <!-- Southern Cross — 4 red 5-pointed stars, white outer / red inner (official NZ SVG) -->
+            <!-- Positions derived from official Wikimedia SVG (1200×600), scaled to 200×100        -->
+            <!-- Gamma(upper): 150,20 r=7.6/5.0 | Delta(right): 170,37 r=6.7/4.2                  -->
+            <!-- Beta(left):   127,43 r=7.6/5.0 | Alpha(bottom largest): 150,80 r=8.4/5.8         -->
+            ${[{cx:150,cy:20,rw:7.6,rr:5.0},{cx:170,cy:37,rw:6.7,rr:4.2},{cx:127,cy:43,rw:7.6,rr:5.0},{cx:150,cy:80,rw:8.4,rr:5.8}].map(s=>{
+              const mkStar=(scx,scy,r)=>Array.from({length:10},(_,j)=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?r:r*0.40;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ');
+              return `<polygon points="${mkStar(s.cx,s.cy,s.rw)}" fill="#FFFFFF"/><polygon points="${mkStar(s.cx,s.cy,s.rr)}" fill="#CC142B"/>`;
             }).join('')}`;
           return {nW,nH,svg};
         }
 
         case 'CHF': { // Switzerland — official 1:1, displayed at 3:2
           const nW=300, nH=200;
-          // Official Swiss cross proportions (Federal Chancellery spec):
-          // Square flag. Cross = white, centred. Arm length (half) = 13/32 of flag side.
-          // Arm width = 6/32 of flag side. Both arms same length.
+          // Official Swiss cross proportions (from Wikimedia SVG, 32×32 path):
+          // Cross path decodes to: arm width = 6/32, arm half-length = 10/32 of square side.
+          // Cross total height = 20/32 = 62.5% of the square side.
+          // Arm width/length ratio = 6:20 → each arm is 7:6 (length:width), confirmed.
           // Mapping to our 300×200: use flag height (200) as the reference square side.
           const side = nH; // treat height as the reference dimension
           const armW = side * (6/32);    // ~37.5px — arm thickness
-          const armLen = side * (13/32); // ~81.25px — half-length of each arm
+          const armLen = side * (10/32); // ~62.5px — half-length of each arm
           const cx = nW/2, cy = nH/2;
           const svg=\`
             <rect width="\${nW}" height="\${nH}" fill="#D52B1E"/>
