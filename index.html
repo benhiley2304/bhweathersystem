@@ -4319,15 +4319,17 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   /* How is this scored: hidden on mobile */
   .d-score-hero>button{display:none}
   /* Photo graphic: very subtle on mobile — just a hint of texture, not a layout element */
-  .d-head-graphic{opacity:0.08;width:45%;left:auto;right:0;z-index:1}
+  /* Override earlier R-block rules that set opacity:0.65 !important */
+  .d-head-graphic{opacity:0.09 !important;width:46% !important;left:auto !important;right:0 !important;z-index:1 !important}
+  .d-head:active .d-head-graphic,.d-head:focus-within .d-head-graphic{opacity:0.12 !important}
   /* Stronger left fade so graphic never bleeds into text */
   .d-head-graphic::before{
     background:linear-gradient(90deg,
-      var(--bg) 0%,
-      rgba(5,7,13,0.96) 20%,
-      rgba(5,7,13,0.80) 50%,
-      rgba(5,7,13,0.30) 80%,
-      rgba(5,7,13,0.08) 100%
+      rgba(4,4,5,1.0) 0%,
+      rgba(4,4,5,0.98) 20%,
+      rgba(4,4,5,0.90) 40%,
+      rgba(4,4,5,0.60) 65%,
+      rgba(4,4,5,0.10) 100%
     ) !important;
   }
   .mob-back{display:inline-flex}
@@ -19623,6 +19625,38 @@ body {
 
 /* ── Sector strip: always hidden (removed from mobile) ── */
 #mob-sector-strip { display: none !important; }
+
+/* ── D-HEAD: enforce single-column grid on mobile (overrides R36 global rule) ── */
+@media (max-width: 700px) {
+  .d-head {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto !important;
+  }
+}
+
+/* ── Detail banner photo graphic: near-invisible on mobile ──
+   Override all earlier revision blocks that force opacity:0.65 !important */
+@media (max-width: 700px) {
+  .d-head-graphic {
+    opacity: 0.09 !important;
+    left: auto !important;
+    right: 0 !important;
+    width: 46% !important;
+  }
+  .d-head:active .d-head-graphic,
+  .d-head:focus-within .d-head-graphic {
+    opacity: 0.12 !important;
+  }
+  .d-head-graphic::before {
+    background: linear-gradient(90deg,
+      rgba(4,4,5,1.00) 0%,
+      rgba(4,4,5,0.98) 18%,
+      rgba(4,4,5,0.90) 38%,
+      rgba(4,4,5,0.55) 62%,
+      rgba(4,4,5,0.08) 100%
+    ) !important;
+  }
+}
 
 /* ── Pills row — compact inline data strip ── */
 @media (max-width: 700px) {
