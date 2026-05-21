@@ -19062,6 +19062,541 @@ body {
 
 /* ── END R34 ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R35 — OVERVIEW CREATIVE OVERHAUL
+   Arc gauge score, factor card grid, signal dot confluence,
+   animated entrances, premium iOS-level visual treatment
+═══════════════════════════════════════════════════════════════ */
+
+/* ── ENTRANCE ANIMATIONS ── */
+@keyframes ov-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ov-arc-dash {
+  from { stroke-dashoffset: 251.2; }
+}
+@keyframes ov-card-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── VERDICT CARD — ARC GAUGE REDESIGN ── */
+/* Override the score column to use the arc gauge approach */
+.ov-v-score-col {
+  min-width: 130px !important;
+  padding: 20px 16px 18px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  background: transparent !important;
+  border-right: 1px solid rgba(255,255,255,0.05) !important;
+}
+/* Hide the old linear bar (we now use SVG arc) */
+.ov-vsbar,
+.ov-vsdot {
+  display: none !important;
+}
+/* Score number is now inside the arc SVG, just hide the standalone ov-vsn & ov-vsd
+   and show them as overlays via the new .ov-gauge wrapper */
+.ov-vsn-wrap {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100px !important;
+  height: 100px !important;
+  margin: 0 auto 8px !important;
+  flex-shrink: 0 !important;
+}
+.ov-gauge-svg {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: rotate(-90deg) !important;
+  overflow: visible !important;
+}
+.ov-gauge-track {
+  fill: none !important;
+  stroke: rgba(255,255,255,0.06) !important;
+  stroke-width: 6 !important;
+  stroke-linecap: round !important;
+}
+.ov-gauge-fill {
+  fill: none !important;
+  stroke-width: 6 !important;
+  stroke-linecap: round !important;
+  stroke-dasharray: 251.2 !important;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1) !important;
+  filter: drop-shadow(0 0 6px var(--ov-stripe, var(--faint))) !important;
+}
+.ov-gauge-center {
+  position: relative !important;
+  z-index: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+.ov-vsn {
+  font-family: var(--head) !important;
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.06em !important;
+  line-height: 1 !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.ov-vsd {
+  font-family: var(--mono) !important;
+  font-size: 9px !important;
+  color: var(--faint) !important;
+  letter-spacing: 0.04em !important;
+  position: relative !important;
+  z-index: 2 !important;
+  margin-top: 1px !important;
+}
+/* Glow disc behind gauge number */
+.ov-v-score-col::before {
+  width: 60px !important;
+  height: 60px !important;
+  background: radial-gradient(ellipse, rgba(var(--ov-stripe-rgb, 200,169,110), 0.14) 0%, transparent 70%) !important;
+}
+/* Verdict chip stays below the arc */
+.ov-verdict-chip {
+  margin-top: 2px !important;
+  font-size: 7.5px !important;
+  letter-spacing: 0.10em !important;
+  padding: 3px 10px !important;
+}
+
+/* Scale up gauge at larger viewports */
+@media (min-width: 1100px) {
+  .ov-vsn-wrap {
+    width: 110px !important;
+    height: 110px !important;
+  }
+  .ov-vsn {
+    font-size: 36px !important;
+  }
+  .ov-v-score-col {
+    min-width: 140px !important;
+  }
+}
+@media (min-width: 1440px) {
+  .ov-vsn-wrap {
+    width: 120px !important;
+    height: 120px !important;
+  }
+  .ov-vsn {
+    font-size: 40px !important;
+  }
+  .ov-v-score-col {
+    min-width: 150px !important;
+    padding: 24px 20px 22px !important;
+  }
+}
+@media (max-width: 700px) {
+  .ov-vsn-wrap {
+    width: 90px !important;
+    height: 90px !important;
+  }
+  .ov-vsn {
+    font-size: 28px !important;
+  }
+  .ov-v-score-col {
+    min-width: 110px !important;
+    padding: 16px 12px 14px !important;
+  }
+}
+
+/* ── VERDICT CARD ANIMATION ── */
+.ov-verdict {
+  animation: ov-fade-up 0.45s cubic-bezier(0.22,1,0.36,1) both !important;
+}
+
+/* ── CONFLUENCE STRIP — Signal dot visual meter ── */
+.ov-conf-strip {
+  padding: 14px 18px !important;
+  gap: 14px !important;
+  animation: ov-fade-up 0.45s 0.06s cubic-bezier(0.22,1,0.36,1) both !important;
+  flex-wrap: wrap !important;
+}
+.ov-conf-meter {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex-shrink: 0 !important;
+  padding: 6px 10px !important;
+  background: rgba(255,255,255,0.02) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+}
+.ov-conf-dot {
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.15s !important;
+}
+.ov-conf-dot.bull {
+  background: #26c97a !important;
+  box-shadow: 0 0 6px rgba(38,201,122,0.55) !important;
+}
+.ov-conf-dot.bear {
+  background: #d63a24 !important;
+  box-shadow: 0 0 6px rgba(214,58,36,0.50) !important;
+}
+.ov-conf-dot.neut {
+  background: rgba(255,255,255,0.12) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+}
+.ov-conf-right {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.ov-conf-title {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: var(--dim) !important;
+  letter-spacing: 0.01em !important;
+}
+.ov-conf-detail {
+  font-size: 10px !important;
+  color: var(--faint) !important;
+  line-height: 1.55 !important;
+}
+.ov-conf-detail strong {
+  color: var(--dim) !important;
+  font-weight: 600 !important;
+}
+
+/* ── FACTOR CARDS GRID (replaces flat table) ── */
+.ov-attr-wrap {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin-bottom: 12px !important;
+}
+/* Hide old header row */
+.ov-attr-head {
+  display: none !important;
+}
+/* Factor card grid container */
+.ov-factors-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px !important;
+  animation: ov-fade-up 0.45s 0.10s cubic-bezier(0.22,1,0.36,1) both !important;
+}
+@media (min-width: 1440px) {
+  .ov-factors-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+@media (max-width: 480px) {
+  .ov-factors-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+/* Individual factor card */
+.ov-fc {
+  background: rgba(8,8,12,0.55) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 10px !important;
+  padding: 14px 16px 12px !important;
+  cursor: pointer !important;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s !important;
+  position: relative !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+.ov-fc::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background: var(--fc-color, var(--faint)) !important;
+  opacity: 0.65 !important;
+}
+/* Ambient glow from factor color */
+.ov-fc::after {
+  content: '' !important;
+  position: absolute !important;
+  top: -30px !important;
+  right: -30px !important;
+  width: 100px !important;
+  height: 100px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(ellipse, rgba(var(--fc-rgb, 157,170,191), 0.07) 0%, transparent 70%) !important;
+  pointer-events: none !important;
+}
+.ov-fc:hover {
+  background: rgba(12,12,18,0.72) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  transform: translateY(-1px) !important;
+}
+.ov-fc:active {
+  transform: translateY(0) !important;
+}
+/* Card top row: factor name + score badge */
+.ov-fc-top {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+.ov-fc-name {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: rgba(157,170,191,0.70) !important;
+  line-height: 1.2 !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.ov-fc-score {
+  font-family: var(--head) !important;
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.06em !important;
+  line-height: 1 !important;
+  color: var(--fc-color, var(--text)) !important;
+  flex-shrink: 0 !important;
+  text-shadow: 0 0 20px rgba(var(--fc-rgb, 200,169,110), 0.35) !important;
+}
+.ov-fc-score-sub {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  color: var(--faint) !important;
+  letter-spacing: 0.04em !important;
+  margin-left: 1px !important;
+}
+/* Card bottom: interpretation + mini bar */
+.ov-fc-bot {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+.ov-fc-interp {
+  font-size: 10px !important;
+  color: var(--faint) !important;
+  line-height: 1.45 !important;
+}
+.ov-fc-bar-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.ov-fc-bar-track {
+  flex: 1 !important;
+  height: 4px !important;
+  background: rgba(255,255,255,0.07) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+.ov-fc-bar-fill {
+  height: 100% !important;
+  border-radius: 2px !important;
+  background: var(--fc-color, var(--faint)) !important;
+  opacity: 0.80 !important;
+  transition: width 0.8s cubic-bezier(0.22,1,0.36,1) !important;
+}
+.ov-fc-wt {
+  font-family: var(--mono) !important;
+  font-size: 8.5px !important;
+  color: rgba(157,170,191,0.50) !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+.ov-fc-contrib {
+  font-family: var(--mono) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  color: var(--fc-color, var(--faint)) !important;
+  flex-shrink: 0 !important;
+  opacity: 0.85 !important;
+}
+/* Arrow hint */
+.ov-fc-arrow {
+  position: absolute !important;
+  bottom: 10px !important;
+  right: 12px !important;
+  font-size: 10px !important;
+  color: rgba(157,170,191,0.25) !important;
+  transition: color 0.12s, opacity 0.12s !important;
+  opacity: 0 !important;
+}
+.ov-fc:hover .ov-fc-arrow {
+  color: rgba(157,170,191,0.55) !important;
+  opacity: 1 !important;
+}
+
+/* Composite total — below the grid, full-width premium card */
+.ov-atotal {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: rgba(200,169,110,0.04) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(200,169,110,0.12) !important;
+  border-radius: 10px !important;
+  padding: 14px 20px !important;
+  margin-top: 8px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  animation: ov-fade-up 0.45s 0.15s cubic-bezier(0.22,1,0.36,1) both !important;
+}
+.ov-atotal::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 3px !important;
+  background: var(--accent) !important;
+  opacity: 0.60 !important;
+}
+.ov-at-lbl {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+}
+.ov-at-lbl-note {
+  font-size: 9px !important;
+  font-weight: 400 !important;
+  color: var(--faint) !important;
+}
+.ov-at-score-lbl {
+  display: none !important;
+}
+.ov-at-wt-lbl {
+  font-family: var(--mono) !important;
+  font-size: 10px !important;
+  color: var(--faint) !important;
+  display: none !important;
+}
+.ov-at-contrib {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 4px !important;
+  border-left: none !important;
+  padding-left: 0 !important;
+}
+.ov-at-num {
+  font-family: var(--head) !important;
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  line-height: 1 !important;
+  letter-spacing: -0.04em !important;
+  text-shadow: 0 0 24px rgba(200,169,110,0.35) !important;
+}
+.ov-at-sub {
+  font-family: var(--mono) !important;
+  font-size: 12px !important;
+  color: var(--faint) !important;
+}
+
+/* ── WEIGHT BAR CARD ── */
+.ov-wt-card {
+  animation: ov-fade-up 0.45s 0.20s cubic-bezier(0.22,1,0.36,1) both !important;
+  padding: 16px 20px !important;
+}
+.ov-wt-lbl {
+  font-size: 8px !important;
+  letter-spacing: 0.14em !important;
+  color: rgba(157,170,191,0.50) !important;
+  margin-bottom: 12px !important;
+}
+.ov-wt-bar {
+  height: 8px !important;
+  border-radius: 5px !important;
+  gap: 2px !important;
+  margin-bottom: 14px !important;
+}
+.ov-wt-seg {
+  border-radius: 3px !important;
+  opacity: 0.90 !important;
+  transition: opacity 0.15s !important;
+}
+.ov-wt-seg:hover {
+  opacity: 1 !important;
+}
+.ov-wt-leg {
+  gap: 6px 20px !important;
+}
+.ov-wt-it {
+  font-size: 9px !important;
+  color: rgba(190,200,222,0.75) !important;
+  gap: 6px !important;
+}
+.ov-wt-sq {
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 2px !important;
+}
+.ov-wt-pct {
+  font-size: 8.5px !important;
+  color: rgba(157,170,191,0.55) !important;
+  margin-left: 2px !important;
+}
+
+/* ── MOBILE: Make factor cards full-width, bigger touch targets ── */
+@media (max-width: 700px) {
+  .ov-factors-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 7px !important;
+  }
+  .ov-fc {
+    padding: 12px 13px 11px !important;
+  }
+  .ov-fc-score {
+    font-size: 24px !important;
+  }
+  .ov-atotal {
+    padding: 12px 16px !important;
+  }
+  .ov-at-num {
+    font-size: 26px !important;
+  }
+  .ov-conf-meter {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+@media (max-width: 360px) {
+  .ov-factors-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Old ov-arow / ov-ah rows — hidden, replaced by card grid */
+.ov-arow {
+  display: none !important;
+}
+
+/* ── END R35 ── */
+
 </style>
 </head>
 <body>
@@ -27965,16 +28500,26 @@ function buildOverview(m){
     const label = FACTOR_LABELS[k]||k;
     const interpFn = FACTOR_INTERPS[k]||(()=>'');
     const interp = interpFn(sc, m);
-    return `<div class="ov-arow" style="--ov-rc:${rcol}" onclick="switchTab('${tabId}')">
-      <div class="ov-af"><span class="ov-afn">${label}</span><span class="ov-afi">${interp}</span></div>
-      <div class="ov-abar-wrap"><div class="ov-abar-track"><div class="ov-abar-fill" style="width:${scoreBarPct}%"></div></div></div>
-      <div class="ov-asc">${sc.toFixed(1)}</div>
-      <div class="ov-awt">${pct}%</div>
-      <div class="ov-acont">
-        <div class="ov-acont-bar-wrap"><div class="ov-acont-bar-track"><div class="ov-acont-bar-fill" style="width:${contribBarPct}%"></div></div></div>
-        <div class="ov-acont-val">${contrib>=0?'+':''}${contrib.toFixed(2)}<span class="ov-acont-pts"> pts</span></div>
+    // Factor color RGB for glow effects
+    const fcRgb = k==='cot'?'92,158,255':k==='seasonal'?'38,201,122':k==='momentum'?'138,152,184':k==='macro'?'106,120,152':k==='relval'?'240,64,64':k==='regime'||k==='climate'?'92,184,255':k==='pcr'?'214,58,36':'157,170,191';
+    const contribStr = (contrib>=0?'+':'')+contrib.toFixed(2);
+    return `<div class="ov-fc" style="--fc-color:${rcol};--fc-rgb:${fcRgb}" onclick="switchTab('${tabId}')">
+      <div class="ov-fc-top">
+        <div class="ov-fc-name">${label}</div>
+        <div style="display:flex;align-items:baseline;gap:2px">
+          <span class="ov-fc-score">${sc.toFixed(1)}</span>
+          <span class="ov-fc-score-sub">/10</span>
+        </div>
       </div>
-      <span class="ov-arr">→</span>
+      <div class="ov-fc-bot">
+        <div class="ov-fc-interp">${interp}</div>
+        <div class="ov-fc-bar-row">
+          <div class="ov-fc-bar-track"><div class="ov-fc-bar-fill" style="width:${scoreBarPct}%"></div></div>
+          <span class="ov-fc-wt">${pct}%</span>
+          <span class="ov-fc-contrib">${contribStr}</span>
+        </div>
+      </div>
+      <span class="ov-fc-arrow">→</span>
     </div>`;
   }).join('');
 
@@ -27986,24 +28531,36 @@ function buildOverview(m){
   const bullCount = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).length;
   const bearCount = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).length;
   const total = factorKeys.length;
-  const confBadge = `${bullCount} of ${total} bullish`;
+  // Signal dot meter — one dot per factor, colored by signal direction
+  const confDots = factorKeys.map(k=>{
+    const sc = normalisedScores[k]?.score??5;
+    const cls = sc>=6.5?'bull':sc<=3.5?'bear':'neut';
+    return `<div class="ov-conf-dot ${cls}" title="${FACTOR_LABELS[k]||k}: ${sc.toFixed(1)}/10"></div>`;
+  }).join('');
+
+  let confTitle = '';
   let confText = '';
   if(bullCount >= Math.ceil(total*0.7)){
     const aligned = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    confText = `<strong>Strong confluence</strong> \u2014 ${aligned} all pointing bullish.`;
+    confTitle = 'Strong Confluence';
+    confText = `<strong>${bullCount} of ${total} factors bullish.</strong> ${aligned} all pointing bullish.`;
   } else if(bearCount >= Math.ceil(total*0.7)){
     const aligned = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    confText = `<strong>Strong bearish confluence</strong> \u2014 ${aligned} all pointing bearish.`;
+    confTitle = 'Strong Bearish Confluence';
+    confText = `<strong>${bearCount} of ${total} factors bearish.</strong> ${aligned} all pointing bearish.`;
   } else if(bullCount > bearCount){
     const bull = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
     const bear = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    confText = `<strong>Moderate confluence</strong> \u2014 ${bull||'Some factors'} lean bullish${ bear ? `. ${bear} diverge bearishly` : '.' }`;
+    confTitle = 'Moderate Confluence';
+    confText = `<strong>${bullCount} of ${total} factors bullish.</strong> ${bull||'Some factors'} lean bullish.${ bear ? ` ${bear} diverge bearishly.` : '' }`;
   } else if(bearCount > bullCount){
     const bull = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
     const bear = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    confText = `<strong>Moderate bearish confluence</strong> \u2014 ${bear||'Some factors'} lean bearish${ bull ? `. ${bull} diverge bullishly` : '.' }`;
+    confTitle = 'Moderate Bearish Confluence';
+    confText = `<strong>${bearCount} of ${total} factors bearish.</strong> ${bear||'Some factors'} lean bearish.${ bull ? ` ${bull} diverge bullishly.` : '' }`;
   } else {
-    confText = `<strong>Mixed signals</strong> \u2014 factors are evenly split. No strong directional confluence.`;
+    confTitle = 'Mixed Signals';
+    confText = 'Factors are evenly split. No strong directional confluence.';
   }
 
   // Confluence bonus from live data
@@ -28045,6 +28602,10 @@ function buildOverview(m){
 
   // ── Nav strip with score chips ──
   // (built and injected into DOM separately via buildOvNav)
+  // Compute arc gauge offset: circumference 251.2, fill from bottom of arc
+  const arcCirc = 251.2;
+  const arcOffset = Math.round(arcCirc * (1 - Math.min(10, Math.max(0, ws)) / 10) * 10) / 10;
+
   // This function returns the overview PANEL content only
   return `<div id="t-overview" class="on">
 
@@ -28052,9 +28613,20 @@ function buildOverview(m){
     <div class="ov-verdict" style="--ov-stripe:${stripeCol};--ov-stripe-rgb:${stripeRgb}">
       <div class="ov-v-top">
         <div class="ov-v-score-col">
-          <div class="ov-vsn" style="color:${col}">${ws.toFixed(1)}</div>
-          <div class="ov-vsd">/10</div>
-          <div class="ov-vsbar"><div class="ov-vsdot" style="left:${dotPct}%"></div></div>
+          <!-- Arc gauge with SVG circle -->
+          <div class="ov-vsn-wrap">
+            <svg class="ov-gauge-svg" viewBox="0 0 100 100">
+              <circle class="ov-gauge-track" cx="50" cy="50" r="40"/>
+              <circle class="ov-gauge-fill"
+                cx="50" cy="50" r="40"
+                stroke="${stripeCol}"
+                stroke-dashoffset="${arcOffset}"/>
+            </svg>
+            <div class="ov-gauge-center">
+              <div class="ov-vsn" style="color:${col}">${ws.toFixed(1)}</div>
+              <div class="ov-vsd">/10</div>
+            </div>
+          </div>
           <div class="ov-verdict-chip ${chipCls}">${chipLabel}</div>
         </div>
         <div class="ov-vdiv"></div>
@@ -28066,27 +28638,23 @@ function buildOverview(m){
       ${pillsHtml ? `<div class="ov-pills">${pillsHtml}</div>` : ''}
     </div>
 
-    <!-- CONFLUENCE STRIP — shown BEFORE attribution so user sees alignment before the table -->
+    <!-- CONFLUENCE STRIP — signal dots meter -->
     <div class="ov-conf-strip">
-      <div class="ov-conf-badge">${confBadge}</div>
-      <div class="ov-conf-text">${confText}</div>
+      <div class="ov-conf-meter">${confDots}</div>
+      <div class="ov-conf-right">
+        <div class="ov-conf-title">${confTitle}</div>
+        <div class="ov-conf-detail">${confText}</div>
+      </div>
     </div>
 
-    <!-- ATTRIBUTION TABLE -->
+    <!-- FACTOR ATTRIBUTION CARDS -->
     <div class="ov-attr-wrap">
-      <div class="ov-attr-head">
-        <div class="ov-ah">Factor</div>
-        <div class="ov-ah ov-ah-bar"></div>
-        <div class="ov-ah r">Score</div>
-        <div class="ov-ah r">Weight</div>
-        <div class="ov-ah r" style="padding-left:12px;border-left:1px solid rgba(255,255,255,0.04)">Contribution</div>
+      <div class="ov-attr-head"></div>
+      <div class="ov-factors-grid">
+        ${attrRows}
       </div>
-      ${attrRows}
       <div class="ov-atotal">
         <div class="ov-at-lbl">Composite Total${totalLabelNote}</div>
-        <div></div>
-        <div class="ov-at-score-lbl">Σ weighted</div>
-        <div class="ov-at-wt-lbl">${totalWtPct}%</div>
         <div class="ov-at-contrib">
           <div class="ov-at-num">${ws.toFixed(1)}</div>
           <div class="ov-at-sub">/ 10</div>
