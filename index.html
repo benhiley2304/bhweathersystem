@@ -20473,6 +20473,313 @@ body {
 
 /* ── END R39 ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R39b — OVERVIEW VISUAL OVERHAUL
+   Kill the gauge ring. Kill blur. Kill gold tabs.
+   Homepage aesthetic: pure transparency, particle shows through,
+   flat type-driven tabs, large score typography, no SVG rings.
+══════════════════════════════════════════════════════════════ */
+
+/* ── TAB STRIP — flat, homepage-style ── */
+.ov-nav {
+  background: rgba(4,4,5,0.55) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 0 16px !important;
+  gap: 0 !important;
+  min-height: 42px !important;
+}
+.ov-nt {
+  padding: 0 14px !important;
+  height: 42px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: rgba(190,200,222,0.42) !important;
+  letter-spacing: 0.02em !important;
+  gap: 8px !important;
+  box-shadow: none !important;
+  border-bottom: 2px solid transparent !important;
+  transition: color 0.16s, border-color 0.16s !important;
+}
+.ov-nt:hover {
+  background: transparent !important;
+  color: rgba(190,200,222,0.78) !important;
+  border-bottom-color: rgba(255,255,255,0.12) !important;
+}
+.ov-nt.on {
+  color: #f2f6ff !important;
+  background: transparent !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid var(--s1) !important;
+  box-shadow: none !important;
+}
+.ov-nt.on::before { display: none !important; }
+/* score chips on tabs — smaller, subtle */
+.ov-nchip {
+  font-family: var(--mono) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 1px 6px !important;
+  border-radius: 3px !important;
+  letter-spacing: 0.01em !important;
+  background: rgba(255,255,255,0.05) !important;
+  border: none !important;
+  transition: color 0.15s !important;
+}
+.ov-nt.on .ov-nchip {
+  color: var(--chip-c) !important;
+  background: rgba(var(--chip-rgb,74,82,104), 0.18) !important;
+  border: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+.ov-nt:not(.on) .ov-nchip { opacity: 0.55 !important; }
+.ov-nt-hist {
+  border-bottom: 2px solid transparent !important;
+  box-shadow: none !important;
+}
+.ov-nt-hist.on {
+  border-bottom: 2px solid rgba(200,169,110,0.60) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ── OVERVIEW WRAPPER — more breathing room ── */
+#t-overview {
+  padding: 18px 20px 56px !important;
+  background: transparent !important;
+}
+
+/* ── VERDICT CARD — ultra-transparent, no blur ── */
+.ov-verdict {
+  background: rgba(255,255,255,0.028) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+/* Remove top bar glow — too cheesy */
+.ov-verdict::before { display: none !important; }
+/* Remove radial ambient glow from behind */
+.ov-verdict::after { display: none !important; }
+
+/* SCORE COLUMN — kill the gauge SVG, replace with pure typography */
+.ov-v-score-col {
+  background: rgba(255,255,255,0.025) !important;
+  border-right: 1px solid rgba(255,255,255,0.055) !important;
+  padding: 28px 24px 24px !important;
+  min-width: 130px !important;
+  align-items: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  position: relative !important;
+}
+/* Hide the SVG ring entirely */
+.ov-gauge-svg { display: none !important; }
+.ov-gauge-track { display: none !important; }
+.ov-gauge-fill { display: none !important; }
+.ov-vsbar, .ov-vsdot { display: none !important; }
+/* The wrap becomes a pure centering shell for the number */
+.ov-vsn-wrap {
+  position: relative !important;
+  width: auto !important; height: auto !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+/* BIG score number — homepage style */
+.ov-vsn {
+  font-family: var(--head) !important;
+  font-size: 64px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.06em !important;
+  line-height: 0.9 !important;
+  text-shadow: 0 0 40px currentColor, 0 0 80px rgba(var(--ov-stripe-rgb, 38,201,122), 0.20) !important;
+}
+.ov-vsd {
+  font-family: var(--mono) !important;
+  font-size: 10px !important;
+  color: rgba(157,170,191,0.45) !important;
+  letter-spacing: 0.06em !important;
+  margin-top: 4px !important;
+}
+/* Verdict chip */
+.ov-verdict-chip {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  padding: 3px 10px !important;
+  border-radius: 3px !important;
+  margin-top: 8px !important;
+  border: 1px solid !important;
+}
+/* Thin vertical line below score (like homepage divider bars) */
+.ov-v-score-col::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 1px !important;
+  height: 24px !important;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.10), transparent) !important;
+}
+
+/* Narrative side */
+.ov-v-text {
+  padding: 22px 22px 20px !important;
+  gap: 10px !important;
+}
+.ov-vk {
+  font-size: 7.5px !important;
+  letter-spacing: 0.16em !important;
+  color: var(--s1) !important;
+  opacity: 0.70 !important;
+}
+.ov-vstmt {
+  font-size: 12.5px !important;
+  line-height: 1.74 !important;
+  color: rgba(190,200,222,0.82) !important;
+}
+
+/* ── FACTOR TABLE — transparent, no blur ── */
+.ov-attr-wrap {
+  background: rgba(255,255,255,0.022) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 12px !important;
+  margin-bottom: 0 !important;
+}
+.ov-attr-head {
+  background: rgba(255,255,255,0.015) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.045) !important;
+}
+/* Composite total row — fix overflow/clipping */
+.ov-atotal {
+  display: grid !important;
+  grid-template-columns: minmax(120px,1fr) 90px 56px 44px 90px !important;
+  align-items: center !important;
+  padding: 14px 18px 14px 20px !important;
+  background: rgba(200,169,110,0.03) !important;
+  border-top: 1px solid rgba(200,169,110,0.10) !important;
+  gap: 0 !important;
+  min-height: 56px !important;
+}
+.ov-at-lbl {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  gap: 2px !important;
+  padding-right: 8px !important;
+}
+.ov-at-num {
+  font-family: var(--head) !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+}
+.ov-at-sub {
+  font-size: 10px !important;
+}
+/* Factor score numbers — cleaner glow */
+.ov-asc {
+  text-shadow: 0 0 10px currentColor !important;
+}
+/* Factor row hover */
+.ov-arow {
+  background: transparent !important;
+}
+.ov-arow:hover {
+  background: rgba(255,255,255,0.018) !important;
+}
+
+/* ── CONFLUENCE CHIPS — transparent dark, particle shows ── */
+.ov-conf-strip {
+  animation: ov-fade-up 0.40s 0.08s cubic-bezier(0.22,1,0.36,1) both !important;
+  gap: 8px !important;
+}
+.ov-conf-summary {
+  background: rgba(255,255,255,0.022) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+  border-radius: 10px !important;
+  min-width: 150px !important;
+}
+.ov-conf-fchip {
+  background: rgba(255,255,255,0.018) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  border-radius: 10px !important;
+  gap: 4px !important;
+  padding: 12px 14px !important;
+}
+.ov-conf-fchip:hover {
+  background: rgba(255,255,255,0.038) !important;
+  border-color: rgba(255,255,255,0.09) !important;
+}
+/* Stronger top colour bar on chips */
+.ov-conf-fchip::before {
+  height: 2px !important;
+  opacity: 1 !important;
+}
+/* Score text in chip — bigger glow */
+.ov-conf-fchip-score {
+  font-size: 24px !important;
+  text-shadow: 0 0 16px var(--chip-col, transparent) !important;
+}
+.ov-conf-fchip-name {
+  font-size: 8px !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(157,170,191,0.55) !important;
+}
+.ov-conf-fchip-dir {
+  opacity: 1 !important;
+  font-size: 7.5px !important;
+  letter-spacing: 0.10em !important;
+}
+
+/* ── WEIGHT BAR CARD — transparent ── */
+.ov-wt-card {
+  background: rgba(255,255,255,0.018) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255,255,255,0.055) !important;
+  border-radius: 12px !important;
+}
+.ov-wt-bar {
+  height: 8px !important;
+  border-radius: 4px !important;
+  gap: 2px !important;
+}
+
+/* ── RESPONSIVE ── */
+@media (min-width: 1440px) {
+  .ov-vsn { font-size: 72px !important; }
+  .ov-v-score-col { min-width: 150px !important; padding: 32px 28px !important; }
+}
+@media (max-width: 700px) {
+  .ov-vsn { font-size: 48px !important; }
+  .ov-v-score-col { padding: 20px 16px !important; min-width: 110px !important; }
+  .ov-nt { padding: 0 10px !important; font-size: 11px !important; }
+}
+
+/* ── END R39b ── */
+
 
 </style>
 </head>
