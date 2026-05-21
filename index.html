@@ -2811,6 +2811,20 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   content:'';position:absolute;inset:0;z-index:1;
   background:rgba(5,7,13,0.45);
 }
+/* FX flag banner: reduce blanket dark overlay so flags are visible */
+.d-head-graphic[data-type="fx"]::after{
+  background:rgba(5,7,13,0.14);
+}
+/* FX flag banner: soften the left-to-right gradient mask so flags show through */
+.d-head-graphic[data-type="fx"]::before{
+  background:linear-gradient(90deg,
+    var(--bg) 0%,
+    rgba(5,7,13,0.78) 10%,
+    rgba(5,7,13,0.30) 32%,
+    rgba(5,7,13,0.05) 55%,
+    rgba(5,7,13,0.02) 100%
+  );
+}
 .d-head-graphic svg{display:block}
 .d-wheel{position:relative;z-index:1;display:none}
 .d-head:hover .d-head-graphic{opacity:1;}
@@ -30313,7 +30327,7 @@ function assetGraphic(m){
     // Blend zone: seam is at W*0.55 (centre of blend). Left flag fades out ~W*0.38→W*0.65. Right flag fades in ~W*0.45→W*0.72
     const seamX = W * 0.55;
 
-    return `<div class="d-head-graphic">
+    return `<div class="d-head-graphic" data-type="fx">
       <div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:#040405">
 
         <svg style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid slice" viewBox="0 0 ${W} ${H}">
@@ -30336,21 +30350,10 @@ function assetGraphic(m){
             </linearGradient>
             <mask id="mR${uid}"><rect width="${W}" height="${H}" fill="url(#gMR${uid})"/></mask>
 
-            <!-- Overall darkening: left edge and right edge vignette -->
-            <linearGradient id="gVig${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"   stop-color="#000" stop-opacity="0.50"/>
-              <stop offset="12%"  stop-color="#000" stop-opacity="0.10"/>
-              <stop offset="88%"  stop-color="#000" stop-opacity="0.10"/>
-              <stop offset="100%" stop-color="#000" stop-opacity="0.52"/>
-            </linearGradient>
-            <!-- Top + bottom vignette -->
-            <linearGradient id="gVT${uid}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stop-color="#000" stop-opacity="0.50"/>
-              <stop offset="30%"  stop-color="#000" stop-opacity="0"/>
-            </linearGradient>
+            <!-- Bottom vignette (top handled by CSS ::before) -->
             <linearGradient id="gVB${uid}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="70%"  stop-color="#000" stop-opacity="0"/>
-              <stop offset="100%" stop-color="#000" stop-opacity="0.50"/>
+              <stop offset="65%"  stop-color="#000" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0.55"/>
             </linearGradient>
 
             <!-- Seam light leak — luminous vertical glow at blend midpoint -->
@@ -30376,7 +30379,7 @@ function assetGraphic(m){
           </defs>
 
           <!-- LEFT FLAG — full banner, masked to fade right -->
-          <g mask="url(#mL${uid})" opacity="0.80">
+          <g mask="url(#mL${uid})" opacity="0.88">
             <g transform="${bXform}">${bArt.svg}</g>
           </g>
 
@@ -30392,19 +30395,11 @@ function assetGraphic(m){
           <!-- Seam luminous light-leak -->
           <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gLeak${uid})"/>
 
-          <!-- Left/right & top/bottom vignettes -->
-          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVig${uid})"/>
-          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVT${uid})"/>
+          <!-- Bottom vignette only — for depth at footer -->
           <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVB${uid})"/>
         </svg>
 
-        <!-- Title text protection: left-to-right dark gradient -->
-        <div style="position:absolute;inset:0;background:linear-gradient(90deg,
-          rgba(3,5,8,0.96) 0%,
-          rgba(3,5,8,0.88) 14%,
-          rgba(3,5,8,0.60) 28%,
-          rgba(3,5,8,0.20) 42%,
-          transparent 58%);pointer-events:none"></div>
+
 
         <!-- Currency pair pill — bottom right, glass -->
         <div style="position:absolute;right:16px;bottom:10px;
