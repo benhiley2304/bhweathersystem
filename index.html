@@ -1194,6 +1194,7 @@ a{color:inherit;text-decoration:none}
   .ov-macro-card{padding:12px 12px 10px;border-radius:12px;min-height:unset;height:auto}
   .ov-mc-hero{font-size:22px!important}
   .ov-yc-canvas-wrap{min-height:80px;max-height:160px}
+  #ov-yc-chart{min-height:200px!important;max-height:280px!important}
   .ov-yc-hero-val{font-size:28px!important}
   /* Credit spreads mobile */
   .ov-cs-num-val.is-hy{font-size:32px!important}
@@ -19598,6 +19599,94 @@ body {
 
 /* ── END R36 ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R37 — MOBILE HERO REDESIGN
+   Removes composite score cards + sector strip from mobile hero.
+   Replaces with compact inline pill row. Fixes shimmer on iOS.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Sector strip: always hidden (removed from mobile) ── */
+#mob-sector-strip { display: none !important; }
+
+/* ── Pills row — compact inline data strip ── */
+@media (max-width: 700px) {
+  .mob-hero-pills {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mob-hero-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 2px;
+    padding: 0 4px;
+  }
+
+  .mob-hero-pill-lbl {
+    font-family: var(--mono);
+    font-size: 7.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(190,200,222,0.55);
+    white-space: nowrap;
+  }
+
+  .mob-hero-pill-val {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .mob-hero-pill-denom {
+    font-size: 9px;
+    font-weight: 600;
+    opacity: 0.5;
+    letter-spacing: 0;
+  }
+
+  .mob-hero-pill-div {
+    width: 1px;
+    height: 28px;
+    background: rgba(255,255,255,0.10);
+    flex-shrink: 0;
+  }
+
+  /* Sentiment bar — keep tight below pills */
+  .mob-hero-sent {
+    margin-top: 10px;
+  }
+
+  /* iOS WebKit shimmer fix: use -webkit-animation as fallback */
+  .mob-regime-w2 {
+    -webkit-animation: heroGradientShimmer 7s cubic-bezier(0.45,0,0.55,1) infinite !important;
+    animation: heroGradientShimmer 7s cubic-bezier(0.45,0,0.55,1) infinite !important;
+  }
+
+  @-webkit-keyframes heroGradientShimmer {
+    0%   { background-position: 100% 0 }
+    50%  { background-position: 0% 0 }
+    100% { background-position: 100% 0 }
+  }
+}
+
+/* ── END R37 ── */
+
 
 </style>
 </head>
@@ -20429,10 +20518,6 @@ function renderOverview(){
           BH WEATHER SYSTEM &nbsp;·&nbsp; ${total} MARKETS &nbsp;·&nbsp; ${updStr}
         </div>
         <div class="mob-hero-regime" style="--mob-regime-col:${regCol}">${(()=>{
-          // Split regLabel into two-line hero text — qualifier line 1, direction line 2
-          // e.g. 'Risk-On'       -> RISK / ON
-          //      'Lean Risk-On'  -> LEAN / RISK-ON
-          //      'Strong Risk-On'-> STRONG / RISK-ON
           const up2 = regLabel.toUpperCase();
           let w1, w2;
           if (up2.includes('LEAN') && up2.includes('RISK-ON'))        { w1 = 'LEAN';   w2 = 'RISK-ON'; }
@@ -20442,41 +20527,40 @@ function renderOverview(){
           else if (up2.includes('RISK-ON') || up2.includes('RISK ON'))   { w1 = 'RISK'; w2 = 'ON'; }
           else if (up2.includes('RISK-OFF') || up2.includes('RISK OFF')) { w1 = 'RISK'; w2 = 'OFF'; }
           else { const parts = up2.replace(/-/g,' ').split(' '); w1 = parts.slice(0,-1).join(' ') || 'MARKET'; w2 = parts[parts.length-1]; }
-          // Font size: shrink w2 when long (RISK-ON)
           const szRem = w2.length > 4 ? '58px' : '72px';
           return `<span class="mob-regime-w1" style="font-size:${szRem}">${w1}</span><span class="mob-regime-w2" style="font-size:${szRem}">${w2}</span>`;
         })()}</div>
         <div class="mob-hero-rule"></div>
         <div class="mob-hero-desc">${mobDesc}</div>
-        <div class="mob-hero-stats">
-          <div class="mob-hero-stat">
-            <div class="mob-hero-stat-label">Avg Score</div>
-            <div class="mob-hero-stat-val" style="color:${avgCol}">${avg}</div>
-            <div class="mob-hero-stat-sub">composite / 10</div>
+        <div class="mob-hero-pills">
+          <div class="mob-hero-pill">
+            <span class="mob-hero-pill-lbl">Score</span>
+            <span class="mob-hero-pill-val" style="color:${avgCol}">${avg}<span class="mob-hero-pill-denom">/10</span></span>
           </div>
-          <div class="mob-hero-stat">
-            <div class="mob-hero-stat-label">Climate</div>
-            <div class="mob-hero-stat-val" style="color:${regCol}">${regScore!=null?regScore.toFixed(1):'—'}</div>
-            <div class="mob-hero-stat-sub">/ 10 <span style="font-size:9px;opacity:0.5" title="Composite climate score — 5.0 = neutral, 10 = maximum risk-on, 0 = maximum risk-off">(?)</span></div>
+          <div class="mob-hero-pill-div"></div>
+          <div class="mob-hero-pill">
+            <span class="mob-hero-pill-lbl">Climate</span>
+            <span class="mob-hero-pill-val" style="color:${regCol}">${regScore!=null?regScore.toFixed(1):'—'}<span class="mob-hero-pill-denom">/10</span></span>
           </div>
-          <div class="mob-hero-stat">
-            <div class="mob-hero-stat-label">Bull / Bear</div>
-            <div class="mob-hero-stat-val" style="color:#22c97a">${bull} <span style="color:rgba(255,255,255,0.22);font-size:11px">/</span> <span style="color:#e03a2a">${bear}</span></div>
-            <div class="mob-hero-stat-sub">${neut} neutral</div>
+          <div class="mob-hero-pill-div"></div>
+          <div class="mob-hero-pill">
+            <span class="mob-hero-pill-lbl">Bull / Bear</span>
+            <span class="mob-hero-pill-val"><span style="color:#26c97a">${bull}</span><span style="color:rgba(255,255,255,0.25);font-size:10px;margin:0 3px">/</span><span style="color:#d63a24">${bear}</span></span>
           </div>
         </div>
         <div class="mob-hero-sent">
-          <div class="mob-hero-sent-seg" style="width:${bullPct2}%;background:#22c97a"></div>
+          <div class="mob-hero-sent-seg" style="width:${bullPct2}%;background:#26c97a"></div>
           <div class="mob-hero-sent-seg" style="width:${neutPct2}%;background:#4a5268"></div>
-          <div class="mob-hero-sent-seg" style="width:${bearPct2}%;background:#e03a2a"></div>
+          <div class="mob-hero-sent-seg" style="width:${bearPct2}%;background:#d63a24"></div>
         </div>`;
 
       // Start particle canvas on hero
       initMobHeroCanvas(regCol);
     }
 
-    // ── Sector panel: horizontal scroll cards
-    if(mss){
+    // ── Sector panel: REMOVED — category composite scores removed from mobile (R37)
+    if(mss){ mss.style.display='none'; }
+    if(false && mss){
       const _mm2={}; markets.forEach(m=>_mm2[m.id]=m);
       const SECTS2=[
         {label:'Equity',  ids:['ES','NQ','YM','RTY','Z']},
@@ -23176,9 +23260,9 @@ function renderMacroDataPanels(reg){
           </div>
         </div>
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
-        <div style="flex:1;min-height:0;max-height:230px;display:flex;flex-direction:column">
+        <div style="flex:1;min-height:0;max-height:290px;display:flex;flex-direction:column">
           <div class="mc-sect" style="margin:8px 0 5px;flex-shrink:0"><div class="mc-sect-lbl">Historical Curves</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:140px;max-height:200px"></div>
+          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:140px;max-height:260px"></div>
         </div>
         <!-- Momentum + move type row -->
         <div style="display:flex;gap:8px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;flex-shrink:0">
@@ -23702,17 +23786,20 @@ function renderMacroDataPanels(reg){
         };
       }
       const _drawYC = () => { try { _drawYieldCurveInline(crCol, _ycData); } catch(e){ console.error('YC draw error:', e); } };
-      requestAnimationFrame(() => {
+      // Double-RAF: first RAF waits for DOM insertion, second for layout reflow
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         _drawYC();
+        // Retry once after 120ms in case layout still hadn't settled (common on mobile)
+        setTimeout(() => _drawYC(), 120);
         try {
           const _ycEl = document.getElementById('ov-yc-chart');
           if (_ycEl && window.ResizeObserver) {
             let _ycRO = new ResizeObserver(() => _drawYC());
             _ycRO.observe(_ycEl);
-            setTimeout(() => _ycRO.disconnect(), 5000);
+            setTimeout(() => _ycRO.disconnect(), 8000);
           }
         } catch(e){}
-      });
+      }));
     })();
   }));
 }
@@ -23742,18 +23829,30 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   const logMin = Math.log2(2.5), logMax = Math.log2(400);
 
   // Use container's actual rendered dimensions
+  // Walk up DOM for a reliable width — avoids stale zero on first RAF after DOM injection
   const elRect = el.getBoundingClientRect();
   let containerW = elRect.width;
-  if (!containerW) {
+  if (containerW < 120) {
+    // Try parent chain until we get a real width
+    let p = el.parentElement;
+    while (p && containerW < 120) {
+      const pr = p.getBoundingClientRect();
+      if (pr.width > 120) { containerW = pr.width - (p === el.parentElement ? 0 : 48); }
+      p = p.parentElement;
+    }
+  }
+  if (containerW < 120) {
     const card = document.getElementById('ov-macro-yc');
     if (card) containerW = card.getBoundingClientRect().width - 48;
   }
-  if (!containerW) containerW = 280;
+  if (containerW < 120) containerW = 300;
   const W = Math.max(containerW - 4, 160);
-  // Use container height if available; else aspect ratio fallback
+  // Use container height if available; else aspect ratio fallback — be generous on mobile
   let containerH = elRect.height;
-  const aspectH = W < 220 ? 0.80 : 0.68;
-  const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), 150);
+  const isMobileW = window.innerWidth <= 480;
+  const aspectH = isMobileW ? 0.72 : (W < 220 ? 0.80 : 0.68);
+  const minH = isMobileW ? 200 : 150;
+  const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), minH);
   // On mini (mobile half-width), skip y-axis label space
   const _padL = containerW < 220 ? 8 : 36;
   const padL = _padL, padR = 10, padT = 10, padB = 36;
