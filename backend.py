@@ -10071,7 +10071,7 @@ async def upcoming_events(force: bool = False):
     from datetime import datetime, timezone, timedelta
     import concurrent.futures as _cf
 
-    week_strings = _get_future_week_strings(3)  # current + next 2 weeks
+    week_strings = _get_future_week_strings(3)  # current + next 2 weeks (covers 10-day window)
     all_events: list = []
 
     with _cf.ThreadPoolExecutor(max_workers=3) as ex:
@@ -10083,14 +10083,18 @@ async def upcoming_events(force: bool = False):
                 pass
 
     now_utc = datetime.now(timezone.utc)
-    cutoff = now_utc + timedelta(days=7)
+    cutoff = now_utc + timedelta(days=10)
 
     filtered = []
     for ev in all_events:
-        # High-impact only
+        # High + medium impact
         ic = (ev.get("impactClass") or "").lower()
-        if "high" not in ic and "red" not in ic:
+        title = (ev.get("title") or "").lower()
+        is_high   = "high" in ic or "red" in ic
+        is_medium = "medium" in ic or "orange" in ic or "mod" in ic
+        if not is_high and not is_medium:
             continue
+        impact_label = "High" if is_high else "Medium"
         # Parse datetime — dateline may be Unix int or string
         dl = ev.get("dateline")
         dt_str = _parse_ff_datetime(dl)
@@ -10117,7 +10121,7 @@ async def upcoming_events(force: bool = False):
             "prior":         ev.get("previous", "") or "",
             "forecast":      ev.get("forecast", "") or "",
             "actual":        ev.get("actual", "") or "",
-            "impact":        "High",
+            "impact":        impact_label,
         })
 
     # Sort by datetime ascending

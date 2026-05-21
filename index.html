@@ -3419,6 +3419,88 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   .d-events-tbl td,.d-events-tbl thead th{padding:8px 12px}
 }
 
+/* ══ ECONOMIC CALENDAR (HOME) — redesign May 2026 ══════════════════════ */
+.cal-wrap{
+  padding:16px 16px 12px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.cal-header{
+  display:flex;align-items:baseline;gap:10px;margin-bottom:12px;
+}
+.cal-header-lbl{
+  font-size:9px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;
+  color:var(--faint);font-family:var(--head);flex-shrink:0;
+}
+.cal-header-sub{
+  font-size:9px;color:var(--faint);opacity:0.6;letter-spacing:0.04em;flex-shrink:0;
+}
+.cal-header-line{
+  flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.07),transparent);
+}
+.cal-body{display:flex;flex-direction:column;gap:10px}
+.cal-day-block{}
+.cal-day-hdr{
+  font-size:8.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--accent);font-family:var(--head);
+  padding:0 0 5px 0;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:0;
+}
+.cal-tbl{width:100%;border-collapse:collapse}
+.cal-row{
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  transition:background 0.1s;
+}
+.cal-row:last-child{border-bottom:none}
+.cal-row:hover td{background:rgba(255,255,255,0.015)}
+.cal-td-flag{
+  font-size:12px;padding:7px 6px 7px 0;
+  vertical-align:middle;width:22px;
+}
+.cal-td-name{
+  padding:7px 8px 7px 0;vertical-align:middle;
+  font-size:11px;color:var(--text);max-width:0;width:99%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cal-name{font-weight:500}
+.cal-fcst{
+  margin-left:7px;font-family:var(--mono);font-size:9.5px;
+  color:var(--faint);font-weight:500;
+}
+.cal-td-time{
+  padding:7px 10px 7px 0;vertical-align:middle;
+  font-family:var(--mono);font-size:10px;color:var(--dim);
+  white-space:nowrap;text-align:right;
+}
+.cal-td-timer{
+  padding:7px 8px 7px 0;vertical-align:middle;
+  text-align:right;white-space:nowrap;
+}
+.cal-timer{
+  font-family:var(--mono);font-size:9.5px;font-weight:600;
+  color:var(--faint);padding:2px 6px;border-radius:3px;
+  background:rgba(255,255,255,0.04);
+}
+.cal-timer.soon{
+  color:var(--accent);
+  background:rgba(200,169,110,0.08);
+}
+.cal-timer.urgent{
+  color:var(--sm1);
+  background:rgba(214,58,36,0.1);
+}
+.cal-td-impact{
+  padding:7px 0;vertical-align:middle;text-align:center;width:16px;flex-shrink:0;
+}
+.cal-impact-dot{
+  display:inline-block;width:5px;height:5px;border-radius:50%;flex-shrink:0;
+}
+.cal-impact-dot.high{background:#e03a2a;box-shadow:0 0 4px 1px rgba(224,58,42,0.5)}
+.cal-impact-dot.med{background:#f5a623;opacity:0.7}
+@media(max-width:700px){
+  .cal-wrap{padding:13px 12px 10px}
+  .cal-fcst{display:none}
+  .cal-td-time{display:none}
+}
+
 /* ── Unified Factor Tab Strip ── */
 .factor-strip{
   display:grid;
@@ -17418,7 +17500,7 @@ a, .link-gold{
         </div>
         <span id="sb-count">—</span>
       </div>
-      <div id="hc-module"></div>
+      <!-- hc-module removed -->
       <div class="cat-row" id="cat-row">
         <button class="cat-btn on" data-cat="all">All</button>
         <button class="cat-btn" data-cat="equity">Equity</button>
@@ -17468,8 +17550,6 @@ a, .link-gold{
         <div class="ov-cat-bar" id="ov-cat-bar"></div>
         <!-- macro env pill strip -->
         <div id="ov-macro-env-strip"></div>
-        <!-- upcoming events strip (filled async by renderUpcomingEvents) -->
-        <div id="ov-events-strip" style="display:none"></div>
         <!-- macro data panels: yield curve, credit spreads, fed balance sheet -->
         <div id="ov-macro-panels-wrap"></div>
         <!-- global climate panel -->
@@ -17477,6 +17557,8 @@ a, .link-gold{
         <!-- regime signals panel removed -->
         <!-- ai brief -->
         <div class="ov-ai-brief" id="ov-ai-brief"></div>
+        <!-- upcoming economic calendar (below AI brief, above signals) -->
+        <div id="ov-events-strip" style="display:none"></div>
         <!-- signals (moved above heatmap for better scanability) -->
         <div class="ov-signals-wrap" id="ov-signals-wrap"></div>
         <!-- smart money consensus panel removed -->
@@ -17853,7 +17935,6 @@ function renderHCModule(allMarkets){
 
 function renderList(){
   if(!DATA)return;
-  renderHCModule(DATA.markets);
   const markets=DATA.markets.filter(m=>selCat==='all'||m.category===selCat);
   if(!markets.length){
     document.getElementById('mkt-list').innerHTML='<div style="padding:14px;color:var(--faint);font-size:10px">No markets</div>';
@@ -18652,60 +18733,107 @@ function renderOverview(){
       const resp = await fetch(`${API}/api/upcoming-events`);
       if(!resp.ok) { el.style.display='none'; return; }
       const data = await resp.json();
-      const evs = (data.events||[]).slice(0,3);
+
+      // G10 currencies only, medium+high impact, next 10 days
+      const G10 = new Set(['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','NOK','SEK']);
+      const now = Date.now();
+      const cutoff = now + 10 * 86400000;
+      const evs = (data.events||[])
+        .filter(ev => {
+          if(!G10.has(ev.currency)) return false;
+          const impact = (ev.impact||'').toLowerCase();
+          if(impact !== 'high' && impact !== 'medium') return false;
+          const dtMs = ev.datetime_utc ? new Date(ev.datetime_utc).getTime()
+                     : ev.datetime_ts  ? ev.datetime_ts*1000 : 0;
+          return dtMs > now && dtMs < cutoff;
+        });
+
       if(!evs.length){ el.style.display='none'; return; }
 
-      const now = Date.now();
-      function fmtCountdown(dtStr){
-        if(!dtStr) return '';
-        const ms = (typeof dtStr==='number' ? dtStr*1000 : new Date(dtStr).getTime()) - now;
-        if(isNaN(ms)||ms<0) return 'Now';
-        const h = Math.floor(ms/3600000);
-        const m = Math.floor((ms%3600000)/60000);
-        if(h>=24){ const d=Math.floor(h/24); return `${d}d ${h%24}h`; }
-        if(h>0) return `${h}h ${m}m`;
-        return `${m}m`;
+      // Helpers
+      function parseDtMs(ev){
+        if(ev.datetime_utc) return new Date(ev.datetime_utc).getTime();
+        if(ev.datetime_ts)  return ev.datetime_ts*1000;
+        return 0;
       }
-      function urgencyCls(dtStr){
-        if(!dtStr) return '';
-        const ms = typeof dtStr==='number' ? dtStr*1000 : new Date(dtStr).getTime();
-        const h = (ms - now)/3600000;
-        if(h<=2) return 'ev-urgent';
-        if(h<=24) return 'ev-soon';
-        return '';
+      function fmtLocalDate(ms){
+        // Returns weekday + day/month in user's local timezone
+        return new Date(ms).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
       }
-      function fmtDate(dtStr){
-        if(!dtStr) return '';
-        try {
-          // Handle ISO string or Unix timestamp
-          const d = typeof dtStr==='number' ? new Date(dtStr*1000) : new Date(dtStr);
-          if(isNaN(d.getTime())) return '';
-          return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})
-            + ' · ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'}) + ' UTC';
-        } catch(e){ return ''; }
+      function fmtLocalTime(ms){
+        return new Date(ms).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+      }
+      function fmtCountdown(ms){
+        const diff = ms - now;
+        if(diff<=0) return 'Now';
+        const h = Math.floor(diff/3600000);
+        const m = Math.floor((diff%3600000)/60000);
+        if(h>=48){ return Math.floor(h/24)+'d'; }
+        if(h>=24){ return Math.floor(h/24)+'d '+h%24+'h'; }
+        if(h>0)  return h+'h '+m+'m';
+        return m+'m';
+      }
+      function timerCls(ms){
+        const h=(ms-now)/3600000;
+        if(h<=4)  return 'cal-timer urgent';
+        if(h<=24) return 'cal-timer soon';
+        return 'cal-timer';
       }
 
-      const pillsHtml = evs.map(ev=>{
-        const dtK = ev.datetime_utc || ev.datetime_ts || '';
-        const urg = urgencyCls(dtK);
-        const cd  = fmtCountdown(dtK);
-        return `<div class="ev-pill ${urg}">
-          <span class="ev-flag">${ev.flag||ev.currency}</span>
-          <div class="ev-body">
-            <div class="ev-name">${ev.name}</div>
-            <div class="ev-meta">${fmtDate(dtK)}${ev.forecast?` · Fcst: ${ev.forecast}`:''}</div>
-          </div>
-          <span class="ev-countdown ${urg}">${cd}</span>
+      // Group by local date string
+      const groups = [];
+      const seen = {};
+      for(const ev of evs){
+        const ms = parseDtMs(ev);
+        const dayKey = fmtLocalDate(ms);
+        if(!seen[dayKey]){ seen[dayKey]=true; groups.push({dayKey,rows:[]}); }
+        groups[groups.length-1].rows.push({ev,ms});
+      }
+      // Dedupe by key but keep correct group
+      const grouped = {};
+      for(const ev of evs){
+        const ms = parseDtMs(ev);
+        const dk = fmtLocalDate(ms);
+        if(!grouped[dk]) grouped[dk]=[];
+        grouped[dk].push({ev,ms});
+      }
+      const sortedDays = Object.keys(grouped).sort((a,b)=>grouped[a][0].ms - grouped[b][0].ms);
+
+      // Impact dot colour
+      function impactDot(impact){
+        return (impact||'').toLowerCase()==='high'
+          ? `<span class="cal-impact-dot high" title="High impact"></span>`
+          : `<span class="cal-impact-dot med" title="Medium impact"></span>`;
+      }
+
+      // Build rows for each day group
+      const dayBlocks = sortedDays.map(dk => {
+        const rows = grouped[dk].sort((a,b)=>a.ms-b.ms);
+        const rowsHtml = rows.map(({ev,ms})=>{
+          const tc = timerCls(ms);
+          const fcst = ev.forecast ? `<span class="cal-fcst">${ev.forecast}</span>` : '';
+          return `<tr class="cal-row">
+            <td class="cal-td-flag">${ev.flag||ev.currency}</td>
+            <td class="cal-td-name"><span class="cal-name">${ev.name}</span>${fcst}</td>
+            <td class="cal-td-time">${fmtLocalTime(ms)}</td>
+            <td class="cal-td-timer"><span class="${tc}">${fmtCountdown(ms)}</span></td>
+            <td class="cal-td-impact">${impactDot(ev.impact)}</td>
+          </tr>`;
+        }).join('');
+        return `<div class="cal-day-block">
+          <div class="cal-day-hdr">${dk}</div>
+          <table class="cal-tbl"><tbody>${rowsHtml}</tbody></table>
         </div>`;
       }).join('');
 
       el.style.display = 'block';
-      el.innerHTML = `<div class="ov-events-wrap">
-        <div class="ov-events-hdr">
-          <span class="ov-events-hdr-lbl">Upcoming Events</span>
-          <div class="ov-events-hdr-line"></div>
+      el.innerHTML = `<div class="cal-wrap">
+        <div class="cal-header">
+          <span class="cal-header-lbl">Key Economic Events</span>
+          <span class="cal-header-sub">Next 10 days · G10 · Local time</span>
+          <div class="cal-header-line"></div>
         </div>
-        <div class="ov-events-strip">${pillsHtml}</div>
+        <div class="cal-body">${dayBlocks}</div>
       </div>`;
     } catch(e){
       console.warn('Upcoming events fetch failed:', e);
@@ -24917,7 +25045,6 @@ function renderDetail(m){
     dHead(m,ws,col,bg)+
     buildOvNav(m)+
     buildOverview(m)+
-    factorStrip(m)+
     `<div class="tab${selTab==='cot'?' on':''}" id="t-cot">${cotTab(m)}</div>`+
     `<div class="tab${selTab==='seasonal'?' on':''}" id="t-seasonal">${seasTabStub(m)}</div>`+
     `<div class="tab${selTab==='momentum'?' on':''}" id="t-momentum">${momTab(m)}</div>`+
@@ -25902,7 +26029,7 @@ function buildOverview(m){
       </div>
     </div>
 
-    <!-- WEIGHT BREAKDOWN BAR v2 -->
+    <!-- WEIGHT BREAKDOWN BAR -->
     <div class="ov-wt-card">
       <div class="ov-wt-lbl">Composite Weighting</div>
       <div class="ov-wt-bar">${wtSegs}</div>
@@ -26776,12 +26903,7 @@ function switchTab(tab){
 
   // Overview panel: show when tab==='overview', hide otherwise
   const ovPanel = document.getElementById('t-overview');
-  const fStrip  = document.querySelector('.factor-strip');
   if(ovPanel)  ovPanel.classList.toggle('on', tab==='overview');
-  if(fStrip){
-    // Hide the factor strip when overview is active
-    fStrip.style.display = (tab==='overview') ? 'none' : '';
-  }
 
   // Update ov-nav chip active states
   document.querySelectorAll('.ov-nt').forEach(el=>{
@@ -26792,11 +26914,6 @@ function switchTab(tab){
 
   // Update tab content visibility (existing .tab divs)
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='t-'+tab));
-  // Update factor card active state (deactivate all when history is selected)
-  document.querySelectorAll('.f-card').forEach(c=>{
-    const isThis = c.getAttribute('onclick')==="switchTab('"+tab+"')";
-    c.classList.toggle('act', isThis);
-  });
   // Animate score count-up on tab switch (IDEA-09)
   requestAnimationFrame(()=>{ if(typeof animateTabScores==='function') animateTabScores(); });
   // Update Score History button styling
