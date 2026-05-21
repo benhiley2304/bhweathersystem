@@ -19353,39 +19353,58 @@ body {
 .ov-fc:active {
   transform: translateY(0) !important;
 }
-/* Card top row: factor name + score badge */
-.ov-fc-top {
+/* Card header: factor name + contribution badge */
+.ov-fc-header {
   display: flex !important;
-  align-items: flex-start !important;
+  align-items: center !important;
   justify-content: space-between !important;
-  gap: 8px !important;
+  gap: 6px !important;
+  margin-bottom: 4px !important;
 }
 .ov-fc-name {
-  font-size: 10px !important;
+  font-size: 8.5px !important;
   font-weight: 700 !important;
-  letter-spacing: 0.10em !important;
+  letter-spacing: 0.09em !important;
   text-transform: uppercase !important;
-  color: rgba(157,170,191,0.70) !important;
+  color: rgba(157,170,191,0.65) !important;
   line-height: 1.2 !important;
   flex: 1 !important;
   min-width: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.ov-fc-contrib-badge {
+  font-family: var(--mono) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  color: var(--fc-color, var(--faint)) !important;
+  flex-shrink: 0 !important;
+  opacity: 0.85 !important;
+}
+/* Score row: big number + /10 subscript */
+.ov-fc-score-row {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 2px !important;
+  margin-bottom: 2px !important;
 }
 .ov-fc-score {
   font-family: var(--head) !important;
-  font-size: 28px !important;
+  font-size: 32px !important;
   font-weight: 700 !important;
   letter-spacing: -0.06em !important;
   line-height: 1 !important;
   color: var(--fc-color, var(--text)) !important;
   flex-shrink: 0 !important;
-  text-shadow: 0 0 20px rgba(var(--fc-rgb, 200,169,110), 0.35) !important;
+  text-shadow: 0 0 22px rgba(var(--fc-rgb, 200,169,110), 0.35) !important;
 }
 .ov-fc-score-sub {
   font-family: var(--mono) !important;
-  font-size: 8px !important;
+  font-size: 10px !important;
   color: var(--faint) !important;
   letter-spacing: 0.04em !important;
-  margin-left: 1px !important;
+  flex-shrink: 0 !important;
 }
 /* Card bottom: interpretation + mini bar */
 .ov-fc-bot {
@@ -19571,7 +19590,7 @@ body {
     padding: 12px 13px 11px !important;
   }
   .ov-fc-score {
-    font-size: 24px !important;
+    font-size: 26px !important;
   }
   .ov-atotal {
     padding: 12px 16px !important;
@@ -28504,19 +28523,19 @@ function buildOverview(m){
     const fcRgb = k==='cot'?'92,158,255':k==='seasonal'?'38,201,122':k==='momentum'?'138,152,184':k==='macro'?'106,120,152':k==='relval'?'240,64,64':k==='regime'||k==='climate'?'92,184,255':k==='pcr'?'214,58,36':'157,170,191';
     const contribStr = (contrib>=0?'+':'')+contrib.toFixed(2);
     return `<div class="ov-fc" style="--fc-color:${rcol};--fc-rgb:${fcRgb}" onclick="switchTab('${tabId}')">
-      <div class="ov-fc-top">
-        <div class="ov-fc-name">${label}</div>
-        <div style="display:flex;align-items:baseline;gap:2px">
-          <span class="ov-fc-score">${sc.toFixed(1)}</span>
-          <span class="ov-fc-score-sub">/10</span>
-        </div>
+      <div class="ov-fc-header">
+        <span class="ov-fc-name">${label}</span>
+        <span class="ov-fc-contrib-badge">${contribStr}</span>
+      </div>
+      <div class="ov-fc-score-row">
+        <span class="ov-fc-score">${sc.toFixed(1)}</span>
+        <span class="ov-fc-score-sub">/10</span>
       </div>
       <div class="ov-fc-bot">
         <div class="ov-fc-interp">${interp}</div>
         <div class="ov-fc-bar-row">
           <div class="ov-fc-bar-track"><div class="ov-fc-bar-fill" style="width:${scoreBarPct}%"></div></div>
           <span class="ov-fc-wt">${pct}%</span>
-          <span class="ov-fc-contrib">${contribStr}</span>
         </div>
       </div>
       <span class="ov-fc-arrow">→</span>
