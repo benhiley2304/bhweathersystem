@@ -22719,7 +22719,15 @@ body {
   margin-bottom: 0 !important;
 }
 
-.ov-sig-name {
+/* Override wildcard [class*="ov-sig"] on name/score inside fingerprint bar */
+.ov-signal-bar .ov-sig-name,
+.ov-sig-seg .ov-sig-name {
+  /* Reset wildcard damage */
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  /* Label styles */
   font-family: var(--mono) !important;
   font-size: 7px !important;
   font-weight: 700 !important;
@@ -22730,17 +22738,31 @@ body {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   display: block !important;
-  line-height: 1.1 !important;
+  line-height: 1.2 !important;
+  height: auto !important;
+  min-height: 0 !important;
 }
 
-.ov-sig-score {
+.ov-signal-bar .ov-sig-score,
+.ov-sig-seg .ov-sig-score {
+  /* Reset wildcard damage */
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  /* Score styles */
   font-family: var(--mono) !important;
   font-size: 10px !important;
   font-weight: 800 !important;
   letter-spacing: -0.02em !important;
-  line-height: 1 !important;
+  line-height: 1.2 !important;
   color: var(--seg-col, var(--dim)) !important;
   display: block !important;
+  height: auto !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  flex-shrink: 0 !important;
+  text-align: left !important;
 }
 
 /* ── Mobile: stack summary above fingerprint bar ── */
