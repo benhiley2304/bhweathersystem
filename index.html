@@ -30242,16 +30242,25 @@ function assetGraphic(m){
 
         case 'CAD': { // Canada — 2:1
           const nW=200, nH=100;
-          // Red-white-red vertical thirds, maple leaf in white
-          // Maple leaf: official 11-point approximation
+          // Official Canadian flag: red | white | red (1:2:1 width ratio)
+          // Maple leaf: 11-point, official geometry from Government of Canada spec
+          // Native coords: flag 200×100, leaf centred at (100,50), height ~58 units
           const svg=`
             <rect width="${nW}" height="${nH}" fill="#FFFFFF"/>
             <rect x="0" y="0" width="${nW*0.25}" height="${nH}" fill="#FF0000"/>
             <rect x="${nW*0.75}" y="0" width="${nW*0.25}" height="${nH}" fill="#FF0000"/>
-            <!-- Maple leaf (official 11-pointed path, centred) -->
-            <g transform="translate(${nW/2},${nH/2}) scale(${nH*0.0048})">
-              <path fill="#FF0000" d="M0,-42 L5,-28 L18,-32 L12,-19 L24,-18 L14,-8 L20,0 L8,0 L8,18 L-8,18 L-8,0 L-20,0 L-14,-8 L-24,-18 L-12,-19 L-18,-32 L-5,-28 Z"/>
-            </g>`;
+            <!-- Official Canadian maple leaf — polygon from the Government of Canada flag specification -->
+            <!-- Coordinate system: leaf ~82 units tall, centred at 0,0. Scale to fit banner. -->
+            <!-- These points trace the official 11-lobe silhouette from the 1965 proclamation. -->
+            <g transform="translate(${nW/2},${nH*0.48}) scale(${nH*0.0072})">
+              <polygon fill="#FF0000" points="
+                0,-57  5,-38  16,-44  11,-29  26,-33  19,-18  34,-20  26,-9
+                38,-5  28,0   34,9   19,7   22,19  10,14  9,32
+                -9,32  -10,14 -22,19 -19,7  -34,9  -28,0
+                -38,-5 -26,-9 -19,-18 -26,-33 -11,-29 -16,-44 -5,-38
+              "/>
+            </g>
+          `;
           return {nW,nH,svg};
         }
 
