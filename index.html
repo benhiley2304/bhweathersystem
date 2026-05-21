@@ -19063,42 +19063,20 @@ body {
 /* ── END R34 ── */
 
 /* ══════════════════════════════════════════════════════════════
-   R35 — OVERVIEW CREATIVE OVERHAUL
-   Arc gauge score, factor card grid, signal dot confluence,
-   animated entrances, premium iOS-level visual treatment
+   R35 — OVERVIEW PREMIUM TABLE REDESIGN
+   Arc gauge score, premium table rows, signal dot confluence,
+   animated entrances, iOS-level visual treatment
 ═══════════════════════════════════════════════════════════════ */
 
 /* ── ENTRANCE ANIMATIONS ── */
 @keyframes ov-fade-up {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes ov-arc-dash {
-  from { stroke-dashoffset: 251.2; }
-}
-@keyframes ov-card-pop {
-  from { opacity: 0; transform: translateY(8px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
 
-/* ── VERDICT CARD — ARC GAUGE REDESIGN ── */
-/* Override the score column to use the arc gauge approach */
-.ov-v-score-col {
-  min-width: 130px !important;
-  padding: 20px 16px 18px !important;
-  align-items: center !important;
-  justify-content: center !important;
-  position: relative !important;
-  background: transparent !important;
-  border-right: 1px solid rgba(255,255,255,0.05) !important;
-}
-/* Hide the old linear bar (we now use SVG arc) */
-.ov-vsbar,
-.ov-vsdot {
-  display: none !important;
-}
-/* Score number is now inside the arc SVG, just hide the standalone ov-vsn & ov-vsd
-   and show them as overlays via the new .ov-gauge wrapper */
+/* ── VERDICT CARD — ARC GAUGE ── */
+.ov-vsbar, .ov-vsdot { display: none !important; }
+
 .ov-vsn-wrap {
   position: relative !important;
   display: flex !important;
@@ -19111,16 +19089,14 @@ body {
 }
 .ov-gauge-svg {
   position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  top: 0; left: 0 !important;
+  width: 100% !important; height: 100% !important;
   transform: rotate(-90deg) !important;
   overflow: visible !important;
 }
 .ov-gauge-track {
   fill: none !important;
-  stroke: rgba(255,255,255,0.06) !important;
+  stroke: rgba(255,255,255,0.07) !important;
   stroke-width: 6 !important;
   stroke-linecap: round !important;
 }
@@ -19130,7 +19106,7 @@ body {
   stroke-linecap: round !important;
   stroke-dasharray: 251.2 !important;
   transition: stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1) !important;
-  filter: drop-shadow(0 0 6px var(--ov-stripe, var(--faint))) !important;
+  filter: drop-shadow(0 0 7px var(--ov-stripe, var(--faint))) !important;
 }
 .ov-gauge-center {
   position: relative !important;
@@ -19139,127 +19115,99 @@ body {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0 !important;
+}
+.ov-v-score-col {
+  min-width: 130px !important;
+  padding: 22px 16px 18px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border-right: 1px solid rgba(255,255,255,0.05) !important;
+}
+.ov-v-score-col::before {
+  width: 64px !important; height: 64px !important;
+  background: radial-gradient(ellipse, rgba(var(--ov-stripe-rgb,200,169,110),0.15) 0%, transparent 70%) !important;
 }
 .ov-vsn {
   font-family: var(--head) !important;
-  font-size: 32px !important;
+  font-size: 30px !important;
   font-weight: 700 !important;
   letter-spacing: -0.06em !important;
   line-height: 1 !important;
-  position: relative !important;
-  z-index: 2 !important;
+  position: relative !important; z-index: 2 !important;
 }
 .ov-vsd {
   font-family: var(--mono) !important;
   font-size: 9px !important;
   color: var(--faint) !important;
   letter-spacing: 0.04em !important;
-  position: relative !important;
-  z-index: 2 !important;
+  position: relative !important; z-index: 2 !important;
   margin-top: 1px !important;
 }
-/* Glow disc behind gauge number */
-.ov-v-score-col::before {
-  width: 60px !important;
-  height: 60px !important;
-  background: radial-gradient(ellipse, rgba(var(--ov-stripe-rgb, 200,169,110), 0.14) 0%, transparent 70%) !important;
-}
-/* Verdict chip stays below the arc */
 .ov-verdict-chip {
-  margin-top: 2px !important;
+  margin-top: 6px !important;
   font-size: 7.5px !important;
   letter-spacing: 0.10em !important;
   padding: 3px 10px !important;
 }
+.ov-verdict {
+  animation: ov-fade-up 0.40s cubic-bezier(0.22,1,0.36,1) both !important;
+}
 
-/* Scale up gauge at larger viewports */
 @media (min-width: 1100px) {
-  .ov-vsn-wrap {
-    width: 110px !important;
-    height: 110px !important;
-  }
-  .ov-vsn {
-    font-size: 36px !important;
-  }
-  .ov-v-score-col {
-    min-width: 140px !important;
-  }
+  .ov-vsn-wrap { width: 108px !important; height: 108px !important; }
+  .ov-vsn { font-size: 34px !important; }
+  .ov-v-score-col { min-width: 140px !important; }
 }
 @media (min-width: 1440px) {
-  .ov-vsn-wrap {
-    width: 120px !important;
-    height: 120px !important;
-  }
-  .ov-vsn {
-    font-size: 40px !important;
-  }
-  .ov-v-score-col {
-    min-width: 150px !important;
-    padding: 24px 20px 22px !important;
-  }
+  .ov-vsn-wrap { width: 118px !important; height: 118px !important; }
+  .ov-vsn { font-size: 38px !important; }
+  .ov-v-score-col { min-width: 150px !important; padding: 26px 20px 22px !important; }
 }
 @media (max-width: 700px) {
-  .ov-vsn-wrap {
-    width: 90px !important;
-    height: 90px !important;
-  }
-  .ov-vsn {
-    font-size: 28px !important;
-  }
-  .ov-v-score-col {
-    min-width: 110px !important;
-    padding: 16px 12px 14px !important;
-  }
+  .ov-vsn-wrap { width: 86px !important; height: 86px !important; }
+  .ov-vsn { font-size: 26px !important; }
+  .ov-v-score-col { min-width: 108px !important; padding: 16px 12px 14px !important; }
 }
 
-/* ── VERDICT CARD ANIMATION ── */
-.ov-verdict {
-  animation: ov-fade-up 0.45s cubic-bezier(0.22,1,0.36,1) both !important;
-}
-
-/* ── CONFLUENCE STRIP — Signal dot visual meter ── */
+/* ── CONFLUENCE STRIP — signal dots ── */
 .ov-conf-strip {
-  padding: 14px 18px !important;
+  padding: 12px 16px !important;
   gap: 14px !important;
-  animation: ov-fade-up 0.45s 0.06s cubic-bezier(0.22,1,0.36,1) both !important;
+  animation: ov-fade-up 0.40s 0.06s cubic-bezier(0.22,1,0.36,1) both !important;
   flex-wrap: wrap !important;
 }
 .ov-conf-meter {
   display: flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 5px !important;
   flex-shrink: 0 !important;
-  padding: 6px 10px !important;
-  background: rgba(255,255,255,0.02) !important;
+  padding: 7px 11px !important;
+  background: rgba(255,255,255,0.025) !important;
   border-radius: 8px !important;
-  border: 1px solid rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
 }
 .ov-conf-dot {
-  width: 9px !important;
-  height: 9px !important;
-  border-radius: 50% !important;
-  flex-shrink: 0 !important;
-  transition: transform 0.15s !important;
+  width: 10px !important; height: 10px !important;
+  border-radius: 50% !important; flex-shrink: 0 !important;
 }
 .ov-conf-dot.bull {
   background: #26c97a !important;
-  box-shadow: 0 0 6px rgba(38,201,122,0.55) !important;
+  box-shadow: 0 0 7px rgba(38,201,122,0.60) !important;
 }
 .ov-conf-dot.bear {
   background: #d63a24 !important;
-  box-shadow: 0 0 6px rgba(214,58,36,0.50) !important;
+  box-shadow: 0 0 7px rgba(214,58,36,0.55) !important;
 }
 .ov-conf-dot.neut {
-  background: rgba(255,255,255,0.12) !important;
-  border: 1px solid rgba(255,255,255,0.18) !important;
+  background: rgba(255,255,255,0.13) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
 }
 .ov-conf-right {
   display: flex !important;
   flex-direction: column !important;
   gap: 3px !important;
-  flex: 1 !important;
-  min-width: 0 !important;
+  flex: 1 !important; min-width: 0 !important;
 }
 .ov-conf-title {
   font-size: 10px !important;
@@ -19272,349 +19220,248 @@ body {
   color: var(--faint) !important;
   line-height: 1.55 !important;
 }
-.ov-conf-detail strong {
-  color: var(--dim) !important;
+.ov-conf-detail strong { color: var(--dim) !important; font-weight: 600 !important; }
+/* hide old badge/text elements */
+.ov-conf-badge, .ov-conf-text { display: none !important; }
+
+/* ── ATTRIBUTION TABLE — premium rows ── */
+.ov-attr-wrap {
+  background: rgba(6,6,10,0.60) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+  animation: ov-fade-up 0.40s 0.10s cubic-bezier(0.22,1,0.36,1) both !important;
+}
+/* Table columns: factor | bar | score | weight | contribution */
+.ov-attr-head {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 100px 52px 42px 120px !important;
+  background: rgba(255,255,255,0.018) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 9px 20px 9px 24px !important;
+}
+.ov-ah {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: rgba(157,170,191,0.50) !important;
+}
+.ov-ah.r { text-align: right !important; }
+.ov-ah-contrib { padding-left: 14px !important; border-left: 1px solid rgba(255,255,255,0.05) !important; }
+
+/* ROW — large, premium, with left color stripe + ambient glow */
+.ov-arow {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 100px 52px 42px 120px !important;
+  align-items: center !important;
+  padding: 14px 20px 14px 24px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.035) !important;
+  cursor: pointer !important;
+  transition: background 0.15s !important;
+  position: relative !important;
+}
+.ov-arow:last-of-type { border-bottom: none !important; }
+/* Left colour stripe — matches factor score colour */
+.ov-arow::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important; top: 18% !important; bottom: 18% !important;
+  width: 3px !important;
+  background: var(--ov-rc) !important;
+  opacity: 0.70 !important;
+  border-radius: 0 2px 2px 0 !important;
+}
+/* Subtle per-row ambient glow from score colour */
+.ov-arow::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: radial-gradient(ellipse at 8% 50%, rgba(var(--ov-rc-rgb,157,170,191), 0.03) 0%, transparent 55%) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+.ov-arow > * { position: relative !important; z-index: 1 !important; }
+.ov-arow:hover {
+  background: rgba(255,255,255,0.022) !important;
+}
+.ov-arow:hover .ov-arr { opacity: 1 !important; }
+
+/* Factor name + interpretation */
+.ov-af { display: flex !important; flex-direction: column !important; gap: 3px !important; padding-right: 14px !important; }
+.ov-afn {
+  font-size: 12.5px !important;
   font-weight: 600 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.01em !important;
+}
+.ov-afi {
+  font-size: 9.5px !important;
+  color: var(--faint) !important;
+  line-height: 1.3 !important;
 }
 
-/* ── FACTOR CARDS GRID (replaces flat table) ── */
-.ov-attr-wrap {
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: none !important;
-  padding: 0 !important;
-  margin-bottom: 12px !important;
-}
-/* Hide old header row */
-.ov-attr-head {
-  display: none !important;
-}
-/* Factor card grid container */
-.ov-factors-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 8px !important;
-  animation: ov-fade-up 0.45s 0.10s cubic-bezier(0.22,1,0.36,1) both !important;
-}
-@media (min-width: 1440px) {
-  .ov-factors-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
-}
-@media (max-width: 480px) {
-  .ov-factors-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-/* Individual factor card */
-.ov-fc {
-  background: rgba(8,8,12,0.55) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255,255,255,0.06) !important;
-  border-radius: 10px !important;
-  padding: 14px 16px 12px !important;
-  cursor: pointer !important;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s !important;
-  position: relative !important;
+/* Score bar — tall, beautiful fill */
+.ov-abar-wrap { padding-right: 14px !important; display: flex !important; align-items: center !important; }
+.ov-abar-track {
+  width: 100% !important;
+  height: 5px !important;
+  background: rgba(255,255,255,0.07) !important;
+  border-radius: 3px !important;
   overflow: hidden !important;
+}
+.ov-abar-fill {
+  height: 100% !important;
+  border-radius: 3px !important;
+  transition: width 0.8s cubic-bezier(0.22,1,0.36,1) !important;
+  opacity: 0.90 !important;
+}
+
+/* Score number — large, coloured, glowing */
+.ov-asc {
+  font-family: var(--head) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
+  text-align: right !important;
+  padding-right: 6px !important;
+  line-height: 1 !important;
+  text-shadow: 0 0 14px currentColor !important;
+  /* color set inline via style= */
+}
+
+/* Weight */
+.ov-awt {
+  font-family: var(--mono) !important;
+  font-size: 10px !important;
+  color: var(--faint) !important;
+  text-align: right !important;
+  padding: 0 10px !important;
+}
+
+/* Contribution — right column, accented */
+.ov-acont {
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
+  align-items: flex-end !important;
+  padding-left: 14px !important;
+  border-left: 1px solid rgba(255,255,255,0.05) !important;
 }
-.ov-fc::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  height: 2px !important;
-  background: var(--fc-color, var(--faint)) !important;
-  opacity: 0.65 !important;
+.ov-acont-val {
+  font-family: var(--mono) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1 !important;
+  /* color set inline */
 }
-/* Ambient glow from factor color */
-.ov-fc::after {
-  content: '' !important;
+.ov-acont-pts {
+  font-size: 8.5px !important;
+  color: var(--faint) !important;
+  font-weight: 400 !important;
+}
+
+/* Arrow chevron */
+.ov-arr {
   position: absolute !important;
-  top: -30px !important;
-  right: -30px !important;
-  width: 100px !important;
-  height: 100px !important;
-  border-radius: 50% !important;
-  background: radial-gradient(ellipse, rgba(var(--fc-rgb, 157,170,191), 0.07) 0%, transparent 70%) !important;
+  right: 20px !important; top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 11px !important;
+  color: rgba(157,170,191,0.40) !important;
+  opacity: 0 !important;
+  transition: opacity 0.12s !important;
   pointer-events: none !important;
 }
-.ov-fc:hover {
-  background: rgba(12,12,18,0.72) !important;
-  border-color: rgba(255,255,255,0.10) !important;
-  transform: translateY(-1px) !important;
-}
-.ov-fc:active {
-  transform: translateY(0) !important;
-}
-/* Card header: factor name + contribution badge */
-.ov-fc-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 6px !important;
-  margin-bottom: 4px !important;
-}
-.ov-fc-name {
-  font-size: 8.5px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.09em !important;
-  text-transform: uppercase !important;
-  color: rgba(157,170,191,0.65) !important;
-  line-height: 1.2 !important;
-  flex: 1 !important;
-  min-width: 0 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-.ov-fc-contrib-badge {
-  font-family: var(--mono) !important;
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  color: var(--fc-color, var(--faint)) !important;
-  flex-shrink: 0 !important;
-  opacity: 0.85 !important;
-}
-/* Score row: big number + /10 subscript */
-.ov-fc-score-row {
-  display: flex !important;
-  align-items: baseline !important;
-  gap: 2px !important;
-  margin-bottom: 2px !important;
-}
-.ov-fc-score {
-  font-family: var(--head) !important;
-  font-size: 32px !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.06em !important;
-  line-height: 1 !important;
-  color: var(--fc-color, var(--text)) !important;
-  flex-shrink: 0 !important;
-  text-shadow: 0 0 22px rgba(var(--fc-rgb, 200,169,110), 0.35) !important;
-}
-.ov-fc-score-sub {
-  font-family: var(--mono) !important;
-  font-size: 10px !important;
-  color: var(--faint) !important;
-  letter-spacing: 0.04em !important;
-  flex-shrink: 0 !important;
-}
-/* Card bottom: interpretation + mini bar */
-.ov-fc-bot {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 6px !important;
-}
-.ov-fc-interp {
-  font-size: 10px !important;
-  color: var(--faint) !important;
-  line-height: 1.45 !important;
-}
-.ov-fc-bar-row {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-.ov-fc-bar-track {
-  flex: 1 !important;
-  height: 4px !important;
-  background: rgba(255,255,255,0.07) !important;
-  border-radius: 2px !important;
-  overflow: hidden !important;
-}
-.ov-fc-bar-fill {
-  height: 100% !important;
-  border-radius: 2px !important;
-  background: var(--fc-color, var(--faint)) !important;
-  opacity: 0.80 !important;
-  transition: width 0.8s cubic-bezier(0.22,1,0.36,1) !important;
-}
-.ov-fc-wt {
-  font-family: var(--mono) !important;
-  font-size: 8.5px !important;
-  color: rgba(157,170,191,0.50) !important;
-  flex-shrink: 0 !important;
-  white-space: nowrap !important;
-}
-.ov-fc-contrib {
-  font-family: var(--mono) !important;
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  color: var(--fc-color, var(--faint)) !important;
-  flex-shrink: 0 !important;
-  opacity: 0.85 !important;
-}
-/* Arrow hint */
-.ov-fc-arrow {
-  position: absolute !important;
-  bottom: 10px !important;
-  right: 12px !important;
-  font-size: 10px !important;
-  color: rgba(157,170,191,0.25) !important;
-  transition: color 0.12s, opacity 0.12s !important;
-  opacity: 0 !important;
-}
-.ov-fc:hover .ov-fc-arrow {
-  color: rgba(157,170,191,0.55) !important;
-  opacity: 1 !important;
-}
 
-/* Composite total — below the grid, full-width premium card */
+/* Total row */
 .ov-atotal {
-  display: flex !important;
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 100px 52px 42px 120px !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  padding: 14px 20px 14px 24px !important;
   background: rgba(200,169,110,0.04) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(200,169,110,0.12) !important;
-  border-radius: 10px !important;
-  padding: 14px 20px !important;
-  margin-top: 8px !important;
+  border-top: 1px solid rgba(200,169,110,0.12) !important;
   position: relative !important;
-  overflow: hidden !important;
-  animation: ov-fade-up 0.45s 0.15s cubic-bezier(0.22,1,0.36,1) both !important;
 }
 .ov-atotal::before {
   content: '' !important;
   position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
-  bottom: 0 !important;
+  left: 0 !important; top: 0 !important; bottom: 0 !important;
   width: 3px !important;
   background: var(--accent) !important;
   opacity: 0.60 !important;
 }
 .ov-at-lbl {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 3px !important;
-  font-size: 12px !important;
-  font-weight: 700 !important;
-  color: var(--accent) !important;
+  display: flex !important; flex-direction: column !important; gap: 3px !important;
+  font-size: 11px !important; font-weight: 700 !important; color: var(--accent) !important;
 }
 .ov-at-lbl-note {
-  font-size: 9px !important;
-  font-weight: 400 !important;
-  color: var(--faint) !important;
+  font-size: 8.5px !important; font-weight: 400 !important; color: var(--faint) !important;
 }
-.ov-at-score-lbl {
-  display: none !important;
-}
+.ov-at-score-lbl { display: none !important; }
 .ov-at-wt-lbl {
   font-family: var(--mono) !important;
-  font-size: 10px !important;
-  color: var(--faint) !important;
-  display: none !important;
+  font-size: 10px !important; color: var(--faint) !important;
+  text-align: right !important; padding: 0 10px !important;
 }
 .ov-at-contrib {
-  display: flex !important;
-  align-items: baseline !important;
-  gap: 4px !important;
-  border-left: none !important;
-  padding-left: 0 !important;
+  display: flex !important; align-items: baseline !important;
+  gap: 4px !important; justify-content: flex-end !important;
+  padding-left: 14px !important; border-left: 1px solid rgba(200,169,110,0.14) !important;
 }
 .ov-at-num {
   font-family: var(--head) !important;
-  font-size: 32px !important;
-  font-weight: 700 !important;
-  color: var(--accent) !important;
-  line-height: 1 !important;
+  font-size: 26px !important; font-weight: 700 !important;
+  color: var(--accent) !important; line-height: 1 !important;
   letter-spacing: -0.04em !important;
-  text-shadow: 0 0 24px rgba(200,169,110,0.35) !important;
+  text-shadow: 0 0 20px rgba(200,169,110,0.35) !important;
 }
 .ov-at-sub {
   font-family: var(--mono) !important;
-  font-size: 12px !important;
-  color: var(--faint) !important;
+  font-size: 11px !important; color: var(--faint) !important;
 }
 
-/* ── WEIGHT BAR CARD ── */
+/* ── WEIGHT BAR ── */
 .ov-wt-card {
-  animation: ov-fade-up 0.45s 0.20s cubic-bezier(0.22,1,0.36,1) both !important;
-  padding: 16px 20px !important;
+  animation: ov-fade-up 0.40s 0.18s cubic-bezier(0.22,1,0.36,1) both !important;
+  padding: 14px 20px !important;
 }
 .ov-wt-lbl {
-  font-size: 8px !important;
-  letter-spacing: 0.14em !important;
-  color: rgba(157,170,191,0.50) !important;
-  margin-bottom: 12px !important;
+  font-size: 7.5px !important; letter-spacing: 0.14em !important;
+  color: rgba(157,170,191,0.45) !important; margin-bottom: 10px !important;
 }
-.ov-wt-bar {
-  height: 8px !important;
-  border-radius: 5px !important;
-  gap: 2px !important;
-  margin-bottom: 14px !important;
-}
-.ov-wt-seg {
-  border-radius: 3px !important;
-  opacity: 0.90 !important;
-  transition: opacity 0.15s !important;
-}
-.ov-wt-seg:hover {
-  opacity: 1 !important;
-}
-.ov-wt-leg {
-  gap: 6px 20px !important;
-}
-.ov-wt-it {
-  font-size: 9px !important;
-  color: rgba(190,200,222,0.75) !important;
-  gap: 6px !important;
-}
-.ov-wt-sq {
-  width: 9px !important;
-  height: 9px !important;
-  border-radius: 2px !important;
-}
-.ov-wt-pct {
-  font-size: 8.5px !important;
-  color: rgba(157,170,191,0.55) !important;
-  margin-left: 2px !important;
-}
+.ov-wt-bar { height: 7px !important; border-radius: 4px !important; gap: 2px !important; margin-bottom: 12px !important; }
+.ov-wt-seg { border-radius: 3px !important; opacity: 0.88 !important; transition: opacity 0.15s !important; }
+.ov-wt-seg:hover { opacity: 1 !important; }
+.ov-wt-leg { gap: 6px 18px !important; }
+.ov-wt-it { font-size: 9px !important; color: rgba(190,200,222,0.75) !important; gap: 5px !important; }
+.ov-wt-sq { width: 9px !important; height: 9px !important; border-radius: 2px !important; }
+.ov-wt-pct { font-size: 8.5px !important; color: rgba(157,170,191,0.50) !important; margin-left: 1px !important; }
 
-/* ── MOBILE: Make factor cards full-width, bigger touch targets ── */
+/* ── MOBILE ── */
 @media (max-width: 700px) {
-  .ov-factors-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 7px !important;
+  .ov-attr-head, .ov-arow, .ov-atotal {
+    grid-template-columns: 1fr 70px 44px 120px !important;
   }
-  .ov-fc {
-    padding: 12px 13px 11px !important;
-  }
-  .ov-fc-score {
-    font-size: 26px !important;
-  }
-  .ov-atotal {
-    padding: 12px 16px !important;
-  }
-  .ov-at-num {
-    font-size: 26px !important;
-  }
-  .ov-conf-meter {
-    width: 100% !important;
-    justify-content: center !important;
-  }
+  .ov-ah-bar, .ov-abar-wrap { display: none !important; }
+  .ov-arow { padding: 12px 14px 12px 18px !important; }
+  .ov-attr-head { padding: 8px 14px 8px 18px !important; }
+  .ov-atotal { padding: 12px 14px 12px 18px !important; }
+  .ov-afn { font-size: 11.5px !important; }
+  .ov-asc { font-size: 17px !important; }
+  .ov-acont-val { font-size: 13px !important; }
+  .ov-at-num { font-size: 22px !important; }
+  .ov-conf-meter { width: 100% !important; justify-content: center !important; }
 }
-@media (max-width: 360px) {
-  .ov-factors-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* Old ov-arow / ov-ah rows — hidden, replaced by card grid */
-.ov-arow {
-  display: none !important;
+@media (max-width: 700px) {
+  .ov-conf-strip { flex-direction: column !important; gap: 10px !important; }
 }
 
 /* ── END R35 ── */
+
 
 </style>
 </head>
@@ -28519,26 +28366,22 @@ function buildOverview(m){
     const label = FACTOR_LABELS[k]||k;
     const interpFn = FACTOR_INTERPS[k]||(()=>'');
     const interp = interpFn(sc, m);
-    // Factor color RGB for glow effects
-    const fcRgb = k==='cot'?'92,158,255':k==='seasonal'?'38,201,122':k==='momentum'?'138,152,184':k==='macro'?'106,120,152':k==='relval'?'240,64,64':k==='regime'||k==='climate'?'92,184,255':k==='pcr'?'214,58,36':'157,170,191';
     const contribStr = (contrib>=0?'+':'')+contrib.toFixed(2);
-    return `<div class="ov-fc" style="--fc-color:${rcol};--fc-rgb:${fcRgb}" onclick="switchTab('${tabId}')">
-      <div class="ov-fc-header">
-        <span class="ov-fc-name">${label}</span>
-        <span class="ov-fc-contrib-badge">${contribStr}</span>
+    const contribCol = contrib >= 0 ? rcol : '#d63a24';
+    return `<div class="ov-arow" style="--ov-rc:${rcol}" onclick="switchTab('${tabId}')">
+      <div class="ov-af">
+        <span class="ov-afn">${label}</span>
+        <span class="ov-afi">${interp}</span>
       </div>
-      <div class="ov-fc-score-row">
-        <span class="ov-fc-score">${sc.toFixed(1)}</span>
-        <span class="ov-fc-score-sub">/10</span>
+      <div class="ov-abar-wrap">
+        <div class="ov-abar-track"><div class="ov-abar-fill" style="width:${scoreBarPct}%;background:${rcol}"></div></div>
       </div>
-      <div class="ov-fc-bot">
-        <div class="ov-fc-interp">${interp}</div>
-        <div class="ov-fc-bar-row">
-          <div class="ov-fc-bar-track"><div class="ov-fc-bar-fill" style="width:${scoreBarPct}%"></div></div>
-          <span class="ov-fc-wt">${pct}%</span>
-        </div>
+      <div class="ov-asc" style="color:${rcol}">${sc.toFixed(1)}</div>
+      <div class="ov-awt">${pct}%</div>
+      <div class="ov-acont">
+        <div class="ov-acont-val" style="color:${contribCol}">${contribStr}<span class="ov-acont-pts"> pts</span></div>
       </div>
-      <span class="ov-fc-arrow">→</span>
+      <span class="ov-arr">→</span>
     </div>`;
   }).join('');
 
@@ -28666,14 +28509,21 @@ function buildOverview(m){
       </div>
     </div>
 
-    <!-- FACTOR ATTRIBUTION CARDS -->
+    <!-- ATTRIBUTION TABLE -->
     <div class="ov-attr-wrap">
-      <div class="ov-attr-head"></div>
-      <div class="ov-factors-grid">
-        ${attrRows}
+      <div class="ov-attr-head">
+        <div class="ov-ah">Factor</div>
+        <div class="ov-ah ov-ah-bar"></div>
+        <div class="ov-ah r">Score</div>
+        <div class="ov-ah r">Wt.</div>
+        <div class="ov-ah r ov-ah-contrib">Contribution</div>
       </div>
+      ${attrRows}
       <div class="ov-atotal">
         <div class="ov-at-lbl">Composite Total${totalLabelNote}</div>
+        <div></div>
+        <div class="ov-at-score-lbl"></div>
+        <div class="ov-at-wt-lbl">${totalWtPct}%</div>
         <div class="ov-at-contrib">
           <div class="ov-at-num">${ws.toFixed(1)}</div>
           <div class="ov-at-sub">/ 10</div>
