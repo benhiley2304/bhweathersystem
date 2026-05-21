@@ -21070,6 +21070,258 @@ body {
 
 /* ── END R40 ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R40b — OVERVIEW GLASS UPGRADE
+   Reference: homepage menv-card system.
+   Every panel gets: diagonal gradient + score-colour top border
+   + ::before pulse line + ::after bottom glow + inset highlight.
+   Score accent comes from --ov-stripe-rgb (set inline per market).
+══════════════════════════════════════════════════════════════ */
+
+/* ── VERDICT CARD — diagonal gradient + score accent top border + pulse lines ── */
+.ov-verdict {
+  background: linear-gradient(165deg,
+    rgba(20,23,28,0.88) 0%,
+    rgba(14,16,20,0.84) 55%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.07) 100%
+  ) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: 1px solid rgba(var(--ov-stripe-rgb,38,201,122),0.30) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+/* Top pulse line */
+.ov-verdict::before {
+  display: block !important;
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 8% !important; right: 8% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.55),
+    transparent
+  ) !important;
+  opacity: 0.9 !important;
+  z-index: 2 !important;
+}
+/* Bottom accent glow */
+.ov-verdict::after {
+  display: block !important;
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important; left: 0 !important; right: 0 !important;
+  height: 1.5px !important;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.35) 35%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.35) 65%,
+    transparent 100%
+  ) !important;
+  border-radius: 0 0 12px 12px !important;
+  opacity: 0.7 !important;
+  z-index: 2 !important;
+}
+.ov-verdict > * { position: relative !important; z-index: 1 !important; }
+
+/* Score column — slightly lighter surface */
+.ov-v-score-col {
+  background: rgba(var(--ov-stripe-rgb,38,201,122),0.05) !important;
+  border-right: 1px solid rgba(var(--ov-stripe-rgb,38,201,122),0.14) !important;
+}
+
+/* ── FACTOR TABLE — same diagonal gradient treatment ── */
+.ov-attr-wrap {
+  background: linear-gradient(165deg,
+    rgba(20,23,28,0.88) 0%,
+    rgba(14,16,20,0.84) 60%,
+    rgba(200,169,110,0.05) 100%
+  ) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: 1px solid rgba(255,255,255,0.18) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+/* Top pulse on factor table — neutral gold accent */
+.ov-attr-wrap::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 8% !important; right: 8% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent) !important;
+  opacity: 1 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+/* Bottom glow — gold tint */
+.ov-attr-wrap::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important; left: 0 !important; right: 0 !important;
+  height: 1.5px !important;
+  background: linear-gradient(90deg, transparent 0%, rgba(200,169,110,0.30) 35%, rgba(200,169,110,0.30) 65%, transparent 100%) !important;
+  border-radius: 0 0 12px 12px !important;
+  opacity: 0.6 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+.ov-attr-head { position: relative !important; z-index: 1 !important; }
+.ov-arow { position: relative !important; z-index: 1 !important; }
+.ov-atotal { position: relative !important; z-index: 1 !important; }
+
+/* Composite total — accent background pulse */
+.ov-atotal {
+  background: linear-gradient(90deg,
+    rgba(200,169,110,0.07) 0%,
+    rgba(200,169,110,0.03) 60%,
+    transparent 100%
+  ) !important;
+  border-top: 1px solid rgba(200,169,110,0.22) !important;
+}
+
+/* ── CONFLUENCE SUMMARY CARD — menv-card style ── */
+.ov-conf-summary {
+  background: linear-gradient(165deg,
+    rgba(20,23,28,0.88) 0%,
+    rgba(14,16,20,0.84) 55%,
+    rgba(var(--ov-stripe-rgb,38,201,122),0.06) 100%
+  ) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: 1px solid rgba(var(--ov-stripe-rgb,38,201,122),0.28) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.ov-conf-summary::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 8% !important; right: 8% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(var(--ov-stripe-rgb,38,201,122),0.50), transparent) !important;
+  opacity: 0.85 !important;
+  pointer-events: none !important;
+}
+.ov-conf-summary::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important; left: 0 !important; right: 0 !important;
+  height: 1.5px !important;
+  background: linear-gradient(90deg, transparent 0%, rgba(var(--ov-stripe-rgb,38,201,122),0.28) 40%, rgba(var(--ov-stripe-rgb,38,201,122),0.28) 60%, transparent 100%) !important;
+  opacity: 0.6 !important;
+  pointer-events: none !important;
+}
+.ov-conf-summary > * { position: relative !important; z-index: 1 !important; }
+
+/* ── FACTOR CHIPS — per-chip accent from --chip-col ── */
+.ov-conf-fchip {
+  background: linear-gradient(165deg,
+    rgba(20,23,28,0.88) 0%,
+    rgba(14,16,20,0.84) 55%,
+    rgba(var(--chip-rgb,74,82,104),0.08) 100%
+  ) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 1px solid rgba(var(--chip-rgb,74,82,104),0.30) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 14px 16px 12px !important;
+  gap: 5px !important;
+  transition: box-shadow 200ms, transform 200ms !important;
+}
+.ov-conf-fchip:hover {
+  box-shadow: 0 6px 28px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+  transform: translateY(-2px) !important;
+  border-color: rgba(255,255,255,0.11) !important;
+  border-top-color: rgba(var(--chip-rgb,74,82,104),0.45) !important;
+}
+/* Top pulse per chip */
+.ov-conf-fchip::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 10% !important; right: 10% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(var(--chip-rgb,74,82,104),0.60), transparent) !important;
+  opacity: 1 !important;
+  border-radius: 0 !important;
+  z-index: 2 !important;
+}
+/* Bottom accent line */
+.ov-conf-fchip::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important; left: 0 !important; right: 0 !important;
+  height: 1.5px !important;
+  background: linear-gradient(90deg, transparent, rgba(var(--chip-rgb,74,82,104),0.30), transparent) !important;
+  opacity: 0.7 !important;
+  pointer-events: none !important;
+}
+.ov-conf-fchip > * { position: relative !important; z-index: 1 !important; }
+
+/* ── WEIGHT BAR CARD — same system ── */
+.ov-wt-card {
+  background: linear-gradient(165deg,
+    rgba(20,23,28,0.88) 0%,
+    rgba(14,16,20,0.84) 60%,
+    rgba(200,169,110,0.05) 100%
+  ) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: 1px solid rgba(255,255,255,0.16) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.ov-wt-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 8% !important; right: 8% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent) !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+.ov-wt-card > * { position: relative !important; z-index: 1 !important; }
+
+/* ── NEED --chip-rgb injected — convert --chip-col hex — ──
+   The JS buildOverview sets --chip-col per chip (hex), not --chip-rgb.
+   We derive it using JS (see patch below).
+   For now, provide fallback matching score buckets. */
+
+/* ── FACTOR TABLE HEADER — clean glass surface ── */
+.ov-attr-head {
+  background: rgba(255,255,255,0.035) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+  backdrop-filter: none !important;
+}
+
+/* ── HOVER LIFT on verdict + factor table ── */
+.ov-verdict:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.58), 0 0 0 1px rgba(var(--ov-stripe-rgb,38,201,122),0.10), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+  transform: translateY(-1px) !important;
+}
+.ov-attr-wrap:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── END R40b ── */
+
 
 </style>
 </head>
@@ -21414,11 +21666,20 @@ function sHex(s){
   if(s>=6.5)  return '#5aaa7a';  // lean bull     — muted green
   if(s>=5.5)  return '#7aaa88';  // mild bull     — soft sage
   if(s>=4.5)  return '#6e7d80';  // neutral       — grey-slate
-  if(s>=3.5)  return '#c44030';  // mild bear     — red-toned (was copper/amber)
-  if(s>=2.5)  return '#d63a24';  // lean bear     — deep red-orange (was burnt orange)
+  if(s>=3.5)  return '#c44030';  // mild bear     — red-toned
+  if(s>=2.5)  return '#d63a24';  // lean bear     — deep red-orange
   if(s>=1.5)  return '#e03a2a';  // bear          — vivid red
   return '#c41a2e';               // strong bear   — deep crimson
 }
+// Convert hex colour to "R,G,B" string for use in rgba(var(--x), alpha)
+function hexToRgbStr(hex){
+  const h = hex.replace('#','');
+  const r = parseInt(h.slice(0,2),16);
+  const g = parseInt(h.slice(2,4),16);
+  const b = parseInt(h.slice(4,6),16);
+  return `${r},${g},${b}`;
+}
+function sRgb(s){ return hexToRgbStr(sHex(s)); }
 // Colour for signed contribution values (-2..+2). Positive = bullish = green; negative = bearish = red.
 // Separate from sHex() which requires a 0-10 scale input.
 function contribCol(v){
@@ -30644,7 +30905,8 @@ function buildOverview(m){
     const tabId = FACTOR_TABS[k]||k;
     const lbl = (FACTOR_LABELS[k]||k).replace(' & ',' &amp; ');
     const dir = sc>=6.5?'Bullish':sc<=3.5?'Bearish':'Neutral';
-    return `<div class="ov-conf-fchip" style="--chip-col:${ccol}" onclick="switchTab('${tabId}')">
+    const crgb = sRgb(sc);
+    return `<div class="ov-conf-fchip" style="--chip-col:${ccol};--chip-rgb:${crgb}" onclick="switchTab('${tabId}')">
       <div class="ov-conf-fchip-name">${lbl}</div>
       <div class="ov-conf-fchip-score">${sc.toFixed(1)}</div>
       <div class="ov-conf-fchip-dir">${dir}</div>
