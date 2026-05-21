@@ -22452,6 +22452,144 @@ body {
 /* ── END R45 ── */
 
 
+/* ════════════════════════════════════════════════════════════════
+   R46 — MOBILE OVERVIEW REDESIGN
+   Problem: huge centred score card (~350px tall) wastes space;
+            narrative text is completely absent on mobile.
+   Fix: compact horizontal score-band + visible narrative.
+
+   Layout on ≤700px:
+   ┌──────────────────────────────────────────────┐
+   │  [arc 58px]  │ EYEBROW LABEL                 │
+   │   5.3 /10   │ Narrative text, 4-line clamp... │
+   │  [NEUTRAL]  │                                │
+   ├──────────────────────────────────────────────┤
+   │  ● Pill  ● Pill  ● Pill  (scroll strip)      │
+   └──────────────────────────────────────────────┘
+   Factor table — same compact 3-col from R35
+════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+
+  /* ── Override R40's 52px score — too large for compact band ── */
+  .ov-vsn {
+    font-size: 26px !important;
+    text-shadow: none !important;
+    filter: none !important;
+    line-height: 1 !important;
+  }
+
+  /* ── Verdict card: horizontal band, not tall centred block ── */
+  .ov-verdict {
+    flex-direction: column !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+
+  /* ── Top section: score LEFT + narrative RIGHT ── */
+  .ov-v-top {
+    flex-direction: row !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ── Score column: compact fixed-width badge ── */
+  .ov-v-score-col {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    width: 88px !important;
+    min-width: 88px !important;
+    max-width: 88px !important;
+    flex-shrink: 0 !important;
+    padding: 14px 10px !important;
+    border-right: 1px solid rgba(255,255,255,0.07) !important;
+    border-bottom: none !important;
+    background: rgba(0,0,0,0.18) !important;
+  }
+
+  /* ── Arc gauge: shrink to 56px ── */
+  .ov-vsn-wrap {
+    width: 56px !important;
+    height: 56px !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* ── Score sub-label ── */
+  .ov-vsd {
+    font-size: 9px !important;
+  }
+
+  /* ── Verdict chip: compact ── */
+  .ov-verdict-chip {
+    margin-top: 2px !important;
+    font-size: 8px !important;
+    padding: 2px 7px !important;
+    border-radius: 3px !important;
+    letter-spacing: 0.08em !important;
+  }
+
+  /* ── Divider: hide vertical separator ── */
+  .ov-vdiv { display: none !important; }
+
+  /* ── Narrative text column: fill remaining width ── */
+  .ov-v-text {
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 13px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* ── Eyebrow label ── */
+  .ov-vk {
+    font-size: 8px !important;
+    letter-spacing: 0.12em !important;
+    opacity: 0.55 !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* ── Narrative statement: visible, 4-line clamp ── */
+  .ov-vstmt {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 4 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    font-size: 11.5px !important;
+    line-height: 1.55 !important;
+    color: rgba(210,220,235,0.90) !important;
+    font-weight: 400 !important;
+    margin: 0 !important;
+  }
+
+  /* ── Pills: thin scroll strip below verdict band ── */
+  .ov-pills {
+    padding: 8px 14px !important;
+    border-top: 1px solid rgba(255,255,255,0.06) !important;
+    background: rgba(0,0,0,0.12) !important;
+  }
+
+  /* ── Tighten gap between verdict card and factor table ── */
+  .ov-r39-grid {
+    gap: 10px !important;
+  }
+
+  /* ── Factor table remains unchanged (R35 rules already good) ── */
+}
+
+/* ── END R46 ── */
+
+
 
 </style>
 </head>
