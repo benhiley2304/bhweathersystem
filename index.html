@@ -4251,8 +4251,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   .d-head{
     display:grid !important;
     grid-template-columns:1fr !important;
-    grid-template-rows:auto auto auto !important;
-    position:relative !important; /* containing block for absolute graphic */
+    grid-template-rows:auto auto !important; /* 2 rows: identity + score strip */
+    position:relative !important;
     padding:0 !important;
     overflow:hidden;
   }
@@ -4261,59 +4261,75 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
     grid-column:1;grid-row:1;
     border-right:none;
     border-bottom:1px solid rgba(255,255,255,0.07);
-    padding:10px 14px;
+    padding:8px 14px 10px;
     flex-direction:column;align-items:flex-start;
-    gap:5px;
+    gap:4px;
     position:relative;z-index:10;
-    background:rgba(3,5,8,0.92);
+    background:rgba(3,5,8,0.95);
+    min-width:0;
   }
-  .d-head-l>.d-cat{order:0}
-  .d-head-l>.d-name{order:1;font-size:20px;letter-spacing:-0.02em;}
-  .d-head-l>.d-bias-row{order:2}
+  .d-head-l>.d-cat{
+    order:0;
+    display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
+    overflow:hidden;max-width:100%;
+  }
+  /* Breadcrumb text — truncate if needed */
+  .d-head-l>.d-cat>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .d-head-l>.d-name{order:1;font-size:22px;letter-spacing:-0.025em;line-height:1.1}
+  .d-head-l>.d-bias-row{order:2;margin-top:2px}
   /* hide COT Phase / Score History buttons on mobile — save space */
   .d-head-l>div:last-child{display:none !important}
-  /* Row 2: factor grid — shown on mobile, 2-col */
-  .d-head-centre{
-    display:flex !important;
-    grid-column:1;grid-row:2;
-    border-right:none;
-    border-bottom:1px solid rgba(255,255,255,0.07);
-    padding:8px 12px;
-    gap:6px;
-    background:rgba(3,5,8,0.72);
-    position:relative;z-index:5;
-  }
-  /* Narrative hidden on mobile, too long */
+  /* Row 2: centre column — hide on mobile; confluence shown in score strip instead */
+  .d-head-centre{display:none !important}
+  /* Narrative hidden on mobile */
   .d-head-narrative{display:none}
-  .d-head-factors{
-    grid-template-columns:1fr 1fr;
-    gap:4px 8px;
-    width:100%;
-  }
-  /* Tighter factor cards on mobile */
-  .d-hf-row{padding:5px 8px;}
-  .d-hf-score{font-size:14px;}
-  .d-hf-lbl{font-size:9.5px;}
-  .d-hf-wt{font-size:8px;}
-  /* Row 3: score strip — horizontal across full width */
+  /* Row 3: score strip — clean horizontal row */
   .d-score-hero{
-    grid-column:1;grid-row:3;
-    flex-direction:row;justify-content:space-between;align-items:center;
-    padding:9px 14px;
+    grid-column:1;grid-row:2;
+    flex-direction:row;justify-content:flex-start;align-items:center;
+    padding:10px 14px;
     border-left:none;border-top:1px solid rgba(255,255,255,0.07);
     gap:10px;
-    background:rgba(7,8,9,0.90);
+    background:rgba(4,4,5,0.95);
     position:relative;z-index:5;
+    flex-wrap:nowrap;
   }
   .d-score-hero>div:first-child{display:none} /* hide COMPOSITE label */
-  .d-score-hero-label{display:none} /* bias already shown in header pill */
-  .d-score-hero-num{font-size:32px;letter-spacing:-0.04em}
-  .d-score-hero-denom{font-size:9px}
-  .d-score-hero-bar{width:auto;flex:1;max-width:130px;margin-top:0;height:3px !important;}
-  .d-score-hero>button{display:none} /* hide 'How is this scored?' on mobile */
-  .d-bias-pill{font-size:8px;padding:3px 10px}
-  /* Photo graphic: spans all rows via absolute, subtle */
-  .d-head-graphic{opacity:0.18;width:50%;left:auto;right:0;z-index:1}
+  .d-score-hero-label{display:none} /* bias shown in identity row pill */
+  /* Score number — large and prominent */
+  .d-score-hero-num{font-size:30px;letter-spacing:-0.04em;flex-shrink:0}
+  .d-score-hero-denom{font-size:9px;margin-top:0;flex-shrink:0}
+  /* Bar: hide on mobile — it renders poorly at narrow widths */
+  .d-score-hero-bar{display:none !important}
+  /* Bias pill right of score */
+  .d-bias-pill{font-size:8px;padding:3px 10px;flex-shrink:0}
+  /* Confluence callout: show inline in score strip, compact */
+  .d-score-hero .d-conf-callout{
+    display:flex !important;
+    margin-top:0 !important;
+    margin-left:auto;
+    padding:3px 8px !important;
+    font-size:8.5px;
+    flex-shrink:1;
+    min-width:0;
+    max-width:160px;
+  }
+  .d-score-hero .d-conf-text{font-size:8px;}
+  .d-score-hero .d-conf-bonus{font-size:8px;}
+  /* How is this scored: hidden on mobile */
+  .d-score-hero>button{display:none}
+  /* Photo graphic: very subtle on mobile — just a hint of texture, not a layout element */
+  .d-head-graphic{opacity:0.08;width:45%;left:auto;right:0;z-index:1}
+  /* Stronger left fade so graphic never bleeds into text */
+  .d-head-graphic::before{
+    background:linear-gradient(90deg,
+      var(--bg) 0%,
+      rgba(5,7,13,0.96) 20%,
+      rgba(5,7,13,0.80) 50%,
+      rgba(5,7,13,0.30) 80%,
+      rgba(5,7,13,0.08) 100%
+    ) !important;
+  }
   .mob-back{display:inline-flex}
   .desk-only{display:none!important}
   /* V19: Mobile card radius and spacing */
