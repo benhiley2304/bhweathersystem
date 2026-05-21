@@ -27714,7 +27714,554 @@ function assetGraphic(m){
     </div>`;
   }
 
-    // Photo-based graphic
+  // ── Procedural SVG graphics by category (R38) ──────────────────────────────
+  // Each graphic fills the d-head-graphic container (absolute, right side of banner)
+  // W=520, H=200 viewBox — width:100% so it stretches to fill whatever column width
+  const W=520, H=200;
+  const uid2 = 'g' + (Math.random()*0xFFFFF|0).toString(16);
+
+  // ── GOLD & PRECIOUS METALS (GC, SI, PL, PA, HG) ──────────────────────────
+  if(['GC','SI','PL','PA','HG','B'].includes(id) || cat==='metals') {
+    // Colour palette per metal
+    const metalPalette = {
+      GC: { hi:'#f5c842', mid:'#c8a030', lo:'#7a5c10', glow:'245,200,66' },
+      SI: { hi:'#e8eef5', mid:'#a0b0c8', lo:'#4a5a72', glow:'180,200,230' },
+      PL: { hi:'#d8e4f0', mid:'#8090b0', lo:'#3a4a64', glow:'180,190,220' },
+      PA: { hi:'#c8d8e8', mid:'#7090b0', lo:'#304060', glow:'160,190,220' },
+      HG: { hi:'#e07840', mid:'#b85020', lo:'#6a2c10', glow:'220,120,60' },
+    };
+    const mp = metalPalette[id] || metalPalette.GC;
+
+    // Crystal lattice: hexagonal grid of nodes + connecting lines
+    let nodes = [], lines = '', circles = '', glows = '';
+    const cols=9, rows=6, nx=W*0.08, ny=8;
+    const cw=(W*0.88)/(cols-1), ch=(H-16)/(rows-1);
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const ox = r%2===0 ? 0 : cw*0.5;
+        const x = nx + c*cw + ox;
+        const y = ny + r*ch;
+        // Skip nodes too close to left edge (text area)
+        if(x < W*0.12) continue;
+        nodes.push({x,y,r,c});
+      }
+    }
+    // Lines between adjacent nodes
+    nodes.forEach(n=>{
+      nodes.forEach(n2=>{
+        const dx=n2.x-n.x, dy=n2.y-n.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist>2 && dist<cw*1.15){
+          const alpha = 0.08 + 0.14*(1-dist/(cw*1.15));
+          lines += `<line x1="${n.x.toFixed(1)}" y1="${n.y.toFixed(1)}" x2="${n2.x.toFixed(1)}" y2="${n2.y.toFixed(1)}" stroke="${mp.hi}" stroke-opacity="${alpha.toFixed(2)}" stroke-width="0.8"/>`;
+        }
+      });
+    });
+    // Node circles — vary size by distance from right-centre (focal point)
+    nodes.forEach((n,i)=>{
+      const fx=W*0.72, fy=H*0.50;
+      const d=Math.sqrt((n.x-fx)**2+(n.y-fy)**2);
+      const maxD=Math.sqrt(W*W+H*H)*0.5;
+      const t=1-(d/maxD);
+      const r2=0.8+t*3.5;
+      const opacity=0.18+t*0.65;
+      circles += `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r2.toFixed(1)}" fill="${mp.hi}" opacity="${opacity.toFixed(2)}"/>`;
+      // Bright glow on focal nodes
+      if(t>0.65){
+        glows += `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${(r2*4).toFixed(1)}" fill="${mp.hi}" opacity="0.06"/>`;
+      }
+    });
+
+    return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="mgBg${uid2}" cx="72%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="${mp.lo}" stop-opacity="0.55"/>
+            <stop offset="55%" stop-color="${mp.lo}" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="rgba(4,4,5,0)" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="mgGlow${uid2}" cx="72%" cy="50%" r="38%">
+            <stop offset="0%" stop-color="${mp.mid}" stop-opacity="0.30"/>
+            <stop offset="100%" stop-color="${mp.mid}" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="mgF${uid2}"><feGaussianBlur stdDeviation="2.5"/></filter>
+          <!-- Left fade mask -->
+          <linearGradient id="mgMask${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="black"/>
+            <stop offset="18%" stop-color="black"/>
+            <stop offset="45%" stop-color="white"/>
+            <stop offset="100%" stop-color="white"/>
+          </linearGradient>
+          <mask id="mgM${uid2}"><rect width="${W}" height="${H}" fill="url(#mgMask${uid2})"/></mask>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#mgBg${uid2})"/>
+        <rect width="${W}" height="${H}" fill="url(#mgGlow${uid2})"/>
+        <g mask="url(#mgM${uid2})">
+          ${lines}${glows}${circles}
+        </g>
+        <!-- Central radiant orb -->
+        <ellipse cx="${W*0.72}" cy="${H*0.50}" rx="28" ry="28" fill="${mp.hi}" opacity="0.12" filter="url(#mgF${uid2})"/>
+        <ellipse cx="${W*0.72}" cy="${H*0.50}" rx="10" ry="10" fill="${mp.hi}" opacity="0.28" filter="url(#mgF${uid2})"/>
+        <circle cx="${W*0.72}" cy="${H*0.50}" r="3.5" fill="${mp.hi}" opacity="0.90"/>
+        <!-- Metal ID label -->
+        <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${mp.hi}" opacity="0.40">${id}</text>
+        <!-- Left text-protection fade -->
+        <rect width="${W*0.35}" height="${H}" fill="url(#mgMask${uid2})" opacity="0" />
+      </svg>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.92) 16%,rgba(4,4,5,0.55) 38%,rgba(4,4,5,0.08) 62%,transparent 78%);pointer-events:none"></div>
+    </div></div>`;
+  }
+
+  // ── ENERGY (CL, NG, RB, HO, B, GO) ──────────────────────────────────────
+  if(cat==='energy' || ['CL','NG','RB','HO','B','GO'].includes(id)){
+    const energyCol = ['NG'].includes(id) ? { hi:'#60d0ff', mid:'#2080c0', lo:'#0c2840', glow:'60,160,255' }
+                                           : { hi:'#e08030', mid:'#a04010', lo:'#200c04', glow:'200,100,40' };
+    const ec = energyCol;
+    // Flowing pressure contour lines — concentric ellipse arcs, offset for dynamism
+    let contours = '';
+    const cx2=W*0.65, cy2=H*0.52;
+    for(let i=1;i<=14;i++){
+      const rx=18+i*26, ry=12+i*14;
+      const alpha=(0.22-(i*0.012)).toFixed(2);
+      const sw=(i%3===0)?1.4:0.7;
+      // Slightly rotate each ring for organic feel
+      const rot=-12+(i*2);
+      contours += `<ellipse cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" rx="${rx}" ry="${ry}" fill="none" stroke="${ec.hi}" stroke-opacity="${alpha}" stroke-width="${sw}" transform="rotate(${rot},${cx2.toFixed(1)},${cy2.toFixed(1)})"/>`;
+    }
+    // Radial energy spokes
+    let spokes = '';
+    for(let a=0;a<12;a++){
+      const angle=(a/12)*Math.PI*2;
+      const r1=8, r2=40+Math.sin(a*1.7)*18;
+      const x1=cx2+Math.cos(angle)*r1, y1=cy2+Math.sin(angle)*r1;
+      const x2=cx2+Math.cos(angle)*r2, y2=cy2+Math.sin(angle)*r2;
+      const alpha=0.06+0.10*(Math.sin(a*2.1)*0.5+0.5);
+      spokes += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${ec.hi}" stroke-opacity="${alpha.toFixed(2)}" stroke-width="1"/>`;
+    }
+
+    return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="eBg${uid2}" cx="65%" cy="52%" r="65%">
+            <stop offset="0%" stop-color="${ec.lo}" stop-opacity="0.70"/>
+            <stop offset="60%" stop-color="${ec.lo}" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="rgba(4,4,5,0)" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="eGlow${uid2}" cx="65%" cy="52%" r="30%">
+            <stop offset="0%" stop-color="${ec.hi}" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="${ec.hi}" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="eF${uid2}"><feGaussianBlur stdDeviation="3"/></filter>
+          <linearGradient id="eMask${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="black"/><stop offset="20%" stop-color="black"/>
+            <stop offset="42%" stop-color="white"/><stop offset="100%" stop-color="white"/>
+          </linearGradient>
+          <mask id="eMaskEl${uid2}"><rect width="${W}" height="${H}" fill="url(#eMask${uid2})"/></mask>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#eBg${uid2})"/>
+        <rect width="${W}" height="${H}" fill="url(#eGlow${uid2})"/>
+        <g mask="url(#eMaskEl${uid2})">
+          ${contours}${spokes}
+        </g>
+        <!-- Core energy orb -->
+        <circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="22" fill="${ec.hi}" opacity="0.08" filter="url(#eF${uid2})"/>
+        <circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="6" fill="${ec.hi}" opacity="0.30" filter="url(#eF${uid2})"/>
+        <circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="2.5" fill="${ec.hi}" opacity="0.88"/>
+        <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${ec.hi}" opacity="0.35">${id}</text>
+      </svg>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.92) 16%,rgba(4,4,5,0.50) 38%,rgba(4,4,5,0.06) 60%,transparent 75%);pointer-events:none"></div>
+    </div></div>`;
+  }
+
+  // ── EQUITY INDICES (ES, NQ, YM, RTY, Z) ──────────────────────────────────
+  if(cat==='equity' || ['ES','NQ','YM','RTY','Z'].includes(id)){
+    const eqCol = {
+      ES: { hi:'#26c97a', mid:'#1a8a55', lo:'#081c12', glow:'38,201,122' },
+      NQ: { hi:'#60a0ff', mid:'#2060c0', lo:'#080c20', glow:'80,140,255' },
+      YM: { hi:'#f5c842', mid:'#a07820', lo:'#1c1408', glow:'220,180,40' },
+      RTY: { hi:'#e05050', mid:'#a02020', lo:'#1c0808', glow:'200,80,60' },
+      Z:   { hi:'#a080ff', mid:'#6040c0', lo:'#100818', glow:'150,100,255' },
+    };
+    const eq = eqCol[id] || eqCol.ES;
+    // Candlestick skyline: a row of OHLC bars of varying height
+    let candles = '', avgLine = '';
+    const barCount=22, barW=12, gap=6;
+    const totalW=barCount*(barW+gap)-gap;
+    const startX=W*0.34;
+    const baseY=H*0.85;
+    const heights = [38,62,45,78,55,90,48,72,64,82,70,58,85,76,92,68,80,74,88,65,78,95];
+    const avgYPts = [];
+    heights.forEach((h,i)=>{
+      const x=startX+i*(barW+gap);
+      const isUp=(i%3!==2);
+      const bodyH=h*0.55, wickT=h*0.22;
+      const y=baseY-h;
+      const bodyCol=isUp?eq.hi:'rgba(200,80,80,0.80)';
+      const alpha=0.25+0.55*(h/95);
+      candles += `<rect x="${x.toFixed(1)}" y="${(baseY-bodyH-wickT).toFixed(1)}" width="${barW}" height="${bodyH.toFixed(1)}" rx="1" fill="${bodyCol}" opacity="${alpha.toFixed(2)}"/>`;
+      candles += `<line x1="${(x+barW/2).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(x+barW/2).toFixed(1)}" y2="${baseY.toFixed(1)}" stroke="${bodyCol}" stroke-opacity="${(alpha*0.5).toFixed(2)}" stroke-width="1"/>`;
+      avgYPts.push([x+barW/2, baseY-h*0.70]);
+    });
+    // Moving average curve through candles
+    if(avgYPts.length>1){
+      const pts=avgYPts.map((p,i)=>i===0?`M${p[0].toFixed(1)},${p[1].toFixed(1)}`:`L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+      avgLine = `<path d="${pts}" fill="none" stroke="${eq.hi}" stroke-width="1.5" stroke-opacity="0.55" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+    // Horizontal grid lines
+    let gridLines = '';
+    for(let g=0;g<5;g++){
+      const gy=H*0.20+g*(H*0.60/4);
+      gridLines += `<line x1="${startX.toFixed(1)}" y1="${gy.toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${gy.toFixed(1)}" stroke="${eq.hi}" stroke-opacity="0.06" stroke-width="0.7" stroke-dasharray="4,6"/>`;
+    }
+
+    return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="eqBg${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="${eq.lo}" stop-opacity="0"/>
+            <stop offset="30%" stop-color="${eq.lo}" stop-opacity="0.35"/>
+            <stop offset="70%" stop-color="${eq.lo}" stop-opacity="0.60"/>
+            <stop offset="100%" stop-color="${eq.lo}" stop-opacity="0.40"/>
+          </linearGradient>
+          <linearGradient id="eqFloor${uid2}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="60%" stop-color="${eq.hi}" stop-opacity="0"/>
+            <stop offset="100%" stop-color="${eq.hi}" stop-opacity="0.08"/>
+          </linearGradient>
+          <filter id="eqF${uid2}"><feGaussianBlur stdDeviation="2"/></filter>
+          <linearGradient id="eqMask${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="black"/><stop offset="28%" stop-color="black"/>
+            <stop offset="46%" stop-color="white"/><stop offset="100%" stop-color="white"/>
+          </linearGradient>
+          <mask id="eqMaskEl${uid2}"><rect width="${W}" height="${H}" fill="url(#eqMask${uid2})"/></mask>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#eqBg${uid2})"/>
+        <rect width="${W}" height="${H}" fill="url(#eqFloor${uid2})"/>
+        <g mask="url(#eqMaskEl${uid2})">
+          ${gridLines}${candles}${avgLine}
+        </g>
+        <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${eq.hi}" opacity="0.35">${id}</text>
+      </svg>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 14%,rgba(4,4,5,0.52) 35%,rgba(4,4,5,0.06) 58%,transparent 72%);pointer-events:none"></div>
+    </div></div>`;
+  }
+
+  // ── BONDS & RATES (ZB, ZN, ZF, ZT, R) ────────────────────────────────────
+  if(cat==='bonds' || ['ZB','ZN','ZF','ZT','R'].includes(id)){
+    const bondCol = { hi:'#5c9eff', mid:'#1c5cbc', lo:'#040c20', glow:'92,158,255' };
+    const bc = bondCol;
+    // Yield curve arcs — a family of curves at different maturities, then diverging
+    // X-axis: 3M→30Y (log), Y-axis: yield level
+    const curves = [
+      { pts:[[0.05,0.62],[0.18,0.48],[0.35,0.42],[0.58,0.38],[0.78,0.36],[0.95,0.34]], op:0.18, sw:1.0 }, // 12M ago
+      { pts:[[0.05,0.58],[0.18,0.46],[0.35,0.40],[0.58,0.40],[0.78,0.42],[0.95,0.44]], op:0.28, sw:1.2 }, // 6M ago
+      { pts:[[0.05,0.52],[0.18,0.44],[0.35,0.40],[0.58,0.44],[0.78,0.50],[0.95,0.56]], op:0.45, sw:1.5 }, // 3M ago
+      { pts:[[0.05,0.44],[0.18,0.42],[0.35,0.42],[0.58,0.50],[0.78,0.58],[0.95,0.64]], op:0.80, sw:2.2 }, // now
+    ];
+    const opacities=['rgba(92,158,255,0.18)','rgba(92,158,255,0.28)','rgba(92,158,255,0.48)','#5c9eff'];
+    let ycPaths = '';
+    curves.forEach((c,ci)=>{
+      const pts2 = c.pts.map(([px,py])=>[W*0.28+px*(W*0.68), H*0.12+py*(H*0.76)]);
+      let d = `M${pts2[0][0].toFixed(1)},${pts2[0][1].toFixed(1)}`;
+      for(let i=0;i<pts2.length-1;i++){
+        const p0=pts2[Math.max(0,i-1)],p1=pts2[i],p2=pts2[i+1],p3=pts2[Math.min(pts2.length-1,i+2)];
+        const cp1x=+(p1[0]+(p2[0]-p0[0])/6).toFixed(1),cp1y=+(p1[1]+(p2[1]-p0[1])/6).toFixed(1);
+        const cp2x=+(p2[0]-(p3[0]-p1[0])/6).toFixed(1),cp2y=+(p2[1]-(p3[1]-p1[1])/6).toFixed(1);
+        d+=` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+      }
+      // Area fill under last (now) curve
+      if(ci===curves.length-1){
+        const areaD=d+` L${pts2[pts2.length-1][0].toFixed(1)},${(H*0.88).toFixed(1)} L${pts2[0][0].toFixed(1)},${(H*0.88).toFixed(1)} Z`;
+        ycPaths += `<path d="${areaD}" fill="${bc.hi}" opacity="0.05"/>`;
+        // Glow
+        ycPaths += `<path d="${d}" fill="none" stroke="${bc.hi}" stroke-width="4" stroke-opacity="0.10" stroke-linecap="round"/>`;
+      }
+      ycPaths += `<path d="${d}" fill="none" stroke="${opacities[ci]}" stroke-width="${c.sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      // Dots on the now curve
+      if(ci===curves.length-1){
+        pts2.forEach(p=>{
+          ycPaths += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.8" fill="#030508" stroke="${bc.hi}" stroke-width="1.4"/>`;
+        });
+      }
+    });
+    // X-axis tenor labels
+    const tenors=[['3M',0.05],['1Y',0.18],['2Y',0.35],['5Y',0.58],['10Y',0.78],['30Y',0.95]];
+    let xLabels='';
+    tenors.forEach(([lbl,t])=>{
+      const x=W*0.28+t*(W*0.68);
+      xLabels+=`<text x="${x.toFixed(1)}" y="${(H*0.92).toFixed(1)}" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="${bc.hi}" opacity="0.40">${lbl}</text>`;
+      xLabels+=`<line x1="${x.toFixed(1)}" y1="${(H*0.87).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(H*0.89).toFixed(1)}" stroke="${bc.hi}" stroke-opacity="0.25" stroke-width="0.8"/>`;
+    });
+    // Horizontal grid
+    let bGrid='';
+    for(let g=0;g<5;g++){
+      const gy=H*0.12+g*(H*0.76/4);
+      bGrid+=`<line x1="${(W*0.28).toFixed(1)}" y1="${gy.toFixed(1)}" x2="${(W*0.96).toFixed(1)}" y2="${gy.toFixed(1)}" stroke="${bc.hi}" stroke-opacity="0.06" stroke-width="0.7" stroke-dasharray="3,6"/>`;
+    }
+
+    return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="bbBg${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="${bc.lo}" stop-opacity="0"/>
+            <stop offset="25%" stop-color="${bc.lo}" stop-opacity="0.45"/>
+            <stop offset="70%" stop-color="${bc.lo}" stop-opacity="0.65"/>
+            <stop offset="100%" stop-color="${bc.lo}" stop-opacity="0.45"/>
+          </linearGradient>
+          <linearGradient id="bbMask${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="black"/><stop offset="22%" stop-color="black"/>
+            <stop offset="38%" stop-color="white"/><stop offset="100%" stop-color="white"/>
+          </linearGradient>
+          <mask id="bbMaskEl${uid2}"><rect width="${W}" height="${H}" fill="url(#bbMask${uid2})"/></mask>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#bbBg${uid2})"/>
+        <g mask="url(#bbMaskEl${uid2})">
+          ${bGrid}${ycPaths}${xLabels}
+        </g>
+        <text x="${W*0.96}" y="${H*0.10}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.10em" fill="${bc.hi}" opacity="0.35">${id}</text>
+      </svg>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 14%,rgba(4,4,5,0.48) 34%,rgba(4,4,5,0.04) 56%,transparent 70%);pointer-events:none"></div>
+    </div></div>`;
+  }
+
+  // ── AGRICULTURAL SOFTS (KC, CC, SB, CT, ZC, ZS, ZW, RC) ──────────────────
+  if(cat==='agricultural' || cat==='soft' || ['KC','CC','SB','CT','ZC','ZS','ZW','RC'].includes(id)){
+    const agriPalette = {
+      ZC: { hi:'#e8c840', mid:'#a08020', lo:'#201808', label:'CORN' },
+      ZS: { hi:'#90c850', mid:'#507020', lo:'#101808', label:'SOY' },
+      ZW: { hi:'#e0a840', mid:'#986020', lo:'#201408', label:'WHEAT' },
+      KC: { hi:'#c07840', mid:'#804020', lo:'#180c04', label:'COFFEE' },
+      CC: { hi:'#c07040', mid:'#783818', lo:'#160c04', label:'COCOA' },
+      SB: { hi:'#f0e8d0', mid:'#c0a060', lo:'#1c1408', label:'SUGAR' },
+      CT: { hi:'#e8f0f8', mid:'#8098b8', lo:'#101820', label:'COTTON' },
+      RC: { hi:'#b07040', mid:'#703820', lo:'#140c04', label:'ROBUSTA' },
+    };
+    const ap = agriPalette[id] || { hi:'#90b850', mid:'#507030', lo:'#101408', label:id };
+
+    // Topographic contour lines — concentric irregular closed paths
+    let topoLines = '';
+    const tcx=W*0.64, tcy=H*0.52;
+    for(let i=1;i<=12;i++){
+      const pts3=[];
+      const nPoints=16;
+      for(let j=0;j<nPoints;j++){
+        const angle=(j/nPoints)*Math.PI*2;
+        const baseR=i*17;
+        // Add irregular wobble seeded by i+j
+        const wobble=1+0.28*Math.sin(j*2.3+i*1.1)+0.15*Math.cos(j*3.7+i*2.3);
+        const rx=baseR*(1+0.18*Math.cos(angle*1.5+i*0.8))*wobble;
+        const ry=baseR*(0.62+0.12*Math.sin(angle*2.1+i*0.6))*wobble;
+        pts3.push([tcx+rx*Math.cos(angle), tcy+ry*Math.sin(angle)]);
+      }
+      const path='M'+pts3.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')+' Z';
+      const alpha=(0.20-(i*0.010)).toFixed(3);
+      const sw=i%4===0?1.2:0.7;
+      topoLines+=`<path d="${path}" fill="none" stroke="${ap.hi}" stroke-opacity="${alpha}" stroke-width="${sw}"/>`;
+    }
+    // Fill the inner rings with subtle gradient
+    let topoFills = '';
+    for(let i=1;i<=5;i++){
+      const pts3=[];
+      const nPoints=16;
+      for(let j=0;j<nPoints;j++){
+        const angle=(j/nPoints)*Math.PI*2;
+        const baseR=i*17;
+        const wobble=1+0.28*Math.sin(j*2.3+i*1.1)+0.15*Math.cos(j*3.7+i*2.3);
+        const rx=baseR*(1+0.18*Math.cos(angle*1.5+i*0.8))*wobble;
+        const ry=baseR*(0.62+0.12*Math.sin(angle*2.1+i*0.6))*wobble;
+        pts3.push([tcx+rx*Math.cos(angle), tcy+ry*Math.sin(angle)]);
+      }
+      const path='M'+pts3.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')+' Z';
+      const alpha=(0.035-(i*0.005)).toFixed(3);
+      topoFills+=`<path d="${path}" fill="${ap.hi}" opacity="${alpha}"/>`;
+    }
+
+    return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="agBg${uid2}" cx="64%" cy="52%" r="60%">
+            <stop offset="0%" stop-color="${ap.lo}" stop-opacity="0.72"/>
+            <stop offset="55%" stop-color="${ap.lo}" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="rgba(4,4,5,0)" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="agF${uid2}"><feGaussianBlur stdDeviation="2.5"/></filter>
+          <linearGradient id="agMask${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="black"/><stop offset="20%" stop-color="black"/>
+            <stop offset="40%" stop-color="white"/><stop offset="100%" stop-color="white"/>
+          </linearGradient>
+          <mask id="agMaskEl${uid2}"><rect width="${W}" height="${H}" fill="url(#agMask${uid2})"/></mask>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#agBg${uid2})"/>
+        <g mask="url(#agMaskEl${uid2})">
+          ${topoFills}${topoLines}
+        </g>
+        <!-- Peak marker -->
+        <circle cx="${tcx.toFixed(1)}" cy="${tcy.toFixed(1)}" r="14" fill="${ap.hi}" opacity="0.06" filter="url(#agF${uid2})"/>
+        <circle cx="${tcx.toFixed(1)}" cy="${tcy.toFixed(1)}" r="3" fill="${ap.hi}" opacity="0.70"/>
+        <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${ap.hi}" opacity="0.38">${ap.label}</text>
+      </svg>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 16%,rgba(4,4,5,0.52) 36%,rgba(4,4,5,0.06) 58%,transparent 74%);pointer-events:none"></div>
+    </div></div>`;
+  }
+
+  // ── LIVESTOCK (LE, HE, GF) ────────────────────────────────────────────────
+  if(['LE','HE','GF'].includes(id)){
+    const lvCol = { hi:'#d0885a', mid:'#904830', lo:'#180c06', glow:'200,130,80' };
+    // Rolling terrain silhouette — layered hills
+    let hills = '';
+    for(let layer=3;layer>=0;layer--){
+      const yBase=H*(0.50+layer*0.12);
+      const amp=H*(0.14-layer*0.02);
+      const freqMult=0.8+layer*0.3;
+      const pts4=[];
+      for(let xi=0;xi<=W;xi+=8){
+        const y=yBase - amp*(Math.sin(xi*0.018*freqMult+layer)*0.5+0.5)
+                       - amp*0.4*(Math.sin(xi*0.038*freqMult+layer*2)*0.5+0.5);
+        pts4.push([xi,y]);
+      }
+      const d='M'+pts4.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')+` L${W},${H} L0,${H} Z`;
+      const alpha=(0.12-layer*0.02).toFixed(2);
+      hills+=`<path d="${d}" fill="${lvCol.hi}" opacity="${alpha}"/>`;
+      const strokeAlpha=(0.20-layer*0.03).toFixed(2);
+      hills+=`<path d="M${pts4.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')}" fill="none" stroke="${lvCol.hi}" stroke-opacity="${strokeAlpha}" stroke-width="1"/>`;
+    }
+    return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="lvBg${uid2}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${lvCol.lo}" stop-opacity="0.40"/>
+            <stop offset="100%" stop-color="${lvCol.lo}" stop-opacity="0.70"/>
+          </linearGradient>
+          <linearGradient id="lvMask${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="black"/><stop offset="20%" stop-color="black"/>
+            <stop offset="42%" stop-color="white"/><stop offset="100%" stop-color="white"/>
+          </linearGradient>
+          <mask id="lvMaskEl${uid2}"><rect width="${W}" height="${H}" fill="url(#lvMask${uid2})"/></mask>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#lvBg${uid2})"/>
+        <g mask="url(#lvMaskEl${uid2})">${hills}</g>
+        <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${lvCol.hi}" opacity="0.38">${id}</text>
+      </svg>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 16%,rgba(4,4,5,0.52) 36%,rgba(4,4,5,0.06) 58%,transparent 74%);pointer-events:none"></div>
+    </div></div>`;
+  }
+
+  // ── CRYPTO (BTC, ETH) ─────────────────────────────────────────────────────
+  if(['BTC','ETH'].includes(id) || cat==='crypto'){
+    const cryptoCol = {
+      BTC: { hi:'#f7931a', mid:'#c06010', lo:'#180c02', glow:'247,147,26' },
+      ETH: { hi:'#a0b0ff', mid:'#4050d0', lo:'#080c20', glow:'140,160,255' },
+    };
+    const cc2 = cryptoCol[id] || cryptoCol.BTC;
+    // Hexagonal mesh — tight grid of hex outlines
+    let hexes = '', hexGlows = '';
+    const hR=20, hH=hR*Math.sqrt(3)/2;
+    const cols2=Math.ceil(W/( hR*3))+1;
+    const rows2=Math.ceil(H/(hH*2))+1;
+    for(let r=0;r<rows2;r++){
+      for(let c=0;c<cols2;c++){
+        const ox=c%2===0?0:hR*1.5;
+        const hx=W*0.25+c*(hR*3)-hR*1.5+ox;
+        const hy=r*(hH*2)-(hH);
+        // Focal: distance from a hotspot at 65% x, 50% y
+        const fx=W*0.65, fy=H*0.50;
+        const dist=Math.sqrt((hx-fx)**2+(hy-fy)**2);
+        const maxD=200;
+        const t=Math.max(0,1-dist/maxD);
+        if(t<0.04) continue; // skip distant hexes
+        const pts5=[];
+        for(let a=0;a<6;a++){
+          const angle=Math.PI/6+a*(Math.PI/3);
+          pts5.push([hx+hR*0.88*Math.cos(angle), hy+hR*0.88*Math.sin(angle)]);
+        }
+        const hexPath='M'+pts5.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')+'Z';
+        const alpha=(0.06+t*0.22).toFixed(3);
+        hexes += `<path d="${hexPath}" fill="none" stroke="${cc2.hi}" stroke-opacity="${alpha}" stroke-width="0.8"/>`;
+        if(t>0.70){
+          hexes += `<path d="${hexPath}" fill="${cc2.hi}" opacity="${(t*0.06).toFixed(3)}"/>`;
+        }
+      }
+    }
+    return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="crBg${uid2}" cx="65%" cy="50%" r="55%">
+            <stop offset="0%" stop-color="${cc2.lo}" stop-opacity="0.80"/>
+            <stop offset="60%" stop-color="${cc2.lo}" stop-opacity="0.30"/>
+            <stop offset="100%" stop-color="rgba(4,4,5,0)" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="crGlow${uid2}" cx="65%" cy="50%" r="28%">
+            <stop offset="0%" stop-color="${cc2.hi}" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="${cc2.hi}" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="crF${uid2}"><feGaussianBlur stdDeviation="3"/></filter>
+          <linearGradient id="crMask${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="black"/><stop offset="20%" stop-color="black"/>
+            <stop offset="40%" stop-color="white"/><stop offset="100%" stop-color="white"/>
+          </linearGradient>
+          <mask id="crMaskEl${uid2}"><rect width="${W}" height="${H}" fill="url(#crMask${uid2})"/></mask>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#crBg${uid2})"/>
+        <rect width="${W}" height="${H}" fill="url(#crGlow${uid2})"/>
+        <g mask="url(#crMaskEl${uid2})">${hexes}</g>
+        <!-- Core glow orb -->
+        <circle cx="${(W*0.65).toFixed(1)}" cy="${(H*0.50).toFixed(1)}" r="30" fill="${cc2.hi}" opacity="0.10" filter="url(#crF${uid2})"/>
+        <circle cx="${(W*0.65).toFixed(1)}" cy="${(H*0.50).toFixed(1)}" r="4" fill="${cc2.hi}" opacity="0.85"/>
+        <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${cc2.hi}" opacity="0.38">${id}</text>
+      </svg>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 16%,rgba(4,4,5,0.52) 36%,rgba(4,4,5,0.06) 58%,transparent 74%);pointer-events:none"></div>
+    </div></div>`;
+  }
+
+  // ── DX (US Dollar Index) ──────────────────────────────────────────────────
+  if(id==='DX'){
+    // Globe meridian/latitude grid lines — USD is the world reserve currency
+    const dxCol = { hi:'#c8a96e', mid:'#8a6a30', lo:'#140e04' };
+    let globe = '';
+    const gcx=W*0.65, gcy=H*0.50, gr=72;
+    // Latitude lines
+    for(let lat=-3;lat<=3;lat++){
+      const y=gcy+lat*(gr/3.5);
+      const hw=Math.sqrt(Math.max(0,gr*gr-(y-gcy)*(y-gcy)));
+      if(hw<2) continue;
+      const alpha=(0.14-Math.abs(lat)*0.015).toFixed(3);
+      globe+=`<ellipse cx="${gcx.toFixed(1)}" cy="${y.toFixed(1)}" rx="${hw.toFixed(1)}" ry="${(hw*0.28).toFixed(1)}" fill="none" stroke="${dxCol.hi}" stroke-opacity="${alpha}" stroke-width="0.9"/>`;
+    }
+    // Longitude lines (ellipse arcs as rotated ellipses)
+    for(let lon=0;lon<8;lon++){
+      const rotation=lon*(180/8);
+      const alpha=(0.10).toFixed(3);
+      globe+=`<ellipse cx="${gcx.toFixed(1)}" cy="${gcy.toFixed(1)}" rx="${gr}" ry="${(gr*0.32).toFixed(1)}" fill="none" stroke="${dxCol.hi}" stroke-opacity="${alpha}" stroke-width="0.9" transform="rotate(${rotation},${gcx.toFixed(1)},${gcy.toFixed(1)})"/>`;
+    }
+    // Globe outline
+    globe+=`<circle cx="${gcx.toFixed(1)}" cy="${gcy.toFixed(1)}" r="${gr}" fill="none" stroke="${dxCol.hi}" stroke-opacity="0.20" stroke-width="1.2"/>`;
+    // Equator
+    globe+=`<ellipse cx="${gcx.toFixed(1)}" cy="${gcy.toFixed(1)}" rx="${gr}" ry="${(gr*0.25).toFixed(1)}" fill="none" stroke="${dxCol.hi}" stroke-opacity="0.22" stroke-width="1.5"/>`;
+    // Dollar symbol (simplified)
+    globe+=`<text x="${gcx.toFixed(1)}" y="${(gcy+9).toFixed(1)}" text-anchor="middle" font-family="var(--head)" font-size="36" font-weight="900" fill="${dxCol.hi}" opacity="0.12">$</text>`;
+
+    return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:transparent">
+      <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="dxBg${uid2}" cx="65%" cy="50%" r="58%">
+            <stop offset="0%" stop-color="${dxCol.lo}" stop-opacity="0.75"/>
+            <stop offset="60%" stop-color="${dxCol.lo}" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="rgba(4,4,5,0)" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="dxMask${uid2}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="black"/><stop offset="20%" stop-color="black"/>
+            <stop offset="40%" stop-color="white"/><stop offset="100%" stop-color="white"/>
+          </linearGradient>
+          <mask id="dxMaskEl${uid2}"><rect width="${W}" height="${H}" fill="url(#dxMask${uid2})"/></mask>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#dxBg${uid2})"/>
+        <g mask="url(#dxMaskEl${uid2})">${globe}</g>
+        <text x="${W*0.96}" y="${H*0.90}" text-anchor="end" font-family="var(--mono)" font-size="9" font-weight="700" letter-spacing="0.12em" fill="${dxCol.hi}" opacity="0.38">DXY</text>
+      </svg>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(4,4,5,0.94) 16%,rgba(4,4,5,0.50) 36%,rgba(4,4,5,0.06) 58%,transparent 74%);pointer-events:none"></div>
+    </div></div>`;
+  }
+
+  // Photo fallback (kept for any assets not yet covered)
   const photoUrl = ASSET_PHOTO_URLS[id];
   if(photoUrl){
     return `<div class="d-head-graphic"><div class="d-head-graphic-inner" style="background-image:url('${photoUrl}')"></div></div>`;
