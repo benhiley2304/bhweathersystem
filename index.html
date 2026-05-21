@@ -18536,6 +18536,532 @@ body {
 
 /* ── END R33 ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R34 — OVERVIEW REDESIGN: More graphical, premium, homepage-level
+   Back button spacing fix + full overview visual overhaul
+═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. BACK BUTTON — separate from ticker text with a clear divider gap ── */
+.d-cat {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+.back-to-ov-btn.desk-only {
+  margin-right: 10px !important;
+  flex-shrink: 0 !important;
+}
+/* Divider between button and ticker text */
+.back-to-ov-btn.desk-only + span::before {
+  content: '' !important;
+  display: inline-block !important;
+  width: 1px !important;
+  height: 12px !important;
+  background: rgba(255,255,255,0.10) !important;
+  margin-right: 10px !important;
+  vertical-align: middle !important;
+  position: relative !important;
+  top: -1px !important;
+}
+
+/* ── 2. VERDICT CARD — premium glass with ambient score glow ── */
+.ov-verdict {
+  background: rgba(8,8,12,0.55) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  padding: 0 !important;
+  margin-bottom: 12px !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+/* Left accent stripe — premium 4px with glow */
+.ov-verdict::before {
+  width: 4px !important;
+  background: var(--ov-stripe, var(--faint)) !important;
+  box-shadow: 0 0 18px 2px var(--ov-stripe, var(--faint)) !important;
+  opacity: 0.90 !important;
+  border-radius: 4px 0 0 4px !important;
+}
+/* Ambient glow in top-right from score color */
+.ov-verdict::after {
+  content: '' !important;
+  position: absolute !important;
+  top: -40px !important;
+  right: -40px !important;
+  width: 220px !important;
+  height: 220px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(ellipse, rgba(var(--ov-stripe-rgb, 200,169,110), 0.10) 0%, transparent 70%) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+.ov-v-top {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+/* Score column — full-height glass panel, large score */
+.ov-v-score-col {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 100px !important;
+  padding: 22px 18px !important;
+  background: rgba(255,255,255,0.018) !important;
+  border-right: 1px solid rgba(255,255,255,0.055) !important;
+  gap: 6px !important;
+  position: relative !important;
+}
+/* Score glow disc behind the number */
+.ov-v-score-col::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%) !important;
+  pointer-events: none !important;
+}
+.ov-vsn {
+  font-family: var(--head) !important;
+  font-size: 52px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+.ov-vsd {
+  font-family: var(--mono) !important;
+  font-size: 9px !important;
+  color: var(--faint) !important;
+  letter-spacing: 0.05em !important;
+  margin-top: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+.ov-vsbar {
+  width: 52px !important;
+  height: 3px !important;
+  border-radius: 2px !important;
+  background: linear-gradient(to right,#f04040,#d63a24,#4a5268,#26c97a,#30d988) !important;
+  position: relative !important;
+  margin-top: 8px !important;
+}
+.ov-vsdot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  box-shadow: 0 0 8px 2px rgba(255,255,255,0.70) !important;
+}
+.ov-verdict-chip {
+  font-size: 8px !important;
+  padding: 3px 10px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.09em !important;
+  margin-top: 4px !important;
+}
+/* Text section — more breathing room */
+.ov-vdiv {
+  display: none !important;
+}
+.ov-v-text {
+  flex: 1 !important;
+  min-width: 0 !important;
+  padding: 20px 22px 18px !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+.ov-vk {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: var(--accent) !important;
+  margin-bottom: 8px !important;
+  opacity: 0.90 !important;
+}
+.ov-vstmt {
+  font-family: var(--head) !important;
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+  line-height: 1.70 !important;
+  color: var(--dim) !important;
+  letter-spacing: -0.005em !important;
+}
+
+/* ── 3. PILLS — redesigned as premium compact tags ── */
+.ov-pills {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  overflow-x: auto !important;
+  padding: 10px 22px 14px 22px !important;
+  margin-top: 0 !important;
+  border-top: 1px solid rgba(255,255,255,0.04) !important;
+  scrollbar-width: none !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+.ov-pills::-webkit-scrollbar { display: none !important; }
+.ov-pl {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 10px 4px 8px !important;
+  border-radius: 5px !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  transition: background 0.12s !important;
+}
+.ov-pl.b {
+  background: rgba(38,201,122,0.06) !important;
+  border: 1px solid rgba(38,201,122,0.18) !important;
+}
+.ov-pl.b .ov-plk { color: var(--s2) !important; font-weight: 700 !important; }
+.ov-pl.r {
+  background: rgba(214,58,36,0.06) !important;
+  border: 1px solid rgba(214,58,36,0.18) !important;
+}
+.ov-pl.r .ov-plk { color: var(--sm1) !important; font-weight: 700 !important; }
+.ov-pl.n {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+}
+.ov-pl.n .ov-plk { color: var(--dim) !important; font-weight: 600 !important; }
+.ov-pld {
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+}
+.ov-plk { font-size: 9px !important; }
+.ov-plv { font-size: 8.5px !important; color: var(--faint) !important; margin-left: 1px !important; }
+
+/* ── 4. CONFLUENCE STRIP — tinted glass, more impactful ── */
+.ov-conf-strip {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  background: rgba(200,169,110,0.03) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(200,169,110,0.12) !important;
+  border-radius: 10px !important;
+  margin-bottom: 12px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.ov-conf-strip::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 3px !important;
+  background: var(--accent) !important;
+  opacity: 0.55 !important;
+}
+.ov-conf-badge {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  background: rgba(200,169,110,0.10) !important;
+  color: var(--accent) !important;
+  padding: 4px 10px !important;
+  border-radius: 4px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  border: 1px solid rgba(200,169,110,0.18) !important;
+  margin-top: 1px !important;
+}
+.ov-conf-text {
+  font-size: 11px !important;
+  color: var(--faint) !important;
+  line-height: 1.6 !important;
+}
+.ov-conf-text strong { color: var(--dim) !important; font-weight: 600 !important; }
+
+/* ── 5. ATTRIBUTION TABLE — glass rows with left color accent ── */
+.ov-attr-wrap {
+  background: rgba(8,8,12,0.50) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+}
+.ov-attr-head {
+  background: rgba(255,255,255,0.022) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 9px 18px !important;
+}
+.ov-ah {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: rgba(157,170,191,0.65) !important;
+}
+.ov-arow {
+  padding: 12px 18px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.035) !important;
+  position: relative !important;
+  transition: background 0.12s !important;
+}
+.ov-arow:hover {
+  background: rgba(255,255,255,0.028) !important;
+}
+/* Left color accent line per row */
+.ov-arow::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 20% !important;
+  bottom: 20% !important;
+  width: 2px !important;
+  background: var(--ov-rc) !important;
+  opacity: 0.50 !important;
+  border-radius: 0 2px 2px 0 !important;
+}
+.ov-arow:last-of-type { border-bottom: none !important; }
+.ov-afn {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.01em !important;
+}
+.ov-afi {
+  font-size: 9.5px !important;
+  color: var(--faint) !important;
+  line-height: 1.3 !important;
+  margin-top: 2px !important;
+}
+.ov-abar-track {
+  height: 3px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 2px !important;
+}
+.ov-abar-fill {
+  border-radius: 2px !important;
+  transition: width 0.4s ease !important;
+}
+.ov-asc {
+  font-family: var(--mono) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+.ov-awt {
+  font-family: var(--mono) !important;
+  font-size: 10px !important;
+  color: var(--faint) !important;
+}
+.ov-acont-bar-track {
+  height: 3px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 2px !important;
+}
+.ov-acont-bar-fill {
+  border-radius: 2px !important;
+}
+.ov-acont-val {
+  font-family: var(--mono) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+.ov-acont-pts {
+  font-size: 8.5px !important;
+  color: var(--faint) !important;
+}
+.ov-arr {
+  font-size: 11px !important;
+  color: rgba(157,170,191,0.45) !important;
+  right: 16px !important;
+}
+/* Total row */
+.ov-atotal {
+  background: rgba(200,169,110,0.03) !important;
+  border-top: 1px solid rgba(200,169,110,0.10) !important;
+  padding: 13px 18px !important;
+}
+.ov-at-lbl {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+}
+.ov-at-lbl-note {
+  font-size: 8.5px !important;
+  font-weight: 400 !important;
+  color: var(--faint) !important;
+  margin-top: 2px !important;
+}
+.ov-at-num {
+  font-family: var(--head) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  line-height: 1 !important;
+  letter-spacing: -0.03em !important;
+}
+.ov-at-sub {
+  font-size: 10px !important;
+  color: var(--faint) !important;
+}
+
+/* ── 6. WEIGHT BAR CARD — premium glass ── */
+.ov-wt-card {
+  background: rgba(8,8,12,0.50) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  padding: 14px 18px !important;
+}
+.ov-wt-lbl {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--faint) !important;
+  margin-bottom: 10px !important;
+}
+.ov-wt-bar {
+  height: 6px !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+}
+.ov-wt-seg {
+  height: 100% !important;
+  border-radius: 2px !important;
+}
+.ov-wt-leg {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 7px 18px !important;
+}
+.ov-wt-it {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 9.5px !important;
+  color: var(--dim) !important;
+}
+.ov-wt-sq {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 2px !important;
+  flex-shrink: 0 !important;
+}
+.ov-wt-pct {
+  font-family: var(--mono) !important;
+  font-size: 9px !important;
+  color: var(--faint) !important;
+  margin-left: 1px !important;
+}
+
+/* ── 7. DESKTOP 2-COL: upgrade for 1440px+ with better proportions ── */
+@media (min-width: 1100px) {
+  .ov-v-score-col {
+    min-width: 112px !important;
+    padding: 28px 22px !important;
+  }
+  .ov-v-text {
+    padding: 22px 24px 20px !important;
+  }
+  .ov-vsn {
+    font-size: 58px !important;
+  }
+  .ov-vstmt {
+    font-size: 13px !important;
+    line-height: 1.72 !important;
+  }
+}
+@media (min-width: 1440px) {
+  .ov-vsn {
+    font-size: 64px !important;
+  }
+  .ov-vstmt {
+    font-size: 13.5px !important;
+  }
+}
+@media (min-width: 2560px) {
+  /* At ultra-wide: 3-column overview: narrative | table | weight viz */
+  #t-overview.on {
+    grid-template-columns: minmax(0, 50fr) minmax(0, 38fr) minmax(0, 12fr) !important;
+    grid-template-areas:
+      "verdict   table   ."
+      "conf      table   ."
+      "verdict   table   ."
+      "verdict   total   ." !important;
+    column-gap: 22px !important;
+  }
+  .ov-vsn {
+    font-size: 72px !important;
+  }
+  .ov-vstmt {
+    font-size: 14.5px !important;
+  }
+}
+
+/* ── 8. MOBILE adjustments — preserve readability ── */
+@media (max-width: 700px) {
+  .ov-v-score-col {
+    min-width: 88px !important;
+    padding: 18px 14px !important;
+  }
+  .ov-vsn {
+    font-size: 44px !important;
+  }
+  .ov-v-text {
+    padding: 16px 14px 14px !important;
+  }
+  .ov-vstmt {
+    font-size: 12px !important;
+    line-height: 1.65 !important;
+  }
+  .ov-pills {
+    padding: 9px 14px 12px !important;
+  }
+  .ov-conf-strip {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 10px 14px !important;
+  }
+  .ov-attr-wrap {
+    border-radius: 8px !important;
+  }
+  .ov-wt-card {
+    border-radius: 8px !important;
+  }
+  .back-to-ov-btn.desk-only + span::before {
+    display: none !important;
+  }
+}
+
+/* ── END R34 ── */
+
 </style>
 </head>
 <body>
@@ -27335,6 +27861,7 @@ function buildOverview(m){
 
   // Stripe colour: green=bull, red=bear, gold=neutral
   const stripeCol = ws >= 6.5 ? '#26c97a' : ws <= 3.5 ? '#d63a24' : 'var(--accent)';
+  const stripeRgb = ws >= 6.5 ? '38,201,122' : ws <= 3.5 ? '214,58,36' : '200,169,110';
 
   // Dot position on gradient bar (0-100%)
   const dotPct = Math.min(97, Math.max(3, (ws/10)*100));
@@ -27522,7 +28049,7 @@ function buildOverview(m){
   return `<div id="t-overview" class="on">
 
     <!-- VERDICT CARD -->
-    <div class="ov-verdict" style="--ov-stripe:${stripeCol}">
+    <div class="ov-verdict" style="--ov-stripe:${stripeCol};--ov-stripe-rgb:${stripeRgb}">
       <div class="ov-v-top">
         <div class="ov-v-score-col">
           <div class="ov-vsn" style="color:${col}">${ws.toFixed(1)}</div>
