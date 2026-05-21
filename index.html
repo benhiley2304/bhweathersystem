@@ -30336,15 +30336,23 @@ function assetGraphic(m){
     const bArt = flagArtwork(bFlag);
     const qArt = flagArtwork(qFlag);
 
-    // Each flag fills its half of the banner
-    // Left flag: fills 0..W (full width), opacity + mask fade at right
-    // Right flag: fills 0..W (full width), opacity + mask fade at left
-    // Both rendered at full W×H with cover transform — then masked
+    // LEFT flag: fills a panel from x=W*0.18 to x=W*0.83 (65% wide)
+    // RIGHT flag: fills a panel from x=W*0.40 to x=W (60% wide)
+    // Blend zone: seam at W*0.55. Overlap from W*0.40 to W*0.65.
+    const panelLW = W * 0.65, panelRW = W * 0.60;
 
-    const bXform = coverTransform(bArt.nW, bArt.nH, W, H);
-    const qXform = coverTransform(qArt.nW, qArt.nH, W, H);
+    // coverTransform for left flag panel (centred within its panel region)
+    function coverTransformOffset(nW, nH, tW, tH, xOff, yOff){
+      const scale = Math.max(tW/nW, tH/nH);
+      const dx = xOff + (tW - nW*scale)/2;
+      const dy = yOff + (tH - nH*scale)/2;
+      return `translate(${dx.toFixed(2)},${dy.toFixed(2)}) scale(${scale.toFixed(6)})`;
+    }
 
-    // Blend zone: seam is at W*0.55 (centre of blend). Left flag fades out ~W*0.38→W*0.65. Right flag fades in ~W*0.45→W*0.72
+    const bXformL = coverTransformOffset(bArt.nW, bArt.nH, panelLW, H, W*0.18, 0);
+    const qXformR = coverTransformOffset(qArt.nW, qArt.nH, panelRW, H, W*0.40, 0);
+
+    // Blend zone: seam is at W*0.55
     const seamX = W * 0.55;
 
     return `<div class="d-head-graphic" data-type="fx">
@@ -30352,20 +30360,20 @@ function assetGraphic(m){
 
         <svg style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid slice" viewBox="0 0 ${W} ${H}">
           <defs>
-            <!-- Left flag mask: opaque on left, sharp fade at blend zone -->
+            <!-- Left flag mask: opaque in centre zone, fades at seam -->
             <linearGradient id="gML${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"   stop-color="#fff" stop-opacity="1"/>
-              <stop offset="45%"  stop-color="#fff" stop-opacity="1"/>
-              <stop offset="58%"  stop-color="#fff" stop-opacity="0.6"/>
-              <stop offset="66%"  stop-color="#fff" stop-opacity="0"/>
+              <stop offset="18%"  stop-color="#fff" stop-opacity="1"/>
+              <stop offset="50%"  stop-color="#fff" stop-opacity="1"/>
+              <stop offset="62%"  stop-color="#fff" stop-opacity="0.45"/>
+              <stop offset="68%"  stop-color="#fff" stop-opacity="0"/>
             </linearGradient>
             <mask id="mL${uid}"><rect width="${W}" height="${H}" fill="url(#gML${uid})"/></mask>
 
-            <!-- Right flag mask: starts fading in at seam, opaque on right -->
+            <!-- Right flag mask: fades in from seam, opaque on right -->
             <linearGradient id="gMR${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="34%"  stop-color="#fff" stop-opacity="0"/>
-              <stop offset="44%"  stop-color="#fff" stop-opacity="0.6"/>
-              <stop offset="55%"  stop-color="#fff" stop-opacity="1"/>
+              <stop offset="40%"  stop-color="#fff" stop-opacity="0"/>
+              <stop offset="52%"  stop-color="#fff" stop-opacity="0.65"/>
+              <stop offset="60%"  stop-color="#fff" stop-opacity="1"/>
               <stop offset="100%" stop-color="#fff" stop-opacity="1"/>
             </linearGradient>
             <mask id="mR${uid}"><rect width="${W}" height="${H}" fill="url(#gMR${uid})"/></mask>
@@ -30375,6 +30383,10 @@ function assetGraphic(m){
               <stop offset="65%"  stop-color="#000" stop-opacity="0"/>
               <stop offset="100%" stop-color="#000" stop-opacity="0.55"/>
             </linearGradient>
+
+            <!-- Clip regions for flag panels -->
+            <clipPath id="cpLeft${uid}"><rect x="${W*0.18}" y="0" width="${W*0.65}" height="${H}"/></clipPath>
+            <clipPath id="cpRight${uid}"><rect x="${W*0.40}" y="0" width="${W*0.60}" height="${H}"/></clipPath>
 
             <!-- Seam light leak — luminous vertical glow at blend midpoint -->
             <linearGradient id="gLeak${uid}" x1="0" y1="0" x2="1" y2="0">
@@ -30400,14 +30412,15 @@ function assetGraphic(m){
             </radialGradient>
           </defs>
 
-          <!-- LEFT FLAG — full banner, masked to fade right -->
-          <g mask="url(#mL${uid})" opacity="0.96">
-            <g transform="${bXform}">${bArt.svg}</g>
+          <!-- LEFT FLAG — starts at 18% of banner width, covers centre-left -->
+          <!-- Placed here so it appears in the lighter-gradient zone, not under heavy text overlay -->
+          <g clip-path="url(#cpLeft${uid})" mask="url(#mL${uid})" opacity="0.96">
+            <g transform="${bXformL}">${bArt.svg}</g>
           </g>
 
-          <!-- RIGHT FLAG — full banner, masked to fade left -->
-          <g mask="url(#mR${uid})" opacity="0.92">
-            <g transform="${qXform}">${qArt.svg}</g>
+          <!-- RIGHT FLAG — covers centre-right and far right -->
+          <g clip-path="url(#cpRight${uid})" mask="url(#mR${uid})" opacity="0.92">
+            <g transform="${qXformR}">${qArt.svg}</g>
           </g>
 
           <!-- Ambient colour blooms — reinforce flag colour identity -->
