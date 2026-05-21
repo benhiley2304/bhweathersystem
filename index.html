@@ -19837,6 +19837,642 @@ body {
 
 /* ── END R38 ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R39 — OVERVIEW PAGE STRUCTURAL REDESIGN
+   2-col desktop layout, premium factor rows, new confluence,
+   upgraded weight bar, larger gauge
+══════════════════════════════════════════════════════════════ */
+
+/* ── 2-col layout wrapper ── */
+#t-overview {
+  padding: 16px 20px 52px !important;
+}
+#t-overview.on { display: block !important; }
+
+/* Main 2-column grid: verdict+narrative LEFT, factor table RIGHT */
+.ov-r39-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .ov-r39-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  #t-overview { padding: 12px 12px 48px !important; }
+  .ov-r39-grid { gap: 10px; }
+}
+
+/* ── LEFT PANEL: verdict card ── */
+.ov-verdict {
+  background: rgba(8,10,14,0.72) !important;
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 14px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+/* Top colour accent bar */
+.ov-verdict::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important; top: 0 !important; right: 0 !important;
+  height: 2px !important;
+  background: var(--ov-stripe, var(--faint)) !important;
+  opacity: 0.90 !important;
+  border-radius: 14px 14px 0 0 !important;
+  z-index: 3 !important;
+}
+/* Ambient radial glow from score colour */
+.ov-verdict::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: radial-gradient(ellipse at 30% 20%, rgba(var(--ov-stripe-rgb,200,169,110), 0.07) 0%, transparent 60%) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+.ov-verdict > * { position: relative !important; z-index: 1 !important; }
+
+/* Score + label section — compact horizontal strip at top */
+.ov-v-top {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  padding: 0 !important;
+}
+
+/* Gauge column — left side of verdict card */
+.ov-v-score-col {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px 20px 20px !important;
+  min-width: 140px !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  background: rgba(255,255,255,0.012) !important;
+}
+.ov-vsn-wrap {
+  position: relative !important;
+  width: 120px !important; height: 120px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 10px !important;
+  flex-shrink: 0 !important;
+}
+.ov-gauge-svg {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important; height: 100% !important;
+  transform: rotate(-90deg) !important;
+  overflow: visible !important;
+}
+.ov-gauge-track {
+  fill: none !important;
+  stroke: rgba(255,255,255,0.07) !important;
+  stroke-width: 7 !important;
+  stroke-linecap: round !important;
+}
+.ov-gauge-fill {
+  fill: none !important;
+  stroke-width: 7 !important;
+  stroke-linecap: round !important;
+  stroke-dasharray: 251.2 !important;
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.34,1.56,0.64,1) !important;
+  filter: drop-shadow(0 0 9px var(--ov-stripe, var(--faint))) !important;
+}
+.ov-gauge-center {
+  position: relative !important;
+  z-index: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+.ov-vsn {
+  font-family: var(--head) !important;
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1 !important;
+  text-shadow: 0 0 22px currentColor !important;
+}
+.ov-vsd {
+  font-family: var(--mono) !important;
+  font-size: 9px !important;
+  color: var(--faint) !important;
+  letter-spacing: 0.04em !important;
+  margin-top: 2px !important;
+}
+.ov-verdict-chip {
+  font-family: var(--mono) !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  padding: 4px 12px !important;
+  border-radius: 4px !important;
+  border: 1px solid !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  margin-top: 0 !important;
+}
+.ov-verdict-chip.bull { color:#26c97a !important; background:rgba(38,201,122,0.10) !important; border-color:rgba(38,201,122,0.22) !important; }
+.ov-verdict-chip.bear { color:#f04040 !important; background:rgba(240,64,64,0.10) !important; border-color:rgba(240,64,64,0.22) !important; }
+.ov-verdict-chip.neut { color:var(--accent) !important; background:rgba(200,169,110,0.09) !important; border-color:rgba(200,169,110,0.22) !important; }
+
+/* Divider between gauge col and narrative */
+.ov-vdiv { display: none !important; }
+
+/* Narrative text side */
+.ov-v-text {
+  flex: 1 !important;
+  min-width: 0 !important;
+  padding: 20px 20px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+.ov-vk {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: var(--accent) !important;
+  opacity: 0.80 !important;
+  margin-bottom: 0 !important;
+}
+.ov-vstmt {
+  font-family: var(--head) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 1.72 !important;
+  color: var(--dim) !important;
+  letter-spacing: -0.003em !important;
+}
+.ov-vstmt .hb { color:var(--s2) !important; font-weight:600 !important; }
+.ov-vstmt .hr { color:var(--sm2) !important; font-weight:600 !important; }
+.ov-vstmt .hn { color:var(--text) !important; font-weight:600 !important; }
+
+/* Pills — horizontal scroll */
+.ov-pills {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 10px 20px 12px !important;
+  margin-top: 0 !important;
+  border-top: 1px solid rgba(255,255,255,0.04) !important;
+  scrollbar-width: none !important;
+}
+.ov-pills::-webkit-scrollbar { display: none !important; }
+.ov-pl {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 10px 4px 8px !important;
+  border-radius: 4px !important;
+  font-size: 9.5px !important;
+  font-weight: 500 !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  border: 1px solid !important;
+}
+.ov-pl.b { background:rgba(38,201,122,0.07) !important; border-color:rgba(38,201,122,0.16) !important; }
+.ov-pl.b .ov-plk { color:var(--s2) !important; }
+.ov-pl.r { background:rgba(214,58,36,0.07) !important; border-color:rgba(214,58,36,0.16) !important; }
+.ov-pl.r .ov-plk { color:var(--sm1) !important; }
+.ov-pl.n { background:rgba(255,255,255,0.03) !important; border-color:rgba(255,255,255,0.08) !important; }
+.ov-pl.n .ov-plk { color:var(--dim) !important; }
+.ov-pld { width:5px; height:5px; border-radius:50%; flex-shrink:0 !important; }
+.ov-pl.b .ov-pld { background:var(--s2) !important; }
+.ov-pl.r .ov-pld { background:var(--sm1) !important; }
+.ov-pl.n .ov-pld { background:rgba(157,170,191,0.45) !important; }
+.ov-plk { font-weight:700 !important; font-size:9.5px !important; }
+.ov-plv { font-size:9px !important; color:var(--faint) !important; margin-left:2px !important; }
+
+/* ── RIGHT PANEL: factor attribution table ── */
+.ov-attr-wrap {
+  background: rgba(8,10,14,0.72) !important;
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  margin-bottom: 0 !important;
+  animation: ov-fade-up 0.40s 0.05s cubic-bezier(0.22,1,0.36,1) both !important;
+}
+.ov-attr-head {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 90px 56px 44px 90px !important;
+  background: rgba(255,255,255,0.018) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.055) !important;
+  padding: 9px 18px 9px 20px !important;
+}
+.ov-ah {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.13em !important;
+  text-transform: uppercase !important;
+  color: rgba(157,170,191,0.45) !important;
+}
+.ov-ah.r { text-align: right !important; }
+.ov-ah-contrib { padding-left: 10px !important; border-left: 1px solid rgba(255,255,255,0.04) !important; }
+
+/* FACTOR ROW */
+.ov-arow {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 90px 56px 44px 90px !important;
+  align-items: center !important;
+  padding: 12px 18px 12px 20px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.032) !important;
+  cursor: pointer !important;
+  transition: background 0.14s !important;
+  position: relative !important;
+}
+.ov-arow:last-of-type { border-bottom: none !important; }
+/* Left colour stripe */
+.ov-arow::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important; top: 20% !important; bottom: 20% !important;
+  width: 3px !important;
+  background: var(--ov-rc) !important;
+  opacity: 0.65 !important;
+  border-radius: 0 2px 2px 0 !important;
+}
+/* Subtle ambient glow */
+.ov-arow::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: radial-gradient(ellipse at 5% 50%, rgba(var(--ov-rc-rgb, 157,170,191), 0.04) 0%, transparent 60%) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+.ov-arow > * { position: relative !important; z-index: 1 !important; }
+.ov-arow:hover { background: rgba(255,255,255,0.022) !important; }
+.ov-arow:hover .ov-arr { opacity: 1 !important; }
+
+/* Factor name + subtitle */
+.ov-af { display: flex !important; flex-direction: column !important; gap: 3px !important; padding-right: 12px !important; }
+.ov-afn { font-size: 12px !important; font-weight: 600 !important; color: var(--text) !important; letter-spacing: -0.01em !important; }
+.ov-afi { font-size: 9px !important; color: var(--faint) !important; line-height: 1.35 !important; }
+
+/* Score bar */
+.ov-abar-wrap { padding-right: 12px !important; display: flex !important; align-items: center !important; }
+.ov-abar-track {
+  width: 100% !important;
+  height: 5px !important;
+  background: rgba(255,255,255,0.07) !important;
+  border-radius: 3px !important;
+  overflow: hidden !important;
+}
+.ov-abar-fill {
+  height: 100% !important;
+  border-radius: 3px !important;
+  transition: width 0.9s cubic-bezier(0.22,1,0.36,1) !important;
+  opacity: 0.90 !important;
+}
+
+/* Score number */
+.ov-asc {
+  font-family: var(--head) !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
+  text-align: right !important;
+  padding-right: 4px !important;
+  line-height: 1 !important;
+  text-shadow: 0 0 12px currentColor !important;
+}
+
+/* Weight */
+.ov-awt {
+  font-family: var(--mono) !important;
+  font-size: 10px !important;
+  color: var(--faint) !important;
+  text-align: right !important;
+  padding: 0 8px !important;
+}
+
+/* Contribution */
+.ov-acont {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  padding-left: 10px !important;
+  border-left: 1px solid rgba(255,255,255,0.05) !important;
+}
+.ov-acont-val {
+  font-family: var(--mono) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1 !important;
+}
+.ov-acont-pts {
+  font-size: 8.5px !important;
+  color: var(--faint) !important;
+  font-weight: 400 !important;
+}
+
+/* Arrow */
+.ov-arr {
+  position: absolute !important;
+  right: 16px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 10px !important;
+  color: rgba(157,170,191,0.35) !important;
+  opacity: 0 !important;
+  transition: opacity 0.12s !important;
+  pointer-events: none !important;
+}
+
+/* Total row */
+.ov-atotal {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 90px 56px 44px 90px !important;
+  align-items: center !important;
+  padding: 13px 18px 13px 20px !important;
+  background: rgba(200,169,110,0.04) !important;
+  border-top: 1px solid rgba(200,169,110,0.12) !important;
+  position: relative !important;
+}
+.ov-atotal::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important; top: 0 !important; bottom: 0 !important;
+  width: 3px !important;
+  background: var(--accent) !important;
+  opacity: 0.55 !important;
+}
+.ov-at-lbl {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  padding-right: 12px !important;
+}
+.ov-at-lbl-note { font-size: 8px !important; font-weight: 400 !important; color: var(--faint) !important; }
+.ov-at-score-lbl { display: none !important; }
+.ov-at-wt-lbl { font-family:var(--mono) !important; font-size:10px !important; color:var(--faint) !important; text-align:right !important; padding: 0 8px !important; }
+.ov-at-contrib {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 4px !important;
+  justify-content: flex-end !important;
+  padding-left: 10px !important;
+  border-left: 1px solid rgba(200,169,110,0.15) !important;
+}
+.ov-at-num {
+  font-family: var(--head) !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  line-height: 1 !important;
+  letter-spacing: -0.04em !important;
+  text-shadow: 0 0 18px rgba(200,169,110,0.40) !important;
+}
+.ov-at-sub { font-family:var(--mono) !important; font-size:11px !important; color:var(--faint) !important; }
+
+/* ── CONFLUENCE STRIP — redesigned as factor chips ── */
+.ov-conf-strip {
+  display: flex !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  margin-bottom: 10px !important;
+  flex-wrap: nowrap !important;
+  animation: ov-fade-up 0.40s 0.08s cubic-bezier(0.22,1,0.36,1) both !important;
+}
+/* Verdict summary chip — left summary */
+.ov-conf-summary {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(8,10,14,0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  min-width: 160px;
+}
+.ov-conf-summary-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.ov-conf-summary-sub {
+  font-size: 9.5px;
+  color: var(--faint);
+  line-height: 1.5;
+}
+.ov-conf-summary-sub strong { color: var(--dim); font-weight: 600; }
+/* Factor chips grid — fills remaining space */
+.ov-conf-chips {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.ov-conf-fchip {
+  flex: 1;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(8,10,14,0.68);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+  position: relative;
+  overflow: hidden;
+}
+.ov-conf-fchip:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.11);
+}
+/* Coloured top bar = score colour */
+.ov-conf-fchip::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; right: 0;
+  height: 2px;
+  background: var(--chip-col, var(--faint));
+  opacity: 0.80;
+  border-radius: 10px 10px 0 0;
+}
+.ov-conf-fchip-name {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  line-height: 1;
+}
+.ov-conf-fchip-score {
+  font-family: var(--head);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--chip-col, var(--dim));
+  text-shadow: 0 0 14px var(--chip-col, transparent);
+}
+.ov-conf-fchip-dir {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--chip-col, var(--faint));
+  opacity: 0.80;
+}
+/* hide old confluence sub-elements that conflict */
+.ov-conf-meter,
+.ov-conf-right,
+.ov-conf-title,
+.ov-conf-detail,
+.ov-conf-badge,
+.ov-conf-text,
+.ov-conf-dot { display: none !important; }
+
+/* ── WEIGHT BAR — upgraded ── */
+.ov-wt-card {
+  background: rgba(8,10,14,0.72) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 14px !important;
+  padding: 14px 20px 16px !important;
+  animation: ov-fade-up 0.40s 0.14s cubic-bezier(0.22,1,0.36,1) both !important;
+}
+.ov-wt-lbl {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.13em !important;
+  text-transform: uppercase !important;
+  color: rgba(157,170,191,0.45) !important;
+  margin-bottom: 11px !important;
+}
+.ov-wt-bar {
+  height: 10px !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+}
+.ov-wt-seg {
+  height: 100% !important;
+  border-radius: 4px !important;
+  opacity: 0.85 !important;
+  transition: opacity 0.14s !important;
+  position: relative !important;
+}
+.ov-wt-seg:hover { opacity: 1 !important; }
+.ov-wt-leg {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px 20px !important;
+}
+.ov-wt-it {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 10px !important;
+  color: rgba(190,200,222,0.80) !important;
+}
+.ov-wt-sq {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 2px !important;
+  flex-shrink: 0 !important;
+}
+.ov-wt-pct {
+  font-family: var(--mono) !important;
+  font-size: 9px !important;
+  color: rgba(157,170,191,0.55) !important;
+  margin-left: 1px !important;
+}
+
+/* ── MOBILE OVERRIDES ── */
+@media (max-width: 700px) {
+  .ov-v-top { flex-direction: row !important; align-items: flex-start !important; }
+  .ov-v-score-col {
+    padding: 16px 14px !important;
+    min-width: 110px !important;
+    border-right: 1px solid rgba(255,255,255,0.06) !important;
+    border-bottom: none !important;
+  }
+  .ov-vsn-wrap { width: 88px !important; height: 88px !important; margin-bottom: 8px !important; }
+  .ov-vsn { font-size: 28px !important; }
+  .ov-v-text { padding: 16px 14px 14px !important; }
+  .ov-vstmt {
+    font-size: 11px !important;
+    line-height: 1.6 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 5 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  /* Table: 3-col on mobile */
+  .ov-attr-head, .ov-arow, .ov-atotal {
+    grid-template-columns: 1fr 48px 84px !important;
+  }
+  .ov-ah-bar, .ov-ah:nth-child(4) { display: none !important; }
+  .ov-abar-wrap, .ov-awt { display: none !important; }
+  .ov-at-wt-lbl { display: none !important; }
+  .ov-arow { padding: 11px 14px 11px 18px !important; }
+  .ov-attr-head { padding: 8px 14px 8px 18px !important; }
+  .ov-atotal { padding: 11px 14px 11px 18px !important; }
+  .ov-afn { font-size: 11px !important; }
+  .ov-afi { font-size: 9px !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important; overflow: hidden !important; }
+  .ov-asc { font-size: 15px !important; text-align: center !important; padding-right: 0 !important; }
+  .ov-acont { padding-left: 8px !important; }
+  .ov-acont-val { font-size: 13px !important; }
+  .ov-at-num { font-size: 20px !important; }
+  /* Confluence: horizontal scroll on mobile */
+  .ov-conf-strip {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+  .ov-conf-strip::-webkit-scrollbar { display: none !important; }
+  .ov-conf-summary { min-width: 140px !important; }
+  .ov-conf-fchip { min-width: 72px !important; }
+  .ov-wt-card { padding: 12px 14px 14px !important; }
+}
+
+/* ── END R39 ── */
+
 
 </style>
 </head>
@@ -29404,67 +30040,86 @@ function buildOverview(m){
   const arcCirc = 251.2;
   const arcOffset = Math.round(arcCirc * (1 - Math.min(10, Math.max(0, ws)) / 10) * 10) / 10;
 
+  // ── Factor chips for confluence section ──
+  const fChips = factorKeys.map(k=>{
+    const sc = normalisedScores[k]?.score ?? 5;
+    const ccol = sHex(sc);
+    const tabId = FACTOR_TABS[k]||k;
+    const lbl = (FACTOR_LABELS[k]||k).replace(' & ',' &amp; ');
+    const dir = sc>=6.5?'Bullish':sc<=3.5?'Bearish':'Neutral';
+    return `<div class="ov-conf-fchip" style="--chip-col:${ccol}" onclick="switchTab('${tabId}')">
+      <div class="ov-conf-fchip-name">${lbl}</div>
+      <div class="ov-conf-fchip-score">${sc.toFixed(1)}</div>
+      <div class="ov-conf-fchip-dir">${dir}</div>
+    </div>`;
+  }).join('');
+
   // This function returns the overview PANEL content only
   return `<div id="t-overview" class="on">
 
-    <!-- VERDICT CARD -->
-    <div class="ov-verdict" style="--ov-stripe:${stripeCol};--ov-stripe-rgb:${stripeRgb}">
-      <div class="ov-v-top">
-        <div class="ov-v-score-col">
-          <!-- Arc gauge with SVG circle -->
-          <div class="ov-vsn-wrap">
-            <svg class="ov-gauge-svg" viewBox="0 0 100 100">
-              <circle class="ov-gauge-track" cx="50" cy="50" r="40"/>
-              <circle class="ov-gauge-fill"
-                cx="50" cy="50" r="40"
-                stroke="${stripeCol}"
-                stroke-dashoffset="${arcOffset}"/>
-            </svg>
-            <div class="ov-gauge-center">
-              <div class="ov-vsn" style="color:${col}">${ws.toFixed(1)}</div>
-              <div class="ov-vsd">/10</div>
+    <!-- 2-COLUMN GRID: verdict LEFT, attribution RIGHT -->
+    <div class="ov-r39-grid">
+
+      <!-- LEFT: Verdict card -->
+      <div class="ov-verdict" style="--ov-stripe:${stripeCol};--ov-stripe-rgb:${stripeRgb}">
+        <div class="ov-v-top">
+          <div class="ov-v-score-col">
+            <!-- Arc gauge with SVG circle -->
+            <div class="ov-vsn-wrap">
+              <svg class="ov-gauge-svg" viewBox="0 0 100 100">
+                <circle class="ov-gauge-track" cx="50" cy="50" r="40"/>
+                <circle class="ov-gauge-fill"
+                  cx="50" cy="50" r="40"
+                  stroke="${stripeCol}"
+                  stroke-dashoffset="${arcOffset}"/>
+              </svg>
+              <div class="ov-gauge-center">
+                <div class="ov-vsn" style="color:${col}">${ws.toFixed(1)}</div>
+                <div class="ov-vsd">/10</div>
+              </div>
             </div>
+            <div class="ov-verdict-chip ${chipCls}">${chipLabel}</div>
           </div>
-          <div class="ov-verdict-chip ${chipCls}">${chipLabel}</div>
+          <div class="ov-vdiv"></div>
+          <div class="ov-v-text">
+            <div class="ov-vk">${eyebrow}</div>
+            <div class="ov-vstmt">${narrative}</div>
+          </div>
         </div>
-        <div class="ov-vdiv"></div>
-        <div class="ov-v-text">
-          <div class="ov-vk">${eyebrow}</div>
-          <div class="ov-vstmt">${narrative}</div>
+        ${pillsHtml ? `<div class="ov-pills">${pillsHtml}</div>` : ''}
+      </div>
+
+      <!-- RIGHT: Factor attribution table -->
+      <div class="ov-attr-wrap">
+        <div class="ov-attr-head">
+          <div class="ov-ah">Factor</div>
+          <div class="ov-ah ov-ah-bar"></div>
+          <div class="ov-ah r">Score</div>
+          <div class="ov-ah r">Wt.</div>
+          <div class="ov-ah r ov-ah-contrib">Contribution</div>
+        </div>
+        ${attrRows}
+        <div class="ov-atotal">
+          <div class="ov-at-lbl">Composite Total${totalLabelNote}</div>
+          <div></div>
+          <div class="ov-at-score-lbl"></div>
+          <div class="ov-at-wt-lbl">${totalWtPct}%</div>
+          <div class="ov-at-contrib">
+            <div class="ov-at-num">${ws.toFixed(1)}</div>
+            <div class="ov-at-sub">/ 10</div>
+          </div>
         </div>
       </div>
-      ${pillsHtml ? `<div class="ov-pills">${pillsHtml}</div>` : ''}
-    </div>
 
-    <!-- CONFLUENCE STRIP — signal dots meter -->
+    </div><!-- end .ov-r39-grid -->
+
+    <!-- CONFLUENCE STRIP — factor chips with individual scores -->
     <div class="ov-conf-strip">
-      <div class="ov-conf-meter">${confDots}</div>
-      <div class="ov-conf-right">
-        <div class="ov-conf-title">${confTitle}</div>
-        <div class="ov-conf-detail">${confText}</div>
+      <div class="ov-conf-summary">
+        <div class="ov-conf-summary-title">${confTitle}</div>
+        <div class="ov-conf-summary-sub">${confText}</div>
       </div>
-    </div>
-
-    <!-- ATTRIBUTION TABLE -->
-    <div class="ov-attr-wrap">
-      <div class="ov-attr-head">
-        <div class="ov-ah">Factor</div>
-        <div class="ov-ah ov-ah-bar"></div>
-        <div class="ov-ah r">Score</div>
-        <div class="ov-ah r">Wt.</div>
-        <div class="ov-ah r ov-ah-contrib">Contribution</div>
-      </div>
-      ${attrRows}
-      <div class="ov-atotal">
-        <div class="ov-at-lbl">Composite Total${totalLabelNote}</div>
-        <div></div>
-        <div class="ov-at-score-lbl"></div>
-        <div class="ov-at-wt-lbl">${totalWtPct}%</div>
-        <div class="ov-at-contrib">
-          <div class="ov-at-num">${ws.toFixed(1)}</div>
-          <div class="ov-at-sub">/ 10</div>
-        </div>
-      </div>
+      <div class="ov-conf-chips">${fChips}</div>
     </div>
 
     <!-- WEIGHT BREAKDOWN BAR -->
