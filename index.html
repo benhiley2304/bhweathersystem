@@ -16721,28 +16721,74 @@ h3.label,
 ══════════════════════════════════════════════════════ */
 
 /* ── Nav strip (overview tab row) ── */
+/* ══ OV-NAV TAB STRIP — redesign May 2026 ══════════════════════════════ */
 .ov-nav{
-  flex-shrink:0;display:flex;align-items:stretch;
-  background:var(--surf);border-bottom:1px solid rgba(255,255,255,0.055);
-  overflow-x:auto;scrollbar-width:none;
+  flex-shrink:0;
+  display:flex;
+  align-items:stretch;
+  background:var(--surf);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  overflow-x:auto;
+  scrollbar-width:none;
+  padding:0 4px;
+  gap:2px;
 }
 .ov-nav::-webkit-scrollbar{display:none;}
+
 .ov-nt{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:9px 13px;white-space:nowrap;flex-shrink:0;
-  font-size:10.5px;font-weight:500;color:var(--faint);
-  cursor:pointer;border-bottom:2px solid transparent;
-  transition:color .15s,border-color .15s;
-  letter-spacing:.01em;
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:10px 14px;
+  white-space:nowrap;
+  flex-shrink:0;
+  font-size:10.5px;
+  font-weight:500;
+  color:rgba(173,184,208,0.55);
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+  border-radius:0;
+  letter-spacing:0.02em;
   user-select:none;
+  /* Smooth multi-property transition */
+  transition:color 200ms ease, background 200ms ease, border-color 200ms ease;
 }
-.ov-nt:hover{color:var(--dim);}
-.ov-nt.on{color:var(--text);border-bottom-color:var(--accent);}
+
+/* Hover: brighten text + very subtle surface lift */
+.ov-nt:hover{
+  color:rgba(173,184,208,0.9);
+  background:rgba(255,255,255,0.025);
+}
+
+/* Active: full brightness text, gold underline, pill-tinted bg */
+.ov-nt.on{
+  color:var(--text);
+  border-bottom-color:var(--accent);
+  background:rgba(200,169,110,0.06);
+  font-weight:600;
+}
+
+/* Score chip — the colour badge next to each tab label */
 .ov-nchip{
-  font-family:var(--mono);font-size:9px;font-weight:700;
-  padding:1px 5px;border-radius:2px;
-  background:var(--chip-bg,rgba(255,255,255,0.07));
-  color:var(--chip-c,var(--faint));
+  font-family:var(--mono);
+  font-size:9px;
+  font-weight:700;
+  padding:2px 6px;
+  border-radius:3px;
+  background:var(--chip-bg, rgba(255,255,255,0.07));
+  color:var(--chip-c, rgba(173,184,208,0.6));
+  letter-spacing:0.01em;
+  /* Chip brightens when its tab is active */
+  transition:opacity 200ms ease, background 200ms ease;
+}
+.ov-nt.on .ov-nchip{
+  opacity:1;
+  /* Slightly brighter pill on active tab */
+  filter:brightness(1.15);
+}
+.ov-nt:not(.on) .ov-nchip{
+  opacity:0.7;
 }
 
 /* ── Overview panel wrapper ── */
@@ -17021,7 +17067,7 @@ h3.label,
   .ov-conf-strip{flex-direction:column;align-items:flex-start;gap:6px;padding:9px 12px;}
   .ov-conf-text{font-size:10px;}
   /* Nav tabs */
-  .ov-nt{padding:8px 10px;font-size:10px;}
+  .ov-nt{padding:9px 11px;font-size:10px;}
 }
 /* ── END OVERVIEW TAB CSS ── */
 
@@ -17065,27 +17111,7 @@ h3.label,
 }
 
 /* 2. NAV TAB STRIP — higher contrast inactive tabs */
-.ov-nt{
-  font-size:10.5px !important;
-  font-weight:600 !important;
-  color:rgba(173,184,208,0.65) !important;
-  letter-spacing:0.025em !important;
-  padding:10px 14px !important;
-}
-.ov-nt:hover{
-  color:rgba(173,184,208,0.95) !important;
-  background:rgba(255,255,255,0.025);
-}
-.ov-nt.on{
-  color:var(--text) !important;
-  border-bottom-color:var(--accent) !important;
-}
-/* Score chips in nav — slightly more readable */
-.ov-nchip{
-  font-size:9px !important;
-  padding:2px 5px !important;
-  border-radius:3px !important;
-}
+/* ov-nt overrides removed — governed by base rule above */
 
 /* 3. FACTOR STRIP (score cards) — tighter, cleaner active highlight */
 .factor-strip{
@@ -17396,11 +17422,7 @@ h3.label,
   font-weight:700 !important;
 }
 
-/* 19. OV-NAV — background match detail surface for seamless feel */
-.ov-nav{
-  background:var(--surf) !important;
-  border-bottom:1px solid rgba(255,255,255,0.07) !important;
-}
+/* 19. OV-NAV — governed by base rule */
 
 /* 20. GLOBAL link-like elements — gold accent consistent */
 a, .link-gold{
