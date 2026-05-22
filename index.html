@@ -22852,6 +22852,618 @@ body {
 
 /* ── END R46b ── */
 
+/* ══════════════════════════════════════════════════════════════
+   R47 — VISUAL POLISH PASS  (Apple UX level)
+   Fixes: font hierarchy, container styles, colour consistency,
+   section header unity, score gauge label, COT gauge,
+   sidebar readability, tab nav refinement, mobile polish
+══════════════════════════════════════════════════════════════ */
+
+/* ── 1. SIDEBAR: improve ticker code & score label readability ── */
+.mr-ticker {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  color: rgba(173,184,208,0.55) !important;
+  letter-spacing: 0.06em !important;
+}
+.mr-score-label {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em !important;
+  color: rgba(173,184,208,0.55) !important;
+  text-transform: uppercase !important;
+}
+/* Score value in sidebar — slightly bolder */
+.mr-score-val {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  font-family: var(--mono) !important;
+}
+/* Market name in sidebar — slightly more weight */
+.mr-name {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: rgba(242,246,255,0.82) !important;
+}
+/* Conflict badge (NEUTRAL/MILD BEAR) — tighten & unify */
+.mr-conf-badge {
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+}
+
+/* ── 2. TAB STRIP: improve active indicator & spacing ── */
+/* Increase active indicator brightness */
+.ov-nt.on {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-bottom: 2px solid var(--s1) !important;
+  letter-spacing: 0.01em !important;
+}
+.ov-nt.on .ov-nchip {
+  filter: brightness(1.15) !important;
+}
+/* Inactive tabs: fractionally brighter so readable on dark screen */
+.ov-nt:not(.on):not(.ov-nt-hist) {
+  color: rgba(173,184,208,0.55) !important;
+}
+.ov-nt-hist.on {
+  color: rgba(200,169,110,0.92) !important;
+  border-bottom: 2px solid rgba(200,169,110,0.55) !important;
+}
+
+/* ── 3. DETAIL PAGE: breadcrumb hierarchy ── */
+.det-breadcrumb,
+.detail-breadcrumb,
+[class*="breadcrumb"] {
+  font-size: 9px !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+}
+/* Market ticker code in breadcrumb — more visible */
+.det-ticker,
+.detail-ticker,
+.detail-mkt-code {
+  color: rgba(200,169,110,0.75) !important;
+  font-weight: 700 !important;
+}
+
+/* ── 4. SCORE GAUGE: label below needle ── */
+/* The label in the top-right gauge (e.g. "LEAN BULL") */
+.score-gauge-label,
+.d-gauge-label,
+[class*="gauge-label"] {
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  color: rgba(242,246,255,0.8) !important;
+  text-transform: uppercase !important;
+}
+/* "How is this scored?" hint link under gauge */
+.d-score-hint,
+.score-hint,
+[class*="score-hint"] {
+  font-size: 8.5px !important;
+  color: rgba(173,184,208,0.45) !important;
+  font-style: italic !important;
+}
+
+/* ── 5. FACTOR TABLE in Overview tab: weight column dimmer ── */
+.ov-attr-wt,
+.factor-weight,
+[class*="weight-col"] {
+  color: rgba(173,184,208,0.50) !important;
+  font-size: 10px !important;
+}
+/* Contribution value column — bolder, cleaner ++ */
+.ov-attr-contrib,
+.factor-contribution,
+[class*="contrib-col"] {
+  font-weight: 800 !important;
+  font-family: var(--mono) !important;
+  font-size: 11.5px !important;
+  letter-spacing: -0.02em !important;
+}
+/* Factor name — slightly brighter */
+.ov-attr-name,
+.factor-name-cell {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: rgba(242,246,255,0.90) !important;
+}
+/* Factor sublabel / description */
+.ov-attr-sub,
+.factor-sub {
+  font-size: 9px !important;
+  color: rgba(173,184,208,0.55) !important;
+  font-style: normal !important;
+}
+/* Score column in factor table — mono, clear */
+.ov-attr-score,
+.factor-score-col {
+  font-family: var(--mono) !important;
+  font-weight: 800 !important;
+  font-size: 12px !important;
+  letter-spacing: -0.03em !important;
+}
+/* COMPOSITE TOTAL row — make it stand out more */
+.ov-total-row,
+[class*="composite-total"] {
+  border-top: 1px solid rgba(200,169,110,0.18) !important;
+  padding-top: 10px !important;
+  margin-top: 4px !important;
+}
+.ov-total-label,
+[class*="composite-total"] .factor-name-cell {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.7) !important;
+}
+
+/* ── 6. COT POSITIONING TAB: percentile denominator styling ── */
+/* Ensure /100 denominator matches the large number */
+.cot-pct-denom,
+[class*="pct-denom"],
+[class*="cot-denom"] {
+  font-size: 0.55em !important;
+  font-weight: 700 !important;
+  color: rgba(173,184,208,0.60) !important;
+  vertical-align: middle !important;
+}
+/* COT card large number — tighten */
+.cot-big-num,
+.cot-pct-val {
+  letter-spacing: -0.04em !important;
+}
+
+/* ── 7. SEASONALITY TAB: "Full Chart" button polish ── */
+.seas-full-btn,
+[class*="full-chart"],
+a[href*="full"] {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  padding: 4px 10px !important;
+  border-radius: 4px !important;
+  background: rgba(200,169,110,0.08) !important;
+  border: 1px solid rgba(200,169,110,0.18) !important;
+  color: rgba(200,169,110,0.80) !important;
+  cursor: pointer !important;
+  transition: background 0.15s, color 0.15s !important;
+  text-decoration: none !important;
+}
+
+/* ── 8. MOMENTUM TAB: chart legend readability ── */
+.mom-chart-legend,
+.price-chart-legend,
+[class*="chart-legend"] {
+  font-size: 9.5px !important;
+  gap: 10px !important;
+  opacity: 0.85 !important;
+}
+
+/* ── 9. SECTION HEADERS: unified style across all sections ── */
+.section-hdr,
+.section-header,
+[class*="section-hdr"],
+[class*="sec-hdr"],
+.economy-hdr {
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.60) !important;
+}
+
+/* ── 10. FUNDAMENTALS TAB: macro driver bars ── */
+/* Increase track contrast so bars are legible */
+.mdr-bar-track {
+  background: rgba(255,255,255,0.09) !important;
+  height: 3px !important;
+}
+/* Macro score value — cleaner mono */
+.macro-score-val,
+[class*="macro-score"] > span {
+  font-family: var(--mono) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+}
+/* Score components header — cleaner */
+.score-components-hdr,
+[class*="score-components"] > span {
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  color: rgba(173,184,208,0.45) !important;
+  text-transform: uppercase !important;
+}
+
+/* ── 11. MACRO ENVIRONMENT STRIP REFINEMENT ── */
+/* Give pills a clearer typographic hierarchy */
+.ov-menv-lbl {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  color: rgba(173,184,208,0.40) !important;
+  text-transform: uppercase !important;
+}
+.ov-menv-val {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  font-family: var(--mono) !important;
+}
+/* Uniform pill width & padding */
+.ov-menv-pill {
+  padding: 4px 9px 4px 7px !important;
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid rgba(255,255,255,0.065) !important;
+}
+.ov-menv-pill:hover {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+/* ── 12. NAV HEADER: sub-label refinement ── */
+.nav-sub {
+  font-size: 9px !important;
+  color: rgba(173,184,208,0.45) !important;
+  letter-spacing: 0.05em !important;
+  font-family: var(--mono) !important;
+  text-transform: none !important;
+}
+.nav-title {
+  font-size: clamp(12px, 0.85vw, 14px) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.09em !important;
+}
+/* Regime badge: a touch more contrast */
+.regime-badge {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  padding: 4px 10px !important;
+  border-radius: 4px !important;
+}
+
+/* ── 13. MOBILE CATEGORY FILTER SCROLL HINT ── */
+@media (max-width: 700px) {
+  .cat-row {
+    /* Fade-out right edge to hint at scroll */
+    -webkit-mask-image: linear-gradient(90deg, black calc(100% - 32px), transparent 100%) !important;
+    mask-image: linear-gradient(90deg, black calc(100% - 32px), transparent 100%) !important;
+    padding-right: 24px !important;
+  }
+  /* Mobile sidebar market rows — better touch targets */
+  .mkt-row {
+    min-height: 50px !important;
+    padding: 10px 12px !important;
+  }
+  /* Mobile detail: increase hero score size */
+  .mob-score-hero {
+    font-size: 56px !important;
+    letter-spacing: -0.04em !important;
+  }
+  /* Mobile tab nav: slightly taller for touch */
+  .ov-nav {
+    min-height: 46px !important;
+  }
+  /* Improve mobile breadcrumb */
+  .mob-detail-ticker {
+    font-size: 10px !important;
+    color: rgba(200,169,110,0.75) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+  }
+}
+
+/* ── 14. PUT/CALL TAB: stat card consistency ── */
+.pcr-stat-card {
+  background: rgba(14,17,28,0.55) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+.pcr-stat-label {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.13em !important;
+  color: rgba(173,184,208,0.50) !important;
+  text-transform: uppercase !important;
+}
+.pcr-stat-val {
+  font-family: var(--mono) !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+}
+
+/* ── 15. DETAIL HERO: improve score display contrast ── */
+/* Score number hero: use mono font for crispness */
+.d-score-hero,
+.detail-score-hero {
+  font-family: var(--mono) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+}
+/* Score label badge (e.g. NEUTRAL) */
+.d-bias-label,
+[class*="bias-label"],
+.d-score-band {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  padding: 3px 9px !important;
+  border-radius: 3px !important;
+  background: rgba(74,82,104,0.25) !important;
+  border: 1px solid rgba(74,82,104,0.30) !important;
+  color: rgba(173,184,208,0.80) !important;
+}
+
+/* ── 16. VERDICT / OVERVIEW NARRATIVE CARD ── */
+.ov-verdict,
+.d-verdict,
+[class*="verdict"] {
+  border-radius: 10px !important;
+  border: 1px solid rgba(255,255,255,0.065) !important;
+  background: rgba(14,17,28,0.50) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 16px 18px !important;
+}
+/* Narrative text: line height & colour */
+.ov-verdict p,
+.ov-verdict-text,
+.verdict-body {
+  font-size: 12px !important;
+  line-height: 1.65 !important;
+  color: rgba(242,246,255,0.82) !important;
+}
+
+/* ── 17. CLIMATE TAB: rate expectation mini-stat cards ── */
+.rate-stat-card,
+[class*="rate-card"],
+.effr-card {
+  background: rgba(14,17,28,0.55) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 8px !important;
+}
+.rate-card-lbl {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.13em !important;
+  color: rgba(173,184,208,0.45) !important;
+  text-transform: uppercase !important;
+}
+.rate-card-val {
+  font-family: var(--mono) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+}
+
+/* ── 18. REL. VALUE TAB: signal card polish ── */
+.rv-signal-card,
+[class*="signal-card"],
+.relval-signal {
+  border-radius: 10px !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: rgba(14,17,28,0.55) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+/* Signal label (STRONG, MODERATE) */
+.rv-signal-strength,
+[class*="signal-strength"] {
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  padding: 2px 7px !important;
+  border-radius: 3px !important;
+}
+/* Z-score display */
+.rv-zscore-val,
+[class*="zscore-val"] {
+  font-family: var(--mono) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ── 19. GLOBAL: container glass refinement ── */
+/* Any card/panel that has a solid near-black background — add subtle glass */
+.d-tab-panel,
+.d-tab-section,
+[class*="tab-panel"]:not([class*="ov-nav"]):not([class*="cat"]) {
+  /* Don't override existing if they already have a specific style */
+}
+/* Section inner cards: unified 8px radius */
+.cot-card,
+.cot-phase-card,
+.mom-stat-card,
+.seas-stat-card {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: rgba(14,17,28,0.55) !important;
+}
+
+/* ── 20. HOME PAGE: economy & markets section heading ── */
+.ov-econ-hdr,
+[id*="econ"] .section-label,
+.ov-section-label {
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.55) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.ov-econ-hdr::after,
+.ov-section-label::after {
+  content: '' !important;
+  flex: 1 !important;
+  height: 1px !important;
+  background: rgba(200,169,110,0.12) !important;
+}
+
+/* ── 21. MACRO ENVIRONMENT CARDS (home grid) ── */
+/* The large macro env cards below the overview: header eyebrow */
+.ov-menv-topic {
+  font-size: 7.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  color: rgba(200,169,110,0.60) !important;
+}
+/* Status badge on macro cards */
+.ov-menv-status {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em !important;
+  padding: 2px 7px !important;
+  border-radius: 3px !important;
+}
+/* Primary large value */
+.ov-menv-primary {
+  font-family: var(--mono) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+}
+/* Context/delta below primary */
+.ov-menv-context {
+  font-size: 9.5px !important;
+  color: rgba(173,184,208,0.65) !important;
+  line-height: 1.3 !important;
+}
+
+/* ── 22. QE/QT CARD: Fed Balance Sheet delta numbers ── */
+.qe-delta-val,
+[class*="qe-val"],
+[class*="qt-val"] {
+  font-family: var(--mono) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.03em !important;
+}
+.qe-period-label {
+  font-size: 8px !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(173,184,208,0.50) !important;
+  text-transform: uppercase !important;
+}
+
+/* ── 23. G10 CENTRAL BANK CARDS ── */
+.g10-cb-rate-val {
+  font-family: var(--mono) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+}
+.g10-cb-status-badge {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em !important;
+  padding: 2px 8px !important;
+  border-radius: 3px !important;
+  text-transform: uppercase !important;
+}
+.g10-cb-name {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: rgba(242,246,255,0.75) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+}
+.g10-cb-next {
+  font-size: 8px !important;
+  color: rgba(173,184,208,0.50) !important;
+  font-family: var(--mono) !important;
+}
+
+/* ── 24. BREAKING NEWS: consistent row styles ── */
+.news-row {
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+.news-row:last-child {
+  border-bottom: none !important;
+}
+.news-headline {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: rgba(242,246,255,0.88) !important;
+  line-height: 1.4 !important;
+  letter-spacing: -0.005em !important;
+}
+.news-summary {
+  font-size: 10.5px !important;
+  color: rgba(173,184,208,0.55) !important;
+  line-height: 1.5 !important;
+}
+.news-source {
+  font-family: var(--mono) !important;
+  font-size: 8.5px !important;
+  color: rgba(173,184,208,0.40) !important;
+  text-align: right !important;
+}
+.news-time {
+  font-family: var(--mono) !important;
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+  color: rgba(173,184,208,0.35) !important;
+  white-space: nowrap !important;
+}
+/* Impact badge: HIGH, MED */
+.news-impact-badge {
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.09em !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  text-transform: uppercase !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── 25. GLOBAL MISC REFINEMENTS ── */
+/* Remove double-underline / double bottom border artifacts from .on state */
+.ov-nt.on::after {
+  display: none !important;
+}
+/* Ensure JetBrains Mono used for ALL numeric stat values */
+.stat-val,
+[class*="-val"]:not([class*="nav"]):not([class*="status"]) {
+  font-family: var(--mono);
+}
+/* Market heatmap squares: unified border-radius */
+.heatmap-cell,
+[class*="heat-cell"],
+[class*="heatmap-sq"] {
+  border-radius: 4px !important;
+}
+/* Loading spinner/text polish */
+[class*="loading-text"],
+[class*="load-label"] {
+  font-size: 9px !important;
+  letter-spacing: 0.15em !important;
+  color: rgba(173,184,208,0.40) !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+}
+/* Remove any box-shadow bleed from score numbers */
+[class*="score"]:not([class*="score-gauge"]):not([class*="climate-score"]) {
+  text-shadow: none !important;
+}
+
+/* ── END R47 ── */
+
 
 
 </style>
