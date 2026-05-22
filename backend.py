@@ -4298,20 +4298,29 @@ def fetch_fred_series_full(series_id: str) -> Optional[list]:
 
 def _compute_surprise_at_date(
     series: list,           # full sorted [{date, value}]
-    bar_date_str: str,      # YYYY-MM-DD cutoff
+    bar_date_str: str,      # YYYY-MM-DD — data visible on this bar date (lag-adjusted)
     transform: str,         # 'level' | 'yoy' | 'mom'
     higher_is_good: bool,
     scale: float,
+    fred_id: str = "",      # FRED series ID — used to look up publication lag
 ) -> int:
     """
     Compute a surprise score (-2..+2) for a FRED series at a given bar date.
-    Uses ONLY data up to bar_date_str (zero lookahead).
+    Applies publication lag: FRED dates series by observation-period START, not release.
+    E.g. NFP for January is "2026-01-01" in FRED but released Feb 7. The lag corrects
+    this so a bar_date of Jan 31 only sees November NFP data — what the market actually knew.
     Surprise = actual vs 3-period trailing average of prior readings.
     """
     if not series:
         return 0
-    # Slice to data available at bar date
-    avail = [pt for pt in series if pt["date"] <= bar_date_str]
+    from datetime import date as _d2, timedelta as _td2
+    pub_lag = _SH_FRED_PUB_LAGS.get(fred_id, 0)
+    if pub_lag > 0:
+        _cutoff = (_d2.fromisoformat(bar_date_str) - _td2(days=pub_lag)).isoformat()
+    else:
+        _cutoff = bar_date_str
+    # Slice to data actually available on bar_date (after applying publication lag)
+    avail = [pt for pt in series if pt["date"] <= _cutoff]
     if not avail:
         return 0
 
@@ -4378,6 +4387,39 @@ def _compute_surprise_at_date(
 
 
 # US FRED series to fetch for walk-forward macro history
+# ── FRED publication lags (calendar days from observation period START to public release) ──
+# FRED dates series by observation-period START, not release date.
+# E.g. NFP for January is in FRED as "2026-01-01" but released Feb 7.
+# Adding these lags ensures a bar_date only "sees" FRED data the market actually knew.
+_SH_FRED_PUB_LAGS: dict = {
+    # Monthly (dated at month START, released ~15-37 days after month END):
+    "PAYEMS":              37,   # NFP: 1st Friday of following month
+    "UNRATE":              37,   # Unemployment: same release as NFP
+    "CPIAUCSL":            45,   # CPI: ~14th of following month
+    "CPILFESL":            45,   # Core CPI: same day as CPI
+    "PPIFIS":              43,   # PPI: ~12th of following month
+    "PCEPI":               58,   # PCE: ~4 weeks after month end
+    "PCEPILFE":            58,   # Core PCE: same day as PCE
+    "RSAFS":               46,   # Retail Sales: ~16th of following month
+    "INDPRO":              47,   # Industrial Production: ~16th of following month
+    "CFNAI":               55,   # Chicago Fed: 4th week of following month
+    # Quarterly (dated at quarter START, advance estimate ~4 weeks after quarter end):
+    "A191RL1Q225SBEA":    120,   # GDP advance: ~28 days after quarter end + ~90 day quarter
+    # Weekly:
+    "ICSA":                 7,   # Initial Claims: released Thursday for prior week
+    "WALCL":                5,   # Fed BS: released Thursday for prior week
+    # FX country series (all monthly, approximate):
+    "HICP_EA": 45, "HICP_DE": 45, "HICP_FR": 45,
+    "UNRATE_EA": 37, "UNRATE_DE": 37,
+    "GDP_EA": 120, "INDPRO_EA": 47,
+    "CPIUK": 45, "UNRATE_UK": 37, "GDP_UK": 120,
+    "CPIJAPAN": 45, "UNRATE_JP": 37, "INDPRO_JP": 47,
+    "CPIAUS": 45, "UNRATE_AU": 37, "GDP_AU": 120,
+    "CPICAN": 45, "UNRATE_CA": 37, "GDP_CA": 120,
+    "CPICHE": 45, "UNRATE_CH": 37,
+    "CPINZ": 45, "UNRATE_NZ": 37,
+}
+
 _SH_FRED_US_SERIES: dict = {
     # key → (fred_series_id, transform, higher_is_good, scale, category)
     "GDP":       ("A191RL1Q225SBEA", "level",  True,  0.5,    "growth"),
@@ -4455,7 +4497,8 @@ def _score_macro_at_fred(
         series = fred_us_full.get(key)
         if not series:
             continue
-        sc = _compute_surprise_at_date(series, bar_date_str, transform, higher_is_good, scale)
+        sc = _compute_surprise_at_date(series, bar_date_str, transform, higher_is_good, scale,
+                                       fred_id=fred_id)
         us_comps[key] = sc
         if category not in us_cat_sums:
             us_cat_sums[category] = []
@@ -4496,7 +4539,8 @@ def _score_macro_at_fred(
             series = ccy_series_map.get(fred_id)
             if not series:
                 continue
-            sc = _compute_surprise_at_date(series, bar_date_str, transform, higher_is_good, scale)
+            sc = _compute_surprise_at_date(series, bar_date_str, transform, higher_is_good, scale,
+                                           fred_id=fred_id)
             if cat_k not in cat_sums:
                 cat_sums[cat_k] = []
             cat_sums[cat_k].append(sc)
@@ -10065,6 +10109,63 @@ def _score_macro_at(market_id: str, bar_ts: float,
     return round(max(0.0, min(10.0, result.get("score", 5.0))), 1)
 
 
+def _score_pcr_at(market_id: str, bar_date_norm, regime_px: dict) -> float:
+    """
+    Walk-forward PCR proxy using VIX rolling percentile.
+    VIX and equity PCR have r≈0.85 correlation over multi-year periods.
+    At each bar, compute VIX percentile vs prior 52-week window.
+    High VIX pctile = high fear = bearish (low PCR score).
+    For non-equity markets, returns 5.0 (neutral) — PCR is equity-specific.
+    """
+    # Only meaningful for equity-correlated markets
+    _equity_mkts = {"ES", "NQ", "YM", "RTY", "Z", "GC", "SI", "CL", "NG",
+                    "KC", "SB", "ZB", "ZN", "6E", "6B", "6J", "6A", "DX"}
+    m = market_id.upper()
+    if m not in _equity_mkts:
+        return 5.0
+
+    vix_series = regime_px.get("VIX")
+    if vix_series is None or len(vix_series) < 20:
+        return 5.0
+
+    s = vix_series[vix_series.index <= bar_date_norm]
+    if len(s) < 20:
+        return 5.0
+
+    # Use up to 52 weeks of lookback for percentile
+    lookback = min(len(s), 52)
+    window = s.values[-lookback:].astype(float)
+    current_vix = float(window[-1])
+
+    # Rolling percentile: what fraction of prior readings was BELOW current level
+    prior = window[:-1]
+    pctile = float(np.sum(prior < current_vix) / len(prior) * 100) if len(prior) > 0 else 50.0
+
+    # Map percentile to score:
+    # High VIX pctile = elevated fear = bearish signal (low score)
+    # Note: PCR and VIX are inversely related to price, so high = bearish
+    if pctile >= 80:
+        score = 2.5    # Extreme fear — like a very high PCR
+    elif pctile >= 65:
+        score = 3.5    # Elevated fear
+    elif pctile >= 50:
+        score = 4.5    # Mildly elevated
+    elif pctile >= 35:
+        score = 5.5    # Mildly complacent
+    elif pctile >= 20:
+        score = 6.5    # Complacent — low put buying
+    else:
+        score = 7.5    # Extreme complacency
+
+    # Invert logic for inverse markets: if market is a safe haven (GC, ZB, ZN),
+    # high VIX = bullish (fear drives buying)
+    _safe_havens = {"GC", "SI", "ZB", "ZN"}
+    if m in _safe_havens:
+        score = 10.0 - score  # Invert: high VIX = bullish for safe havens
+
+    return round(score, 1)
+
+
 def _score_regime_at(market_id: str, bar_date_norm,
                      regime_px: dict,
                      walcl_full: list = None) -> float:
@@ -10645,6 +10746,7 @@ async def get_score_history(market: str):
                                          relval_self_series, relval_peer_map, relval_periods) \
                        if relval_self_series is not None else 5.0
     
+            pcr_s_wf = _score_pcr_at(m_upper, bar_date_norm, regime_px)
             composite = round(max(0.0, min(10.0,
                 cot_s    * w_map["cot"]      +
                 seas_s   * w_map["seasonal"] +
@@ -10652,7 +10754,7 @@ async def get_score_history(market: str):
                 macro_s  * w_map["macro"]    +
                 regime_s * w_map["regime"]   +
                 relval_s * w_map["relval"]   +
-                pcr_s_const * w_map.get("pcr", 0.0)
+                pcr_s_wf * w_map.get("pcr", 0.0)
             )), 1)
     
             dates.append(str(bar_date.date()))
