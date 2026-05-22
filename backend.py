@@ -7652,106 +7652,273 @@ def compute_news_context(force: bool = False) -> dict:
 # Climate & Rates: 15% (up from 5%). KC Fed: 1 SD risk-off shock drives 78bps equity
 #   return with 150+ day persistence; RORO outperforms VIX and EBP as predictor of
 #   high-magnitude moves. Tripled from 5% to reflect its dominance in extreme market moves.
-# PCR: 0% standard (unchanged — active only for equity/metals markets via WEIGHTS_EQUITY).
+# PCR: 0% standard (unchanged — active only for equity/metals markets via per-asset tiers).
+# ─────────────────────────────────────────────────────────────────────────────────────────
+#
+# ══ v3 WEIGHT SYSTEM — Research-backed per-asset tiers (May 2026) ══════════════════════
+#
+# Replaced the 6 flat-class tiers with 14 empirically-derived per-asset tiers.
+# Key research findings driving the changes:
+#
+# COT reliability by class (UMBC/Briese/Sanders et al.):
+#   FX: HIGHEST (R²~0.48 for EUR, 8/10) — counterintuitively ABOVE physical commodities.
+#   Gold/Coffee: High (7-7.5/10). Crude/Base metals: Medium (6.5/10).
+#   Grains: Medium-low (5-6/10) — Sanders et al. 2009: traders FOLLOW price, not the reverse.
+#   NG/Bonds: Medium-low (5-5.5/10) — storage cycle / FOMC structural distortion.
+#   Livestock: LOW (5/10) — meatpackers/feedlots are MECHANICAL seasonal hedgers with
+#     kill-schedule-driven positioning that contains NO directional price information.
+#   Cocoa: LOW (4.5/10) — govt marketing boards (COCOBOD/CCC) corrupt commercial signal.
+#   Equity index: VERY LOW (3/10) — CXO Advisory R²=0.02. Portfolio hedgers have zero edge.
+#
+# Macro sensitivity (Chicago Fed, St Gallen, IntechOpen):
+#   Bonds/FX/Equity: Very high (40/38/35% of variance). Gold: High (28%, real-yield -13.1%/100bp).
+#   Crude: Medium (35% post-2008 financialisation). Grains: Low (weather dominates, ~12%).
+#   Softs: Very low (~8%, 90-95% physical). Livestock: Ultra-low (~6%, >95% physical).
+#   NG: Near-zero macro sensitivity (coal explains 73% of variance; macro = 0.14-0.40%).
+#
+# Climate/regime sensitivity (Tang & Xiong 2012, Hamilton & Wu 2014, KC Fed):
+#   Bonds/Equity/FX: Very high (35-38%). Gold: High (safe-haven, RORO, real yield).
+#   Crypto: High (BTC tracks global M2 83% of time, 0.94 correlation, Lyn Alden 2024).
+#   Grains/Softs: Very low — financialisation raised cross-commodity correlation but does
+#     NOT reliably predict price levels OOS (Hamilton & Wu adj R² frequently negative).
+#   Livestock: Ultra-low (~5%) — supply cycles are biological, not financial.
+#
+# Seasonality (EIA, CME livestock, MRCI, Univ. of Wisconsin):
+#   NG: TIER 1 (EIA 10:1 heating ratio, Bank of England WP 591 confirmed stochastic).
+#   Lean Hogs: TIER 1 (biological lock — sow farrowing cycle mechanistically reliable).
+#   Grains: High (Wisconsin: 9/10 years hit harvest low).
+#   Softs: LOW — tropical weather/disease events fully override annual calendar seasonals.
+#
 # ─────────────────────────────────────────────────────────────────────────────────────────
 
-# Standard (physical commodities — ags, energy, metals)
-# COT at 25%: Briese index is reliable here; commercials have genuine supply/demand edge
+# ── STANDARD fallback (broad physical commodities not covered by specific tier below) ───
+# Base metals like HG, PA: genuine informed hedgers, medium macro/regime sensitivity.
 WEIGHTS = {
-    "cot":      0.25,
+    "cot":      0.25,  # Medium-high: genuine informed commercial hedgers
     "seasonal": 0.13,
-    "momentum": 0.20,
-    "macro":    0.15,
-    "regime":   0.15,  # Climate & Rates — tripled: dominant predictor of high-magnitude moves
-    "relval":   0.12,
-    "pcr":      0.00,  # Active for equity markets only (see compute_weighted_bias)
-}
-
-# FX futures (6E, 6J, 6B, 6A, 6C, DX)
-# COT reduced to 22%: FX commercials are exporters/importers; hedging pressure overlaps
-# heavily with carry — less independent signal than physical commodity COT.
-# Climate & Rates boosted to 18%: rate differentials and RORO are the primary FX drivers.
-# Rel. Value boosted to 14%: all FX pairs compared vs ZB per system design.
-WEIGHTS_FX = {
-    "cot":      0.22,
-    "seasonal": 0.13,
-    "momentum": 0.20,
-    "macro":    0.15,
-    "regime":   0.18,
-    "relval":   0.12,
+    "momentum": 0.18,
+    "macro":    0.18,  # Medium: financialisation lifted macro sensitivity post-2008
+    "regime":   0.18,  # Medium: risk-on proxy (copper = growth barometer)
+    "relval":   0.08,
     "pcr":      0.00,
 }
 
-# Equity indices (ES, NQ, YM, RTY)
-# COT reduced to 18%: S&P futures COT shows structural instability (dot-com + 2008 breaks);
-# dealer/speculator positions overlap with liquidity provision, not informed directional bets.
-# PCR carries genuine informational weight — 10% maintained.
-# Climate & Rates at 15%: RORO is the dominant equity futures predictor per KC Fed research.
-WEIGHTS_EQUITY = {
-    "cot":      0.18,
+# ── FX FUTURES (6E, 6J, 6B, 6A, 6C, DX + all crosses) ──────────────────────────────────
+# COT is the STRONGEST signal class for FX per UMBC study (R²~0.48 EUR net positions).
+# Counterintuitively higher COT than physical commodities. Boosted from 22% → 28%.
+# Macro very high (rate differentials are THE primary FX driver). Boosted 15% → 22%.
+# Climate very high (RORO + rate expectations). Boosted 18% → 20%.
+# Relval removed (FX pair comparisons vs ZB less meaningful than cross-pair dynamics).
+WEIGHTS_FX = {
+    "cot":      0.28,  # HIGHEST: FX COT R²~0.48; leveraged fund extremes signal key
     "seasonal": 0.13,
-    "momentum": 0.20,
-    "macro":    0.15,
-    "regime":   0.15,
-    "relval":   0.09,
-    "pcr":      0.10,  # Tier-1: 10% — deep markets, strong backtest edge
+    "momentum": 0.17,
+    "macro":    0.22,  # Rate differentials dominate FX pricing
+    "regime":   0.20,  # RORO and carry unwind are primary FX regime signals
+    "relval":   0.00,  # Removed: FX relval vs ZB not independent
+    "pcr":      0.00,
 }
 
-# Tier-2 PCR: GC (Gold via GLD) and CL (Oil via USO) — 5% weight
-# GC: GLD has 5M OI, 8k strikes — liquid options market with real sentiment signal.
-#   PCR reduces from 10% (equity tier) because GLD options are thinner than ES/NQ
-#   and gold's primary sentiment driver is real yields, not options sentiment.
-# CL: USO ETF options — moderate liquidity; crude commercial shorts 74% directional hit
-#   rate (NYU Stern study). OPEC structural interference limits the signal post-2016.
-# Both: COT slightly boosted to 26% to compensate (COT is more reliable for physical commodities).
-WEIGHTS_PCR_TIER2 = {
+# ── EQUITY INDICES (ES, NQ, YM, RTY) ────────────────────────────────────────────────────
+# COT very low (3/10, R²=0.02) — portfolio hedgers have zero directional edge. Cut 18%→12%.
+# Macro very high (Fed/EPS/credit explain ~35% variance). Boosted 15%→22%.
+# Climate very high (RORO dominant equity predictor per KC Fed). Boosted 15%→22%.
+# PCR maintained at 10% — deep liquid options markets with genuine sentiment signal.
+WEIGHTS_EQUITY = {
+    "cot":      0.12,  # Very low: R²=0.02, portfolio hedgers have no directional edge
+    "seasonal": 0.13,
+    "momentum": 0.20,
+    "macro":    0.22,  # Fed/EPS cycle/credit spreads explain ~35% of variance
+    "regime":   0.22,  # RORO is dominant equity futures predictor (KC Fed research)
+    "relval":   0.01,
+    "pcr":      0.10,  # Tier-1: 10% — deep markets, ES/NQ have strong backtest edge
+}
+
+# ── GOLD (GC) ────────────────────────────────────────────────────────────────────────────
+# COT high (7.5/10) — 50-year track record, Briese commercials right ~2/3 of time. 25% hold.
+# Macro high — real-yield sensitivity is one of strongest quant relationships in commodity
+#   finance: +100bp real yield → -13.1% real gold; +1pp inflation expectations → +37%.
+#   Boosted 15%→22%.
+# Climate high — gold is THE safe-haven asset; RORO and real yield move together. 13%→20%.
+# PCR 5% (GLD options liquid, genuine sentiment signal).
+WEIGHTS_GOLD = {
     "cot":      0.25,
     "seasonal": 0.13,
-    "momentum": 0.20,
-    "macro":    0.15,
-    "regime":   0.13,
-    "relval":   0.09,
-    "pcr":      0.05,  # 5% — meaningful but secondary signal for physical commodity options
+    "momentum": 0.13,
+    "macro":    0.22,  # Real-yield channel is most precisely quantified macro relationship
+    "regime":   0.20,  # Safe-haven demand = RORO derivative
+    "relval":   0.02,
+    "pcr":      0.05,
 }
 
-# Tier-3 PCR: BTC/ETH — 3% weight
-# COT at 24%: crypto COT is newer, shorter history — slightly below commodity standard.
-WEIGHTS_PCR_TIER3 = {
-    "cot":      0.24,
+# ── SILVER (SI) ──────────────────────────────────────────────────────────────────────────
+# COT 6.5/10 (structurally always net short commercial — different mechanics to gold). 23%.
+# Dual industrial/monetary nature: macro 18%, climate 18%.
+# PCR 4% (SLV options thinner than GLD).
+WEIGHTS_SILVER = {
+    "cot":      0.23,
     "seasonal": 0.13,
+    "momentum": 0.18,
+    "macro":    0.18,
+    "regime":   0.18,
+    "relval":   0.06,
+    "pcr":      0.04,
+}
+
+# ── CRUDE OIL (CL) ────────────────────────────────────────────────────────────────────────
+# COT 6.5/10 (OPEC structural interference post-2016, spec crowding). Trim 25%→22%.
+# Post-2008 financialisation: macro now explains 35% of CL return variance (up from 11%).
+# Climate high (risk appetite drives demand-side expectations). Both boosted 15%→18%.
+# Seasonal high (refinery/demand seasonal well-established). Boosted 13%→18%.
+# PCR 5% (USO options moderate liquidity).
+WEIGHTS_CRUDE = {
+    "cot":      0.22,  # OPEC distortion, spec crowding reduces reliability
+    "seasonal": 0.18,  # Refinery/demand seasonal well-established
+    "momentum": 0.18,
+    "macro":    0.18,  # 35% of return variance post-2008 financialisation
+    "regime":   0.18,  # Risk appetite is a core demand driver
+    "relval":   0.01,
+    "pcr":      0.05,
+}
+
+# ── NATURAL GAS (NG) ─────────────────────────────────────────────────────────────────────
+# COT 5.5/10 (storage injection cycle mechanical). Trim 25%→18%.
+# MACRO NEAR-ZERO: structural VAR shows coal explains 73% of NG variance; interest
+#   rates explain only 0.14-0.40% (Domfeh, IntechOpen 2023). Cut 15%→8%.
+# CLIMATE LOW: weather and storage dominate; RORO has negligible NG impact. Cut 15%→8%.
+# SEASONAL TIER 1: EIA 10:1 heating ratio; Bank of England WP591 confirms stochastic
+#   seasonality. Boosted 13%→22%.
+# Momentum and relval absorb the freed weight.
+WEIGHTS_NATGAS = {
+    "cot":      0.18,  # Storage cycle mechanical hedging reduces reliability
+    "seasonal": 0.22,  # TIER 1: physically anchored heating demand cycle
+    "momentum": 0.22,  # Storage injection reactions drive fast moves
+    "macro":    0.08,  # Near-zero: coal/weather explain 73%+; macro = 0.14-0.40% of variance
+    "regime":   0.08,  # Weather and storage dominate; RORO has negligible NG impact
+    "relval":   0.22,  # Energy spread dynamics (NGQ vs NQZ) meaningful
+    "pcr":      0.00,
+}
+
+# ── AGRICULTURAL GRAINS (ZC corn, ZS soybeans, ZW wheat) ────────────────────────────────
+# COT 5-6/10: Sanders et al. 2009 Granger causality — traders RESPOND to prices,
+#   prices do NOT respond to traders. CIT index-fund distortion severe. Trim 25%→20%.
+# SEASONAL HIGH: Wisconsin Univ documents 9/10 years hit harvest low. Boosted 13%→20%.
+# MACRO LOW: weather and supply fundamentals dominate. Cut 15%→10%.
+# CLIMATE VERY LOW: Tang/Xiong financialisation does NOT hold OOS for agri contracts
+#   (Hamilton & Wu 2014, adj R² frequently negative). Cut 15%→7%.
+# Relval absorbs freed weight — spread relationships (old-crop/new-crop) are meaningful.
+WEIGHTS_GRAINS = {
+    "cot":      0.20,  # CIT distortion; traders follow price not vice versa
+    "seasonal": 0.20,  # Harvest calendar: highly consistent timing (9/10 years)
     "momentum": 0.20,
-    "macro":    0.15,
-    "regime":   0.15,
+    "macro":    0.10,  # Weather/supply fundamentals dominate macro signals
+    "regime":   0.07,  # Financialisation effect not significant OOS (Hamilton & Wu)
+    "relval":   0.23,  # Old/new-crop spreads and cross-grain relval meaningful
+    "pcr":      0.00,
+}
+
+# ── SOFT COMMODITIES (SB sugar, CC cocoa, CT cotton) ───────────────────────────────────
+# Seasonal LOW: geographic concentration (70% cocoa from West Africa) means one regional
+#   weather/disease shock produces multi-year structural dislocations overriding calendar.
+# Macro VERY LOW: 90-95% of soft commodity price moves are physically driven.
+# Climate VERY LOW: 7% literature estimate; financialisation not reliable OOS for softs.
+# Relval HIGH: inter-soft spread relationships and mean-reversion are strong signals.
+# CC (cocoa): COT especially unreliable — govt marketing boards (COCOBOD/CCC) corrupt
+#   commercial signal. These weights apply to SB/CT; see WEIGHTS_COFFEE for KC.
+WEIGHTS_SOFTS = {
+    "cot":      0.20,  # Moderate: SB/CT 5.5/10, CC 4.5/10 (govt boards corrupt signal)
+    "seasonal": 0.09,  # LOW: weather shocks routinely fully override annual seasonals
+    "momentum": 0.22,  # Price action dominates in supply-shock-driven markets
+    "macro":    0.08,  # Very low: 90-95% physical price determination
+    "regime":   0.06,  # Very low: financialisation effect not OOS-significant
+    "relval":   0.35,  # HIGH: inter-soft mean-reversion and spread relationships
+    "pcr":      0.00,
+}
+
+# ── COFFEE (KC) ─────────────────────────────────────────────────────────────────────────
+# KC is the outlier soft: roasters and trading houses are semi-informed hedgers.
+# COT HIGH (7/10) per Briese — reliable for major trend change detection. Boost to 28%.
+# Otherwise inherits soft commodity structure (low seasonal, low macro/climate, high relval).
+WEIGHTS_COFFEE = {
+    "cot":      0.28,  # HIGH: roasters/trading houses are genuinely semi-informed hedgers
+    "seasonal": 0.09,
+    "momentum": 0.22,
+    "macro":    0.08,
+    "regime":   0.06,
+    "relval":   0.27,
+    "pcr":      0.00,
+}
+
+# ── LIVESTOCK (HE lean hogs, LE live cattle, GF feeder cattle) ──────────────────────────
+# COT LOW (5/10): meatpackers and feedlots are MECHANICAL SEASONAL HEDGERS.
+#   Kill-schedule-driven positioning contains NO directional price information.
+#   The commercial hedge is tied to biological cycles, not price forecasts.
+#   Managed money extremes are the only useful COT signal here (as crowding indicator).
+#   CUT from standard 25% → 15%.
+# SEASONAL TIER 1 (HE): sow farrowing produces market-ready hogs by Nov-Dec — the most
+#   mechanistically reliable seasonal in all of futures. Boosted 13%→22%.
+# MACRO ULTRA LOW: >95% physical price determination. Consumer spending is marginal.
+#   CUT from 15% → 6%.
+# CLIMATE ULTRA LOW: ~5% literature estimate. Supply cycles are biological, not financial.
+#   CUT from 15% → 5%.
+# Momentum and relval absorb the freed weight — supply cycle speed and spread dynamics.
+WEIGHTS_LIVESTOCK = {
+    "cot":      0.15,  # LOW: meatpackers/feedlots = mechanical seasonal hedgers, no edge
+    "seasonal": 0.22,  # TIER 1 (HE): biological lock makes this the most reliable seasonal
+    "momentum": 0.25,  # Supply cycle moves are fast; price action follows biology
+    "macro":    0.06,  # Ultra-low: >95% physical; consumer spending marginal
+    "regime":   0.05,  # Ultra-low: biological supply cycles, not financial cycles
+    "relval":   0.27,  # Cattle/hog spread and feed-cost ratio dynamics
+    "pcr":      0.00,
+}
+
+# ── BOND FUTURES (ZB 30yr, ZN 10yr, ZF 5yr, ZT 2yr) ────────────────────────────────────
+# COT 5.5/10 (FOMC policy announcements create large non-informational position
+#   changes; bank duration hedging overlaps with liability management). Trim 25%→18%.
+# MACRO VERY HIGH: macro explains the largest share of bond returns of any asset class.
+#   40% of variance per literature. Boosted 15%→25%.
+# CLIMATE VERY HIGH: flight-to-safety is the primary non-macro bond driver.
+#   Risk-off → yields drop → price spikes. Boosted 15%→25%.
+# Seasonal 14% (ZB shows 87% win rate on MRCI curated seasonal — higher than generic 13%).
+WEIGHTS_BONDS = {
+    "cot":      0.18,  # FOMC non-informational distortion; bank duration mechanical
+    "seasonal": 0.14,  # ZB: 87% MRCI win-rate (May 10–Aug 4 seasonal well-documented)
+    "momentum": 0.15,
+    "macro":    0.25,  # Highest macro sensitivity of any asset class (~40% variance)
+    "regime":   0.25,  # Flight-to-safety is primary non-macro bond driver
+    "relval":   0.03,
+    "pcr":      0.00,
+}
+
+# ── CRYPTO (BTC, ETH) ───────────────────────────────────────────────────────────────────
+# COT 4.5/10 (<10yr history, no genuine commercials, leveraged fund timing exists but
+#   unreliable). Trim 24%→18%.
+# CLIMATE HIGH: BTC tracks global M2 liquidity 83% of time over 12m periods, with 0.94
+#   correlation over full 2013-2024 dataset (Lyn Alden/Sam Callahan 2024). Boosted 15%→22%.
+# MACRO MEDIUM: liquidity/M2 channel is macro-adjacent (~20% variance). 15%→17%.
+# SEASONAL LOW: limited history, patterns not yet reliable. Cut 13%→10%.
+# PCR 3% (crypto ETF options present but thinner than equity markets).
+WEIGHTS_CRYPTO = {
+    "cot":      0.18,  # No genuine commercials; <10yr history limits reliability
+    "seasonal": 0.10,  # LOW: insufficient history for reliable seasonal patterns
+    "momentum": 0.20,
+    "macro":    0.17,  # M2/liquidity channel is real but macro-adjacent
+    "regime":   0.22,  # HIGH: BTC tracks global M2 83% of time (0.94 corr, Alden 2024)
     "relval":   0.10,
     "pcr":      0.03,
 }
 
-# Tier-4 PCR: SI (Silver via SLV) — 4% weight
-# SLV ETF options are thinner than GLD (lower OI, fewer strikes, wider spreads).
-# Silver is also more thinly traded in the options space due to its dual industrial/
-# precious metal character — institutional options hedging is less systematic.
-# PCR weight reduced to 4%; COT maintained at 25% (full commodity weight).
-WEIGHTS_PCR_TIER4 = {
-    "cot":      0.25,
-    "seasonal": 0.13,
-    "momentum": 0.20,
-    "macro":    0.15,
-    "regime":   0.14,
-    "relval":   0.09,
-    "pcr":      0.04,  # 4% — SLV options present, thinner than GLD
-}
-
-# ICE Europe thin-data markets (Z=73w, R=57w): COT weight reduced to 12%.
-# Research threshold: 156 weeks minimum for reliable Briese index (TradingView, Williams).
-# Below threshold, COT is directional only — weight reallocated to momentum + relval.
-# Applied to: Z (FTSE 100), R (Long Gilt) — both EUFINCOTHist TFF format, limited history.
+# ── ICE EUROPE THIN-DATA (Z FTSE100, R Long Gilt) ───────────────────────────────────────
+# COT weight halved: < 156w history makes Briese percentile unreliable.
+# Z and R are equity/bond-like in character → macro/climate boosted accordingly.
+# Seasonal trimmed (not enough history to validate calendar patterns either).
 WEIGHTS_ICE_THIN = {
-    "cot":      0.12,  # Halved vs standard: thin data makes Briese percentile unreliable
-    "seasonal": 0.12,  # Trimmed slightly — same calendar decay logic as standard
-    "momentum": 0.24,  # Boosted: reliable, market-confirmed signal
-    "macro":    0.18,  # Boosted: fundamental signal not data-limited
-    "regime":   0.16,  # Boosted: risk regime is critical for equities/bonds
-    "relval":   0.18,  # Boosted: relative value vs analogues is robust
+    "cot":      0.12,  # Halved: thin data (<156w) makes Briese percentile unreliable
+    "seasonal": 0.11,  # Trimmed: insufficient history to validate calendar patterns
+    "momentum": 0.22,
+    "macro":    0.22,  # Bond/equity-like: macro is the primary driver
+    "regime":   0.22,  # Flight-to-safety / RORO critical for both Z and R
+    "relval":   0.11,
     "pcr":      0.00,
 }
 
@@ -7792,33 +7959,48 @@ def compute_weighted_bias(scores: dict, market_id: str = "",
     drive follow-through. When ALL of these align around an active
     COT story, it is genuinely a high-conviction setup.
     """
-    # Select weight map based on market type and data quality
-    # ICE thin-data markets (Z, R): COT history < 156w threshold — down-weight COT
-    _ICE_THIN_MARKETS = {"Z", "R"}  # EUFINCOTHist only from Dec 2024 / Mar 2025
-    # FX futures: COT overlaps with carry; rate differentials dominate — use WEIGHTS_FX
-    _FX_MARKETS = {"6E", "6J", "6B", "6A", "6C", "6N", "6S", "6M", "DX",
-                   "EURJPY", "EURGBP", "EURAUD", "EURCAD", "EURNZD", "EURCHF",
-                   "GBPJPY", "GBPAUD", "GBPCAD", "GBPNZD", "GBPCHF",
-                   "AUDJPY", "AUDCAD", "AUDNZD", "AUDCHF",
-                   "CADJPY", "NZDJPY", "NZDCAD", "CHFJPY"}
+    # ── v3 weight routing — 14 research-backed per-asset tiers ─────────────────────────
+    # Priority order: ICE thin → per-asset specific → FX → fallback WEIGHTS
+    _ICE_THIN_MARKETS  = {"Z", "R"}
+    _FX_MARKETS        = {"6E", "6J", "6B", "6A", "6C", "6N", "6S", "6M", "DX",
+                          "EURJPY", "EURGBP", "EURAUD", "EURCAD", "EURNZD", "EURCHF",
+                          "GBPJPY", "GBPAUD", "GBPCAD", "GBPNZD", "GBPCHF",
+                          "AUDJPY", "AUDCAD", "AUDNZD", "AUDCHF",
+                          "CADJPY", "NZDJPY", "NZDCAD", "CHFJPY"}
+    _EQUITY_MARKETS    = {"ES", "NQ", "YM", "RTY"}
+    _BOND_MARKETS      = {"ZB", "ZN", "ZF", "ZT"}
+    _GRAIN_MARKETS     = {"ZC", "ZS", "ZW"}
+    _LIVESTOCK_MARKETS = {"HE", "LE", "GF"}
+    _SOFTS_MARKETS     = {"SB", "CC", "CT"}  # KC handled separately (higher COT)
+    _CRYPTO_MARKETS    = {"BTC", "ETH"}
     if market_id in _ICE_THIN_MARKETS:
         w_map = WEIGHTS_ICE_THIN
-    elif "pcr" in scores and market_id in PCR_ALL_SYMBOLS:
-        pcr_tier = PCR_TIERS.get(market_id, {}).get("tier", 0)
-        if pcr_tier == 1:
-            w_map = WEIGHTS_EQUITY
-        elif pcr_tier == 2:
-            w_map = WEIGHTS_PCR_TIER2
-        elif pcr_tier == 3:
-            w_map = WEIGHTS_PCR_TIER3
-        elif pcr_tier == 4:
-            w_map = WEIGHTS_PCR_TIER4
-        else:
-            w_map = WEIGHTS
+    elif market_id in _EQUITY_MARKETS:
+        w_map = WEIGHTS_EQUITY
+    elif market_id == "GC":
+        w_map = WEIGHTS_GOLD
+    elif market_id == "SI":
+        w_map = WEIGHTS_SILVER
+    elif market_id == "CL":
+        w_map = WEIGHTS_CRUDE
+    elif market_id == "NG":
+        w_map = WEIGHTS_NATGAS
+    elif market_id in _BOND_MARKETS:
+        w_map = WEIGHTS_BONDS
+    elif market_id in _GRAIN_MARKETS:
+        w_map = WEIGHTS_GRAINS
+    elif market_id == "KC":
+        w_map = WEIGHTS_COFFEE
+    elif market_id in _SOFTS_MARKETS:
+        w_map = WEIGHTS_SOFTS
+    elif market_id in _LIVESTOCK_MARKETS:
+        w_map = WEIGHTS_LIVESTOCK
+    elif market_id in _CRYPTO_MARKETS:
+        w_map = WEIGHTS_CRYPTO
     elif market_id in _FX_MARKETS:
         w_map = WEIGHTS_FX
     else:
-        w_map = WEIGHTS
+        w_map = WEIGHTS  # Fallback: base metals (HG, PA), B, G, RC etc.
     total_w = sum(w_map[k] for k in w_map if k in scores)
     if total_w == 0:
         return {"weighted": 5.0, "bias": "Neutral", "color": "#94a3b8", "confluence_bonus": 0.0}
@@ -8280,26 +8462,42 @@ async def _do_scores_refresh(force: bool = False):
     
         # Determine the actual weight map used for this market (mirrors compute_weighted_bias routing)
         # This is exposed per-market so the frontend can render the correct weight mini-bars
-        _ICE_THIN_MKTS = {"Z", "R"}
-        _FX_MKTS = {"6E","6J","6B","6A","6C","6N","6S","6M","DX",
-                    "EURJPY","EURGBP","EURAUD","EURCAD","EURNZD","EURCHF",
-                    "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
-                    "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
-                    "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
+        _ICE_THIN_MKTS  = {"Z", "R"}
+        _FX_MKTS        = {"6E","6J","6B","6A","6C","6N","6S","6M","DX",
+                           "EURJPY","EURGBP","EURAUD","EURCAD","EURNZD","EURCHF",
+                           "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
+                           "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
+                           "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
+        _EQUITY_MKTS    = {"ES", "NQ", "YM", "RTY"}
+        _BOND_MKTS      = {"ZB", "ZN", "ZF", "ZT"}
+        _GRAIN_MKTS     = {"ZC", "ZS", "ZW"}
+        _LIVESTOCK_MKTS = {"HE", "LE", "GF"}
+        _SOFTS_MKTS     = {"SB", "CC", "CT"}
+        _CRYPTO_MKTS    = {"BTC", "ETH"}
         if mid in _ICE_THIN_MKTS:
             mkt_weights = WEIGHTS_ICE_THIN
-        elif mid in PCR_ALL_SYMBOLS:
-            _tier = PCR_TIERS.get(mid, {}).get("tier", 0)
-            if _tier == 1:
-                mkt_weights = WEIGHTS_EQUITY
-            elif _tier == 2:
-                mkt_weights = WEIGHTS_PCR_TIER2
-            elif _tier == 3:
-                mkt_weights = WEIGHTS_PCR_TIER3
-            elif _tier == 4:
-                mkt_weights = WEIGHTS_PCR_TIER4
-            else:
-                mkt_weights = WEIGHTS
+        elif mid in _EQUITY_MKTS:
+            mkt_weights = WEIGHTS_EQUITY
+        elif mid == "GC":
+            mkt_weights = WEIGHTS_GOLD
+        elif mid == "SI":
+            mkt_weights = WEIGHTS_SILVER
+        elif mid == "CL":
+            mkt_weights = WEIGHTS_CRUDE
+        elif mid == "NG":
+            mkt_weights = WEIGHTS_NATGAS
+        elif mid in _BOND_MKTS:
+            mkt_weights = WEIGHTS_BONDS
+        elif mid in _GRAIN_MKTS:
+            mkt_weights = WEIGHTS_GRAINS
+        elif mid == "KC":
+            mkt_weights = WEIGHTS_COFFEE
+        elif mid in _SOFTS_MKTS:
+            mkt_weights = WEIGHTS_SOFTS
+        elif mid in _LIVESTOCK_MKTS:
+            mkt_weights = WEIGHTS_LIVESTOCK
+        elif mid in _CRYPTO_MKTS:
+            mkt_weights = WEIGHTS_CRYPTO
         elif mid in _FX_MKTS:
             mkt_weights = WEIGHTS_FX
         else:
@@ -8448,13 +8646,20 @@ async def _do_scores_refresh(force: bool = False):
         "stock_climate":   stock_climate,
         "ff_macro":        ff_macro,  # per-currency FF economy scores
         "markets":       results,
-        "weights":           WEIGHTS,
+        "weights":           WEIGHTS,           # Fallback (base metals etc.)
         "weights_equity":    WEIGHTS_EQUITY,
         "weights_fx":        WEIGHTS_FX,
-        "weights_pcr_tier2": WEIGHTS_PCR_TIER2,
-        "weights_pcr_tier3": WEIGHTS_PCR_TIER3,
-        "weights_pcr_tier4": WEIGHTS_PCR_TIER4,
-        "weights_ice_thin":  WEIGHTS_ICE_THIN,  # Applied to Z (FTSE100) and R (Long Gilt) — thin COT history
+        "weights_gold":      WEIGHTS_GOLD,
+        "weights_silver":    WEIGHTS_SILVER,
+        "weights_crude":     WEIGHTS_CRUDE,
+        "weights_natgas":    WEIGHTS_NATGAS,
+        "weights_bonds":     WEIGHTS_BONDS,
+        "weights_grains":    WEIGHTS_GRAINS,
+        "weights_softs":     WEIGHTS_SOFTS,
+        "weights_coffee":    WEIGHTS_COFFEE,
+        "weights_livestock": WEIGHTS_LIVESTOCK,
+        "weights_crypto":    WEIGHTS_CRYPTO,
+        "weights_ice_thin":  WEIGHTS_ICE_THIN,   # Z (FTSE100) and R (Long Gilt)
         # news_context intentionally excluded — frontend fetches /api/news-context separately
     }
     # Always store with full TTL — narratives have their own endpoint and cache
@@ -9818,16 +10023,34 @@ async def get_score_history(market: str):
                        "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
                        "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
                        "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
+        _SH_BOND_MKTS     = {"ZB", "ZN", "ZF", "ZT"}
+        _SH_GRAIN_MKTS    = {"ZC", "ZS", "ZW"}
+        _SH_LIVESTOCK_MKTS= {"HE", "LE", "GF"}
+        _SH_SOFTS_MKTS    = {"SB", "CC", "CT"}
         if m_upper in {"Z", "R"}:
             w_map = WEIGHTS_ICE_THIN
-        elif cat == "equity":
+        elif cat == "equity" or m_upper in {"ES", "NQ", "YM", "RTY"}:
             w_map = WEIGHTS_EQUITY
-        elif m_upper in {"GC", "CL"}:
-            w_map = WEIGHTS_PCR_TIER2
+        elif m_upper == "GC":
+            w_map = WEIGHTS_GOLD
         elif m_upper == "SI":
-            w_map = WEIGHTS_PCR_TIER4
+            w_map = WEIGHTS_SILVER
+        elif m_upper == "CL":
+            w_map = WEIGHTS_CRUDE
+        elif m_upper == "NG":
+            w_map = WEIGHTS_NATGAS
+        elif m_upper in _SH_BOND_MKTS:
+            w_map = WEIGHTS_BONDS
+        elif m_upper in _SH_GRAIN_MKTS:
+            w_map = WEIGHTS_GRAINS
+        elif m_upper == "KC":
+            w_map = WEIGHTS_COFFEE
+        elif m_upper in _SH_SOFTS_MKTS:
+            w_map = WEIGHTS_SOFTS
+        elif m_upper in _SH_LIVESTOCK_MKTS:
+            w_map = WEIGHTS_LIVESTOCK
         elif cat == "crypto":
-            w_map = WEIGHTS_PCR_TIER3
+            w_map = WEIGHTS_CRYPTO
         elif m_upper in _SH_FX_MKTS or cat in ("fx", "fx_cross"):
             w_map = WEIGHTS_FX
         else:
