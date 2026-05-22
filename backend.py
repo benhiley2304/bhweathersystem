@@ -7997,10 +7997,14 @@ def compute_weighted_bias(scores: dict, market_id: str = "",
         w_map = WEIGHTS_LIVESTOCK
     elif market_id in _CRYPTO_MARKETS:
         w_map = WEIGHTS_CRYPTO
+    elif market_id in {"B", "GO", "HO", "RB"}:
+        w_map = WEIGHTS_CRUDE   # ICE/NYMEX petroleum derivatives: same OPEC/seasonal logic as CL
+    elif market_id == "RC":
+        w_map = WEIGHTS_COFFEE  # Robusta coffee: same commercial hedger structure as Arabica KC
     elif market_id in _FX_MARKETS:
         w_map = WEIGHTS_FX
     else:
-        w_map = WEIGHTS  # Fallback: base metals (HG, PA), B, G, RC etc.
+        w_map = WEIGHTS  # Fallback: base metals (HG, PA, PL, HG) — genuine informed hedgers
     total_w = sum(w_map[k] for k in w_map if k in scores)
     if total_w == 0:
         return {"weighted": 5.0, "bias": "Neutral", "color": "#94a3b8", "confluence_bonus": 0.0}
@@ -8498,10 +8502,14 @@ async def _do_scores_refresh(force: bool = False):
             mkt_weights = WEIGHTS_LIVESTOCK
         elif mid in _CRYPTO_MKTS:
             mkt_weights = WEIGHTS_CRYPTO
+        elif mid in {"B", "GO", "HO", "RB"}:
+            mkt_weights = WEIGHTS_CRUDE
+        elif mid == "RC":
+            mkt_weights = WEIGHTS_COFFEE
         elif mid in _FX_MKTS:
             mkt_weights = WEIGHTS_FX
         else:
-            mkt_weights = WEIGHTS
+            mkt_weights = WEIGHTS  # Fallback: base metals (HG, PA, PL)
         # Only expose weights for factors actually present in this market's scores
         active_weights = {k: v for k, v in mkt_weights.items() if k in scores_out}
     
@@ -10051,10 +10059,14 @@ async def get_score_history(market: str):
             w_map = WEIGHTS_LIVESTOCK
         elif cat == "crypto":
             w_map = WEIGHTS_CRYPTO
+        elif m_upper in {"B", "GO", "HO", "RB"}:
+            w_map = WEIGHTS_CRUDE
+        elif m_upper == "RC":
+            w_map = WEIGHTS_COFFEE
         elif m_upper in _SH_FX_MKTS or cat in ("fx", "fx_cross"):
             w_map = WEIGHTS_FX
         else:
-            w_map = WEIGHTS
+            w_map = WEIGHTS  # Fallback: base metals (HG, PA, PL)
     
         # ── CROSS PAIR: walk-forward Briese differential ─────────────────────────
         if mkt.get("cross"):
