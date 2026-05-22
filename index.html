@@ -17572,8 +17572,48 @@ a, .link-gold{
   letter-spacing: 0.03em !important;
 }
 
-/* Remove the .mr-right gap — we just need score, no pill below it */
-.mr-right { gap: 0 !important; }
+/* Band label below score value in sidebar rows */
+.mr-band-lbl {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  opacity: 0.75 !important;
+  line-height: 1 !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+}
+
+/* Macro badge chip on sidebar rows */
+.mr-macro-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  padding: 2px 5px !important;
+  border-radius: 4px !important;
+  border: 1px solid transparent !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  line-height: 1.2 !important;
+}
+
+/* Name row: flex to accommodate macro badge */
+.mr-name-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+}
+.mr-name-row .mr-name {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* mr-right: restore small gap for score + band label */
+.mr-right { gap: 2px !important; flex-direction: column !important; align-items: flex-end !important; }
 
 /* ── 2. TAB SUMMARY BULLET: remove the box, integrate inline ── */
 /* The italic sentence is redundant with the narrative. Remove the
@@ -22905,7 +22945,8 @@ body {
         </div>
         <span id="sb-count">—</span>
       </div>
-      <!-- hc-module removed -->
+      <!-- High Conviction module -->
+      <div id="hc-module"></div>
       <div class="cat-row" id="cat-row">
         <button class="cat-btn on" data-cat="all">All</button>
         <button class="cat-btn" data-cat="equity">Equity</button>
@@ -22987,6 +23028,23 @@ body {
     <div id="d-content" style="display:none"></div>
   </div>
 
+</div>
+
+<!-- ONBOARDING MODAL -->
+<div id="onboard-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+  <div id="onboard-modal" style="width:min(440px,90vw);background:var(--surf);border:1px solid rgba(200,169,110,0.20);border-radius:16px;padding:28px 28px 22px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.55)">
+    <!-- Step dots -->
+    <div id="ob-dots" style="display:flex;gap:5px;margin-bottom:20px">
+      <div class="ob-dot on" data-step="0"></div>
+      <div class="ob-dot" data-step="1"></div>
+      <div class="ob-dot" data-step="2"></div>
+    </div>
+    <div id="ob-body"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px">
+      <button id="ob-skip" onclick="closeOnboard()" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--faint);letter-spacing:0.04em;text-decoration:underline;text-underline-offset:2px">Skip</button>
+      <button id="ob-next" onclick="obNext()" style="background:rgba(200,169,110,0.15);border:1px solid rgba(200,169,110,0.35);color:var(--accent);font-family:var(--head);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:8px 20px;border-radius:8px;cursor:pointer">Next &rarr;</button>
+    </div>
+  </div>
 </div>
 
 <!-- SEASONAL MODAL -->
@@ -23161,6 +23219,36 @@ function sHex(s){
   if(s>=2.5)  return '#d63a24';  // lean bear     — deep red-orange
   if(s>=1.5)  return '#e03a2a';  // bear          — vivid red
   return '#c41a2e';               // strong bear   — deep crimson
+}
+
+// Score band label — full descriptive label for display
+function bandLabel(s){
+  if(s>=8.5)  return 'Very Strong Bull';
+  if(s>=7.0)  return 'Strong Bull';
+  if(s>=6.0)  return 'Mild Bull';
+  if(s>=5.5)  return 'Lean Bull';
+  if(s>=4.6)  return 'Neutral';
+  if(s>=4.0)  return 'Lean Bear';
+  if(s>=3.1)  return 'Mild Bear';
+  if(s>=1.6)  return 'Strong Bear';
+  return 'Very Strong Bear';
+}
+
+// Macro badge for home cards: one line, relevant per asset category
+function macroBadge(m){
+  const cat = m.category || '';
+  const macro = m.scores?.macro || {};
+  const msc = macro.score ?? 5;
+  // Only show badge when macro score is meaningfully directional (not neutral)
+  if(msc >= 4.5 && msc <= 5.5) return '';
+  const bull = msc >= 5.5;
+  const label = macro.label || (bull ? 'Macro Bull' : 'Macro Bear');
+  // Shorten the label for the badge chip
+  const short = label.replace('Macro Bullish','Bull Macro').replace('Macro Bearish','Bear Macro').replace('Mild Macro Bull','Mild Bull').replace('Mild Macro Bear','Mild Bear').replace('Macro Bull','Bull Macro').replace('Macro Bear','Bear Macro');
+  const col = bull ? 'rgba(34,201,122,0.85)' : 'rgba(214,58,36,0.85)';
+  const bg  = bull ? 'rgba(34,201,122,0.10)' : 'rgba(214,58,36,0.10)';
+  const bdr = bull ? 'rgba(34,201,122,0.22)' : 'rgba(214,58,36,0.22)';
+  return `<span class="mr-macro-badge" style="color:${col};background:${bg};border-color:${bdr}">${short}</span>`;
 }
 // Convert hex colour to "R,G,B" string for use in rgba(var(--x), alpha)
 function hexToRgbStr(hex){
@@ -23349,6 +23437,8 @@ function renderHCModule(allMarkets){
 
 function renderList(){
   if(!DATA)return;
+  // Always render HC module from full market list (not filtered)
+  renderHCModule(DATA.markets);
   const markets=DATA.markets.filter(m=>selCat==='all'||m.category===selCat);
   if(!markets.length){
     document.getElementById('mkt-list').innerHTML='<div style="padding:14px;color:var(--faint);font-size:10px">No markets</div>';
@@ -23382,16 +23472,22 @@ function renderList(){
     const _cfDot = Math.abs(_cfBonus)>=0.15
       ? `<div class="mr-conf-dot${_cfBonus<0?' bear':''}"></div>`
       : `<div class="mr-conf-ph"></div>`;
+    // Band label + macro badge
+    const _bandLbl = bandLabel(ws);
+    const _macroBadge = macroBadge(m);
     return sepHtml + `<div class="mkt-row${selMkt===m.id?' sel':''}" data-id="${m.id}" data-zone="${_zone}" onclick="selectMkt('${m.id}')" style="${mobBorder}">
       <span class="mr-id" style="color:${_catCol}">${_tidDisplay}</span>
       <div class="mr-body">
-        <div class="mr-name">${m.name}</div>
+        <div class="mr-name-row">
+          <div class="mr-name">${m.name}</div>
+          ${_macroBadge}
+        </div>
         ${sliderHtml}
       </div>
       ${_cfDot}
       <div class="mr-right">
         <span class="mr-score-badge" style="color:${col}">${ws.toFixed(1)}</span>
-        <span class="mr-bias" style="color:${col}">${biasShort}</span>
+        <span class="mr-band-lbl" style="color:${col}">${_bandLbl}</span>
       </div>
     </div>`;
   }).join('');
@@ -32853,6 +32949,12 @@ function dHead(m,ws,col,bg){
 
   const iceLabel=['B','G','RC','Z','R'].includes(m.id)
     ?'<span style="display:inline-block;margin-left:6px;vertical-align:middle;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.35);color:#5c9eff;font-size:8px;font-weight:700;letter-spacing:0.08em;border-radius:4px;padding:1px 5px">ICE EU</span>':'';
+  // ICE thin-data warning for Z (FTSE 100) and R (Long Gilt) — below 156w Briese minimum
+  const iceThinWarn = ['Z','R'].includes(m.id)
+    ? `<div style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 8px;border-radius:6px;background:rgba(92,158,255,0.08);border:1px solid rgba(92,158,255,0.22);font-size:8.5px;color:rgba(92,158,255,0.75)">
+        <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><circle cx="4.5" cy="4.5" r="4" stroke="currentColor" stroke-width="1"/><path d="M4.5 2.5v2.2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="4.5" cy="6.2" r="0.5" fill="currentColor"/></svg>
+        COT weight reduced to 12% — ICE history below 156w minimum. Score trend-accurate but COT conviction is lower.
+      </div>` : '';
 
   return `<div class="d-head">
     <canvas class="d-head-canvas" id="dhead-canvas" style="display:none"></canvas>
@@ -32873,6 +32975,7 @@ function dHead(m,ws,col,bg){
       <div class="d-bias-row">
         <div class="d-bias-pill" style="background:${bg};color:${col};border:1px solid ${col}40">${m.bias}</div>
       </div>
+      ${iceThinWarn}
       <!-- COT Phase & Score History moved: Phase→Positioning tab, History→tab nav right end -->
     </div>
 
@@ -38661,9 +38764,35 @@ async function loadHistoryTab(marketId){
     return;
   }
 
-  const { dates, scores, prices, cot_scores } = data;
+  const { dates, scores, prices, cot_scores, macro_scores, mom_scores, seas_scores } = data;
   // If per-component data available, use it; otherwise fall back to composite
   const cotLine = (cot_scores && cot_scores.length === scores.length) ? cot_scores : null;
+
+  // Derive per-bar confluence status from factor scores
+  // A bar is "confluence active" when COT is extreme (>=6.5 or <=3.5)
+  // AND at least one confirming factor (macro/momentum/seasonal) agrees direction
+  const confBars = [];
+  for(let i=0;i<scores.length;i++){
+    const cot = cot_scores ? cot_scores[i] : null;
+    if(cot===null){ confBars.push(false); continue; }
+    const macro = macro_scores ? macro_scores[i] : null;
+    const mom   = mom_scores   ? mom_scores[i]   : null;
+    const seas  = seas_scores  ? seas_scores[i]  : null;
+    const isBullCot = cot >= 6.5;
+    const isBearCot = cot <= 3.5;
+    let confirmCount = 0;
+    if(isBullCot){
+      if(macro!=null && macro>=6.2) confirmCount++;
+      if(mom!=null   && mom>=6.2)   confirmCount++;
+      if(seas!=null  && seas>=6.2)  confirmCount++;
+    } else if(isBearCot){
+      if(macro!=null && macro<=3.8) confirmCount++;
+      if(mom!=null   && mom<=3.8)   confirmCount++;
+      if(seas!=null  && seas<=3.8)  confirmCount++;
+    }
+    confBars.push(confirmCount >= 1);
+  }
+  const confIndices = confBars.map((v,i)=>v?i:null).filter(v=>v!==null);
 
   // Format dates for x-axis labels
   const labels = dates.map(d=>{ const p=d.split('-'); return p[1]+'/'+p[2]+'/'+p[0].slice(2); });
@@ -38727,17 +38856,31 @@ async function loadHistoryTab(marketId){
       <div style="font-size:9.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);margin-bottom:6px">Composite Score vs Price — Walk-Forward (no look-ahead)</div>
       <div style="position:relative;height:220px"><canvas id="hist-chart" style="display:block;width:100%!important"></canvas></div>
     </div>
-    <div style="margin-top:6px;font-size:8.5px;color:var(--dim);line-height:1.6">Composite score (COT + seasonality + momentum + macro + relval + regime + PCR) replayed walk-forward at each weekly bar with zero look-ahead. Regime reconstructed historically using IRX 6m rate trend, TIP ETF 26w return (real yield proxy), and DXY 1m return — same signal logic as live scoring. PCR held constant at today’s level — only component without historical snapshots. Score 0–10 (5.0 = neutral, ≥6.5 = bullish, ≤3.5 = bearish). Price on right axis.</div>
+    <div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:12px;height:3px;background:rgba(92,158,255,0.70);border-radius:1px"></div>
+        <span style="font-size:8px;color:var(--faint)">COT Score</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:2px;height:14px;background:rgba(200,169,110,0.70);border-radius:1px"></div>
+        <span style="font-size:8px;color:var(--faint)">Confluence Active</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:12px;height:2px;background:rgba(226,232,240,0.6);border-radius:1px"></div>
+        <span style="font-size:8px;color:var(--faint)">Price</span>
+      </div>
+    </div>
+    <div style="margin-top:5px;font-size:8.5px;color:var(--dim);line-height:1.6">Walk-forward composite: COT + seasonality + momentum + macro + relval + regime + PCR — zero look-ahead. Gold vertical lines mark weeks where COT is extreme and at least one confirming factor aligns (confluence active). PCR held at today’s reading. Score 0–10 (5.0 = neutral, ≥6.5 = bullish, ≤3.5 = bearish). Price on right axis.</div>
   `;
 
   const canvas = document.getElementById('hist-chart');
   if(!canvas) return;
 
-  // Custom plugin: zero baseline
+  // Custom plugin: zero baseline + confluence markers
   const zeroLinePlugin = {
     id: 'histZeroLine',
     afterDraw(chart){
-      const {ctx, chartArea:{left,right}, scales} = chart;
+      const {ctx, chartArea:{left,right,top,bottom}, scales} = chart;
       const y1 = scales['y1'];
       if(!y1) return;
       const yPx = y1.getPixelForValue(5.0);  // neutral midline at 5.0
@@ -38746,11 +38889,34 @@ async function loadHistoryTab(marketId){
       ctx.lineWidth=1;
       ctx.setLineDash([3,3]);
       ctx.beginPath(); ctx.moveTo(left,yPx); ctx.lineTo(right,yPx); ctx.stroke();
-      // Threshold lines at +1 and -1
-      for(const [val, col] of [[6.5,'rgba(48,164,108,0.15)'],[3.5,'rgba(184,92,82,0.14)'],[5.0,'rgba(148,163,184,0.15)']]){
+      // Threshold lines at 6.5 and 3.5
+      for(const [val, col] of [[6.5,'rgba(48,164,108,0.18)'],[3.5,'rgba(184,92,82,0.16)']]){
         const yp = y1.getPixelForValue(val);
         ctx.strokeStyle=col; ctx.lineWidth=1; ctx.setLineDash([2,4]);
         ctx.beginPath(); ctx.moveTo(left,yp); ctx.lineTo(right,yp); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      // Confluence markers: gold vertical ticks at top of chart area
+      if(confIndices.length){
+        const xScale = scales['x'];
+        if(xScale){
+          for(const ci of confIndices){
+            const xPos = xScale.getPixelForIndex ? xScale.getPixelForIndex(ci) : left + (ci/(scores.length-1||1))*(right-left);
+            // Gold vertical hairline
+            ctx.strokeStyle='rgba(200,169,110,0.55)';
+            ctx.lineWidth=1;
+            ctx.setLineDash([2,0]);
+            ctx.beginPath();
+            ctx.moveTo(xPos, top);
+            ctx.lineTo(xPos, bottom);
+            ctx.stroke();
+            // Gold tick mark at top
+            ctx.fillStyle='rgba(200,169,110,0.80)';
+            ctx.fillRect(xPos-1, top, 2, 5);
+          }
+          ctx.setLineDash([]);
+        }
       }
       ctx.restore();
     }
@@ -39374,9 +39540,76 @@ function renderSeasStats(all,mt,todayTD,sd,cya,containerId){
 }
 
 /* ════════════════════════════════════════════
+   ONBOARDING
+════════════════════════════════════════════ */
+const OB_KEY = 'bh_onboarding_complete_v2';
+let obStep = 0;
+
+const OB_STEPS = [
+  {
+    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="rgba(200,169,110,0.5)" stroke-width="1.5"/><text x="16" y="21" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#c8a96e">7.2</text></svg>`,
+    title: 'What the Score Means',
+    body: 'Each asset receives a composite score from 1–10. <strong style="color:var(--s1)">Above 6 = bullish</strong> conditions across most factors. <strong style="color:var(--sm1)">Below 4 = bearish</strong>. Around 5 = no clear signal. The score is built from seven weighted factors — tap any asset to see the full breakdown.'
+  },
+  {
+    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="3" rx="1.5" fill="rgba(200,169,110,0.6)"/><rect x="4" y="15" width="18" height="3" rx="1.5" fill="rgba(200,169,110,0.35)"/><rect x="4" y="22" width="21" height="3" rx="1.5" fill="rgba(200,169,110,0.25)"/></svg>`,
+    title: 'How to Use the Home Screen',
+    body: 'The <strong style="color:var(--text)">High Conviction</strong> module surfaces today’s strongest multi-factor setups — check this first. The rankings list shows all markets with score and band label. Gold dots indicate confluence is active. Tap any row to drill into the full detail page.'
+  },
+  {
+    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="5" stroke="rgba(200,169,110,0.7)" stroke-width="1.5"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="rgba(200,169,110,0.4)" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    title: 'Where to Find Depth',
+    body: 'The detail page shows <strong style="color:var(--text)">every factor, every weight, and exactly how the composite was calculated</strong>. When factors are aligning you’ll see the <strong style="color:var(--accent)">Confluence Active</strong> callout — that’s the system’s highest-conviction signal. Tap “How is this scored?” to open the full methodology.'
+  }
+];
+
+function openOnboard(){
+  if(localStorage.getItem(OB_KEY)) return;
+  obStep = 0;
+  _obRender();
+  const ov = document.getElementById('onboard-overlay');
+  if(ov){ ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; }
+}
+function closeOnboard(){
+  document.getElementById('onboard-overlay').style.display='none';
+  localStorage.setItem(OB_KEY,'1');
+}
+function obNext(){
+  if(obStep >= OB_STEPS.length-1){ closeOnboard(); return; }
+  obStep++;
+  _obRender();
+}
+function _obRender(){
+  const step = OB_STEPS[obStep];
+  const body = document.getElementById('ob-body');
+  if(!body) return;
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      ${step.icon}
+      <div style="font-family:var(--head);font-size:15px;font-weight:700;color:var(--text);line-height:1.3">${step.title}</div>
+    </div>
+    <div style="font-size:12px;color:var(--dim);line-height:1.7">${step.body}</div>
+  `;
+  // Update dots
+  document.querySelectorAll('.ob-dot').forEach((d,i)=>{
+    d.classList.toggle('on', i===obStep);
+  });
+  // Update button label
+  const btn = document.getElementById('ob-next');
+  if(btn) btn.innerHTML = obStep < OB_STEPS.length-1 ? 'Next &rarr;' : 'Get Started';
+}
+
+// Add CSS for ob-dot
+const _obStyle = document.createElement('style');
+_obStyle.textContent = `.ob-dot{width:6px;height:6px;border-radius:50%;background:rgba(200,169,110,0.2);transition:all 0.2s}.ob-dot.on{background:var(--accent);width:20px;border-radius:3px}`;
+document.head.appendChild(_obStyle);
+
+/* ════════════════════════════════════════════
    BOOT
 ════════════════════════════════════════════ */
 loadData();
+// Show onboarding to new visitors (after short delay for data to load)
+setTimeout(openOnboard, 2200);
 // Boot the global particle background immediately with neutral tint
 // (regime tint applied once data loads via initAppBg in renderOverview)
 initAppBg('');
