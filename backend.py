@@ -4256,6 +4256,288 @@ def fetch_fred_series(series_id: str, periods: int = 24) -> Optional[list]:
         return None
 
 
+# ── FRED full-history cache (used by walk-forward score history) ─────────────
+# Stores complete sorted [{date, value}] for each series — no period truncation.
+_FRED_FULL_CACHE: dict = {}           # {resolved_id: [{date:str, value:float}, ...]}
+_FRED_FULL_CACHE_TIME: dict = {}       # {resolved_id: float timestamp}
+_FRED_FULL_CACHE_TTL = 3600 * 6       # 6h — same as FRED_CACHE_TTL
+
+def fetch_fred_series_full(series_id: str) -> Optional[list]:
+    """
+    Fetch the COMPLETE history for a FRED series (no period truncation).
+    Returns a sorted list of {date: str (YYYY-MM-DD), value: float}.
+    Used exclusively by the walk-forward score history engine.
+    Results cached for 6h to avoid redundant HTTP calls during multi-market runs.
+    """
+    resolved_id = FRED_SERIES.get(series_id, series_id)
+    now = time.time()
+    cached = _FRED_FULL_CACHE.get(resolved_id)
+    if cached is not None and (now - _FRED_FULL_CACHE_TIME.get(resolved_id, 0)) < _FRED_FULL_CACHE_TTL:
+        return cached
+    try:
+        url = FRED_BASE + resolved_id
+        r = requests.get(url, timeout=15)
+        r.raise_for_status()
+        lines = r.text.strip().split("\n")
+        data = []
+        for line in lines[1:]:
+            parts = line.split(",")
+            if len(parts) == 2 and parts[1].strip() not in (".", ""):
+                try:
+                    data.append({"date": parts[0].strip(), "value": float(parts[1].strip())})
+                except Exception:
+                    pass
+        data.sort(key=lambda x: x["date"])
+        _FRED_FULL_CACHE[resolved_id] = data
+        _FRED_FULL_CACHE_TIME[resolved_id] = now
+        return data
+    except Exception as e:
+        print(f"FRED full-history error {series_id} (resolved: {resolved_id}): {e}")
+        return None
+
+
+def _compute_surprise_at_date(
+    series: list,           # full sorted [{date, value}]
+    bar_date_str: str,      # YYYY-MM-DD cutoff
+    transform: str,         # 'level' | 'yoy' | 'mom'
+    higher_is_good: bool,
+    scale: float,
+) -> int:
+    """
+    Compute a surprise score (-2..+2) for a FRED series at a given bar date.
+    Uses ONLY data up to bar_date_str (zero lookahead).
+    Surprise = actual vs 3-period trailing average of prior readings.
+    """
+    if not series:
+        return 0
+    # Slice to data available at bar date
+    avail = [pt for pt in series if pt["date"] <= bar_date_str]
+    if not avail:
+        return 0
+
+    if transform == "yoy":
+        # Build YoY series from available raw data
+        if len(avail) < 13:
+            return 0
+        yoy = []
+        for i in range(12, len(avail)):
+            pct = (avail[i]["value"] / avail[i - 12]["value"] - 1) * 100 \
+                  if avail[i - 12]["value"] != 0 else 0.0
+            yoy.append({"date": avail[i]["date"], "value": round(pct, 3)})
+        if len(yoy) < 4:
+            return 0
+        actual = yoy[-1]["value"]
+        prior  = [y["value"] for y in yoy[-4:-1]]
+        expectation = sum(prior) / len(prior)
+        surprise = actual - expectation
+
+    elif transform == "mom":
+        if len(avail) < 2:
+            return 0
+        mom = []
+        for i in range(1, len(avail)):
+            mom.append({"date": avail[i]["date"], "value": avail[i]["value"] - avail[i-1]["value"]})
+        if len(mom) < 4:
+            return 0
+        actual = mom[-1]["value"]
+        prior  = [m["value"] for m in mom[-4:-1]]
+        expectation = sum(prior) / len(prior)
+        surprise = actual - expectation
+
+    elif transform == "qoq":
+        # Quarter-over-quarter: same as mom but for quarterly series
+        if len(avail) < 2:
+            return 0
+        qoq = []
+        for i in range(1, len(avail)):
+            prev = avail[i-1]["value"]
+            qoq.append({"date": avail[i]["date"],
+                         "value": (avail[i]["value"] / prev - 1) * 100 if prev != 0 else 0.0})
+        if len(qoq) < 4:
+            return 0
+        actual = qoq[-1]["value"]
+        prior  = [q["value"] for q in qoq[-4:-1]]
+        expectation = sum(prior) / len(prior)
+        surprise = actual - expectation
+
+    else:  # level
+        if len(avail) < 4:
+            return 0
+        actual = avail[-1]["value"]
+        prior  = [p["value"] for p in avail[-4:-1]]
+        expectation = sum(prior) / len(prior)
+        surprise = actual - expectation
+
+    norm = surprise / scale if scale != 0 else 0.0
+    if norm > 1.5:    raw = 2
+    elif norm > 0.4:  raw = 1
+    elif norm < -1.5: raw = -2
+    elif norm < -0.4: raw = -1
+    else:             raw = 0
+    return raw if higher_is_good else -raw
+
+
+# US FRED series to fetch for walk-forward macro history
+_SH_FRED_US_SERIES: dict = {
+    # key → (fred_series_id, transform, higher_is_good, scale, category)
+    "GDP":       ("A191RL1Q225SBEA", "level",  True,  0.5,    "growth"),
+    "INDPRO":    ("INDPRO",          "mom",    True,  0.3,    "growth"),
+    "CFNAI":     ("CFNAI",           "level",  True,  0.2,    "growth"),
+    "RETAIL":    ("RSAFS",           "mom",    True,  4000.0, "growth"),
+    "CPI":       ("CPIAUCSL",        "yoy",    True,  0.3,    "inflation"),
+    "CORE_CPI":  ("CPILFESL",        "yoy",    True,  0.3,    "inflation"),
+    "PPI":       ("PPIFIS",          "yoy",    True,  0.4,    "inflation"),
+    "PCE":       ("PCEPI",           "yoy",    True,  0.3,    "inflation"),
+    "CORE_PCE":  ("PCEPILFE",        "yoy",    True,  0.3,    "inflation"),
+    "NFP":       ("PAYEMS",          "mom",    True,  150000, "jobs"),  # mom change in thousands of persons; scale=150000 = ~1-sigma
+    "UNEMP":     ("UNRATE",          "level",  False, 0.2,    "jobs"),  # higher unemp = bad; level surprise vs 3-period trailing avg
+    "CLAIMS":    ("ICSA",            "mom",    False, 30000,  "jobs"),  # weekly initial claims — rising is bad
+}
+
+# FX currency → FRED series for walk-forward macro
+_SH_FRED_FX_SERIES: dict = {
+    "EUR": [
+        ("DEUCPIALLMINMEI", "mom",  True,  0.2,  "inflation"),
+        ("LRHUTTTTEZM156S", "level",False, 0.3,  "jobs"),
+        ("NAEXKP01EZQ661S", "qoq",  True,  0.5,  "growth"),
+    ],
+    "GBP": [
+        ("GBRCPIALLMINMEI", "mom",  True,  0.2,  "inflation"),
+        ("LRHUTTTTGBM156S", "level",False, 0.3,  "jobs"),
+        ("NAEXKP01GBQ661S", "qoq",  True,  0.5,  "growth"),
+    ],
+    "JPY": [
+        ("JPNCPIALLMINMEI", "mom",  True,  0.2,  "inflation"),
+        ("LRUN64TTJPM156S", "level",False, 0.3,  "jobs"),
+        ("JPNPROINDMISMEI", "mom",  True,  0.3,  "growth"),
+    ],
+    "AUD": [
+        ("AUSCPIALLQINMEI", "qoq",  True,  0.3,  "inflation"),
+        ("LRHUTTTTAUM156S", "level",False, 0.3,  "jobs"),
+    ],
+    "CAD": [
+        ("CANCPIALLMINMEI", "mom",  True,  0.2,  "inflation"),
+        ("LRHUTTTTCAM156S", "level",False, 0.3,  "jobs"),
+    ],
+    "CHF": [
+        ("CHECPIALLMINMEI", "mom",  True,  0.2,  "inflation"),
+    ],
+    "NZD": [
+        ("NZLCPIALLQINMEI", "qoq",  True,  0.3,  "inflation"),
+        ("LRUN64TTNZQ156S", "level",False, 0.3,  "jobs"),
+    ],
+}
+
+
+def _score_macro_at_fred(
+    market_id: str,
+    bar_date_str: str,          # YYYY-MM-DD
+    fred_us_full: dict,         # {key: full_series_list} pre-fetched
+    fred_fx_full: dict,         # {currency: {series_id: full_series_list}} pre-fetched
+) -> float:
+    """
+    Walk-forward macro score for a historical bar using FRED data only.
+    Zero lookahead — uses only FRED data with date <= bar_date_str.
+    Replaces the broken FF-based _score_macro_at (ForexFactory is blocked server-side).
+    """
+    FX_CCY_MAP = {"6E":"EUR","6B":"GBP","6A":"AUD","6J":"JPY",
+                  "6C":"CAD","6N":"NZD","6S":"CHF","6M":"MXN","DX":"USD"}
+
+    m = market_id.upper()
+    mkt_obj = next((x for x in MARKETS if x["id"] == m), None)
+    cat = mkt_obj.get("category", "") if mkt_obj else ""
+
+    # ── Compute US macro component scores ─────────────────────────────────────
+    us_cat_sums: dict = {}   # {category: [scores...]}
+    us_comps: dict = {}      # {key: score_int}
+
+    for key, (fred_id, transform, higher_is_good, scale, category) in _SH_FRED_US_SERIES.items():
+        series = fred_us_full.get(key)
+        if not series:
+            continue
+        sc = _compute_surprise_at_date(series, bar_date_str, transform, higher_is_good, scale)
+        us_comps[key] = sc
+        if category not in us_cat_sums:
+            us_cat_sums[category] = []
+        us_cat_sums[category].append(sc)
+
+    us_cat_avg: dict = {cat_k: sum(v)/len(v) for cat_k, v in us_cat_sums.items() if v}
+    growth_s    = us_cat_avg.get("growth",    0.0)
+    jobs_s      = us_cat_avg.get("jobs",      0.0)
+    inflation_s = us_cat_avg.get("inflation", 0.0)
+
+    # Individual series
+    cpi_s  = float(us_comps.get("CPI",      0))
+    pce_s  = float(us_comps.get("PCE",      0))
+    gdp_s  = float(us_comps.get("GDP",      0))
+    infl_avg = (cpi_s + pce_s) / 2 if (cpi_s != 0 or pce_s != 0) else inflation_s
+    # pmi_avg: use CFNAI + INDPRO as growth activity proxies
+    cfnai_s  = float(us_comps.get("CFNAI",  0))
+    indpro_s = float(us_comps.get("INDPRO", 0))
+    pmi_avg  = (cfnai_s + indpro_s) / 2 if (cfnai_s != 0 or indpro_s != 0) else growth_s
+    growth_s2 = (growth_s + pmi_avg) / 2 if pmi_avg else growth_s
+
+    # dgs2_s: no direct FRED series for 2yr yield surprise in walk-forward mode.
+    # Use 0 as neutral — the regime factor already captures rate path.
+    dgs2_s = 0.0
+
+    # ── Compute FX currency-specific scores ───────────────────────────────────
+    ff_macro_snap: dict = {}  # Mimics ff_macro dict for get_macro_score_for_market
+
+    def _fx_score_for_ccy(ccy: str) -> dict:
+        # fred_fx_full[ccy] = {fred_id: series_list} — fetched during _do_prefetch
+        # _SH_FRED_FX_SERIES[ccy] = [(fred_id, transform, higher_is_good, scale, cat_k), ...]
+        ccy_series_map = fred_fx_full.get(ccy, {})
+        ccy_cfg = _SH_FRED_FX_SERIES.get(ccy, [])
+        if not ccy_series_map or not ccy_cfg:
+            return {"score": 0.0, "cats": {}}
+        cat_sums: dict = {}
+        for (fred_id, transform, higher_is_good, scale, cat_k) in ccy_cfg:
+            series = ccy_series_map.get(fred_id)
+            if not series:
+                continue
+            sc = _compute_surprise_at_date(series, bar_date_str, transform, higher_is_good, scale)
+            if cat_k not in cat_sums:
+                cat_sums[cat_k] = []
+            cat_sums[cat_k].append(sc)
+        cat_avg = {k: sum(v)/len(v) for k, v in cat_sums.items() if v}
+        agg = sum(cat_avg.values()) / len(cat_avg) if cat_avg else 0.0
+        return {"score": round(agg, 2), "cats": cat_avg}
+
+    # For FX and cross pairs, compute relevant currency scores
+    if cat in ("fx", "fx_cross") or m == "DX":
+        for ccy, fred_id_map in fred_fx_full.items():
+            ff_macro_snap[ccy] = _fx_score_for_ccy(ccy)
+    # USD always needed
+    if "USD" not in ff_macro_snap:
+        usd_agg = sum(us_cat_avg.values()) / len(us_cat_avg) if us_cat_avg else 0.0
+        ff_macro_snap["USD"] = {"score": max(-2.0, min(2.0, usd_agg)), "cats": us_cat_avg}
+
+    # ── Build macro dict in get_macro_score_for_market expected format ─────────
+    macro_snap = {
+        "category_scores": {
+            "growth":    growth_s,
+            "jobs":      jobs_s,
+            "inflation": inflation_s,
+            "rates":     0.0,   # neutral — rates captured by regime factor
+            "MFG_PMI":   cfnai_s,
+            "SVC_PMI":   indpro_s,
+        },
+        "components": {
+            "GDP":      {"score": gdp_s},
+            "CPI":      {"score": cpi_s},
+            "PCE":      {"score": pce_s},
+            "DGS2":     {"score": dgs2_s},
+            "JOBS":     {"score": jobs_s},
+            "MFG_PMI":  {"score": cfnai_s},
+            "SVC_PMI":  {"score": indpro_s},
+        },
+    }
+
+    result = get_macro_score_for_market(m, macro_snap, ff_macro=ff_macro_snap)
+    return round(max(0.0, min(10.0, result.get("score", 5.0))), 1)
+
+
 def surprise_score(actual: float, history: list, higher_is_good: bool = True, scale: float = 1.0) -> int:
     """
     Score a data surprise: compare actual to rolling 3-period moving average of prior values.
@@ -9408,10 +9690,47 @@ def _score_seasonality_at(market_id: str, bar_date) -> float:
     return round(max(0.0, min(10.0, base)), 1)
 
 
-def _score_momentum_at(px_closes: np.ndarray, px_dates_norm, bar_date_norm) -> float:
+# Asset-class momentum normalizers (ema_st_norm%, ema_norm%, roc_norm%)
+# Based on typical 4-week trending speed and annual vol by asset class.
+# Equity indices: moderate trending (ES/NQ 3/6/8%), FX: slow (1/2/3%),
+# Energy NG: fast (8/15/20%), Oil: (4/8/12%), Bonds: slow (0.8/1.5/2%),
+# Metals: (2/4/6%), Softs/Grains: (3/6/10%), Livestock: (2/4/7%).
+_MOM_NORMALIZERS: dict = {
+    "ES":  (3.0, 6.0, 8.0),  "NQ":  (3.0, 6.0, 8.0),
+    "YM":  (3.0, 6.0, 8.0),  "RTY": (3.5, 7.0, 10.0),
+    "Z":   (2.0, 4.0, 6.0),  "R":   (0.8, 1.5, 2.5),
+    "ZB":  (0.8, 1.5, 2.5),  "ZN":  (0.8, 1.5, 2.5),
+    "ZF":  (0.6, 1.2, 2.0),  "ZT":  (0.5, 1.0, 1.5),
+    "GC":  (2.0, 4.0, 6.0),  "SI":  (3.0, 6.0, 9.0),
+    "HG":  (2.5, 5.0, 8.0),  "PA":  (3.0, 6.0, 9.0),
+    "PL":  (2.5, 5.0, 7.0),
+    "CL":  (4.0, 8.0, 12.0), "B":   (4.0, 8.0, 12.0),
+    "HO":  (4.0, 8.0, 12.0), "RB":  (4.0, 8.0, 12.0),
+    "NG":  (8.0, 15.0, 20.0),"GO":  (3.5, 7.0, 11.0),
+    "GAS": (8.0, 15.0, 20.0),
+    "ZC":  (3.0, 6.0, 10.0), "ZS":  (3.0, 6.0, 10.0),
+    "ZW":  (3.5, 7.0, 11.0),
+    "SB":  (3.0, 6.0, 10.0), "CC":  (3.0, 6.0, 10.0),
+    "KC":  (3.0, 6.0, 10.0), "RC":  (3.0, 6.0, 10.0),
+    "CT":  (3.0, 6.0, 9.0),
+    "LE":  (2.0, 4.0, 7.0),  "HE":  (3.0, 6.0, 9.0),
+    "GF":  (2.0, 4.0, 7.0),
+    "6E":  (1.0, 2.0, 3.0),  "6B":  (1.0, 2.0, 3.0),
+    "6J":  (1.0, 2.0, 3.5),  "6A":  (1.2, 2.5, 4.0),
+    "6C":  (0.8, 1.8, 3.0),  "6N":  (1.2, 2.5, 4.0),
+    "6S":  (0.8, 1.8, 3.0),  "6M":  (1.5, 3.0, 5.0),
+    "DX":  (0.8, 1.8, 3.0),
+    "BTC": (15.0, 30.0, 40.0),"ETH": (20.0, 35.0, 50.0),
+}
+_MOM_NORM_DEFAULT = (3.0, 6.0, 8.0)  # equity-like default
+
+
+def _score_momentum_at(px_closes: np.ndarray, px_dates_norm, bar_date_norm,
+                       market_id: str = "") -> float:
     """
     Compute momentum score using only price data up to and including bar_date.
     Zero lookahead — only uses closes where date <= bar_date.
+    market_id: optional, used to select asset-class normalizers.
     """
     mask = px_dates_norm <= bar_date_norm
     closes = px_closes[mask]
@@ -9445,9 +9764,11 @@ def _score_momentum_at(px_closes: np.ndarray, px_dates_norm, bar_date_norm) -> f
     # 4-week ROC (20 days)
     roc4w = (closes[-1] / closes[-20] - 1) * 100 if len(closes) >= 20 else             (closes[-1] / closes[-10] - 1) * 100 if len(closes) >= 10 else 0
 
-    ema_st_s10 = round(max(0.0, min(10.0, (ema_st_slope / 3.0) * 5.0 + 5.0)), 1)
-    ema_s10    = round(max(0.0, min(10.0, (ema_slope / 6.0) * 5.0 + 5.0)), 1)
-    roc_s10    = round(max(0.0, min(10.0, (roc4w / 8.0) * 5.0 + 5.0)), 1)
+    _st_norm, _mt_norm, _roc_norm = _MOM_NORMALIZERS.get(
+        market_id.upper() if market_id else "", _MOM_NORM_DEFAULT)
+    ema_st_s10 = round(max(0.0, min(10.0, (ema_st_slope / _st_norm) * 5.0 + 5.0)), 1)
+    ema_s10    = round(max(0.0, min(10.0, (ema_slope / _mt_norm) * 5.0 + 5.0)), 1)
+    roc_s10    = round(max(0.0, min(10.0, (roc4w / _roc_norm) * 5.0 + 5.0)), 1)
     sma200_s10 = round(max(0.0, min(10.0, ((curr - sma200) / sma200 * 100 / 10.0) * 5.0 + 5.0)), 1)                  if not np.isnan(sma200) and sma200 > 0 else 5.0
 
     return round(max(0.0, min(10.0,
@@ -9745,7 +10066,8 @@ def _score_macro_at(market_id: str, bar_ts: float,
 
 
 def _score_regime_at(market_id: str, bar_date_norm,
-                     regime_px: dict) -> float:
+                     regime_px: dict,
+                     walcl_full: list = None) -> float:
     """
     Reconstruct regime score at a historical bar date using pre-fetched
     weekly price series for all regime assets. Zero lookahead.
@@ -9866,9 +10188,20 @@ def _score_regime_at(market_id: str, bar_date_norm,
                 # ry_adj = TIP_26w_pct / 7.5 / 1.5 (same normalisation as live signal)
                 _hist_ry_adj = max(-2.0, min(2.0, _tip_26w_pct / 7.5 / 1.5))
 
-    # ── WALCL: no historical proxy available via yfinance; default to 0 ───────
-    # The WALCL signal is a small 0.15 weight; zero is a safe neutral fallback.
+    # ── WALCL: Fed balance sheet from FRED full history ──────────────────────
     _hist_walcl_sig = 0.0
+    if walcl_full:
+        # Filter to data up to bar_date
+        bar_dt_str = str(bar_date_norm)  # YYYY-MM-DD
+        _wrows = [r for r in walcl_full if r.get("date") and r["date"] <= bar_dt_str and r.get("value") is not None]
+        if len(_wrows) >= 13:  # need ~3 months of weekly data
+            # Use last 13 weeks (quarterly change) — same logic as live WALCL signal
+            _w_recent = [r["value"] for r in _wrows[-13:]]
+            _w_now  = float(_w_recent[-1])
+            _w_3m   = float(_w_recent[0])
+            if _w_3m > 0:
+                _bs_chg3m = (_w_now / _w_3m - 1.0) * 100.0
+                _hist_walcl_sig = max(-1.0, min(1.0, _bs_chg3m / 3.0))
 
     # Pass raw regime_score (-4..+4) to get_regime_score_for_market.
     # Also pass the DXY/TIPS/WALCL signals through the returns / macro_dashboard
@@ -9897,7 +10230,7 @@ def _score_regime_at(market_id: str, bar_date_norm,
                 "label": "hist_proxy",
             },
             "fed_balance": {
-                "chg_3m_pct": 0.0,  # WALCL not available historically
+                "chg_3m_pct": _hist_walcl_sig * 3.0,  # back-solved from _hist_walcl_sig = chg3m/3.0
             },
         },
     }
@@ -9920,6 +10253,11 @@ async def get_score_history(market: str):
     # ── Result cache check ────────────────────────────────────────────────────
     _rn = time.time()
     _rc = _SH_RESULT_CACHE.get(m_upper)
+    # Invalidate result cache if prefetch cache is pre-FRED (macro was always 5.0)
+    _pfc_check = _SH_PREFETCH_CACHE.get(m_upper)
+    if _rc and _pfc_check and "fred_us_full" not in _pfc_check:
+        _rc = None  # old pre-FRED prefetch; force full recompute
+        del _SH_RESULT_CACHE[m_upper]
     if _rc and (_rn - _rc["ts"]) < _SH_RESULT_TTL:
         return _SafeJSONResponse(_rc["data"])
     # Per-market guard — prevents duplicate concurrent prefetches (OOM risk)
@@ -9932,92 +10270,121 @@ async def get_score_history(market: str):
         _now_ts = time.time()
         _cached = _SH_PREFETCH_CACHE.get(m_upper)
         if _cached and (_now_ts - _cached["ts"]) < _SH_PREFETCH_TTL:
-            all_ff_events       = _cached["ff_events"]
+            fred_us_full        = _cached["fred_us_full"]
+            fred_fx_full        = _cached["fred_fx_full"]
+            walcl_full          = _cached["walcl_full"]
             regime_px           = _cached["regime_px"]
             relval_self_series  = _cached["relval_self"]
             relval_peer_map     = _cached["relval_peer_map"]
             relval_periods      = _cached["relval_periods"]
             pcr_s_const         = _cached["pcr_s_const"]
-            print(f"score_history[{m_upper}]: using prefetch cache ({len(all_ff_events)} FF events)")
+            print(f"score_history[{m_upper}]: using prefetch cache (US:{len(fred_us_full)} FX:{len(fred_fx_full)} WALCL:{len(walcl_full)})")
         else:
             # Run the entire prefetch block in a thread executor — it makes ~60 FF HTTP
             # calls + multiple yfinance calls, all synchronous. Blocking the event loop
             # here would prevent /api/health from responding for minutes.
             def _do_prefetch():
                 _pf_ts = time.time()
-                # 1. FF macro: fetch 5 years of monthly calendar data in parallel
-                _months_to_fetch = 60  # ~5 years
-                _today_d = date.today()
-                _year_month_pairs = []
-                for _i in range(_months_to_fetch):
-                    _m_back = _today_d.month - _i
-                    _y_back = _today_d.year
-                    while _m_back <= 0:
-                        _m_back += 12
-                        _y_back -= 1
-                    _year_month_pairs.append((_y_back, _m_back))
-                _all_ff = _fetch_ff_months_parallel(_year_month_pairs)
-                print(f"score_history[{m_upper}]: fetched {len(_all_ff)} FF events over {_months_to_fetch} months")
-    
+                # 1. FRED macro: fetch full history for all US series.
+                #    ForexFactory is Cloudflare-blocked server-side — replaced with FRED.
+                _fred_us_full: dict = {}
+                for _key, (_fid, _tr, _hig, _sc, _cat) in _SH_FRED_US_SERIES.items():
+                    try:
+                        _s = fetch_fred_series_full(_fid)
+                        if _s:
+                            _fred_us_full[_key] = _s
+                    except Exception as _fe:
+                        print(f'score_history FRED US prefetch [{_key}]: {_fe}')
+                print(f'score_history[{m_upper}]: FRED US series fetched: {list(_fred_us_full.keys())}')
+
+                # WALCL (Fed balance sheet) full history for regime
+                _walcl_full: list = []
+                try:
+                    _ws = fetch_fred_series_full('WALCL')
+                    if _ws:
+                        _walcl_full = _ws
+                except Exception:
+                    pass
+                print(f'score_history[{m_upper}]: WALCL rows fetched: {len(_walcl_full)}')
+
+                # FX FRED series: fetch for all currencies
+                _fred_fx_full: dict = {}  # {ccy: {fred_id: series_list}}
+                for _ccy, _ccy_cfg in _SH_FRED_FX_SERIES.items():
+                    _ccy_map: dict = {}
+                    for (_fid, _tr, _hig, _sc, _cat) in _ccy_cfg:
+                        try:
+                            _s = fetch_fred_series_full(_fid)
+                            if _s:
+                                _ccy_map[_fid] = _s
+                        except Exception as _fe:
+                            print(f'score_history FRED FX prefetch [{_ccy}/{_fid}]: {_fe}')
+                    if _ccy_map:
+                        _fred_fx_full[_ccy] = _ccy_map
+                print(f'score_history[{m_upper}]: FRED FX currencies fetched: {list(_fred_fx_full.keys())}')
+
                 # 2. Regime: fetch max weekly closes for all regime tickers
                 _regime_px: dict = {}
                 for _rn, _rticker in RISK_ASSETS.items():
                     try:
-                        _df = yf.Ticker(_rticker).history(period="max", interval="1wk", auto_adjust=True)
+                        _df = yf.Ticker(_rticker).history(period='max', interval='1wk', auto_adjust=True)
                         if not _df.empty:
-                            _s = _df["Close"].copy()
+                            _s = _df['Close'].copy()
                             _s.index = pd.to_datetime(_s.index).tz_localize(None).normalize()
                             _s.index = _s.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
                             _regime_px[_rn] = _s
                     except Exception:
                         pass
-    
+
                 # 3. Rel-val: fetch max weekly closes for self + all configured peers
                 _relval_self: pd.Series = None
                 _relval_peer_map: dict = {}
                 _relval_periods: list = []
                 _rv_cfg = REL_VAL_CONFIG.get(m_upper)
                 if _rv_cfg:
-                    _relval_periods = _rv_cfg.get("periods", [13, 26])
+                    _relval_periods = _rv_cfg.get('periods', [13, 26])
                     try:
-                        _df_s = yf.Ticker(mkt["yf"]).history(period="max", interval="1wk", auto_adjust=True)
+                        _df_s = yf.Ticker(mkt['yf']).history(period='max', interval='1wk', auto_adjust=True)
                         if not _df_s.empty:
-                            _ss = _df_s["Close"].copy()
+                            _ss = _df_s['Close'].copy()
                             _ss.index = pd.to_datetime(_ss.index).tz_localize(None).normalize()
                             _ss.index = _ss.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
                             _relval_self = _ss
                     except Exception:
                         pass
-                    for _peer in _rv_cfg.get("peers", []):
+                    for _peer in _rv_cfg.get('peers', []):
                         try:
-                            _df_p = yf.Ticker(_peer["yf"]).history(period="max", interval="1wk", auto_adjust=True)
+                            _df_p = yf.Ticker(_peer['yf']).history(period='max', interval='1wk', auto_adjust=True)
                             if not _df_p.empty:
-                                _sp = _df_p["Close"].copy()
+                                _sp = _df_p['Close'].copy()
                                 _sp.index = pd.to_datetime(_sp.index).tz_localize(None).normalize()
                                 _sp.index = _sp.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
-                                _relval_peer_map[_peer["yf"]] = _sp
+                                _relval_peer_map[_peer['yf']] = _sp
                         except Exception:
                             pass
-    
-                # 4. PCR — held constant
+
+                # 4. PCR — held constant (live value; walk-forward requires CBOE CSV history)
                 _live_pcr = score_pcr(m_upper)
-                _pcr_s = _live_pcr.get("score", 5.0) if _live_pcr else 5.0
-    
+                _pcr_s = _live_pcr.get('score', 5.0) if _live_pcr else 5.0
+
                 # Store in prefetch cache
                 _SH_PREFETCH_CACHE[m_upper] = {
-                    "ff_events":      _all_ff,
-                    "regime_px":      _regime_px,
-                    "relval_self":    _relval_self,
-                    "relval_peer_map": _relval_peer_map,
-                    "relval_periods": _relval_periods,
-                    "pcr_s_const":    _pcr_s,
-                    "ts":             _pf_ts,
+                    'fred_us_full':    _fred_us_full,
+                    'fred_fx_full':    _fred_fx_full,
+                    'walcl_full':      _walcl_full,
+                    'regime_px':       _regime_px,
+                    'relval_self':     _relval_self,
+                    'relval_peer_map': _relval_peer_map,
+                    'relval_periods':  _relval_periods,
+                    'pcr_s_const':     _pcr_s,
+                    'ts':              _pf_ts,
                 }
                 return _SH_PREFETCH_CACHE[m_upper]
     
             # Run the heavy IO in a thread so the event loop stays responsive
             _pf = await asyncio.get_event_loop().run_in_executor(_SH_EXECUTOR, _do_prefetch)
-            all_ff_events      = _pf["ff_events"]
+            fred_us_full       = _pf["fred_us_full"]
+            fred_fx_full       = _pf["fred_fx_full"]
+            walcl_full         = _pf["walcl_full"]
             regime_px          = _pf["regime_px"]
             relval_self_series = _pf["relval_self"]
             relval_peer_map    = _pf["relval_peer_map"]
@@ -10105,8 +10472,9 @@ async def get_score_history(market: str):
             else:
                 px_dates_norm = np.array([], dtype="datetime64[D]")
     
-            MIN_BARS = 26
-            MAX_RETURN = 260
+            MIN_BARS = 10       # Min bars before starting — 10% Briese fill
+            MAX_RETURN = 520   # 10yr history (gated by COT availability)
+            COT_FULL_WEIGHT_BARS = 94  # 60% of 156w Briese window
             dates: list = []; scores: list = []; prices: list = []
     
             for i in range(MIN_BARS, n_common):
@@ -10123,7 +10491,10 @@ async def get_score_history(market: str):
     
                 diff   = _briese(sl_base) - _briese(sl_quote)
                 cot_s  = round(max(0.0, min(10.0, (diff / 100.0) * 5.0 + 5.0)), 1)
-    
+                # Continuous COT confidence: ramp from 0 at 10 bars to full at 94 bars
+                _cot_conf = min(1.0, max(0.0, (i - MIN_BARS) / max(1, COT_FULL_WEIGHT_BARS - MIN_BARS)))
+                cot_s = round(5.0 + (cot_s - 5.0) * _cot_conf, 1)
+
                 if "date" in df_base.columns:
                     bar_date = pd.to_datetime(df_base["date"].iloc[i])
                 else:
@@ -10133,11 +10504,11 @@ async def get_score_history(market: str):
                 bar_ts = bar_date.timestamp()
     
                 seas_s   = _score_seasonality_at(m_upper, bar_date)
-                mom_s    = _score_momentum_at(px_closes_arr, px_dates_norm, bar_date_norm) \
+                mom_s    = _score_momentum_at(px_closes_arr, px_dates_norm, bar_date_norm, m_upper) \
                            if len(px_closes_arr) > 20 else 5.0
-                macro_s  = _score_macro_at(m_upper, bar_ts, all_ff_events,
-                                            US_MACRO_INDICATOR_MAP, _parse_ff_value)
-                regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px)
+                macro_s  = _score_macro_at_fred(m_upper, str(bar_date.date()),
+                                               fred_us_full, fred_fx_full)
+                regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px, walcl_full)
                 # Cross pairs: rel-val uses trend-gated scoring (same as regular markets)
                 # Trend gate prevents false cheapness signals (e.g. cheap but in downtrend = neutral)
                 relval_s = 5.0  # Cross pairs don't have peer-ratio config — neutral by default
@@ -10215,14 +10586,15 @@ async def get_score_history(market: str):
                 df_merged["_cot_date"] = cot_idx.values
                 merged = pd.merge_asof(
                     df_merged.sort_values("_cot_date"), price_lkp_df,
-                    on="_cot_date", direction="nearest", tolerance=pd.Timedelta(days=7),
+                    on="_cot_date", direction="nearest", tolerance=pd.Timedelta(days=3),
                 )
                 df_merged = merged.drop(columns=["_cot_date"])
             except Exception as _e:
                 print(f"score_history price merge error for {m_upper}: {_e}")
     
-        MIN_BARS   = 26
-        MAX_RETURN = 260
+        MIN_BARS   = 10       # Min bars before starting — 10% Briese fill
+        MAX_RETURN = 520   # 10yr history (gated by COT availability)
+        COT_FULL_WEIGHT_BARS = 94  # 60% of 156w Briese window
         dates:  list = []
         scores: list = []
         prices: list = []
@@ -10246,7 +10618,10 @@ async def get_score_history(market: str):
             else:
                 cot_result = compute_cot_score_v2(slice_df, market_id=m_upper)
             cot_s = cot_result["score"]
-    
+            # Continuous COT confidence: ramp from 0 at 10 bars to full at 94 bars
+            _cot_conf = min(1.0, max(0.0, (i - MIN_BARS) / max(1, COT_FULL_WEIGHT_BARS - MIN_BARS)))
+            cot_s = round(5.0 + (cot_s - 5.0) * _cot_conf, 1)
+
             if "date" in slice_df.columns:
                 bar_date = pd.to_datetime(slice_df["date"].iloc[-1])
             else:
@@ -10256,11 +10631,11 @@ async def get_score_history(market: str):
             bar_ts = bar_date.timestamp()
     
             seas_s   = _score_seasonality_at(m_upper, bar_date)
-            mom_s    = _score_momentum_at(px_closes_all, px_dates_norm_all, bar_date_norm) \
+            mom_s    = _score_momentum_at(px_closes_all, px_dates_norm_all, bar_date_norm, m_upper) \
                        if len(px_closes_all) > 20 else 5.0
-            macro_s  = _score_macro_at(m_upper, bar_ts, all_ff_events,
-                                        US_MACRO_INDICATOR_MAP, _parse_ff_value)
-            regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px)
+            macro_s  = _score_macro_at_fred(m_upper, str(bar_date.date()),
+                                       fred_us_full, fred_fx_full)
+            regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px, walcl_full)
     
             # Rel-val now uses trend-gated logic (Bernd philosophy):
             # cheap + uptrend = bullish; cheap + downtrend = neutral (avoids 2022 JPY trap);
