@@ -23464,23 +23464,33 @@ a[href*="full"] {
 
 /* ── R47b: COMPOSITE TOTAL — fix score alignment & glow ── */
 
-/* Widen the last grid column so "6.1 / 10" never wraps */
+/* The ov-at-score-lbl is display:none but still occupies column 4.
+   The contrib cell therefore lands in column 4 (44px) not column 5.
+   Fix: explicitly place it in column 5 and give that column enough room. */
 .ov-atotal {
-  grid-template-columns: minmax(140px,1fr) 90px 56px 44px 110px !important;
+  grid-template-columns: minmax(140px,1fr) 90px 56px 0px 120px !important;
 }
-
-/* Keep contrib cell as a single flex row — number + denom side-by-side */
+.ov-at-score-lbl {
+  display: none !important;
+  grid-column: 4 !important;
+  width: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
 .ov-at-contrib {
+  grid-column: 5 !important;
   display: flex !important;
   flex-direction: row !important;
   align-items: baseline !important;
-  gap: 3px !important;
+  gap: 4px !important;
   justify-content: flex-end !important;
   flex-wrap: nowrap !important;
   white-space: nowrap !important;
+  padding-left: 10px !important;
+  border-left: 1px solid rgba(200,169,110,0.15) !important;
 }
 
-/* Score number: remove cheap text-shadow, clean mono font */
+/* Score number: remove glow, clean mono */
 .ov-at-num {
   font-family: var(--mono) !important;
   font-size: 22px !important;
@@ -23506,12 +23516,16 @@ a[href*="full"] {
 /* Mobile: ensure it stays inline too */
 @media (max-width: 700px) {
   .ov-at-contrib {
+    grid-column: 5 !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: baseline !important;
   }
   .ov-at-num {
     font-size: 18px !important;
+  }
+  .ov-atotal {
+    grid-template-columns: minmax(100px,1fr) 0px 0px 0px 100px !important;
   }
 }
 
