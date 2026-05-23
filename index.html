@@ -23914,21 +23914,7 @@ function bandLabel(s){
 }
 
 // Macro badge for home cards: one line, relevant per asset category
-function macroBadge(m){
-  const cat = m.category || '';
-  const macro = m.scores?.macro || {};
-  const msc = macro.score ?? 5;
-  // Only show badge when macro score is meaningfully directional (not neutral)
-  if(msc >= 4.5 && msc <= 5.5) return '';
-  const bull = msc >= 5.5;
-  const label = macro.label || (bull ? 'Macro Bull' : 'Macro Bear');
-  // Shorten the label for the badge chip
-  const short = label.replace('Macro Bullish','Bull Macro').replace('Macro Bearish','Bear Macro').replace('Mild Macro Bull','Mild Bull').replace('Mild Macro Bear','Mild Bear').replace('Macro Bull','Bull Macro').replace('Macro Bear','Bear Macro');
-  const col = bull ? 'rgba(34,201,122,0.85)' : 'rgba(214,58,36,0.85)';
-  const bg  = bull ? 'rgba(34,201,122,0.10)' : 'rgba(214,58,36,0.10)';
-  const bdr = bull ? 'rgba(34,201,122,0.22)' : 'rgba(214,58,36,0.22)';
-  return `<span class="mr-macro-badge" style="color:${col};background:${bg};border-color:${bdr}">${short}</span>`;
-}
+function macroBadge(m){ return ''; }
 // Convert hex colour to "R,G,B" string for use in rgba(var(--x), alpha)
 function hexToRgbStr(hex){
   const h = hex.replace('#','');
