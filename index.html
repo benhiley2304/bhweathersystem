@@ -23462,7 +23462,60 @@ a[href*="full"] {
   text-shadow: none !important;
 }
 
-/* ── END R47 ── */
+/* ── R47b: COMPOSITE TOTAL — fix score alignment & glow ── */
+
+/* Widen the last grid column so "6.1 / 10" never wraps */
+.ov-atotal {
+  grid-template-columns: minmax(140px,1fr) 90px 56px 44px 110px !important;
+}
+
+/* Keep contrib cell as a single flex row — number + denom side-by-side */
+.ov-at-contrib {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 3px !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+
+/* Score number: remove cheap text-shadow, clean mono font */
+.ov-at-num {
+  font-family: var(--mono) !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: var(--accent) !important;
+  line-height: 1 !important;
+  letter-spacing: -0.04em !important;
+  text-shadow: none !important;
+  white-space: nowrap !important;
+}
+
+/* Denominator: same baseline, clearly subordinate */
+.ov-at-sub {
+  font-family: var(--mono) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: rgba(200,169,110,0.45) !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* Mobile: ensure it stays inline too */
+@media (max-width: 700px) {
+  .ov-at-contrib {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: baseline !important;
+  }
+  .ov-at-num {
+    font-size: 18px !important;
+  }
+}
+
+/* ── END R47b ── */
 
 
 
