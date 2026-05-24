@@ -14308,10 +14308,10 @@ canvas{
   .ov-banner { min-height: 720px !important; }
 }
 @media (max-width: 1600px) and (min-width: 1281px) {
-  .ov-banner { min-height: 720px !important; }
+  .ov-banner { min-height: 680px !important; }
 }
 @media (max-width: 1280px) {
-  .ov-banner { min-height: 700px !important; }
+  .ov-banner { min-height: 640px !important; }
 }
 @media (max-width: 900px) {
   .ov-banner { min-height: 520px !important; }
@@ -29447,10 +29447,8 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // past the canvas. Use a taller canvas at mid-widths so it contains the geometry.
   const _iw = window.innerWidth;
   // MacBook Air M4 15" renders at ~1470px logical — use 1600px threshold to catch all laptop displays
-  // Laptop fix (≤1600px): taller canvas so arc geometry (CY+OR = H*1.18) doesn't overflow
-  // causing reflection artifact at the canvas bottom edge
-  const _hRatio = _iw <= 700 ? 0 : _iw <= 1600 ? 0.52 : 0.38;
-  const H   = _iw <= 700 ? 200 : Math.max(420, Math.min(680, Math.round(W * _hRatio)));
+  const _hRatio = _iw <= 700 ? 0 : _iw <= 1600 ? 0.46 : 0.38;
+  const H   = _iw <= 700 ? 200 : Math.max(380, Math.min(680, Math.round(W * _hRatio)));
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
   canvas.style.width  = W + 'px';
@@ -30006,6 +30004,21 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
   // Phase distribution pills removed per user request
 
+  // ── BOTTOM FADE — drawn last, on top of all arc content ──────────────
+  // Arc geometry extends to CY + OR = H * 1.18 so bars always overflow the
+  // canvas bottom. This fade covers the bottom 32% of the canvas, blending
+  // hard-clipped bar edges into the page background so no reflection
+  // artifact is visible at any viewport size.
+  {
+    const fadeStart = H * 0.68;
+    const fadeGrd = ctx.createLinearGradient(0, fadeStart, 0, H);
+    fadeGrd.addColorStop(0,    'rgba(4,4,5,0)');
+    fadeGrd.addColorStop(0.35, 'rgba(4,4,5,0.55)');
+    fadeGrd.addColorStop(0.70, 'rgba(4,4,5,0.88)');
+    fadeGrd.addColorStop(1,    'rgba(4,4,5,1.0)');
+    ctx.fillStyle = fadeGrd;
+    ctx.fillRect(0, fadeStart, W, H - fadeStart);
+  }
 
   ctx.restore(); // end right-zone clip
 }
