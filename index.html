@@ -5,10 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="theme-color" content="#040405"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<title>BH Weather System</title>
+<title>BH Weather System — Macro Trading Intelligence</title>
+<meta name="description" content="Professional macro analysis and market scoring across 62 futures markets. Composite scores built from COT positioning, seasonality, momentum, fundamentals, and macro regime."/>
+<meta property="og:title" content="BH Weather System — Macro Trading Intelligence"/>
+<meta property="og:description" content="62 markets. 7 weighted factors. One composite score. Track institutional positioning, seasonality, and macro regime in real time."/>
+<meta property="og:type" content="website"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="BH Weather System"/>
+<meta name="twitter:description" content="Professional macro scoring across 62 futures markets — COT, seasonality, momentum, fundamentals."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 // NEXUS OS: Global Chart.js defaults — premium dark theme
@@ -52,6 +59,7 @@ document.addEventListener('DOMContentLoaded', function(){
 :root {
   /* ── Backgrounds ── */
   --bg:     #040405;
+  --head:   'Space Grotesk', 'Inter', sans-serif; /* FIX: --head was undefined — 48 uses now resolve */
   --bg2:    #060810;
   --surf:   #111214;
   --surf2:  #161718;
@@ -269,7 +277,16 @@ a{color:inherit;text-decoration:none}
 .sb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .sb-top h2{font-size:clamp(8px,0.6vw,10px);font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:rgba(200,169,110,0.85)}
 #sb-count{font-size:clamp(9px,0.62vw,11px);color:var(--dim);font-family:var(--mono)}
-.cat-row{display:flex;gap:3px;flex-wrap:wrap}
+/* ── Market Search Bar ── */
+.sb-search-wrap{position:relative;margin:6px 0 2px;display:flex;align-items:center}
+.sb-search-icon{position:absolute;left:9px;width:12px;height:12px;color:var(--faint);pointer-events:none;flex-shrink:0}
+.sb-search{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:7px;padding:6px 28px 6px 28px;font-size:11px;color:var(--text);font-family:var(--body);outline:none;transition:border-color 150ms,background 150ms}
+.sb-search::placeholder{color:var(--faint)}
+.sb-search:focus{border-color:rgba(200,169,110,0.35);background:rgba(255,255,255,0.06)}
+.sb-search-clear{position:absolute;right:7px;font-size:13px;color:var(--faint);cursor:pointer;line-height:1;padding:2px 4px;border-radius:3px;transition:color 100ms}
+.sb-search-clear:hover{color:var(--text)}
+.sb-no-results{padding:20px 18px;font-size:11px;color:var(--faint);text-align:center}
+.cat-row{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
 /* V4: Category filter chips */
 .cat-btn{
   padding:4px 11px;border-radius:14px;border:1px solid rgba(255,255,255,0.10);
@@ -4985,7 +5002,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 ══════════════════════════════════════════════════════════════ */
 
 /* ── Nexus font upgrade ── */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+/* Space Grotesk now loaded via <link> in <head> for faster paint */
 :root{
   --nexus-head: 'Space Grotesk', 'Inter', sans-serif;
   --reg-col: rgba(34,201,122,0.7);
@@ -23524,7 +23541,194 @@ a[href*="full"] {
 
 /* ── END R47b ── */
 
+/* ════════════════════════════════════════════
+   PUBLIC READINESS POLISH — Strike Team Build
+════════════════════════════════════════════ */
 
+/* 1. HIGH CONVICTION CARDS — make star signals more readable */
+.hc-card-reason{
+  font-size:9.5px !important;
+  color:var(--dim) !important;
+  line-height:1.4;
+}
+.hc-conf-chip{
+  font-size:8.5px !important;
+  padding:2px 6px !important;
+  border-radius:4px !important;
+  border:1px solid rgba(200,169,110,0.22) !important;
+}
+
+/* 2. MARKET LIST ROWS — richer hover state, clearer selected state */
+.mkt-row{
+  transition:background 120ms, border-left-color 120ms !important;
+}
+.mkt-row.sel{
+  border-right:none;
+  box-shadow:inset 0 0 0 1px rgba(200,169,110,0.12);
+}
+.mr-score-badge{
+  font-family:var(--mono) !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+  letter-spacing:-0.02em;
+}
+
+/* 3. SCORE BAND / LABELS: increase minimum contrast */
+.d-score-hero-label{
+  letter-spacing:0.10em !important;
+  font-size:8.5px !important;
+}
+
+/* 4. FACTOR CONTRIBUTION TABLE — clearer row hierarchy */
+.ov-atotal{
+  border-top:1px solid rgba(255,255,255,0.06) !important;
+}
+.ov-at-lbl-note{
+  font-size:9px !important;
+  line-height:1.45 !important;
+}
+
+/* 5. MACRO ENVIRONMENT STRIP — tighter label contrast */
+.ov-menv-tag-k{
+  font-size:8px !important;
+  letter-spacing:0.06em !important;
+}
+.ov-menv-tag-v{
+  font-weight:700 !important;
+}
+
+/* 6. CHART LABELS — slightly brighter axis ticks for legibility */
+.chartjs-render-monitor canvas,
+canvas.chartjs-render-monitor{
+  image-rendering:crisp-edges;
+}
+
+/* 7. COT CHARTS — legend pills more legible */
+.cleg{
+  font-size:9.5px !important;
+  gap:6px !important;
+}
+.cleg-dot{
+  width:8px !important;
+  height:8px !important;
+  border-radius:50% !important;
+  flex-shrink:0;
+}
+
+/* 8. DETAIL HEADER — breadcrumb path styling */
+.d-cat{
+  font-size:9.5px !important;
+  letter-spacing:0.06em !important;
+}
+
+/* 9. SEASONAL TAB — stat tiles spacing */
+.ov-seas-stat-lbl{
+  font-size:8px !important;
+  letter-spacing:0.07em !important;
+}
+
+/* 10. NAV — subtler logo pulsing, cleaner timestamp */
+#ts{
+  font-size:8.5px !important;
+  opacity:0.55;
+}
+
+/* 11. MOBILE TAB BAR — active tab cleaner underline */
+@media(max-width:700px){
+  .ov-nav{
+    background:rgba(17,18,20,0.96) !important;
+    border-bottom:1px solid rgba(255,255,255,0.05) !important;
+  }
+  .ov-nt{
+    font-size:10.5px !important;
+    padding:8px 9px !important;
+    white-space:nowrap;
+  }
+  .ov-nt.on{
+    color:var(--accent) !important;
+  }
+  /* Stat number font ensure mono everywhere on mobile */
+  .d-score-hero-num{
+    font-family:var(--mono) !important;
+  }
+  /* Mobile: search bar full width but hide on narrow */
+  .sb-search-wrap{
+    display:none;
+  }
+}
+
+/* 12. ONBOARDING MODAL — make title font resolve correctly */
+#onboard-modal{
+  font-family:var(--body);
+}
+#onboard-modal [style*="font-family:var(--head)"]{
+  font-family:var(--head) !important;
+}
+
+/* 13. MACRO CARDS — eyebrow label contrast improvement */
+.ov-menv-card-eyebrow,
+.ov-mc-lbl,
+[class*="eyebrow"]{
+  letter-spacing:0.10em !important;
+}
+
+/* 14. G10 CB CARDS — rate chart lines slightly heavier */
+.ov-cb-card canvas{
+  filter:none !important;
+}
+
+/* 15. BREAKING NEWS — clearer impact label */
+.ov-news-impact-high{
+  color:var(--sm1) !important;
+}
+.ov-news-impact-med{
+  color:var(--accent) !important;
+}
+
+/* 16. RATE PATH CHART — y-axis label clarity */
+.ov-rp-chart-wrap canvas{
+  border-radius:6px;
+  overflow:hidden;
+}
+
+/* 17. SCORE RECEIPT — factor bars accessibility */
+.rt-bar-f{
+  border-radius:2px !important;
+}
+.rt-bar-bg{
+  border-radius:2px !important;
+  overflow:hidden;
+}
+
+/* 18. METHODOLOGY MODAL — improve readability */
+.meth-footer{
+  border-top:1px solid rgba(255,255,255,0.05);
+  padding:10px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.meth-footer-note{
+  font-size:10px !important;
+  opacity:0.75;
+}
+
+/* 19. WIDE SCREENS (2560+): better use of horizontal space */
+@media(min-width:2560px){
+  .ov-banner{
+    min-height:520px;
+  }
+  .ov-macro-3col{
+    max-width:1600px;
+    margin:0 auto;
+  }
+}
+
+/* 20. LOADING STATES: skeleton shimmer refinement */
+.skel{
+  border-radius:6px !important;
+  overflow:hidden !important;
+}
 
 </style>
 </head>
@@ -23619,6 +23823,14 @@ a[href*="full"] {
       </div>
       <!-- High Conviction module -->
       <div id="hc-module"></div>
+      <!-- Market Search -->
+      <div class="sb-search-wrap">
+        <svg class="sb-search-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="6" cy="6" r="4.5"/><line x1="9.5" y1="9.5" x2="13" y2="13" stroke-linecap="round"/>
+        </svg>
+        <input id="sb-search" class="sb-search" type="text" placeholder="Search markets…" autocomplete="off" autocorrect="off" spellcheck="false"/>
+        <button class="sb-search-clear" id="sb-search-clear" onclick="_clearSearch()" style="display:none">×</button>
+      </div>
       <div class="cat-row" id="cat-row">
         <button class="cat-btn on" data-cat="all">All</button>
         <button class="cat-btn" data-cat="equity">Equity</button>
@@ -24036,6 +24248,27 @@ document.getElementById('cat-row').addEventListener('click',e=>{
   renderList();
 });
 
+// ── Market search ──
+function _clearSearch(){
+  const inp=document.getElementById('sb-search');
+  const clr=document.getElementById('sb-search-clear');
+  if(inp){inp.value='';inp.dispatchEvent(new Event('input'));}
+  if(clr)clr.style.display='none';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=document.getElementById('sb-search');
+  const clr=document.getElementById('sb-search-clear');
+  if(inp){
+    inp.addEventListener('input',()=>{
+      if(clr)clr.style.display=inp.value?'block':'none';
+      renderList();
+    });
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){_clearSearch();inp.blur();}
+    });
+  }
+});
+
 /* ──────────────────────────────────────────────────
    HIGH CONVICTION MODULE
    Criteria: |score−5| ≥1.5 AND |confluence_bonus| ≥0.15
@@ -24097,9 +24330,15 @@ function renderList(){
   if(!DATA)return;
   // Always render HC module from full market list (not filtered)
   renderHCModule(DATA.markets);
-  const markets=DATA.markets.filter(m=>selCat==='all'||m.category===selCat);
+  const _srchQ = (document.getElementById('sb-search')?.value||'').trim().toLowerCase();
+  const markets=DATA.markets.filter(m=>{
+    const catOk = selCat==='all'||m.category===selCat;
+    if(!catOk) return false;
+    if(!_srchQ) return true;
+    return m.name.toLowerCase().includes(_srchQ)||m.id.toLowerCase().includes(_srchQ);
+  });
   if(!markets.length){
-    document.getElementById('mkt-list').innerHTML='<div style="padding:14px;color:var(--faint);font-size:10px">No markets</div>';
+    document.getElementById('mkt-list').innerHTML=`<div class="sb-no-results">${_srchQ?'No markets match \u201c'+_srchQ+'\u201d':'No markets in this category'}</div>`;
     return;
   }
   const _prevZones = [];
@@ -40222,17 +40461,22 @@ const OB_STEPS = [
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="rgba(200,169,110,0.5)" stroke-width="1.5"/><text x="16" y="21" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#c8a96e">7.2</text></svg>`,
     title: 'What the Score Means',
-    body: 'Each asset receives a composite score from 1–10. <strong style="color:var(--s1)">Above 6 = bullish</strong> conditions across most factors. <strong style="color:var(--sm1)">Below 4 = bearish</strong>. Around 5 = no clear signal. The score is built from seven weighted factors — tap any asset to see the full breakdown.'
+    body: 'Each of 62 markets receives a composite score from 1–10. <strong style="color:var(--s1)">Above 6 = bullish</strong> conditions across most factors. <strong style="color:var(--sm1)">Below 4 = bearish</strong>. Around 5 = no clear signal. The score is built from seven weighted factors — COT positioning, seasonality, momentum, fundamentals, macro regime, relative value, and put/call ratio.'
   },
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="3" rx="1.5" fill="rgba(200,169,110,0.6)"/><rect x="4" y="15" width="18" height="3" rx="1.5" fill="rgba(200,169,110,0.35)"/><rect x="4" y="22" width="21" height="3" rx="1.5" fill="rgba(200,169,110,0.25)"/></svg>`,
     title: 'How to Use the Home Screen',
-    body: 'The <strong style="color:var(--text)">High Conviction</strong> module surfaces today’s strongest multi-factor setups — check this first. The rankings list shows all markets with score and band label. Gold dots indicate confluence is active. Tap any row to drill into the full detail page.'
+    body: 'The <strong style="color:var(--text)">High Conviction</strong> section surfaces the strongest multi-factor setups — check this first. The rankings list shows all markets sorted by score. Gold dots signal confluence is active. Use the category filters or search bar to quickly find a specific market.'
   },
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="5" stroke="rgba(200,169,110,0.7)" stroke-width="1.5"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="rgba(200,169,110,0.4)" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-    title: 'Where to Find Depth',
-    body: 'The detail page shows <strong style="color:var(--text)">every factor, every weight, and exactly how the composite was calculated</strong>. When factors are aligning you’ll see the <strong style="color:var(--accent)">Confluence Active</strong> callout — that’s the system’s highest-conviction signal. Tap “How is this scored?” to open the full methodology.'
+    title: 'Factor Tabs — Full Depth',
+    body: 'Tap any market to open the detail page. Each tab — Positioning, Seasonal, Momentum, Fundamentals — shows the raw data behind each score. When factors align you’ll see the <strong style="color:var(--accent)">Confluence Active</strong> callout. Tap “How is this scored?” for the full methodology.'
+  },
+  {
+    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 6l2 7h7l-5.5 4 2 7L16 20l-5.5 4 2-7L7 13h7z" stroke="rgba(200,169,110,0.6)" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
+    title: 'A Note on Usage',
+    body: 'BH Weather System provides <strong style="color:var(--text)">directional bias indicators</strong> built from publicly available data (CFTC COT, macroeconomic releases, market prices). Scores are a research tool only — <strong style="color:var(--accent)">not financial advice</strong>. Always combine with your own analysis and risk management.'
   }
 ];
 
@@ -40415,5 +40659,53 @@ initNexusNoise();
 })();
 </script>
 </div><!-- /.app-wrap -->
+
+<!-- Persistent status bar: disclaimer + data sources -->
+<div id="app-status-bar">
+  <span id="asb-ts" class="asb-ts"></span>
+  <span class="asb-sep">|</span>
+  <span class="asb-src">Data: CFTC COT · ICE · Fed &amp; G10 central banks · Market prices</span>
+  <span class="asb-sep">|</span>
+  <span class="asb-disc">Directional bias indicators only — not financial advice</span>
+</div>
+<style>
+#app-status-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  height:22px;display:flex;align-items:center;gap:8px;
+  padding:0 14px;
+  background:rgba(4,4,5,0.94);
+  backdrop-filter:blur(10px);
+  border-top:1px solid rgba(255,255,255,0.05);
+  font-size:9px;font-family:var(--mono);color:var(--faint);
+  white-space:nowrap;overflow:hidden;
+}
+.asb-ts{color:var(--dim);font-weight:500;flex-shrink:0}
+.asb-sep{color:rgba(255,255,255,0.12);flex-shrink:0}
+.asb-src{color:var(--faint);flex-shrink:0;overflow:hidden;text-overflow:ellipsis}
+.asb-disc{color:var(--faint);opacity:0.7;flex-shrink:0;margin-left:auto}
+@media(max-width:700px){
+  #app-status-bar{display:none} /* mobile: no room — disclaimer shown in onboarding */
+}
+/* Push body content above the status bar on desktop */
+@media(min-width:701px){
+  body{padding-bottom:22px}
+}
+</style>
+<script>
+(function(){
+  function _updateAsb(){
+    const ts=document.getElementById('asb-ts');
+    const appTs=document.getElementById('ts');
+    if(ts&&appTs&&appTs.textContent&&appTs.textContent!=='\u2014'){
+      ts.textContent='Updated '+appTs.textContent;
+    }
+  }
+  // Poll for timestamp update
+  const _asbObs=new MutationObserver(_updateAsb);
+  const _tsEl=document.getElementById('ts');
+  if(_tsEl)_asbObs.observe(_tsEl,{childList:true,characterData:true,subtree:true});
+  _updateAsb();
+})();
+</script>
 </body>
 </html>
