@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import orjson
-import gc, os, pathlib, re
+import gc, glob, os, pathlib, re
 DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def _memory_mb() -> float:
@@ -3529,33 +3529,10 @@ def _parse_ff_value(v) -> Optional[float]:
 def _fetch_ff_month(year: int, month: int) -> list:
     """
     Fetch one month of Forex Factory calendar events.
-    Returns a list of day-dicts: [{dateline, events: [{ts, currency, name,
-    actual, forecast, previous, impactClass}]}]
-
-    FF calendar is rate-limited/blocked in this environment so we fall back
-    to an empty list — score_history proceeds using FRED/COT/regime data only.
+    FF calendar is Cloudflare-blocked server-side in this environment.
+    Returns an empty list immediately — callers fall back to FRED/COT/regime data.
     """
-    try:
-        import calendar as _cal
-        url = f"https://www.forexfactory.com/calendar?month={year}.{month:02d}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            "Accept": "application/json, text/html, */*",
-        }
-        r = requests.get(url, timeout=12, headers=headers)
-        if r.status_code != 200:
-            return []
-        # Try JSON first (FF sometimes returns JSON to API clients)
-        try:
-            data = r.json()
-            if isinstance(data, list):
-                return data
-        except Exception:
-            pass
-        # FF calendar blocked / HTML returned — return empty
-        return []
-    except Exception:
-        return []
+    return []
 
 
 def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
@@ -8263,6 +8240,53 @@ BIAS_LABELS = {
     (-2.0, -1.3): ("Very Bearish",    "#ef4444"),
 }
 
+# ── Module-level COT v2 signal keys tuple ─────────────────────────────────────
+# Defined once here and referenced in the main scoring loop + DX feedback loop
+# to avoid duplication and guarantee both sites always use the same key set.
+_COT_V2_SIGNAL_KEYS: tuple = (
+    "divergence", "exhaustion", "comm_momentum_signal", "oi_signal",
+    "alignment", "signal_detail", "turning", "lspec_chg_3w",
+    "normalise_signal", "convergence_signal", "flatten_signal",
+    "v2_signal_dir", "v2_consistency", "v2_spec_turn_strength",
+    "v2_phase_coherence", "v2_level_mult", "v2_raw_signal", "v2_shift",
+)
+
+# ── Weight-map router — single source of truth ─────────────────────────────────
+# Called from compute_weighted_bias, the main scoring loop, the DX feedback loop,
+# and score_history. Previously the 30-line if/elif chain was copy-pasted four
+# times; any future weight tier change now only needs editing here.
+_FX_MARKET_IDS = frozenset({
+    "6E", "6J", "6B", "6A", "6C", "6N", "6S", "6M", "DX",
+    "EURJPY", "EURGBP", "EURAUD", "EURCAD", "EURNZD", "EURCHF",
+    "GBPJPY", "GBPAUD", "GBPCAD", "GBPNZD", "GBPCHF",
+    "AUDJPY", "AUDCAD", "AUDNZD", "AUDCHF",
+    "CADJPY", "NZDJPY", "NZDCAD", "CHFJPY",
+})
+
+def _get_weight_map(market_id: str) -> dict:
+    """
+    Return the correct weight map dict for a given market_id.
+    Priority: ICE thin → per-asset specific → FX → fallback.
+    """
+    mid = market_id.upper()
+    if mid in {"Z", "R"}:                       return WEIGHTS_ICE_THIN
+    if mid in {"ES", "NQ", "YM", "RTY"}:        return WEIGHTS_EQUITY
+    if mid == "GC":                              return WEIGHTS_GOLD
+    if mid == "SI":                              return WEIGHTS_SILVER
+    if mid == "CL":                              return WEIGHTS_CRUDE
+    if mid == "NG":                              return WEIGHTS_NATGAS
+    if mid in {"ZB", "ZN", "ZF", "ZT"}:         return WEIGHTS_BONDS
+    if mid in {"ZC", "ZS", "ZW"}:               return WEIGHTS_GRAINS
+    if mid == "KC":                              return WEIGHTS_COFFEE
+    if mid in {"SB", "CC", "CT"}:               return WEIGHTS_SOFTS
+    if mid in {"HE", "LE", "GF"}:               return WEIGHTS_LIVESTOCK
+    if mid in {"BTC", "ETH"}:                   return WEIGHTS_CRYPTO
+    if mid in {"B", "GO", "HO", "RB"}:          return WEIGHTS_CRUDE
+    if mid == "RC":                              return WEIGHTS_COFFEE
+    if mid in _FX_MARKET_IDS:                   return WEIGHTS_FX
+    return WEIGHTS  # Fallback: base metals (HG, PA, PL) — genuine informed hedgers
+
+
 def compute_weighted_bias(scores: dict, market_id: str = "",
                            cot_detail: dict = None) -> dict:
     """
@@ -8290,52 +8314,8 @@ def compute_weighted_bias(scores: dict, market_id: str = "",
     drive follow-through. When ALL of these align around an active
     COT story, it is genuinely a high-conviction setup.
     """
-    # ── v3 weight routing — 14 research-backed per-asset tiers ─────────────────────────
-    # Priority order: ICE thin → per-asset specific → FX → fallback WEIGHTS
-    _ICE_THIN_MARKETS  = {"Z", "R"}
-    _FX_MARKETS        = {"6E", "6J", "6B", "6A", "6C", "6N", "6S", "6M", "DX",
-                          "EURJPY", "EURGBP", "EURAUD", "EURCAD", "EURNZD", "EURCHF",
-                          "GBPJPY", "GBPAUD", "GBPCAD", "GBPNZD", "GBPCHF",
-                          "AUDJPY", "AUDCAD", "AUDNZD", "AUDCHF",
-                          "CADJPY", "NZDJPY", "NZDCAD", "CHFJPY"}
-    _EQUITY_MARKETS    = {"ES", "NQ", "YM", "RTY"}
-    _BOND_MARKETS      = {"ZB", "ZN", "ZF", "ZT"}
-    _GRAIN_MARKETS     = {"ZC", "ZS", "ZW"}
-    _LIVESTOCK_MARKETS = {"HE", "LE", "GF"}
-    _SOFTS_MARKETS     = {"SB", "CC", "CT"}  # KC handled separately (higher COT)
-    _CRYPTO_MARKETS    = {"BTC", "ETH"}
-    if market_id in _ICE_THIN_MARKETS:
-        w_map = WEIGHTS_ICE_THIN
-    elif market_id in _EQUITY_MARKETS:
-        w_map = WEIGHTS_EQUITY
-    elif market_id == "GC":
-        w_map = WEIGHTS_GOLD
-    elif market_id == "SI":
-        w_map = WEIGHTS_SILVER
-    elif market_id == "CL":
-        w_map = WEIGHTS_CRUDE
-    elif market_id == "NG":
-        w_map = WEIGHTS_NATGAS
-    elif market_id in _BOND_MARKETS:
-        w_map = WEIGHTS_BONDS
-    elif market_id in _GRAIN_MARKETS:
-        w_map = WEIGHTS_GRAINS
-    elif market_id == "KC":
-        w_map = WEIGHTS_COFFEE
-    elif market_id in _SOFTS_MARKETS:
-        w_map = WEIGHTS_SOFTS
-    elif market_id in _LIVESTOCK_MARKETS:
-        w_map = WEIGHTS_LIVESTOCK
-    elif market_id in _CRYPTO_MARKETS:
-        w_map = WEIGHTS_CRYPTO
-    elif market_id in {"B", "GO", "HO", "RB"}:
-        w_map = WEIGHTS_CRUDE   # ICE/NYMEX petroleum derivatives: same OPEC/seasonal logic as CL
-    elif market_id == "RC":
-        w_map = WEIGHTS_COFFEE  # Robusta coffee: same commercial hedger structure as Arabica KC
-    elif market_id in _FX_MARKETS:
-        w_map = WEIGHTS_FX
-    else:
-        w_map = WEIGHTS  # Fallback: base metals (HG, PA, PL, HG) — genuine informed hedgers
+    # ── Weight routing via shared helper (single source of truth) ──────────────
+    w_map = _get_weight_map(market_id)
     total_w = sum(w_map[k] for k in w_map if k in scores)
     if total_w == 0:
         return {"weighted": 5.0, "bias": "Neutral", "color": "#94a3b8", "confluence_bonus": 0.0}
@@ -8427,20 +8407,17 @@ def compute_weighted_bias(scores: dict, market_id: str = "",
 # ── Weekly Score Snapshots ────────────────────────────────────────────────────
 # Disk-persisted daily snapshots so score deltas survive server restarts.
 # Snapshot = {market_id: weighted_score}, stored as JSON in DATA_DIR.
-_SNAPSHOT_DIR = DATA_DIR  # stored alongside backend.py
-
 def _save_scores_snapshot(scores_map: dict) -> None:
     """Persist today's {market_id: weighted_score} map to disk."""
     try:
-        from datetime import date as _date
-        fname = os.path.join(_SNAPSHOT_DIR, f"scores_snapshot_{_date.today().isoformat()}.json")
+        fname = os.path.join(DATA_DIR, f"scores_snapshot_{date.today().isoformat()}.json")
         with open(fname, "w") as fh:
             json.dump({"saved_at": time.time(), "scores": scores_map}, fh)
         # Auto-prune snapshots older than 14 days
-        import glob as _glob
-        for old in _glob.glob(os.path.join(_SNAPSHOT_DIR, "scores_snapshot_*.json")):
-            if os.path.getmtime(old) < time.time() - 14 * 86400:
-                try: os.remove(old)
+        cutoff = time.time() - 14 * 86400
+        for old_f in glob.glob(os.path.join(DATA_DIR, "scores_snapshot_*.json")):
+            if os.path.getmtime(old_f) < cutoff:
+                try: os.remove(old_f)
                 except Exception: pass
     except Exception as _e:
         print(f"[snapshot] save failed: {_e}")
@@ -8448,19 +8425,17 @@ def _save_scores_snapshot(scores_map: dict) -> None:
 def _load_weekly_snapshot() -> dict:
     """Load the closest snapshot that is 5–9 days old (tolerates weekend downtime)."""
     try:
-        from datetime import date as _date, timedelta as _td
-        today = _date.today()
+        today = date.today()
         for days_back in range(5, 10):
-            candidate = today - _td(days=days_back)
-            fname = os.path.join(_SNAPSHOT_DIR, f"scores_snapshot_{candidate.isoformat()}.json")
+            candidate = today - timedelta(days=days_back)
+            fname = os.path.join(DATA_DIR, f"scores_snapshot_{candidate.isoformat()}.json")
             if os.path.exists(fname):
                 with open(fname) as fh:
                     return json.load(fh).get("scores", {})
         # Fallback: any snapshot older than 4 days
-        import glob as _glob
         cutoff = time.time() - 4 * 86400
         candidates = sorted(
-            [f for f in _glob.glob(os.path.join(_SNAPSHOT_DIR, "scores_snapshot_*.json"))
+            [f for f in glob.glob(os.path.join(DATA_DIR, "scores_snapshot_*.json"))
              if os.path.getmtime(f) < cutoff],
             reverse=True
         )
@@ -8697,14 +8672,19 @@ async def _do_scores_refresh(force: bool = False):
             merged["sspec_net_blended"] = zscore_to_contracts(merged["sspec_z_blended"], p_aligned["sspec_net"].astype(float))
     
             # ── Write blended values back into primary df ───────────────────
+            # Vectorised merge — O(n) vs O(n²) iterrows approach.
             out = primary_df.copy()
             out["date"] = pd.to_datetime(out["date"])
-            for _, row in merged.iterrows():
-                mask = out["date"] == row["date"]
-                if mask.any():
-                    out.loc[mask, "comm_net"]  = row["comm_net_blended"]
-                    out.loc[mask, "lspec_net"] = row["lspec_net_blended"]
-                    out.loc[mask, "sspec_net"] = row["sspec_net_blended"]
+            blend_patch = merged[["date", "comm_net_blended", "lspec_net_blended", "sspec_net_blended"]].copy()
+            blend_patch["date"] = pd.to_datetime(blend_patch["date"])
+            out = out.merge(blend_patch, on="date", how="left", suffixes=("", "_new"))
+            for col in ("comm_net", "lspec_net", "sspec_net"):
+                new_col = col + "_new"
+                if new_col in out.columns:
+                    # Only overwrite rows that matched (non-NaN in the patch column)
+                    mask = out[new_col].notna()
+                    out.loc[mask, col] = out.loc[mask, new_col]
+                    out.drop(columns=[new_col], inplace=True)
     
             print(f"[COT ZBLEND] {len(merged)} dates blended via z-score normalization "
                   f"({primary_weight:.0%} primary / {sw:.0%} secondary)")
@@ -8799,7 +8779,7 @@ async def _do_scores_refresh(force: bool = False):
     
         seasonal_data = score_seasonality(mid)
         momentum_data = score_momentum(market["yf"])
-        import gc as _gc; _gc.collect()  # release yfinance buffers between markets
+        gc.collect()  # release yfinance buffers between markets
         macro_data    = get_macro_score_for_market(mid, macro, ff_macro=ff_macro)
         _news_sent    = news_ctx.get("narrative_scores", {}).get(mid)
         regime_data   = get_regime_score_for_market(mid, regime, news_sentiment=_news_sent)
@@ -8819,17 +8799,10 @@ async def _do_scores_refresh(force: bool = False):
             scores["pcr"] = pcr_data["score"]
     
         # Build a merged cot_detail dict for compute_weighted_bias.
-        # compute_cot_score_v2 returns v2 signal keys (divergence, convergence_signal,
-        # normalise_signal, flatten_signal, exhaustion, comm_momentum_signal) at the TOP LEVEL
-        # of cot_data, NOT inside cot_data["detail"]. We must merge both so story_active
-        # in compute_weighted_bias can see them. Without this the confluence bonus never fires.
-        _COT_V2_SIGNAL_KEYS = (
-            "divergence", "exhaustion", "comm_momentum_signal", "oi_signal",
-            "alignment", "signal_detail", "turning", "lspec_chg_3w",
-            "normalise_signal", "convergence_signal", "flatten_signal",
-            "v2_signal_dir", "v2_consistency", "v2_spec_turn_strength",
-            "v2_phase_coherence", "v2_level_mult", "v2_raw_signal", "v2_shift",
-        )
+        # compute_cot_score_v2 returns v2 signal keys at the TOP LEVEL of cot_data, NOT inside
+        # cot_data["detail"]. We must merge both so story_active in compute_weighted_bias can
+        # see them. Without this the confluence bonus never fires.
+        # _COT_V2_SIGNAL_KEYS is the module-level tuple defined above the weight maps.
         _cot_detail_inner  = cot_data.get("detail", {}) or {}
         _cot_v2_signals    = {k: cot_data[k] for k in _COT_V2_SIGNAL_KEYS if k in cot_data}
         _cot_detail_merged = {**_cot_detail_inner, **_cot_v2_signals, "score": cot_data.get("score", 5.0)}
@@ -8853,50 +8826,7 @@ async def _do_scores_refresh(force: bool = False):
     
         # Determine the actual weight map used for this market (mirrors compute_weighted_bias routing)
         # This is exposed per-market so the frontend can render the correct weight mini-bars
-        _ICE_THIN_MKTS  = {"Z", "R"}
-        _FX_MKTS        = {"6E","6J","6B","6A","6C","6N","6S","6M","DX",
-                           "EURJPY","EURGBP","EURAUD","EURCAD","EURNZD","EURCHF",
-                           "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
-                           "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
-                           "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
-        _EQUITY_MKTS    = {"ES", "NQ", "YM", "RTY"}
-        _BOND_MKTS      = {"ZB", "ZN", "ZF", "ZT"}
-        _GRAIN_MKTS     = {"ZC", "ZS", "ZW"}
-        _LIVESTOCK_MKTS = {"HE", "LE", "GF"}
-        _SOFTS_MKTS     = {"SB", "CC", "CT"}
-        _CRYPTO_MKTS    = {"BTC", "ETH"}
-        if mid in _ICE_THIN_MKTS:
-            mkt_weights = WEIGHTS_ICE_THIN
-        elif mid in _EQUITY_MKTS:
-            mkt_weights = WEIGHTS_EQUITY
-        elif mid == "GC":
-            mkt_weights = WEIGHTS_GOLD
-        elif mid == "SI":
-            mkt_weights = WEIGHTS_SILVER
-        elif mid == "CL":
-            mkt_weights = WEIGHTS_CRUDE
-        elif mid == "NG":
-            mkt_weights = WEIGHTS_NATGAS
-        elif mid in _BOND_MKTS:
-            mkt_weights = WEIGHTS_BONDS
-        elif mid in _GRAIN_MKTS:
-            mkt_weights = WEIGHTS_GRAINS
-        elif mid == "KC":
-            mkt_weights = WEIGHTS_COFFEE
-        elif mid in _SOFTS_MKTS:
-            mkt_weights = WEIGHTS_SOFTS
-        elif mid in _LIVESTOCK_MKTS:
-            mkt_weights = WEIGHTS_LIVESTOCK
-        elif mid in _CRYPTO_MKTS:
-            mkt_weights = WEIGHTS_CRYPTO
-        elif mid in {"B", "GO", "HO", "RB"}:
-            mkt_weights = WEIGHTS_CRUDE
-        elif mid == "RC":
-            mkt_weights = WEIGHTS_COFFEE
-        elif mid in _FX_MKTS:
-            mkt_weights = WEIGHTS_FX
-        else:
-            mkt_weights = WEIGHTS  # Fallback: base metals (HG, PA, PL)
+        mkt_weights = _get_weight_map(mid)
         # Only expose weights for factors actually present in this market's scores
         active_weights = {k: v for k, v in mkt_weights.items() if k in scores_out}
     
@@ -9015,17 +8945,10 @@ async def _do_scores_refresh(force: bool = False):
             }
             factor_scores["regime"] = new_regime_score
             # Must include top-level v2 signals so confluence bonus can fire after DX tilt.
-            # cot score stored in scores_out["cot"] has full cot_data at ["detail"] key.
+            # Uses module-level _COT_V2_SIGNAL_KEYS — same tuple as the main scoring loop.
             _dx_cot_raw = mkt["scores"].get("cot", {})
             _dx_cot_inner = _dx_cot_raw.get("detail", {}) or {}
-            _DX_V2_KEYS = (
-                "divergence", "exhaustion", "comm_momentum_signal", "oi_signal",
-                "alignment", "signal_detail", "turning", "lspec_chg_3w",
-                "normalise_signal", "convergence_signal", "flatten_signal",
-                "v2_signal_dir", "v2_consistency", "v2_spec_turn_strength",
-                "v2_phase_coherence", "v2_level_mult", "v2_raw_signal", "v2_shift",
-            )
-            _dx_v2_sigs = {k: _dx_cot_raw[k] for k in _DX_V2_KEYS if k in _dx_cot_raw}
+            _dx_v2_sigs = {k: _dx_cot_raw[k] for k in _COT_V2_SIGNAL_KEYS if k in _dx_cot_raw}
             cot_detail_for_mid = {**_dx_cot_inner, **_dx_v2_sigs, "score": _dx_cot_raw.get("score", 5.0)}
             new_bias = compute_weighted_bias(factor_scores, market_id=mid, cot_detail=cot_detail_for_mid)
     
@@ -10571,49 +10494,9 @@ async def get_score_history(market: str):
             relval_periods     = _pf["relval_periods"]
             pcr_s_const        = _pf["pcr_s_const"]
     
-        # ── Determine weights ────────────────────────────────────────────────────
+        # ── Determine weights via shared router ──────────────────────────────────
         cat = mkt.get("category", "")
-        _SH_FX_MKTS = {"6E","6J","6B","6A","6C","6N","6S","6M","DX",
-                       "EURJPY","EURGBP","EURAUD","EURCAD","EURNZD","EURCHF",
-                       "GBPJPY","GBPAUD","GBPCAD","GBPNZD","GBPCHF",
-                       "AUDJPY","AUDCAD","AUDNZD","AUDCHF",
-                       "CADJPY","NZDJPY","NZDCAD","CHFJPY"}
-        _SH_BOND_MKTS     = {"ZB", "ZN", "ZF", "ZT"}
-        _SH_GRAIN_MKTS    = {"ZC", "ZS", "ZW"}
-        _SH_LIVESTOCK_MKTS= {"HE", "LE", "GF"}
-        _SH_SOFTS_MKTS    = {"SB", "CC", "CT"}
-        if m_upper in {"Z", "R"}:
-            w_map = WEIGHTS_ICE_THIN
-        elif cat == "equity" or m_upper in {"ES", "NQ", "YM", "RTY"}:
-            w_map = WEIGHTS_EQUITY
-        elif m_upper == "GC":
-            w_map = WEIGHTS_GOLD
-        elif m_upper == "SI":
-            w_map = WEIGHTS_SILVER
-        elif m_upper == "CL":
-            w_map = WEIGHTS_CRUDE
-        elif m_upper == "NG":
-            w_map = WEIGHTS_NATGAS
-        elif m_upper in _SH_BOND_MKTS:
-            w_map = WEIGHTS_BONDS
-        elif m_upper in _SH_GRAIN_MKTS:
-            w_map = WEIGHTS_GRAINS
-        elif m_upper == "KC":
-            w_map = WEIGHTS_COFFEE
-        elif m_upper in _SH_SOFTS_MKTS:
-            w_map = WEIGHTS_SOFTS
-        elif m_upper in _SH_LIVESTOCK_MKTS:
-            w_map = WEIGHTS_LIVESTOCK
-        elif cat == "crypto":
-            w_map = WEIGHTS_CRYPTO
-        elif m_upper in {"B", "GO", "HO", "RB"}:
-            w_map = WEIGHTS_CRUDE
-        elif m_upper == "RC":
-            w_map = WEIGHTS_COFFEE
-        elif m_upper in _SH_FX_MKTS or cat in ("fx", "fx_cross"):
-            w_map = WEIGHTS_FX
-        else:
-            w_map = WEIGHTS  # Fallback: base metals (HG, PA, PL)
+        w_map = _get_weight_map(m_upper)
     
         # ── CROSS PAIR: walk-forward Briese differential ─────────────────────────
         if mkt.get("cross"):
@@ -10708,8 +10591,11 @@ async def get_score_history(market: str):
                 price_date = bar_date.normalize()
                 close = price_lookup.get(price_date)
                 if close is None:
+                    # Find nearest date within 5 days, sort keys by proximity to price_date
                     cands = {k: v for k, v in price_lookup.items() if abs((k - price_date).days) <= 5}
-                    close = next(iter(sorted(cands.values(), key=lambda x: abs(x - list(cands.values())[0]))), None) if cands else None
+                    if cands:
+                        nearest_key = min(cands.keys(), key=lambda k: abs((k - price_date).days))
+                        close = cands[nearest_key]
                 prices.append(round(float(close), 4) if close is not None else None)
     
             dates  = dates[-MAX_RETURN:]
