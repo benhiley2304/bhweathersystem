@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function(){
   /* ── Text: sharp, iOS-grade hierarchy ── */
   --text:   #f2f6ff;       /* primary — crisp cool-white */
   --dim:    #bec8de;       /* secondary — clearly readable */
-  --faint:  #9daabf;       /* tertiary — visible labels (WCAG AA raised) */
+  --faint:  #aab5cc;       /* tertiary — visible labels (WCAG AA raised) */
   --mono:   'JetBrains Mono', monospace;
   --body:   'Inter', sans-serif;
   --ease:   cubic-bezier(0.16,1,0.3,1);
@@ -409,6 +409,10 @@ a{color:inherit;text-decoration:none}
 @keyframes shimmerSweep{
   0%{transform:translateX(-100%)}
   100%{transform:translateX(200%)}
+}
+@keyframes shimmer{
+  0%{background-position:-200% 0}
+  100%{background-position:200% 0}
 }
 @keyframes glowPulse{
   0%,100%{opacity:0.5}
@@ -17168,23 +17172,25 @@ h3.label,
   .ov-pills{padding:9px 10px 2px;margin-top:8px;}
   /* Attribution table — drop score bar column on mobile */
   .ov-attr-head{
-    grid-template-columns:1fr 46px 44px 88px;
+    grid-template-columns:1fr 44px 80px;
     padding:7px 12px;
   }
   .ov-arow{
-    grid-template-columns:1fr 46px 44px 88px;
+    grid-template-columns:1fr 44px 80px;
     padding:10px 12px;
   }
   .ov-atotal{
-    grid-template-columns:1fr 46px 44px 88px;
+    grid-template-columns:1fr 44px 80px;
     padding:10px 12px;
   }
   .ov-abar-wrap{display:none;}
   .ov-ah-bar{display:none;}
+  .ov-ah-weight{display:none;}
   .ov-arr{display:none;}
   .ov-acont-bar-wrap{display:none;}
-  .ov-acont-val{font-size:12px;}
-  .ov-at-contrib{padding-left:10px;}
+  .ov-acont-val{font-size:11px;white-space:nowrap;}
+  .ov-awt{display:none;}
+  .ov-at-contrib{padding-left:8px;}
   .ov-at-num{font-size:15px;}
   /* Confluence strip — stack on mobile */
   .ov-conf-strip{flex-direction:column;align-items:flex-start;gap:6px;padding:9px 12px;}
@@ -23654,6 +23660,20 @@ canvas.chartjs-render-monitor{
   .ov-nav{
     background:rgba(17,18,20,0.96) !important;
     border-bottom:1px solid rgba(255,255,255,0.05) !important;
+    position:relative;
+  }
+  /* Right-side fade hint: indicates more tabs to swipe to */
+  .ov-nav::after{
+    content:'';
+    position:sticky;
+    right:0;
+    top:0;
+    flex-shrink:0;
+    width:32px;
+    height:100%;
+    background:linear-gradient(to right,transparent,rgba(17,18,20,0.96));
+    pointer-events:none;
+    z-index:2;
   }
   .ov-nt{
     font-size:10.5px !important;
@@ -23833,7 +23853,7 @@ canvas.chartjs-render-monitor{
       <div class="sb-top">
         <div style="display:flex;align-items:center;gap:6px">
           <h2>Rankings</h2>
-          <button class="meth-q-btn" onclick="openMethModal(selMkt||'ES')" title="Scoring Methodology">?</button>
+          <button class="meth-q-btn" onclick="openMethModal(selMkt||'ES')" title="Scoring Methodology — how factors are weighted and combined">METHODOLOGY</button>
         </div>
         <span id="sb-count">—</span>
       </div>
@@ -24218,6 +24238,14 @@ function renderAll(){
       const utcStr=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' UTC';
       tsEl.textContent=relStr;
       tsEl.title=utcStr;
+      // Staleness warning: amber if >30m, red if >60m
+      if(ageMin>=60){
+        tsEl.style.color='var(--sm1)'; tsEl.style.fontWeight='700';
+      } else if(ageMin>=30){
+        tsEl.style.color='var(--gold)'; tsEl.style.fontWeight='600';
+      } else {
+        tsEl.style.color=''; tsEl.style.fontWeight='';
+      }
     }
     _updateRelTs();
     if(!window._relTsInterval) window._relTsInterval=setInterval(_updateRelTs,60000);
@@ -24689,7 +24717,7 @@ function renderOverview(){
           <div class="mob-hero-pill-div"></div>
           <div class="mob-hero-pill">
             <span class="mob-hero-pill-lbl">Bull / Bear</span>
-            <span class="mob-hero-pill-val"><span style="color:#26c97a">${bull}</span><span style="color:rgba(255,255,255,0.25);font-size:10px;margin:0 3px">/</span><span style="color:#d63a24">${bear}</span></span>
+            <span class="mob-hero-pill-val"><span style="color:#26c97a">↑${bull}</span><span style="color:rgba(255,255,255,0.20);font-size:10px;margin:0 3px">·</span><span style="color:#d63a24">↓${bear}</span><span style="font-size:9px;color:var(--faint);font-weight:400;margin-left:3px">mkts</span></span>
           </div>
         </div>
         <div class="mob-hero-sent">
@@ -33628,8 +33656,10 @@ function buildOverview(m){
   }).join('');
 
   // Verdict chip label
-  const chipCls = ws>=6.5?'bull':ws<=3.5?'bear':'neut';
-  const chipLabel = ws>=6.5?'Bullish':ws<=3.5?'Bearish':'Neutral';
+  // Use m.bias directly (from backend) for most accurate label — fallback to threshold logic
+  const _biasSrc = m.bias || '';
+  const chipCls = ws>=6.2?'bull':ws<=3.8?'bear':'neut';
+  const chipLabel = _biasSrc || (ws>=6.2?'Lean Bullish':ws<=3.8?'Lean Bearish':'Neutral');
 
   // Confluence adjustment note for total row
   const hasConfBonus = m.confluence_bonus && Math.abs(m.confluence_bonus) >= 0.15;
@@ -34736,7 +34766,7 @@ function switchTab(tab){
 
 // ─── Mobile swipe navigation (IDEA-08) ────────────────────────────────────
 (function initSwipeNav(){
-  const TAB_ORDER = ['overview','cot','seasonal','momentum','macro','relval','regime'];
+  const TAB_ORDER = ['overview','cot','seasonal','momentum','macro','relval','regime','pcr','history'];
   let _swipeStartX = 0, _swipeStartY = 0;
   document.addEventListener('touchstart', function(e){
     if(e.touches.length !== 1) return;
@@ -37042,7 +37072,8 @@ function relvalTab(m){
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-bottom:3px">
           <span style="font-size:13.5px;font-weight:800;color:${cfg.col};letter-spacing:0.02em;line-height:1">${cfg.title}</span>${strBadge}
         </div>
-        <div style="font-size:8.5px;color:var(--dim);line-height:1.4;margin-bottom:${sigNotes?6:0}px">${cfg.sub}</div>
+        <div style="font-size:8.5px;color:var(--dim);line-height:1.4;margin-bottom:${sigNotes||sigType!=='none'?5:0}px">${cfg.sub}</div>
+        ${sigType!=='none'?`<div style="font-size:8px;color:var(--faint);line-height:1.5;padding:4px 7px;background:rgba(255,255,255,0.018);border-left:2px solid rgba(173,184,208,0.25);border-radius:0 4px 4px 0;margin-bottom:${sigNotes?5:0}px"><strong style="color:rgba(173,184,208,0.7)">Scope:</strong> RelVal Factor Only — carries <strong style="color:rgba(173,184,208,0.7)">1% weight</strong> in the composite. Verify vs COT, seasonal, and momentum before acting.</div>`:''}
         ${sigNotes?`<div style="font-size:9.5px;color:var(--faint);line-height:1.55;padding:5px 8px;background:rgba(255,255,255,0.025);border-left:2px solid ${cfg.col}50;border-radius:0 4px 4px 0">${sigNotes}</div>`:''}
       </div>
       <div style="text-align:right;flex-shrink:0">
@@ -38346,6 +38377,7 @@ function regimeTab(m){
           <div style="flex:1">
             <div style="font-size:12px;font-weight:700;color:${_isLowMacro?'var(--dim)':msCol};margin-bottom:3px">${_isLowMacro?'Low Macro Sensitivity':msLabel}</div>
             <div style="font-size:9px;color:var(--dim);line-height:1.4">Macro environment for <strong>${m.name}</strong> &mdash; weighted composite of 5 signals</div>
+          <div style="font-size:8px;color:var(--faint);margin-top:3px">Feeds into the <strong style="color:rgba(200,169,110,0.7)">Fundamentals</strong> factor &mdash; see Overview for composite weight</div>
           </div>
         </div>
         ${_isLowMacro?`<div style="display:flex;align-items:flex-start;gap:7px;padding:7px 10px;border-radius:7px;background:rgba(173,184,208,0.06);border:1px solid rgba(173,184,208,0.15);margin-bottom:10px">
@@ -39168,6 +39200,7 @@ function pcrTabStub(m){
       <!-- Contrarian note -->
       <div style="background:rgba(232,121,249,0.06);border:1px solid rgba(232,121,249,0.18);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:10px;color:var(--dim);line-height:1.5">
         <span style="color:#e879f9;font-weight:700">Contrarian Indicator</span> — High put/call ratio = market fear = historically <span style="color:var(--s1)">bullish</span>. Low ratio = market greed = historically <span style="color:var(--sm1)">bearish</span>.${isEtfOrCrypto?' Score uses asset-specific options data ('+source+').':' Equities: full bull &amp; bear edge.'}
+        <div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(232,121,249,0.12);font-size:9px;color:var(--faint);line-height:1.5">PCR carries a <strong style="color:var(--dim)">10% composite weight</strong> — a bearish read here does not override a bullish composite from stronger factors. Use as a <span style="color:#e879f9">contrarian confirmation</span>, not a standalone signal.</div>
         <div style="margin-top:6px;font-size:9px;color:var(--faint)">
           Source: <span style="color:var(--dim)">${source}</span> &nbsp;|&nbsp;
           ${tierLabel}
@@ -39672,18 +39705,44 @@ async function loadHistoryTab(marketId){
   if(histLastMkt === marketId && histChartInst) return;
   histLastMkt = marketId;
 
-  el.innerHTML = `<div style="padding:40px 30px;display:flex;flex-direction:column;align-items:center;gap:12px">
-      <div style="width:36px;height:36px;border-radius:50%;border:2px solid rgba(200,169,110,0.15);border-top-color:rgba(200,169,110,0.65);animation:spin 1s linear infinite"></div>
-      <div style="font-family:var(--nexus-head);font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(180,200,235,0.55)">Replaying Score History</div>
+  el.innerHTML = `<div style="padding:24px 20px 20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <div style="width:32px;height:32px;border-radius:50%;border:2px solid rgba(200,169,110,0.12);border-top-color:rgba(200,169,110,0.55);animation:spin 1s linear infinite;flex-shrink:0"></div>
+        <div>
+          <div style="font-family:var(--nexus-head);font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(180,200,235,0.55);margin-bottom:3px">Replaying Score History</div>
+          <div style="font-size:9.5px;color:rgba(190,200,222,0.40)">Large markets may take up to 60 seconds to load</div>
+        </div>
+      </div>
+      <!-- Shimmer skeleton -->
+      <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:9px;padding:12px 14px;margin-bottom:10px;overflow:hidden;position:relative">
+        <div style="height:10px;width:55%;border-radius:4px;background:rgba(255,255,255,0.06);margin-bottom:16px"></div>
+        <div style="height:120px;border-radius:6px;background:rgba(255,255,255,0.04);position:relative;overflow:hidden">
+          <div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.05) 50%,transparent 100%);animation:shimmer 1.6s ease-in-out infinite;background-size:200% 100%"></div>
+          <!-- Fake bar silhouette -->
+          <div style="display:flex;align-items:flex-end;gap:3px;height:100%;padding:0 8px">
+            ${Array.from({length:20},(_,i)=>`<div style="flex:1;height:${30+Math.round(Math.sin(i*0.7)*25+Math.random()*20)}%;border-radius:2px 2px 0 0;background:rgba(255,255,255,0.05)"></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="height:32px;flex:1;border-radius:7px;background:rgba(38,201,122,0.06);border:1px solid rgba(38,201,122,0.12);position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 50%,transparent 100%);animation:shimmer 1.6s ease-in-out infinite 0.3s;background-size:200% 100%"></div></div>
+        <div style="height:32px;flex:1;border-radius:7px;background:rgba(240,64,64,0.06);border:1px solid rgba(240,64,64,0.10);position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 50%,transparent 100%);animation:shimmer 1.6s ease-in-out infinite 0.6s;background-size:200% 100%"></div></div>
+      </div>
     </div>`;
   if(histChartInst){ try{ histChartInst.destroy(); }catch(e){} histChartInst=null; }
 
+  // Use AbortController so switching markets mid-load cancels the stale fetch
+  if(window._historyAbort) window._historyAbort.abort();
+  window._historyAbort = new AbortController();
+  const _histSignal = window._historyAbort.signal;
+
   let data;
   try{
-    const res = await fetch(API+'/api/score_history?market='+encodeURIComponent(marketId));
+    const res = await fetch(API+'/api/score_history?market='+encodeURIComponent(marketId), { signal: _histSignal });
     data = await res.json();
   }catch(e){
-    el.innerHTML = `<div style="padding:20px;text-align:center;color:#e06030;font-size:11px">Failed to load history.</div>`;
+    if(e.name === 'AbortError') return; // silently ignore — user switched market
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:#e06030;font-size:11px">Failed to load history. Please try again.</div>`;
     return;
   }
 
@@ -40271,6 +40330,38 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
   // ── Datasets ─────────────────────────────────────────────
   const datasets=[];
 
+  // ±1σ confidence band derived from the variance of the all-seasons curve
+  // σ is estimated as the RMS of absolute deviations of all values from zero (typical historical spread)
+  // Displayed as a fill between upper/lower bounds to give the user context on typical range
+  const _nonNull = allV.filter(v=>v!=null);
+  const _rms = _nonNull.length>0 ? Math.sqrt(_nonNull.reduce((s,v)=>s+v*v,0)/_nonNull.length) : 2;
+  const _sigma = Math.max(0.5, _rms * 0.65); // scale to approx ±1σ visual band
+  const sigmaUpper = allV.map(v => v != null ? v + _sigma : null);
+  const sigmaLower = allV.map(v => v != null ? v - _sigma : null);
+
+  // Upper band (invisible, just for fill reference)
+  datasets.push({
+    label:'_sigma_upper',
+    data:sigmaUpper,
+    borderColor:'transparent',
+    borderWidth:0,
+    pointRadius:0,
+    tension:0.42,
+    fill:false, // filled from below
+    order:20,
+  });
+  // Lower band fill — fills between lower and upper
+  datasets.push({
+    label:'\u00b11\u03c3 Band',
+    data:sigmaLower,
+    borderColor:'transparent',
+    borderWidth:0,
+    pointRadius:0,
+    tension:0.42,
+    fill:{target:'-1',above:'rgba(107,124,255,0.07)',below:'rgba(107,124,255,0.07)'},
+    order:19,
+  });
+
   // Historical Avg — PAST segment
   datasets.push({
     label:'Historical Avg',
@@ -40351,7 +40442,7 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
           callbacks:{
             title:items=>'TD '+items[0].label+' — '+getMonth(parseInt(items[0].label),months),
             label:item=>{
-              if(item.dataset.label==='Projected')return null;
+              if(item.dataset.label==='Projected'||item.dataset.label==='_sigma_upper'||item.dataset.label==='±1σ Band')return null;
               const v=item.raw;if(v==null)return null;
               const lbl=item.dataset.label;
               const pref=lbl==='2026 Actual YTD'?'● ':'  ';
