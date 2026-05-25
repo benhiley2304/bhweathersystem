@@ -1099,7 +1099,9 @@ def compute_rel_val_score(market_id: str) -> dict:
     # BULL: above SMA200 >=1.5% AND above EMA50 (both MAs confirm trend)
     # BEAR: below EMA50 >=1.5% OR below SMA200 >=1.5% (rejected by either MA)
     import pandas as _pdtg
-    _ema_short_tg = _pdtg.Series(closes_arr.astype(float)).ewm(span=10, adjust=False).mean().values
+    # span=50 (EMA50) is intentional — span=10 flips direction on 1-2 bad weeks,
+    # constantly toggling the trend gate and corrupting the relval signal with noise.
+    _ema_short_tg = _pdtg.Series(closes_arr.astype(float)).ewm(span=50, adjust=False).mean().values
     ema_short_rv = float(_ema_short_tg[-1]) if len(_ema_short_tg) > 0 and not _pdtg.isna(_ema_short_tg[-1]) else None
 
     if curr_price is not None and sma200 is not None and sma200 > 0:
@@ -5748,7 +5750,10 @@ def compute_stock_climate() -> dict:
                     if not hy_wide and hy_dir < -10:
                         hy_quad, hy_qs, hy_ql = "Growth", 2, "Narrow & Tightening"
                     elif not hy_wide and hy_dir > 10:
-                        hy_quad, hy_qs, hy_ql = "Overheating", 1, "Narrow & Widening"
+                        # Overheating: spreads still tight but widening = late-cycle warning.
+                        # Verdad research: weakest subsequent equity returns of the four quadrants.
+                        # Correctly scored 0 (neutral warning), not +1 (bullish).
+                        hy_quad, hy_qs, hy_ql = "Overheating", 0, "Narrow & Widening"
                     elif not hy_wide:
                         hy_quad, hy_qs, hy_ql = "Stable", 1, "Narrow & Stable"
                     elif hy_wide and hy_dir < -15:
@@ -8419,6 +8424,53 @@ def compute_weighted_bias(scores: dict, market_id: str = "",
 # MAIN API ENDPOINTS
 # ============================================================
 
+# ── Weekly Score Snapshots ────────────────────────────────────────────────────
+# Disk-persisted daily snapshots so score deltas survive server restarts.
+# Snapshot = {market_id: weighted_score}, stored as JSON in DATA_DIR.
+_SNAPSHOT_DIR = DATA_DIR  # stored alongside backend.py
+
+def _save_scores_snapshot(scores_map: dict) -> None:
+    """Persist today's {market_id: weighted_score} map to disk."""
+    try:
+        from datetime import date as _date
+        fname = os.path.join(_SNAPSHOT_DIR, f"scores_snapshot_{_date.today().isoformat()}.json")
+        with open(fname, "w") as fh:
+            json.dump({"saved_at": time.time(), "scores": scores_map}, fh)
+        # Auto-prune snapshots older than 14 days
+        import glob as _glob
+        for old in _glob.glob(os.path.join(_SNAPSHOT_DIR, "scores_snapshot_*.json")):
+            if os.path.getmtime(old) < time.time() - 14 * 86400:
+                try: os.remove(old)
+                except Exception: pass
+    except Exception as _e:
+        print(f"[snapshot] save failed: {_e}")
+
+def _load_weekly_snapshot() -> dict:
+    """Load the closest snapshot that is 5–9 days old (tolerates weekend downtime)."""
+    try:
+        from datetime import date as _date, timedelta as _td
+        today = _date.today()
+        for days_back in range(5, 10):
+            candidate = today - _td(days=days_back)
+            fname = os.path.join(_SNAPSHOT_DIR, f"scores_snapshot_{candidate.isoformat()}.json")
+            if os.path.exists(fname):
+                with open(fname) as fh:
+                    return json.load(fh).get("scores", {})
+        # Fallback: any snapshot older than 4 days
+        import glob as _glob
+        cutoff = time.time() - 4 * 86400
+        candidates = sorted(
+            [f for f in _glob.glob(os.path.join(_SNAPSHOT_DIR, "scores_snapshot_*.json"))
+             if os.path.getmtime(f) < cutoff],
+            reverse=True
+        )
+        if candidates:
+            with open(candidates[0]) as fh:
+                return json.load(fh).get("scores", {})
+    except Exception as _e:
+        print(f"[snapshot] load failed: {_e}")
+    return {}
+
 ALL_DATA_CACHE = {"data": None, "time": 0}
 ALL_DATA_TTL = 3600  # 60 min — data sources (COT, macro, prices) change at most hourly
 # FIX: Single async lock prevents cache stampede — when N concurrent requests all
@@ -8766,12 +8818,21 @@ async def _do_scores_refresh(force: bool = False):
         if mid in PCR_EQUITY_SYMBOLS:
             scores["pcr"] = pcr_data["score"]
     
-        # Build a merged cot_detail dict for compute_weighted_bias:
-        # compute_cot_score buries signals (convergence_signal, etc.) inside ["detail"] but keeps
-        # "score" only at the top level. compute_cross_cot_score puts everything at both levels.
-        # We merge: start with detail signals, then overlay top-level score so both are accessible.
-        _cot_detail_inner = cot_data.get("detail", {}) or {}
-        _cot_detail_merged = {**_cot_detail_inner, "score": cot_data.get("score", 5.0)}
+        # Build a merged cot_detail dict for compute_weighted_bias.
+        # compute_cot_score_v2 returns v2 signal keys (divergence, convergence_signal,
+        # normalise_signal, flatten_signal, exhaustion, comm_momentum_signal) at the TOP LEVEL
+        # of cot_data, NOT inside cot_data["detail"]. We must merge both so story_active
+        # in compute_weighted_bias can see them. Without this the confluence bonus never fires.
+        _COT_V2_SIGNAL_KEYS = (
+            "divergence", "exhaustion", "comm_momentum_signal", "oi_signal",
+            "alignment", "signal_detail", "turning", "lspec_chg_3w",
+            "normalise_signal", "convergence_signal", "flatten_signal",
+            "v2_signal_dir", "v2_consistency", "v2_spec_turn_strength",
+            "v2_phase_coherence", "v2_level_mult", "v2_raw_signal", "v2_shift",
+        )
+        _cot_detail_inner  = cot_data.get("detail", {}) or {}
+        _cot_v2_signals    = {k: cot_data[k] for k in _COT_V2_SIGNAL_KEYS if k in cot_data}
+        _cot_detail_merged = {**_cot_detail_inner, **_cot_v2_signals, "score": cot_data.get("score", 5.0)}
         bias = compute_weighted_bias(scores, market_id=mid, cot_detail=_cot_detail_merged)
     
         scores_out = {
@@ -8953,7 +9014,19 @@ async def _do_scores_refresh(force: bool = False):
                 for k in mkt["scores"] if "score" in mkt["scores"][k]
             }
             factor_scores["regime"] = new_regime_score
-            cot_detail_for_mid = mkt["scores"].get("cot", {}).get("detail", {})
+            # Must include top-level v2 signals so confluence bonus can fire after DX tilt.
+            # cot score stored in scores_out["cot"] has full cot_data at ["detail"] key.
+            _dx_cot_raw = mkt["scores"].get("cot", {})
+            _dx_cot_inner = _dx_cot_raw.get("detail", {}) or {}
+            _DX_V2_KEYS = (
+                "divergence", "exhaustion", "comm_momentum_signal", "oi_signal",
+                "alignment", "signal_detail", "turning", "lspec_chg_3w",
+                "normalise_signal", "convergence_signal", "flatten_signal",
+                "v2_signal_dir", "v2_consistency", "v2_spec_turn_strength",
+                "v2_phase_coherence", "v2_level_mult", "v2_raw_signal", "v2_shift",
+            )
+            _dx_v2_sigs = {k: _dx_cot_raw[k] for k in _DX_V2_KEYS if k in _dx_cot_raw}
+            cot_detail_for_mid = {**_dx_cot_inner, **_dx_v2_sigs, "score": _dx_cot_raw.get("score", 5.0)}
             new_bias = compute_weighted_bias(factor_scores, market_id=mid, cot_detail=cot_detail_for_mid)
     
             # Update the result in place
@@ -8999,6 +9072,12 @@ async def _do_scores_refresh(force: bool = False):
     # Always store with full TTL — narratives have their own endpoint and cache
     ALL_DATA_CACHE["data"] = output
     ALL_DATA_CACHE["time"] = time.time()
+    # Save daily snapshot for weekly score delta calculation (survives restarts)
+    try:
+        _snap_map = {m["id"]: m["weighted_score"] for m in results if "id" in m and "weighted_score" in m}
+        _save_scores_snapshot(_snap_map)
+    except Exception as _snap_e:
+        print(f"[snapshot] save error: {_snap_e}")
     print(f"[scores] Cache populated — total {time.time()-_refresh_start:.1f}s", flush=True)
 
 # ============================================================
