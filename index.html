@@ -31708,13 +31708,20 @@ function assetGraphic(m){
   const cat=m.category;
 
   // FX pairs — cinematic city photo banner
-  // Each FX market shows its base currency's city at night / golden hour
-  // DX falls through to the photo map (dx_dollar.jpg)
+  // Cross pairs use composite left/right city blend (base left, quote right)
+  // Straight FX pairs use base currency city; DX falls through to the photo map
   if((cat==='fx'||cat==='fx_cross') && id!=='DX'){
     let baseId=id, quoteId='DX';
     if(m.cross && m.base_leg && m.quote_leg){ baseId=m.base_leg; quoteId=m.quote_leg; }
 
-    // City photo map: currency code → photo file
+    // Cross pairs: use per-cross composite (base city left, quote city right)
+    if(cat==='fx_cross'){
+      const cityPhoto = `photos/fx_cross_${id}.jpg`;
+      return `<div class="d-head-graphic" data-type="fx-city">`+
+        `<div class="d-head-graphic-inner" style="background-image:url('${cityPhoto}')"></div></div>`;
+    }
+
+    // City photo map: currency code → photo file (straight FX only)
     const FX_CITY_PHOTO = {
       'EUR':'photos/fx_eur_city.jpg',
       'GBP':'photos/fx_gbp_city.jpg',
