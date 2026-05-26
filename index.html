@@ -23663,18 +23663,15 @@ canvas.chartjs-render-monitor{
     border-bottom:1px solid rgba(255,255,255,0.05) !important;
     position:relative;
   }
-  /* Right-side fade hint: indicates more tabs to swipe to */
+  /* Right-side fade hint: indicates more tabs to swipe — use mask-image to avoid overflow:auto clipping */
+  .ov-nav{
+    -webkit-mask-image:linear-gradient(to right,black calc(100% - 44px),transparent 100%);
+    mask-image:linear-gradient(to right,black calc(100% - 44px),transparent 100%);
+  }
+  /* Remove the ::after pseudo-element approach (doesn't work with overflow:auto) */
   .ov-nav::after{
-    content:'';
-    position:sticky;
-    right:0;
-    top:0;
-    flex-shrink:0;
-    width:32px;
-    height:100%;
-    background:linear-gradient(to right,transparent,rgba(17,18,20,0.96));
-    pointer-events:none;
-    z-index:2;
+    content:none;
+    display:none;
   }
   .ov-nt{
     font-size:10.5px !important;
