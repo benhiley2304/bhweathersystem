@@ -36614,14 +36614,20 @@ function macroTab(m){
       else if(_lnorm==='claims') label = 'Jobless Claims';
       if(label && !isNaN(val) && Math.abs(val) >= 0.05) rows.push({label, val});
     }
-    // Special fallback for R (Long Gilt): reason string uses a blend description, not label:value pairs
-    // Inject synthetic components from the UK data sub-object when parsing yields nothing
-    if(!rows.length && (m.id==='R') && detail.uk_data){
-      const ud = detail.uk_data;
-      if(ud.uk_cpi_ex_s!=null)   rows.push({label:'UK Core CPI', val: -(ud.uk_cpi_ex_s)});
-      if(ud.uk_unemp_trend!=null) rows.push({label:'UK Employment', val: -(ud.uk_unemp_trend)});
-      if(ud.uk_gilt10_trend!=null)rows.push({label:'UK 10Y Gilt Trend', val: -(ud.uk_gilt10_trend)});
-      if(ud.uk_composite!=null)   rows.push({label:'UK/US Macro Blend', val: -(ud.uk_composite)});
+    // Special fallback for R (Long Gilt): reason string is a description, not label:value pairs
+    // Parse key values from the Macro Drivers section data instead via ms (macro score object)
+    if(!rows.length && m.id==='R'){
+      // Build synthetic Score Components from the same macro data used for Macro Drivers
+      const _macroAll2 = DATA.macro_all||{};
+      const _cats2 = _macroAll2.category_scores||{};
+      const _inflS = typeof _cats2.inflation==='number'?(-_cats2.inflation):null;
+      const _jobsS = typeof _cats2.jobs==='number'?(-_cats2.jobs):null;
+      const _growS = typeof _cats2.growth==='number'?(-_cats2.growth):null;
+      const _rateS = typeof _cats2.rates==='number'?(-_cats2.rates):null;
+      if(_inflS!=null) rows.push({label:'Inflation (inverted)', val: _inflS});
+      if(_rateS!=null && Math.abs(_rateS)>=0.05) rows.push({label:'Rates (2Y Yield)', val: _rateS});
+      if(_jobsS!=null && Math.abs(_jobsS)>=0.05) rows.push({label:'Employment (inverted)', val: _jobsS});
+      if(_growS!=null && Math.abs(_growS)>=0.05) rows.push({label:'Growth (inverted)', val: _growS});
     }
     if(rows.length){
       html+=`<div class="sec-h" style="margin-bottom:8px">Score Components <span style="font-size:9.5px;font-weight:400;color:var(--faint);text-transform:none;letter-spacing:0">(how the score is built)</span></div>`;
