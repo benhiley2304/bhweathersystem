@@ -4651,8 +4651,14 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   .ov-hero{grid-template-columns:1fr 1fr}
   .ov-rp-grid{grid-template-columns:1fr 1fr}
   .ov-ai-narratives{grid-template-columns:1fr}
-  .ind-table{overflow-x:auto;overflow-y:visible}
-  .ind-head,.ind-row{min-width:460px}
+  /* Data table on mobile: drop CCY column, keep Signal always visible */
+  .ind-head{
+    grid-template-columns:minmax(100px,2fr) 58px 58px 58px 48px;
+  }
+  .ind-row{
+    grid-template-columns:minmax(100px,2fr) 58px 58px 58px 48px;
+  }
+  .ind-ccy{display:none}
 
   /* ── 8. MOBILE BODY: ensure correct stacking ── */
   /* No global grid overlay — Jarvis texture lives inside #mob-hero only */
@@ -36027,6 +36033,62 @@ function macroTab(m){
   const isFX=m.category==='fx';
   const isCross=m.category==='fx_cross';
 
+  // ── Key normalisation helpers ────────────────────────────────────────────────
+  // Maps raw FF/FRED category keys (any case) → human-readable display labels
+  const _KEY_LABELS = {
+    mfg_pmi: 'Manufacturing PMI',
+    svc_pmi: 'Services PMI',
+    inflation: 'Inflation',
+    jobs: 'Employment',
+    growth: 'Growth',
+    unemp: 'Unemployment',
+    claims: 'Jobless Claims',
+    jolts: 'Job Openings',
+    wages: 'Wages',
+    retail: 'Retail Sales',
+    dgs2: 'Rates (2Y Yield)',
+    gdp: 'GDP',
+    pmi: 'PMI',
+    cpi: 'Inflation',
+    ppi: 'Producer Prices',
+    rates: 'Rates',
+  };
+  // Normalise a raw category key to a consistent lowercase lookup key
+  const normKey = k => (k||'').toLowerCase().replace(/[^a-z0-9_]/g,'');
+  // Return the human-readable display label for any raw key
+  const keyLabel = k => _KEY_LABELS[normKey(k)] || cap(k);
+  // Build a case-insensitive de-duplicated category list from two objects
+  const mergeCatKeys = (obj1, obj2) => {
+    const seen = new Map(); // normKey → first-seen raw key
+    for(const k of [...Object.keys(obj1||{}), ...Object.keys(obj2||{})]) {
+      const nk = normKey(k);
+      if(!seen.has(nk)) seen.set(nk, k);
+    }
+    return [...seen.values()]; // one raw key per normalised bucket
+  };
+  // Driver description map: normKey → explanation string (takes fgnCur string)
+  const driverDesc = (rawKey, fgnCur) => {
+    const nk = normKey(rawKey);
+    const g10 = fgnCur||'FGN';
+    const _map = {
+      inflation: `${g10} vs USD inflation divergence — central bank reaction functions differ; ${g10} CPI beats can lift hawkishness, USD inflation = Fed hawkish = dollar bid`,
+      growth: `${g10} vs USD growth differential — GDP/PMI beats in ${g10} economy support the pair; USD growth beats are a headwind`,
+      jobs: `Employment differential — ${g10} labour market strength vs NFP drives short-term central bank divergence`,
+      mfg_pmi: `Manufacturing PMI divergence — sustained beats signal economic momentum and currency strength`,
+      svc_pmi: `Services PMI divergence — services sector beats reflect domestic demand and inflation persistence`,
+      unemp: `Unemployment differential — lower unemployment supports currency via hawkish central bank bias`,
+      claims: `Jobless claims differential — lower claims signal labour market strength, supporting the currency`,
+      jolts: `Job openings differential — elevated openings keep central bank hawkish, supporting the currency`,
+      wages: `Wage growth differential — strong wage beats signal inflation persistence, supporting hawkish policy`,
+      retail: `Retail sales differential — consumer spending beats support domestic growth narrative`,
+      dgs2: `US 2-Year yield differential — rising US 2Y yield signals Fed hawkishness, widening rate differential = dollar tailwind`,
+      rates: `Rate differential — relative central bank policy path is the dominant driver for this FX pair`,
+      gdp: `GDP differential — growth outperformance attracts capital inflows and supports the stronger-growth currency`,
+      ppi: `Producer price differential — PPI leads CPI by 2-3 months; beats signal future inflation and central bank divergence`,
+    };
+    return _map[nk] || keyLabel(rawKey);
+  };
+
   let html='';
 
   // ── FX DIFFERENTIAL PANEL ─────────────────────────────────────────────────
@@ -36080,20 +36142,31 @@ function macroTab(m){
       </div>`;
 
       // Per-category breakdown for both currencies
-      const allCats=[...new Set([...Object.keys(fgn.cats||{}), ...Object.keys(usd.cats||{})])];
+      // mergeCatKeys de-duplicates across FF lowercase keys and FRED uppercase keys
+      const allCats=mergeCatKeys(fgn.cats||{}, usd.cats||{});
       if(allCats.length){
         html+=`<div class="sec-h" style="margin-top:16px">Category Summary</div>
         <div class="fx-cat-grid">
           <div class="fx-cat-head"><span>Category</span><span>${fgn.currency}</span><span>USD</span><span>Edge</span></div>`;
         for(const cat of allCats){
-          const fv=fgn.cats[cat];
-          const uv=usd.cats[cat];
+          // Look up value by canonical key: check exact key, then lowercase, then uppercase
+          const _findVal = (obj, k) => {
+            if(obj[k]!=null) return obj[k];
+            const lk=k.toLowerCase(); if(obj[lk]!=null) return obj[lk];
+            const uk=k.toUpperCase(); if(obj[uk]!=null) return obj[uk];
+            // Also try normalised match
+            const nk=normKey(k);
+            const match=Object.keys(obj).find(x=>normKey(x)===nk);
+            return match!=null?obj[match]:null;
+          };
+          const fv=_findVal(fgn.cats||{}, cat);
+          const uv=_findVal(usd.cats||{}, cat);
           if(fv==null&&uv==null) continue;
           const fvn=fv??0, uvn=uv??0;
           const edge=fvn-uvn;
           const edgeCol=contribCol(edge);
           html+=`<div class="fx-cat-row">
-            <span class="fx-cat-name">${cap(cat)}</span>
+            <span class="fx-cat-name">${keyLabel(cat)}</span>
             <span style="color:${contribCol(fvn)}">${fv!=null?(fvn>=0?'+':'')+fvn.toFixed(1):'—'}</span>
             <span style="color:${contribCol(uvn)}">${uv!=null?(uvn>=0?'+':'')+uvn.toFixed(1):'—'}</span>
             <span style="color:${edgeCol};font-weight:600">${edge>=0?'+':''}${edge.toFixed(1)}</span>
@@ -36101,7 +36174,11 @@ function macroTab(m){
         }
         html+=`</div>`;
         // Sparse data footnote — only show for FRED fallback (FF injection covers the main cats)
-        const _fgnMissingCats=allCats.filter(cat=>fgn.cats[cat]==null&&usd.cats[cat]!=null).length;
+        const _fgnMissingCats=allCats.filter(cat=>{
+          const _fv2=(fgn.cats||{})[cat];
+          const _fv3=Object.keys(fgn.cats||{}).find(x=>normKey(x)===normKey(cat));
+          return _fv2==null&&_fv3==null&&(usd.cats||{})[cat]!=null;
+        }).length;
         if(!_fgnIsFF && _fgnMissingCats>=2){
           const _isEUR = (fgn.currency||'').toUpperCase()==='EUR';
           const _sparseMsg = _isEUR
@@ -36135,7 +36212,7 @@ function macroTab(m){
             ...fgnItems.map(i=>({...i,side:fgnCur})),
             ...usdItems.map(i=>({...i,side:'USD'}))
           ];
-          html+=`<div class="ind-cat-label">${cap(cat)}</div>`;
+          html+=`<div class="ind-cat-label">${keyLabel(cat)}</div>`;
           html+=`<div class="ind-table">`;
           html+=`<div class="ind-head"><span>Release</span><span>Actual</span><span>Forecast</span><span>Prev</span><span>Signal</span><span>Ccy</span></div>`;
           for(const item of allItems){
@@ -36177,7 +36254,7 @@ function macroTab(m){
         for(const cat of usdDetCats){
           const items=usdCatDet[cat]||[];
           if(!items.length)continue;
-          html+=`<div class="ind-cat-label">${cap(cat)}</div>`;
+          html+=`<div class="ind-cat-label">${keyLabel(cat)}</div>`;
           html+=`<div class="ind-table">`;
           html+=`<div class="ind-head"><span>Release</span><span>Actual</span><span>Forecast</span><span>Prev</span><span>Signal</span><span>Ccy</span></div>`;
           for(const item of items){
@@ -36227,12 +36304,22 @@ function macroTab(m){
         jobs: `Employment differential — ${_fgnCur3} labour market strength vs NFP drives short-term central bank divergence`,
         rates: `Rate differential — relative CB policy path between ${_fgnCur3} CB and the Fed is the dominant driver of this pair`,
       };
-      const _allFxCats2 = [...new Set([...Object.keys(fgn.cats||{}),...Object.keys((usd&&usd.cats)||{})])];
+      // De-duplicate categories across FF lowercase and FRED uppercase keys
+      const _allFxCats2 = mergeCatKeys(fgn.cats||{}, (usd&&usd.cats)||{});
       const _fxEdge2 = {};
       for(const _c2 of _allFxCats2){
-        const _fv2 = (fgn.cats||{})[_c2]||0;
-        const _uv2 = ((usd&&usd.cats)||{})[_c2]||0;
-        _fxEdge2[_c2] = _fv2 - _uv2;
+        // Resolve values using case-insensitive lookup
+        const _findV = (obj, k) => {
+          if((obj||{})[k]!=null) return obj[k];
+          const lk=k.toLowerCase(); if((obj||{})[lk]!=null) return obj[lk];
+          const uk=k.toUpperCase(); if((obj||{})[uk]!=null) return obj[uk];
+          const nk2=normKey(k);
+          const mk=Object.keys(obj||{}).find(x=>normKey(x)===nk2);
+          return mk!=null?(obj||{})[mk]:0;
+        };
+        const _fv2 = _findV(fgn.cats, _c2);
+        const _uv2 = _findV(usd&&usd.cats, _c2);
+        _fxEdge2[_c2] = (_fv2||0) - (_uv2||0);
       }
       const _fxDrvs2 = Object.entries(_fxEdge2)
         .sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]))
@@ -36243,15 +36330,13 @@ function macroTab(m){
         for(const [_ck2,_cv2] of _fxDrvs2){
           const _cc2=contribCol(_cv2);
           const _cRGB2=_cv2>0?'48,217,136':_cv2<0?'240,64,64':'74,82,104';
-          const _dir2=_cv2>0.1?`Bullish ${_fgnCur3}`:_cv2<-0.1?`Bearish ${_fgnCur3}`:'Neutral';
-          const _dirIcon2=_cv2>0.1?'▲':_cv2<-0.1?'▼':'■';
           html+=`<div class="mdr">
             <div class="mdr-head">
-              <span class="mdr-name">${_ck2.toUpperCase()}</span>
+              <span class="mdr-name">${keyLabel(_ck2)}</span>
               <span class="mdr-val" style="color:${_cc2}">${_cv2>=0?'+':''}${_cv2.toFixed(2)}</span>
             </div>
             <div class="mdr-bar-track"><div class="mdr-bar-fill" style="width:${Math.min(100,Math.abs(_cv2)/2*100)}%;background:${_cc2}"></div></div>
-            <span class="mdr-desc">${_fxCatExplain[_ck2]||_ck2}</span>
+            <span class="mdr-desc">${driverDesc(_ck2, _fgnCur3)}</span>
           </div>`;
         }
         html+=`</div>`;
@@ -36418,7 +36503,7 @@ function macroTab(m){
         const bvn=bv??0, qvn=qv??0;
         const edge=bvn-qvn;
         html+=`<div class="fx-cat-row">
-          <span class="fx-cat-name">${cap(cat)}</span>
+          <span class="fx-cat-name">${keyLabel(cat)}</span>
           <span style="color:${contribCol(bvn)}">${bv!=null?(bvn>=0?'+':'')+bvn.toFixed(1):'&mdash;'}</span>
           <span style="color:${contribCol(qvn)}">${qv!=null?(qvn>=0?'+':'')+qvn.toFixed(1):'&mdash;'}</span>
           <span style="color:${contribCol(edge)};font-weight:600">${edge>=0?'+':''}${edge.toFixed(1)}</span>
@@ -36450,7 +36535,7 @@ function macroTab(m){
       for(const cat of cats){
         const items=catDet[cat]||[];
         if(!items.length)continue;
-        out+=`<div class="ind-cat-label">${cap(cat)}</div>
+        out+=`<div class="ind-cat-label">${keyLabel(cat)}</div>
         <div class="ind-table">
           <div class="ind-head"><span>Release</span><span>Actual</span><span>Forecast</span><span>Prev</span><span>Signal</span></div>`;
         for(const item of items){
@@ -36516,9 +36601,27 @@ function macroTab(m){
     while((_rm = _rePairs.exec(reasonStr + ',')) !== null){
       let label = _rm[1].trim();
       const val = parseFloat(_rm[2]);
-      // Normalise CPI/PCE, CPI/PPI, CPI labels → INFLATION in score components
-      if(/^cpi(\/pce|\/ppi|\/pce\/ppi)?$/i.test(label) || label.toLowerCase() === 'cpi') label = 'INFLATION';
+      // Normalise shorthand labels → human-readable display names
+      const _lnorm = label.toLowerCase().replace(/[^a-z0-9/]/g,'');
+      if(/^cpi(\/pce|\/ppi|\/pce\/ppi)?$/.test(_lnorm) || _lnorm==='cpi' || _lnorm==='infl' || _lnorm==='inflation') label = 'Inflation';
+      else if(_lnorm==='jobs' || _lnorm==='job' || _lnorm==='employment' || _lnorm==='unemp') label = 'Employment';
+      else if(_lnorm==='mfgpmi' || _lnorm==='mfg' || _lnorm==='mfgpmi') label = 'Manufacturing PMI';
+      else if(_lnorm==='svcpmi' || _lnorm==='svc') label = 'Services PMI';
+      else if(_lnorm==='growth' || _lnorm==='gdp') label = 'Growth';
+      else if(_lnorm==='rates' || _lnorm==='dgs2') label = 'Rates (2Y Yield)';
+      else if(_lnorm==='retail') label = 'Retail Sales';
+      else if(_lnorm==='wages' || _lnorm==='wage') label = 'Wages';
+      else if(_lnorm==='claims') label = 'Jobless Claims';
       if(label && !isNaN(val) && Math.abs(val) >= 0.05) rows.push({label, val});
+    }
+    // Special fallback for R (Long Gilt): reason string uses a blend description, not label:value pairs
+    // Inject synthetic components from the UK data sub-object when parsing yields nothing
+    if(!rows.length && (m.id==='R') && detail.uk_data){
+      const ud = detail.uk_data;
+      if(ud.uk_cpi_ex_s!=null)   rows.push({label:'UK Core CPI', val: -(ud.uk_cpi_ex_s)});
+      if(ud.uk_unemp_trend!=null) rows.push({label:'UK Employment', val: -(ud.uk_unemp_trend)});
+      if(ud.uk_gilt10_trend!=null)rows.push({label:'UK 10Y Gilt Trend', val: -(ud.uk_gilt10_trend)});
+      if(ud.uk_composite!=null)   rows.push({label:'UK/US Macro Blend', val: -(ud.uk_composite)});
     }
     if(rows.length){
       html+=`<div class="sec-h" style="margin-bottom:8px">Score Components <span style="font-size:9.5px;font-weight:400;color:var(--faint);text-transform:none;letter-spacing:0">(how the score is built)</span></div>`;
