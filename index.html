@@ -31699,387 +31699,47 @@ const ASSET_PHOTO_URLS = {
   'KC':'photos/kc_roaster.jpg','CC':'photos/cc_cocoa.jpg','SB':'photos/sb_sugar.jpg','CT':'photos/ct_cotton.jpg',
   'LE':'photos/le_feedlot.jpg','HE':'photos/he_hogs.jpg','GF':'photos/gf_feeder.jpg',
   'BTC':'photos/btc_bitcoin.jpg','ETH':'photos/eth_ethereum.jpg',
-  'B':'photos/cl_crude.jpg','GO':'photos/ho_heating.jpg','RC':'photos/kc_roaster.jpg',
-  'Z':'photos/es_sp500.jpg','R':'photos/zb_bonds.jpg',
+  'B':'photos/b_brent.jpg','GO':'photos/ho_heating.jpg','RC':'photos/kc_roaster.jpg',
+  'Z':'photos/z_ftse100.jpg','R':'photos/r_gilt.jpg',
 };
 
 function assetGraphic(m){
   const id=m.id;
   const cat=m.category;
 
-  // FX pairs — cinematic full-bleed dual-flag banner R44
-  // Flags rendered at correct aspect ratio (cover-fill, no stretch)
-  // Seam: wide graduated blend zone — soft overlap, luminous light-leak at centre
+  // FX pairs — cinematic city photo banner
+  // Each FX market shows its base currency's city at night / golden hour
+  // DX falls through to the photo map (dx_dollar.jpg)
   if((cat==='fx'||cat==='fx_cross') && id!=='DX'){
     let baseId=id, quoteId='DX';
     if(m.cross && m.base_leg && m.quote_leg){ baseId=m.base_leg; quoteId=m.quote_leg; }
 
-    const bFlag = LEG_FLAG[baseId] || 'USD';
-    const qFlag = LEG_FLAG[quoteId] || 'USD';
-    const bTint = FLAG_TINT[bFlag] || '92,158,255';
-    const qTint = FLAG_TINT[qFlag] || '92,158,255';
-    const bCode = bFlag;
-    const qCode = qFlag;
-    const uid = Math.random().toString(36).slice(2,8);
+    // City photo map: currency code → photo file
+    const FX_CITY_PHOTO = {
+      'EUR':'photos/fx_eur_city.jpg',
+      'GBP':'photos/fx_gbp_city.jpg',
+      'JPY':'photos/fx_jpy_city.jpg',
+      'AUD':'photos/fx_aud_city.jpg',
+      'CAD':'photos/fx_cad_city.jpg',
+      'CHF':'photos/fx_chf_city.jpg',
+      'NZD':'photos/fx_nzd_city.jpg',
+      'USD':'photos/dx_dollar.jpg',
+    };
 
-    // ── Flag geometry ──────────────────────────────────────────────────────────
-    // Each flag is rendered as SVG elements in its NATIVE coordinate space
-    // (nativeW × nativeH). The caller wraps it in a <g transform="scale(sx,sy)">
-    // that implements "object-fit: cover" semantics (uniform scale, centred).
-    //
-    // Native sizes (all × 100 height for easy maths):
-    //   US  190×100  (19:10)   GBP 200×100  (2:1)    EUR 300×200  (3:2)
-    //   JPY 300×200  (3:2)     AUD 200×100  (2:1)    CAD 200×100  (2:1)
-    //   NZD 200×100  (2:1)     CHF 150×100  (3:2)    MXN 280×160  (7:4)
-    //
-    // flagArtwork(code) → { nW, nH, svg }
+    const bCcy = LEG_FLAG[baseId] || 'USD';
+    const qCcy = LEG_FLAG[quoteId] || 'USD';
+    const cityPhoto = FX_CITY_PHOTO[bCcy] || FX_CITY_PHOTO['USD'];
 
-    function flagArtwork(code){
-      switch(code){
-
-        case 'USD': { // US flag — 19:10 ratio
-          const nW=190, nH=100;
-          // 13 stripes, red outer, white inner
-          const stripes = Array.from({length:13},(_,i)=>`<rect y="${i*nH/13}" width="${nW}" height="${nH/13}" fill="${i%2===0?'#B22234':'#FFFFFF'}"/>`).join('');
-          // Canton: 0.76×0.538 of flag
-          const cW=nW*0.40, cH=nH*7/13;
-          // 50 stars: 6 rows of 5 (even) + 5 rows of 4 (odd) staggered, r=2.3
-          const sr=2.3;
-          const rows=[[6,5],[5,4],[6,5],[5,4],[6,5],[5,4],[6,5],[5,4],[6,5]]; // actually 9 rows for 50 stars
-          // Simpler: 5 col × 6 rows + 4 col × 4 rows staggered = 30+20 = 50
-          const colsEven=6, colsOdd=5, totalRows=9;
-          const xStepE=cW/(colsEven), xStepO=cW/(colsOdd);
-          const yStep=cH/(totalRows);
-          let stars='';
-          for(let r=0;r<totalRows;r++){
-            const isEven=(r%2===0);
-            const cols=isEven?colsEven:colsOdd;
-            const xStep=isEven?xStepE:xStepO;
-            const xOff=isEven?xStep/2:xStep/2;
-            for(let c=0;c<cols;c++){
-              const cx=xOff+c*xStep;
-              const cy=yStep/2+r*yStep;
-              // 5-pointed star
-              const pts=Array.from({length:10},(_,j)=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?sr:sr*0.4;return `${cx+Math.cos(a)*pr},${cy+Math.sin(a)*pr}`;}).join(' ');
-              stars+=`<polygon points="${pts}" fill="#FFFFFF"/>`;
-            }
-          }
-          const svg=`${stripes}<rect width="${cW}" height="${cH}" fill="#3C3B6E"/>${stars}`;
-          return {nW,nH,svg};
-        }
-
-        case 'GBP': { // UK flag — 2:1
-          const nW=200, nH=100;
-          // Navy background
-          // White diagonal saltire (St Andrew) — full diagonals
-          // Red diagonal cross of St Patrick (offset)
-          // White & red horizontal + vertical crosses (St George)
-          const svg=`
-            <rect width="${nW}" height="${nH}" fill="#012169"/>
-            <!-- St Andrew (full white diagonals) -->
-            <line x1="0" y1="0" x2="${nW}" y2="${nH}" stroke="#FFFFFF" stroke-width="20"/>
-            <line x1="${nW}" y1="0" x2="0" y2="${nH}" stroke="#FFFFFF" stroke-width="20"/>
-            <!-- St Patrick (red diagonal, offset — upper-left quadrant: red on top-right of white) -->
-            <polyline points="0,0 ${nW/2-12.5},${nH/2} ${nW/2-12.5},0" stroke="#C8102E" stroke-width="13.3" fill="none"/>
-            <polyline points="${nW},0 ${nW/2+12.5},${nH/2} ${nW/2+12.5},0" stroke="#C8102E" stroke-width="13.3" fill="none"/>
-            <polyline points="0,${nH} ${nW/2-12.5},${nH/2} ${nW/2-12.5},${nH}" stroke="#C8102E" stroke-width="13.3" fill="none"/>
-            <polyline points="${nW},${nH} ${nW/2+12.5},${nH/2} ${nW/2+12.5},${nH}" stroke="#C8102E" stroke-width="13.3" fill="none"/>
-            <!-- St George (white arm of cross) -->
-            <rect x="0" y="${nH*0.5-nH*0.15}" width="${nW}" height="${nH*0.30}" fill="#FFFFFF"/>
-            <rect x="${nW*0.5-nW*0.075}" y="0" width="${nW*0.15}" height="${nH}" fill="#FFFFFF"/>
-            <!-- St George (red arm of cross — narrower) -->
-            <rect x="0" y="${nH*0.5-nH*0.10}" width="${nW}" height="${nH*0.20}" fill="#C8102E"/>
-            <rect x="${nW*0.5-nW*0.05}" y="0" width="${nW*0.10}" height="${nH}" fill="#C8102E"/>`;
-          return {nW,nH,svg};
-        }
-
-        case 'EUR': { // EU flag — 3:2 (900×600 internal coords)
-          const nW=900, nH=600;
-          // Blue field, 12 gold stars in a circle
-          const cx=nW/2, cy=nH/2, R=nH*0.35;
-          let stars='';
-          for(let i=0;i<12;i++){
-            const a=i*Math.PI/6-Math.PI/2;
-            const scx=cx+Math.cos(a)*R;
-            const scy=cy+Math.sin(a)*R;
-            const sr=nH*0.054;
-            const pts=Array.from({length:10},(_,j)=>{const pa=j*Math.PI/5-Math.PI/2;const pr=j%2===0?sr:sr*0.4;return `${scx+Math.cos(pa)*pr},${scy+Math.sin(pa)*pr}`;}).join(' ');
-            stars+=`<polygon points="${pts}" fill="#FFDD00"/>`;
-          }
-          return {nW,nH,svg:`<rect width="${nW}" height="${nH}" fill="#003399"/>${stars}`};
-        }
-
-        case 'JPY': { // Japan — 3:2
-          const nW=300, nH=200;
-          return {nW,nH,svg:`<rect width="${nW}" height="${nH}" fill="#FFFFFF"/><circle cx="${nW/2}" cy="${nH/2}" r="${nH*0.30}" fill="#BC002D"/>`};
-        }
-
-        case 'AUD': { // Australia — 2:1
-          const nW=200, nH=100;
-          // Navy blue background
-          // Union Jack in top-left quarter (same as GBP but scaled to canton)
-          const cW=nW*0.5, cH=nH*0.5;
-          const svg=`
-            <rect width="${nW}" height="${nH}" fill="#00008B"/>
-            <!-- Canton Union Jack (simplified, similar to GBP) -->
-            <rect width="${cW}" height="${cH}" fill="#012169"/>
-            <line x1="0" y1="0" x2="${cW}" y2="${cH}" stroke="#FFFFFF" stroke-width="${cH*0.20}"/>
-            <line x1="${cW}" y1="0" x2="0" y2="${cH}" stroke="#FFFFFF" stroke-width="${cH*0.20}"/>
-            <polyline points="0,0 ${cW/2-cW*0.065},${cH/2} ${cW/2-cW*0.065},0" stroke="#C8102E" stroke-width="${cH*0.133}" fill="none"/>
-            <polyline points="${cW},0 ${cW/2+cW*0.065},${cH/2} ${cW/2+cW*0.065},0" stroke="#C8102E" stroke-width="${cH*0.133}" fill="none"/>
-            <polyline points="0,${cH} ${cW/2-cW*0.065},${cH/2} ${cW/2-cW*0.065},${cH}" stroke="#C8102E" stroke-width="${cH*0.133}" fill="none"/>
-            <polyline points="${cW},${cH} ${cW/2+cW*0.065},${cH/2} ${cW/2+cW*0.065},${cH}" stroke="#C8102E" stroke-width="${cH*0.133}" fill="none"/>
-            <rect x="0" y="${cH*0.40}" width="${cW}" height="${cH*0.20}" fill="#FFFFFF"/>
-            <rect x="${cW*0.43}" y="0" width="${cW*0.14}" height="${cH}" fill="#FFFFFF"/>
-            <rect x="0" y="${cH*0.45}" width="${cW}" height="${cH*0.10}" fill="#C8102E"/>
-            <rect x="${cW*0.47}" y="0" width="${cW*0.06}" height="${cH}" fill="#C8102E"/>
-            <!-- Commonwealth Star (7-point) below canton -->
-            ${Array.from({length:7},(_,j)=>{const pa=j*Math.PI*2/7-Math.PI/2;const r2=nH*0.088;const r1=r2*0.45;const scx=nW*0.165;const scy=nH*0.76;const pts=Array.from({length:14},(_,k)=>{const a2=k*Math.PI/7-Math.PI/2;const pr=k%2===0?r2:r1;return `${scx+Math.cos(a2)*pr},${scy+Math.sin(a2)*pr}`;}).join(' ');return `<polygon points="${pts}" fill="#FFFFFF"/>`;}).join('')}
-            <!-- Southern Cross: 4 large 7-pointed stars + 1 small 5-pointed (Epsilon Crucis) -->
-            ${[[0.80,0.22,0.076,'7'],[0.92,0.40,0.064,'7'],[0.84,0.60,0.064,'7'],[0.67,0.55,0.064,'7'],[0.75,0.34,0.036,'5']].map(([fx,fy,fr,pts])=>{const np=parseInt(pts)*2;const scx=nW*fx,scy=nH*fy,r2=nH*fr,r1=r2*0.45;return `<polygon points="${Array.from({length:np},(_,k)=>{const a=k*Math.PI/parseInt(pts)-Math.PI/2;const pr=k%2===0?r2:r1;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ')}" fill="#FFFFFF"/>`;}).join('')}`;
-          return {nW,nH,svg};
-        }
-
-        case 'CAD': { // Canada — 2:1
-          const nW=200, nH=100;
-          // Official Canadian flag: red (1/4) | white (1/2) | red (1/4)
-          // Maple leaf polygon: derived from the official Wikimedia SVG
-          // (upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Canada_(Pantone).svg)
-          // Original coords in 9600×4800 space, centred at (4800,2415).
-          // Scaled so leaf height = 58% of flag height (~58px in our 200×100 space).
-          const svg=`
-            <rect width="\${nW}" height="\${nH}" fill="#FFFFFF"/>
-            <rect x="0" y="0" width="\${nW*0.25}" height="\${nH}" fill="#D52B1E"/>
-            <rect x="\${nW*0.75}" y="0" width="\${nW*0.25}" height="\${nH}" fill="#D52B1E"/>
-            <!-- Maple leaf — official 34-point polygon from Canadian flag SVG (Pantone) -->
-            <polygon fill="#D52B1E" points="
-              101.3,79 100.65,66.58 102.25,65.17 114.61,67.34 112.94,62.74 113.23,61.69
-              126.77,50.72 123.72,49.29 123.23,48.16 125.91,39.93 118.11,41.58 117.05,41.03
-              115.54,37.48 109.46,44.01 107.86,43.19 110.79,28.05 106.09,30.77 104.78,30.38
-              100,21 95.22,30.38 93.91,30.77 89.21,28.05 92.14,43.19 90.54,44.01
-              84.46,37.48 82.95,41.03 81.89,41.58 74.09,39.93 76.77,48.16 76.28,49.29
-              73.23,50.72 86.77,61.69 87.06,62.74 85.39,67.34 97.75,65.17 99.35,66.58
-              98.7,79"/>
-          `;
-          return {nW,nH,svg};
-        }
-
-        case 'NZD': { // New Zealand — 2:1 (similar to AUD but Southern Cross red diamonds)
-          const nW=200, nH=100;
-          const cW=nW*0.5, cH=nH*0.5;
-          const svg=`
-            <rect width="${nW}" height="${nH}" fill="#00247D"/>
-            <!-- Canton Union Jack -->
-            <rect width="${cW}" height="${cH}" fill="#012169"/>
-            <line x1="0" y1="0" x2="${cW}" y2="${cH}" stroke="#FFFFFF" stroke-width="${cH*0.20}"/>
-            <line x1="${cW}" y1="0" x2="0" y2="${cH}" stroke="#FFFFFF" stroke-width="${cH*0.20}"/>
-            <polyline points="0,0 ${cW/2-cW*0.065},${cH/2} ${cW/2-cW*0.065},0" stroke="#CC142B" stroke-width="${cH*0.133}" fill="none"/>
-            <polyline points="${cW},0 ${cW/2+cW*0.065},${cH/2} ${cW/2+cW*0.065},0" stroke="#CC142B" stroke-width="${cH*0.133}" fill="none"/>
-            <polyline points="0,${cH} ${cW/2-cW*0.065},${cH/2} ${cW/2-cW*0.065},${cH}" stroke="#CC142B" stroke-width="${cH*0.133}" fill="none"/>
-            <polyline points="${cW},${cH} ${cW/2+cW*0.065},${cH/2} ${cW/2+cW*0.065},${cH}" stroke="#CC142B" stroke-width="${cH*0.133}" fill="none"/>
-            <rect x="0" y="${cH*0.40}" width="${cW}" height="${cH*0.20}" fill="#FFFFFF"/>
-            <rect x="${cW*0.43}" y="0" width="${cW*0.14}" height="${cH}" fill="#FFFFFF"/>
-            <rect x="0" y="${cH*0.45}" width="${cW}" height="${cH*0.10}" fill="#CC142B"/>
-            <rect x="${cW*0.47}" y="0" width="${cW*0.06}" height="${cH}" fill="#CC142B"/>
-            <!-- Southern Cross — 4 red 5-pointed stars, white outer / red inner (official NZ SVG) -->
-            <!-- Positions derived from official Wikimedia SVG (1200×600), scaled to 200×100        -->
-            <!-- Gamma(upper): 150,20 r=7.6/5.0 | Delta(right): 170,37 r=6.7/4.2                  -->
-            <!-- Beta(left):   127,43 r=7.6/5.0 | Alpha(bottom largest): 150,80 r=8.4/5.8         -->
-            ${[{cx:150,cy:20,rw:7.6,rr:5.0},{cx:170,cy:37,rw:6.7,rr:4.2},{cx:127,cy:43,rw:7.6,rr:5.0},{cx:150,cy:80,rw:8.4,rr:5.8}].map(s=>{
-              const mkStar=(scx,scy,r)=>Array.from({length:10},(_,j)=>{const a=j*Math.PI/5-Math.PI/2;const pr=j%2===0?r:r*0.40;return `${scx+Math.cos(a)*pr},${scy+Math.sin(a)*pr}`;}).join(' ');
-              return `<polygon points="${mkStar(s.cx,s.cy,s.rw)}" fill="#FFFFFF"/><polygon points="${mkStar(s.cx,s.cy,s.rr)}" fill="#CC142B"/>`;
-            }).join('')}`;
-          return {nW,nH,svg};
-        }
-
-        case 'CHF': { // Switzerland — official 1:1, displayed at 3:2
-          const nW=300, nH=200;
-          // Official Swiss cross proportions (from Wikimedia SVG, 32×32 path):
-          // Cross path decodes to: arm width = 6/32, arm half-length = 10/32 of square side.
-          // Cross total height = 20/32 = 62.5% of the square side.
-          // Arm width/length ratio = 6:20 → each arm is 7:6 (length:width), confirmed.
-          // Mapping to our 300×200: use flag height (200) as the reference square side.
-          const side = nH; // treat height as the reference dimension
-          const armW = side * (6/32);    // ~37.5px — arm thickness
-          const armLen = side * (10/32); // ~62.5px — half-length of each arm
-          const cx = nW/2, cy = nH/2;
-          const svg=`
-            <rect width="\${nW}" height="\${nH}" fill="#D52B1E"/>
-            <!-- Vertical arm -->
-            <rect x="\${cx - armW/2}" y="\${cy - armLen}" width="\${armW}" height="\${armLen*2}" fill="#FFFFFF"/>
-            <!-- Horizontal arm — same length as vertical -->
-            <rect x="\${cx - armLen}" y="\${cy - armW/2}" width="\${armLen*2}" height="\${armW}" fill="#FFFFFF"/>
-          `;
-          return {nW,nH,svg};
-        }
-
-        case 'MXN': { // Mexico — 4:7 aspect (use 280×160 = 7:4)
-          const nW=280, nH=160;
-          // Three equal vertical bands: green | white | red
-          // Coat of arms: eagle facing left on cactus, snake in beak — clean geometric silhouette
-          const bW=nW/3;
-          const cx=nW/2, cy=nH/2;
-          // Scale factor: design in 100-unit space scaled to flag dimensions
-          const s=nH/100;
-          const ex=cx, ey=cy-2*s; // eagle centre
-          const svg=`
-            <rect x="0"        y="0" width="\${bW}" height="\${nH}" fill="#006847"/>
-            <rect x="\${bW}"   y="0" width="\${bW}" height="\${nH}" fill="#FFFFFF"/>
-            <rect x="\${bW*2}" y="0" width="\${bW}" height="\${nH}" fill="#CE1126"/>
-            <!-- Laurel wreath — two arcs of leaves (left=olive, right=oak) -->
-            <circle cx="\${ex}" cy="\${ey+12*s}" r="\${30*s}" fill="none" stroke="#4A7A1E" stroke-width="\${5.5*s}" stroke-dasharray="\${6*s} \${3.5*s}" opacity="0.85"/>
-            <!-- Cactus: vertical stem with two arms -->
-            <rect x="\${ex-2.8*s}" y="\${ey+8*s}" width="\${5.6*s}" height="\${22*s}" rx="\${1.5*s}" fill="#2E7D32"/>
-            <path d="M\${ex-2.8*s},\${ey+16*s} Q\${ex-14*s},\${ey+15*s} \${ex-14*s},\${ey+7*s}" stroke="#2E7D32" stroke-width="\${4.5*s}" fill="none" stroke-linecap="round"/>
-            <path d="M\${ex+2.8*s},\${ey+18*s} Q\${ex+14*s},\${ey+17*s} \${ex+14*s},\${ey+9*s}" stroke="#2E7D32" stroke-width="\${4.5*s}" fill="none" stroke-linecap="round"/>
-            <!-- Eagle talons gripping cactus -->
-            <path d="M\${ex-5*s},\${ey+9*s} L\${ex-10*s},\${ey+13*s} M\${ex-5*s},\${ey+9*s} L\${ex-9*s},\${ey+14*s} M\${ex+5*s},\${ey+9*s} L\${ex+10*s},\${ey+13*s} M\${ex+5*s},\${ey+9*s} L\${ex+9*s},\${ey+14*s}" stroke="#5D4037" stroke-width="\${2*s}" fill="none" stroke-linecap="round"/>
-            <!-- Eagle body -->
-            <ellipse cx="\${ex-2*s}" cy="\${ey+2*s}" rx="\${10*s}" ry="\${13*s}" fill="#4E342E"/>
-            <!-- Left wing (spread, raised) — eagle faces LEFT (left is fly-side) -->
-            <path d="M\${ex-8*s},\${ey-2*s} Q\${ex-26*s},\${ey-18*s} \${ex-30*s},\${ey+2*s} Q\${ex-22*s},\${ey+4*s} \${ex-8*s},\${ey+4*s}" fill="#5D4037"/>
-            <!-- Right wing (smaller, partially folded) -->
-            <path d="M\${ex+6*s},\${ey-2*s} Q\${ex+22*s},\${ey-14*s} \${ex+24*s},\${ey+2*s} Q\${ex+16*s},\${ey+4*s} \${ex+6*s},\${ey+4*s}" fill="#5D4037"/>
-            <!-- Eagle head (faces left) -->
-            <circle cx="\${ex-8*s}" cy="\${ey-13*s}" r="\${6*s}" fill="#4E342E"/>
-            <!-- Beak (curved, hooked) -->
-            <path d="M\${ex-12*s},\${ey-12*s} Q\${ex-18*s},\${ey-10*s} \${ex-16*s},\${ey-7*s}" stroke="#C8A800" stroke-width="\${2.5*s}" fill="none" stroke-linecap="round"/>
-            <!-- Snake (in beak, curving down-right) -->
-            <path d="M\${ex-15*s},\${ey-9*s} Q\${ex-10*s},\${ey-3*s} \${ex-4*s},\${ey+1*s} Q\${ex+2*s},\${ey+6*s} \${ex+1*s},\${ey+10*s}" stroke="#2E7D32" stroke-width="\${2.2*s}" fill="none" stroke-linecap="round"/>
-          `;
-          return {nW,nH,svg};
-        }
-
-        default: return {nW:2,nH:1,svg:`<rect width="2" height="1" fill="#1a1e2c"/>`};
-      }
-    }
-
-    // ── Cover-fill transform ───────────────────────────────────────────────────
-    // Given native (nW, nH) and target (tW, tH), compute the uniform scale + translate
-    // that fills the target rectangle (like CSS object-fit: cover, centred).
-    function coverTransform(nW, nH, tW, tH){
-      const scale = Math.max(tW/nW, tH/nH);
-      const dx = (tW - nW*scale)/2;
-      const dy = (tH - nH*scale)/2;
-      return `translate(${dx.toFixed(2)},${dy.toFixed(2)}) scale(${scale.toFixed(6)})`;
-    }
-
-    // ── Banner dimensions ──────────────────────────────────────────────────────
-    const W=960, H=200;
-
-    const bArt = flagArtwork(bFlag);
-    const qArt = flagArtwork(qFlag);
-
-    // LEFT flag: fills a panel from x=W*0.18 to x=W*0.83 (65% wide)
-    // RIGHT flag: fills a panel from x=W*0.40 to x=W (60% wide)
-    // Blend zone: seam at W*0.55. Overlap from W*0.40 to W*0.65.
-    const panelLW = W * 0.65, panelRW = W * 0.60;
-
-    // coverTransform for left flag panel (centred within its panel region)
-    function coverTransformOffset(nW, nH, tW, tH, xOff, yOff){
-      const scale = Math.max(tW/nW, tH/nH);
-      const dx = xOff + (tW - nW*scale)/2;
-      const dy = yOff + (tH - nH*scale)/2;
-      return `translate(${dx.toFixed(2)},${dy.toFixed(2)}) scale(${scale.toFixed(6)})`;
-    }
-
-    const bXformL = coverTransformOffset(bArt.nW, bArt.nH, panelLW, H, W*0.18, 0);
-    const qXformR = coverTransformOffset(qArt.nW, qArt.nH, panelRW, H, W*0.40, 0);
-
-    // Blend zone: seam is at W*0.55
-    const seamX = W * 0.55;
-
-    return `<div class="d-head-graphic" data-type="fx">
-      <div class="d-head-graphic-inner" style="position:absolute;inset:0;overflow:hidden;background:#040405">
-
-        <svg style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid slice" viewBox="0 0 ${W} ${H}">
-          <defs>
-            <!-- Left flag mask: opaque in centre zone, fades at seam -->
-            <linearGradient id="gML${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="18%"  stop-color="#fff" stop-opacity="1"/>
-              <stop offset="50%"  stop-color="#fff" stop-opacity="1"/>
-              <stop offset="62%"  stop-color="#fff" stop-opacity="0.45"/>
-              <stop offset="68%"  stop-color="#fff" stop-opacity="0"/>
-            </linearGradient>
-            <mask id="mL${uid}"><rect width="${W}" height="${H}" fill="url(#gML${uid})"/></mask>
-
-            <!-- Right flag mask: fades in from seam, opaque on right -->
-            <linearGradient id="gMR${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="40%"  stop-color="#fff" stop-opacity="0"/>
-              <stop offset="52%"  stop-color="#fff" stop-opacity="0.65"/>
-              <stop offset="60%"  stop-color="#fff" stop-opacity="1"/>
-              <stop offset="100%" stop-color="#fff" stop-opacity="1"/>
-            </linearGradient>
-            <mask id="mR${uid}"><rect width="${W}" height="${H}" fill="url(#gMR${uid})"/></mask>
-
-            <!-- Bottom vignette (top handled by CSS ::before) -->
-            <linearGradient id="gVB${uid}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="65%"  stop-color="#000" stop-opacity="0"/>
-              <stop offset="100%" stop-color="#000" stop-opacity="0.55"/>
-            </linearGradient>
-
-            <!-- Clip regions for flag panels -->
-            <clipPath id="cpLeft${uid}"><rect x="${W*0.18}" y="0" width="${W*0.65}" height="${H}"/></clipPath>
-            <clipPath id="cpRight${uid}"><rect x="${W*0.40}" y="0" width="${W*0.60}" height="${H}"/></clipPath>
-
-            <!-- Seam light leak — luminous vertical glow at blend midpoint -->
-            <linearGradient id="gLeak${uid}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"   stop-color="#fff" stop-opacity="0"/>
-              <stop offset="46%"  stop-color="#fff" stop-opacity="0"/>
-              <stop offset="52%"  stop-color="#fff" stop-opacity="0.22"/>
-              <stop offset="55%"  stop-color="#fff" stop-opacity="0.38"/>
-              <stop offset="58%"  stop-color="#fff" stop-opacity="0.22"/>
-              <stop offset="64%"  stop-color="#fff" stop-opacity="0"/>
-              <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
-            </linearGradient>
-
-            <!-- Ambient colour blooms per flag -->
-            <radialGradient id="gAmL${uid}" cx="0%" cy="50%" r="65%" gradientUnits="objectBoundingBox">
-              <stop offset="0%"   stop-color="rgb(${bTint})" stop-opacity="0.38"/>
-              <stop offset="55%"  stop-color="rgb(${bTint})" stop-opacity="0.12"/>
-              <stop offset="100%" stop-color="rgb(${bTint})" stop-opacity="0"/>
-            </radialGradient>
-            <radialGradient id="gAmR${uid}" cx="100%" cy="50%" r="65%" gradientUnits="objectBoundingBox">
-              <stop offset="0%"   stop-color="rgb(${qTint})" stop-opacity="0.34"/>
-              <stop offset="55%"  stop-color="rgb(${qTint})" stop-opacity="0.10"/>
-              <stop offset="100%" stop-color="rgb(${qTint})" stop-opacity="0"/>
-            </radialGradient>
-          </defs>
-
-          <!-- LEFT FLAG — starts at 18% of banner width, covers centre-left -->
-          <!-- Placed here so it appears in the lighter-gradient zone, not under heavy text overlay -->
-          <g clip-path="url(#cpLeft${uid})" mask="url(#mL${uid})" opacity="0.96">
-            <g transform="${bXformL}">${bArt.svg}</g>
-          </g>
-
-          <!-- RIGHT FLAG — covers centre-right and far right -->
-          <g clip-path="url(#cpRight${uid})" mask="url(#mR${uid})" opacity="0.92">
-            <g transform="${qXformR}">${qArt.svg}</g>
-          </g>
-
-          <!-- Ambient colour blooms — reinforce flag colour identity -->
-          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gAmL${uid})" opacity="1.0"/>
-          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gAmR${uid})" opacity="1.0"/>
-
-          <!-- Seam luminous light-leak -->
-          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gLeak${uid})"/>
-
-          <!-- Bottom vignette only — for depth at footer -->
-          <rect x="0" y="0" width="${W}" height="${H}" fill="url(#gVB${uid})"/>
-        </svg>
-
-
-
-        <!-- Currency pair pill — bottom right, glass -->
-        <div style="position:absolute;right:16px;bottom:10px;
-          background:rgba(0,0,0,0.55);backdrop-filter:blur(10px);
-          border:1px solid rgba(255,255,255,0.14);border-radius:6px;
-          padding:4px 11px;display:flex;align-items:center;gap:0">
-          <span style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:0.12em;color:rgba(255,255,255,0.92)">${bCode}</span>
-          <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.30);margin:0 4px">/</span>
-          <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.56)">${qCode}</span>
-        </div>
-
+    return `<div class="d-head-graphic" data-type="fx-city">
+      <div class="d-head-graphic-inner" style="background-image:url('${cityPhoto}')"></div>
+      <!-- Currency pill — bottom right -->
+      <div style="position:absolute;right:16px;bottom:10px;z-index:4;
+        background:rgba(0,0,0,0.55);backdrop-filter:blur(10px);
+        border:1px solid rgba(255,255,255,0.14);border-radius:6px;
+        padding:4px 11px;display:flex;align-items:center;gap:0">
+        <span style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:0.12em;color:rgba(255,255,255,0.92)">${bCcy}</span>
+        <span style="font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.30);margin:0 4px">/</span>
+        <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.56)">${qCcy}</span>
       </div>
     </div>`;
   }
