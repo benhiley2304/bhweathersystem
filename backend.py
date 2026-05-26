@@ -3981,8 +3981,11 @@ def compute_fred_economy_score(currency: str) -> dict:
     """
     now = time.time()
     cached = _FRED_CCY_CACHE.get(currency)
-    if cached and (now - cached["time"]) < _FRED_CCY_TTL:
-        return cached["data"]
+    if cached:
+        # FF-injected entries use 24h TTL; FRED fallback uses standard 1h TTL
+        ttl = 86400 if cached.get("data", {}).get("source") == "ff_injected" else _FRED_CCY_TTL
+        if (now - cached["time"]) < ttl:
+            return cached["data"]
 
     series_map = _FRED_CCY_SERIES.get(currency)
     if not series_map:
@@ -11424,6 +11427,55 @@ def _inject_ice_sync(market: str, rows: list, fmt: str) -> dict:
     except Exception as e:
         print(f"[INJECT ICE] {market}: error — {e}")
         return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/inject-ff-macro")
+async def inject_ff_macro(payload: dict):
+    """
+    Accepts pre-fetched ForexFactory actual-vs-forecast surprise data for non-USD
+    currencies and injects it into _FRED_CCY_CACHE, replacing the FRED trailing-average
+    fallback with real consensus-based surprise scores.
+
+    Payload schema:
+    {
+      "currency": "GBP",
+      "score": 6.2,
+      "label": "GBP Macro Improving",
+      "cats": {"inflation": 0.5, "jobs": 0.8, "growth": -0.2},
+      "cat_details": {"inflation": [{"name":"CPI","actual":"0.3%","forecast":"0.2%","score":1}], ...}
+    }
+    """
+    global _FRED_CCY_CACHE, FF_MACRO_CACHE
+    currency = payload.get("currency", "").upper()
+    score    = payload.get("score")
+    label    = payload.get("label", "")
+    cats     = payload.get("cats", {})
+    cat_details = payload.get("cat_details", {})
+
+    VALID_CURRENCIES = {"EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"}
+    if currency not in VALID_CURRENCIES:
+        return {"ok": False, "error": f"Unknown currency: {currency}"}
+    if score is None:
+        return {"ok": False, "error": "Missing score"}
+
+    now = time.time()
+    injected = {
+        "score":       float(score),
+        "label":       label,
+        "currency":    currency,
+        "cats":        cats,
+        "cat_details": cat_details,
+        "source":      "ff_injected",  # distinguishes from FRED fallback
+    }
+    # Write into _FRED_CCY_CACHE with source=ff_injected so the TTL check uses 24h
+    _FRED_CCY_CACHE[currency] = {"data": injected, "time": now}
+
+    # Also bust FF_MACRO_CACHE so next request recomputes with new data
+    FF_MACRO_CACHE["data"] = None
+    FF_MACRO_CACHE["time"] = 0
+
+    print(f"[FF MACRO INJECT] {currency}: score={score:.1f}, label={label}, cats={cats}")
+    return {"ok": True, "currency": currency, "score": score, "label": label}
 
 
 @app.get("/api/tunnel-url")
