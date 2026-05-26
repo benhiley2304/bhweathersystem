@@ -11445,7 +11445,7 @@ async def inject_ff_macro(payload: dict):
       "cat_details": {"inflation": [{"name":"CPI","actual":"0.3%","forecast":"0.2%","score":1}], ...}
     }
     """
-    global _FRED_CCY_CACHE, FF_MACRO_CACHE
+    global _FRED_CCY_CACHE, FF_MACRO_CACHE, ALL_DATA_CACHE
     currency = payload.get("currency", "").upper()
     score    = payload.get("score")
     label    = payload.get("label", "")
@@ -11470,9 +11470,14 @@ async def inject_ff_macro(payload: dict):
     # Write into _FRED_CCY_CACHE with source=ff_injected so the TTL check uses 24h
     _FRED_CCY_CACHE[currency] = {"data": injected, "time": now}
 
-    # Also bust FF_MACRO_CACHE so next request recomputes with new data
+    # Bust FF_MACRO_CACHE so next scores request recomputes with new ff_injected data
     FF_MACRO_CACHE["data"] = None
     FF_MACRO_CACHE["time"] = 0
+
+    # Also bust ALL_DATA_CACHE so next /api/scores response includes ff_injected data
+    # Without this, stale cache would serve FRED data for up to 60min after injection
+    ALL_DATA_CACHE["data"] = None
+    ALL_DATA_CACHE["time"] = 0
 
     print(f"[FF MACRO INJECT] {currency}: score={score:.1f}, label={label}, cats={cats}")
     return {"ok": True, "currency": currency, "score": score, "label": label}
