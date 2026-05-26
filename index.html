@@ -36044,9 +36044,16 @@ function macroTab(m){
       const fgnCol=diffHex(fgn.score||0);
       const diff=(fgn.score||0)-(usd.score||0);
       const diffCol=diffHex(diff);
+      // Determine data source for the foreign currency
+      const _fgnSource=(_ffMacroOuter[fgn.currency]||{}).source||'fred';
+      const _fgnIsFF=_fgnSource==='ff_injected';
+      const _fgnSrcLabel=_fgnIsFF?'ForexFactory — 16w actual vs forecast':'FRED / official data';
+      const _fgnSrcBadge=_fgnIsFF
+        ?`<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:3px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.25);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:#5c9eff;text-transform:uppercase;margin-left:6px">FF</span>`
+        :`<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:3px;background:rgba(200,169,110,0.10);border:1px solid rgba(200,169,110,0.20);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:rgba(200,169,110,0.75);text-transform:uppercase;margin-left:6px">FRED</span>`;
       html+=`<div class="fx-diff-header">
         <div class="fx-diff-title">Fundamental Differential</div>
-        <div class="fx-diff-sub">${fgn.currency} economy vs USD economy — source: FRED / official data</div>
+        <div class="fx-diff-sub" style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">${fgn.currency} economy vs USD economy — source: ${_fgnSrcLabel}${_fgnSrcBadge}</div>
         <div class="fx-diff-bars">
           <div class="fx-diff-bar-row">
             <span class="fx-diff-lbl">${fgn.currency}</span>
@@ -36093,13 +36100,13 @@ function macroTab(m){
           </div>`;
         }
         html+=`</div>`;
-        // Sparse data footnote — show when foreign currency is missing many categories
+        // Sparse data footnote — only show for FRED fallback (FF injection covers the main cats)
         const _fgnMissingCats=allCats.filter(cat=>fgn.cats[cat]==null&&usd.cats[cat]!=null).length;
-        if(_fgnMissingCats>=2){
+        if(!_fgnIsFF && _fgnMissingCats>=2){
           const _isEUR = (fgn.currency||'').toUpperCase()==='EUR';
           const _sparseMsg = _isEUR
-            ? 'EUR data unavailable for US-specific indicators (JOLTS, Claims, Initial Claims, Wages). Differential reflects available series only.'
-            : `${fgn.currency} data unavailable for ${_fgnMissingCats} US-specific indicators (JOLTS, Claims, Wages etc). Differential reflects available series only and may appear more extreme than with full coverage.`;
+            ? 'EUR data sourced from FRED trailing-average proxies. US-specific indicators (JOLTS, Claims, Wages) are not available for EUR — differential reflects available series only.'
+            : `${fgn.currency} data sourced from FRED trailing-average proxies. ${_fgnMissingCats} US-specific indicators (JOLTS, Claims, Wages etc) are unavailable for ${fgn.currency} — differential reflects available series only and may appear more extreme than with full coverage.`;
           html+=`<div style="margin-top:8px;padding:6px 10px;border-radius:5px;background:rgba(245,200,66,0.05);border:1px solid rgba(245,200,66,0.18);font-size:8px;color:rgba(245,200,66,0.75);line-height:1.5"><strong style="color:rgba(245,200,66,0.9)">Data note:</strong> ${_sparseMsg}</div>`;
         }
       }
@@ -36111,7 +36118,10 @@ function macroTab(m){
       // usdFull and usdCatDet are hoisted to outer isFX block scope
       const allDetCats=[...new Set([...Object.keys(fgnCatDet),...Object.keys(usdCatDet)])];
       if(allDetCats.length){
-        html+=`<div class="sec-h" style="margin-top:20px">Data Points — ${fgnCur} vs USD</div>`;
+        const _dpSrcBadge=_fgnIsFF
+          ?`<span style="font-weight:400;font-size:7.5px;padding:1px 5px;border-radius:3px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.25);color:#5c9eff;text-transform:uppercase;letter-spacing:0.05em;margin-left:4px">FF</span>`
+          :'';
+        html+=`<div class="sec-h" style="margin-top:20px">Data Points — ${fgnCur} vs USD${_dpSrcBadge}</div>`;
         const scoreTag=(sc)=>{
           if(sc==null||sc===0)return '<span class="ind-tag ind-tag-n">LINE</span>';
           if(sc>0)return '<span class="ind-tag ind-tag-b">BEAT</span>';
@@ -36147,7 +36157,7 @@ function macroTab(m){
       // DX (USD only)
       html+=`<div class="fx-diff-header">
         <div class="fx-diff-title">USD Fundamentals</div>
-        <div class="fx-diff-sub">Source: FRED / official central bank data</div>
+        <div class="fx-diff-sub" style="display:flex;align-items:center;gap:4px">Source: FRED / official data <span style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;background:rgba(200,169,110,0.10);border:1px solid rgba(200,169,110,0.20);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:rgba(200,169,110,0.75);text-transform:uppercase">FRED</span></div>
         <div class="fx-diff-result">
           <span class="fx-diff-result-lbl">USD score:</span>
           <span class="fx-diff-result-val" style="color:${usdCol}">${(usd.score||0)>=0?'+':''}${(usd.score||0).toFixed(2)}</span>
@@ -36336,10 +36346,25 @@ function macroTab(m){
     const quoteCol=quoteScore!=null?diffHex(quoteScore/2.5):'#7a8ab0';
     const diffCol =diff!=null?diffHex(diff/2.5):'#7a8ab0';
 
+    // Determine sources for each cross leg
+    const _baseSource=(ffMacro[baseCur]||{}).source||'fred';
+    const _quoteSource=(ffMacro[quoteCur]||{}).source||'fred';
+    const _baseIsFF=_baseSource==='ff_injected';
+    const _quoteIsFF=_quoteSource==='ff_injected';
+    // Source label: show FF if both legs are FF, or call out individually
+    const _crossSrcLabel=(_baseIsFF&&_quoteIsFF)
+      ?'ForexFactory — 16w actual vs forecast'
+      :(_baseIsFF||_quoteIsFF)
+        ?`${_baseIsFF?baseCur:'FRED'} via FF / ${_quoteIsFF?quoteCur:'FRED'} via FF`
+        :'FRED / official data';
+    const _crossHasFF=_baseIsFF||_quoteIsFF;
+    const _crossBadge=_crossHasFF
+      ?`<span style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.25);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:#5c9eff;text-transform:uppercase;margin-left:6px">FF</span>`
+      :`<span style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;background:rgba(200,169,110,0.10);border:1px solid rgba(200,169,110,0.20);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:rgba(200,169,110,0.75);text-transform:uppercase;margin-left:6px">FRED</span>`;
     // ── HEADER: differential bars ──
     html+=`<div class="fx-diff-header">
       <div class="fx-diff-title">Cross Fundamental Differential</div>
-      <div class="fx-diff-sub">${baseCur} economy vs ${quoteCur} economy — source: FRED / official data</div>
+      <div class="fx-diff-sub" style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">${baseCur} economy vs ${quoteCur} economy — source: ${_crossSrcLabel}${_crossBadge}</div>
       <div class="fx-diff-bars">`;
     if(baseScore!=null){
       html+=`<div class="fx-diff-bar-row">
@@ -36409,14 +36434,18 @@ function macroTab(m){
       return '<span class="ind-tag ind-tag-m">MISS</span>';
     };
 
-    const renderCurrencyBlock=(cur, catDet, col)=>{
+    const renderCurrencyBlock=(cur, catDet, col, isFF)=>{
       const cats=Object.keys(catDet);
       if(!cats.length)return '';
       let out='';
+      const _srcBadge=isFF
+        ?`<span style="margin-left:auto;display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.25);font-size:7px;font-weight:700;letter-spacing:0.06em;color:#5c9eff;text-transform:uppercase">ForexFactory</span>`
+        :`<span style="margin-left:auto;display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;background:rgba(200,169,110,0.10);border:1px solid rgba(200,169,110,0.20);font-size:7px;font-weight:700;letter-spacing:0.06em;color:rgba(200,169,110,0.75);text-transform:uppercase">FRED</span>`;
       // Bold currency header banner
       out+=`<div style="margin-top:20px;padding:8px 10px;background:${col}18;border-left:3px solid ${col};border-radius:4px;display:flex;align-items:center;gap:8px">
         <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${col};letter-spacing:0.08em">${cur}</span>
         <span style="font-size:10px;color:var(--dim)">macro data points</span>
+        ${_srcBadge}
       </div>`;
       for(const cat of cats){
         const items=catDet[cat]||[];
@@ -36443,8 +36472,8 @@ function macroTab(m){
     const hasQuote=Object.values(quoteCatDet).some(a=>a.length>0);
     if(hasBase||hasQuote){
       html+=`<div class="sec-h" style="margin-top:20px">Data Points</div>`;
-      html+=renderCurrencyBlock(baseCur, baseCatDet, baseCol);
-      html+=renderCurrencyBlock(quoteCur, quoteCatDet, quoteCol);
+      html+=renderCurrencyBlock(baseCur, baseCatDet, baseCol, _baseIsFF);
+      html+=renderCurrencyBlock(quoteCur, quoteCatDet, quoteCol, _quoteIsFF);
     }
 
     // ── What This Score Means (FX Cross) ──
