@@ -8197,12 +8197,13 @@ WEIGHTS_SOFTS = {
 # Seasonal 15%: West African main crop / mid-crop cycle is physically anchored.
 # Relval 23%: inter-soft spread (CC/SB) and processing margin (grindings) meaningful.
 WEIGHTS_COCOA = {
-    "cot":      0.05,  # NEAR-ZERO: COCOBOD/CCC govt boards corrupt commercial signal
+    "cot":      0.15,  # MODERATE: commercial signal degraded by COCOBOD/CCC pre-selling,
+                       # but large spec extremes (divergence/exhaustion) remain predictive
     "seasonal": 0.15,  # Main/mid-crop cycle physically anchored (Oct & Apr harvests)
     "momentum": 0.22,
-    "macro":    0.25,  # Financial buyers dominate; macro-driven demand expectations key
+    "macro":    0.20,  # Financial buyers dominate; macro-driven demand expectations key
     "regime":   0.10,
-    "relval":   0.23,  # Grindings data + CC/SB spread meaningful
+    "relval":   0.18,  # Grindings data + CC/SB spread meaningful
     "pcr":      0.00,
 }
 
