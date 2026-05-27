@@ -2444,6 +2444,31 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
     comm_net  = df["comm_net"].values.astype(float)
     lspec_net = df["lspec_net"].values.astype(float)
     sspec_net = df["sspec_net"].values.astype(float)
+
+    # ── Inverted-market correction ────────────────────────────────────────────
+    # For bonds (ZB, ZN, ZF, ZT, R) and JPY (6J), the standard COT framework is
+    # structurally inverted:
+    #
+    # BONDS: Commercials are bond DEALERS who hedge inventory by shorting futures.
+    #   They are structurally net short and their positioning does NOT represent
+    #   directional smart money. Large Specs (asset managers, leveraged funds) ARE
+    #   the directional smart money in fixed income — they manage duration actively.
+    #   When asset managers are net long bonds, prices tend to rise. Standard
+    #   "side with commercials" would give the OPPOSITE (wrong) signal.
+    #
+    # JPY (6J): Commercials are Japanese exporters with structural FX hedges —
+    #   they are not directional. Large specs (hedge funds) hold the directional
+    #   view. Standard framework again gives inverted signal.
+    #
+    # Fix: swap comm_net ↔ lspec_net so the entire downstream algorithm (direction
+    # consistency, spec turn detection, Briese multipliers, phase labels) operates
+    # correctly with "commercials" = the true smart money for that market.
+    # The displayed Briese indices remain on the ORIGINAL series (correct for UI).
+    INVERTED_MARKETS = {"ZB", "ZN", "ZF", "ZT", "R", "6J"}
+    _is_inverted = market_id.upper() in INVERTED_MARKETS
+    if _is_inverted:
+        comm_net, lspec_net = lspec_net, comm_net
+
     n = len(comm_net)
     i = n - 1
 
@@ -2519,6 +2544,17 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
     si_lt = briese(sspec_net, 520)
     si_st = briese(sspec_net, 104)
     si    = si_lt * 0.75 + si_st * 0.25
+
+    # For inverted markets, preserve the ORIGINAL Briese indices for UI display
+    # (so the gauge labeled "Commercials" still shows the commercial Briese index)
+    # but the scoring algorithm above has used the swapped series.
+    if _is_inverted:
+        # ci/li are currently swapped (ci = original lspec, li = original comm)
+        # Swap back for display purposes only
+        ci_display, li_display = li, ci
+    else:
+        ci_display, li_display = ci, li
+    si_display = si  # sspec unchanged
 
     # ── Direction consistency at multiple windows ──────────────────────────────
     c_cons_8,  c_dir_8  = direction_consistency(comm_net,  i, 8)
@@ -2798,14 +2834,18 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
         elif oi_pct4 < -9 and ci <= 40:
             oi_signal = {"type": "bear", "name": "OI Confluence", "label": "Falling OI (%.1f%% in 4w) with commercials distributing" % oi_pct4}
 
+    # For inverted markets, swap comm_net/lspec_net back for display
+    _display_comm_net  = int(df["comm_net"].values[-1])
+    _display_lspec_net = int(df["lspec_net"].values[-1])
+
     return {
         "score":              final_score,
         "label":              label,
-        "comm_index":         round(ci, 1),
-        "lspec_index":        round(li, 1),
-        "sspec_index":        round(si, 1),
-        "comm_net":           int(comm_net[-1]),
-        "lspec_net":          int(lspec_net[-1]),
+        "comm_index":         round(ci_display, 1),
+        "lspec_index":        round(li_display, 1),
+        "sspec_index":        round(si_display, 1),
+        "comm_net":           _display_comm_net,
+        "lspec_net":          _display_lspec_net,
         "sspec_net":          int(sspec_net[-1]),
         "turning":            spec_turn_confirmed,
         "lspec_chg_3w":       int(np.nansum(df["lspec_chg"].values[-3:])) if "lspec_chg" in df.columns else None,
@@ -2826,9 +2866,9 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
         "v2_raw_signal":       round(raw_signal if signal_dir != 0 else 0, 3),
         "v2_shift":            round(shift if signal_dir != 0 else 0, 3),
         "detail": {
-            "comm_index":       round(ci, 1),
-            "lspec_index":      round(li, 1),
-            "sspec_index":      round(si, 1),
+            "comm_index":       round(ci_display, 1),
+            "lspec_index":      round(li_display, 1),
+            "sspec_index":      round(si_display, 1),
             "cot_phase":        cot_phase,
             "cot_phase_dir":    cot_phase_dir,
             "cot_phase_label":  cot_phase_label,
