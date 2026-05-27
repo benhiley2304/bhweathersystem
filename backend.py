@@ -8030,11 +8030,11 @@ WEIGHTS_HG = {
 WEIGHTS_PA = {
     "cot":      0.14,
     "seasonal": 0.06,
-    "momentum": 0.25,  # Supply squeezes produce fast spec-momentum moves
+    "momentum": 0.30,  # Highest in system: autocatalyst supply squeezes drive fast spec moves
     "macro":    0.22,  # Auto production cycles and EV transition matter
     "regime":   0.20,
     "relval":   0.08,  # Palladium/platinum spread relationship meaningful
-    "pcr":      0.05,
+    "pcr":      0.00,  # Removed: PA options illiquid, PCR readings unreliable
 }
 
 # ── PL PLATINUM ──────────────────────────────────────────────────────────────────────────
@@ -8101,11 +8101,11 @@ WEIGHTS_EQUITY = {
 WEIGHTS_GOLD = {
     "cot":      0.22,
     "seasonal": 0.08,
-    "momentum": 0.15,
-    "macro":    0.30,  # Highest: real-yield channel most precisely quantified in commodities
-    "regime":   0.22,  # Safe-haven demand = RORO derivative
-    "relval":   0.02,
-    "pcr":      0.01,
+    "momentum": 0.18,  # Gold trends well; raised from 0.15
+    "macro":    0.26,  # Real-yield anchor; trimmed from 0.30 — macro+regime were correlated at 52%
+    "regime":   0.20,  # Safe-haven demand = RORO derivative; trimmed from 0.22
+    "relval":   0.03,  # Au/Ag ratio signal; small but non-zero
+    "pcr":      0.03,  # GLD options deeply liquid — PCR has genuine contrarian sentiment signal
 }
 
 # ── SILVER (SI) ──────────────────────────────────────────────────────────────────────────
