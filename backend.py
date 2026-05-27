@@ -2541,15 +2541,29 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
     spec_turned, spec_turn_dir, spec_weeks_since, spec_briese_at_turn = find_local_turn(lspec_net, i, min_run=5)
     comm_turned, comm_turn_dir, comm_weeks_since, comm_briese_at_turn = find_local_turn(comm_net,  i, min_run=5)
 
-    # ── L1: Signal direction — COMMERCIALS primary, specs confirmation ─────────
+    # ── L1: Signal direction — LEVEL-DOMINANT, direction as modifier ──────────
     # Framework:
-    #   1. COMMERCIALS are smart money. Their direction sets the bias.
-    #      Comms accumulating (c_best_dir=+1) = bull setup.
-    #      Comms distributing (c_best_dir=-1) = bear setup.
-    #   2. NON-COMMERCIALS (large specs) are trend-followers / fuel.
+    #   1. COMMERCIALS are smart money. Their ABSOLUTE POSITIONING level is the
+    #      primary signal. ci=80 means comms are at the 80th percentile of their
+    #      historical net long — that IS a bullish stance regardless of 8w trend.
+    #   2. The 8-week direction MODIFIES the level anchor — it doesn't override it.
+    #      Comms at ci=64 distributing for 8 weeks are still historically long;
+    #      the score should anchor to ~6 (bull) not collapse to ~3 (bear).
+    #   3. NON-COMMERCIALS (large specs) are trend-followers / fuel.
     #      We enter when specs START TO AGREE with the commercial direction.
     #      Best entry = comms already loaded, specs just beginning to turn.
-    #   3. Signal strength is highest when comms extreme AND specs confirming.
+    #
+    # Level-dominant base score:
+    #   level_base = maps ci 0→1, 50→5, 100→9 (linear through midpoint)
+    #   ci=20  → base=2.2  (strongly bear)
+    #   ci=35  → base=3.7  (mild bear)
+    #   ci=50  → base=5.0  (neutral)
+    #   ci=64  → base=6.1  (mild bull)
+    #   ci=77  → base=7.2  (strong bull)
+    #   ci=89  → base=8.1  (very strong bull)
+    level_base = 1.0 + (ci / 100.0) * 8.0  # range: 1.0 → 9.0
+
+    # Direction signal is still COMMERCIALS primary, specs fallback
     dirs_opposite = (c_best_dir != 0 and l_dir_8 != 0 and c_best_dir != l_dir_8)
     signal_dir = 0  # +1 = bull, -1 = bear
     if c_best_dir != 0:
@@ -2681,85 +2695,110 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
                     price_alignment_bonus = 0.3
 
     # ── Composite score ───────────────────────────────────────────────────────
-    # Base: 5.0 (neutral)
-    # Each contributing layer shifts it toward bull (>5) or bear (<5)
-    # Maximum theoretical shift: ~4.0 pts each direction
-    if signal_dir == 0:
-        final_score = 5.0
-        label = "No clear COT directional signal"
-    else:
-        # Raw signal strength: combination of consistency + turn + phase
-        raw_signal = (
-            consistency_score   * 1.2 +   # up to 1.2
-            (spec_turn_strength if spec_turn_confirmed else 0.0) * 1.5 +  # up to 1.5
-            phase_coherence     * 1.0 +   # up to 1.0
-            price_alignment_bonus          # up to 0.3
-        )  # raw_signal range: 0 → ~4.0
-
-        # Apply Briese level multiplier (0.5–1.5 range roughly)
-        adjusted_signal = raw_signal * blended_mult
-
-        # Clamp to max 4.0 shift from neutral
-        shift = min(4.0, adjusted_signal)
-
-        if signal_dir == -1:  # bear
-            final_score = max(1.0, 5.0 - shift)
-            if   shift >= 3.5: label = "Strong bearish COT — commercials distributing, spec turn confirmed"
-            elif shift >= 2.5: label = "Moderately bearish COT — commercials selling, specs starting to confirm"
-            elif shift >= 1.5: label = "Mildly bearish COT — spec turn confirmed, commercials distributing"
-            elif shift >= 0.8: label = "Weakly bearish COT — commercial lean, awaiting spec confirmation"
-            else:              label = "Neutral-bearish COT — commercial bias only"
-        else:  # bull
-            final_score = min(9.0, 5.0 + shift)
-            if   shift >= 3.5: label = "Strong bullish COT — commercials loaded, spec turn confirmed"
-            elif shift >= 2.5: label = "Moderately bullish COT — commercials accumulating, specs starting to confirm"
-            elif shift >= 1.5: label = "Mildly bullish COT — spec turn confirmed, commercials accumulating"
-            elif shift >= 0.8: label = "Weakly bullish COT — commercial lean, awaiting spec confirmation"
-            else:              label = "Neutral-bullish COT — commercial bias only"
-
-    # ── Level floor/cap — extreme commercial positioning has standalone value ──
-    # When commercials are at historically extreme levels, the absolute level IS
-    # a signal in its own right, regardless of recent 8-week direction.
-    # This prevents situations where comms at 77/100 score only 5.8 just because
-    # spec confirmation hasn't arrived yet. The floor is moderate — direction and
-    # spec confirmation still push well above it.
+    # LEVEL-DOMINANT approach:
+    #   1. Start from level_base (ci maps linearly to 1–9)
+    #   2. Direction consistency shifts ±up to 1.5 pts from that anchor
+    #   3. Spec turn + phase coherence shifts ±up to 1.5 pts further
+    #   4. Total max shift from level_base: ±3.0 pts (clamped to 1–9)
     #
-    # Bull floors (comms extreme long):
-    #   ci >= 80 → score at least 6.8
-    #   ci >= 70 → score at least 6.2
-    #   ci >= 60 → score at least 5.8
-    # Bear caps (comms extreme short):
-    #   ci <= 20 → score at most 3.2
-    #   ci <= 30 → score at most 3.8
-    #   ci <= 40 → score at most 4.2
-    if   ci >= 80: level_floor = 6.8
-    elif ci >= 70: level_floor = 6.2
-    elif ci >= 60: level_floor = 5.8
-    else:          level_floor = 1.0  # no floor below 60
+    # This means ci=64 distributing scores ~6.1 - 0.8 = ~5.3+ (not 3.4)
+    # And ci=89 distributing scores ~8.1 - 1.5 = ~6.6+ (not 5.0)
+    # And ci=77 accumulating scores ~7.2 + 1.0 = ~8.2 (not 6.2)
 
-    if   ci <= 20: level_cap = 3.2
-    elif ci <= 30: level_cap = 3.8
-    elif ci <= 40: level_cap = 4.2
-    else:          level_cap = 9.0   # no cap above 40
+    if signal_dir == 0:
+        # No directional signal — anchor purely to level
+        # ci=50→5.0, ci=60→5.8, ci=40→4.2 etc.
+        final_score = round(max(1.0, min(9.0, level_base)), 1)
+        label = "No clear COT directional signal — level anchor only"
 
-    # Level floor only applies when the directional signal is BULL or NEUTRAL.
-    # If comms are at 64 but actively distributing (bear signal), we don't hard-floor
-    # them to 5.8 — but we do apply a soft pull toward neutral when the absolute level
-    # is still elevated (comms at 64 distributing should score lower than 5 but not as
-    # low as 3.1, since the absolute level still reflects a historically long position).
-    # Similarly, the cap only applies when signal is BEAR or NEUTRAL.
-    if signal_dir >= 0:  # bull or neutral: apply floor
-        final_score = max(final_score, level_floor)
-    elif signal_dir == -1 and ci >= 50:
-        # Bear signal but comms still historically above mid-range:
-        # soften the bear signal — pull score partway back toward 5.0.
-        # The higher ci is, the more we pull back (comms at 80 distributing
-        # is much less bearish than comms at 20 distributing).
-        # Pull factor: ci=50 → +0.0, ci=65 → +0.6, ci=80 → +1.2
-        pull_back = (ci - 50) / 100 * 2.0  # 0.0 to 1.0 pts
-        final_score = min(final_score + pull_back, 5.0)
-    if signal_dir <= 0:  # bear or neutral: apply cap
-        final_score = min(final_score, level_cap)
+        # Raw/shift for debug continuity
+        raw_signal = 0.0
+        shift = 0.0
+    else:
+        # ── Direction adjustment: how strongly are comms moving, confirmed by specs? ──
+        # Ranges from -1.5 (strong counter-level signal) to +1.5 (strong with-level)
+        # "with-level" = direction agrees with where comms are (bull if ci>50, bear if ci<50)
+        level_side = 1 if level_base >= 5.0 else -1  # which side is the level on?
+        dir_agrees_with_level = (signal_dir == level_side)  # True = direction confirms level
+
+        # Consistency contribution
+        # When direction AGREES with level side, it can push up to +1.2.
+        # When direction OPPOSES level side (e.g. ci=64 but distributing), it
+        # can only pull down a maximum of 0.6 — level takes priority.
+        if c_best_cons > 0:
+            if specs_confirming:
+                cons_strength = (c_best_cons * 0.65 + l_cons_8 * 0.35) / 100  # 0–1
+            else:
+                cons_strength = c_best_cons / 100 * 0.55  # comms only
+        else:
+            cons_strength = 0.0
+
+        level_side = 1 if level_base >= 5.0 else -1
+        dir_agrees_with_level = (signal_dir == level_side)
+        # Max dir weight: 1.2 if agrees with level, 0.5 if opposes level
+        dir_weight = 1.2 if dir_agrees_with_level else 0.5
+        dir_adj = cons_strength * dir_weight * signal_dir
+
+        # Spec turn + phase contribution
+        # Also dampened when direction opposes level
+        turn_weight = 1.0 if dir_agrees_with_level else 0.4
+        turn_phase = (
+            (spec_turn_strength if spec_turn_confirmed else 0.0) * 0.6 +
+            phase_coherence * 0.3 +
+            price_alignment_bonus * 0.1
+        ) * turn_weight * signal_dir
+
+        # Combined directional adjustment
+        # Agrees with level: up to +2.2 (push strongly)
+        # Opposes level:  up to -0.9 (modest pullback only)
+        directional_adj = dir_adj + turn_phase
+
+        # For debug fields (keep naming consistent with old approach)
+        raw_signal = abs(directional_adj)
+        shift = abs(directional_adj)
+
+        # Final score: level anchor + directional adjustment
+        pre_clamp = level_base + directional_adj
+        final_score = round(max(1.0, min(9.0, pre_clamp)), 1)
+
+        # Labels based on final score
+        if final_score >= 7.5:
+            label = "Strong bullish COT — commercials heavily loaded, spec turn confirmed"
+        elif final_score >= 6.5:
+            label = "Moderately bullish COT — commercials accumulating, specs starting to confirm"
+        elif final_score >= 5.5:
+            label = "Mildly bullish COT — commercial lean, level elevated"
+        elif final_score >= 4.5:
+            label = "Neutral COT — mixed signals"
+        elif final_score >= 3.5:
+            label = "Mildly bearish COT — commercial lean, level depressed"
+        elif final_score >= 2.5:
+            label = "Moderately bearish COT — commercials distributing, specs starting to confirm"
+        else:
+            label = "Strong bearish COT — commercials heavily short, spec turn confirmed"
+
+    # ── Level floor/cap — safety rails only (level_base already anchors) ───────
+    # With level-dominant scoring, floor/cap are narrow safety rails.
+    # The level_base already encodes ci into the score; these just prevent
+    # extreme directional adjustments from going fully off-rails.
+    # e.g. ci=90 but somehow scores <6.0 after big neg adj → floor to 5.5
+    if   ci >= 85: level_floor = 6.8
+    elif ci >= 75: level_floor = 6.2
+    elif ci >= 62: level_floor = 5.8
+    elif ci >= 55: level_floor = 5.3
+    elif ci >= 50: level_floor = 5.0
+    else:          level_floor = 1.0
+
+    if   ci <= 15: level_cap = 3.2
+    elif ci <= 25: level_cap = 3.8
+    elif ci <= 35: level_cap = 4.2
+    elif ci <= 42: level_cap = 4.6
+    elif ci <= 48: level_cap = 5.0
+    else:          level_cap = 9.0
+
+    # Apply unconditionally — level_base anchors already handle direction conflicts
+    final_score = max(final_score, level_floor)
+    final_score = min(final_score, level_cap)
     final_score = round(final_score, 1)
 
     # ── COT phase classification (reuse v1 helper) ────────────────────────────
@@ -2850,7 +2889,7 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
         "v2_spec_weeks_since":   spec_weeks_since if spec_turned else 0,
         "v2_comm_turn_dir":      comm_turn_dir if comm_turned else 0,
         "v2_comm_weeks_since":   comm_weeks_since if comm_turned else 0,
-        "v2_consistency":        round(consistency_score, 3),
+        "v2_consistency":        round(cons_strength if signal_dir != 0 else (c_best_cons / 100.0 if c_best_cons > 0 else 0.0), 3),
         "v2_spec_turn_strength": round(spec_turn_strength, 3),
         "v2_phase_coherence":    round(phase_coherence, 3),
         "v2_level_mult":         round(blended_mult, 3),
