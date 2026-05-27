@@ -11455,6 +11455,27 @@ async def clear_regime_cache():
     RISK_REGIME_CACHE["time"] = 0
     return {"cleared": True, "message": "Regime cache cleared — next scores call will recompute"}
 
+@app.get("/api/clear-narrative-cache")
+async def clear_narrative_cache():
+    """Bust NARR_CACHE and GLOBAL_NARR_CACHE so narratives regenerate on next scores call.
+    Also busts the main ALL_DATA_CACHE and NEWS_CACHE so the background narrative
+    thread fires immediately on the next /api/scores?force=true request.
+    """
+    NARR_CACHE["data"] = None
+    NARR_CACHE["time"] = 0
+    GLOBAL_NARR_CACHE["data"] = None
+    GLOBAL_NARR_CACHE["time"] = 0
+    NEWS_CACHE["data"] = None
+    NEWS_CACHE["time"] = 0
+    ALL_DATA_CACHE["data"] = None
+    ALL_DATA_CACHE["time"] = 0
+    print("[narr] Narrative + scores cache cleared via /api/clear-narrative-cache", flush=True)
+    return {
+        "cleared": True,
+        "caches_zeroed": ["NARR_CACHE", "GLOBAL_NARR_CACHE", "NEWS_CACHE", "ALL_DATA_CACHE"],
+        "message": "All narrative caches cleared — next /api/scores call triggers fresh LLM generation"
+    }
+
 @app.get("/api/debug-ice")
 async def debug_ice(market: str = "B"):
     """Diagnose ICE COT fetch: tests connectivity and returns row counts per year."""
