@@ -2445,30 +2445,6 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
     lspec_net = df["lspec_net"].values.astype(float)
     sspec_net = df["sspec_net"].values.astype(float)
 
-    # ── Inverted-market correction ────────────────────────────────────────────
-    # For bonds (ZB, ZN, ZF, ZT, R) and JPY (6J), the standard COT framework is
-    # structurally inverted:
-    #
-    # BONDS: Commercials are bond DEALERS who hedge inventory by shorting futures.
-    #   They are structurally net short and their positioning does NOT represent
-    #   directional smart money. Large Specs (asset managers, leveraged funds) ARE
-    #   the directional smart money in fixed income — they manage duration actively.
-    #   When asset managers are net long bonds, prices tend to rise. Standard
-    #   "side with commercials" would give the OPPOSITE (wrong) signal.
-    #
-    # JPY (6J): Commercials are Japanese exporters with structural FX hedges —
-    #   they are not directional. Large specs (hedge funds) hold the directional
-    #   view. Standard framework again gives inverted signal.
-    #
-    # Fix: swap comm_net ↔ lspec_net so the entire downstream algorithm (direction
-    # consistency, spec turn detection, Briese multipliers, phase labels) operates
-    # correctly with "commercials" = the true smart money for that market.
-    # The displayed Briese indices remain on the ORIGINAL series (correct for UI).
-    INVERTED_MARKETS = {"ZB", "ZN", "ZF", "ZT", "R", "6J"}
-    _is_inverted = market_id.upper() in INVERTED_MARKETS
-    if _is_inverted:
-        comm_net, lspec_net = lspec_net, comm_net
-
     n = len(comm_net)
     i = n - 1
 
@@ -2545,16 +2521,9 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
     si_st = briese(sspec_net, 104)
     si    = si_lt * 0.75 + si_st * 0.25
 
-    # For inverted markets, preserve the ORIGINAL Briese indices for UI display
-    # (so the gauge labeled "Commercials" still shows the commercial Briese index)
-    # but the scoring algorithm above has used the swapped series.
-    if _is_inverted:
-        # ci/li are currently swapped (ci = original lspec, li = original comm)
-        # Swap back for display purposes only
-        ci_display, li_display = li, ci
-    else:
-        ci_display, li_display = ci, li
-    si_display = si  # sspec unchanged
+    ci_display = ci
+    li_display = li
+    si_display = si
 
     # ── Direction consistency at multiple windows ──────────────────────────────
     c_cons_8,  c_dir_8  = direction_consistency(comm_net,  i, 8)
@@ -2572,147 +2541,120 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
     spec_turned, spec_turn_dir, spec_weeks_since, spec_briese_at_turn = find_local_turn(lspec_net, i, min_run=5)
     comm_turned, comm_turn_dir, comm_weeks_since, comm_briese_at_turn = find_local_turn(comm_net,  i, min_run=5)
 
-    # ── L1: Directional alignment base ────────────────────────────────────────
-    # The price direction signal comes from SPEC movement, not commercial movement.
-    # Framework: specs follow price (fuel). When specs top out and start reducing,
-    # price tends to roll over. Commercials moving opposite = smart money setup.
-    #
-    # signal_dir is defined by spec turn direction:
-    #   specs reducing longs (l_dir = -1) => bear price signal
-    #   specs adding longs   (l_dir = +1) => bull price signal
-    #
-    # Commercial direction is used as a CONFIRMATION / SETUP signal:
-    #   comms moving opposite to specs = strong confirmation
-    #   comms moving same as specs = weak/no signal
+    # ── L1: Signal direction — COMMERCIALS primary, specs confirmation ─────────
+    # Framework:
+    #   1. COMMERCIALS are smart money. Their direction sets the bias.
+    #      Comms accumulating (c_best_dir=+1) = bull setup.
+    #      Comms distributing (c_best_dir=-1) = bear setup.
+    #   2. NON-COMMERCIALS (large specs) are trend-followers / fuel.
+    #      We enter when specs START TO AGREE with the commercial direction.
+    #      Best entry = comms already loaded, specs just beginning to turn.
+    #   3. Signal strength is highest when comms extreme AND specs confirming.
     dirs_opposite = (c_best_dir != 0 and l_dir_8 != 0 and c_best_dir != l_dir_8)
-    signal_dir = 0  # +1 = bull setup, -1 = bear setup
-    if l_dir_8 != 0:
-        # Spec movement defines the price signal direction
-        signal_dir = l_dir_8  # specs reducing (-1) => bear; specs adding (+1) => bull
-    elif c_best_dir != 0:
-        # No spec signal yet — use commercial direction as weak proxy
-        # comm buying = less short = bearish context; comm selling = more short = bullish
-        signal_dir = -c_best_dir  # inverted: comm buying => bear for price
+    signal_dir = 0  # +1 = bull, -1 = bear
+    if c_best_dir != 0:
+        signal_dir = c_best_dir   # comms define the direction
+    elif l_dir_8 != 0:
+        signal_dir = l_dir_8      # fallback: specs only, lower confidence
 
     # ── L2: Consistency score ─────────────────────────────────────────────────
-    # Both groups consistently moving in opposite directions = stronger signal
-    # Scale: 0 (random) → 1.0 (perfect directional consistency both sides)
-    if dirs_opposite:
-        # Average consistency of both groups in their respective directions
-        # lspec direction should be OPPOSITE to signal_dir
-        l_cons_aligned = l_cons_8 if l_dir_8 != signal_dir else (100 - l_cons_8)
-        consistency_score = (c_best_cons + l_cons_aligned) / 2 / 100
+    # Commercial directional consistency is the backbone.
+    # Bonus when specs are also moving in the SAME direction (confirming).
+    specs_confirming = (l_dir_8 != 0 and l_dir_8 == signal_dir)
+    if c_best_cons > 0:
+        if specs_confirming:
+            consistency_score = (c_best_cons * 0.65 + l_cons_8 * 0.35) / 100
+        else:
+            consistency_score = c_best_cons / 100 * 0.55  # comms only, no spec confirm
     else:
-        consistency_score = c_best_cons / 100 * 0.5  # half credit if only one side
+        consistency_score = 0.0
 
-    # ── L3: Spec turn confirmation ────────────────────────────────────────────
-    # Has the spec line actually formed a local peak/trough consistent with signal_dir?
+    # ── L3: Spec turn confirmation (entry timing) ─────────────────────────────
+    # Has the spec line TURNED in the same direction as signal_dir?
+    # Bull: spec_turn_dir=+1 (specs bottoming, starting to go long)
+    # Bear: spec_turn_dir=-1 (specs topping, starting to go short)
     spec_turn_confirmed = False
     spec_turn_strength  = 0.0
     spec_turn_label     = ""
-    if spec_turned:
-        # Does the turn direction match the signal?
-        # signal_dir=-1 (bear, specs reducing) => spec peaked (turn_dir=-1) ✓
-        # signal_dir=+1 (bull, specs adding)   => spec troughed (turn_dir=+1) ✓
-        # spec_turn_dir should match signal_dir
-        if signal_dir != 0 and spec_turn_dir == signal_dir:
-            spec_turn_confirmed = True
-            # Recency: turns confirmed recently carry more weight
-            # 1-3w ago: strong; 4-8w: moderate; 9-16w: fading; >16w: weak
-            if spec_weeks_since <= 3:
-                spec_turn_strength = 1.0
-            elif spec_weeks_since <= 8:
-                spec_turn_strength = 0.75
-            elif spec_weeks_since <= 16:
-                spec_turn_strength = 0.45
-            else:
-                spec_turn_strength = 0.2
-            dir_word = "topping" if spec_turn_dir == -1 else "bottoming"
-            spec_turn_label = "Managers %s %dw ago (idx=%.0f/100 at peak)" % (
-                dir_word, spec_weeks_since, spec_briese_at_turn)
-        elif signal_dir == 0 and spec_turned:
-            # No directional alignment yet but spec has turned — weaker signal
-            spec_turn_confirmed = True
-            spec_turn_strength  = 0.3
+    if spec_turned and signal_dir != 0 and spec_turn_dir == signal_dir:
+        spec_turn_confirmed = True
+        if spec_weeks_since <= 3:
+            spec_turn_strength = 1.0
+        elif spec_weeks_since <= 8:
+            spec_turn_strength = 0.75
+        elif spec_weeks_since <= 16:
+            spec_turn_strength = 0.45
+        else:
+            spec_turn_strength = 0.2
+        dir_word = "bottoming" if spec_turn_dir == 1 else "topping"
+        spec_turn_label = "Specs %s %dw ago (idx=%.0f/100 at turn)" % (
+            dir_word, spec_weeks_since, spec_briese_at_turn)
 
     # ── L4: Comm/spec turn coherence ─────────────────────────────────────────
-    # Did commercials turn first (or simultaneously) and is the timing coherent?
+    # Ideal: commercials turn first (smart money leads), specs confirm after.
+    # P1 setup = comm has turned but spec hasn't yet — score this well.
     phase_coherence = 0.0
     phase_label = ""
     if comm_turned and spec_turned:
-        # Ideal: comm turned slightly BEFORE spec (smart money leads)
-        # Bear setup: comm_turn_dir=+1 (comm bottoming/buying back shorts)
-        #             spec_turn_dir=-1 (specs topping/reducing longs)
-        # Bull setup: comm_turn_dir=-1 (comm topping/adding shorts)
-        #             spec_turn_dir=+1 (specs bottoming/adding longs)
-        # In both cases, comm and spec turns should be in OPPOSITE directions
-        turns_coherent = (comm_turn_dir != spec_turn_dir)  # they should be opposite
-        if turns_coherent:
-            timing_gap = abs(comm_weeks_since - spec_weeks_since)
-            # Simultaneous or comm slightly earlier = strong coherence
-            if timing_gap <= 4:
+        turns_aligned = (comm_turn_dir == signal_dir and spec_turn_dir == signal_dir)
+        if turns_aligned:
+            timing_gap = comm_weeks_since - spec_weeks_since  # +ve = comm turned earlier
+            if 0 <= timing_gap <= 8:
                 phase_coherence = 1.0
-                phase_label = "Comm & spec turns aligned (%dw apart)" % timing_gap
-            elif timing_gap <= 10:
-                phase_coherence = 0.65
-                phase_label = "Comm & spec turns moderate lag (%dw apart)" % timing_gap
+                phase_label = "Comm led, spec confirmed %dw later" % timing_gap
+            elif timing_gap > 8:
+                phase_coherence = 0.7
+                phase_label = "Comm turned %dw before spec — spec late to confirm" % timing_gap
             else:
-                phase_coherence = 0.3
-                phase_label = "Comm & spec turns diverged (%dw apart)" % timing_gap
+                phase_coherence = 0.5
+                phase_label = "Spec-led move — comm not yet confirmed"
         else:
             phase_coherence = 0.1
     elif comm_turned and not spec_turned:
-        # Comm has turned but spec hasn't yet — EARLY stage, potential setup
+        # P1 setup: comm turned, spec hasn't confirmed yet — valid early entry
         if comm_turn_dir == signal_dir:
-            phase_coherence = 0.4
-            phase_label = "Comm turned %dw ago, spec not yet confirmed — early" % comm_weeks_since
+            phase_coherence = 0.55
+            phase_label = "Comm turned %dw ago, spec not yet confirmed — P1 setup" % comm_weeks_since
     elif spec_turned and not comm_turned:
-        # Spec has turned but comm hasn't — unusual, lower confidence
-        phase_coherence = 0.25
+        phase_coherence = 0.2
         phase_label = "Spec turned %dw ago, comm turn not detected" % spec_weeks_since
 
     # ── L5: Briese level multiplier ──────────────────────────────────────────
-    # How extreme was positioning at the turn point?
-    # Uses BOTH spec peak level (how crowded were managers?) and current comm level
-    # More extreme = higher conviction for the reversal
-    if spec_turn_confirmed:
-        peak_extreme = spec_briese_at_turn
-        # signal_dir=-1 (bear): specs peaked -> higher peak = more crowded = more conviction
-        # signal_dir=+1 (bull): specs troughed -> lower trough = more oversold = more conviction
-        if signal_dir == -1:  # bear: spec peaked high
-            # Higher peak = more crowded = more conviction
-            # Note: mid-range peaks (30-50) still carry directional signal
-            if   peak_extreme >= 80: level_mult = 1.4
-            elif peak_extreme >= 65: level_mult = 1.2
-            elif peak_extreme >= 50: level_mult = 1.0
-            elif peak_extreme >= 35: level_mult = 0.9  # raised from 0.8
-            else:                    level_mult = 0.75  # raised from 0.6
-        else:  # bull: spec troughed low
-            if   peak_extreme <= 20: level_mult = 1.4
-            elif peak_extreme <= 35: level_mult = 1.2
-            elif peak_extreme <= 50: level_mult = 1.0
-            elif peak_extreme <= 65: level_mult = 0.9  # raised from 0.8
-            else:                    level_mult = 0.75  # raised from 0.6
+    # How extreme is the COMMERCIAL positioning? High extreme = high conviction.
+    # Bull setup: comms at HIGH Briese (heavy net long accumulation)
+    # Bear setup: comms at LOW Briese (heavy net short distribution)
+    if signal_dir == 1:   # bull: want comms high
+        if   ci >= 80: level_mult = 1.4
+        elif ci >= 65: level_mult = 1.2
+        elif ci >= 50: level_mult = 1.0
+        elif ci >= 35: level_mult = 0.8
+        else:          level_mult = 0.6
+    elif signal_dir == -1:  # bear: want comms low
+        if   ci <= 20: level_mult = 1.4
+        elif ci <= 35: level_mult = 1.2
+        elif ci <= 50: level_mult = 1.0
+        elif ci <= 65: level_mult = 0.8
+        else:          level_mult = 0.6
     else:
-        # No turn confirmed: use current Briese level as proxy
-        if signal_dir == -1:
-            level_mult = 0.6 + (li / 100) * 0.4  # higher lspec = more crowded (bear)
-        elif signal_dir == 1:
-            level_mult = 0.6 + ((100 - li) / 100) * 0.4  # lower lspec = more oversold (bull)
-        else:
-            level_mult = 0.7
+        level_mult = 0.7
 
-    # Commercial Briese contributes to multiplier
-    # For bear setup: comms should be HIGH (less short = buying back = confirms)
-    # For bull setup: comms should be LOW  (more short = adding hedges = confirms)
-    if signal_dir == -1:  # bear: want comm to be HIGH (less short)
-        comm_mult = 0.7 + (ci / 100) * 0.6  # 0.7 at ci=0, 1.3 at ci=100
-    elif signal_dir == 1:  # bull: want comm to be LOW (more short/hedging)
-        comm_mult = 0.7 + ((100 - ci) / 100) * 0.6
+    # Spec extremity at turn confirms crowd was wrong-footed
+    # Bull: specs at LOW Briese when they turned = oversold crowd = more conviction
+    # Bear: specs at HIGH Briese when they turned = crowded longs = more conviction
+    if spec_turn_confirmed:
+        if signal_dir == 1:
+            if   spec_briese_at_turn <= 20: spec_level_mult = 1.3
+            elif spec_briese_at_turn <= 35: spec_level_mult = 1.15
+            elif spec_briese_at_turn <= 50: spec_level_mult = 1.0
+            else:                           spec_level_mult = 0.85
+        else:
+            if   spec_briese_at_turn >= 80: spec_level_mult = 1.3
+            elif spec_briese_at_turn >= 65: spec_level_mult = 1.15
+            elif spec_briese_at_turn >= 50: spec_level_mult = 1.0
+            else:                           spec_level_mult = 0.85
+        blended_mult = level_mult * 0.6 + spec_level_mult * 0.4
     else:
-        comm_mult = 1.0
-    # Blend level multiplier: spec peak (70%) + comm (30%)
-    blended_mult = level_mult * 0.7 + comm_mult * 0.3
+        blended_mult = level_mult
 
     # ── L6: Price alignment ───────────────────────────────────────────────────
     # Are managers visibly following price in the expected direction before the turn?
@@ -2762,18 +2704,18 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
 
         if signal_dir == -1:  # bear
             final_score = max(1.0, 5.0 - shift)
-            if   shift >= 3.5: label = "Strong bearish COT — phase transition confirmed, crowded specs reversing"
-            elif shift >= 2.5: label = "Moderately bearish COT — spec rollover underway"
-            elif shift >= 1.5: label = "Mildly bearish COT — spec turn confirmed, commercials buying"
-            elif shift >= 0.8: label = "Weakly bearish COT — early directional lean, low conviction"
-            else:              label = "Neutral-bearish COT — directional bias only"
+            if   shift >= 3.5: label = "Strong bearish COT — commercials distributing, spec turn confirmed"
+            elif shift >= 2.5: label = "Moderately bearish COT — commercials selling, specs starting to confirm"
+            elif shift >= 1.5: label = "Mildly bearish COT — spec turn confirmed, commercials distributing"
+            elif shift >= 0.8: label = "Weakly bearish COT — commercial lean, awaiting spec confirmation"
+            else:              label = "Neutral-bearish COT — commercial bias only"
         else:  # bull
             final_score = min(9.0, 5.0 + shift)
-            if   shift >= 3.5: label = "Strong bullish COT — phase transition confirmed, spec accumulation"
-            elif shift >= 2.5: label = "Moderately bullish COT — spec accumulation underway"
-            elif shift >= 1.5: label = "Mildly bullish COT — spec turn confirmed, commercials distributing"
-            elif shift >= 0.8: label = "Weakly bullish COT — early directional lean, low conviction"
-            else:              label = "Neutral-bullish COT — directional bias only"
+            if   shift >= 3.5: label = "Strong bullish COT — commercials loaded, spec turn confirmed"
+            elif shift >= 2.5: label = "Moderately bullish COT — commercials accumulating, specs starting to confirm"
+            elif shift >= 1.5: label = "Mildly bullish COT — spec turn confirmed, commercials accumulating"
+            elif shift >= 0.8: label = "Weakly bullish COT — commercial lean, awaiting spec confirmation"
+            else:              label = "Neutral-bullish COT — commercial bias only"
 
     final_score = round(final_score, 1)
 
@@ -2783,12 +2725,13 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
 
     # ── Build signal detail dict ──────────────────────────────────────────────
     signal_parts = []
-    if dirs_opposite:
-        signal_parts.append("Comm %s (%.0f%% consistency, %dw window) vs LSpec %s" % (
-            "buying" if c_best_dir > 0 else "selling",
+    if c_best_dir != 0:
+        spec_status = "confirming" if specs_confirming else "not yet agreeing"
+        signal_parts.append("Comm %s (%.0f%% consistency, %dw) — specs %s" % (
+            "accumulating" if c_best_dir > 0 else "distributing",
             c_best_cons,
             8 if c_cons_8 >= c_cons_16 else 16,
-            "reducing longs" if l_dir_8 < 0 else "adding longs"
+            spec_status,
         ))
     if spec_turn_label:
         signal_parts.append(spec_turn_label)
@@ -2834,18 +2777,14 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
         elif oi_pct4 < -9 and ci <= 40:
             oi_signal = {"type": "bear", "name": "OI Confluence", "label": "Falling OI (%.1f%% in 4w) with commercials distributing" % oi_pct4}
 
-    # For inverted markets, swap comm_net/lspec_net back for display
-    _display_comm_net  = int(df["comm_net"].values[-1])
-    _display_lspec_net = int(df["lspec_net"].values[-1])
-
     return {
         "score":              final_score,
         "label":              label,
         "comm_index":         round(ci_display, 1),
         "lspec_index":        round(li_display, 1),
         "sspec_index":        round(si_display, 1),
-        "comm_net":           _display_comm_net,
-        "lspec_net":          _display_lspec_net,
+        "comm_net":           int(comm_net[-1]),
+        "lspec_net":          int(lspec_net[-1]),
         "sspec_net":          int(sspec_net[-1]),
         "turning":            spec_turn_confirmed,
         "lspec_chg_3w":       int(np.nansum(df["lspec_chg"].values[-3:])) if "lspec_chg" in df.columns else None,
