@@ -8917,8 +8917,23 @@ async def _do_scores_refresh(force: bool = False):
         _cot_detail_merged = {**_cot_detail_inner, **_cot_v2_signals, "score": cot_data.get("score", 5.0)}
         bias = compute_weighted_bias(scores, market_id=mid, cot_detail=_cot_detail_merged)
     
+        # Include v2 debug fields alongside the cot entry so they
+        # are visible in /api/scores for client-side debugging.
+        _cot_v2_out = {k: cot_data.get(k) for k in _COT_V2_SIGNAL_KEYS}
+        _cot_top_level = {
+            k: cot_data.get(k)
+            for k in ("comm_index", "lspec_index", "sspec_index",
+                       "comm_net", "lspec_net", "sspec_net",
+                       "turning", "lspec_chg_3w")
+        }
         scores_out = {
-            "cot":      {"score": cot_data["score"],      "label": cot_data["label"],      "detail": cot_data.get("detail", cot_data)},
+            "cot": {
+                "score":  cot_data["score"],
+                "label":  cot_data["label"],
+                "detail": cot_data.get("detail", cot_data),
+                **_cot_top_level,
+                **_cot_v2_out,
+            },
             "seasonal": {"score": seasonal_data["score"], "label": seasonal_data["label"], "detail": seasonal_data.get("detail", seasonal_data)},
             "momentum": {"score": momentum_data["score"], "label": momentum_data["label"], "detail": momentum_data.get("detail", {})},
             "macro":    {"score": macro_data["score"],    "label": macro_data["label"],    "detail": macro_data},
