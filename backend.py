@@ -2717,6 +2717,49 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
             elif shift >= 0.8: label = "Weakly bullish COT — commercial lean, awaiting spec confirmation"
             else:              label = "Neutral-bullish COT — commercial bias only"
 
+    # ── Level floor/cap — extreme commercial positioning has standalone value ──
+    # When commercials are at historically extreme levels, the absolute level IS
+    # a signal in its own right, regardless of recent 8-week direction.
+    # This prevents situations where comms at 77/100 score only 5.8 just because
+    # spec confirmation hasn't arrived yet. The floor is moderate — direction and
+    # spec confirmation still push well above it.
+    #
+    # Bull floors (comms extreme long):
+    #   ci >= 80 → score at least 6.8
+    #   ci >= 70 → score at least 6.2
+    #   ci >= 60 → score at least 5.8
+    # Bear caps (comms extreme short):
+    #   ci <= 20 → score at most 3.2
+    #   ci <= 30 → score at most 3.8
+    #   ci <= 40 → score at most 4.2
+    if   ci >= 80: level_floor = 6.8
+    elif ci >= 70: level_floor = 6.2
+    elif ci >= 60: level_floor = 5.8
+    else:          level_floor = 1.0  # no floor below 60
+
+    if   ci <= 20: level_cap = 3.2
+    elif ci <= 30: level_cap = 3.8
+    elif ci <= 40: level_cap = 4.2
+    else:          level_cap = 9.0   # no cap above 40
+
+    # Level floor only applies when the directional signal is BULL or NEUTRAL.
+    # If comms are at 64 but actively distributing (bear signal), we don't hard-floor
+    # them to 5.8 — but we do apply a soft pull toward neutral when the absolute level
+    # is still elevated (comms at 64 distributing should score lower than 5 but not as
+    # low as 3.1, since the absolute level still reflects a historically long position).
+    # Similarly, the cap only applies when signal is BEAR or NEUTRAL.
+    if signal_dir >= 0:  # bull or neutral: apply floor
+        final_score = max(final_score, level_floor)
+    elif signal_dir == -1 and ci >= 50:
+        # Bear signal but comms still historically above mid-range:
+        # soften the bear signal — pull score partway back toward 5.0.
+        # The higher ci is, the more we pull back (comms at 80 distributing
+        # is much less bearish than comms at 20 distributing).
+        # Pull factor: ci=50 → +0.0, ci=65 → +0.6, ci=80 → +1.2
+        pull_back = (ci - 50) / 100 * 2.0  # 0.0 to 1.0 pts
+        final_score = min(final_score + pull_back, 5.0)
+    if signal_dir <= 0:  # bear or neutral: apply cap
+        final_score = min(final_score, level_cap)
     final_score = round(final_score, 1)
 
     # ── COT phase classification (reuse v1 helper) ────────────────────────────
