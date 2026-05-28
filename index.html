@@ -27168,6 +27168,13 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">NFP${nfpDate?' · '+nfpDate:''}</span>
               ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">3m avg <span style="color:var(--dim);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
               ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">6m avg <span style="color:var(--dim);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
+              ${(()=>{
+                if(nfp3mAvg==null||nfp6mAvg==null) return '';
+                const diff = nfp3mAvg - nfp6mAvg;
+                const trendLbl = diff > 20 ? '▲ Strengthening' : diff < -20 ? '▼ Weakening' : '→ Stable';
+                const trendC = diff > 20 ? '#22c97a' : diff < -20 ? '#e03a2a' : '#6e7d90';
+                return `<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${trendC};letter-spacing:0.04em;opacity:0.82">${trendLbl}</span>`;
+              })()}
             </div>
             ${unrate!=null?(()=>{
               const urSlack = unrate<=4.0?'TIGHT':unrate<=4.5?'NORMAL':'SLACK';
@@ -27181,7 +27188,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Indicator strength: centred z-score bars — fill remaining card height -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Labour Signals</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Labour Signals</div><div class="mc-sect-line"></div><span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.38);padding:1px 5px;border:1px solid rgba(173,184,208,0.14);border-radius:3px;white-space:nowrap">FF</span></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
           ${(()=>{
             // score→colour: use system palette exactly
@@ -27209,10 +27216,13 @@ function renderMacroDataPanels(reg){
               const lblCol = r.score >= 6.5 ? 'rgba(48,217,136,0.80)'
                 : r.score <= 3.5 ? 'rgba(224,58,42,0.80)'
                 : 'rgba(173,184,208,0.65)';
+              // Verdict chip: BEAT / MISS / IN LINE
+              const verdictLab = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'IN LINE';
+              const verdictLabCol = r.isBeat===true?'#22c97a':r.isBeat===false?'#e03a2a':'#6e7d90';
               return `<div style="display:grid;grid-template-columns:82px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${rowIdx*55}ms">
-                <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="display:flex;flex-direction:column;gap:2px">
                   <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${lblCol}">${r.lbl}</span>
-                  ${r.hasFF?'<span style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.05em;color:rgba(173,184,208,0.35)">FF CONSENSUS</span>':''}
+                  <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.07em;color:${verdictLabCol};opacity:0.85">${verdictLab}</span>
                 </div>
                 <div style="position:relative;height:11px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden">
                   <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.28);border-radius:1px;z-index:1"></div>
@@ -27220,7 +27230,7 @@ function renderMacroDataPanels(reg){
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:82px">
                   <div style="display:flex;align-items:baseline;gap:5px">
-                    ${r.exp!=null?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.45);white-space:nowrap">${r.exp}</span>`:''}
+                    ${r.exp!=null?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.55);white-space:nowrap">${r.exp}</span>`:''}
                     <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:${displayCol};white-space:nowrap;line-height:1;letter-spacing:-0.03em">${r.val}</span>
                   </div>
                   ${r.surpStr!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${displayCol};letter-spacing:0.02em">${r.surpStr} vs fcst</span>`:''}
@@ -27332,7 +27342,7 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">Price Stability</div>
             <div class="ov-mc-title">Inflation</div>
           </div>
-          <span class="ov-mc-badge" style="color:${inflBadgeCol};background:${inflBadgeCol}1a;border:1px solid ${inflBadgeCol}38">${inflBadgeLabel}${_inflSurprises.length?` · ${_hotCount}H / ${_coolCount}C`:''}</span>
+          <span class="ov-mc-badge" style="color:${inflBadgeCol};background:${inflBadgeCol}1a;border:1px solid ${inflBadgeCol}38">${inflBadgeLabel}${_inflSurprises.length?` · ${_hotCount} hot${_coolCount>0?' / '+_coolCount+' cool':''}`:''}</span>
         </div>
         <!-- Hero: CPI reading only — no arc ring -->
         <div style="margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.07)">
@@ -27383,7 +27393,7 @@ function renderMacroDataPanels(reg){
         })()}
         <!-- Pipeline Pressure: beat/miss vs expectation (hot=red, cooler=blue) -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div><span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.38);padding:1px 5px;border:1px solid rgba(173,184,208,0.14);border-radius:3px;white-space:nowrap">FF</span></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;overflow:hidden">
             ${(()=>{
               // Absolute scale: all bars on same 0→4% surprise axis so PPI +2.93 vs CPI +1.01 are visually proportionate
@@ -27405,10 +27415,18 @@ function renderMacroDataPanels(reg){
                 const surpDelta = r.surpLabel ?? null;
                 // Label colour: hot = red, cool = blue, neutral = grey
                 const pipeLblCol = r.isBeat ? 'rgba(224,58,42,0.80)' : r.isMiss ? 'rgba(92,158,255,0.80)' : 'rgba(173,184,208,0.65)';
-                return `<div style="display:grid;grid-template-columns:60px 1fr auto;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${pipeIdx*50}ms">
-                  <div style="display:flex;flex-direction:column;gap:1px">
-                    <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${pipeLblCol}">${r.lbl}</span>
-                    ${r.hasFF?'<span style="font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:0.05em;color:rgba(173,184,208,0.4)">FF CONSENSUS</span>':''}
+                // Verdict chip for inflation rows: hot/cool verdict vs forecast
+                const inflVerdict = r.isBeat?'HOT':r.isMiss?'COOL':'IN LINE';
+                const inflVerdictCol = r.isBeat?'#e03a2a':r.isMiss?'#5c9eff':'#6e7d90';
+                // Unit label: highlight y/y vs m/m so user can compare correctly
+                const unitChip = r.unit_label?`<span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;color:rgba(173,184,208,0.5);text-transform:uppercase">${r.unit_label}</span>`:'';
+                return `<div style="display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${pipeIdx*50}ms">
+                  <div style="display:flex;flex-direction:column;gap:2px">
+                    <div style="display:flex;align-items:center;gap:4px">
+                      <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${pipeLblCol}">${r.lbl}</span>
+                      ${unitChip}
+                    </div>
+                    <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.07em;color:${inflVerdictCol};opacity:0.85">${inflVerdict}</span>
                   </div>
                   <div style="display:flex;flex-direction:column;gap:2px">
                     <div style="position:relative;height:11px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden">
@@ -27418,7 +27436,7 @@ function renderMacroDataPanels(reg){
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:82px">
                     <div style="display:flex;align-items:baseline;gap:5px">
-                      ${r.expLabel?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.5);white-space:nowrap">${r.expLabel}</span>`:''}
+                      ${r.expLabel?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.55);white-space:nowrap">${r.expLabel}</span>`:''}
                       <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.03em;color:#f2f6ff;line-height:1.1;white-space:nowrap">${r.actualDisplay!=null?r.actualDisplay.toFixed(2)+'%':'—'}</span>
                     </div>
                     ${surpDelta!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${col};letter-spacing:0.02em">${surpDelta} vs fcst</span>`:r.tArrow?`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`:''}
