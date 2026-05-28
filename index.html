@@ -1228,7 +1228,7 @@ a{color:inherit;text-decoration:none}
 /* Mobile tweaks */
 @media(max-width:600px){
   .ov-macro-panels{grid-auto-rows:auto}
-  .ov-macro-card{padding:12px 12px 10px;border-radius:12px;min-height:unset;height:auto}
+  .ov-macro-card{padding:16px 16px 14px;border-radius:12px;min-height:unset;height:auto}
   .ov-mc-hero{font-size:22px!important}
   .ov-yc-canvas-wrap{min-height:80px;max-height:160px}
   #ov-yc-chart{min-height:200px!important;max-height:280px!important}
@@ -1332,6 +1332,14 @@ a{color:inherit;text-decoration:none}
 }
 /* All direct children sit above overlays */
 .ov-macro-card>*{position:relative;z-index:1}
+
+/* Dynamic verdict tint — ambient background tint per-card */
+.ov-macro-card-tint{
+  position:absolute!important;inset:0;pointer-events:none;
+  border-radius:16px;z-index:0!important;
+  opacity:1;
+  transition:background 600ms ease;
+}
 
 /* ── Design system upgrades ─────────────────────────────────── */
 /* Tabular nums on all numeric elements */
@@ -27157,6 +27165,14 @@ function renderMacroDataPanels(reg){
       <div class="ov-macro-card" id="ov-macro-labour">
         <div class="ov-macro-card-glow" style="background:${jcCol}"></div>
         <div class="ov-macro-card-wash" style="background:${jcCol}"></div>
+        <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${
+          jobsComp==null?'rgba(173,184,208,0.015)':
+          jobsComp>=7?'rgba(34,201,122,0.048)':
+          jobsComp>=5.5?'rgba(34,201,122,0.030)':
+          jobsComp>=4.5?'rgba(173,184,208,0.018)':
+          jobsComp>=3.5?'rgba(245,200,66,0.032)':
+          'rgba(224,58,42,0.048)'
+        } 0%,transparent 72%)"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p1"></canvas>
         <div class="ov-mc-header">
           <div>
@@ -27207,7 +27223,7 @@ function renderMacroDataPanels(reg){
           </div>
         </div>
         <!-- TIER 1: Primary KPI tiles — Unemployment + Wages side by side -->
-        <div class="mc-sect" style="margin:0 0 7px"><div class="mc-sect-lbl">Primary Indicators</div><div class="mc-sect-line"></div></div>
+        <div class="mc-sect" style="margin:0 0 8px"><div class="mc-sect-lbl" style="font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(173,184,208,0.55)">Primary Indicators</div><div class="mc-sect-line"></div></div>
         ${(()=>{
           const unempRow = zIndicators.find(r=>r.lbl==='Unemployment');
           const wagesRow = zIndicators.find(r=>r.lbl==='Wages m/m');
@@ -27245,7 +27261,7 @@ function renderMacroDataPanels(reg){
         })()}
         <!-- TIER 2: Supporting signals — NFP row + Claims + ADP compact -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Supporting Indicators</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 8px"><div class="mc-sect-lbl" style="font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(173,184,208,0.55)">Supporting Indicators</div><div class="mc-sect-line"></div></div>
           <div style="display:flex;flex-direction:column;gap:0">
           ${(()=>{
             const scoreCol = s => s>=6.5?'#22c97a':s>=5?'#6e7d90':s>=3.5?'#c8a96e':'#e03a2a';
@@ -27393,6 +27409,13 @@ function renderMacroDataPanels(reg){
       <div class="ov-macro-card" id="ov-macro-inflation">
         <div class="ov-macro-card-glow" style="background:${inflArcCol}"></div>
         <div class="ov-macro-card-wash" style="background:${inflArcCol}"></div>
+        <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${
+          _avgSurprise > 0.15?'rgba(224,58,42,0.048)':
+          _avgSurprise > 0.03?'rgba(245,200,66,0.032)':
+          _avgSurprise < -0.15?'rgba(74,144,217,0.052)':
+          _avgSurprise < -0.03?'rgba(74,144,217,0.035)':
+          'rgba(173,184,208,0.018)'
+        } 0%,transparent 72%)"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p2"></canvas>
         <div class="ov-mc-header">
           <div>
@@ -27539,7 +27562,7 @@ function renderMacroDataPanels(reg){
                 </div>
               </div>`;
             }).join('');
-            return `<div class="mc-sect" style="margin:0 0 7px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
+            return `<div class="mc-sect" style="margin:0 0 8px"><div class="mc-sect-lbl" style="font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(173,184,208,0.55)">Price Pressures</div><div class="mc-sect-line"></div></div>
             ${pceTile}
             <div style="display:flex;flex-direction:column;gap:0">${secondaryHtml}</div>`;
           })()}
@@ -27552,6 +27575,11 @@ function renderMacroDataPanels(reg){
       <div class="ov-macro-card" id="ov-macro-fedbs">
         <div class="ov-macro-card-glow" style="background:${lineCol}"></div>
         <div class="ov-macro-card-wash" style="background:${lineCol}"></div>
+        <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${
+          lineCol==='#7ab8c4'?'rgba(122,184,196,0.042)':
+          lineCol==='#c8a96e'?'rgba(200,169,110,0.038)':
+          'rgba(106,122,148,0.022)'
+        } 0%,transparent 72%)"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p3"></canvas>
         <div class="ov-mc-header">
           <div>
@@ -27626,6 +27654,11 @@ function renderMacroDataPanels(reg){
       <div class="ov-macro-card" id="ov-macro-yc">
         <div class="ov-macro-card-glow" style="background:${crCol}"></div>
         <div class="ov-macro-card-wash" style="background:${crCol}"></div>
+        <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${
+          crCol==='#e03a2a'?'rgba(224,58,42,0.045)':
+          crCol.includes('f5c842')||crCol==='#f5c842'?'rgba(245,200,66,0.032)':
+          'rgba(200,169,110,0.025)'
+        } 0%,transparent 72%)"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p4"></canvas>
         <div class="ov-mc-header">
           <div>
@@ -27702,6 +27735,7 @@ function renderMacroDataPanels(reg){
       <div class="ov-macro-card" id="ov-macro-credit">
         <div class="ov-macro-card-glow" style="background:${crSpreadCol}"></div>
         <div class="ov-macro-card-wash" style="background:${crSpreadCol}"></div>
+        <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${crSpreadCol}0a 0%,transparent 72%)"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p5"></canvas>
         <div class="ov-mc-header">
           <div>
@@ -27881,6 +27915,11 @@ function renderMacroDataPanels(reg){
       <div class="ov-macro-card" id="ov-macro-stock-climate">
         <div class="ov-macro-card-glow" style="background:${scBadgeCol}"></div>
         <div class="ov-macro-card-wash" style="background:${scBadgeCol}"></div>
+        <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${
+          scBadgeCol==='#22c97a'?'rgba(34,201,122,0.048)':
+          scBadgeCol==='#e03a2a'?'rgba(224,58,42,0.048)':
+          'rgba(200,169,110,0.025)'
+        } 0%,transparent 72%)"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
         <!-- HEADER -->
