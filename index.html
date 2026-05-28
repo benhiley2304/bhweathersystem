@@ -27165,30 +27165,49 @@ function renderMacroDataPanels(reg){
           </div>
           ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}1a;border:1px solid ${jcCol}38">${jcLabel}</span>`:''}
         </div>
-        <!-- HERO: NFP with trend context inline -->
+        <!-- HERO: NFP with consensus + surprise as first-class elements -->
         <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07)">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-            <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'\u2014'}</div>
-            ${ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null
-              ? surprisePill(ffNfp.beat?'BEAT':'MISS', ffNfp.beat?'#22c97a':'#e03a2a')
-              : (nfpSurpL?surprisePill(nfpSurpL, surpCol):'')}
+          <!-- Row 1: NFP number + BEAT/MISS+delta chip -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px">
+            <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'\u2014'}</div>
+            ${(()=>{
+              // Enhanced BEAT/MISS chip with numeric surprise delta
+              const useFF = ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null;
+              const beat = useFF ? ffNfp.beat : null;
+              const surpK = useFF&&ffNfp.actual!=null&&ffNfp.forecast!=null
+                ? Math.round(ffNfp.actual - ffNfp.forecast)
+                : null;
+              if(beat===null&&!nfpSurpL) return '';
+              const label = beat!=null?(beat?'BEAT':'MISS'):nfpSurpL;
+              const col = beat!=null?(beat?'#22c97a':'#e03a2a'):surpCol;
+              const deltaStr = surpK!=null ? ' ' + (surpK>=0?'+':'') + surpK + 'K' : '';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:3px 9px;border-radius:10px;background:${col}22;border:1px solid ${col}60">${label}${deltaStr}</span>`;
+            })()}
+          </div>
+          <!-- Row 2: EXP + trend direction + trend context -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+            ${(()=>{
+              if(!ffNfp||ffNfp.forecast==null) return '';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(173,184,208,0.65)">EST <span style="color:rgba(173,184,208,0.85);font-weight:800">${ffNfp.forecast>=0?'+':''}${Math.round(ffNfp.forecast)}K</span></span>`;
+            })()}
             ${(()=>{
               if(nfp3mAvg==null&&nfp6mAvg==null) return '';
               const diff = (nfp3mAvg||0) - (nfp6mAvg||0);
               const trendArrow = diff > 20 ? '\u25b2' : diff < -20 ? '\u25bc' : '\u2192';
-              const trendWord = diff > 20 ? ' Strengthening' : diff < -20 ? ' Weakening' : ' Stable';
+              const trendWord = diff > 20 ? 'Strengthening' : diff < -20 ? 'Weakening' : 'Stable';
               const trendC = diff > 20 ? '#22c97a' : diff < -20 ? '#e03a2a' : '#6e7d90';
-              const trendWordCol = diff > 20 ? '#8aab8a' : diff < -20 ? '#ab8a8a' : '#6e7d90';
-              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.03em"><span style="color:${trendC}">${trendArrow}</span><span style="color:${trendWordCol}">${trendWord}</span></span>`;
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;color:${trendC}">${trendArrow} ${trendWord}</span>`;
             })()}
           </div>
+          <!-- Row 3: meta context — date + 3m/6m averages -->
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">NFP${nfpDate?' \u00b7 '+nfpDate:''}</span>
-            ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">3m avg <span style="color:var(--dim);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
-            ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">6m avg <span style="color:var(--dim);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
+            ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">3m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
+            ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">6m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
           </div>
         </div>
         <!-- TIER 1: Primary KPI tiles — Unemployment + Wages side by side -->
+        <div class="mc-sect" style="margin:0 0 7px"><div class="mc-sect-lbl">Primary Indicators</div><div class="mc-sect-line"></div></div>
         ${(()=>{
           const unempRow = zIndicators.find(r=>r.lbl==='Unemployment');
           const wagesRow = zIndicators.find(r=>r.lbl==='Wages m/m');
@@ -27198,26 +27217,28 @@ function renderMacroDataPanels(reg){
             const tc = tileScoreCol(r.score);
             const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'IN LINE';
             const vCol = r.isBeat===true?'#22c97a':r.isBeat===false?'#e03a2a':'#6e7d90';
-            // Mini delta bar inside tile — surprise magnitude shown as fill
+            // Numeric surprise delta (e.g. "-0.1%" or "+25K")
             const surpNum = r.surpStr!=null ? parseFloat(r.surpStr) : null;
-            const barFill = surpNum!=null ? Math.min(100, Math.max(4, Math.abs(surpNum)*20)).toFixed(0) : '4';
-            const barSide2 = r.isBeat===true ? 'left:50%' : r.isBeat===false ? 'right:50%' : 'left:50%';
+            const surpDisplay = surpNum!=null ? ((surpNum>=0?'+':'')+surpNum.toFixed(2)) : null;
+            // Expected value — strip "exp " prefix if present
+            const expClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
             return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-top:2px solid ${vCol}55;border-radius:9px;padding:10px 12px">
               <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">${label}</div>
-              <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
-                <span style="font-family:var(--mono);font-size:24px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:#e8e6e3">${r.val}</span>
-                <span style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.06em;color:#ffffff;padding:2px 6px;border-radius:8px;background:${vCol}22;border:1px solid ${vCol}55">${verdict}</span>
+              <!-- Actual + verdict chip -->
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:#e8e6e3">${r.val}</span>
+                <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2.5px 7px;border-radius:8px;background:${vCol}25;border:1px solid ${vCol}60">${verdict}</span>
               </div>
-              ${r.exp!=null?`<div style="font-family:var(--mono);font-size:8.5px;color:var(--faint);margin-bottom:4px">exp <span style="color:rgba(173,184,208,0.65)">${r.exp.replace('exp ','')}</span></div>`:''}
-              <div style="position:relative;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-top:2px">
-                <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,0.25);z-index:1"></div>
-                <div style="position:absolute;top:0;height:100%;${barSide2};width:${barFill}%;background:${vCol};border-radius:3px;opacity:0.85"></div>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:2px">
-                <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28)">MISS</span>
-                <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28)">EST</span>
-                <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.28)">BEAT</span>
-              </div>
+              <!-- Expected row -->
+              ${expClean!=null?`<div style="display:flex;align-items:baseline;gap:5px;margin-bottom:2px">
+                <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.50);letter-spacing:0.04em">EST</span>
+                <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(173,184,208,0.78)">${expClean}</span>
+              </div>`:''}
+              <!-- Numeric surprise delta -->
+              ${surpDisplay!=null?`<div style="display:flex;align-items:center;gap:4px">
+                <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.50);letter-spacing:0.04em">\u0394</span>
+                <span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${vCol}">${surpDisplay}</span>
+              </div>`:''}
             </div>`;
           };
           return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
@@ -27245,25 +27266,30 @@ function renderMacroDataPanels(reg){
               const missCol = '#e03a2a';
               const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'\u2014';
               const vCol = r.isBeat===true?beatCol:r.isBeat===false?missCol:'#5a6480';
-              return `<div style="display:grid;grid-template-columns:90px 1fr 60px;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeSlideIn 0.4s ease both;animation-delay:${i*60}ms">
-                <div style="display:flex;flex-direction:column;gap:2px">
+              // Numeric delta for this row
+              const rowSurpNum = r.surpStr!=null ? parseFloat(r.surpStr) : null;
+              const rowDeltaStr = rowSurpNum!=null ? ((rowSurpNum>=0?'+':'')+rowSurpNum.toFixed(2)) : null;
+              const rowExpClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
+              return `<div style="display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeSlideIn 0.4s ease both;animation-delay:${i*60}ms">
+                <!-- Label + verdict chip -->
+                <div style="display:flex;flex-direction:column;gap:3px">
                   <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.65)">${r.lbl}</span>
-                  <span style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:1.5px 5px;border-radius:7px;background:${vCol}22;border:1px solid ${vCol}50;display:inline-block;width:fit-content">${verdict}</span>
+                  <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2px 6px;border-radius:7px;background:${vCol}25;border:1px solid ${vCol}55;display:inline-block;width:fit-content">${verdict}</span>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px">
-                  <div style="position:relative;height:7px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:visible">
-                    <div style="position:absolute;inset:0;border-radius:4px;background:linear-gradient(90deg,${missCol}22 0%,${missCol}22 50%,${beatCol}22 50%,${beatCol}22 100%)"></div>
-                    <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1.5px;transform:translateX(-50%);background:rgba(255,255,255,0.35);border-radius:1px;z-index:2"></div>
-                    <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:${dc};border-radius:4px;opacity:0.88;box-shadow:0 0 5px ${dc}55"></div>
-                  </div>
-                  <div style="display:flex;justify-content:space-between">
-                    <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.28)">MISS</span>
-                    <span style="font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.30)">EST</span>
-                    <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.28)">BEAT</span>
-                  </div>
+                <!-- Divergence bar — no illegible axis labels -->
+                <div style="position:relative;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:visible">
+                  <div style="position:absolute;inset:0;border-radius:4px;background:linear-gradient(90deg,${missCol}20 0%,${missCol}20 50%,${beatCol}20 50%,${beatCol}20 100%)"></div>
+                  <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1.5px;transform:translateX(-50%);background:rgba(255,255,255,0.35);border-radius:1px;z-index:2"></div>
+                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:${dc};border-radius:4px;opacity:0.88;box-shadow:0 0 5px ${dc}55"></div>
                 </div>
-                <div style="text-align:right">
-                  <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em;line-height:1">${r.val}</span>
+                <!-- Value column: actual (large) + expected + delta -->
+                <div style="text-align:right;min-width:70px">
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em;line-height:1">${r.val}</div>
+                  ${rowExpClean!=null?`<div style="display:flex;align-items:baseline;gap:3px;justify-content:flex-end;margin-top:2px">
+                    <span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.48);font-weight:600">EST</span>
+                    <span style="font-family:var(--mono);font-size:10px;color:rgba(173,184,208,0.72);font-weight:700">${rowExpClean}</span>
+                  </div>`:''}
+                  ${rowDeltaStr!=null?`<div style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol};margin-top:1px;letter-spacing:0.02em">${rowDeltaStr}</div>`:''}
                 </div>
               </div>`;
             }).join('');
@@ -27373,82 +27399,144 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:#ffffff;background:${inflBadgeCol}28;border:1px solid ${inflBadgeCol}55">${inflBadgeLabel}${_hotCount>0?' · '+_hotCount+'×':''}</span>
         </div>
-        <!-- HERO: CPI level + gap + streak context -->
+        <!-- HERO: CPI actual + consensus + surprise as first-class design -->
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
-          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px">
-            <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${cpiVal}</div>
-            ${gap!=null?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;"><span style="color:${gapCol}">${gap>=0?'+':''}${gap}%</span><span style="color:#5a6480;font-weight:600"> vs 2% target</span></span>`:''}
+          <!-- Row 1: CPI number + HOT/COOL+delta chip -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px">
+            <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${cpiVal}</div>
+            ${(()=>{
+              // CPI hero: find the CPI pipeItem for actual vs forecast
+              const cpiRow = pipeItems.find(r=>r.key==='CPI');
+              if(!cpiRow||cpiRow.actual==null) return '';
+              const surprise = cpiRow.surprise;
+              const isHot = cpiRow.isBeat;  // isBeat=true means actual > forecast = HOT
+              const isCool = cpiRow.isMiss;
+              const verdict = isHot?'HOT':isCool?'COOL':'IN LINE';
+              const chipCol = isHot?'#e03a2a':isCool?'#5c9eff':'#6e7d90';
+              const surpStr = surprise!=null ? ' ' + (surprise>=0?'+':'') + surprise.toFixed(2) + '%' : '';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:3px 9px;border-radius:10px;background:${chipCol}22;border:1px solid ${chipCol}60">${verdict}${surpStr}</span>`;
+            })()}
           </div>
+          <!-- Row 2: EST figure + trend direction -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+            ${(()=>{
+              const cpiRow = pipeItems.find(r=>r.key==='CPI');
+              if(!cpiRow||cpiRow.expected==null) return '';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(173,184,208,0.65)">EST <span style="color:rgba(173,184,208,0.85);font-weight:800">${cpiRow.expected.toFixed(2)}%</span> <span style="font-size:9px;color:rgba(173,184,208,0.42);font-weight:500">y/y</span></span>`;
+            })()}
+            ${(()=>{ const t=(md.inflation||{}).trend||''; return t?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${t==='Rising'?'#e08a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'\u2191 Rising':t==='Falling'?'\u2193 Falling':'\u2192 Stable'}</span>`:''; })()}
+          </div>
+          <!-- Row 3: context — vs target + streak chip -->
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">CPI YoY</span>
-            ${(()=>{ const t=(md.inflation||{}).trend||''; return t?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${t==='Rising'?'#e08a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'\u2191 Rising':t==='Falling'?'\u2193 Falling':'\u2192 Stable'}</span>`:''; })()}
+            ${gap!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${gapCol}">${gap>=0?'+':''}${gap}% vs 2% target</span>`:''}
             ${(()=>{
-              // Streak: count consecutive hot or cool releases from pipeItems
+              // Fixed streak: count total hot/cool occurrences (consistent with existing logic)
               const hotMisses = pipeItems.filter(r=>r.isBeat===true).length;
               const coolMisses = pipeItems.filter(r=>r.isMiss===true).length;
-              if(hotMisses>=3) return `<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#ffffff;padding:2px 7px;border-radius:8px;background:rgba(224,58,42,0.25);border:1px solid rgba(224,58,42,0.55)">${hotMisses}× HOT</span>`;
-              if(coolMisses>=2) return `<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#ffffff;padding:2px 7px;border-radius:8px;background:rgba(92,158,255,0.25);border:1px solid rgba(92,158,255,0.55)">${coolMisses}× COOL</span>`;
+              if(hotMisses>=3) return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#ffffff;padding:2px 8px;border-radius:8px;background:rgba(224,58,42,0.25);border:1px solid rgba(224,58,42,0.55)">${hotMisses}× HOT</span>`;
+              if(coolMisses>=2) return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#ffffff;padding:2px 8px;border-radius:8px;background:rgba(92,158,255,0.25);border:1px solid rgba(92,158,255,0.55)">${coolMisses}× COOL</span>`;
               return '';
             })()}
           </div>
         </div>
-        <!-- RANKED PRICE PRESSURES: 3 rows, policy hierarchy order (CPI excluded — hero already covers it) -->
+        <!-- PRICE PRESSURES: Core PCE as sub-hero tile + secondary rows -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
-          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
-            ${(()=>{
-              // Filter out CPI row — already shown in hero
-              const rankedRows = pipeItems.filter(r=>r.key!=='CPI');
-              // Policy rank labels
-              const rankLabel = key => key==='CORE_PCE'?'Fed Target':key==='CORE_CPI'?'Core Read':key==='PPI'?'Lead Indicator':'';
-              const ABS_MAX = 4.0;
-              const surpCol2 = (surprise) => {
-                if(surprise==null) return '#adb8d0';
-                if(surprise > 1.5) return '#e03a2a';
-                if(surprise > 0.3) return '#e07a3a';
-                if(surprise > 0)   return '#c8a96e';
-                if(surprise > -0.3)return '#5c9eff';
-                return '#4a90d9';
-              };
-              return rankedRows.map((r,i)=>{
-                const col = surpCol2(r.surprise);
-                const absBarW = r.surprise!=null ? Math.min(95, Math.max(3, (Math.abs(r.surprise)/ABS_MAX)*100)).toFixed(0) : '3';
-                const barSide = r.isBeat ? 'left:50%' : 'right:50%';
-                const inflVerdict = r.isBeat?'HOT':r.isMiss?'COOL':'IN LINE';
-                const inflVerdictCol = r.isBeat?'#e03a2a':r.isMiss?'#5c9eff':'#6e7d90';
-                const rnkLbl = rankLabel(r.key);
-                const unitChip = r.unit_label?`<span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;color:rgba(173,184,208,0.45);text-transform:uppercase">${r.unit_label}</span>`:'';
-                // Primary rows get more prominence
-                const isPrimary = r.key==='CORE_PCE';
-                return `<div style="display:grid;grid-template-columns:80px 1fr auto;align-items:center;gap:6px;padding:${isPrimary?'8':'6'}px 0;border-bottom:1px solid rgba(255,255,255,0.05);${isPrimary?'background:rgba(255,255,255,0.015);margin:0 -2px;padding-left:2px;padding-right:2px;border-radius:4px':''}animation:fadeSlideIn 0.4s ease both;animation-delay:${i*55}ms">
-                  <div style="display:flex;flex-direction:column;gap:2px">
-                    <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap">
-                      <span style="font-family:var(--mono);font-size:${isPrimary?'9.5':'9'}px;font-weight:${isPrimary?'800':'700'};letter-spacing:0.03em;text-transform:uppercase;color:${inflVerdictCol==='#6e7d90'?'rgba(173,184,208,0.72)':inflVerdictCol+'cc'};white-space:nowrap">${r.lbl}</span>
-                      ${unitChip}
-                    </div>
-                    <div style="display:flex;align-items:center;gap:4px">
-                      <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.07em;color:${inflVerdictCol};opacity:0.9">${inflVerdict}</span>
-                      ${rnkLbl?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.38);border:1px solid rgba(173,184,208,0.15);padding:0 4px;border-radius:3px">${rnkLbl}</span>`:''}
-                    </div>
+          ${(()=>{
+            const allRows = pipeItems.filter(r=>r.key!=='CPI');
+            const corePceRow = allRows.find(r=>r.key==='CORE_PCE');
+            const secondaryRows = allRows.filter(r=>r.key!=='CORE_PCE');
+            const ABS_MAX = 4.0;
+            const surpCol2 = (surprise) => {
+              if(surprise==null) return '#adb8d0';
+              if(surprise > 1.5) return '#e03a2a';
+              if(surprise > 0.3) return '#e07a3a';
+              if(surprise > 0)   return '#c8a96e';
+              if(surprise > -0.3)return '#5c9eff';
+              return '#4a90d9';
+            };
+            // Core PCE sub-hero tile
+            const pceTile = !corePceRow ? '' : (() => {
+              const r = corePceRow;
+              const col = surpCol2(r.surprise);
+              const absBarW = r.surprise!=null ? Math.min(92, Math.max(3, (Math.abs(r.surprise)/ABS_MAX)*100)).toFixed(0) : '3';
+              const barSide = r.isBeat ? 'left:50%' : 'right:50%';
+              const verdict = r.isBeat?'HOT':r.isMiss?'COOL':'IN LINE';
+              const vCol = r.isBeat?'#e03a2a':r.isMiss?'#5c9eff':'#6e7d90';
+              const expVal = r.expected!=null ? r.expected.toFixed(2)+'%' : null;
+              const surpStr = r.surpLabel!=null ? (r.surpLabel.startsWith('-')?'':'+') + r.surpLabel : null;
+              const actualStr = r.actualDisplay!=null ? r.actualDisplay.toFixed(2)+'%' : '\u2014';
+              return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-left:3px solid ${vCol}70;border-radius:8px;padding:10px 12px;margin-bottom:8px;animation:fadeSlideIn 0.4s ease both">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                  <div>
+                    <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(200,169,110,0.70);margin-bottom:1px">FED TARGET</div>
+                    <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.55)">Core PCE <span style="font-size:7px;letter-spacing:0.03em;text-transform:none;opacity:0.75">${r.unit_label||'m/m'}</span></div>
                   </div>
-                  <div style="position:relative;height:${isPrimary?'16':'12'}px;border-radius:5px;overflow:visible">
-                    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(92,158,255,0.18) 0%,rgba(92,158,255,0.08) 30%,rgba(200,169,110,0.08) 70%,rgba(224,58,42,0.18) 100%);border-radius:5px"></div>
-                    <div style="position:absolute;inset:0;background:rgba(255,255,255,0.04);border-radius:5px;border:1px solid rgba(255,255,255,0.08)"></div>
-                    <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1.5px;transform:translateX(-50%);background:rgba(255,255,255,0.30);border-radius:1px;z-index:2"></div>
-                    <div style="position:absolute;top:0;height:100%;${barSide};width:${absBarW}%;background:${col};border-radius:5px;opacity:0.90;box-shadow:0 0 8px ${col}66;z-index:1"></div>
-                    ${r.expLabel!=null?`<div style="position:absolute;left:50%;top:-3px;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.80);transform:translate(-50%,0);z-index:3" title="Expected: ${r.expLabel}"></div>`:''}
+                  <span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2.5px 8px;border-radius:9px;background:${vCol}22;border:1px solid ${vCol}60">${verdict}</span>
+                </div>
+                <!-- Actual + EST + delta in a structured row -->
+                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+                  <span style="font-family:var(--mono);font-size:22px;font-weight:900;letter-spacing:-0.03em;color:#e8e6e3;line-height:1">${actualStr}</span>
+                  ${expVal?`<div style="display:flex;flex-direction:column;gap:1px">
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.48);letter-spacing:0.04em">EST</span>
+                    <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:rgba(173,184,208,0.80)">${expVal}</span>
+                  </div>`:''}
+                  ${r.surpLabel?`<span style="font-family:var(--mono);font-size:13px;font-weight:800;color:${col};margin-left:auto">${surpStr||r.surpLabel}</span>`:''}
+                </div>
+                <!-- Divergence bar — two-sided gradient from center -->
+                <div style="position:relative;height:10px;border-radius:5px;overflow:visible">
+                  <div style="position:absolute;inset:0;border-radius:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)"></div>
+                  <div style="position:absolute;inset:0;border-radius:5px;background:linear-gradient(90deg,rgba(92,158,255,0.22) 0%,transparent 50%,transparent 50%,rgba(224,58,42,0.22) 100%)"></div>
+                  <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;transform:translateX(-50%);background:rgba(255,255,255,0.35);border-radius:1px;z-index:2"></div>
+                  <div style="position:absolute;top:0;height:100%;${barSide};width:${absBarW}%;background:${col};border-radius:5px;opacity:0.90;box-shadow:0 0 8px ${col}66;z-index:1"></div>
+                </div>
+              </div>`;
+            })();
+            // Secondary rows: Core CPI + PPI
+            const rankLabel = key => key==='CORE_CPI'?'Core Read':key==='PPI'?'Lead Indicator':'';
+            const secondaryHtml = secondaryRows.map((r,i) => {
+              const col = surpCol2(r.surprise);
+              const absBarW = r.surprise!=null ? Math.min(92, Math.max(3, (Math.abs(r.surprise)/ABS_MAX)*100)).toFixed(0) : '3';
+              const barSide = r.isBeat ? 'left:50%' : 'right:50%';
+              const verdict = r.isBeat?'HOT':r.isMiss?'COOL':'IN LINE';
+              const vCol = r.isBeat?'#e03a2a':r.isMiss?'#5c9eff':'#6e7d90';
+              const rnkLbl = rankLabel(r.key);
+              const expVal = r.expected!=null ? r.expected.toFixed(2)+'%' : null;
+              const actualStr = r.actualDisplay!=null ? r.actualDisplay.toFixed(2)+'%' : '\u2014';
+              return `<div style="display:grid;grid-template-columns:85px 1fr auto;align-items:center;gap:7px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${(i+1)*55}ms">
+                <!-- Label + rank + verdict chip -->
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap">
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;color:rgba(173,184,208,0.72);white-space:nowrap">${r.lbl}</span>
+                    <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.40)">${r.unit_label||''}</span>
                   </div>
-                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:76px">
-                    <div style="display:flex;align-items:baseline;gap:4px">
-                      ${r.expLabel?`<span style="font-family:var(--mono);font-size:8.5px;color:rgba(173,184,208,0.48);white-space:nowrap">${r.expLabel}</span>`:''}
-                      <span style="font-family:var(--mono);font-size:${isPrimary?'15':'13'}px;font-weight:900;letter-spacing:-0.03em;color:#f2f6ff;line-height:1.1;white-space:nowrap">${r.actualDisplay!=null?r.actualDisplay.toFixed(2)+'%':'\u2014'}</span>
-                    </div>
-                    ${r.surpLabel!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${col};letter-spacing:0.02em">${r.surpLabel} vs est</span>`:''}
+                  <div style="display:flex;align-items:center;gap:4px">
+                    <span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:${vCol}">${verdict}</span>
+                    ${rnkLbl?`<span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.38);border:1px solid rgba(173,184,208,0.15);padding:0.5px 4px;border-radius:3px">${rnkLbl}</span>`:''}
                   </div>
-                </div>`;
-              }).join('');
-            })()}
-          </div>
+                </div>
+                <!-- Divergence bar — two-sided gradient -->
+                <div style="position:relative;height:10px;border-radius:5px;overflow:visible">
+                  <div style="position:absolute;inset:0;border-radius:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)"></div>
+                  <div style="position:absolute;inset:0;border-radius:5px;background:linear-gradient(90deg,rgba(92,158,255,0.20) 0%,transparent 50%,transparent 50%,rgba(224,58,42,0.20) 100%)"></div>
+                  <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1.5px;transform:translateX(-50%);background:rgba(255,255,255,0.30);border-radius:1px;z-index:2"></div>
+                  <div style="position:absolute;top:0;height:100%;${barSide};width:${absBarW}%;background:${col};border-radius:5px;opacity:0.88;box-shadow:0 0 7px ${col}55;z-index:1"></div>
+                </div>
+                <!-- Value column: actual + est + delta -->
+                <div style="text-align:right;min-width:72px">
+                  <div style="font-family:var(--mono);font-size:15px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em;line-height:1">${actualStr}</div>
+                  ${expVal?`<div style="display:flex;align-items:baseline;gap:3px;justify-content:flex-end;margin-top:2px">
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.45)">EST</span>
+                    <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(173,184,208,0.72)">${expVal}</span>
+                  </div>`:''}
+                  ${r.surpLabel?`<div style="font-family:var(--mono);font-size:11px;font-weight:800;color:${col};margin-top:1px">${r.surpLabel}</div>`:''}
+                </div>
+              </div>`;
+            }).join('');
+            return `<div class="mc-sect" style="margin:0 0 7px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
+            ${pceTile}
+            <div style="display:flex;flex-direction:column;gap:0">${secondaryHtml}</div>`;
+          })()}
         </div>
       </div>`;
       })()}
