@@ -26874,7 +26874,8 @@ function renderMacroDataPanels(reg){
   // Neutral (blue-grey) when change is minimal (<0.05T = virtually flat)
   const chgCol = v => { if(v==null) return 'var(--faint)'; const n=(v===0||Object.is(v,-0))?0:v; return Math.abs(n)<0.12?'#6a7a94':n<0?'#7ab8c4':n>0?'#c8a96e':'#8a9ab4'; };
   // Show in billions when < $0.05T to avoid "+0.00T" rounding artefact
-  const chgFmt = v => { if(v==null) return '—'; const n=(Object.is(v,-0)||v===0)?0:v; if(Math.abs(n)<0.05){ const b=Math.round(n*1000); return (b>=0?'+':'')+b+'B'; } return (n>=0?'+':'')+n.toFixed(2)+'T'; };
+  // Always show in T format for unit consistency across all 3 columns (avoids +40B vs +0.16T confusion)
+  const chgFmt = v => { if(v==null) return '—'; const n=(Object.is(v,-0)||v===0)?0:v; return (n>=0?'+':'')+n.toFixed(2)+'T'; };
   const pctFmt = v => v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
   // Fed BS SVG area chart — adaptive, with year labels + smooth spline
   const walclHistory = fb.history||[];
@@ -27428,10 +27429,10 @@ function renderMacroDataPanels(reg){
                 const inflVerdictCol = r.isBeat?'#e03a2a':r.isMiss?'#5c9eff':'#6e7d90';
                 // Unit label: highlight y/y vs m/m so user can compare correctly
                 const unitChip = r.unit_label?`<span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;color:rgba(173,184,208,0.5);text-transform:uppercase">${r.unit_label}</span>`:'';
-                return `<div style="display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${pipeIdx*50}ms">
+                return `<div style="display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${pipeIdx*50}ms">
                   <div style="display:flex;flex-direction:column;gap:2px">
-                    <div style="display:flex;align-items:center;gap:4px">
-                      <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${pipeLblCol}">${r.lbl}</span>
+                    <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap">
+                      <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;color:${pipeLblCol};white-space:nowrap">${r.lbl}</span>
                       ${unitChip}
                     </div>
                     <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.07em;color:${inflVerdictCol};opacity:0.85">${inflVerdict}</span>
