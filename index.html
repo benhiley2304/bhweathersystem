@@ -27165,85 +27165,79 @@ function renderMacroDataPanels(reg){
           </div>
           ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}1a;border:1px solid ${jcCol}38">${jcLabel}</span>`:''}
         </div>
-        <!-- Hero: NFP headline only — no arc ring -->
-        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
-            <div style="font-family:var(--mono);font-size:clamp(26px,5.5vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${nfpCol}">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—'}</div>
+        <!-- HERO: NFP with trend context inline -->
+        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07)">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+            <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${nfpCol}">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'\u2014'}</div>
             ${ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null
               ? surprisePill(ffNfp.beat?'BEAT':'MISS', ffNfp.beat?'#22c97a':'#e03a2a')
               : (nfpSurpL?surprisePill(nfpSurpL, surpCol):'')}
+            ${(()=>{
+              if(nfp3mAvg==null&&nfp6mAvg==null) return '';
+              const diff = (nfp3mAvg||0) - (nfp6mAvg||0);
+              const trendLbl = diff > 20 ? '\u25b2 Strengthening' : diff < -20 ? '\u25bc Weakening' : '\u2192 Stable';
+              const trendC = diff > 20 ? '#22c97a' : diff < -20 ? '#e03a2a' : '#6e7d90';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${trendC};letter-spacing:0.03em">${trendLbl}</span>`;
+            })()}
           </div>
-          <div style="display:flex;flex-direction:column;gap:4px;margin-top:10px">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">NFP${nfpDate?' · '+nfpDate:''}</span>
-              ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">3m avg <span style="color:var(--dim);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
-              ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">6m avg <span style="color:var(--dim);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
-              ${(()=>{
-                if(nfp3mAvg==null||nfp6mAvg==null) return '';
-                const diff = nfp3mAvg - nfp6mAvg;
-                const trendLbl = diff > 20 ? '▲ Strengthening' : diff < -20 ? '▼ Weakening' : '→ Stable';
-                const trendC = diff > 20 ? '#22c97a' : diff < -20 ? '#e03a2a' : '#6e7d90';
-                return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${trendC};letter-spacing:0.03em;opacity:0.92">${trendLbl}</span>`;
-              })()}
-            </div>
-            ${unrate!=null?(()=>{
-              const urSlack = unrate<=4.0?'TIGHT':unrate<=4.5?'NORMAL':'SLACK';
-              const urSlackCol = unrate<=4.0?'#22c97a':unrate<=4.5?'#c8a96e':'#e03a2a';
-              return `<div style="display:flex;align-items:center;gap:6px">
-                <span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">Unemployment <span style="color:${urCol};font-weight:900">${unrate}%</span> <span style="color:${urTCol}">${urTrend==='Rising'?'↑':urTrend==='Falling'?'↓':'→'}</span></span>
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.07em;padding:2px 7px;border-radius:4px;background:${urSlackCol}18;border:1px solid ${urSlackCol}30;color:${urSlackCol}">${urSlack}</span>
-              </div>`;
-            })():''}
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">NFP${nfpDate?' \u00b7 '+nfpDate:''}</span>
+            ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">3m avg <span style="color:var(--dim);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
+            ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">6m avg <span style="color:var(--dim);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
           </div>
         </div>
-        <!-- Indicator strength: centred z-score bars — fill remaining card height -->
+        <!-- TIER 1: Primary KPI tiles — Unemployment + Wages side by side -->
+        ${(()=>{
+          const unempRow = zIndicators.find(r=>r.lbl==='Unemployment');
+          const wagesRow = zIndicators.find(r=>r.lbl==='Wages m/m');
+          const tileScoreCol = s => s>=6.5?'#22c97a':s>=5?'#adb8d0':s>=3.5?'#c8a96e':'#e03a2a';
+          const tile = (r, label) => {
+            if(!r) return '';
+            const tc = tileScoreCol(r.score);
+            const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'IN LINE';
+            const vCol = r.isBeat===true?'#22c97a':r.isBeat===false?'#e03a2a':'#6e7d90';
+            return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-top:2px solid ${tc}55;border-radius:9px;padding:10px 12px">
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">${label}</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px">
+                <span style="font-family:var(--mono);font-size:24px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${tc}">${r.val}</span>
+                <span style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.06em;color:${vCol};padding:1px 5px;border-radius:10px;background:${vCol}18;border:1px solid ${vCol}30">${verdict}</span>
+              </div>
+              ${r.exp!=null?`<div style="font-family:var(--mono);font-size:9px;color:var(--faint)">exp <span style="color:rgba(173,184,208,0.65)">${r.exp.replace('exp ','')}</span></div>`:''}
+              ${r.surpStr!=null?`<div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${tc};margin-top:2px">${r.surpStr} vs est</div>`:''}
+            </div>`;
+          };
+          return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            ${tile(unempRow,'Unemployment')}
+            ${tile(wagesRow,'Wages m/m')}
+          </div>`;
+        })()}
+        <!-- TIER 2: Supporting signals — NFP row + Claims + ADP compact -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Labour Signals</div><div class="mc-sect-line"></div></div>
-          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Supporting Indicators</div><div class="mc-sect-line"></div></div>
+          <div style="display:flex;flex-direction:column;gap:0">
           ${(()=>{
-            // score→colour: use system palette exactly
-            // 0-3.5 = bear red, 3.5-5 = amber, 5-6.5 = neutral grey, 6.5-8 = soft green, 8-10 = vivid green
-            const scoreCol = s => {
-              if(s>=8)  return '#22c97a';
-              if(s>=6.5)return '#5aaa7a';
-              if(s>=5)  return '#6e7d90';
-              if(s>=3.5)return '#c8a96e';
-              return '#e03a2a';
-            };
-            return zIndicators.map(r=>{
+            const scoreCol = s => s>=6.5?'#22c97a':s>=5?'#6e7d90':s>=3.5?'#c8a96e':'#e03a2a';
+            const supportRows = zIndicators.filter(r=>['NFP','Init Claims','ADP'].includes(r.lbl));
+            return supportRows.map((r,i)=>{
               const pct = Math.round((r.score/10)*100);
               const isPos = pct >= 50;
-              const fillW = Math.max(4, Math.abs(pct - 50));
+              const fillW = Math.max(3, Math.abs(pct - 50));
               const fillStart = isPos ? 50 : Math.max(0, 50 - fillW);
-              const gradCol = scoreCol(r.score);
-              const gradCol2 = scoreCol(Math.min(10,r.score+2));
-              // For near-neutral scores (4-6), use a muted colour so bars don't mislead
-              const isNeutral = r.score>=4 && r.score<=6;
-              const displayCol = isNeutral ? '#6e7d90' : gradCol;
-              const displayCol2 = isNeutral ? '#7a8ea0' : gradCol2;
-              const rowIdx = zIndicators.indexOf(r);
-              // Label colour: score-aware tint so hot/cold signals read at a glance
-              const lblCol = r.score >= 6.5 ? 'rgba(48,217,136,0.80)'
-                : r.score <= 3.5 ? 'rgba(224,58,42,0.80)'
-                : 'rgba(173,184,208,0.65)';
-              // Verdict chip: BEAT / MISS / IN LINE
-              const verdictLab = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'IN LINE';
-              const verdictLabCol = r.isBeat===true?'#22c97a':r.isBeat===false?'#e03a2a':'#6e7d90';
-              return `<div style="display:grid;grid-template-columns:82px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${rowIdx*55}ms">
-                <div style="display:flex;flex-direction:column;gap:2px">
-                  <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${lblCol}">${r.lbl}</span>
-                  <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.07em;color:${verdictLabCol};opacity:0.85">${verdictLab}</span>
+              const isNeutral = r.score>=4&&r.score<=6;
+              const dc = isNeutral?'#6e7d90':scoreCol(r.score);
+              const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'\u2014';
+              const vCol = r.isBeat===true?'#22c97a':r.isBeat===false?'#e03a2a':'#5a6480';
+              return `<div style="display:grid;grid-template-columns:90px 1fr 70px;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeSlideIn 0.4s ease both;animation-delay:${i*60}ms">
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.70)">${r.lbl}</span>
+                  <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.06em;color:${vCol}">${verdict}</span>
                 </div>
-                <div style="position:relative;height:14px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden">
-                  <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.28);border-radius:1px;z-index:1"></div>
-                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(${isPos?'90deg':'270deg'},${displayCol},${displayCol2});border-radius:5px;opacity:${isNeutral?0.62:0.95};box-shadow:0 0 ${isNeutral?4:8}px ${displayCol}${isNeutral?'44':'88'}"></div>
+                <div style="position:relative;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+                  <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,0.20);z-index:1"></div>
+                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:${dc};border-radius:3px;opacity:${isNeutral?0.5:0.88}"></div>
                 </div>
-                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:82px">
-                  <div style="display:flex;align-items:baseline;gap:5px">
-                    ${r.exp!=null?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.55);white-space:nowrap">${r.exp}</span>`:''}
-                    <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:${displayCol};white-space:nowrap;line-height:1;letter-spacing:-0.03em">${r.val}</span>
-                  </div>
-                  ${r.surpStr!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${displayCol};letter-spacing:0.02em">${r.surpStr} vs est</span>`:''}
+                <div style="text-align:right">
+                  <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${dc};letter-spacing:-0.02em;line-height:1">${r.val}</span>
                 </div>
               </div>`;
             }).join('');
@@ -27353,102 +27347,74 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:${inflBadgeCol};background:${inflBadgeCol}1a;border:1px solid ${inflBadgeCol}38">${inflBadgeLabel}${_inflSurprises.length?` · ${_hotCount} hot${_coolCount>0?' / '+_coolCount+' cool':''}`:''}</span>
         </div>
-        <!-- Hero: CPI reading only — no arc ring -->
-        <div style="margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.07)">
-          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:2px">
-            <div style="font-family:var(--mono);font-size:clamp(26px,5.5vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
-            ${gap!=null?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${gapCol}">${gap>=0?'+':''}${gap}% vs target</span>`:''}
+        <!-- HERO: CPI level + gap + streak context -->
+        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+            <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiCol}">${cpiVal}</div>
+            ${gap!=null?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${gapCol}">${gap>=0?'+':''}${gap}% vs 2% target</span>`:''}
           </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-family:var(--mono);font-size:9.5px;color:var(--faint)">CPI YoY · Fed target 2.0%</span>
-            ${(()=>{ const t=(md.inflation||{}).trend||''; return t?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${t==='Rising'?'#e08a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'↑ Rising':t==='Falling'?'↓ Falling':'→ Stable'}</span>`:''; })()}
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">CPI YoY</span>
+            ${(()=>{ const t=(md.inflation||{}).trend||''; return t?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${t==='Rising'?'#e08a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'\u2191 Rising':t==='Falling'?'\u2193 Falling':'\u2192 Stable'}</span>`:''; })()}
+            ${(()=>{
+              // Streak: count consecutive hot or cool releases from pipeItems
+              const hotMisses = pipeItems.filter(r=>r.isBeat===true).length;
+              const coolMisses = pipeItems.filter(r=>r.isMiss===true).length;
+              if(hotMisses>=3) return `<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.12);border:1px solid rgba(224,58,42,0.25)">${hotMisses} consecutive HOT</span>`;
+              if(coolMisses>=2) return `<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#5c9eff;padding:1px 6px;border-radius:10px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.25)">${coolMisses} consecutive COOL</span>`;
+              return '';
+            })()}
           </div>
         </div>
-        <!-- Fed Target Deviation Bar -->
-        ${(()=>{
-          if(!cpiNum) return '';
-          const MAX_CPI = 8.0;
-          const targetPct = (2.0/MAX_CPI)*100;
-          const currentPct = Math.min(100,Math.max(0,(cpiNum/MAX_CPI)*100));
-          const aboveTarget = cpiNum>2.0;
-          const fillStart = aboveTarget?targetPct:currentPct;
-          const fillWidth = Math.abs(currentPct-targetPct);
-          // Hot = red, Cool/Cold = blue
-          const fillCol = aboveTarget?'#e03a2a':'#5c9eff';
-          // Regime zone labels
-          const regimeLabel = cpiNum<1?'DEFLATION':cpiNum<1.5?'COLD':cpiNum<2.5?'ON TARGET':cpiNum<4?'ELEVATED':cpiNum<6?'HOT':'RUNAWAY';
-          const regimeCol = cpiNum<1?'#4a90d9':cpiNum<1.5?'#5c9eff':cpiNum<2.5?'#adb8d0':cpiNum<4?'#f5c842':cpiNum<6?'#e07a2a':'#e03a2a';
-          return `
-          <div style="margin:1px 0 4px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">CPI vs 2% Target</span>
-              <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:${regimeCol};letter-spacing:0.06em">${regimeLabel}</span>
-            </div>
-            <div style="position:relative;height:10px;border-radius:5px;overflow:visible">
-              <!-- Coloured track: gold below target, red above -->
-              <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(200,169,110,0.15) 0%,rgba(200,169,110,0.08) ${targetPct.toFixed(0)}%,rgba(224,58,42,0.10) ${targetPct.toFixed(0)}%,rgba(224,58,42,0.25) 100%);border-radius:5px"></div>
-              <!-- Deviation fill: gold when below target, red when above -->
-              <div style="position:absolute;top:2px;bottom:2px;left:${fillStart.toFixed(1)}%;width:${fillWidth.toFixed(1)}%;background:${aboveTarget?'#e03a2a':'#c8a96e'};border-radius:3px;opacity:0.85;box-shadow:0 0 6px ${aboveTarget?'#e03a2a66':'#c8a96e44'}"></div>
-              <!-- Current marker -->
-              <div style="position:absolute;top:-3px;bottom:-3px;width:2.5px;left:${currentPct.toFixed(1)}%;background:${cpiCol};border-radius:2px;box-shadow:0 0 5px ${cpiCol}66;transform:translateX(-50%)"></div>
-              <!-- 2% target pin -->
-              <div style="position:absolute;top:-4px;bottom:-4px;width:1.5px;left:${targetPct.toFixed(1)}%;background:rgba(255,255,255,0.45);border-radius:1px;transform:translateX(-50%)"></div>
-            </div>
-            <div style="position:relative;height:11px">
-              <div style="position:absolute;left:${targetPct.toFixed(1)}%;transform:translateX(-50%);font-family:var(--mono);font-size:5.5px;color:rgba(255,255,255,0.32);white-space:nowrap;top:2px">2% target</div>
-              <div style="position:absolute;left:${Math.min(93,Math.max(7,currentPct)).toFixed(1)}%;transform:translateX(-50%);font-family:var(--mono);font-size:8.5px;font-weight:800;color:${cpiCol};white-space:nowrap;top:1px">${cpiNum.toFixed(2)}%</div>
-            </div>
-          </div>`;
-        })()}
-        <!-- Pipeline Pressure: beat/miss vs expectation (hot=red, cooler=blue) -->
-        <div style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
-          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;overflow:hidden">
+        <!-- RANKED PRICE PRESSURES: 3 rows, policy hierarchy order (CPI excluded — hero already covers it) -->
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Price Pressures</div><div class="mc-sect-line"></div></div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
             ${(()=>{
-              // Absolute scale: all bars on same 0→4% surprise axis so PPI +2.93 vs CPI +1.01 are visually proportionate
-              const ABS_MAX = 4.0; // pp — full bar = 4pp surprise
+              // Filter out CPI row — already shown in hero
+              const rankedRows = pipeItems.filter(r=>r.key!=='CPI');
+              // Policy rank labels
+              const rankLabel = key => key==='CORE_PCE'?'Fed Target':key==='CORE_CPI'?'Core Read':key==='PPI'?'Lead Indicator':'';
+              const ABS_MAX = 4.0;
               const surpCol2 = (surprise) => {
                 if(surprise==null) return '#adb8d0';
-                if(surprise > 1.5) return '#e03a2a'; // very hot
-                if(surprise > 0.3) return '#e07a3a'; // hot
-                if(surprise > 0)   return '#c8a96e'; // mild hot
-                if(surprise > -0.3)return '#5c9eff'; // mild cool
-                return '#4a90d9'; // cool
+                if(surprise > 1.5) return '#e03a2a';
+                if(surprise > 0.3) return '#e07a3a';
+                if(surprise > 0)   return '#c8a96e';
+                if(surprise > -0.3)return '#5c9eff';
+                return '#4a90d9';
               };
-              return pipeItems.map((r,i)=>{
+              return rankedRows.map((r,i)=>{
                 const col = surpCol2(r.surprise);
                 const absBarW = r.surprise!=null ? Math.min(95, Math.max(3, (Math.abs(r.surprise)/ABS_MAX)*100)).toFixed(0) : '3';
-                const barSide = r.isBeat ? 'left:50%' : 'right:50%'; // hot extends right (left:50% = grows rightward), cool extends left
-                const pipeIdx = pipeItems.indexOf(r);
-                // Surprise delta label — pre-computed in pipeItems as surpLabel
-                const surpDelta = r.surpLabel ?? null;
-                // Label colour: hot = red, cool = blue, neutral = grey
-                const pipeLblCol = r.isBeat ? 'rgba(224,58,42,0.80)' : r.isMiss ? 'rgba(92,158,255,0.80)' : 'rgba(173,184,208,0.65)';
-                // Verdict chip for inflation rows: hot/cool verdict vs forecast
+                const barSide = r.isBeat ? 'left:50%' : 'right:50%';
                 const inflVerdict = r.isBeat?'HOT':r.isMiss?'COOL':'IN LINE';
                 const inflVerdictCol = r.isBeat?'#e03a2a':r.isMiss?'#5c9eff':'#6e7d90';
-                // Unit label: highlight y/y vs m/m so user can compare correctly
-                const unitChip = r.unit_label?`<span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;color:rgba(173,184,208,0.5);text-transform:uppercase">${r.unit_label}</span>`:'';
-                return `<div style="display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${pipeIdx*50}ms">
+                const rnkLbl = rankLabel(r.key);
+                const unitChip = r.unit_label?`<span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;color:rgba(173,184,208,0.45);text-transform:uppercase">${r.unit_label}</span>`:'';
+                // Primary rows get more prominence
+                const isPrimary = r.key==='CORE_PCE';
+                return `<div style="display:grid;grid-template-columns:80px 1fr auto;align-items:center;gap:6px;padding:${isPrimary?'8':'6'}px 0;border-bottom:1px solid rgba(255,255,255,0.05);${isPrimary?'background:rgba(255,255,255,0.015);margin:0 -2px;padding-left:2px;padding-right:2px;border-radius:4px':''}animation:fadeSlideIn 0.4s ease both;animation-delay:${i*55}ms">
                   <div style="display:flex;flex-direction:column;gap:2px">
                     <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap">
-                      <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;color:${pipeLblCol};white-space:nowrap">${r.lbl}</span>
+                      <span style="font-family:var(--mono);font-size:${isPrimary?'9.5':'9'}px;font-weight:${isPrimary?'800':'700'};letter-spacing:0.03em;text-transform:uppercase;color:${inflVerdictCol==='#6e7d90'?'rgba(173,184,208,0.72)':inflVerdictCol+'cc'};white-space:nowrap">${r.lbl}</span>
                       ${unitChip}
                     </div>
-                    <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.07em;color:${inflVerdictCol};opacity:0.85">${inflVerdict}</span>
-                  </div>
-                  <div style="display:flex;flex-direction:column;gap:2px">
-                    <div style="position:relative;height:14px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden">
-                      <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.28);border-radius:1px;z-index:1"></div>
-                      <div style="position:absolute;top:0;height:100%;${barSide};width:${absBarW}%;background:${col};border-radius:5px;opacity:0.94;box-shadow:0 0 8px ${col}66"></div>
+                    <div style="display:flex;align-items:center;gap:4px">
+                      <span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.07em;color:${inflVerdictCol};opacity:0.9">${inflVerdict}</span>
+                      ${rnkLbl?`<span style="font-family:var(--mono);font-size:6.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.38);border:1px solid rgba(173,184,208,0.15);padding:0 4px;border-radius:3px">${rnkLbl}</span>`:''}
                     </div>
                   </div>
-                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:82px">
-                    <div style="display:flex;align-items:baseline;gap:5px">
-                      ${r.expLabel?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.55);white-space:nowrap">${r.expLabel}</span>`:''}
-                      <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.03em;color:#f2f6ff;line-height:1.1;white-space:nowrap">${r.actualDisplay!=null?r.actualDisplay.toFixed(2)+'%':'—'}</span>
+                  <div style="position:relative;height:${isPrimary?'16':'12'}px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden">
+                    <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.28);border-radius:1px;z-index:1"></div>
+                    <div style="position:absolute;top:0;height:100%;${barSide};width:${absBarW}%;background:${col};border-radius:5px;opacity:0.94;box-shadow:0 0 8px ${col}55"></div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:76px">
+                    <div style="display:flex;align-items:baseline;gap:4px">
+                      ${r.expLabel?`<span style="font-family:var(--mono);font-size:8.5px;color:rgba(173,184,208,0.48);white-space:nowrap">${r.expLabel}</span>`:''}
+                      <span style="font-family:var(--mono);font-size:${isPrimary?'15':'13'}px;font-weight:900;letter-spacing:-0.03em;color:#f2f6ff;line-height:1.1;white-space:nowrap">${r.actualDisplay!=null?r.actualDisplay.toFixed(2)+'%':'\u2014'}</span>
                     </div>
-                    ${surpDelta!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${col};letter-spacing:0.02em">${surpDelta} vs est</span>`:r.tArrow?`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`:''}
+                    ${r.surpLabel!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${col};letter-spacing:0.02em">${r.surpLabel} vs est</span>`:''}
                   </div>
                 </div>`;
               }).join('');
@@ -27471,37 +27437,45 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:${lineCol};background:${lineCol}1a;border:1px solid ${lineCol}38">${fbTrend}</span>
         </div>
-        <div style="display:flex;align-items:baseline;gap:10px">
-          <div style="font-family:var(--mono);font-size:clamp(26px,5.5vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'—'}</div>
-          ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent)">${vsPeak}% of QE peak</span>`:''}
+        <!-- HERO: Level + regime + monthly run-rate -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+            <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'\u2014'}</div>
+            ${fbChg3m!=null?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;padding:2px 8px;border-radius:10px;color:${chgCol(fbChg3m)};background:${chgCol(fbChg3m)}18;border:1px solid ${chgCol(fbChg3m)}35">${fbChg3m>0?'EXPANDING':'QT ACTIVE'}</span>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">${vsPeak}% of QE peak ($8.97T)</span>`:''}
+            ${fbChg3m!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">3M run-rate: <span style="color:${chgCol(fbChg3m)};font-weight:700">${chgFmt(fbChg3m)}</span></span>`:''}
+          </div>
         </div>
-        <!-- Full-width SVG area chart — hero visual matching old design -->
-        <div style="flex:1;min-height:110px;margin:6px 0 4px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);position:relative">
+        <!-- CHART: Full-width area — primary visual, annotated -->
+        <div style="flex:1;min-height:120px;margin:4px 0 0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);position:relative">
           ${svgChart}
-          <div style="position:absolute;bottom:6px;right:10px;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.22)">← recent</div>
+          <div style="position:absolute;bottom:6px;right:10px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.20)">\u2190 recent</div>
         </div>
-        <!-- Compact arc gauge strip below chart -->
-        <div style="display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;opacity:0;pointer-events:none">
-          <canvas id="ov-bs-arc-canvas" style="width:100%;max-width:260px;display:block"></canvas>
-        </div>
-        <div>
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Balance Sheet Change</div><div class="mc-sect-line"></div>${fbChg3m!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${chgCol(fbChg3m)};letter-spacing:0.06em;text-transform:uppercase;opacity:0.8">${fbChg3m>0?'EXPANDING':'QT ACTIVE'}</span>`:''}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
-            <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
-              <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">3 months</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:700;line-height:1;color:${chgCol(fbChg3m)}">${chgFmt(fbChg3m)}</div>
-              <div style="margin:4px auto 0;width:80%;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg3m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg3m)};border-radius:3px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg3m)}66"></div></div>
-            </div>
-            <div style="text-align:center;padding:5px 4px;border-right:1px solid rgba(255,255,255,0.06)">
-              <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">6 months</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:700;line-height:1;color:${chgCol(fbChg6m)}">${chgFmt(fbChg6m)}</div>
-              <div style="margin:4px auto 0;width:80%;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg6m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg6m)};border-radius:3px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg6m)}66"></div></div>
-            </div>
-            <div style="text-align:center;padding:5px 4px">
-              <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.08em;margin-bottom:3px">12 months</div>
-              <div style="font-family:var(--mono);font-size:16px;font-weight:700;line-height:1;color:${chgCol(fbChg12m)}">${chgFmt(fbChg12m)}</div>
-              <div style="margin:4px auto 0;width:80%;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(90,Math.max(4,(Math.abs(fbChg12m||0)/0.4)*80)).toFixed(0)}%;background:${chgCol(fbChg12m)};border-radius:3px;opacity:0.85;box-shadow:0 0 5px ${chgCol(fbChg12m)}66"></div></div>
-            </div>
+        <!-- Compact arc canvas (hidden — legacy) -->
+        <div style="display:none"><canvas id="ov-bs-arc-canvas"></canvas></div>
+        <!-- DELTA STRIP: 3-period summary as a single compact row -->
+        <div style="margin-top:8px">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Balance Sheet Change</div><div class="mc-sect-line"></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            ${(()=>{
+              const periodTile = (label, val) => {
+                if(val==null) return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
+                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.07em;margin-bottom:4px">${label}</div>
+                  <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:var(--faint)">\u2014</div>
+                </div>`;
+                const c = chgCol(val);
+                const barW = Math.min(90,Math.max(4,(Math.abs(val)/0.4)*80)).toFixed(0);
+                const arrow = val>0?'\u25b2':val<0?'\u25bc':'';
+                return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${c}20;border-top:2px solid ${c}45;border-radius:7px;padding:8px 10px;text-align:center">
+                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.07em;margin-bottom:4px">${label}</div>
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;line-height:1;color:${c}">${arrow}${Math.abs(parseFloat(chgFmt(val).replace(/[^0-9.]/g,''))).toFixed(2)}T</div>
+                  <div style="margin:5px auto 0;width:70%;height:4px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${barW}%;background:${c};border-radius:3px;opacity:0.85"></div></div>
+                </div>`;
+              };
+              return periodTile('3 months', fbChg3m) + periodTile('6 months', fbChg6m) + periodTile('12 months', fbChg12m);
+            })()}
           </div>
         </div>
       </div>`;
@@ -27537,69 +27511,68 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:${crCol};background:${crCol}1a;border:1px solid ${crCol}38">${cr_regime}</span>
         </div>
-        <div>
-          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:3px">
-            <div style="font-family:var(--mono);font-size:clamp(26px,5.5vw,36px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'—'}</div>
-            <!-- Spread change deltas inline with hero -->
+        <!-- HERO: spread + inversion status + steepener type as co-hero -->
+        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:5px">
+            <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${crCol}">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'\u2014'}</div>
             <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:2px">
               ${sChg3m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
               ${sChg6m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:5.5px;font-weight:700;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:9px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
-            <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y</div>
-            ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.1);border:1px solid rgba(34,201,122,0.2);letter-spacing:0.06em">POSITIVE ↑</span>`:''}
-            ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.1);border:1px solid rgba(224,58,42,0.2);letter-spacing:0.06em">INVERTED ↓</span>`:''}
-
+          <!-- Inversion status + move type as second line of hero -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em">10Y\u22122Y</span>
+            ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.10);border:1px solid rgba(34,201,122,0.20);letter-spacing:0.06em">POSITIVE \u2191</span>`:''}
+            ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.10);border:1px solid rgba(224,58,42,0.20);letter-spacing:0.06em">INVERTED \u2193</span>`:''}
+            ${yc_move_type&&yc_move_type!=='—'?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:${moveCol};padding:1px 6px;border-radius:10px;background:${moveCol}15;border:1px solid ${moveCol}30;letter-spacing:0.04em">${yc_move_type}</span>`:''}
           </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:3px">
-          <div style="display:flex;flex-direction:column;gap:1px">
-            <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t2)};line-height:1">${t2!=null?t2.toFixed(2)+'%':'—'}</span>
-            <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">2Y Front End</span>
+        <!-- RATE LEVELS: compact 3-col strip -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:7px 10px">
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">2Y Front</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t2)};line-height:1">${t2!=null?t2.toFixed(2)+'%':'\u2014'}</div>
           </div>
-          <div style="width:1px;background:rgba(255,255,255,0.08);align-self:stretch;margin:1px 4px"></div>
-          <div style="display:flex;flex-direction:column;gap:1px">
-            <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t10)};line-height:1">${t10!=null?t10.toFixed(2)+'%':'—'}</span>
-            <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">10Y Long End</span>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:7px 10px">
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">10Y Long</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.02em;color:${tenorDotCol(t10)};line-height:1">${t10!=null?t10.toFixed(2)+'%':'\u2014'}</div>
           </div>
-          <div style="width:1px;background:rgba(255,255,255,0.08);align-self:stretch;margin:1px 4px"></div>
-          <div style="display:flex;flex-direction:column;gap:1px">
-            <span style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${t3t10Col};line-height:1">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'—'}</span>
-            <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">3M/10Y Spread</span>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:7px 10px">
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">3M/10Y</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.02em;color:${t3t10Col};line-height:1">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'\u2014'}</div>
           </div>
         </div>
-        <!-- Full multi-tenor historical yield curve chart — dominant visual -->
-        <div style="flex:1;min-height:0;max-height:290px;display:flex;flex-direction:column">
-          <div class="mc-sect" style="margin:8px 0 5px;flex-shrink:0"><div class="mc-sect-lbl">Curve Shape (12M History)</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:140px;max-height:260px"></div>
+        <!-- CHART: 12M yield curve history — primary analytical visual -->
+        <div style="flex:1;min-height:0;max-height:260px;display:flex;flex-direction:column">
+          <div class="mc-sect" style="margin:0 0 5px;flex-shrink:0"><div class="mc-sect-lbl">Curve Shape (12M History)</div><div class="mc-sect-line"></div></div>
+          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:130px;max-height:240px"></div>
         </div>
-
-        <!-- Rate Context row -->
+        <!-- POLICY CONTEXT: 3-box strip — Real Yield / Fed Funds / Mkt Implied -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:5px 0 2px;border-top:1px solid rgba(255,255,255,0.05)">
-          ${ryVal!=null?`<div style="background:rgba(34,201,122,0.04);border:1px solid rgba(34,201,122,0.22);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.70)">Real Yield</span>
-            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</span>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px 0 2px;border-top:1px solid rgba(255,255,255,0.05)">
+          ${ryVal!=null?`<div style="background:rgba(34,201,122,0.04);border:1px solid rgba(34,201,122,0.22);border-radius:6px;padding:7px 8px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.70)">Real Yield</span>
+            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:${ryCol}">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</span>
           </div>`:''}
-          ${effr!=null?`<div style="background:rgba(200,169,110,0.04);border:1px solid rgba(200,169,110,0.22);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.70)">Fed Funds Rate</span>
-            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:rgba(200,169,110,0.85)">${effr.toFixed(2)}%</span>
+          ${effr!=null?`<div style="background:rgba(200,169,110,0.04);border:1px solid rgba(200,169,110,0.22);border-radius:6px;padding:7px 8px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.70)">Fed Funds</span>
+            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:rgba(200,169,110,0.85)">${effr.toFixed(2)}%</span>
           </div>`:''}
           ${cuts12m!=null?(()=>{
-              const path_bp = -cuts12m * 25;
-              const pathCol = path_bp>0?'#c8a96e':path_bp<0?'#30d988':'#adb8d0';
-              const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
-              const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
-              return `<div style="background:rgba(255,255,255,0.03);border:1px dashed rgba(173,184,208,0.25);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.70)">Mkt Implied 12M</span>
-            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:${pathCol}">${pathLbl}</span>
-            <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:${pathCol};opacity:0.80">${pathStr}</span>
-          </div>`;})():''}
+            const path_bp = -cuts12m * 25;
+            const pathCol = path_bp>0?'#c8a96e':path_bp<0?'#30d988':'#adb8d0';
+            const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
+            const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
+            return `<div style="background:rgba(255,255,255,0.03);border:1px dashed rgba(173,184,208,0.25);border-radius:6px;padding:7px 8px;display:flex;flex-direction:column;gap:2px">
+              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.70)">Mkt 12M Path</span>
+              <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:${pathCol}">${pathLbl}</span>
+              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${pathCol};opacity:0.80">${pathStr}</span>
+            </div>`;
+          })():''}
         </div>`:''}
       </div>`;
       })()}
-
       <!-- PANEL 5: CREDIT SPREADS ════════════════════════════════════════ -->
       ${(()=>{
         return `
@@ -27614,34 +27587,40 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:${_hyNumCol};background:${_hyNumCol}1a;border:1px solid ${_hyNumCol}38">${crLabel}</span>
         </div>
-        <!-- Hero: HY + IG tiles -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <div style="background:rgba(200,130,50,0.04);border:1px solid ${_hyNumCol}25;border-top:2px solid ${_hyNumCol}50;border-radius:9px;padding:10px 12px">
-            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">High Yield OAS</div>
-            <div style="display:flex;align-items:baseline;gap:3px">
-              <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_hyNumCol};text-shadow:0 0 18px ${_hyNumCol}44">${hyOas!=null?hyOas:'—'}</span>
+        <!-- HERO TILES: HY + IG with percentile embedded inside each tile -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <!-- HY tile with percentile rank inline -->
+          <div style="background:rgba(200,130,50,0.05);border:1px solid ${_hyNumCol}28;border-top:2px solid ${_hyNumCol}55;border-radius:9px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">High Yield OAS</div>
+              ${hyHistPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${hyHistPct<=25?'#22c97a':hyHistPct<=50?'#5aaa7a':hyHistPct<=75?'#c8a96e':'#e03a2a'};padding:1px 5px;border-radius:8px;background:${hyHistPct<=25?'rgba(34,201,122,0.15)':hyHistPct<=75?'rgba(200,169,110,0.15)':'rgba(224,58,42,0.15)'};border:1px solid rgba(255,255,255,0.10)">${(n=>{const s=Math.round(n);return s===1?s+'st':s===2?s+'nd':s===3?s+'rd':s+'th';})(hyHistPct)} pct</span>`:''}
+            </div>
+            <div style="display:flex;align-items:baseline;gap:3px;margin-bottom:4px">
+              <span style="font-family:var(--mono);font-size:clamp(24px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_hyNumCol}">${hyOas!=null?hyOas:'\u2014'}</span>
               ${hyOas!=null?`<span style="font-family:var(--mono);font-size:10px;color:${_hyNumCol};opacity:0.7">bp</span>`:''}
             </div>
-            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${_hyNumCol};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${hyZoneLabel}</div>
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${_hyNumCol};letter-spacing:0.04em;text-transform:uppercase">${hyZoneLabel}</div>
           </div>
-          <div style="background:rgba(34,150,200,0.04);border:1px solid ${_igNumCol}25;border-top:2px solid ${_igNumCol}50;border-radius:9px;padding:10px 12px">
-            <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Investment Grade OAS</div>
-            <div style="display:flex;align-items:baseline;gap:3px">
-              <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_igNumCol};text-shadow:0 0 18px ${_igNumCol}44">${igOas!=null?igOas:'—'}</span>
+          <!-- IG tile with percentile rank inline -->
+          <div style="background:rgba(34,150,200,0.05);border:1px solid ${_igNumCol}28;border-top:2px solid ${_igNumCol}55;border-radius:9px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">Inv. Grade OAS</div>
+              ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${igHistPct<=25?'#22c97a':igHistPct<=50?'#5aaa7a':igHistPct<=75?'#c8a96e':'#e03a2a'};padding:1px 5px;border-radius:8px;background:${igHistPct<=25?'rgba(34,201,122,0.15)':igHistPct<=75?'rgba(200,169,110,0.15)':'rgba(224,58,42,0.15)'};border:1px solid rgba(255,255,255,0.10)">${(n=>{const s=Math.round(n);return s===1?s+'st':s===2?s+'nd':s===3?s+'rd':s+'th';})(igHistPct)} pct</span>`:''}
+            </div>
+            <div style="display:flex;align-items:baseline;gap:3px;margin-bottom:4px">
+              <span style="font-family:var(--mono);font-size:clamp(24px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${_igNumCol}">${igOas!=null?igOas:'\u2014'}</span>
               ${igOas!=null?`<span style="font-family:var(--mono);font-size:10px;color:${_igNumCol};opacity:0.7">bp</span>`:''}
             </div>
-            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${_igNumCol};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${_igNumCol};letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</div>
           </div>
         </div>
-        <!-- Historical Range Tracks — min/p25/median/p75/max visible as range bar with needle -->
+        <!-- PERCENTILE RANGE TRACKS -->
         <div>
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">3-Year Percentile Range</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">3-Year Percentile Range</div><div class="mc-sect-line"></div></div>
           ${(()=>{
-            const rangeTrack = (label, oas, histPct, pctMin, pctMax, levelLabel, numCol) => {
+            const rangeTrack = (label, oas, histPct, numCol) => {
               if(oas==null) return '';
               const pct = histPct??50;
-              // Build 5-zone range bar: Tight | Low | Median | Wide | Max
-              // Using known HY/IG historical ranges to approximate p25/p75
               const isHY = label.includes('HY');
               const tight  = isHY?200:50;
               const low    = isHY?300:70;
@@ -27651,27 +27630,19 @@ function renderMacroDataPanels(reg){
               const range  = max - tight;
               const pos = Math.min(100, Math.max(0, ((oas - tight) / range)*100));
               const statusCol = pct<=20?'#22c97a':pct<=45?'#5aaa7a':pct<=65?'#adb8d0':pct<=80?'#f5c842':'#e03a2a';
-              // Zone markers at p25 (30%), p50 (50%), p75 (72%)
               const z25 = ((low-tight)/range)*100;
               const z50 = ((median-tight)/range)*100;
               const z75 = ((wide-tight)/range)*100;
               return `<div style="margin-bottom:10px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
                   <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${label}</span>
-                  <div style="display:flex;align-items:center;gap:5px">
-                    <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${numCol}">${oas}bp</span>
-                    ${histPct!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${statusCol};padding:2px 7px;border-radius:10px;background:${statusCol}20;border:1px solid ${statusCol}35">${(n=>{const s=Math.round(n);return s===1?s+'st':s===2?s+'nd':s===3?s+'rd':s+'th';})(histPct)} pct</span>`:''}
-                  </div>
+                  <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${numCol}">${oas}bp</span>
                 </div>
-                <!-- Range bar with coloured zones -->
                 <div style="position:relative;height:10px;border-radius:5px;overflow:visible">
-                  <!-- Full range bar with gradient zones -->
                   <div style="position:absolute;inset:0;background:linear-gradient(90deg,#22c97a 0%,#22c97a ${z25.toFixed(0)}%,#5aaa7a ${z25.toFixed(0)}%,#adb8d0 ${z50.toFixed(0)}%,#f5c842 ${z75.toFixed(0)}%,#e03a2a 100%);opacity:0.55;border-radius:5px"></div>
                   <div style="position:absolute;inset:0;background:rgba(255,255,255,0.03);border-radius:5px;border:1px solid rgba(255,255,255,0.08)"></div>
-                  <!-- Zone divider lines -->
                   ${[z25,z50,z75].map(z=>`<div style="position:absolute;top:0;bottom:0;left:${z.toFixed(1)}%;width:1px;background:rgba(0,0,0,0.3)"></div>`).join('')}
-                  <!-- Current spread tick notch — white, full-height, crisp -->
-                  <div style="position:absolute;top:-4px;bottom:-4px;width:2px;left:${pos.toFixed(1)}%;background:#ffffff;border-radius:1px;box-shadow:0 0 6px rgba(255,255,255,0.9),0 0 2px rgba(255,255,255,1);transform:translateX(-50%);z-index:3"></div>
+                  <div style="position:absolute;top:-4px;bottom:-4px;width:2px;left:${pos.toFixed(1)}%;background:#ffffff;border-radius:1px;box-shadow:0 0 6px rgba(255,255,255,0.9);transform:translateX(-50%);z-index:3"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-top:3px">
                   <span style="font-family:var(--mono);font-size:8px;color:var(--faint)">Tight ${tight}bp</span>
@@ -27680,33 +27651,32 @@ function renderMacroDataPanels(reg){
                 </div>
               </div>`;
             };
-            return (hyOas!=null?rangeTrack('HY OAS', hyOas, hyHistPct, hyPctMin, hyPctMax, hyZoneLabel, _hyNumCol):'')
-                 + (igOas!=null?rangeTrack('IG OAS', igOas, igHistPct, igPctMin, igPctMax, igZoneLabel, _igNumCol):'');
+            return (hyOas!=null?rangeTrack('HY OAS', hyOas, hyHistPct, _hyNumCol):'')
+                 + (igOas!=null?rangeTrack('IG OAS', igOas, igHistPct, _igNumCol):'');
           })()}
         </div>
-        <!-- Delta rows — HY + IG side by side -->
-        <div style="margin-top:6px">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Spread Momentum <span style="font-size:7.5px;font-weight:500;letter-spacing:0.04em;text-transform:none;opacity:0.55;margin-left:3px">↓ tightening bullish · ↑ widening bearish</span></div><div class="mc-sect-line"></div></div>
+        <!-- SPREAD MOMENTUM: cleaner 3-period delta table -->
+        <div style="margin-top:2px">
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Spread Momentum <span style="font-size:7.5px;font-weight:500;letter-spacing:0.03em;text-transform:none;opacity:0.50;margin-left:3px">\u2193 tightening bullish  \u2191 widening bearish</span></div><div class="mc-sect-line"></div></div>
+          <!-- Column headers -->
+          <div style="display:grid;grid-template-columns:24px 1fr 1fr;gap:4px;margin-bottom:4px;padding:0 2px">
+            <div></div>
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.06em;color:rgba(173,184,208,0.45);text-align:center">HIGH YIELD</div>
+            <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.06em;color:rgba(173,184,208,0.45);text-align:center">INV. GRADE</div>
+          </div>
           ${(()=>{
             const deltaRow = (period, hyVal, igVal) => {
               const hyC = hyVal==null?'#5a6480':hyVal<0?'#22c97a':hyVal>0?'#e03a2a':'#adb8d0';
               const igC = igVal==null?'#5a6480':igVal<0?'#22c97a':igVal>0?'#e03a2a':'#adb8d0';
-              // \u25bc=\u25bc (tightening=good=green), \u25b2=\u25b2 (widening=bad=red)
               const arrow = v => v==null?'':v<0?'\u25bc':v>0?'\u25b2':'=';
               const fmt = v => v!=null?Math.abs(v)+'bp':'\u2014';
-              const tag = (v, c) => v!=null
-                ? `<span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${c};letter-spacing:0.01em">${arrow(v)}&thinsp;${fmt(v)}</span>`
-                : `<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">&mdash;</span>`;
-              return `<div style="display:grid;grid-template-columns:20px 1fr 1fr;align-items:center;gap:4px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-                <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${period}</span>
-                <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.4);width:18px">HY</span>
-                  ${tag(hyVal, hyC)}
-                </div>
-                <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.4);width:18px">IG</span>
-                  ${tag(igVal, igC)}
-                </div>
+              const cell = (v, c) => v!=null
+                ? `<div style="text-align:center"><span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${c}">${arrow(v)}&thinsp;${fmt(v)}</span></div>`
+                : `<div style="text-align:center"><span style="font-family:var(--mono);font-size:9px;color:var(--faint)">\u2014</span></div>`;
+              return `<div style="display:grid;grid-template-columns:24px 1fr 1fr;align-items:center;gap:4px;padding:5px 2px;border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">${period}</span>
+                ${cell(hyVal, hyC)}
+                ${cell(igVal, igC)}
               </div>`;
             };
             return deltaRow('4W', hyDelta4w, igDelta4w) + deltaRow('3M', hyDelta3m, igDelta3m) + deltaRow('6M', hyDelta6m, igDelta6m);
@@ -27722,17 +27692,14 @@ function renderMacroDataPanels(reg){
         const scComp     = sc.composite??null;
         const scOverall  = sc.overall??0;
 
-        // ── Signal accessors ─────────────────────────────────────────────
         const vixSig   = scSignals['VIX']||{};
         const vtsSig   = scSignals['VIX_TS']||{};
         const momSig   = scSignals['SPX_MOM']||{};
         const brSig    = scSignals['BREADTH']||{};
         const nfciSig  = scSignals['NFCI']||{};
         const erpSig   = scSignals['ERP']||{};
-        const hyqSig   = scSignals['HY_QUAD']||{};
         const skewSig  = scSignals['SKEW']||{};
         const fpeSig   = scSignals['FWD_PE']||{};
-        const capeSig  = scSignals['FORWARD_PE']||{}; // Shiller CAPE (legacy key)
         const pcrSig   = scSignals['PUT_CALL']||{};
 
         const vixNum   = parseFloat(vixSig.value||'0')||0;
@@ -27740,94 +27707,37 @@ function renderMacroDataPanels(reg){
         const tsRatio  = vix3mNum>0&&vixNum>0 ? (vix3mNum/vixNum) : null;
         const skewNum  = parseFloat(skewSig.value||'0')||0;
         const fpeNum   = (fpeSig.raw ?? parseFloat(fpeSig.value||'0')) || 0;
-        const capeNum  = parseFloat(capeSig.value||'0')||0;
         const pcrNum   = (pcrSig.raw ?? parseFloat(pcrSig.value||'0')) || 0;
 
-        // ── Overall badge ─────────────────────────────────────────────────
         const scBadgeLabel = scOverall>=2?'Risk-On':scOverall>=1?'Lean Bull':scOverall<=-2?'Risk-Off':scOverall<=-1?'Lean Bear':'Neutral';
         const scBadgeCol   = scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#c8a96e';
+        const scArcCol     = scBadgeCol;
 
-        // ── Colour helpers ────────────────────────────────────────────────
         const sigCol = s => s>=2?'#22c97a':s>=1?'#5ec97a':s<=-2?'#e03a2a':s<=-1?'#f5a442':'#adb8d0';
         const dotCol = s => s>=1?'#22c97a':s<=-1?'#e03a2a':'#c8a96e';
 
-        // ── Composite score bar ────────────────────────────────────────
-        const compNorm = scComp!=null ? Math.min(100,Math.max(0,((scComp+2)/4)*100)) : 50;
-        const compCol  = scComp!=null?(scComp>=1?'#22c97a':scComp>=-1?'#c8a96e':'#e03a2a'):'#adb8d0';
-        const compLbl  = scComp!=null?(scComp>=1.2?'STRONG':scComp>=0.3?'HEALTHY':scComp>=-0.3?'NEUTRAL':scComp>=-1.2?'WEAK':'STRESSED'):'—';
+        const vixSkewDiv = skewSig.divergence || (vixNum>0&&vixNum<18&&skewNum>135);
 
-        // ── Thermostat bar builder ─────────────────────────────────────────
-        // Renders a horizontal spectrum bar with coloured zones + needle + labels
-        // value: current level, min/max: range, zones: [{v, col, label}] breakpoints
-        // leftLabel/rightLabel: end caps
-        const thermoBar = ({
-          id, value, min, max, zones, leftLabel, rightLabel,
-          formatVal = v=>v!=null?v.toFixed(1):'—',
-          needleCol = '#c8a96e', benchmarks = [] // [{v, label, col}]
-        }) => {
+        const thermoBar = ({value, min, max, zones, leftLabel, rightLabel, benchmarks=[]}) => {
           const clamp = v => Math.min(100, Math.max(0, ((v-min)/(max-min))*100));
           const pct = value!=null ? clamp(value) : null;
-          // Build gradient from zones
-          const gradStops = zones.map((z,i)=>{
-            const p0 = clamp(z.v0).toFixed(0);
-            const p1 = clamp(z.v1).toFixed(0);
+          const gradStops = zones.map(z=>{
+            const p0 = clamp(z.v0).toFixed(0), p1 = clamp(z.v1).toFixed(0);
             return `${z.col} ${p0}%, ${z.col} ${p1}%`;
           }).join(', ');
-          const ncol = value!=null ? (zones.find(z=>value>=z.v0&&value<z.v1)||zones[zones.length-1]).col : needleCol;
+          const ncol = value!=null ? (zones.find(z=>value>=z.v0&&value<z.v1)||zones[zones.length-1]).col : '#adb8d0';
           return `<div style="position:relative">
-            <!-- Track -->
             <div style="position:relative;height:8px;border-radius:4px;overflow:visible;background:rgba(255,255,255,0.05)">
-              <!-- Zone gradient fill -->
               <div style="position:absolute;inset:0;border-radius:4px;background:linear-gradient(90deg,${gradStops});opacity:0.55"></div>
-              <!-- Benchmark markers (e.g. 5yr avg) -->
-              ${benchmarks.map(b=>{
-                const bp = clamp(b.v).toFixed(1);
-                return `<div style="position:absolute;top:-3px;bottom:-3px;width:1.5px;left:${bp}%;transform:translateX(-50%);background:${b.col||'rgba(255,255,255,0.35)'};border-radius:1px" title="${b.label||''}"></div>`;
-              }).join('')}
-              <!-- Needle -->
+              ${benchmarks.map(b=>`<div style="position:absolute;top:-3px;bottom:-3px;width:1.5px;left:${clamp(b.v).toFixed(1)}%;transform:translateX(-50%);background:${b.col||'rgba(255,255,255,0.35)'};border-radius:1px"></div>`).join('')}
               ${pct!=null?`<div style="position:absolute;top:-4px;bottom:-4px;width:2.5px;left:${pct.toFixed(1)}%;transform:translateX(-50%);background:${ncol};border-radius:2px;box-shadow:0 0 6px ${ncol}99;z-index:2"></div>`:''}
             </div>
-            <!-- Labels row -->
             <div style="display:flex;justify-content:space-between;margin-top:2.5px">
-              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.38);letter-spacing:0.06em">${leftLabel||''}</span>
-              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.38);letter-spacing:0.06em">${rightLabel||''}</span>
+              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.38)">${leftLabel||''}</span>
+              <span style="font-family:var(--mono);font-size:5.5px;color:rgba(173,184,208,0.38)">${rightLabel||''}</span>
             </div>
           </div>`;
         };
-
-        // ── Compact stat row builder ───────────────────────────────────────
-        // Minimal single-line row: dot | eyebrow | value + label
-        const statRow = (eyebrow, value, label, score, extra='', last=false) => {
-          const sc2 = score??0;
-          const dc = dotCol(sc2);
-          const vc = sigCol(sc2);
-          return `<div style="display:flex;align-items:center;gap:7px;padding:4.5px 0;${last?'':'border-bottom:1px solid rgba(255,255,255,0.04)'}">
-            <div style="width:5px;height:5px;border-radius:50%;background:${dc};flex-shrink:0;box-shadow:0 0 4px ${dc}88"></div>
-            <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.5);flex:1;min-width:0;overflow:hidden;white-space:normal;word-break:break-word;line-height:1.3">${eyebrow}</div>
-            <div style="text-align:right;flex-shrink:0;display:flex;align-items:baseline;gap:4px">
-              ${extra?`<span style="font-family:var(--mono);font-size:8.5px;color:var(--faint);opacity:0.7">${extra}</span>`:''}
-              <span style="font-family:var(--mono);font-size:11.5px;font-weight:900;color:${vc};letter-spacing:-0.01em">${value}</span>
-              <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:${vc};letter-spacing:0.04em;text-transform:uppercase;opacity:0.85;min-width:0">${label}</span>
-            </div>
-          </div>`;
-        };
-
-        // ── Cross-asset returns ────────────────────────────────────────────
-        const miniAssets = [
-          {lbl:'SPX', key:'SPX'},{lbl:'NDX', key:'NDX'},
-          {lbl:'Gold', key:'GLD'},{lbl:'Oil', key:'OIL'},
-          {lbl:'Bonds', key:'TLT'},{lbl:'USD', key:'DXY'},
-        ].map(m=>{
-          const r = ret[m.key]||{};
-          const r1m = r.return_1m??null;
-          const r3m = r.return_3m??null;
-          const fmtR = v => v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
-          const colR = v => v==null?'var(--faint)':v>0.3?'#22c97a':v>0?'#5aaa7a':v<-0.3?'#e03a2a':v<0?'#d06040':'var(--dim)';
-          return {...m, r1m, r3m, fmtR, colR};
-        });
-
-        // VIX/SKEW divergence flag
-        const vixSkewDiv = skewSig.divergence || (vixNum>0&&vixNum<18&&skewNum>135);
 
         return `
       <div class="ov-macro-card" id="ov-macro-stock-climate">
@@ -27835,7 +27745,7 @@ function renderMacroDataPanels(reg){
         <div class="ov-macro-card-wash" style="background:${scBadgeCol}"></div>
         <canvas class="ov-mc-particles" id="ov-mc-p6"></canvas>
 
-        <!-- ══ HEADER ═══════════════════════════════════════════════════ -->
+        <!-- HEADER -->
         <div class="ov-mc-header">
           <div>
             <div class="ov-mc-eyebrow">Equities</div>
@@ -27844,155 +27754,125 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${scBadgeCol};background:${scBadgeCol}1a;border:1px solid ${scBadgeCol}38">${scBadgeLabel}</span>
         </div>
 
-        <!-- ══ SECTION 1: VOLATILITY & SENTIMENT ═══════════════════════ -->
-        <!-- Hero: VIX + SKEW tiles — mirrors Credit Spreads HY/IG structure -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-
-          <!-- VIX tile -->
+        <!-- VIX + SKEW tiles: volatility surface at a glance -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
           ${(()=>{
             const vc = vixNum>0?(vixNum>=30?'#e03a2a':vixNum>=25?'#f5a442':vixNum>=20?'#c8a96e':vixNum>=16?'#adb8d0':'#5ec97a'):'#adb8d0';
             return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${vc}18;border-top:2px solid ${vc}40;border-radius:9px;padding:10px 12px">
-              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">VIX</div>
-              <div style="display:flex;align-items:baseline;gap:3px">
-                <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${vc};text-shadow:0 0 18px ${vc}44">${vixNum>0?vixNum.toFixed(1):'—'}</span>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint)">VIX</div>
+                ${vixSkewDiv?`<span style="font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.08em;color:#f5a442;padding:1px 4px;border-radius:8px;background:rgba(245,164,66,0.15);border:1px solid rgba(245,164,66,0.25)">DIVERGENCE</span>`:''}
               </div>
-              <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${vc};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${vixSig.label||'—'}</div>
-              ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:2px">3M: ${vix3mNum.toFixed(1)} · ${tsRatio!=null?(tsRatio>1.02?'Fut>Spot':'Backw.'):'—'}</div>`:''}
+              <div style="font-family:var(--mono);font-size:clamp(22px,5vw,30px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${vc};margin-bottom:4px">${vixNum>0?vixNum.toFixed(1):'\u2014'}</div>
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${vc};letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px">${vixSig.label||'\u2014'}</div>
+              ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:8.5px;color:var(--faint)">3M VIX: ${vix3mNum.toFixed(1)} · ${tsRatio!=null?(tsRatio>1.02?'Fut>Spot':'Backw.'):'\u2014'}</div>`:''}
             </div>`;
           })()}
-
-          <!-- SKEW tile -->
           ${(()=>{
             const sc2 = skewSig.score??0;
             const skc = sigCol(sc2);
-            return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${skc}18;border-top:2px solid ${skc}40;border-radius:9px;padding:10px 12px;position:relative">
-              ${vixSkewDiv?`<div style="position:absolute;top:7px;right:8px;font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.10em;color:#f5a442;text-transform:uppercase;background:rgba(245,164,66,0.15);padding:1px 5px;border-radius:10px;border:1px solid rgba(245,164,66,0.25)">ELEVATED</div>`:''}
-              <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">CBOE SKEW</div>
-              <div style="display:flex;align-items:baseline;gap:3px">
-                <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${skc};text-shadow:0 0 18px ${skc}44">${skewNum>0?skewNum.toFixed(0):'—'}</span>
-              </div>
-              <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${skc};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase">${skewSig.label||'—'}</div>
-              <div style="font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:2px">Tail hedge demand</div>
+            return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${skc}18;border-top:2px solid ${skc}40;border-radius:9px;padding:10px 12px">
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">CBOE SKEW</div>
+              <div style="font-family:var(--mono);font-size:clamp(22px,5vw,30px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${skc};margin-bottom:4px">${skewNum>0?skewNum.toFixed(0):'\u2014'}</div>
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${skc};letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px">${skewSig.label||'\u2014'}</div>
+              <div style="font-family:var(--mono);font-size:8.5px;color:var(--faint)">Tail hedge demand</div>
             </div>`;
           })()}
         </div>
 
-        <!-- ══ SECTION 2: VALUATION & SENTIMENT ═════════════════════════ -->
-        <div style="margin-bottom:6px">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Valuation &amp; Sentiment</div><div class="mc-sect-line"></div></div>
+        ${vixSkewDiv?`<div style="margin-bottom:8px;padding:7px 10px;background:rgba(245,164,66,0.08);border:1px solid rgba(245,164,66,0.20);border-radius:7px">
+          <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:#f5a442;letter-spacing:0.04em">VIX/SKEW DIVERGENCE: </span>
+          <span style="font-family:var(--mono);font-size:8.5px;color:rgba(245,164,66,0.75)">Complacent surface, elevated tail risk. Hidden stress.</span>
+        </div>`:''}
 
-          <!-- P/E Ratio bar -->
-          <div style="margin-bottom:7px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">S&amp;P 500 P/E <span style="font-size:9px;font-weight:500;opacity:0.7;text-transform:none;letter-spacing:0">(trailing)</span></span>
-              <div style="display:flex;align-items:baseline;gap:5px">
-                ${fpeNum>0?`<span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(fpeSig.score??0)};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</span>
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;color:${sigCol(fpeSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${fpeSig.label||'—'}</span>`:'<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>'}
+        <!-- RANKED SIGNAL LIST: 5 signals with prominence by importance -->
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Signal Stack</div><div class="mc-sect-line"></div></div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
+
+            <!-- S/P 500 P/E — Valuation anchor -->
+            ${(()=>{
+              if(!fpeNum) return '';
+              const fc = sigCol(fpeSig.score??0);
+              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div>
+                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">S&P 500 P/E</div>
+                  ${thermoBar({value:fpeNum,min:10,max:40,zones:[{v0:10,v1:14,col:'rgba(34,201,122,0.80)'},{v0:14,v1:18,col:'rgba(80,180,110,0.65)'},{v0:18,v1:23,col:'rgba(200,169,110,0.65)'},{v0:23,v1:30,col:'rgba(240,140,60,0.72)'},{v0:30,v1:40,col:'rgba(220,60,42,0.82)'}],leftLabel:'10x cheap',rightLabel:'40x extreme',benchmarks:[{v:17.5,col:'rgba(173,184,208,0.55)'},{v:21.4,col:'rgba(200,169,110,0.45)'}]})}
+                </div>
+                <div style="text-align:right;min-width:68px">
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${fc};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</div>
+                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${fc};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${fpeSig.label||'\u2014'}</div>
+                </div>
+              </div>`;
+            })()}
+
+            <!-- CBOE Equity P/C — Sentiment -->
+            ${(()=>{
+              if(!pcrNum) return '';
+              const pc = sigCol(pcrSig.score??0);
+              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div>
+                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">Equity P/C Ratio <span style="font-weight:400;opacity:0.55;font-size:8px;text-transform:none">\u2191 high = bullish</span></div>
+                  ${thermoBar({value:pcrNum,min:0.35,max:1.20,zones:[{v0:0.35,v1:0.45,col:'rgba(220,60,42,0.82)'},{v0:0.45,v1:0.60,col:'rgba(240,120,50,0.70)'},{v0:0.60,v1:0.75,col:'rgba(200,169,110,0.58)'},{v0:0.75,v1:0.90,col:'rgba(70,160,100,0.65)'},{v0:0.90,v1:1.20,col:'rgba(34,201,122,0.78)'}],leftLabel:'0.35 greed',rightLabel:'1.2 fear',benchmarks:[{v:0.65,col:'rgba(173,184,208,0.50)'}]})}
+                </div>
+                <div style="text-align:right;min-width:68px">
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${pc};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</div>
+                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${pc};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'\u2014'}</div>
+                </div>
+              </div>`;
+            })()}
+
+            <!-- SPX Momentum -->
+            ${(()=>{
+              const mc = sigCol(momSig.score??0);
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div style="width:5px;height:5px;border-radius:50%;background:${dotCol(momSig.score??0)};box-shadow:0 0 4px ${dotCol(momSig.score??0)}88;flex-shrink:0"></div>
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60)">SPX Momentum (3M)</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:5px">
+                  <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${mc};letter-spacing:-0.02em">${momSig.value||'\u2014'}</span>
+                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:${mc};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${momSig.label||''}</span>
+                </div>
+              </div>`;
+            })()}
+
+            <!-- Market Breadth -->
+            ${(()=>{
+              const bc = sigCol(brSig.score??0);
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div style="width:5px;height:5px;border-radius:50%;background:${dotCol(brSig.score??0)};box-shadow:0 0 4px ${dotCol(brSig.score??0)}88;flex-shrink:0"></div>
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60)">Market Breadth (RSP/SPY)</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:5px">
+                  <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${bc};letter-spacing:-0.02em">${brSig.value||'\u2014'}</span>
+                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:${bc};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${brSig.label||''}</span>
+                </div>
+              </div>`;
+            })()}
+
+            <!-- NFCI + ERP side by side (conditions row) -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:7px 0">
+              <div>
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+                  <div style="width:4px;height:4px;border-radius:50%;background:${dotCol(nfciSig.score??0)};flex-shrink:0"></div>
+                  <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.50)">NFCI</span>
+                </div>
+                <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(nfciSig.score??0)};letter-spacing:-0.01em">${nfciSig.value||'\u2014'}</div>
+                <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${sigCol(nfciSig.score??0)};text-transform:uppercase;letter-spacing:0.04em;opacity:0.85">${(nfciSig.label||'\u2014').replace('VERY LOOSE','EASY').replace('Very Loose','Easy')}</div>
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+                  <div style="width:4px;height:4px;border-radius:50%;background:${dotCol(erpSig.score??0)};flex-shrink:0"></div>
+                  <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.50)">Eq. Risk Premium</span>
+                </div>
+                <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(erpSig.score??0)};letter-spacing:-0.01em">${erpSig.value||'\u2014'}</div>
+                <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${sigCol(erpSig.score??0)};text-transform:uppercase;letter-spacing:0.04em;opacity:0.85">${erpSig.label||'\u2014'}</div>
               </div>
             </div>
-            ${thermoBar({
-              value: fpeNum>0?fpeNum:null,
-              min: 10, max: 40,
-              zones: [
-                {v0:10, v1:14, col:'rgba(34,201,122,0.80)'},
-                {v0:14, v1:18, col:'rgba(80,180,110,0.65)'},
-                {v0:18, v1:23, col:'rgba(200,169,110,0.65)'},
-                {v0:23, v1:30, col:'rgba(240,140,60,0.72)'},
-                {v0:30, v1:40, col:'rgba(220,60,42,0.82)'},
-              ],
-              leftLabel: '10x cheap', rightLabel: '40x extreme',
-              benchmarks: [
-                {v:17.5, label:'LT avg 17.5x', col:'rgba(173,184,208,0.55)'},
-                {v:21.4, label:'5yr avg 21.4x', col:'rgba(200,169,110,0.45)'},
-              ]
-            })}
+
           </div>
-
-          <!-- CBOE Equity P/C bar -->
-          <div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">CBOE Equity P/C</span><span style="font-family:var(--mono);font-size:8px;font-weight:500;color:var(--faint);opacity:0.55;text-transform:none;letter-spacing:0">put/call fear gauge — ↑ high = bullish</span></div>
-              <div style="display:flex;align-items:baseline;gap:5px">
-                ${pcrNum>0?`<span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(pcrSig.score??0)};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</span>
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;color:${sigCol(pcrSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'—'}</span>`:'<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>'}
-              </div>
-            </div>
-            ${thermoBar({
-              value: pcrNum>0?pcrNum:null,
-              min: 0.35, max: 1.20,
-              zones: [
-                {v0:0.35, v1:0.45, col:'rgba(220,60,42,0.82)'},
-                {v0:0.45, v1:0.60, col:'rgba(240,120,50,0.70)'},
-                {v0:0.60, v1:0.75, col:'rgba(200,169,110,0.58)'},
-                {v0:0.75, v1:0.90, col:'rgba(70,160,100,0.65)'},
-                {v0:0.90, v1:1.20, col:'rgba(34,201,122,0.78)'},
-              ],
-              leftLabel: '0.35 greed', rightLabel: '1.2 fear',
-              benchmarks: [{v:0.65, label:'avg ~0.65', col:'rgba(173,184,208,0.50)'}]
-            })}
-            ${pcrSig.ma20!=null||pcrSig.date?`<div style="display:flex;gap:8px;margin-top:3px"><span style="font-family:var(--mono);font-size:9px;color:var(--faint);opacity:0.6">${pcrSig.ma20!=null?'20d MA: '+pcrSig.ma20.toFixed(2):''}</span><span style="font-family:var(--mono);font-size:9px;color:var(--faint);opacity:0.45">${pcrSig.date||''}</span></div>`:''}
-          </div>
-        </div>
-
-        <!-- ══ SECTION 3: BREADTH & MOMENTUM ═════════════════════════════ -->
-        <div style="margin-bottom:6px">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Breadth &amp; Momentum</div><div class="mc-sect-line"></div></div>
-
-          <!-- SPX Momentum bar -->
-          <div style="margin-bottom:7px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">SPX Momentum <span style="font-size:9px;font-weight:500;opacity:0.7;text-transform:none;letter-spacing:0">(3M)</span></span>
-              <div style="display:flex;align-items:baseline;gap:5px">
-                <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(momSig.score??0)};letter-spacing:-0.02em">${momSig.value||'—'}</span>
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;color:${sigCol(momSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${momSig.label||'—'}</span>
-              </div>
-            </div>
-            ${thermoBar({
-              value: (()=>{ const v=parseFloat(momSig.value||'0'); return isNaN(v)?null:v; })(),
-              min: -45, max: 40,
-              zones: [
-                {v0:-45, v1:-20, col:'rgba(200,40,40,0.82)'},
-                {v0:-20, v1:-8,  col:'rgba(230,100,50,0.70)'},
-                {v0:-8,  v1:-3,  col:'rgba(220,130,60,0.60)'},
-                {v0:-3,  v1:3,   col:'rgba(200,169,110,0.55)'},
-                {v0:3,   v1:10,  col:'rgba(70,160,100,0.65)'},
-                {v0:10,  v1:40,  col:'rgba(34,201,122,0.82)'},
-              ],
-              leftLabel: '-45% bear', rightLabel: '+40% bull',
-              benchmarks: [{v:0, label:'flat', col:'rgba(255,255,255,0.30)'}]
-            })}
-          </div>
-
-          <!-- Market Breadth bar -->
-          <div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">Market Breadth <span style="font-size:9px;font-weight:500;opacity:0.7;text-transform:none;letter-spacing:0">(RSP vs SPY, 3M)</span></span>
-              <div style="display:flex;align-items:baseline;gap:5px">
-                <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(brSig.score??0)};letter-spacing:-0.02em">${brSig.value||'—'}</span>
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;color:${sigCol(brSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${brSig.label||'—'}</span>
-              </div>
-            </div>
-            ${thermoBar({
-              value: (()=>{ const v=parseFloat(brSig.value||'0'); return isNaN(v)?null:v; })(),
-              min: -12, max: 15,
-              zones: [
-                {v0:-12, v1:-5,  col:'rgba(200,40,40,0.82)'},
-                {v0:-5,  v1:-2,  col:'rgba(230,100,50,0.68)'},
-                {v0:-2,  v1:1,   col:'rgba(200,169,110,0.55)'},
-                {v0:1,   v1:4,   col:'rgba(70,160,100,0.65)'},
-                {v0:4,   v1:15,  col:'rgba(34,201,122,0.82)'},
-              ],
-              leftLabel: '-12% narrow', rightLabel: '+15% broad',
-              benchmarks: [{v:0, label:'flat', col:'rgba(255,255,255,0.28)'}]
-            })}
-          </div>
-        </div>
-
-        <!-- ══ SECTION 4: CONDITIONS ══════════════════════════════════════ -->
-        <div style="margin-bottom:0">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Conditions</div><div class="mc-sect-line"></div></div>
-          ${statRow('Chicago Fed NFCI', nfciSig.value||'—', (nfciSig.label||'—').replace('VERY LOOSE','EASY').replace('Very Loose','Easy'), nfciSig.score, nfciSig.delta_4w!=null?`4W: ${nfciSig.delta_4w>0?'+':''}${nfciSig.delta_4w}`:undefined)}
-          ${statRow('Equity Risk Premium', erpSig.value||'—', erpSig.label||'—', erpSig.score, erpSig.dgs10!=null?`EY ${erpSig.ey??'—'}% vs 10Y ${erpSig.dgs10}%`:undefined, true)}
         </div>
 
       </div>`;
