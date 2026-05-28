@@ -27222,50 +27222,63 @@ function renderMacroDataPanels(reg){
             ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">6m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
           </div>
         </div>
+        <!-- VERDICT ROW: one-line thesis synthesis -->
+        ${(()=>{
+          const useFF = ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null;
+          const beat = useFF ? ffNfp.beat : null;
+          const surpK = useFF&&ffNfp.actual!=null&&ffNfp.forecast!=null
+            ? Math.round(ffNfp.actual - ffNfp.forecast) : null;
+          const trendWord = (()=>{const diff=(nfp3mAvg||0)-(nfp6mAvg||0);return diff>20?'Strengthening':diff<-20?'Weakening':'Stable';})();
+          const trendC = (()=>{const diff=(nfp3mAvg||0)-(nfp6mAvg||0);return diff>20?'#22c97a':diff<-20?'#e03a2a':'#adb8d0';})();
+          const chipLabel = beat===true?'BEAT':beat===false?'MISS':jcLabel;
+          const chipCol = beat===true?'#22c97a':beat===false?'#e03a2a':jcCol;
+          const beatPhrase = surpK!=null?(beat===true?`Beat by ${surpK>=0?'+':''}${surpK}K`:beat===false?`Missed by ${surpK}K`:''):'';
+          const avgPhrase = nfp3mAvg!=null ? ` · 3M avg ${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K` : '';
+          return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0c;border-radius:7px;border-left:2px solid ${chipCol}50">
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${beatPhrase}${avgPhrase} · <span style="color:${trendC};font-weight:700">${trendWord}</span></span>
+          </div>`;
+        })()}
         <!-- TIER 1: Primary KPI tiles — Unemployment + Wages side by side -->
-        <div class="mc-sect" style="margin:0 0 8px"><div class="mc-sect-lbl" style="font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(173,184,208,0.55)">Primary Indicators</div><div class="mc-sect-line"></div></div>
         ${(()=>{
           const unempRow = zIndicators.find(r=>r.lbl==='Unemployment');
           const wagesRow = zIndicators.find(r=>r.lbl==='Wages m/m');
           const tileScoreCol = s => s>=6.5?'#22c97a':s>=5?'#adb8d0':s>=3.5?'#c8a96e':'#e03a2a';
           const tile = (r, label) => {
             if(!r) return '';
-            const tc = tileScoreCol(r.score);
             const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'IN LINE';
-            const vCol = r.isBeat===true?'#22c97a':r.isBeat===false?'#e03a2a':'#6e7d90';
-            // Numeric surprise delta (e.g. "-0.1%" or "+25K")
+            // Threshold-gate chip colour: small miss = amber, significant miss = red
             const surpNum = r.surpStr!=null ? parseFloat(r.surpStr) : null;
-            const surpDisplay = surpNum!=null ? ((surpNum>=0?'+':'')+surpNum.toFixed(2)) : null;
-            // Expected value — strip "exp " prefix if present
+            const vCol = r.isBeat===true?'#22c97a':
+              (r.isBeat===false?(Math.abs(surpNum||0)>0.2?'#e03a2a':'#e07a2a'):'#6e7d90');
+            const surpDisplay = (surpNum!=null && Math.abs(surpNum) >= 0.005)
+              ? ((surpNum>=0?'+':'')+surpNum.toFixed(2)) : null;
             const expClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
-            return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-top:2px solid ${vCol}55;border-radius:9px;padding:10px 12px">
-              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">${label}</div>
-              <!-- Actual + verdict chip -->
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-family:var(--mono);font-size:26px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:#e8e6e3">${r.val}</span>
-                <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2.5px 7px;border-radius:8px;background:${vCol}25;border:1px solid ${vCol}60">${verdict}</span>
+            // Borderless column layout — no box-within-a-box
+            return `<div style="padding:2px 0">
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:5px">${label}</div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+                <span style="font-family:var(--mono);font-size:28px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:#e8e6e3">${r.val}</span>
+                <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;color:${vCol};padding:2px 7px;border-radius:8px;background:${vCol}1e;border:1px solid ${vCol}55">${verdict}</span>
               </div>
-              <!-- Expected row -->
-              ${expClean!=null?`<div style="display:flex;align-items:baseline;gap:5px;margin-bottom:2px">
-                <span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.50);letter-spacing:0.04em">EST</span>
-                <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(173,184,208,0.78)">${expClean}</span>
-              </div>`:''}
-              <!-- Numeric surprise delta — inline compact -->
-              ${surpDisplay!=null?`<div style="font-family:var(--mono);font-size:11px;font-weight:800;color:${vCol}">\u0394 ${surpDisplay}</div>`:''}
+              <div style="display:flex;align-items:baseline;gap:6px">
+                ${expClean!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:600;color:rgba(173,184,208,0.42)">est <span style="color:rgba(173,184,208,0.72);font-weight:700">${expClean}</span></span>`:''}
+                ${surpDisplay!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol}">${surpDisplay}</span>`:''}
+              </div>
             </div>`;
           };
-          return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07)">
             ${tile(unempRow,'Unemployment')}
             ${tile(wagesRow,'Wages m/m')}
           </div>`;
         })()}
         <!-- TIER 2: Supporting signals — NFP row + Claims + ADP compact -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:0 0 8px"><div class="mc-sect-lbl" style="font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(173,184,208,0.55)">Supporting Indicators</div><div class="mc-sect-line"></div></div>
+          <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 8px"></div>
           <div style="display:flex;flex-direction:column;gap:0">
           ${(()=>{
             const scoreCol = s => s>=6.5?'#22c97a':s>=5?'#6e7d90':s>=3.5?'#c8a96e':'#e03a2a';
-            const supportRows = zIndicators.filter(r=>['NFP','Init Claims','ADP'].includes(r.lbl));
+            const supportRows = zIndicators.filter(r=>['Init Claims','ADP'].includes(r.lbl));
             return supportRows.map((r,i)=>{
               const isPos = r.score >= 5;
               // Estimate-anchored: centre=estimate, fill left=miss, fill right=beat
@@ -27465,6 +27478,25 @@ function renderMacroDataPanels(reg){
             })()}
           </div>
         </div>
+        <!-- VERDICT ROW: resolves potential HOT/COOL conflict for user -->
+        ${(()=>{
+          const corePCE = pipeItems.find(r=>r.key==='CORE_PCE');
+          const cpiRow = pipeItems.find(r=>r.key==='CPI');
+          const headlineHot = cpiRow&&cpiRow.isBeat;
+          const pceCool = corePCE&&corePCE.isMiss;
+          const pceHot = corePCE&&corePCE.isBeat;
+          const chipCol = headlineHot?'#e03a2a':_avgSurprise<-0.03?'#5c9eff':'#adb8d0';
+          const chipLabel = headlineHot?'HOT':_avgSurprise<-0.03?'COOLING':'ON TARGET';
+          // Build thesis: headline + PCE context
+          const gapStr = gap!=null?(gap>=0?`${gap.toFixed(2)}% above 2% target`:`${Math.abs(gap).toFixed(2)}% below target`):'';
+          let thesis = gapStr;
+          if(pceCool&&headlineHot) thesis += ' · Core PCE cooling (Fed preferred)';
+          else if(pceHot) thesis += ' · Core PCE also running hot';
+          return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0c;border-radius:7px;border-left:2px solid ${chipCol}50">
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${thesis}</span>
+          </div>`;
+        })()}
         <!-- PRICE PRESSURES: Core PCE as sub-hero tile + secondary rows -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
           ${(()=>{
@@ -27544,7 +27576,7 @@ function renderMacroDataPanels(reg){
                   </div>
                   <div style="display:flex;align-items:center;gap:4px">
                     <span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:${vCol}">${verdict}</span>
-                    ${rnkLbl?`<span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.38);border:1px solid rgba(173,184,208,0.15);padding:0.5px 4px;border-radius:3px">${rnkLbl}</span>`:''}
+                    <!-- rank chips removed — noise over signal -->
                   </div>
                 </div>
                 <!-- Divergence bar — two-sided gradient -->
@@ -27558,11 +27590,11 @@ function renderMacroDataPanels(reg){
                 <div style="text-align:right;min-width:72px">
                   <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em;line-height:1">${actualStr}</div>
                   ${expVal?`<div style="font-family:var(--mono);font-size:10px;font-weight:600;color:rgba(173,184,208,0.52);margin-top:2px;line-height:1">est <span style="color:rgba(173,184,208,0.75);font-weight:700">${expVal}</span></div>`:''}
-                  ${r.surpLabel?`<div style="font-family:var(--mono);font-size:12px;font-weight:800;color:${col};margin-top:2px;line-height:1">${r.surpLabel}</div>`:''}
+                  ${r.surpLabel?`<div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${col};margin-top:2px;line-height:1;letter-spacing:-0.01em">${r.isBeat?'+':r.isMiss?'':''}${r.surpLabel}</div>`:''}
                 </div>
               </div>`;
             }).join('');
-            return `<div class="mc-sect" style="margin:0 0 8px"><div class="mc-sect-lbl" style="font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(173,184,208,0.55)">Price Pressures</div><div class="mc-sect-line"></div></div>
+            return `<div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 8px"></div>
             ${pceTile}
             <div style="display:flex;flex-direction:column;gap:0">${secondaryHtml}</div>`;
           })()}
@@ -27596,7 +27628,7 @@ function renderMacroDataPanels(reg){
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">${vsPeak}% of QE peak ($8.97T)</span>`:''}
-            ${fbChg3m!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">3M run-rate: <span style="color:${chgCol(fbChg3m)};font-weight:700">${chgFmt(fbChg3m)}</span></span>`:''}
+            <!-- 3M run-rate removed — shown in change tile below -->
           </div>
         </div>
         <!-- CHART: Full-width area — primary visual, annotated -->
@@ -27609,20 +27641,17 @@ function renderMacroDataPanels(reg){
         <!-- DELTA STRIP: 3-period summary as a single compact row -->
         <div style="margin-top:8px">
           <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Balance Sheet Change</div><div class="mc-sect-line"></div></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.05)">
             ${(()=>{
               const periodTile = (label, val) => {
-                if(val==null) return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:8px 10px;text-align:center">
-                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.07em;margin-bottom:4px">${label}</div>
-                  <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:var(--faint)">\u2014</div>
+                if(val==null) return `<div style="text-align:center;padding:8px 4px">
+                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.07em;margin-bottom:5px">${label}</div>
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--faint)">\u2014</div>
                 </div>`;
                 const c = chgCol(val);
-                const barW = Math.min(90,Math.max(4,(Math.abs(val)/0.4)*80)).toFixed(0);
-                const arrow = val>0?'\u25b2':val<0?'\u25bc':'';
-                return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${c}20;border-top:2px solid ${c}45;border-radius:7px;padding:8px 10px;text-align:center">
-                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.07em;margin-bottom:4px">${label}</div>
-                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;line-height:1;color:${c}">${chgFmt(val)}</div>
-                  <div style="margin:5px auto 0;width:70%;height:4px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${barW}%;background:${c};border-radius:3px;opacity:0.85"></div></div>
+                return `<div style="text-align:center;padding:8px 4px">
+                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(173,184,208,0.40);letter-spacing:0.07em;margin-bottom:5px">${label}</div>
+                  <div style="font-family:var(--mono);font-size:18px;font-weight:900;line-height:1;color:${c}">${chgFmt(val)}</div>
                 </div>`;
               };
               return periodTile('3 months', fbChg3m) + periodTile('6 months', fbChg6m) + periodTile('12 months', fbChg12m);
@@ -27672,6 +27701,7 @@ function renderMacroDataPanels(reg){
           <div style="margin-bottom:3px">
             <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'\u2014'}</div>
           </div>
+          <div style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.42);margin-bottom:3px;letter-spacing:0.02em">10Y−2Y spread · <span style="${spreadBps!=null&&spreadBps>0?'color:#22c97a':spreadBps!=null&&spreadBps<0?'color:#e03a2a':'color:#adb8d0'};font-weight:700">${spreadBps!=null&&spreadBps>0?'positive = normal':spreadBps!=null&&spreadBps<0?'negative = inverted':'flat'}</span></div>
           <div style="display:flex;gap:10px;margin-bottom:4px">
             ${sChg3m!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${sCol3m};opacity:0.62">3M ${sChg3m>=0?'+':''}${sChg3m}bp</span>`:''}
             ${sChg6m!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${sCol6m};opacity:0.62">6M ${sChg6m>=0?'+':''}${sChg6m}bp</span>`:''}
@@ -27685,24 +27715,24 @@ function renderMacroDataPanels(reg){
           </div>
         </div>
         <!-- RATE LEVELS: compact 3-col strip -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:7px 10px">
-            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">2Y Front</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1">${t2!=null?t2.toFixed(2)+'%':'\u2014'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:8px;border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.07)">
+          <div style="padding:6px 4px">
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:3px">2Y Front</div>
+            <div style="font-family:var(--mono);font-size:17px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1">${t2!=null?t2.toFixed(2)+'%':'\u2014'}</div>
           </div>
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:7px 10px">
-            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">10Y Long</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1">${t10!=null?t10.toFixed(2)+'%':'\u2014'}</div>
+          <div style="padding:6px 4px;border-left:1px solid rgba(255,255,255,0.07);border-right:1px solid rgba(255,255,255,0.07)">
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:3px">10Y Long</div>
+            <div style="font-family:var(--mono);font-size:17px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1">${t10!=null?t10.toFixed(2)+'%':'\u2014'}</div>
           </div>
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:7px 10px">
-            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:3px">3M/10Y</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'\u2014'}</div>
+          <div style="padding:6px 4px">
+            <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:3px">3M/10Y</div>
+            <div style="font-family:var(--mono);font-size:17px;font-weight:900;letter-spacing:-0.02em;color:${t3t10Col};line-height:1">${t3t10Bps!=null?(t3t10Bps>=0?'+':'')+t3t10Bps+'bp':'\u2014'}</div>
           </div>
         </div>
         <!-- CHART: 12M yield curve history — primary analytical visual -->
         <div style="flex:1;min-height:0;max-height:260px;display:flex;flex-direction:column">
           <div class="mc-sect" style="margin:0 0 5px;flex-shrink:0"><div class="mc-sect-lbl">Curve Shape (12M History)</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:130px;max-height:240px"></div>
+          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:110px;max-height:200px"></div>
         </div>
         <!-- POLICY CONTEXT: 3-box strip — Real Yield / Fed Funds / Mkt Implied -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
@@ -27744,6 +27774,22 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:${_hyNumCol};background:${_hyNumCol}1a;border:1px solid ${_hyNumCol}38">${crLabel}</span>
         </div>
+        <!-- VERDICT ROW: credit context -->
+        ${(()=>{
+          const tightCount = [hyHistPct,igHistPct].filter(p=>p!=null&&p<=20).length;
+          const bothTight = tightCount===2;
+          const col = bothTight?'#22c97a':tightCount===1?'#5aaa7a':'#adb8d0';
+          const label = bothTight?'TIGHT':'WATCH';
+          const pctStr = [
+            hyHistPct!=null?`HY ${Math.round(hyHistPct)}th pct`:'',
+            igHistPct!=null?`IG ${Math.round(igHistPct)}th pct`:''
+          ].filter(Boolean).join(' · ');
+          const warning = (hyHistPct!=null&&hyHistPct<=15)||(igHistPct!=null&&igHistPct<=15);
+          return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${col}0c;border-radius:7px;border-left:2px solid ${col}50">
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${col};white-space:nowrap;padding-top:1px">${label}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${pctStr}${warning?' · Priced for perfection':''}</span>
+          </div>`;
+        })()}
         <!-- HERO TILES: HY + IG with percentile embedded inside each tile -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
           <!-- HY tile with percentile rank inline -->
@@ -27831,24 +27877,31 @@ function renderMacroDataPanels(reg){
             const maxHY = Math.max(...periods.map(p=>Math.abs(p.hy||0)), 1);
             const maxIG = Math.max(...periods.map(p=>Math.abs(p.ig||0)), 1);
             return periods.map(p => {
+              // Credit semantics: tightening (negative delta) = BULLISH = green; widening = BEARISH = red
               const hyC = p.hy==null?'#5a6480':p.hy<0?'#22c97a':p.hy>0?'#e03a2a':'#adb8d0';
               const igC = p.ig==null?'#5a6480':p.ig<0?'#22c97a':p.ig>0?'#e03a2a':'#adb8d0';
               const hyPct = p.hy!=null ? Math.min(95, Math.max(5, (Math.abs(p.hy)/maxHY)*92)).toFixed(0) : '5';
               const igPct = p.ig!=null ? Math.min(95, Math.max(5, (Math.abs(p.ig)/maxIG)*92)).toFixed(0) : '5';
-              const fmt = v => v!=null ? (v<0?'\u25bc':v>0?'\u25b2':'') + Math.abs(v) + 'bp' : '\u2014';
+              // Explicit directional words — no ambiguous arrows
+              const fmt = (v, col) => {
+                if(v==null) return '<span style="color:rgba(173,184,208,0.30)">—</span>';
+                const word = v<0?'TIGHT':'WIDE';
+                const sign = v<0?'−':'+';
+                return `<span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;color:${col};opacity:0.70;display:block;margin-bottom:1px">${word}</span><span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${col}">${sign}${Math.abs(v)}bp</span>`;
+              };
               return `<div style="display:grid;grid-template-columns:28px 1fr 1fr;align-items:center;gap:4px;padding:4px 2px;border-bottom:1px solid rgba(255,255,255,0.04)">
                 <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${p.lbl}</span>
                 <div style="display:flex;flex-direction:column;gap:2px;align-items:center">
                   <div style="position:relative;width:90%;height:10px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
                     <div style="position:absolute;top:0;height:100%;${p.hy!=null&&p.hy<0?'right:0':'left:0'};width:${hyPct}%;background:${hyC};opacity:0.82;border-radius:3px"></div>
                   </div>
-                  <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${hyC};letter-spacing:-0.01em">${fmt(p.hy)}</span>
+                  <div style="text-align:center">${fmt(p.hy, hyC)}</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:2px;align-items:center">
                   <div style="position:relative;width:90%;height:10px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
                     <div style="position:absolute;top:0;height:100%;${p.ig!=null&&p.ig<0?'right:0':'left:0'};width:${igPct}%;background:${igC};opacity:0.82;border-radius:3px"></div>
                   </div>
-                  <span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${igC};letter-spacing:-0.01em">${fmt(p.ig)}</span>
+                  <div style="text-align:center">${fmt(p.ig, igC)}</div>
                 </div>
               </div>`;
             }).join('');
@@ -27986,14 +28039,14 @@ function renderMacroDataPanels(reg){
 
         <!-- RANKED SIGNAL LIST: 5 signals with prominence by importance -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Signal Stack</div><div class="mc-sect-line"></div></div>
+          <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 6px"></div>
           <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0">
 
             <!-- S/P 500 P/E — Valuation anchor -->
             ${(()=>{
               if(!fpeNum) return '';
               const fc = sigCol(fpeSig.score??0);
-              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <div>
                   <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">S&P 500 P/E</div>
                   ${thermoBar({value:fpeNum,min:10,max:40,zones:[{v0:10,v1:14,col:'rgba(34,201,122,0.80)'},{v0:14,v1:18,col:'rgba(80,180,110,0.65)'},{v0:18,v1:23,col:'rgba(200,169,110,0.65)'},{v0:23,v1:30,col:'rgba(240,140,60,0.72)'},{v0:30,v1:40,col:'rgba(220,60,42,0.82)'}],leftLabel:'10x cheap',rightLabel:'40x extreme',benchmarks:[{v:17.5,col:'rgba(173,184,208,0.55)'},{v:21.4,col:'rgba(200,169,110,0.45)'}]})}
@@ -28009,9 +28062,9 @@ function renderMacroDataPanels(reg){
             ${(()=>{
               if(!pcrNum) return '';
               const pc = sigCol(pcrSig.score??0);
-              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <div>
-                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">Equity P/C Ratio <span style="font-weight:400;opacity:0.55;font-size:8px;text-transform:none">\u2191 high = bullish</span></div>
+                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">Equity P/C Ratio <span style="font-weight:400;opacity:0.50;font-size:8px;text-transform:none">low = complacency</span></div>
                   ${thermoBar({value:pcrNum,min:0.35,max:1.20,zones:[{v0:0.35,v1:0.50,col:'rgba(224,58,42,0.80)'},{v0:0.50,v1:0.65,col:'rgba(220,120,50,0.68)'},{v0:0.65,v1:0.80,col:'rgba(200,169,110,0.58)'},{v0:0.80,v1:1.00,col:'rgba(80,180,110,0.68)'},{v0:1.00,v1:1.20,col:'rgba(34,201,122,0.80)'}],leftLabel:'0.35 complacency',rightLabel:'1.2 fear/hedge',benchmarks:[{v:0.70,col:'rgba(173,184,208,0.50)'}]})}
                 </div>
                 <div style="text-align:right;min-width:68px">
@@ -28024,7 +28077,7 @@ function renderMacroDataPanels(reg){
             <!-- SPX Momentum -->
             ${(()=>{
               const mc = sigCol(momSig.score??0);
-              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <div style="display:flex;align-items:center;gap:7px">
                   <div style="width:6px;height:6px;border-radius:50%;background:${dotCol(momSig.score??0)};box-shadow:0 0 5px ${dotCol(momSig.score??0)}99;flex-shrink:0;margin-right:1px"></div>
                   <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60)">SPX Momentum (3M)</span>
@@ -28039,7 +28092,7 @@ function renderMacroDataPanels(reg){
             <!-- Market Breadth -->
             ${(()=>{
               const bc = sigCol(brSig.score??0);
-              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <div style="display:flex;align-items:center;gap:7px">
                   <div style="width:6px;height:6px;border-radius:50%;background:${dotCol(brSig.score??0)};box-shadow:0 0 5px ${dotCol(brSig.score??0)}99;flex-shrink:0;margin-right:1px"></div>
                   <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60)">Market Breadth (RSP/SPY)</span>
