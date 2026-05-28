@@ -11457,9 +11457,11 @@ async def clear_regime_cache():
 
 @app.get("/api/clear-narrative-cache")
 async def clear_narrative_cache():
-    """Bust NARR_CACHE and GLOBAL_NARR_CACHE so narratives regenerate on next scores call.
-    Also busts the main ALL_DATA_CACHE and NEWS_CACHE so the background narrative
-    thread fires immediately on the next /api/scores?force=true request.
+    """Bust all data caches so the next /api/scores call re-fetches everything fresh.
+    Use this after major macro releases (PCE, CPI, NFP) to pull in the new figures
+    immediately rather than waiting up to 1 hour for the TTL to expire.
+    Zeroes: NARR_CACHE, GLOBAL_NARR_CACHE, NEWS_CACHE, ALL_DATA_CACHE,
+            US_MACRO_CACHE, FF_MACRO_CACHE, _FF_INFL_CACHE, _FF_LABOUR_CACHE.
     """
     NARR_CACHE["data"] = None
     NARR_CACHE["time"] = 0
@@ -11469,11 +11471,23 @@ async def clear_narrative_cache():
     NEWS_CACHE["time"] = 0
     ALL_DATA_CACHE["data"] = None
     ALL_DATA_CACHE["time"] = 0
-    print("[narr] Narrative + scores cache cleared via /api/clear-narrative-cache", flush=True)
+    # Macro data caches — ensures new PCE/CPI/NFP figures are picked up immediately
+    US_MACRO_CACHE["data"] = None
+    US_MACRO_CACHE["time"] = 0
+    FF_MACRO_CACHE["data"] = None
+    FF_MACRO_CACHE["time"] = 0
+    _FF_INFL_CACHE["data"] = None
+    _FF_INFL_CACHE["time"] = 0
+    _FF_LABOUR_CACHE["data"] = None
+    _FF_LABOUR_CACHE["time"] = 0
+    print("[cache] Full cache bust via /api/clear-narrative-cache", flush=True)
     return {
         "cleared": True,
-        "caches_zeroed": ["NARR_CACHE", "GLOBAL_NARR_CACHE", "NEWS_CACHE", "ALL_DATA_CACHE"],
-        "message": "All narrative caches cleared — next /api/scores call triggers fresh LLM generation"
+        "caches_zeroed": [
+            "NARR_CACHE", "GLOBAL_NARR_CACHE", "NEWS_CACHE", "ALL_DATA_CACHE",
+            "US_MACRO_CACHE", "FF_MACRO_CACHE", "_FF_INFL_CACHE", "_FF_LABOUR_CACHE"
+        ],
+        "message": "Full cache bust complete — next /api/scores call re-fetches all macro data and regenerates narratives"
     }
 
 @app.get("/api/debug-ice")
