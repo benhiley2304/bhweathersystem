@@ -26778,7 +26778,11 @@ function renderMacroDataPanels(reg){
   const _inflSurprises = _inflPipeKeys.map(k=>{
     const c = macroComps[k];
     if(!c) return null;
-    // Prefer FF MoM surprise (real consensus) — normalised to direction sign
+    // CPI: prefer YoY FF surprise; others: prefer MoM FF surprise
+    if(k==='CCI'||k==='CPI'){
+      if(c.surprise_ff_yoy!=null) return c.surprise_ff_yoy;
+      if(c.actual_ff_yoy!=null&&c.forecast_ff_yoy!=null) return +(c.actual_ff_yoy-c.forecast_ff_yoy).toFixed(2);
+    }
     if(c.surprise_ff!=null) return c.surprise_ff;
     // Fallback: FRED rolling avg comparison
     const a=parseFloat(c.actual??c.display)||null, e=parseFloat(c.expected)||null;
@@ -27068,14 +27072,77 @@ function renderMacroDataPanels(reg){
         const _cUnemp  = macroComps['UNEMP']||{};
         const _cAdp    = macroComps['ADP']||{};
         const _cWages  = macroComps['WAGES_MOM']||macroComps['WAGES']||{};
-        const zIndicators = [
-          {lbl:'NFP',          score:nfpScore,   val:nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'—',  col:nfpCol,   exp:_cJobs.forecast||null},
-          {lbl:'Unemployment', score:urScore,    val:unrate!=null?unrate+'%':'—',                                  col:urCol,    exp:_cUnemp.forecast||null},
-          {lbl:'Init. Claims', score:clScore,    val:claims!=null?(claims/1000).toFixed(0)+'K':'—',               col:clCol,    exp:_cClaims.forecast||null},
-          {lbl:'JOLTS Opens',  score:jolts!=null?(jolts>8?8.5:jolts>7?6.5:jolts>6?5:3.5):5, val:jolts!=null?jolts.toFixed(1)+'M':'—', col:joltsCol, exp:null},
-          {lbl:'ADP',          score:adpScore,   val:adpVal||'—',                                                  col:adpCol,   exp:_cAdp.forecast||null},
-          {lbl:'Wages MoM',    score:wagesScore, val:wagesVal||'—',                                               col:wagesCol, exp:_cWages.forecast||null},
-        ].filter(r=>r.val!=='—');
+        // ── Labour pipe rows — FF-first, same pattern as inflation card ──
+        // Each row: FF actual vs FF consensus, FF surprise, FF beat/miss.
+        // FRED fallback only when FF data absent (JOLTS has no FF entry).
+        // Row order: NFP (headline), Unemployment, Wages m/m, Init. Claims, ADP.
+        // JOLTS dropped — no FF data, FRED lag too long to be useful in real-time.
+        const labPipeItems = [
+          {lbl:'NFP',         key:'JOBS',   unit:'K'},
+          {lbl:'Unemployment',key:'UNEMP',  unit:'%'},
+          {lbl:'Wages m/m',   key:'WAGES',  unit:'%'},
+          {lbl:'Init. Claims',key:'CLAIMS', unit:'K'},
+          {lbl:'ADP',         key:'ADP',    unit:'K'},
+        ].map(p => {
+          const c = macroComps[p.key];
+          if (!c) return null;
+
+          const hasFF = c.actual_ff != null && c.forecast_ff != null;
+          let actual_disp, forecast_disp, surprise_disp, beat_disp;
+
+          if (hasFF) {
+            actual_disp   = c.actual_ff;
+            forecast_disp = c.forecast_ff;
+            surprise_disp = c.surprise_ff ?? (actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : null);
+            beat_disp     = c.beat_ff;
+          } else {
+            // FRED fallback
+            actual_disp   = parseFloat(c.actual ?? c.display) || null;
+            forecast_disp = parseFloat(c.expected) || null;
+            surprise_disp = actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : null;
+            beat_disp     = c.higher_is_good != null
+              ? (c.higher_is_good ? surprise_disp > 0 : surprise_disp < 0)
+              : null;
+          }
+
+          // Format display value
+          const valStr = actual_disp != null
+            ? (p.unit === 'K' ? (actual_disp >= 0 ? '+' : '') + actual_disp.toFixed(0) + 'K'
+             : p.unit === '%' ? actual_disp.toFixed(2) + '%'
+             : actual_disp.toFixed(2))
+            : '—';
+          const expStr = forecast_disp != null
+            ? 'exp ' + (p.unit === 'K' ? (forecast_disp >= 0 ? '+' : '') + forecast_disp.toFixed(0) + 'K'
+                      : p.unit === '%' ? forecast_disp.toFixed(2) + '%'
+                      : forecast_disp.toFixed(2))
+            : null;
+          const surpStr = surprise_disp != null
+            ? (surprise_disp >= 0 ? '+' : '') + surprise_disp.toFixed(p.unit === 'K' ? 0 : 2) + (p.unit === 'K' ? 'K' : '%')
+            : null;
+
+          // isBeat: actual beat consensus in the GOOD direction
+          // NFP/Wages/ADP: beat = higher than expected (strong labour)
+          // Unemployment/Claims: beat = lower than expected (tight/healthy)
+          const higherIsGood = p.key !== 'UNEMP' && p.key !== 'CLAIMS';
+          const isBeat = beat_disp != null ? beat_disp
+            : (surprise_disp != null ? (higherIsGood ? surprise_disp > 0 : surprise_disp < 0) : null);
+          const isMiss = isBeat === null ? null : !isBeat;
+
+          // Colour: beat = green, miss = red, neutral = grey
+          const dataCol = isBeat === true ? '#22c97a' : isBeat === false ? '#e03a2a' : '#adb8d0';
+
+          // Score for z-bar (use ff_score if available, else derive from beat/miss)
+          const score = c.ff_score ?? (isBeat === true ? 7 : isBeat === false ? 3 : 5);
+
+          return { ...p, actual_disp, forecast_disp, surprise_disp, isBeat, isMiss,
+                   valStr, expStr, surpStr, dataCol, score, hasFF };
+        }).filter(r => r && r.actual_disp != null);
+
+        // Legacy zIndicators kept for the score bar rendering (reuse same render loop)
+        const zIndicators = labPipeItems.map(r => ({
+          lbl: r.lbl, score: r.score, val: r.valStr, col: r.dataCol,
+          exp: r.expStr, surpStr: r.surpStr, isBeat: r.isBeat, hasFF: r.hasFF
+        }));
         return `
       <div class="ov-macro-card" id="ov-macro-labour">
         <div class="ov-macro-card-glow" style="background:${jcCol}"></div>
@@ -27142,15 +27209,21 @@ function renderMacroDataPanels(reg){
               const lblCol = r.score >= 6.5 ? 'rgba(48,217,136,0.80)'
                 : r.score <= 3.5 ? 'rgba(224,58,42,0.80)'
                 : 'rgba(173,184,208,0.65)';
-              return `<div style="display:grid;grid-template-columns:82px 1fr auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${rowIdx*55}ms">
-                <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${lblCol}">${r.lbl}</span>
-                <div style="position:relative;height:14px;background:rgba(255,255,255,0.06);border-radius:7px;overflow:hidden">
-                  <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.30);border-radius:1px;z-index:1"></div>
-                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(${isPos?'90deg':'270deg'},${displayCol},${displayCol2});border-radius:7px;opacity:${isNeutral?0.62:0.95};box-shadow:0 0 ${isNeutral?4:10}px ${displayCol}${isNeutral?'44':'88'}"></div>
+              return `<div style="display:grid;grid-template-columns:82px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${rowIdx*55}ms">
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${lblCol}">${r.lbl}</span>
+                  ${r.hasFF?'<span style="font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:0.05em;color:rgba(173,184,208,0.35)">FF CONSENSUS</span>':''}
                 </div>
-                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:72px">
-                  <span style="font-family:var(--mono);font-size:17px;font-weight:900;color:${displayCol};white-space:nowrap;line-height:1;letter-spacing:-0.03em">${r.val}</span>
-                  ${r.exp!=null?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.55);white-space:nowrap;letter-spacing:0.01em">exp&nbsp;${r.exp}</span>`:''}
+                <div style="position:relative;height:11px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden">
+                  <div style="position:absolute;left:50%;top:-1px;width:1.5px;height:calc(100% + 2px);background:rgba(255,255,255,0.28);border-radius:1px;z-index:1"></div>
+                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:linear-gradient(${isPos?'90deg':'270deg'},${displayCol},${displayCol2});border-radius:5px;opacity:${isNeutral?0.62:0.95};box-shadow:0 0 ${isNeutral?4:8}px ${displayCol}${isNeutral?'44':'88'}"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:82px">
+                  <div style="display:flex;align-items:baseline;gap:5px">
+                    ${r.exp!=null?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.45);white-space:nowrap">${r.exp}</span>`:''}
+                    <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:${displayCol};white-space:nowrap;line-height:1;letter-spacing:-0.03em">${r.val}</span>
+                  </div>
+                  ${r.surpStr!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${displayCol};letter-spacing:0.02em">${r.surpStr} vs fcst</span>`:''}
                 </div>
               </div>`;
             }).join('');
@@ -27177,39 +27250,77 @@ function renderMacroDataPanels(reg){
         // For inflation: beat = actual > expected = TOO HOT = red
         //                miss = actual < expected = COOLER THAN FEARED = green
         const pipeItems = [
-          {lbl:'PPI',       key:'PPI'},
-          {lbl:'CPI',       key:'CPI'},
-          {lbl:'Core CPI',  key:'CORE_CPI'},
-          {lbl:'PCE',       key:'PCE'},
-          {lbl:'Core PCE',  key:'CORE_PCE'},
+          // FF-first: all 4 rows have real-time ForexFactory actual vs consensus data.
+          // PCE (headline) removed — no FF data available, only stale FRED YoY.
+          // CPI YoY added as the meaningful context anchor for the inflation regime.
+          {lbl:'PPI',       key:'PPI',       ffKey:'mom'},
+          {lbl:'CPI',       key:'CCI',       ffKey:'yoy'},  // YoY most meaningful for CPI
+          {lbl:'Core CPI',  key:'CORE_CPI',  ffKey:'mom'},
+          {lbl:'Core PCE',  key:'CORE_PCE',  ffKey:'mom'},
         ].map(p=>{
-          const c=macroComps[p.key];
+          // Normalise CCI→CPI key lookup (typo guard)
+          const lookupKey = p.key === 'CCI' ? 'CPI' : p.key;
+          const c = macroComps[lookupKey];
           if(!c) return null;
-          // Prefer FF MoM data (real market consensus) over FRED rolling average
-          const hasFF    = c.surprise_ff != null;
-          // Display value: FRED YoY is the primary (more meaningful context)
-          const actual   = parseFloat(c.actual??c.display)||null;
-          // Forecast: FF consensus if available, else FRED rolling avg
-          const expected = hasFF ? c.forecast_ff : (parseFloat(c.expected)||null);
-          // Surprise: FF MoM surprise if available, else computed from YoY
-          const surprise = hasFF ? c.surprise_ff
-                         : (actual!=null&&expected!=null) ? +(actual-expected).toFixed(2)
-                         : (c.surprise!=null?c.surprise:null);
-          // beat_ff: true=hot (above consensus), false=cool (below), null=no FF data
-          const beat = hasFF ? (c.beat_ff===true ? false : c.beat_ff===false ? true : null)
-                             : (surprise!=null ? surprise < 0 : null); // cool miss = beat
-          const sCol = beat===true?'#5c9eff':beat===false?'#e03a2a':'#adb8d0';
-          const surpAbs = Math.abs(surprise||0);
-          const _scaleBase = Math.max(0.05, Math.abs(expected||0.3) * 0.3);
-          const barW = Math.min(100, Math.max(4, (surpAbs / _scaleBase) * 50)).toFixed(0);
-          const trend = c.trend_label||'';
-          const tArrow = trend==='Rising'?'↑':trend==='Falling'?'↓':'→';
-          const tCol   = trend==='Rising'?'#e03a2a':trend==='Falling'?'#22c97a':'#adb8d0';
-          // Label: show m/m for FF data, YoY for FRED
-          const expLabel = hasFF ? 'exp ' + (expected!=null?expected.toFixed(2)+'%':'—') + ' m/m'
-                                 : (expected!=null?'exp '+expected.toFixed(2)+'%':null);
-          const actualLabel = hasFF ? (c.actual_ff!=null ? c.actual_ff.toFixed(2)+'% m/m' : null) : null;
-          return {...p, actual, expected, surprise, beat, sCol, barW, tArrow, tCol, hasFF, expLabel, actualLabel};
+
+          // ── FF data selection: prefer YoY for CPI, MoM for all others ──
+          const useYoY  = p.ffKey === 'yoy';
+          const hasMom  = c.surprise_ff != null;
+          const hasYoY  = c.surprise_ff_yoy != null || (useYoY && c.actual_ff_yoy != null);
+
+          // For CPI row: show YoY if available (actual_ff_yoy / forecast_ff_yoy)
+          let actual_disp, forecast_disp, surprise_disp, beat_disp, hasFF, unit_label;
+          if (useYoY && c.actual_ff_yoy != null) {
+            actual_disp   = c.actual_ff_yoy;
+            forecast_disp = c.forecast_ff_yoy;
+            surprise_disp = c.surprise_ff_yoy ?? (c.actual_ff_yoy != null && c.forecast_ff_yoy != null ? +(c.actual_ff_yoy - c.forecast_ff_yoy).toFixed(2) : null);
+            beat_disp     = c.beat_ff_yoy ?? (surprise_disp != null ? surprise_disp > 0 : null);
+            hasFF         = true;
+            unit_label    = 'y/y';
+          } else if (hasMom) {
+            actual_disp   = c.actual_ff;
+            forecast_disp = c.forecast_ff;
+            surprise_disp = c.surprise_ff;
+            beat_disp     = c.beat_ff;
+            hasFF         = true;
+            unit_label    = 'm/m';
+          } else {
+            // FRED fallback (no FF data)
+            actual_disp   = parseFloat(c.actual ?? c.display) || null;
+            forecast_disp = parseFloat(c.expected) || null;
+            surprise_disp = actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : (c.surprise ?? null);
+            beat_disp     = surprise_disp != null ? surprise_disp > 0 : null; // for inflation, beat = hotter
+            hasFF         = false;
+            unit_label    = 'y/y (FRED)';
+          }
+
+          // For inflation: beat (actual > forecast) = HOT = red; miss (actual < forecast) = cool = blue
+          // beat_disp=true means actual > forecast = hot
+          const isBeat  = beat_disp === true;   // hot
+          const isMiss  = beat_disp === false;  // cool
+
+          const sCol = isMiss ? '#5c9eff' : isBeat ? '#e03a2a' : '#adb8d0';
+
+          const surpAbs   = Math.abs(surprise_disp || 0);
+          const _scaleBase = Math.max(0.05, Math.abs(forecast_disp || 0.3) * 0.5);
+          const barW      = Math.min(95, Math.max(3, (surpAbs / _scaleBase) * 50)).toFixed(0);
+
+          const expLabel = forecast_disp != null
+            ? 'exp ' + forecast_disp.toFixed(2) + '% ' + unit_label
+            : null;
+
+          const surpLabel = surprise_disp != null
+            ? (surprise_disp >= 0 ? '+' : '') + surprise_disp.toFixed(2) + '%'
+            : null;
+
+          return {
+            ...p, key: lookupKey,
+            actual: actual_disp, actualDisplay: actual_disp,
+            expected: forecast_disp, surprise: surprise_disp,
+            beat: isMiss,  // beat=true=cool=blue in the rendering convention
+            sCol, barW, hasFF, expLabel, surpLabel, unit_label,
+            isBeat, isMiss
+          };
         }).filter(Boolean);
         return `
       <div class="ov-macro-card" id="ov-macro-inflation">
@@ -27288,14 +27399,12 @@ function renderMacroDataPanels(reg){
               return pipeItems.map((r,i)=>{
                 const col = surpCol2(r.surprise);
                 const absBarW = r.surprise!=null ? Math.min(95, Math.max(3, (Math.abs(r.surprise)/ABS_MAX)*100)).toFixed(0) : '3';
-                const barSide = r.beat===false ? 'left:50%' : 'right:50%'; // hot extends right (right:50%), cool extends left (left:50%)
+                const barSide = r.isBeat ? 'left:50%' : 'right:50%'; // hot extends right (left:50% = grows rightward), cool extends left
                 const pipeIdx = pipeItems.indexOf(r);
-                // Surprise delta label: use pp for YoY context, % for MoM
-                const surpDelta = r.surprise!=null ? (r.hasFF
-                  ? (r.surprise>=0?'+':'')+r.surprise.toFixed(2)+'%'
-                  : (r.surprise>=0?'+':'')+r.surprise.toFixed(2)+'pp') : null;
+                // Surprise delta label — pre-computed in pipeItems as surpLabel
+                const surpDelta = r.surpLabel ?? null;
                 // Label colour: hot = red, cool = blue, neutral = grey
-                const pipeLblCol = r.beat === false ? 'rgba(224,58,42,0.80)' : r.beat === true ? 'rgba(92,158,255,0.80)' : 'rgba(173,184,208,0.65)';
+                const pipeLblCol = r.isBeat ? 'rgba(224,58,42,0.80)' : r.isMiss ? 'rgba(92,158,255,0.80)' : 'rgba(173,184,208,0.65)';
                 return `<div style="display:grid;grid-template-columns:60px 1fr auto;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:fadeSlideIn 0.4s ease both;animation-delay:${pipeIdx*50}ms">
                   <div style="display:flex;flex-direction:column;gap:1px">
                     <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${pipeLblCol}">${r.lbl}</span>
@@ -27310,7 +27419,7 @@ function renderMacroDataPanels(reg){
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:82px">
                     <div style="display:flex;align-items:baseline;gap:5px">
                       ${r.expLabel?`<span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.5);white-space:nowrap">${r.expLabel}</span>`:''}
-                      <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.03em;color:#f2f6ff;line-height:1.1;white-space:nowrap">${r.actual!=null?r.actual.toFixed(2)+'%':'—'}</span>
+                      <span style="font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:-0.03em;color:#f2f6ff;line-height:1.1;white-space:nowrap">${r.actualDisplay!=null?r.actualDisplay.toFixed(2)+'%':'—'}</span>
                     </div>
                     ${surpDelta!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:800;color:${col};letter-spacing:0.02em">${surpDelta} vs fcst</span>`:r.tArrow?`<span style="font-family:var(--mono);font-size:8px;color:${r.tCol}">${r.tArrow}</span>`:''}
                   </div>
@@ -40441,6 +40550,18 @@ setTimeout(openOnboard, 2200);
 // Boot the global particle background immediately with neutral tint
 // (regime tint applied once data loads via initAppBg in renderOverview)
 initAppBg('');
+
+// ── Auto-refresh every 5 minutes — keeps macro data live after key releases ──
+// Silent background fetch: picks up new PCE/CPI/NFP prints within 5min of backend TTL expiring.
+// Skips if tab is hidden (saves requests when not actively viewing).
+(function _startAutoRefresh(){
+  const REFRESH_MS = 5 * 60 * 1000;
+  setInterval(async () => {
+    if (document.hidden) return;
+    try { await loadData(false); }
+    catch(e) { console.warn('[auto-refresh] failed:', e.message); }
+  }, REFRESH_MS);
+})();
 
 /* ── NEXUS NOISE CANVAS — ambient drifting luminance field ── */
 function initNexusNoise(){

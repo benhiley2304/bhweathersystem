@@ -4885,6 +4885,94 @@ def compute_macro_all() -> dict:
         components["CLAIMS"] = {**r, "title": "Initial Claims", "category": "jobs",
                                  "display": f"{int(r['actual']):,}" if r['actual'] is not None else "—"}
 
+    # ── Inject ForexFactory labour data onto JOBS/UNEMP/CLAIMS/WAGES/ADP ─────────
+    # FF provides real market consensus vs actual for NFP, ADP, Unemployment,
+    # Claims, Wages m/m, and JOLTS. These replace FRED rolling-avg expectations
+    # with real-time market forecasts, making surprise signals genuinely useful.
+    try:
+        _ff_lab = _fetch_ff_labour_surprises()
+        _ff_lab_latest  = _ff_lab.get("latest", {})
+        _ff_lab_releases = _ff_lab.get("releases", {})
+        _ff_lab_scores  = _ff_lab.get("scores", {})
+
+        # NFP → JOBS
+        _nfp_lat = _ff_lab_latest.get("nfp")
+        if _nfp_lat and "JOBS" in components:
+            components["JOBS"]["actual_ff"]   = _nfp_lat.get("actual")   # K
+            components["JOBS"]["forecast_ff"] = _nfp_lat.get("forecast") # K
+            components["JOBS"]["surprise_ff"] = _nfp_lat.get("surprise") # K
+            components["JOBS"]["beat_ff"]     = _nfp_lat.get("beat")
+            components["JOBS"]["ff_releases"] = _ff_lab_releases.get("nfp", [])
+            components["JOBS"]["ff_score"]    = _ff_lab_scores.get("nfp")
+
+        # Unemployment Rate → UNEMP
+        _un_lat = _ff_lab_latest.get("unrate")
+        if _un_lat and "UNEMP" in components:
+            components["UNEMP"]["actual_ff"]   = _un_lat.get("actual")   # %
+            components["UNEMP"]["forecast_ff"] = _un_lat.get("forecast") # %
+            components["UNEMP"]["surprise_ff"] = _un_lat.get("surprise") # pp
+            components["UNEMP"]["beat_ff"]     = _un_lat.get("beat")     # beat = lower than expected
+            components["UNEMP"]["ff_releases"] = _ff_lab_releases.get("unrate", [])
+            components["UNEMP"]["ff_score"]    = _ff_lab_scores.get("unrate")
+
+        # Initial Claims → CLAIMS
+        _cl_lat = _ff_lab_latest.get("claims")
+        if _cl_lat and "CLAIMS" in components:
+            components["CLAIMS"]["actual_ff"]   = _cl_lat.get("actual")   # K
+            components["CLAIMS"]["forecast_ff"] = _cl_lat.get("forecast") # K
+            components["CLAIMS"]["surprise_ff"] = _cl_lat.get("surprise") # K
+            components["CLAIMS"]["beat_ff"]     = _cl_lat.get("beat")     # beat = lower than expected
+            components["CLAIMS"]["ff_releases"] = _ff_lab_releases.get("claims", [])
+            components["CLAIMS"]["ff_score"]    = _ff_lab_scores.get("claims")
+
+        # Average Hourly Earnings m/m → WAGES (new component)
+        _wg_lat = _ff_lab_latest.get("wages")
+        if _wg_lat:
+            _wg_surp = _wg_lat.get("surprise", 0)
+            _wg_beat = _wg_lat.get("beat", False)
+            # Score: beat=hot (wages rising above expectation) = potentially inflationary
+            # From a market perspective: wage beat = labour market tighter than expected = positive USD
+            _wg_score_raw = _ff_lab_scores.get("wages")
+            components["WAGES"] = {
+                "actual":      f"{_wg_lat.get('actual')}%" if _wg_lat.get('actual') is not None else "—",
+                "forecast":    f"{_wg_lat.get('forecast')}%" if _wg_lat.get('forecast') is not None else "—",
+                "actual_ff":   _wg_lat.get("actual"),
+                "forecast_ff": _wg_lat.get("forecast"),
+                "surprise_ff": _wg_lat.get("surprise"),
+                "beat_ff":     _wg_beat,
+                "ff_releases": _ff_lab_releases.get("wages", []),
+                "ff_score":    _wg_score_raw,
+                "score":       1 if _wg_beat else -1 if _wg_beat is False else 0,
+                "title":       "Avg Hourly Earnings m/m",
+                "category":    "jobs",
+                "display":     f"{_wg_lat.get('actual')}%" if _wg_lat.get('actual') is not None else "—",
+            }
+
+        # ADP Non-Farm → ADP (new component for extra context)
+        _adp_lat = _ff_lab_latest.get("adp")
+        if _adp_lat:
+            _adp_beat = _adp_lat.get("beat", False)
+            components["ADP"] = {
+                "actual":      f"{_adp_lat.get('actual')}K" if _adp_lat.get('actual') is not None else "—",
+                "forecast":    f"{_adp_lat.get('forecast')}K" if _adp_lat.get('forecast') is not None else "—",
+                "actual_ff":   _adp_lat.get("actual"),
+                "forecast_ff": _adp_lat.get("forecast"),
+                "surprise_ff": _adp_lat.get("surprise"),
+                "beat_ff":     _adp_beat,
+                "ff_releases": _ff_lab_releases.get("adp", []),
+                "ff_score":    _ff_lab_scores.get("adp"),
+                "score":       1 if _adp_beat else -1 if _adp_beat is False else 0,
+                "title":       "ADP Non-Farm Employment",
+                "category":    "jobs",
+                "display":     f"{_adp_lat.get('actual')}K" if _adp_lat.get('actual') is not None else "—",
+            }
+
+        print(f"[FF Labour] Injected into components: NFP={'JOBS' in components and 'actual_ff' in components.get('JOBS',{})}, "
+              f"UNEMP={'actual_ff' in components.get('UNEMP',{})}, CLAIMS={'actual_ff' in components.get('CLAIMS',{})}, "
+              f"WAGES={'WAGES' in components}, ADP={'ADP' in components}")
+    except Exception as _ff_le:
+        print(f"[FF Labour] Injection error (non-fatal): {_ff_le}")
+
     # ── RATES ─────────────────────────────────────────────────────────────────
     dgs2_data = fetch_fred_series("DGS2", 30)
     if dgs2_data:
