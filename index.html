@@ -24878,12 +24878,12 @@ function renderOverview(){
           <div class="ov-stat-sub">composite / 10</div>
         </div>
         <div class="ov-stat-pill">
-          <div class="ov-stat-label">Top Signal</div>
+          <div class="ov-stat-label">Strongest Market</div>
           <div class="ov-stat-val" style="color:${sHex(topMkt.weighted_score)};font-size:13px;padding-top:2px">${topMkt.name}</div>
           <div class="ov-stat-sub">${topMkt.weighted_score.toFixed(1)} &mdash; ${topMkt.bias}</div>
         </div>
         <div class="ov-stat-pill">
-          <div class="ov-stat-label">Weakest</div>
+          <div class="ov-stat-label">Weakest Market</div>
           <div class="ov-stat-val" style="color:${sHex(botMkt.weighted_score)};font-size:13px;padding-top:2px">${botMkt.name}</div>
           <div class="ov-stat-sub">${botMkt.weighted_score.toFixed(1)} &mdash; ${botMkt.bias}</div>
         </div>
@@ -25165,7 +25165,7 @@ function renderOverview(){
       })(),
       (()=>{
         const t=_fedTier(fb.trend);const lvl=fb.level!=null?`$${fb.level.toFixed(1)}T`:'—';
-        return{label:'Fed BS',val:fb.trend||'—',cls:t.cls,col:t.col,pip:t.pip,
+        return{label:'Fed B/S',val:fb.trend||'—',cls:t.cls,col:t.col,pip:t.pip,
           title:`Fed balance sheet ${lvl} — 3M change: ${fb.chg_3m_pct!=null?((fb.chg_3m_pct>=0?'+':'')+fb.chg_3m_pct.toFixed(1)+'%'):'—'}`};
       })(),
     ];
@@ -25255,11 +25255,12 @@ function renderOverview(){
       }
       const sortedDays = Object.keys(grouped).sort((a,b)=>grouped[a][0].ms - grouped[b][0].ms);
 
-      // Impact dot colour
+      // Impact dot colour + text label
       function impactDot(impact){
-        return (impact||'').toLowerCase()==='high'
-          ? `<span class="cal-impact-dot high" title="High impact"></span>`
-          : `<span class="cal-impact-dot med" title="Medium impact"></span>`;
+        const isHigh = (impact||'').toLowerCase()==='high';
+        const col = isHigh ? '#e03a2a' : '#f5a442';
+        const lbl = isHigh ? 'HIGH' : 'MED';
+        return `<span style="display:inline-flex;align-items:center;gap:3px"><span class="cal-impact-dot ${isHigh?'high':'med'}" title="${isHigh?'High':'Medium'} impact"></span><span style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.08em;color:${col};opacity:0.85">${lbl}</span></span>`;
       }
 
       // Build rows for each day group
@@ -25267,10 +25268,15 @@ function renderOverview(){
         const rows = grouped[dk].sort((a,b)=>a.ms-b.ms);
         const rowsHtml = rows.map(({ev,ms})=>{
           const tc = timerCls(ms);
-          const fcst = ev.forecast ? `<span class="cal-fcst">${ev.forecast}</span>` : '';
+          const fcstVal = ev.forecast || null;
+          const prevVal = ev.previous || null;
+          // Format compact: e.g. "fcst 115K / prev 130K"
+          const fcstStr = fcstVal ? `<span style="font-family:var(--mono);font-size:8px;color:rgba(173,184,208,0.55)">fcst <span style="color:rgba(200,169,110,0.80);font-weight:700">${fcstVal}</span></span>` : '';
+          const prevStr = prevVal ? `<span style="font-family:var(--mono);font-size:8px;color:rgba(173,184,208,0.40)">prev ${prevVal}</span>` : '';
+          const metaStr = (fcstStr||prevStr) ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:1px">${[fcstStr,prevStr].filter(Boolean).join('')}</div>` : '';
           return `<tr class="cal-row">
             <td class="cal-td-flag">${ev.flag||ev.currency}</td>
-            <td class="cal-td-name"><span class="cal-name">${ev.name}</span>${fcst}</td>
+            <td class="cal-td-name"><span class="cal-name">${ev.name}</span>${metaStr}</td>
             <td class="cal-td-time">${fmtLocalTime(ms)}</td>
             <td class="cal-td-timer"><span class="${tc}">${fmtCountdown(ms)}</span></td>
             <td class="cal-td-impact">${impactDot(ev.impact)}</td>
@@ -25939,7 +25945,10 @@ function renderOverview(){
             border-radius:5px;padding:3px 8px;
             align-self:center;
           ">${_lblDisplay}</span>
-          <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${cfpCol};align-self:center">${cfpStr}</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-start;align-self:center;gap:1px">
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${cfpCol}">${cfpStr}</span>
+            <span style="font-family:var(--mono);font-size:7px;font-weight:600;color:rgba(173,184,208,0.38);letter-spacing:0.04em;text-transform:uppercase">from peak</span>
+          </div>
         </div>
         <!-- Row 3: Rate history timeline -->
         <div style="position:relative;overflow:visible;margin-top:2px">
@@ -26434,7 +26443,7 @@ function renderClimatePanel(reg, markets, mktMap){
     'CPI YoY', inflTrend||null, inflCol,
     inflStatusText, inflCol, inflSpecPct, inflCol,
     [
-      fbLevel!=null?{lbl:'Fed BS',val:'$'+fbLevel.toFixed(1)+'T',col:fbCol}:null,
+      fbLevel!=null?{lbl:'Fed B/S',val:'$'+fbLevel.toFixed(1)+'T',col:fbCol}:null,
       fbTrend?{lbl:'Stance',val:fbTrend,col:fbCol}:null,
     ]
   );
@@ -27544,6 +27553,7 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase">10Y − 2Y</div>
             ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.1);border:1px solid rgba(34,201,122,0.2);letter-spacing:0.06em">POSITIVE ↑</span>`:''}
             ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.1);border:1px solid rgba(224,58,42,0.2);letter-spacing:0.06em">INVERTED ↓</span>`:''}
+            ${t10y2y!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:600;color:var(--faint);opacity:0.70">${t10y2y.toFixed(2)}%</span>`:''}
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:3px">
@@ -27564,15 +27574,10 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Full multi-tenor historical yield curve chart — dominant visual -->
         <div style="flex:1;min-height:0;max-height:290px;display:flex;flex-direction:column">
-          <div class="mc-sect" style="margin:8px 0 5px;flex-shrink:0"><div class="mc-sect-lbl">Historical Curves</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px;flex-shrink:0"><div class="mc-sect-lbl">Curve Shape (12M History)</div><div class="mc-sect-line"></div></div>
           <div id="ov-yc-chart" style="position:relative;flex:1;min-height:140px;max-height:260px"></div>
         </div>
-        <!-- Momentum + move type row -->
-        <div style="display:flex;gap:8px;align-items:center;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;flex-shrink:0">
-          ${sChg3m!=null?`<div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:8px;font-weight:700;text-transform:uppercase;color:var(--faint)">3M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol3m}">${sChg3m>=0?'+':''}${sChg3m}bp</span></div>`:''}
-          ${sChg6m!=null?`<span style="color:rgba(255,255,255,0.1);font-size:8px">·</span><div style="display:flex;align-items:baseline;gap:3px"><span style="font-family:var(--mono);font-size:8px;font-weight:700;text-transform:uppercase;color:var(--faint)">6M</span><span style="font-family:var(--mono);font-size:10px;font-weight:900;color:${sCol6m}">${sChg6m>=0?'+':''}${sChg6m}bp</span></div>`:''}
 
-        </div>
         <!-- Rate Context row -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:5px 0 2px;border-top:1px solid rgba(255,255,255,0.05)">
@@ -27590,8 +27595,9 @@ function renderMacroDataPanels(reg){
               const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
               const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
               return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.55)">Rate Path 12M</span>
-            <span style="font-family:var(--mono);font-size:14px;font-weight:900;color:${pathCol}">${pathStr} ${pathLbl}</span>
+            <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.55)">Mkt Implied 12M</span>
+            <span style="font-family:var(--mono);font-size:16px;font-weight:900;color:${pathCol}">${pathLbl}</span>
+            <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:${pathCol};opacity:0.80">${pathStr}</span>
           </div>`;})():''}
         </div>`:''}
       </div>`;
@@ -27657,7 +27663,7 @@ function renderMacroDataPanels(reg){
                   <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">${label}</span>
                   <div style="display:flex;align-items:center;gap:5px">
                     <span style="font-family:var(--mono);font-size:11px;font-weight:900;color:${numCol}">${oas}bp</span>
-                    ${histPct!=null?`<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${statusCol};padding:2px 6px;border-radius:10px;background:${statusCol}15;border:1px solid ${statusCol}25">${histPct.toFixed(0)}th pct</span>`:''}
+                    ${histPct!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${statusCol};padding:2px 7px;border-radius:10px;background:${statusCol}20;border:1px solid ${statusCol}35">${histPct.toFixed(0)}th pct</span>`:''}
                   </div>
                 </div>
                 <!-- Range bar with coloured zones -->
@@ -27683,7 +27689,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- Delta rows — HY + IG side by side -->
         <div style="margin-top:6px">
-          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Spread Momentum</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:8px 0 5px"><div class="mc-sect-lbl">Spread Momentum <span style="font-size:7.5px;font-weight:500;letter-spacing:0.04em;text-transform:none;opacity:0.55;margin-left:3px">HY &amp; IG change</span></div><div class="mc-sect-line"></div></div>
           ${(()=>{
             const deltaRow = (period, hyVal, igVal) => {
               const hyC = hyVal==null?'#5a6480':hyVal<0?'#22c97a':hyVal>0?'#e03a2a':'#adb8d0';
@@ -27863,7 +27869,7 @@ function renderMacroDataPanels(reg){
             const sc2 = skewSig.score??0;
             const skc = sigCol(sc2);
             return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${skc}18;border-top:2px solid ${skc}40;border-radius:9px;padding:10px 12px;position:relative">
-              ${vixSkewDiv?`<div style="position:absolute;top:7px;right:8px;font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.10em;color:#f5a442;text-transform:uppercase;background:rgba(245,164,66,0.15);padding:1px 5px;border-radius:10px;border:1px solid rgba(245,164,66,0.25)">DIVG</div>`:''}
+              ${vixSkewDiv?`<div style="position:absolute;top:7px;right:8px;font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.10em;color:#f5a442;text-transform:uppercase;background:rgba(245,164,66,0.15);padding:1px 5px;border-radius:10px;border:1px solid rgba(245,164,66,0.25)">ELEVATED</div>`:''}
               <div style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">CBOE SKEW</div>
               <div style="display:flex;align-items:baseline;gap:3px">
                 <span style="font-family:var(--mono);font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${skc};text-shadow:0 0 18px ${skc}44">${skewNum>0?skewNum.toFixed(0):'—'}</span>
@@ -27908,7 +27914,7 @@ function renderMacroDataPanels(reg){
           <!-- CBOE Equity P/C bar -->
           <div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-              <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">CBOE Equity P/C <span style="font-size:9px;font-weight:500;opacity:0.7;text-transform:none;letter-spacing:0">↑ = fear / buy</span></span>
+              <div style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)">CBOE Equity P/C</span><span style="font-family:var(--mono);font-size:8px;font-weight:500;color:var(--faint);opacity:0.55;text-transform:none;letter-spacing:0">put/call fear gauge — ↑ high = bullish</span></div>
               <div style="display:flex;align-items:baseline;gap:5px">
                 ${pcrNum>0?`<span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(pcrSig.score??0)};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</span>
                 <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;color:${sigCol(pcrSig.score??0)};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${pcrSig.label||'—'}</span>`:'<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">—</span>'}
