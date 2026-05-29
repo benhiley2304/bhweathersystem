@@ -1225,16 +1225,17 @@ a{color:inherit;text-decoration:none}
 @media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr 1fr;grid-template-rows:none;gap:8px;margin:0 10px 12px;align-items:stretch}}
 @media(max-width:480px){.ov-macro-panels{grid-template-columns:1fr!important;gap:8px;margin:0 10px 12px}}
 /* 480px breakpoint handles single-col — 380px rule kept for safety */
-/* Mobile tweaks */
-@media(max-width:600px){
-  .ov-macro-panels{grid-auto-rows:auto}
-  
 /* ── Final Refinement CSS ───────────────────────────────── */
 .mc-group-label{font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.32);margin:8px 0 4px;padding-bottom:3px;border-bottom:1px solid rgba(255,255,255,0.06);}
 .ov-policy-badge{display:inline-block;font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.07em;padding:2px 8px;border-radius:20px;border:1px solid;margin-top:3px;}
 .ov-extreme-flag{display:inline-block;font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#f5c842;background:rgba(245,200,66,0.14);border:1px solid rgba(245,200,66,0.30);border-radius:6px;padding:1px 4px;margin-left:4px;vertical-align:middle;}
 .ov-divergence-box{margin-bottom:8px;padding:9px 12px;background:rgba(245,164,66,0.09);border:1px solid rgba(245,164,66,0.28);border-radius:8px;border-left:3px solid rgba(245,164,66,0.55);}
 .ov-macro-card{font-variant-numeric:tabular-nums lining-nums;}
+
+/* Mobile tweaks */
+@media(max-width:600px){
+  .ov-macro-panels{grid-auto-rows:auto}
+  
 .ov-macro-card{padding:16px 16px 14px;border-radius:12px;min-height:unset;height:auto}
   .ov-mc-hero{font-size:22px!important}
   .ov-yc-canvas-wrap{min-height:80px;max-height:160px}
@@ -27487,9 +27488,8 @@ function renderMacroDataPanels(reg){
               // Fixed streak: count total hot/cool occurrences (consistent with existing logic)
               const hotMisses = pipeItems.filter(r=>r.isBeat===true).length;
               const coolMisses = pipeItems.filter(r=>r.isMiss===true).length;
-              if(hotMisses>=3) const dots = '●'.repeat(Math.min(hotMisses,4));
-              return `<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#e03a2a;padding:2px 8px;border-radius:8px;background:rgba(224,58,42,0.14);border:1px solid rgba(224,58,42,0.40);display:inline-flex;align-items:center;gap:2px">${dots}<span style="margin-left:2px;color:rgba(255,255,255,0.80);font-size:8px">${hotMisses}× HOT</span></span>`;
-              if(coolMisses>=2) return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#ffffff;padding:2px 8px;border-radius:8px;background:rgba(92,158,255,0.25);border:1px solid rgba(92,158,255,0.55)">${coolMisses}× COOL</span>`;
+              if(hotMisses>=3){const dots='●'.repeat(Math.min(hotMisses,4));return `<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#e03a2a;padding:2px 8px;border-radius:8px;background:rgba(224,58,42,0.14);border:1px solid rgba(224,58,42,0.40);display:inline-flex;align-items:center;gap:2px">${dots}<span style="margin-left:2px;color:rgba(255,255,255,0.80);font-size:8px">${hotMisses}\u00d7 HOT</span></span>`;}
+              if(coolMisses>=2) return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#ffffff;padding:2px 8px;border-radius:8px;background:rgba(92,158,255,0.25);border:1px solid rgba(92,158,255,0.55)">${coolMisses}\u00d7 COOL</span>`;
               return '';
             })()}
           </div>
