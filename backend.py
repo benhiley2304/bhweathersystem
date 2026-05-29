@@ -8552,10 +8552,12 @@ def compute_weighted_bias(scores: dict, market_id: str = "",
     """
     # ── Weight routing via shared helper (single source of truth) ──────────────
     w_map = _get_weight_map(market_id)
-    total_w = sum(w_map[k] for k in w_map if k in scores)
+    # Guard: filter out keys where the score value is None (data not yet available)
+    _valid_keys = [k for k in w_map if k in scores and scores[k] is not None]
+    total_w = sum(w_map[k] for k in _valid_keys)
     if total_w == 0:
         return {"weighted": 5.0, "bias": "Neutral", "color": "#94a3b8", "confluence_bonus": 0.0}
-    weighted = sum(w_map[k] * scores.get(k, 5.0) for k in w_map if k in scores) / total_w
+    weighted = sum(w_map[k] * float(scores[k]) for k in _valid_keys) / total_w
 
     # ── Confluence Bonus ────────────────────────────────────────────────────
     # Only applies when the COT *story* is active (not just a static level).
@@ -9190,9 +9192,11 @@ async def _do_scores_refresh(force: bool = False):
             new_regime_score = round(max(0.0, min(10.0, old_regime_score + raw_tilt)), 2)
     
             # Recompute weighted score with adjusted regime score
+            # Guard against None scores (None-safe — compute_weighted_bias handles None filtering)
             factor_scores = {
                 k: mkt["scores"][k]["score"]
-                for k in mkt["scores"] if "score" in mkt["scores"][k]
+                for k in mkt["scores"]
+                if "score" in mkt["scores"][k] and mkt["scores"][k]["score"] is not None
             }
             factor_scores["regime"] = new_regime_score
             # Must include top-level v2 signals so confluence bonus can fire after DX tilt.
