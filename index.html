@@ -1228,7 +1228,14 @@ a{color:inherit;text-decoration:none}
 /* Mobile tweaks */
 @media(max-width:600px){
   .ov-macro-panels{grid-auto-rows:auto}
-  .ov-macro-card{padding:16px 16px 14px;border-radius:12px;min-height:unset;height:auto}
+  
+/* ── Final Refinement CSS ───────────────────────────────── */
+.mc-group-label{font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.32);margin:8px 0 4px;padding-bottom:3px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.ov-policy-badge{display:inline-block;font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.07em;padding:2px 8px;border-radius:20px;border:1px solid;margin-top:3px;}
+.ov-extreme-flag{display:inline-block;font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#f5c842;background:rgba(245,200,66,0.14);border:1px solid rgba(245,200,66,0.30);border-radius:6px;padding:1px 4px;margin-left:4px;vertical-align:middle;}
+.ov-divergence-box{margin-bottom:8px;padding:9px 12px;background:rgba(245,164,66,0.09);border:1px solid rgba(245,164,66,0.28);border-radius:8px;border-left:3px solid rgba(245,164,66,0.55);}
+.ov-macro-card{font-variant-numeric:tabular-nums lining-nums;}
+.ov-macro-card{padding:16px 16px 14px;border-radius:12px;min-height:unset;height:auto}
   .ov-mc-hero{font-size:22px!important}
   .ov-yc-canvas-wrap{min-height:80px;max-height:160px}
   #ov-yc-chart{min-height:200px!important;max-height:280px!important}
@@ -27245,6 +27252,7 @@ function renderMacroDataPanels(reg){
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${beatPhrase}${avgPhrase} · <span style="color:${trendC};font-weight:700">${trendWord}</span></span>
           </div>`;
         })()}
+        <div class="mc-group-label">Key Labour Metrics</div>
         <!-- TIER 1: Primary KPI tiles — Unemployment + Wages side by side -->
         ${(()=>{
           const unempRow = zIndicators.find(r=>r.lbl==='Unemployment');
@@ -27278,6 +27286,7 @@ function renderMacroDataPanels(reg){
             ${tile(wagesRow,'Wages m/m')}
           </div>`;
         })()}
+        <div class="mc-group-label" style="margin-top:4px">Supporting Indicators</div>
         <!-- TIER 2: Supporting signals — NFP row + Claims + ADP compact -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
           <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 8px"></div>
@@ -27310,7 +27319,7 @@ function renderMacroDataPanels(reg){
               return `<div style="display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeSlideIn 0.4s ease both;animation-delay:${i*60}ms">
                 <!-- Label + verdict chip -->
                 <div style="display:flex;flex-direction:column;gap:3px">
-                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.65)">${r.lbl}</span>
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.65)">${r.lbl==='Init Claims'?'Initial Claims':r.lbl==='ADP'?'ADP Payrolls':r.lbl}</span>
                   <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2px 6px;border-radius:7px;background:${vCol}25;border:1px solid ${vCol}55;display:inline-block;width:fit-content">${verdict}</span>
                 </div>
                 <!-- Divergence bar — no illegible axis labels -->
@@ -27478,7 +27487,8 @@ function renderMacroDataPanels(reg){
               // Fixed streak: count total hot/cool occurrences (consistent with existing logic)
               const hotMisses = pipeItems.filter(r=>r.isBeat===true).length;
               const coolMisses = pipeItems.filter(r=>r.isMiss===true).length;
-              if(hotMisses>=3) return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#ffffff;padding:2px 8px;border-radius:8px;background:rgba(224,58,42,0.25);border:1px solid rgba(224,58,42,0.55)">${hotMisses}× HOT</span>`;
+              if(hotMisses>=3) const dots = '●'.repeat(Math.min(hotMisses,4));
+              return `<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#e03a2a;padding:2px 8px;border-radius:8px;background:rgba(224,58,42,0.14);border:1px solid rgba(224,58,42,0.40);display:inline-flex;align-items:center;gap:2px">${dots}<span style="margin-left:2px;color:rgba(255,255,255,0.80);font-size:8px">${hotMisses}× HOT</span></span>`;
               if(coolMisses>=2) return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#ffffff;padding:2px 8px;border-radius:8px;background:rgba(92,158,255,0.25);border:1px solid rgba(92,158,255,0.55)">${coolMisses}× COOL</span>`;
               return '';
             })()}
@@ -27496,7 +27506,7 @@ function renderMacroDataPanels(reg){
           // Build thesis: headline + PCE context
           const gapStr = gap!=null?(gap>=0?`${gap.toFixed(2)}% above 2% target`:`${Math.abs(gap).toFixed(2)}% below target`):'';
           let thesis = gapStr;
-          if(pceCool&&headlineHot) thesis += ' · Core PCE cooling (Fed preferred)';
+          if(pceCool&&headlineHot) thesis += ' · Core PCE cooling — Fed sees relief ahead';
           else if(pceHot) thesis += ' · Core PCE also running hot';
           return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0c;border-radius:7px;border-left:2px solid ${chipCol}50">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
@@ -27532,7 +27542,7 @@ function renderMacroDataPanels(reg){
               return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-left:3px solid ${vCol}70;border-radius:8px;padding:10px 12px;margin-bottom:8px;animation:fadeSlideIn 0.4s ease both">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
                   <div>
-                    <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(200,169,110,0.70);margin-bottom:1px">FED TARGET</div>
+                    <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(200,169,110,0.70);margin-bottom:1px">FED TARGET · Fed’s preferred gauge</div>
                     <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.55)">Core PCE <span style="font-size:7px;letter-spacing:0.03em;text-transform:none;opacity:0.75">${r.unit_label||'m/m'}</span></div>
                   </div>
                   <span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2.5px 8px;border-radius:9px;background:${vCol}22;border:1px solid ${vCol}60">${verdict}</span>
@@ -27570,6 +27580,7 @@ function renderMacroDataPanels(reg){
               const barSide = r.isBeat ? 'left:50%' : 'right:50%';
               const verdict = r.isBeat?'HOT':r.isMiss?'COOL':'IN LINE';
               const vCol = r.isBeat?'#e03a2a':r.isMiss?'#5c9eff':'#6e7d90';
+              const extremeFlag = r.surprise!=null&&Math.abs(r.surprise)>=0.50?'<span class="ov-extreme-flag">LARGE</span>':'';
               const rnkLbl = rankLabel(r.key);
               const expVal = r.expected!=null ? r.expected.toFixed(2)+'%' : null;
               const actualStr = r.actualDisplay!=null ? r.actualDisplay.toFixed(2)+'%' : '\u2014';
@@ -27578,7 +27589,7 @@ function renderMacroDataPanels(reg){
                 <div style="display:flex;flex-direction:column;gap:3px">
                   <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap">
                     <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;color:rgba(173,184,208,0.72);white-space:nowrap">${r.lbl}</span>
-                    <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.40)">${r.unit_label||''}</span>
+                    <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.40)">${r.unit_label||''}</span>${extremeFlag||""}
                   </div>
                   <div style="display:flex;align-items:center;gap:4px">
                     <span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:${vCol};opacity:0.90;flex-shrink:0"></span>
@@ -27632,9 +27643,10 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'\u2014'}</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">${vsPeak}% of QE peak ($8.97T)</span>`:''}
+            ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">${vsPeak}% of QE peak · still elevated vs pre-QE (~$4T)</span>`:''}
             <!-- 3M run-rate removed — shown in change tile below -->
           </div>
+          ${(()=>{const status=fbChg3m!=null?(fbChg3m>0.02?'EXPANDING':fbChg3m<-0.02?'QT ACTIVE':'STABILISING'):null;if(!status)return '';const badgeCol=status==='EXPANDING'?'#22c97a':status==='QT ACTIVE'?'#e03a2a':'#c8a96e';return '<span class="ov-policy-badge" style="color:'+badgeCol+';background:'+badgeCol+'15;border-color:'+badgeCol+'45">'+status+'</span>';})()}
         </div>
         <!-- CHART: Full-width area — primary visual, annotated -->
         <div style="flex:1;min-height:120px;margin:4px 0 0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);position:relative">
@@ -27654,9 +27666,11 @@ function renderMacroDataPanels(reg){
                   <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--faint)">\u2014</div>
                 </div>`;
                 const c = chgCol(val);
+                const arrow=val>0.005?'↑':val<-0.005?'↓':'→';
                 return `<div style="text-align:center;padding:8px 4px">
                   <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(173,184,208,0.40);letter-spacing:0.07em;margin-bottom:5px">${label}</div>
                   <div style="font-family:var(--mono);font-size:18px;font-weight:900;line-height:1;color:${c}">${chgFmt(val)}</div>
+                  <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${c};opacity:0.65;margin-top:1px">${arrow}</div>
                 </div>`;
               };
               return periodTile('3 months', fbChg3m) + periodTile('6 months', fbChg6m) + periodTile('12 months', fbChg12m);
@@ -27707,17 +27721,17 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'\u2014'}</div>
           </div>
           <div style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.42);margin-bottom:3px;letter-spacing:0.02em">10Y−2Y spread · <span style="${spreadBps!=null&&spreadBps>0?'color:#22c97a':spreadBps!=null&&spreadBps<0?'color:#e03a2a':'color:#adb8d0'};font-weight:700">${spreadBps!=null&&spreadBps>0?'positive = normal':spreadBps!=null&&spreadBps<0?'negative = inverted':'flat'}</span></div>
-          <div style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.60);line-height:1.45;margin-bottom:5px">${spreadBps!=null&&spreadBps<0?'Curve inverted · Recession signal active · Monitor for steepening':spreadBps!=null&&spreadBps<30?'Curve normalising · Steepening from inversion · Recession signal fading':'Curve normal · Positive spread · Constructive for growth'}</div>
+          <div style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.60);line-height:1.45;margin-bottom:5px">${spreadBps!=null&&spreadBps<0?'Inverted — short rates above long rates · Historic recession signal active':spreadBps!=null&&spreadBps<30?'Normalising — re-steepening from inversion · Recession risk fading':'Positive spread — historically signals expansion, not recession'}</div>
           <div style="display:flex;gap:10px;margin-bottom:4px">
-            ${sChg3m!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${sCol3m};opacity:0.62">3M ${sChg3m>=0?'+':''}${sChg3m}bp</span>`:''}
-            ${sChg6m!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${sCol6m};opacity:0.62">6M ${sChg6m>=0?'+':''}${sChg6m}bp</span>`:''}
+            ${sChg3m!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${sCol3m};padding:1.5px 6px;border-radius:8px;background:${sCol3m}15;border:1px solid ${sCol3m}35;opacity:0.90">3M chg ${sChg3m>=0?'+':''}${sChg3m}bp</span>`:''}
+            ${sChg6m!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${sCol6m};padding:1.5px 6px;border-radius:8px;background:${sCol6m}15;border:1px solid ${sCol6m}35;opacity:0.90">6M chg ${sChg6m>=0?'+':''}${sChg6m}bp</span>`:''}
           </div>
           <!-- Inversion status + move type as second line of hero -->
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em">10Y\u22122Y</span>
             ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.10);border:1px solid rgba(34,201,122,0.20);letter-spacing:0.06em">POSITIVE \u2191</span>`:''}
             ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.10);border:1px solid rgba(224,58,42,0.20);letter-spacing:0.06em">INVERTED \u2193</span>`:''}
-            ${yc_move_type&&yc_move_type!=='—'?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:${moveCol};padding:1px 6px;border-radius:10px;background:${moveCol}15;border:1px solid ${moveCol}30;letter-spacing:0.04em">${yc_move_type}</span>`:''}
+            ${yc_move_type&&yc_move_type!=='—'?`<span title="${yc_move_type.includes('Bear Flat')?'Short rates rising faster · Curve compressing':yc_move_type.includes('Bull Flat')?'Short rates falling faster · Curve compressing':yc_move_type.includes('Bear Steep')?'Long rates rising faster · Curve expanding':yc_move_type.includes('Bull Steep')?'Long rates falling · Typically expansionary':''}" style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:${moveCol};padding:1px 6px;border-radius:10px;background:${moveCol}15;border:1px solid ${moveCol}30;letter-spacing:0.04em;cursor:help">${yc_move_type}</span>`:''}
           </div>
         </div>
         <!-- RATE LEVELS: compact 3-col strip -->
@@ -27818,7 +27832,7 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:15px;font-weight:900;color:${_igNumCol}">${igOas!=null?igOas:'\u2014'}${igOas!=null?`<span style="font-size:9px;opacity:0.7">bp</span>`:''}</span>
               <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${_igNumCol};letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</span>
             </div>
-            ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${igHistPct<=25?'#22c97a':igHistPct<=50?'#5aaa7a':igHistPct<=75?'#c8a96e':'#e03a2a'};padding:1px 6px;border-radius:8px;background:${igHistPct<=25?'rgba(34,201,122,0.12)':igHistPct<=75?'rgba(200,169,110,0.12)':'rgba(224,58,42,0.12)'};border:1px solid rgba(255,255,255,0.10)">${(n=>{const s=Math.round(n);return s===1?s+'st':s===2?s+'nd':s===3?s+'rd':s+'th';})(igHistPct)} pct</span>`:''}
+            ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${igHistPct<=25?'#22c97a':igHistPct<=50?'#5aaa7a':igHistPct<=75?'#c8a96e':'#e03a2a'};padding:1px 6px;border-radius:8px;background:${igHistPct<=25?'rgba(34,201,122,0.12)':igHistPct<=75?'rgba(200,169,110,0.12)':'rgba(224,58,42,0.12)'};border:1px solid rgba(255,255,255,0.10)">${(n=>{const s=Math.round(n);return s===1?s+'st':s===2?s+'nd':s===3?s+'rd':s+'th';})(igHistPct)} pct</span>`:''}${igHistPct!=null&&hyHistPct!=null&&igHistPct<hyHistPct?'<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:rgba(34,201,122,0.80);letter-spacing:0.05em;padding:0 4px;background:rgba(34,201,122,0.12);border:1px solid rgba(34,201,122,0.22);border-radius:3px;margin-left:3px">MORE EXTREME</span>':''}
           </div>
         </div>
         <!-- PERCENTILE RANGE TRACKS -->
@@ -27853,9 +27867,9 @@ function renderMacroDataPanels(reg){
                   <div style="position:absolute;top:-11px;width:8px;height:8px;border-radius:50%;background:#ffffff;border:1.5px solid rgba(0,0,0,0.5);box-shadow:0 0 5px rgba(255,255,255,0.8);transform:translateX(-50%);left:${pos.toFixed(1)}%;z-index:4"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-top:4px">
-                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:600;color:rgba(173,184,208,0.58)">Tight ${tight}bp</span>
-                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:600;color:rgba(173,184,208,0.58)">Median ${median}bp</span>
-                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:600;color:rgba(173,184,208,0.58)">${max}bp Wide</span>
+                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:600;color:rgba(173,184,208,0.58)">${tight}bp tight</span>
+                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:600;color:rgba(173,184,208,0.45)">med ${median}bp</span>
+                  <span style="font-family:var(--mono);font-size:8.5px;font-weight:600;color:rgba(173,184,208,0.58)">${max}bp wide</span>
                 </div>
               </div>`;
             };
@@ -27865,7 +27879,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- SPREAD MOMENTUM — VISUAL BAR MATRIX -->
         <div style="margin-top:2px">
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Spread Momentum <span style="font-size:7.5px;font-weight:500;letter-spacing:0.03em;text-transform:none;opacity:0.50;margin-left:3px">\u2193 tight · \u2191 wide</span></div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Spread Momentum <span style="font-size:7.5px;font-weight:500;letter-spacing:0.03em;text-transform:none;opacity:0.50;margin-left:3px">\u2193 tightening = risk-on · \u2191 widening = stress</span></div><div class="mc-sect-line"></div></div>
           <!-- Column headers -->
           <div style="display:grid;grid-template-columns:28px 1fr 1fr;gap:4px;margin-bottom:5px;padding:0 2px">
             <div></div>
@@ -27988,7 +28002,7 @@ function renderMacroDataPanels(reg){
           <span class="ov-mc-badge" style="color:${scBadgeCol};background:${scBadgeCol}1a;border:1px solid ${scBadgeCol}38">${scBadgeLabel}</span>
         </div>
         <!-- Narrative verdict line -->
-        <div style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.62);line-height:1.45;margin-bottom:8px;margin-top:-2px">${scOverall>=1?'Risk-on regime active \u00b7 Vol surface benign \u00b7 Breadth confirming':scOverall<=-1?'Risk-off conditions \u00b7 Elevated volatility \u00b7 Defensive bias':'Mixed signals \u00b7 Monitor breadth and vol for regime shift'}</div>
+        <div style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.62);line-height:1.45;margin-bottom:8px;margin-top:-2px">${vixSkewDiv?'VIX low but SKEW elevated \u2014 hidden tail stress, surface complacent':scOverall>=1?'Risk-on regime active \u00b7 Breadth confirming \u00b7 Vol surface in check':scOverall<=-1?'Risk-off conditions \u00b7 Elevated volatility \u00b7 Defensive bias':'Mixed signals \u00b7 Monitor breadth and vol for regime shift'}</div>
 
         <!-- SENTIMENT sub-header -->
         <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Volatility Surface</div><div class="mc-sect-line"></div></div>
@@ -28013,7 +28027,8 @@ function renderMacroDataPanels(reg){
                 <div style="display:flex;justify-content:space-between;margin-bottom:2px">
                   <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.32)">10 calm</span>
                   <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.32)">45 stress</span>
-                </div>`;
+                </div>
+                <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${vc};letter-spacing:0.04em;margin-top:1px">${vixNum<16?'LOW':vixNum<20?'NORMAL':vixNum<25?'ELEVATED':vixNum<30?'HIGH':'CRISIS'} ${vixNum<16?'— below avg':vixNum<20?'— avg range':vixNum<25?'— above avg':vixNum<30?'— watch':'— extreme'}</div>`;
               })():''}
               ${vix3mNum>0?`<div style="font-family:var(--mono);font-size:8.5px;color:var(--faint)">3M VIX: ${vix3mNum.toFixed(1)} · ${tsRatio!=null?(tsRatio>1.02?'Fut>Spot':'Backw.'):'\u2014'}</div>`:''}
             </div>`;
@@ -28034,16 +28049,20 @@ function renderMacroDataPanels(reg){
                 <div style="display:flex;justify-content:space-between;margin-bottom:2px">
                   <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.32)">110 normal</span>
                   <span style="font-family:var(--mono);font-size:6px;color:rgba(173,184,208,0.32)">160 elevated</span>
-                </div>`;
+                </div>
+                <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${skc};letter-spacing:0.04em;margin-top:1px">${skewNum<115?'NORMAL':skewNum<125?'MODERATE':skewNum<135?'ELEVATED':'HIGH'} ${skewNum<115?'— avg tail demand':skewNum<130?'':'— smart money hedging'}</div>`;
               })():''}
               <div style="font-family:var(--mono);font-size:8.5px;color:var(--faint)">Tail hedge demand</div>
             </div>`;
           })()}
         </div>
 
-        ${vixSkewDiv?`<div style="margin-bottom:8px;padding:8px 14px;background:rgba(245,164,66,0.08);border:1px solid rgba(245,164,66,0.20);border-radius:7px">
-          <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:#f5a442;letter-spacing:0.04em">VIX/SKEW DIVERGENCE: </span>
-          <span style="font-family:var(--mono);font-size:8.5px;color:rgba(245,164,66,0.75)">Complacent surface, elevated tail risk. Hidden stress.</span>
+        ${vixSkewDiv?`<div class="ov-divergence-box">
+           <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+             <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#f5a442;letter-spacing:0.04em">HIDDEN STRESS</span>
+             <span style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;color:rgba(245,164,66,0.70);padding:1px 5px;border-radius:8px;background:rgba(245,164,66,0.15);border:1px solid rgba(245,164,66,0.30)">VIX/SKEW DIVERGE</span>
+           </div>
+           <span style="font-family:var(--mono);font-size:8.5px;color:rgba(245,164,66,0.75);line-height:1.4">VIX low (complacency) but SKEW elevated (tail protection demand) — smart money hedging a calm surface.</span>
         </div>`:''}
 
         <!-- RANKED SIGNAL LIST: 5 signals with prominence by importance -->
