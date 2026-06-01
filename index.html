@@ -36611,7 +36611,9 @@ function macroTab(m){
 
   // ── US Data Releases (FRED macro components for non-FX assets) ───────────
   // cat_details is {INDICATOR_KEY: {score, actual, title, category, ...}} — flat dict, group by .category
-  if(!isFX && !isCross){
+  // Note: the Economic Surprises table above already shows these indicators via compArr.
+  // This section is hidden (false condition) to avoid duplication.
+  if(false && !isFX && !isCross){
     const _ffUSD = (DATA.ff_macro||{})['USD'] || {};
     const _usdCatDet = _ffUSD.cat_details || {};
     const _allItems = Object.values(_usdCatDet).filter(v=>v&&typeof v==='object'&&!Array.isArray(v));
@@ -36635,15 +36637,16 @@ function macroTab(m){
         html+=`<div class="ind-table">`;
         html+=`<div class="ind-head"><span>Release</span><span>Actual</span><span>Forecast</span><span>Prev</span><span>Signal</span></div>`;
         for(const item of items){
-          if(item.category&&item.category.startsWith('_')) continue; // skip internal keys
+          if(!item.title) continue; // skip internal/metadata keys (e.g. _ff_infl_heat)
           const sc = item.score??0;
           const nameCol = sc>0?'var(--text)':sc<0?'var(--dim)':'var(--dim)';
           const tag = sc>0?'<span class="ind-tag ind-tag-b">BEAT</span>':sc<0?'<span class="ind-tag ind-tag-m">MISS</span>':'<span class="ind-tag ind-tag-n">LINE</span>';
           const displayName = item.title||item.name||'—';
+          const fcDisplay = item.forecast||item.display_forecast||(item.expected!=null&&item.expected!==undefined?String(item.expected):'—');
           html+=`<div class="ind-row" style="grid-template-columns:1fr auto auto auto auto">
             <span style="color:${nameCol};font-weight:${sc!==0?'600':'400'}">${displayName}</span>
             <span style="color:${sc>0?'#22c97a':sc<0?'#e03a2a':'var(--dim)'}">${item.actual||item.display||'—'}</span>
-            <span style="color:var(--dim)">${item.forecast||item.expected!=null?String(item.expected):'—'}</span>
+            <span style="color:var(--dim)">${fcDisplay==='—'||fcDisplay===undefined||fcDisplay==='undefined'?'—':fcDisplay}</span>
             <span style="color:var(--dim)">—</span>
             ${tag}
           </div>`;
@@ -37083,7 +37086,7 @@ function macroTab(m){
   }
 
   if(compArr.length){
-    html+=`<div class="sec-h">Economic Surprises — Actual vs Consensus</div>`;
+    html+=`<div class="sec-h" style="display:flex;align-items:center;gap:6px">US Macro Releases <span style="font-size:8px;font-weight:400;color:var(--dim);letter-spacing:0.02em">(incl. PMI, CPI, NFP, PCE, PPI)</span></div>`;
     html+=`<div class="comp-list-hdr"><span>Indicator</span><span>Actual</span><span>Forecast</span><span>Result</span></div>`;
     html+=`<div class="comp-list">`;
     for(const c of compArr){

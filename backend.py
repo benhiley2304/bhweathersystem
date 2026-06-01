@@ -4737,13 +4737,13 @@ def compute_macro_all() -> dict:
     indpro_data = fetch_fred_series("INDPRO", 12)
     if indpro_data:
         r = compute_macro_surprise(indpro_data, higher_is_good=True, transform="mom", scale=0.3)
-        components["MFG_PMI"] = {**r, "title": "Industrial Production", "category": "growth",
+        components["MFG_PMI"] = {**r, "title": "Mfg PMI / Industrial Production", "category": "growth",
                                  "display": f"{r['actual']:+.2f}" if r['actual'] is not None else "—"}
 
     cfnai_data = fetch_fred_series("CFNAI", 12)
     if cfnai_data:
         r = compute_macro_surprise(cfnai_data, higher_is_good=True, transform="level", scale=0.2)
-        components["SVC_PMI"] = {**r, "title": "Economic Activity (CFNAI)", "category": "growth",
+        components["SVC_PMI"] = {**r, "title": "Services PMI / Economic Activity", "category": "growth",
                                  "display": f"{r['actual']:+.2f}" if r['actual'] is not None else "—"}
 
     retail_data = fetch_fred_series("RSAFS", 12)
