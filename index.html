@@ -36609,32 +36609,43 @@ function macroTab(m){
     }
   }
 
-  // ── US Data Releases (ForexFactory cat_details for USD) ──────────────────
-  // Show all FF-injected US macro releases — PMI, jobs, CPI etc — for non-FX assets
+  // ── US Data Releases (FRED macro components for non-FX assets) ───────────
+  // cat_details is {INDICATOR_KEY: {score, actual, title, category, ...}} — flat dict, group by .category
   if(!isFX && !isCross){
     const _ffUSD = (DATA.ff_macro||{})['USD'] || {};
     const _usdCatDet = _ffUSD.cat_details || {};
-    const _usdCatKeys = Object.keys(_usdCatDet).filter(k=>_usdCatDet[k]&&_usdCatDet[k].length);
-    if(_usdCatKeys.length){
-      const _srcBadge = `<span style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.25);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:#5c9eff;text-transform:uppercase;margin-left:6px">FF</span>`;
+    const _allItems = Object.values(_usdCatDet).filter(v=>v&&typeof v==='object'&&!Array.isArray(v));
+    if(_allItems.length){
+      // Group by category
+      const _grouped = {};
+      for(const item of _allItems){
+        const cat = item.category||'other';
+        if(!_grouped[cat]) _grouped[cat]=[];
+        _grouped[cat].push(item);
+      }
+      const _catOrder = ['growth','inflation','jobs','rates','other'];
+      const _orderedCats = [..._catOrder.filter(c=>_grouped[c]), ...Object.keys(_grouped).filter(c=>!_catOrder.includes(c))];
+      const _catLabels = {growth:'Growth / Activity', inflation:'Inflation', jobs:'Employment', rates:'Rates / Yield Curve', other:'Other'};
+      const _srcBadge = `<span style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;background:rgba(200,169,110,0.10);border:1px solid rgba(200,169,110,0.20);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:rgba(200,169,110,0.75);text-transform:uppercase;margin-left:6px">FRED</span>`;
       html+=`<div class="sec-h" style="margin-top:18px;margin-bottom:10px">US Macro Releases${_srcBadge}</div>`;
-      for(const cat of _usdCatKeys){
-        const items = _usdCatDet[cat]||[];
+      for(const cat of _orderedCats){
+        const items = _grouped[cat]||[];
         if(!items.length) continue;
-        html+=`<div class="ind-cat-label">${keyLabel(cat)}</div>`;
+        html+=`<div class="ind-cat-label">${_catLabels[cat]||cat}</div>`;
         html+=`<div class="ind-table">`;
-        html+=`<div class="ind-head"><span>Release</span><span>Actual</span><span>Forecast</span><span>Prev</span><span>Signal</span><span>Ccy</span></div>`;
+        html+=`<div class="ind-head"><span>Release</span><span>Actual</span><span>Forecast</span><span>Prev</span><span>Signal</span></div>`;
         for(const item of items){
+          if(item.category&&item.category.startsWith('_')) continue; // skip internal keys
           const sc = item.score??0;
           const nameCol = sc>0?'var(--text)':sc<0?'var(--dim)':'var(--dim)';
           const tag = sc>0?'<span class="ind-tag ind-tag-b">BEAT</span>':sc<0?'<span class="ind-tag ind-tag-m">MISS</span>':'<span class="ind-tag ind-tag-n">LINE</span>';
-          html+=`<div class="ind-row">
-            <span style="color:${nameCol};font-weight:${sc!==0?'600':'400'}">${item.name}</span>
-            <span style="color:${sc>0?'#22c97a':sc<0?'#e03a2a':'var(--dim)'}">${item.actual||'—'}</span>
-            <span style="color:var(--dim)">${item.forecast||'—'}</span>
-            <span style="color:var(--dim)">${item.prev||item.previous||'—'}</span>
+          const displayName = item.title||item.name||'—';
+          html+=`<div class="ind-row" style="grid-template-columns:1fr auto auto auto auto">
+            <span style="color:${nameCol};font-weight:${sc!==0?'600':'400'}">${displayName}</span>
+            <span style="color:${sc>0?'#22c97a':sc<0?'#e03a2a':'var(--dim)'}">${item.actual||item.display||'—'}</span>
+            <span style="color:var(--dim)">${item.forecast||item.expected!=null?String(item.expected):'—'}</span>
+            <span style="color:var(--dim)">—</span>
             ${tag}
-            <span style="color:var(--dim)">USD</span>
           </div>`;
         }
         html+=`</div>`;
