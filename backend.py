@@ -4407,8 +4407,8 @@ def _fetch_yf_yield_series(ticker: str, periods: int = 270) -> Optional[list]:
         for ts, row in df.iterrows():
             try:
                 date_str = ts.strftime("%Y-%m-%d") if hasattr(ts, 'strftime') else str(ts)[:10]
-                # yfinance stores these as index values (e.g. 44.9 = 4.49%) — divide by 10
-                val = float(row["Close"]) / 10.0
+                # yfinance ^TNX/^IRX/^FVX/^TYX are already in % (e.g. 4.54 = 4.54%)
+                val = float(row["Close"])
                 data.append({"date": date_str, "value": round(val, 3)})
             except Exception:
                 pass
