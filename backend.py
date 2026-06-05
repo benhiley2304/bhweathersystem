@@ -11519,8 +11519,86 @@ FRED_TENORS = [
     ("30Y", "DGS30"),
 ]
 
+# yfinance ticker map for yield curve tenors (best available)
+# Tenors without a direct yf ticker are interpolated from neighbours
+_YF_TENOR_MAP = {
+    "3M":  "^IRX",
+    "5Y":  "^FVX",
+    "10Y": "^TNX",
+    "30Y": "^TYX",
+}
+
+
+def _build_yf_curve_by_date() -> dict:
+    """
+    Build {date_str: {label: value}} for all 11 FRED_TENORS using yfinance.
+    Direct tickers: 3M=^IRX, 5Y=^FVX, 10Y=^TNX, 30Y=^TYX.
+    Missing tenors interpolated linearly between known anchor points.
+    Returns dict keyed by date string YYYY-MM-DD.
+    """
+    # Fetch all 4 anchor series synchronously (already cached after prewarm)
+    anchors = {}
+    for label, ticker in _YF_TENOR_MAP.items():
+        series = _fetch_yf_yield_series(ticker, 400)
+        if series:
+            anchors[label] = {x["date"]: x["value"] for x in series}
+
+    if not anchors:
+        return {}
+
+    # Collect all dates present in anchors
+    all_dates = set()
+    for d_map in anchors.values():
+        all_dates.update(d_map.keys())
+
+    # Anchor tenor positions on the curve (in years)
+    ANCHOR_YEARS = {"3M": 0.25, "5Y": 5.0, "10Y": 10.0, "30Y": 30.0}
+    # All tenor positions
+    ALL_YEARS = {
+        "1M": 1/12, "3M": 0.25, "6M": 0.5, "1Y": 1.0,
+        "2Y": 2.0, "3Y": 3.0, "5Y": 5.0, "7Y": 7.0,
+        "10Y": 10.0, "20Y": 20.0, "30Y": 30.0
+    }
+
+    by_date = {}
+    for dt in sorted(all_dates):
+        # Get known anchor values for this date
+        known = {}
+        for lbl, ticker in _YF_TENOR_MAP.items():
+            if dt in anchors.get(lbl, {}):
+                known[ANCHOR_YEARS[lbl]] = anchors[lbl][dt]
+        if len(known) < 2:
+            continue
+
+        # Interpolate all 11 tenors
+        sorted_anchors = sorted(known.items())  # [(years, value), ...]
+        tenors = {}
+        for label, yrs in ALL_YEARS.items():
+            # Find surrounding anchors
+            lo = hi = None
+            for ay, av in sorted_anchors:
+                if ay <= yrs:
+                    lo = (ay, av)
+                else:
+                    hi = (ay, av)
+                    break
+            if lo and hi:
+                t = (yrs - lo[0]) / (hi[0] - lo[0])
+                tenors[label] = round(lo[1] + t * (hi[1] - lo[1]), 3)
+            elif lo:
+                tenors[label] = round(lo[1], 3)
+            elif hi:
+                tenors[label] = round(hi[1], 3)
+            else:
+                tenors[label] = None
+        by_date[dt] = tenors
+    return by_date
+
+
 async def _fetch_yield_curve_history_async() -> dict:
-    """Fetch FRED daily yield data for all 11 tenors in parallel.
+    """Fetch FRED daily yield data for all 11 tenors.
+    Primary: FRED via httpx (fast when available).
+    Fallback: yfinance ^TNX/^IRX/^FVX/^TYX with interpolation.
     Returns snapshots for 'now', '3m', '6m', '12m' keys."""
     today = date.today()
     cached_date = _YC_CACHE.get("date")
@@ -11530,10 +11608,9 @@ async def _fetch_yield_curve_history_async() -> dict:
     HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
 
     async def _fetch_series(client: httpx.AsyncClient, label: str, series_id: str) -> tuple[str, list]:
-        """Fetch one FRED series CSV, return (label, [(date, value), ...])."""
         url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
         try:
-            r = await client.get(url, headers=HEADERS, timeout=25)
+            r = await client.get(url, headers=HEADERS, timeout=10)
             r.raise_for_status()
             pairs = []
             for line in r.text.strip().split("\n")[1:]:
@@ -11550,48 +11627,66 @@ async def _fetch_yield_curve_history_async() -> dict:
         except Exception:
             return label, []
 
+    # ── Try FRED first (10s timeout per series) ───────────────────────────────
+    fred_by_date: dict[date, dict] = {}
+    fred_ok = False
     try:
         async with httpx.AsyncClient() as client:
             tasks = [_fetch_series(client, label, sid) for label, sid in FRED_TENORS]
-            results = await asyncio.gather(*tasks)
-
-        # Build date-keyed dict: {date: {label: value}}
-        by_date: dict[date, dict] = {}
+            results = await asyncio.wait_for(asyncio.gather(*tasks), timeout=15)
         for label, pairs in results:
             for d, v in pairs:
-                by_date.setdefault(d, {})[label] = v
+                fred_by_date.setdefault(d, {})[label] = v
+        # Consider FRED OK if we got data for key tenors on recent dates
+        recent_dates = sorted(fred_by_date.keys())[-5:] if fred_by_date else []
+        fred_ok = any(
+            sum(1 for v in fred_by_date[d].values() if v is not None) >= 6
+            for d in recent_dates
+        )
+    except Exception as _fe:
+        print(f"[yc_history] FRED fetch failed: {_fe} — falling back to yfinance")
 
-        all_labels = [label for label, _ in FRED_TENORS]
+    all_labels = [label for label, _ in FRED_TENORS]
+
+    if fred_ok:
+        # Use FRED data
         rows = sorted([
-            {"date": d, "tenors": {lbl: by_date[d].get(lbl) for lbl in all_labels}}
-            for d in by_date
+            {"date": d, "tenors": {lbl: fred_by_date[d].get(lbl) for lbl in all_labels}}
+            for d in fred_by_date
+        ], key=lambda r: r["date"])
+    else:
+        # ── yfinance fallback ─────────────────────────────────────────────────
+        print("[yc_history] Using yfinance fallback for yield curve history")
+        loop = asyncio.get_event_loop()
+        yf_by_date_str = await loop.run_in_executor(None, _build_yf_curve_by_date)
+        rows = sorted([
+            {"date": date.fromisoformat(ds), "tenors": tenors}
+            for ds, tenors in yf_by_date_str.items()
         ], key=lambda r: r["date"])
 
-        def _snap(target_date: date) -> dict | None:
-            for row in reversed(rows):
-                if row["date"] <= target_date:
-                    non_null = sum(1 for v in row["tenors"].values() if v is not None)
-                    if non_null >= 6:
-                        return row
+    def _snap(target_date: date):
+        for row in reversed(rows):
+            if row["date"] <= target_date:
+                non_null = sum(1 for v in row["tenors"].values() if v is not None)
+                if non_null >= 4:
+                    return row
+        return None
+
+    def _fmt(snap):
+        if snap is None:
             return None
+        return {"date": snap["date"].isoformat(), "tenors": snap["tenors"]}
 
-        def _fmt(snap) -> dict | None:
-            if snap is None:
-                return None
-            return {"date": snap["date"].isoformat(), "tenors": snap["tenors"]}
-
-        result = {
-            "now":  _fmt(_snap(today)),
-            "3m":   _fmt(_snap(today - timedelta(days=91))),
-            "6m":   _fmt(_snap(today - timedelta(days=182))),
-            "12m":  _fmt(_snap(today - timedelta(days=365))),
-            "tenor_labels": all_labels,
-        }
-        _YC_CACHE["data"] = result
-        _YC_CACHE["date"] = today.isoformat()
-        return result
-    except Exception as e:
-        return {"error": str(e)}
+    result = {
+        "now":  _fmt(_snap(today)),
+        "3m":   _fmt(_snap(today - timedelta(days=91))),
+        "6m":   _fmt(_snap(today - timedelta(days=182))),
+        "12m":  _fmt(_snap(today - timedelta(days=365))),
+        "tenor_labels": all_labels,
+    }
+    _YC_CACHE["data"] = result
+    _YC_CACHE["date"] = today.isoformat()
+    return result
 
 
 @app.get("/api/yield-curve-history")
