@@ -113,8 +113,10 @@ async def _global_exception_handler(request: Request, exc: Exception):
         mkt_param = request.query_params.get("market", "").upper()
         if mkt_param:
             _SH_MARKET_LOCKS.pop(mkt_param, None)
-    print(f"[GLOBAL ERROR] {path}: {type(exc).__name__}: {exc}")
-    return _FJR({"error": "Internal server error", "detail": str(exc)}, status_code=500)
+    import traceback as _tb
+    _full = _tb.format_exc()
+    print(f"[GLOBAL ERROR] {path}: {type(exc).__name__}: {exc}\n{_full}", flush=True)
+    return _FJR({"error": "Internal server error", "detail": str(exc), "traceback": _full[-2000:]}, status_code=500)
 
 # ============================================================
 # MARKET DEFINITIONS
