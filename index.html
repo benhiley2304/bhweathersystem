@@ -28479,28 +28479,29 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   });
 
   // ── EFFR policy rate marker ──────────────────────────────────────────────
+  // Place EFFR dot at x=padL on the left spine, with a dashed horizontal line to 3M
+  // Label positioned well inside the chart area (x = padL + 10) to avoid y-axis text bleed
   const effr = nowTenors.EFFR;
   if (effr != null && !isMini) {
     const effrY = yPos(effr);
-    // Horizontal dotted reference line from left edge to 3M
     const x3m = xPos('3M');
+    // Dashed horizontal line from left spine to 3M
     if (x3m != null) {
       curveSvg += `<line x1="${padL}" y1="${effrY.toFixed(1)}" x2="${x3m.toFixed(1)}" y2="${effrY.toFixed(1)}"
-        stroke="rgba(200,169,110,0.40)" stroke-width="0.9" stroke-dasharray="2,3"/>`;
+        stroke="rgba(200,169,110,0.38)" stroke-width="0.9" stroke-dasharray="2,4"/>`;
     }
-    // EFFR dot on the curve x-axis at 3M position (just left of 3M tenor)
-    const effrDotX = padL + 2;
-    curveSvg += `<circle cx="${effrDotX}" cy="${effrY.toFixed(1)}" r="3.5" fill="rgba(200,169,110,0.90)" stroke="rgba(200,169,110,0.30)" stroke-width="1"/>`;
-    // Label: positioned above the dot, anchored start so it reads leftward into the chart area
-    const fEffr = (8.5 * fScale).toFixed(1);
-    const labelX = padL + 8;
-    const labelY = Math.max(padT + 9, effrY - 6);
-    // Background rect to block y-axis text behind the label
-    const labelW = 55, labelH = 10;
-    curveSvg += `<rect x="${labelX - 1}" y="${(labelY - 8).toFixed(1)}" width="${labelW}" height="${labelH}"
-      fill="#030508" opacity="0.85" rx="2"/>`;
-    curveSvg += `<text x="${labelX}" y="${labelY.toFixed(1)}" text-anchor="start"
-      fill="rgba(200,169,110,0.92)" font-family="var(--mono)" font-size="${fEffr}" font-weight="800">EFFR ${effr.toFixed(2)}%</text>`;
+    // Dot on left spine
+    curveSvg += `<circle cx="${padL}" cy="${effrY.toFixed(1)}" r="3.8" fill="rgba(200,169,110,0.92)" stroke="rgba(200,169,110,0.25)" stroke-width="1"/>`;
+    // Label placed at padL + 12 (well inside chart area, clear of y-axis labels)
+    const fEffr = (8.0 * fScale).toFixed(1);
+    const lx    = padL + 12;
+    const ly    = Math.max(padT + 9, effrY - 6);
+    // Pill background so it's always readable regardless of curves behind it
+    const pillW = Math.round(fScale * 52);
+    curveSvg += `<rect x="${lx - 2}" y="${(ly - 7).toFixed(1)}" width="${pillW}" height="10"
+      fill="rgba(3,5,8,0.82)" rx="3"/>`;
+    curveSvg += `<text x="${lx}" y="${ly.toFixed(1)}" text-anchor="start"
+      fill="rgba(200,169,110,0.95)" font-family="var(--mono)" font-size="${fEffr}" font-weight="800">EFFR ${effr.toFixed(2)}%</text>`;
   }
 
   // ── Rate labels on Now curve ──────────────────────────────────────────────
