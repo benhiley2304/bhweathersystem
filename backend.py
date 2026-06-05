@@ -7113,10 +7113,10 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
     _fff_adj    = max(-2.0, min(2.0, -_cuts_12m * 0.5))  # 4 cuts → -2.0, 4 hikes → +2.0
 
     # Backward-looking: historical EFFR trend
-    _us_t6   = us_ir.get("trend_6m", 0.0)
-    _us_t3   = us_ir.get("trend_3m", 0.0)
-    _us_bias = us_ir.get("bias", 0)
-    _us_raw  = _us_t6 * 0.65 + _us_t3 * 0.35 + _us_bias * 0.25
+    _us_t6   = us_ir.get("trend_6m") or 0.0
+    _us_t3   = us_ir.get("trend_3m") or 0.0
+    _us_bias = us_ir.get("bias") or 0
+    _us_raw  = (_us_t6 or 0.0) * 0.65 + (_us_t3 or 0.0) * 0.35 + (_us_bias or 0) * 0.25
     _hist_adj = max(-2.0, min(2.0, _us_raw / 0.3))
 
     # Blend: 60% forward (futures) + 40% backward (history)
@@ -7183,10 +7183,10 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
         elif m == "R":
             # Long Gilt: BoE-driven; use BoE rate signal if available
             boe = intl_rates.get("BOE", {})
-            _boe_t6 = boe.get("trend_6m", 0.0)
-            _boe_t3 = boe.get("trend_3m", 0.0)
-            _boe_b  = boe.get("bias", 0)
-            _boe_adj = max(-2.0, min(2.0, (_boe_t6 * 0.65 + _boe_t3 * 0.35 + _boe_b * 0.25) / 0.3))
+            _boe_t6 = boe.get("trend_6m") or 0.0
+            _boe_t3 = boe.get("trend_3m") or 0.0
+            _boe_b  = boe.get("bias") or 0
+            _boe_adj = max(-2.0, min(2.0, ((_boe_t6 or 0.0) * 0.65 + (_boe_t3 or 0.0) * 0.35 + (_boe_b or 0) * 0.25) / 0.3))
             score_raw = -raw_score * 1.25 + _boe_adj * (-0.55) + 5.0
             rate_label = "BoE rate path"
             rate_score = round(_boe_adj, 2)
@@ -7363,10 +7363,10 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
         if foreign_cb and intl_rates.get(foreign_cb):
             cb_data = intl_rates[foreign_cb]
             cb_name = cb_names.get(foreign_cb, foreign_cb)
-            t6   = cb_data.get("trend_6m", 0.0)
-            t3   = cb_data.get("trend_3m", 0.0)
-            bias = cb_data.get("bias", 0)
-            raw_cb   = t6 * 0.65 + t3 * 0.35
+            t6   = cb_data.get("trend_6m") or 0.0
+            t3   = cb_data.get("trend_3m") or 0.0
+            bias = cb_data.get("bias") or 0
+            raw_cb   = (t6 or 0.0) * 0.65 + (t3 or 0.0) * 0.35
             raw_cb_b = bias * 0.5
             SENSITIVITY = 0.25
             _t3_flat = abs(t3) < 0.05
