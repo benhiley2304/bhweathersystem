@@ -6609,20 +6609,39 @@ def compute_risk_regime() -> dict:
         if ry_val is None:
             try:
                 import yfinance as yf
-                t10_tick = yf.Ticker("^TNX")
-                t10_hist = t10_tick.history(period="5d")
-                if not t10_hist.empty:
-                    t10_nominal = float(t10_hist["Close"].iloc[-1])
-                    # CPI YoY from macro_dashboard if already computed (populated earlier in this function)
+                # Use cached yfinance yield if available (already fetched for yield curve)
+                t10_nominal = None
+                try:
+                    _tnx_cached = _YF_YIELD_CACHE.get("^TNX", {})
+                    if _tnx_cached and not _tnx_cached.get("series", {}).empty:
+                        t10_nominal = float(_tnx_cached["series"].iloc[-1])
+                except Exception:
+                    pass
+                if t10_nominal is None:
+                    t10_tick = yf.Ticker("^TNX")
+                    t10_hist = t10_tick.history(period="5d")
+                    if not t10_hist.empty:
+                        t10_nominal = float(t10_hist["Close"].iloc[-1])
+                # CPI YoY: read directly from FRED cache (already fetched in macro_all prefetch)
+                # Use macro_dashboard dgs10 level as alternative 10Y source
+                if t10_nominal is None:
+                    _dgs10_cached = macro_dashboard.get("dgs10", {})
+                    if _dgs10_cached and _dgs10_cached.get("level"):
+                        t10_nominal = float(_dgs10_cached["level"])
+                # CPI from macro_all scores cache
+                cpi_yoy = None
+                try:
+                    _cpi_raw = fetch_fred_series("CPIAUCSL", 15)
+                    if _cpi_raw and len(_cpi_raw) >= 13:
+                        _cpi_now = _cpi_raw[-1]["value"]
+                        _cpi_12m = _cpi_raw[-13]["value"]
+                        if _cpi_12m and _cpi_12m > 0:
+                            cpi_yoy = round((_cpi_now - _cpi_12m) / _cpi_12m * 100, 2)
+                except Exception:
                     cpi_yoy = None
-                    try:
-                        _infl = macro_dashboard.get("inflation", {})
-                        cpi_yoy = _infl.get("cpi_yoy") if _infl else None
-                    except Exception:
-                        cpi_yoy = None
-                    if cpi_yoy is not None and t10_nominal is not None:
-                        ry_val = round(t10_nominal - cpi_yoy, 3)
-                        ry_source = "yfinance_est"
+                if t10_nominal is not None and cpi_yoy is not None:
+                    ry_val = round(t10_nominal - cpi_yoy, 3)
+                    ry_source = "yfinance_est"
             except Exception:
                 ry_val = None
         if ry_val is not None:
