@@ -4748,6 +4748,24 @@ def compute_macro_all() -> dict:
     if US_MACRO_CACHE["data"] is not None and (now - US_MACRO_CACHE["time"]) < US_MACRO_TTL:
         return US_MACRO_CACHE["data"]
 
+    # ── Parallel FRED pre-fetch ─────────────────────────────────────────────
+    # On cold start, fetching 15+ FRED series sequentially takes up to 180s.
+    # Pre-fetch all needed series in parallel so total wait ~ 1 series (12s max).
+    _FRED_PREFETCH_LIST = [
+        ("GDP", 24), ("INDPRO", 12), ("CFNAI", 12), ("RSAFS", 12),
+        ("CPI", 24), ("CORE_CPI", 24), ("PPI", 24), ("PCE", 24), ("CORE_PCE", 24),
+        ("NFP", 12), ("UNEMP", 12), ("CLAIMS", 12), ("JOLTS", 12),
+        ("DGS2", 30), ("YLDCRV", 30), ("WALCL", 160), ("HYOAS", 24),
+        ("NFCI", 24), ("STLFSI4", 24), ("IGOAS", 24),
+    ]
+    _pf_ex = _cf.ThreadPoolExecutor(max_workers=10)
+    try:
+        _pf_futs = [_pf_ex.submit(fetch_fred_series, sid, periods) for sid, periods in _FRED_PREFETCH_LIST]
+        _cf.wait(_pf_futs, timeout=20)  # 20s hard cap — fetches run in parallel
+    finally:
+        _pf_ex.shutdown(wait=False)
+    # All fetched series now in FRED_CACHE — subsequent calls are instant
+
     components = {}
 
     # ── GROWTH ────────────────────────────────────────────────────────────────
@@ -8735,9 +8753,9 @@ async def _refresh_scores_background():
             # Re-check inside lock — another coroutine may have just refreshed
             if ALL_DATA_CACHE["data"] and (time.time() - ALL_DATA_CACHE["time"]) < ALL_DATA_TTL:
                 return
-            await asyncio.wait_for(_do_scores_refresh(), timeout=300)
+            await asyncio.wait_for(_do_scores_refresh(), timeout=600)
         except asyncio.TimeoutError:
-            print("[scores] BG refresh: _do_scores_refresh timed out after 300s", flush=True)
+            print("[scores] BG refresh: _do_scores_refresh timed out after 600s", flush=True)
         finally:
             _SCORES_LOCK.release()
     except Exception as _e:
@@ -8788,11 +8806,11 @@ async def get_all_scores(force: bool = False):
             ALL_DATA_CACHE["data"] = None
             FF_CACHE["data"] = None
             FF_MACRO_CACHE["data"] = None
-        # Wrap the refresh with a hard 300s timeout — prevents indefinite hangs
+        # Wrap the refresh with a hard 600s timeout — prevents indefinite hangs on cold start
         try:
-            await asyncio.wait_for(_do_scores_refresh(), timeout=300)
+            await asyncio.wait_for(_do_scores_refresh(), timeout=600)
         except asyncio.TimeoutError:
-            print("[scores] _do_scores_refresh timed out after 300s — serving stale", flush=True)
+            print("[scores] _do_scores_refresh timed out after 600s — serving stale", flush=True)
     finally:
         _SCORES_LOCK.release()
     return _SafeJSONResponse(ALL_DATA_CACHE["data"])
