@@ -4382,6 +4382,45 @@ def fetch_fred_series_full(series_id: str) -> Optional[list]:
         return None
 
 
+# ── yfinance yield cache (fallback when FRED times out) ────────────────────
+_YF_YIELD_CACHE: dict = {}
+_YF_YIELD_CACHE_TIME: dict = {}
+_YF_YIELD_CACHE_TTL = 3600  # 1h
+
+def _fetch_yf_yield_series(ticker: str, periods: int = 270) -> Optional[list]:
+    """
+    Fetch Treasury yield history from yfinance as a FRED-compatible list.
+    Tickers: ^IRX (3M, value/10=%), ^FVX (5Y, /10), ^TNX (10Y, /10), ^TYX (30Y, /10)
+    Returns [{date: str, value: float}] with yields already in % (e.g. 4.35).
+    """
+    cache_key = ticker + "_yld"
+    now = time.time()
+    if cache_key in _YF_YIELD_CACHE and (now - _YF_YIELD_CACHE_TIME.get(cache_key, 0)) < _YF_YIELD_CACHE_TTL:
+        data = _YF_YIELD_CACHE[cache_key]
+        return data[-periods:] if len(data) >= periods else data
+    try:
+        tk = yf.Ticker(ticker)
+        df = _yf_with_timeout(tk.history, period="2y", interval="1d", label=ticker+"_yld")
+        if df is None or df.empty:
+            return None
+        data = []
+        for ts, row in df.iterrows():
+            try:
+                date_str = ts.strftime("%Y-%m-%d") if hasattr(ts, 'strftime') else str(ts)[:10]
+                # yfinance stores these as index values (e.g. 44.9 = 4.49%) — divide by 10
+                val = float(row["Close"]) / 10.0
+                data.append({"date": date_str, "value": round(val, 3)})
+            except Exception:
+                pass
+        data.sort(key=lambda x: x["date"])
+        _YF_YIELD_CACHE[cache_key] = data
+        _YF_YIELD_CACHE_TIME[cache_key] = now
+        return data[-periods:] if len(data) >= periods else data
+    except Exception as e:
+        print(f"[_fetch_yf_yield_series] {ticker}: {e}")
+        return None
+
+
 def _compute_surprise_at_date(
     series: list,           # full sorted [{date, value}]
     bar_date_str: str,      # YYYY-MM-DD — data visible on this bar date (lag-adjusted)
@@ -6390,8 +6429,22 @@ def compute_risk_regime() -> dict:
     rate_label = ""
     try:
         # Yield curve: T10Y2Y + T10Y3M (daily series — 130 days covers 6m)
+        # FRED fallback: if FRED times out, compute spread from yfinance ^TNX (10Y) and derive 2Y
         yc_data   = fetch_fred_series("YLDCRV",  130)
         yc3m_data = fetch_fred_series("T10Y3M",  130)
+        # ── yfinance fallback if FRED yields empty ────────────────────────────
+        if not yc_data or len(yc_data) < 2:
+            print("[yield_curve] FRED T10Y2Y empty — trying yfinance ^TNX/^IRX fallback")
+            _tnx = _fetch_yf_yield_series("^TNX", 270)   # 10Y
+            _irx = _fetch_yf_yield_series("^IRX", 270)   # 3M (x0.1 already applied)
+            if _tnx and len(_tnx) >= 2 and _irx and len(_irx) >= 2:
+                # Align by date and compute 10Y-3M spread as proxy for 10Y-2Y
+                _irx_map = {x["date"]: x["value"] for x in _irx}
+                yc_data = [{"date": x["date"], "value": round(x["value"] - _irx_map[x["date"]], 3)}
+                           for x in _tnx if x["date"] in _irx_map]
+                if not yc3m_data or len(yc3m_data) < 2:
+                    yc3m_data = yc_data  # same spread since we used 3M already
+                print(f"[yield_curve] yfinance fallback: {len(yc_data)} rows of 10Y-3M spread")
         if yc_data and len(yc_data) >= 2:
             yc_vals = [x["value"] for x in yc_data  if x.get("value") is not None]
             t3m_vals= [x["value"] for x in yc3m_data if x.get("value") is not None] if yc3m_data else []
@@ -6461,6 +6514,25 @@ def compute_risk_regime() -> dict:
         dgs10_raw = fetch_fred_series("DGS10", 270)
         dgs30_raw = fetch_fred_series("DGS30", 270)
         dtb3_raw  = fetch_fred_series("DGS3MO", 270)  # 3-Month CMT — consistent with yield-curve-history
+        # ── yfinance fallback for any empty FRED tenor series ──────────────────────
+        if not dgs10_raw or len(dgs10_raw) < 2:
+            dgs10_raw = _fetch_yf_yield_series("^TNX", 270)
+            if dgs10_raw: print(f"[tenors] DGS10 → yfinance ^TNX ({len(dgs10_raw)} rows)")
+        if not dgs5_raw or len(dgs5_raw) < 2:
+            dgs5_raw = _fetch_yf_yield_series("^FVX", 270)
+            if dgs5_raw: print(f"[tenors] DGS5 → yfinance ^FVX ({len(dgs5_raw)} rows)")
+        if not dgs30_raw or len(dgs30_raw) < 2:
+            dgs30_raw = _fetch_yf_yield_series("^TYX", 270)
+            if dgs30_raw: print(f"[tenors] DGS30 → yfinance ^TYX ({len(dgs30_raw)} rows)")
+        if not dtb3_raw or len(dtb3_raw) < 2:
+            dtb3_raw = _fetch_yf_yield_series("^IRX", 270)
+            if dtb3_raw: print(f"[tenors] DGS3MO → yfinance ^IRX ({len(dtb3_raw)} rows)")
+        # 2Y: no direct yfinance symbol — estimate as (3M + 10Y) / 2 if FRED unavailable
+        if (not dgs2_raw or len(dgs2_raw) < 2) and dtb3_raw and dgs10_raw:
+            _irx_map = {x["date"]: x["value"] for x in (dtb3_raw or [])}
+            dgs2_raw = [{"date": x["date"], "value": round((x["value"] + _irx_map[x["date"]]) / 2, 3)}
+                       for x in dgs10_raw if x["date"] in _irx_map]
+            if dgs2_raw: print(f"[tenors] DGS2 → estimated from (10Y+3M)/2 ({len(dgs2_raw)} rows)")
 
         def _tenor_snapshot(series, idx):
             """Return the yield at trading-day offset idx from end.
@@ -8877,10 +8949,13 @@ async def _do_scores_refresh(force: bool = False):
         _px_ex = _cf.ThreadPoolExecutor(max_workers=15)
         try:
             _px_futs = [_px_ex.submit(fetch_price_data, t) for t in _price_tickers_uniq]
+            # Also pre-warm yfinance yield series in parallel (fallback for FRED)
+            _yld_tickers = ["^TNX", "^IRX", "^FVX", "^TYX"]
+            _px_futs += [_px_ex.submit(_fetch_yf_yield_series, t, 270) for t in _yld_tickers]
             _cf.wait(_px_futs, timeout=40)  # 40s hard cap — run all in parallel
         finally:
             _px_ex.shutdown(wait=False)
-        print(f"[scores] Price pre-warm done ({len(_price_tickers_uniq)} tickers)", flush=True)
+        print(f"[scores] Price pre-warm done ({len(_price_tickers_uniq)} tickers + 4 yield tickers)", flush=True)
 
     _loop = asyncio.get_event_loop()
     # Fire price pre-warm in parallel with compute_macro_all (which fetches FRED)
@@ -11706,18 +11781,15 @@ async def debug_yc():
         }
     except Exception as e:
         results["T10Y2Y_raw"] = {"error": str(e), "trace": traceback.format_exc()[-400:]}
-    # Test fetch_fred_series for each
-    for sid in ["YLDCRV", "T10Y3M", "DGS2", "DGS10"]:
+    # Test yfinance yield fallback
+    for sym in ["^TNX", "^IRX", "^FVX", "^TYX"]:
         try:
-            # Force skip cache
-            resolved = FRED_SERIES.get(sid, sid)
-            FRED_CACHE.pop(resolved, None)
-            FRED_CACHE_TIME_MAP.pop(resolved, None)
-            d = fetch_fred_series(sid, 10)
-            results[sid] = {"ok": True, "count": len(d) if d else 0, "last": d[-1] if d else None}
+            d = _fetch_yf_yield_series(sym, 10)
+            results["yf_" + sym] = {"ok": True, "count": len(d) if d else 0, "last": d[-1] if d else None}
         except Exception as e:
-            results[sid] = {"ok": False, "error": str(e)}
+            results["yf_" + sym] = {"ok": False, "error": str(e)}
     results["_cache_keys"] = list(FRED_CACHE.keys())
+    results["_yf_yield_cache_keys"] = list(_YF_YIELD_CACHE.keys())
     return results
 
 @app.get("/api/clear-regime-cache")
