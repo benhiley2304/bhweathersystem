@@ -28511,8 +28511,10 @@ function _drawYieldCurveInline(nowCol, tenorData) {
 
   if (!isMini) {
     // Gather label positions then resolve collisions
+    // Skip 3M label when EFFR is shown — EFFR marker already labels the left edge
+    const skipSet = new Set(effr != null ? ['3M'] : []);
     const labelData = LABEL_TENORS
-      .filter(t => nowTenors[t] != null)
+      .filter(t => nowTenors[t] != null && !skipSet.has(t))
       .map(t => ({
         t,
         x: xPos(t),
