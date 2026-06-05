@@ -24248,8 +24248,8 @@ async function loadData(force=false){
 
 function renderAll(){
   if(!DATA)return;
-  renderRegime();
-  renderList();
+  try { renderRegime(); } catch(e){ console.error('renderRegime error:',e); }
+  try { renderList(); } catch(e){ console.error('renderList error:',e); }
   document.getElementById('sb-count').textContent=DATA.markets.length;
   if(selMkt){
     const m=DATA.markets.find(x=>x.id===selMkt);
@@ -26670,8 +26670,8 @@ function renderMacroDataPanels(reg){
   const t10_3m  = yc.t10y_3m  ?? (t10!=null&&yc.steepening_3m!=null ? +(t10-(yc.steepening_3m??0)).toFixed(3) : null);
   const t10_6m  = yc.t10y_6m  ?? (t10!=null&&yc.steepening_6m!=null ? +(t10-yc.steepening_6m).toFixed(3) : null);
   const t10_12m = yc.t10y_12m ?? null;
-  const t30_3m  = yc.t30y_3m  ?? (t30!=null&&t30_6m!=null ? +((t30+t30_6m)/2).toFixed(3) : null);
   const t30_6m  = yc.t30y_6m  ?? null;
+  const t30_3m  = yc.t30y_3m  ?? (t30!=null&&t30_6m!=null ? +((t30+t30_6m)/2).toFixed(3) : null);
   const t30_12m = yc.t30y_12m ?? null;
 
   // ── Yield Curve vars
