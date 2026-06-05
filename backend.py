@@ -8702,11 +8702,21 @@ async def _refresh_scores_background():
         return  # Already running — don't double-up
     _SCORES_BG_RUNNING = True
     try:
-        async with _SCORES_LOCK:
+        # Use wait_for on lock acquisition too — don't get stuck behind a deadlock
+        try:
+            await asyncio.wait_for(_SCORES_LOCK.acquire(), timeout=90)
+        except asyncio.TimeoutError:
+            print("[scores] BG refresh: lock timeout — skipping", flush=True)
+            return
+        try:
             # Re-check inside lock — another coroutine may have just refreshed
             if ALL_DATA_CACHE["data"] and (time.time() - ALL_DATA_CACHE["time"]) < ALL_DATA_TTL:
                 return
-            await _do_scores_refresh()
+            await asyncio.wait_for(_do_scores_refresh(), timeout=120)
+        except asyncio.TimeoutError:
+            print("[scores] BG refresh: _do_scores_refresh timed out", flush=True)
+        finally:
+            _SCORES_LOCK.release()
     except Exception as _e:
         print(f"[scores] Background refresh error: {_e}", flush=True)
     finally:
@@ -8736,7 +8746,17 @@ async def get_all_scores(force: bool = False):
 
     # True cold start (no data at all) — must wait for first result
     print(f"[scores] Cold start — must compute synchronously (no stale data available)", flush=True)
-    async with _SCORES_LOCK:
+    # Acquire lock with a timeout — if a previous compute is deadlocked, give up
+    # after 90s and return whatever stale data we have (or a 503)
+    try:
+        acquired = await asyncio.wait_for(_SCORES_LOCK.acquire(), timeout=90)
+    except asyncio.TimeoutError:
+        print("[scores] Lock acquisition timed out (deadlock?) — returning stale/empty", flush=True)
+        if ALL_DATA_CACHE["data"]:
+            return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+        from fastapi.responses import JSONResponse as _JR
+        return _JR({"error": "Server busy — retry in 30s"}, status_code=503)
+    try:
         # Re-check cache inside lock: a previous waiter may have already recomputed
         now = time.time()
         if not force and ALL_DATA_CACHE["data"] and (now - ALL_DATA_CACHE["time"]) < ALL_DATA_TTL:
@@ -8745,7 +8765,13 @@ async def get_all_scores(force: bool = False):
             ALL_DATA_CACHE["data"] = None
             FF_CACHE["data"] = None
             FF_MACRO_CACHE["data"] = None
-        await _do_scores_refresh()
+        # Wrap the refresh with a hard 120s timeout — prevents indefinite hangs
+        try:
+            await asyncio.wait_for(_do_scores_refresh(), timeout=120)
+        except asyncio.TimeoutError:
+            print("[scores] _do_scores_refresh timed out after 120s — serving stale", flush=True)
+    finally:
+        _SCORES_LOCK.release()
     return _SafeJSONResponse(ALL_DATA_CACHE["data"])
 
 async def _do_scores_refresh(force: bool = False):
