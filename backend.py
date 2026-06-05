@@ -8727,7 +8727,7 @@ async def _refresh_scores_background():
     try:
         # Use wait_for on lock acquisition too — don't get stuck behind a deadlock
         try:
-            await asyncio.wait_for(_SCORES_LOCK.acquire(), timeout=90)
+            await asyncio.wait_for(_SCORES_LOCK.acquire(), timeout=180)
         except asyncio.TimeoutError:
             print("[scores] BG refresh: lock timeout — skipping", flush=True)
             return
@@ -8735,9 +8735,9 @@ async def _refresh_scores_background():
             # Re-check inside lock — another coroutine may have just refreshed
             if ALL_DATA_CACHE["data"] and (time.time() - ALL_DATA_CACHE["time"]) < ALL_DATA_TTL:
                 return
-            await asyncio.wait_for(_do_scores_refresh(), timeout=120)
+            await asyncio.wait_for(_do_scores_refresh(), timeout=300)
         except asyncio.TimeoutError:
-            print("[scores] BG refresh: _do_scores_refresh timed out", flush=True)
+            print("[scores] BG refresh: _do_scores_refresh timed out after 300s", flush=True)
         finally:
             _SCORES_LOCK.release()
     except Exception as _e:
@@ -8772,7 +8772,7 @@ async def get_all_scores(force: bool = False):
     # Acquire lock with a timeout — if a previous compute is deadlocked, give up
     # after 90s and return whatever stale data we have (or a 503)
     try:
-        acquired = await asyncio.wait_for(_SCORES_LOCK.acquire(), timeout=90)
+        acquired = await asyncio.wait_for(_SCORES_LOCK.acquire(), timeout=180)
     except asyncio.TimeoutError:
         print("[scores] Lock acquisition timed out (deadlock?) — returning stale/empty", flush=True)
         if ALL_DATA_CACHE["data"]:
@@ -8788,11 +8788,11 @@ async def get_all_scores(force: bool = False):
             ALL_DATA_CACHE["data"] = None
             FF_CACHE["data"] = None
             FF_MACRO_CACHE["data"] = None
-        # Wrap the refresh with a hard 120s timeout — prevents indefinite hangs
+        # Wrap the refresh with a hard 300s timeout — prevents indefinite hangs
         try:
-            await asyncio.wait_for(_do_scores_refresh(), timeout=120)
+            await asyncio.wait_for(_do_scores_refresh(), timeout=300)
         except asyncio.TimeoutError:
-            print("[scores] _do_scores_refresh timed out after 120s — serving stale", flush=True)
+            print("[scores] _do_scores_refresh timed out after 300s — serving stale", flush=True)
     finally:
         _SCORES_LOCK.release()
     return _SafeJSONResponse(ALL_DATA_CACHE["data"])
