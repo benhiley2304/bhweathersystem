@@ -4211,10 +4211,25 @@ def compute_all_ff_macro() -> dict:
         return FF_MACRO_CACHE["data"]
 
     # Use FRED-based economy scores (FF calendar is blocked in this environment)
+    # Fetch all 7 currencies in parallel — reduces cold-start from 7*5*12s=420s to ~12s
     result = {}
     CURRENCIES = ["EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"]
-    for curr in CURRENCIES:
-        result[curr] = compute_fred_economy_score(curr)
+    _ccy_ex = _cf.ThreadPoolExecutor(max_workers=7)
+    try:
+        _ccy_futs = {_ccy_ex.submit(compute_fred_economy_score, curr): curr for curr in CURRENCIES}
+        done_ccy, _ = _cf.wait(_ccy_futs, timeout=30)  # 30s hard cap
+        for fut in done_ccy:
+            try:
+                ccy_result = fut.result()
+                result[ccy_result["currency"]] = ccy_result
+            except Exception:
+                pass
+        # Fill in any that timed out with neutral placeholders
+        for curr in CURRENCIES:
+            if curr not in result:
+                result[curr] = {"score": 5.0, "label": f"{curr} Macro Neutral", "currency": curr, "cats": {}}
+    finally:
+        _ccy_ex.shutdown(wait=False)
 
     # USD from compute_macro_all
     us_macro = compute_macro_all()
@@ -6129,19 +6144,37 @@ def compute_risk_regime() -> dict:
 
     returns: dict = {}
     levels:  dict = {}
-    for name, ticker in RISK_ASSETS.items():
+
+    # Parallel fetch all RISK_ASSETS — reduces cold-start from 22*20s=440s to ~20s
+    def _fetch_one_risk_asset(name_ticker):
+        name, ticker = name_ticker
         try:
             tk = yf.Ticker(ticker)
-            hist = _yf_with_timeout(tk.history, period="3mo", interval="1wk", label=f"regime/{ticker}")
+            hist = tk.history(period="3mo", interval="1wk")
             if hist is not None and not hist.empty and len(hist) >= 4:
                 close = hist["Close"].values.astype(float)
                 ret_1w = (close[-1] / close[-2] - 1) * 100 if len(close) >= 2 else 0
                 ret_1m = (close[-1] / close[-4] - 1) * 100 if len(close) >= 4 else 0
                 ret_3m = (close[-1] / close[0]  - 1) * 100 if len(close) >= 3 else 0
-                returns[name] = {"return_1w": round(ret_1w, 2), "return_1m": round(ret_1m, 2), "return_3m": round(ret_3m, 2)}
-                levels[name]  = round(float(close[-1]), 4)
-        except Exception as _re:
-            returns[name] = {"1w": 0, "return_1m": 0, "3m": 0}
+                return name, {"return_1w": round(ret_1w, 2), "return_1m": round(ret_1m, 2), "return_3m": round(ret_3m, 2)}, round(float(close[-1]), 4)
+        except Exception:
+            pass
+        return name, {"return_1w": 0, "return_1m": 0, "return_3m": 0}, None
+
+    _ra_ex = _cf.ThreadPoolExecutor(max_workers=8)
+    try:
+        _ra_futs = {_ra_ex.submit(_fetch_one_risk_asset, item): item[0] for item in RISK_ASSETS.items()}
+        done_ra, _ = _cf.wait(_ra_futs, timeout=25)  # 25s hard cap for all RISK_ASSETS
+        for fut in done_ra:
+            try:
+                name, ret_dict, level = fut.result()
+                returns[name] = ret_dict
+                if level is not None:
+                    levels[name] = level
+            except Exception:
+                pass
+    finally:
+        _ra_ex.shutdown(wait=False)
 
     regime_signals: dict = {}  # structured dict: key -> {signal, value, label}
     regime_score = 0
