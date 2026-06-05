@@ -6595,12 +6595,39 @@ def compute_risk_regime() -> dict:
         pass
 
     try:
-        # Real yield: DFII10
-        ry_data = fetch_fred_series("DFII10", 6)
-        if ry_data and len(ry_data) >= 1:
-            ry_val = ry_data[-1]["value"]
+        # Real yield: DFII10 (FRED 10Y TIPS) — with yfinance fallback since FRED blocked on Render
+        ry_val = None
+        ry_source = "fred"
+        try:
+            ry_data = fetch_fred_series("DFII10", 6)
+            if ry_data and len(ry_data) >= 1:
+                ry_val = ry_data[-1]["value"]
+                ry_source = "fred"
+        except Exception:
+            ry_val = None
+        # yfinance fallback: estimate real yield = 10Y nominal - CPI YoY
+        if ry_val is None:
+            try:
+                import yfinance as yf
+                t10_tick = yf.Ticker("^TNX")
+                t10_hist = t10_tick.history(period="5d")
+                if not t10_hist.empty:
+                    t10_nominal = float(t10_hist["Close"].iloc[-1])
+                    # CPI YoY from macro_dashboard if already computed (populated earlier in this function)
+                    cpi_yoy = None
+                    try:
+                        _infl = macro_dashboard.get("inflation", {})
+                        cpi_yoy = _infl.get("cpi_yoy") if _infl else None
+                    except Exception:
+                        cpi_yoy = None
+                    if cpi_yoy is not None and t10_nominal is not None:
+                        ry_val = round(t10_nominal - cpi_yoy, 3)
+                        ry_source = "yfinance_est"
+            except Exception:
+                ry_val = None
+        if ry_val is not None:
             ry_regime = "Restrictive" if ry_val > 2.0 else "Elevated" if ry_val > 1.0 else "Neutral" if ry_val > 0 else "Accommodative"
-            macro_dashboard["real_yield"] = {"value": round(ry_val, 3), "regime": ry_regime}
+            macro_dashboard["real_yield"] = {"value": round(ry_val, 3), "regime": ry_regime, "source": ry_source}
     except Exception: pass
 
     try:
