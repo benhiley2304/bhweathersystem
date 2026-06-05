@@ -4767,16 +4767,30 @@ def compute_macro_all() -> dict:
     # On cold start, fetching 15+ FRED series sequentially takes up to 180s.
     # Pre-fetch all needed series in parallel so total wait ~ 1 series (12s max).
     _FRED_PREFETCH_LIST = [
+        # US macro
         ("GDP", 24), ("INDPRO", 12), ("CFNAI", 12), ("RSAFS", 12),
         ("CPI", 24), ("CORE_CPI", 24), ("PPI", 24), ("PCE", 24), ("CORE_PCE", 24),
         ("NFP", 12), ("UNEMP", 12), ("CLAIMS", 12), ("JOLTS", 12),
         ("DGS2", 30), ("YLDCRV", 30), ("WALCL", 160), ("HYOAS", 24),
         ("NFCI", 24), ("STLFSI4", 24), ("IGOAS", 24),
+        ("DGS10", 30), ("T10Y3M", 30), ("DFII10", 24), ("FEDFUNDS", 36),
+        # CB policy rates for intl regime
+        ("IUDSOIA", 400), ("ECBDFR", 400), ("IR3TIB01JPM156N", 36),
+        ("IR3TIB01AUM156N", 36), ("IR3TIB01CAM156N", 36),
+        ("IR3TIB01NZM156N", 36), ("IR3TIB01CHM156N", 36), ("IR3TIB01MXM156N", 36),
+        # Non-USD macro (for compute_fred_economy_score)
+        ("DEUCPIALLMINMEI", 24), ("LRHUTTTTEZM156S", 18), ("NAEXKP01EZQ661S", 24),
+        ("GBRCPIALLMINMEI", 24), ("LRHUTTTTGBM156S", 18), ("NAEXKP01GBQ661S", 24),
+        ("JPNCPIALLMINMEI", 24), ("LRUN64TTJPM156S", 18), ("JPNPROINDMISMEI", 18),
+        ("AUSCPIALLQINMEI", 24), ("LRHUTTTTAUM156S", 18),
+        ("CANCPIALLMINMEI", 24), ("LRHUTTTTCAM156S", 18),
+        ("CHECPIALLMINMEI", 24),
+        ("NZLCPIALLQINMEI", 24), ("LRUN64TTNZQ156S", 18),
     ]
-    _pf_ex = _cf.ThreadPoolExecutor(max_workers=10)
+    _pf_ex = _cf.ThreadPoolExecutor(max_workers=20)
     try:
         _pf_futs = [_pf_ex.submit(fetch_fred_series, sid, periods) for sid, periods in _FRED_PREFETCH_LIST]
-        _cf.wait(_pf_futs, timeout=20)  # 20s hard cap — fetches run in parallel
+        _cf.wait(_pf_futs, timeout=20)  # 20s hard cap — all fetch in parallel
     finally:
         _pf_ex.shutdown(wait=False)
     # All fetched series now in FRED_CACHE — subsequent calls are instant
@@ -8854,13 +8868,32 @@ async def _do_scores_refresh(force: bool = False):
     now = time.time()
     print(f"[scores] Cache refresh START", flush=True)
 
+    # ── Parallel price pre-warm ────────────────────────────────────────────────────────────────────────
+    # On cold start, 62 markets × fetch_price_data (20s timeout each) = 1240s sequential.
+    # Pre-warm all market price caches in parallel before the scoring loop.
+    _price_tickers = [m["yf"] for m in MARKETS if m.get("yf")]
+    _price_tickers_uniq = list(dict.fromkeys(_price_tickers))  # deduplicate preserving order
+    def _prewarm_prices():
+        _px_ex = _cf.ThreadPoolExecutor(max_workers=15)
+        try:
+            _px_futs = [_px_ex.submit(fetch_price_data, t) for t in _price_tickers_uniq]
+            _cf.wait(_px_futs, timeout=40)  # 40s hard cap — run all in parallel
+        finally:
+            _px_ex.shutdown(wait=False)
+        print(f"[scores] Price pre-warm done ({len(_price_tickers_uniq)} tickers)", flush=True)
+
+    _loop = asyncio.get_event_loop()
+    # Fire price pre-warm in parallel with compute_macro_all (which fetches FRED)
+    # Both complete in ~20s vs 1400s+ sequential
+    _prewarm_task = _loop.run_in_executor(_APP_EXECUTOR, _prewarm_prices)
+
     # Run all sync blocking data-fetch functions in thread executors
     # so the async event loop (and /api/health) remain responsive
-    _loop = asyncio.get_event_loop()
     # Run sequentially (not concurrently) to avoid OOM on 2GB instance.
     # Each function is cache-backed (TTL 2h) so the sequential cost is trivial
     # on warm hits. On a cold start only the first call is expensive per function.
     macro    = await _loop.run_in_executor(_APP_EXECUTOR, compute_macro_all)
+    await _prewarm_task  # wait for price pre-warm to finish before scoring loop
     _gc_if_heavy("post-macro-all")
     regime   = await _loop.run_in_executor(_APP_EXECUTOR, compute_risk_regime)
     _gc_if_heavy("post-risk-regime")
