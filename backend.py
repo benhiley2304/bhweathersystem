@@ -11679,6 +11679,22 @@ async def upcoming_events(force: bool = False):
 async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
 
+@app.get("/api/debug-yc")
+async def debug_yc():
+    """Debug: test FRED yield curve fetch directly and report results."""
+    import traceback
+    results = {}
+    for sid in ["YLDCRV", "T10Y2Y", "T10Y3M", "DGS2", "DGS10", "DGS5"]:
+        try:
+            d = fetch_fred_series(sid, 10)
+            results[sid] = {"ok": True, "count": len(d) if d else 0, "last": d[-1] if d else None}
+        except Exception as e:
+            results[sid] = {"ok": False, "error": str(e), "trace": traceback.format_exc()[-300:]}
+    # Also check FRED_CACHE keys
+    results["_cache_keys"] = list(FRED_CACHE.keys())
+    results["_cache_size"] = len(FRED_CACHE)
+    return results
+
 @app.get("/api/clear-regime-cache")
 async def clear_regime_cache():
     """Bust the RISK_REGIME_CACHE so the next /api/scores call recomputes fresh."""
