@@ -11681,18 +11681,43 @@ async def health():
 
 @app.get("/api/debug-yc")
 async def debug_yc():
-    """Debug: test FRED yield curve fetch directly and report results."""
+    """Debug: test FRED yield curve fetch and show raw response."""
     import traceback
     results = {}
-    for sid in ["YLDCRV", "T10Y2Y", "T10Y3M", "DGS2", "DGS10", "DGS5"]:
+    # Test raw HTTP fetch for T10Y2Y
+    try:
+        url = FRED_BASE + "T10Y2Y"
+        r = requests.get(url, timeout=15)
+        raw_text = r.text[:500] if r.text else "(empty)"
+        lines = r.text.strip().split("\n") if r.text else []
+        parsed = []
+        for line in lines[1:]:
+            parts = line.split(",")
+            if len(parts) == 2:
+                parsed.append({"raw": line, "skip": parts[1].strip() == "."})
+        results["T10Y2Y_raw"] = {
+            "status": r.status_code,
+            "content_type": r.headers.get("content-type", ""),
+            "raw_first500": raw_text,
+            "line_count": len(lines),
+            "parsed_rows": len(parsed),
+            "dot_rows": sum(1 for p in parsed if p["skip"]),
+            "last5_lines": lines[-5:] if len(lines) >= 5 else lines
+        }
+    except Exception as e:
+        results["T10Y2Y_raw"] = {"error": str(e), "trace": traceback.format_exc()[-400:]}
+    # Test fetch_fred_series for each
+    for sid in ["YLDCRV", "T10Y3M", "DGS2", "DGS10"]:
         try:
+            # Force skip cache
+            resolved = FRED_SERIES.get(sid, sid)
+            FRED_CACHE.pop(resolved, None)
+            FRED_CACHE_TIME_MAP.pop(resolved, None)
             d = fetch_fred_series(sid, 10)
             results[sid] = {"ok": True, "count": len(d) if d else 0, "last": d[-1] if d else None}
         except Exception as e:
-            results[sid] = {"ok": False, "error": str(e), "trace": traceback.format_exc()[-300:]}
-    # Also check FRED_CACHE keys
+            results[sid] = {"ok": False, "error": str(e)}
     results["_cache_keys"] = list(FRED_CACHE.keys())
-    results["_cache_size"] = len(FRED_CACHE)
     return results
 
 @app.get("/api/clear-regime-cache")
