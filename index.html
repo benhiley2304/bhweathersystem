@@ -24085,17 +24085,22 @@ async function resolveAPI() {
 function _showReconnecting(attempt) {
   const ml = document.getElementById('mkt-list');
   if (!ml) return;
-  ml.innerHTML = `<div class="err-banner" style="color:var(--dim)">Reconnecting to server… (attempt ${attempt})</div>`;
+  // First couple of attempts are just a cold-start — show a calm loading message, not an error
+  if (attempt <= 3) {
+    ml.innerHTML = `<div class="err-banner" style="color:var(--dim);opacity:0.7">Starting up — please wait…</div>`;
+  } else {
+    ml.innerHTML = `<div class="err-banner" style="color:var(--dim)">Reconnecting to server… (attempt ${attempt})</div>`;
+  }
 }
 
 // Wrap loadData with auto-retry so tunnel restarts and cache warming self-heal
 async function _loadWithRetry(force, maxAttempts=20) {
-  const delays = [1000, 3000, 6000, 10000, 15000, 20000, 25000, 30000];
+  const delays = [2000, 5000, 10000, 15000, 20000, 25000, 30000, 30000];
   for (let i = 0; i < maxAttempts; i++) {
     try {
       await resolveAPI();
       const url = API + '/api/scores' + (force ? '?force=true' : '');
-      const r = await fetch(url, { signal: AbortSignal.timeout(25000) });
+      const r = await fetch(url, { signal: AbortSignal.timeout(55000) });
       // 202 = backend is warming up — show message and keep retrying
       if (r.status === 202) {
         const ml = document.getElementById('mkt-list');
