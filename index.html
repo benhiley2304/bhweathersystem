@@ -1226,7 +1226,7 @@ a{color:inherit;text-decoration:none}
 @media(max-width:480px){.ov-macro-panels{grid-template-columns:1fr!important;gap:8px;margin:0 10px 12px}}
 /* 480px breakpoint handles single-col — 380px rule kept for safety */
 /* ── Final Refinement CSS ───────────────────────────────── */
-.mc-group-label{font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;color:rgba(173,184,208,0.32);margin:8px 0 4px;padding-bottom:3px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.mc-group-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.11em;text-transform:uppercase;color:rgba(173,184,208,0.55);margin:8px 0 5px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.08);}
 .ov-policy-badge{display:inline-block;font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.07em;padding:2px 8px;border-radius:20px;border:1px solid;margin-top:3px;}
 .ov-extreme-flag{display:inline-block;font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#f5c842;background:rgba(245,200,66,0.14);border:1px solid rgba(245,200,66,0.30);border-radius:6px;padding:1px 4px;margin-left:4px;vertical-align:middle;}
 .ov-divergence-box{margin-bottom:8px;padding:9px 12px;background:rgba(245,164,66,0.09);border:1px solid rgba(245,164,66,0.28);border-radius:8px;border-left:3px solid rgba(245,164,66,0.55);}
@@ -1538,14 +1538,28 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   display:flex;align-items:center;gap:8px;
 }
 .mc-sect-lbl{
-  font-family:var(--mono);font-size:9px;font-weight:800;
-  letter-spacing:0.14em;text-transform:uppercase;
-  color:rgba(200,169,110,0.65);white-space:nowrap;
+  font-family:var(--mono);font-size:9.5px;font-weight:700;
+  letter-spacing:0.10em;text-transform:uppercase;
+  color:rgba(200,169,110,0.75);white-space:nowrap;
 }
 .mc-sect-line{
   flex:1;height:1px;
-  background:linear-gradient(90deg,rgba(200,169,110,0.22),transparent);
+  background:linear-gradient(90deg,rgba(200,169,110,0.28),transparent);
 }
+/* ── Universal card chip system ── */
+.mc-chip{display:inline-flex;align-items:center;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;padding:2px 7px;border-radius:5px;border:1px solid;white-space:nowrap;}
+.mc-chip-beat{color:#22c97a;background:rgba(34,201,122,0.10);border-color:rgba(34,201,122,0.28);}
+.mc-chip-miss{color:#e55246;background:rgba(229,82,70,0.10);border-color:rgba(229,82,70,0.28);}
+.mc-chip-hot{color:#e55246;background:rgba(229,82,70,0.10);border-color:rgba(229,82,70,0.28);}
+.mc-chip-cool{color:#5c9eff;background:rgba(92,158,255,0.10);border-color:rgba(92,158,255,0.28);}
+.mc-chip-neutral{color:#c8a96e;background:rgba(200,169,110,0.10);border-color:rgba(200,169,110,0.28);}
+.mc-chip-warn{color:#f5a442;background:rgba(245,164,66,0.10);border-color:rgba(245,164,66,0.28);}
+/* Sub-label helper — used for context lines beneath chips */
+.mc-sub-note{font-family:var(--mono);font-size:9px;font-weight:500;color:rgba(173,184,208,0.50);line-height:1.4;}
+/* Verdict box — left-border insight line, never repeats hero */
+.mc-verdict{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:0 7px 7px 0;margin-bottom:8px;border-left:2px solid;}
+.mc-verdict-label{font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;white-space:nowrap;padding-top:1px;}
+.mc-verdict-text{font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.70);line-height:1.45;}
 /* Hero block */
 .mc-hero-block{flex-shrink:0;display:flex;align-items:baseline;gap:10px;margin-bottom:2px}
 .mc-hero-num{
@@ -27241,7 +27255,7 @@ function renderMacroDataPanels(reg){
             ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">6m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
           </div>
         </div>
-        <!-- VERDICT ROW: one-line thesis synthesis -->
+        <!-- VERDICT ROW: new-information insight only — never repeats the hero numbers -->
         ${(()=>{
           const useFF = ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null;
           const beat = useFF ? ffNfp.beat : null;
@@ -27251,11 +27265,13 @@ function renderMacroDataPanels(reg){
           const trendC = (()=>{const diff=(nfp3mAvg||0)-(nfp6mAvg||0);return diff>20?'#22c97a':diff<-20?'#e03a2a':'#adb8d0';})();
           const chipLabel = beat===true?'BEAT':beat===false?'MISS':jcLabel;
           const chipCol = beat===true?'#22c97a':beat===false?'#e03a2a':jcCol;
-          const beatPhrase = surpK!=null?(beat===true?`Beat by ${surpK>=0?'+':''}${surpK}K`:beat===false?`Missed by ${surpK}K`:''):'';
-          const avgPhrase = nfp3mAvg!=null ? ` · 3M avg ${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K` : '';
-          return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0c;border-radius:7px;border-left:2px solid ${chipCol}50">
+          // New-information only: stall speed context + trend — not the raw numbers (already in hero)
+          const stallSpeed = nfpMom!=null&&nfpMom>=60?'above stall-speed threshold':nfpMom!=null&&nfpMom>=0?'approaching stall-speed zone':'contraction territory';
+          const stallC = nfpMom!=null&&nfpMom>=60?'#22c97a':nfpMom!=null&&nfpMom>=0?'#c8a96e':'#e03a2a';
+          const trendAvg = nfp3mAvg!=null?` · 3M avg puts labour <span style="color:${trendC};font-weight:700">${trendWord}</span>`:''
+          return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0d;border-radius:0 7px 7px 0;border-left:2px solid ${chipCol}55">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
-            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${beatPhrase}${avgPhrase} · <span style="color:${trendC};font-weight:700">${trendWord}</span></span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.70);line-height:1.45"><span style="color:${stallC};font-weight:700">${stallSpeed}</span>${trendAvg}</span>
           </div>`;
         })()}
         <div class="mc-group-label">Key Labour Metrics</div>
@@ -27274,15 +27290,15 @@ function renderMacroDataPanels(reg){
             const surpDisplay = (surpNum!=null && Math.abs(surpNum) >= 0.005)
               ? ((surpNum>=0?'+':'')+surpNum.toFixed(2)) : null;
             const expClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
-            // Borderless column layout — no box-within-a-box
-            return `<div style="padding:2px 0">
-              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(173,184,208,0.40);margin-bottom:5px">${label}</div>
-              <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
-                <span style="font-family:var(--mono);font-size:28px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:#e8e6e3">${r.val}</span>
-                <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;color:${vCol};padding:2px 7px;border-radius:8px;background:${vCol}1e;border:1px solid ${vCol}55">${verdict}</span>
+            // Upgraded column layout — better weight hierarchy
+            return `<div style="padding:4px 0;border-top:1px solid rgba(255,255,255,0.07)">
+              <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.48);margin-bottom:6px">${label}</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                <span style="font-family:var(--mono);font-size:26px;font-weight:800;letter-spacing:-0.03em;line-height:1;color:#e8e6e3;font-variant-numeric:tabular-nums lining-nums">${r.val}</span>
+                <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;color:${vCol};padding:2px 6px;border-radius:5px;background:${vCol}18;border:1px solid ${vCol}45">${verdict}</span>
               </div>
-              <div style="display:flex;align-items:baseline;gap:6px">
-                ${expClean!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:600;color:rgba(173,184,208,0.42)">est <span style="color:rgba(173,184,208,0.72);font-weight:700">${expClean}</span></span>`:''}
+              <div style="display:flex;align-items:baseline;gap:5px">
+                ${expClean!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.38)">est <span style="color:rgba(173,184,208,0.62);font-weight:700">${expClean}</span></span>`:''}
                 ${surpDisplay!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol}">${surpDisplay}</span>`:''}
               </div>
             </div>`;
@@ -27462,7 +27478,7 @@ function renderMacroDataPanels(reg){
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
           <!-- Row 1: CPI number + HOT/COOL+delta chip -->
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px">
-            <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${cpiVal}</div>
+            <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${cpiNum!=null&&cpiNum>3?'#e03a2a':cpiNum!=null&&cpiNum<1.5?'#5c9eff':'#e8e6e3'}">${cpiVal}</div>
             ${(()=>{
               // CPI hero: find the CPI pipeItem for actual vs forecast
               const cpiRow = pipeItems.find(r=>r.key==='CPI');
@@ -27473,7 +27489,7 @@ function renderMacroDataPanels(reg){
               const verdict = isHot?'HOT':isCool?'COOL':'IN LINE';
               const chipCol = isHot?'#e03a2a':isCool?'#5c9eff':'#6e7d90';
               const surpStr = surprise!=null ? ' ' + (surprise>=0?'+':'') + surprise.toFixed(2) + '%' : '';
-              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:3px 9px;border-radius:10px;background:${chipCol}22;border:1px solid ${chipCol}60">${verdict}${surpStr}</span>`;
+              return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;padding:3px 9px;border-radius:5px;background:${chipCol}22;border:1px solid ${chipCol}60;color:${chipCol}">${verdict}${surpStr}</span>`;
             })()}
           </div>
           <!-- Row 2: EST figure + trend direction -->
@@ -27485,15 +27501,25 @@ function renderMacroDataPanels(reg){
             })()}
             ${(()=>{ const t=(md.inflation||{}).trend||''; return t?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${t==='Rising'?'#e08a2a':t==='Falling'?'#5c9eff':'#adb8d0'}">${t==='Rising'?'\u2191 Rising':t==='Falling'?'\u2193 Falling':'\u2192 Stable'}</span>`:''; })()}
           </div>
-          <!-- Row 3: context — vs target + streak chip -->
+          <!-- Row 3: context — vs target gap elevated, streak chip -->
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">CPI YoY</span>
-            ${gap!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${gapCol}">${gap>=0?'+':''}${gap}% vs 2% target</span>`:''}
+            ${gap!=null?`<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${gapCol}">${gap>=0?'+':''}${gap.toFixed(2)}pp vs 2% target</span>`:''}
             ${(()=>{
               // Fixed streak: count total hot/cool occurrences (consistent with existing logic)
               const hotMisses = pipeItems.filter(r=>r.isBeat===true).length;
               const coolMisses = pipeItems.filter(r=>r.isMiss===true).length;
-              if(hotMisses>=3){const dots='●'.repeat(Math.min(hotMisses,4));return `<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#e03a2a;padding:2px 8px;border-radius:8px;background:rgba(224,58,42,0.14);border:1px solid rgba(224,58,42,0.40);display:inline-flex;align-items:center;gap:2px">${dots}<span style="margin-left:2px;color:rgba(255,255,255,0.80);font-size:8px">${hotMisses}\u00d7 HOT</span></span>`;}
+              if(hotMisses>=3){
+                // Temperature strip: COLD ──●───── HOT
+                const hotPct = Math.min(95, 60 + (hotMisses-3)*10);
+                return `<div style="display:flex;align-items:center;gap:6px">
+                  <div style="position:relative;width:80px;height:5px;border-radius:3px;overflow:visible;background:rgba(255,255,255,0.05)">
+                    <div style="position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,#4a90d9 0%,#adb8d0 40%,#e03a2a 100%);opacity:0.80"></div>
+                    <div style="position:absolute;top:-3.5px;width:10px;height:10px;border-radius:50%;background:#e03a2a;border:1.5px solid rgba(255,255,255,0.7);left:${hotPct}%;transform:translateX(-50%);box-shadow:0 0 5px rgba(224,58,42,0.7)"></div>
+                  </div>
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:800;color:#e03a2a">${hotMisses}\u00d7 HOT</span>
+                </div>`;
+              }
               if(coolMisses>=2) return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#ffffff;padding:2px 8px;border-radius:8px;background:rgba(92,158,255,0.25);border:1px solid rgba(92,158,255,0.55)">${coolMisses}\u00d7 COOL</span>`;
               return '';
             })()}
@@ -27550,7 +27576,7 @@ function renderMacroDataPanels(reg){
                     <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(200,169,110,0.70);margin-bottom:1px">FED TARGET · Fed’s preferred gauge</div>
                     <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.55)">Core PCE <span style="font-size:7px;letter-spacing:0.03em;text-transform:none;opacity:0.75">${r.unit_label||'m/m'}</span></div>
                   </div>
-                  <span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2.5px 8px;border-radius:9px;background:${vCol}22;border:1px solid ${vCol}60">${verdict}</span>
+                  <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;padding:2.5px 8px;border-radius:5px;background:${vCol}22;border:1px solid ${vCol}60;color:${vCol}">${verdict}</span>
                 </div>
                 <!-- Actual vs EST side by side — clear comparison -->
                 <div style="display:flex;align-items:center;gap:0;margin-bottom:6px">
@@ -27644,19 +27670,28 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- HERO: Level + regime + monthly run-rate -->
         <div style="margin-bottom:6px">
-          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;flex-wrap:wrap">
             <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'\u2014'}</div>
+            ${(()=>{const status=fbChg3m!=null?(fbChg3m>0.02?'EXPANDING':fbChg3m<-0.02?'QT ACTIVE':'STABILISING'):null;if(!status)return '';const badgeCol=status==='EXPANDING'?'#22c97a':status==='QT ACTIVE'?'#e03a2a':'#c8a96e';return '<span class="ov-policy-badge" style="color:'+badgeCol+';background:'+badgeCol+'15;border-color:'+badgeCol+'45">'+status+'</span>';})()}
           </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            ${vsPeak!=null?`<span style="font-family:var(--mono);font-size:9px;color:var(--faint)">${vsPeak}% of QE peak · still elevated vs pre-QE (~$4T)</span>`:''}
-            <!-- 3M run-rate removed — shown in change tile below -->
-          </div>
-          ${(()=>{const status=fbChg3m!=null?(fbChg3m>0.02?'EXPANDING':fbChg3m<-0.02?'QT ACTIVE':'STABILISING'):null;if(!status)return '';const badgeCol=status==='EXPANDING'?'#22c97a':status==='QT ACTIVE'?'#e03a2a':'#c8a96e';return '<span class="ov-policy-badge" style="color:'+badgeCol+';background:'+badgeCol+'15;border-color:'+badgeCol+'45">'+status+'</span>';})()}
+          ${vsPeak!=null?`
+          <!-- QE peak progress bar -->
+          <div style="margin:6px 0 4px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span style="font-family:var(--mono);font-size:8.5px;font-weight:600;color:rgba(173,184,208,0.45)">PRE-QE ~$4T</span>
+              <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:#c8a96e">${vsPeak}% of QE peak</span>
+              <span style="font-family:var(--mono);font-size:8.5px;font-weight:600;color:rgba(173,184,208,0.45)">PEAK $8.97T</span>
+            </div>
+            <div style="position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:visible">
+              <div style="position:absolute;inset:0;border-radius:3px;background:rgba(255,255,255,0.06)"></div>
+              <div style="position:absolute;top:0;left:0;height:100%;width:${vsPeak}%;background:linear-gradient(90deg,rgba(200,169,110,0.5) 0%,#c8a96e 100%);border-radius:3px"></div>
+              <div style="position:absolute;top:-4px;width:11px;height:11px;border-radius:50%;background:#c8a96e;border:1.5px solid rgba(255,255,255,0.6);left:${vsPeak}%;transform:translateX(-50%);box-shadow:0 0 6px rgba(200,169,110,0.7);z-index:2"></div>
+            </div>
+          </div>`:''}          
         </div>
         <!-- CHART: Full-width area — primary visual, annotated -->
         <div style="flex:1;min-height:120px;margin:4px 0 0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);position:relative">
           ${svgChart}
-          <div style="position:absolute;bottom:6px;right:10px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.20)">\u2190 recent</div>
         </div>
         <!-- Compact arc canvas (hidden — legacy) -->
         <div style="display:none"><canvas id="ov-bs-arc-canvas"></canvas></div>
@@ -27736,26 +27771,26 @@ function renderMacroDataPanels(reg){
             <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em">10Y\u22122Y</span>
             ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.10);border:1px solid rgba(34,201,122,0.20);letter-spacing:0.06em">POSITIVE \u2191</span>`:''}
             ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.10);border:1px solid rgba(224,58,42,0.20);letter-spacing:0.06em">INVERTED \u2193</span>`:''}
-            ${yc_move_type&&yc_move_type!=='—'?`<span title="${yc_move_type.includes('Bear Flat')?'Short rates rising faster · Curve compressing':yc_move_type.includes('Bull Flat')?'Short rates falling faster · Curve compressing':yc_move_type.includes('Bear Steep')?'Long rates rising faster · Curve expanding':yc_move_type.includes('Bull Steep')?'Long rates falling · Typically expansionary':''}" style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:${moveCol};padding:1px 6px;border-radius:10px;background:${moveCol}15;border:1px solid ${moveCol}30;letter-spacing:0.04em;cursor:help">${yc_move_type}</span>`:''}
+            ${yc_move_type&&yc_move_type!=='—'?`<div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${moveCol};padding:2px 7px;border-radius:5px;background:${moveCol}15;border:1px solid ${moveCol}30;letter-spacing:0.04em">${yc_move_type}</span><span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.52)">${yc_move_type.includes('Bull Steep')?'Short end falling faster — rate cut signal':yc_move_type.includes('Bear Steep')?'Long rates rising faster':yc_move_type.includes('Bull Flat')?'Short end falling, long flat':yc_move_type.includes('Bear Flat')?'Short rates rising faster':''}</span></div>`:''}
           </div>
         </div>
         <!-- RATE LEVELS: 4-col strip: 2Y / 10Y / 30Y / 10Y−2Y spread -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;margin-bottom:8px;border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.07)">
-          <div style="padding:5px 4px">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:2px">2Y</div>
-            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1">${t2!=null?t2.toFixed(2)+'%':'\u2014'}</div>
+          <div style="padding:6px 4px">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:3px">2Y</div>
+            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1;font-variant-numeric:tabular-nums">${t2!=null?t2.toFixed(2)+'%':'\u2014'}</div>
           </div>
-          <div style="padding:5px 4px;border-left:1px solid rgba(255,255,255,0.07)">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:2px">10Y</div>
-            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1">${t10!=null?t10.toFixed(2)+'%':'\u2014'}</div>
+          <div style="padding:6px 4px;border-left:1px solid rgba(255,255,255,0.07)">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:3px">10Y</div>
+            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1;font-variant-numeric:tabular-nums">${t10!=null?t10.toFixed(2)+'%':'\u2014'}</div>
           </div>
-          <div style="padding:5px 4px;border-left:1px solid rgba(255,255,255,0.07)">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:2px">30Y</div>
-            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1">${t30!=null?t30.toFixed(2)+'%':'\u2014'}</div>
+          <div style="padding:6px 4px;border-left:1px solid rgba(255,255,255,0.07)">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:3px">30Y</div>
+            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1;font-variant-numeric:tabular-nums">${t30!=null?t30.toFixed(2)+'%':'\u2014'}</div>
           </div>
-          <div style="padding:5px 4px;border-left:1px solid rgba(255,255,255,0.07)">
-            <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-bottom:2px">10Y−2Y</div>
-            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${spreadBps!=null&&spreadBps>0?'#22c97a':spreadBps!=null&&spreadBps<0?'#e03a2a':'#adb8d0'};line-height:1">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'\u2014'}</div>
+          <div style="padding:6px 4px;border-left:1px solid rgba(255,255,255,0.07)">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:3px">10Y−2Y</div>
+            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${spreadBps!=null&&spreadBps>0?'#22c97a':spreadBps!=null&&spreadBps<0?'#e03a2a':'#adb8d0'};line-height:1;font-variant-numeric:tabular-nums">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'\u2014'}</div>
           </div>
         </div>
         <!-- CHART: 12M yield curve history — primary analytical visual -->
@@ -27774,7 +27809,7 @@ function renderMacroDataPanels(reg){
           ${ryVal!=null?`<div style="background:${ryVal>0?'rgba(34,201,122,0.05)':'rgba(224,58,42,0.05)'};border:1px solid ${ryVal>0?'rgba(34,201,122,0.25)':'rgba(224,58,42,0.25)'};border-radius:7px;padding:7px 8px;display:flex;flex-direction:column;gap:1px">
             <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.65)">Real Yield</span>
             <span style="font-family:var(--mono);font-size:17px;font-weight:900;letter-spacing:-0.02em;color:${ryCol};line-height:1.1">${ryVal>=0?'+':''}${ryVal.toFixed(2)}%</span>
-            <span style="font-family:var(--mono);font-size:7px;font-weight:600;color:rgba(173,184,208,0.45)">10Y TIPS</span>
+            <span style="font-family:var(--mono);font-size:7px;font-weight:600;font-style:italic;color:rgba(173,184,208,0.45)">~nominal &minus; CPI est.</span>
           </div>`:'<div></div>'}
           ${cuts12m!=null?(()=>{
             const path_bp = -cuts12m * 25;
@@ -27813,14 +27848,16 @@ function renderMacroDataPanels(reg){
           const bothTight = tightCount===2;
           const col = bothTight?'#22c97a':tightCount===1?'#5aaa7a':'#adb8d0';
           const label = bothTight?'TIGHT':'WATCH';
+          const ordinal = n => { const s=Math.round(n); return s===1?s+'<sup>st</sup>':s===2?s+'<sup>nd</sup>':s===3?s+'<sup>rd</sup>':s+'<sup>th</sup>'; };
           const pctStr = [
-            hyHistPct!=null?`HY ${Math.round(hyHistPct)}th pct`:'',
-            igHistPct!=null?`IG ${(n=>{const s=Math.round(n);return s===1?s+'st':s===2?s+'nd':s===3?s+'rd':s+'th';})(igHistPct)} pct`:''
-          ].filter(Boolean).join(' · ');
+            hyHistPct!=null?`HY ${ordinal(hyHistPct)} pctile`:'',
+            igHistPct!=null?`IG ${ordinal(igHistPct)} pctile`:''
+          ].filter(Boolean).join(' &middot; ');
           const warning = (hyHistPct!=null&&hyHistPct<=15)||(igHistPct!=null&&igHistPct<=15);
+          const contextNote = warning ? ' &middot; Priced for perfection &mdash; <30th pctile = complacency zone' : ' &middot; Mid-range; tight spreads = risk-on';
           return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${col}0c;border-radius:7px;border-left:2px solid ${col}50">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${col};white-space:nowrap;padding-top:1px">${label}</span>
-            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${pctStr}${warning?' · Priced for perfection':''}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${pctStr}${contextNote}</span>
           </div>`;
         })()}
         <!-- HERO: HY OAS as dominant stat, IG as secondary row -->
@@ -27835,7 +27872,7 @@ function renderMacroDataPanels(reg){
               <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${_hyNumCol};letter-spacing:0.04em;text-transform:uppercase;margin-top:2px">${hyZoneLabel}</div>
             </div>
             <div style="text-align:right">
-              ${hyHistPct!=null?`<div style="font-family:var(--mono);font-size:11px;font-weight:800;color:${hyHistPct<=25?'#22c97a':hyHistPct<=50?'#5aaa7a':hyHistPct<=75?'#c8a96e':'#e03a2a'};padding:3px 8px;border-radius:10px;background:${hyHistPct<=25?'rgba(34,201,122,0.12)':hyHistPct<=75?'rgba(200,169,110,0.12)':'rgba(224,58,42,0.12)'};border:1px solid rgba(255,255,255,0.10)">${(n=>{const s=Math.round(n);return s===1?s+'st':s===2?s+'nd':s===3?s+'rd':s+'th';})(hyHistPct)} pct</div>`:''}
+              ${hyHistPct!=null?`<div style="font-family:var(--mono);font-size:11px;font-weight:800;color:${hyHistPct<=25?'#22c97a':hyHistPct<=50?'#5aaa7a':hyHistPct<=75?'#c8a96e':'#e03a2a'};padding:3px 8px;border-radius:5px;background:${hyHistPct<=25?'rgba(34,201,122,0.12)':hyHistPct<=75?'rgba(200,169,110,0.12)':'rgba(224,58,42,0.12)'};border:1px solid rgba(255,255,255,0.10)">${(n=>{const s=Math.round(n);return s===1?s+'<sup>st</sup>':s===2?s+'<sup>nd</sup>':s===3?s+'<sup>rd</sup>':s+'<sup>th</sup>';})(hyHistPct)}<br><span style="font-size:7px;opacity:0.65;font-weight:600;letter-spacing:0.04em">3Y PCTILE</span></div>`:''}
             </div>
           </div>
           <!-- IG OAS: secondary row -->
@@ -27845,7 +27882,7 @@ function renderMacroDataPanels(reg){
               <span style="font-family:var(--mono);font-size:15px;font-weight:900;color:${_igNumCol}">${igOas!=null?igOas:'\u2014'}${igOas!=null?`<span style="font-size:9px;opacity:0.7">bp</span>`:''}</span>
               <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${_igNumCol};letter-spacing:0.04em;text-transform:uppercase">${igZoneLabel}</span>
             </div>
-            ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${igHistPct<=25?'#22c97a':igHistPct<=50?'#5aaa7a':igHistPct<=75?'#c8a96e':'#e03a2a'};padding:1px 6px;border-radius:8px;background:${igHistPct<=25?'rgba(34,201,122,0.12)':igHistPct<=75?'rgba(200,169,110,0.12)':'rgba(224,58,42,0.12)'};border:1px solid rgba(255,255,255,0.10)">${(n=>{const s=Math.round(n);return s===1?s+'st':s===2?s+'nd':s===3?s+'rd':s+'th';})(igHistPct)} pct</span>`:''}${igHistPct!=null&&hyHistPct!=null&&igHistPct<hyHistPct?'<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:rgba(34,201,122,0.80);letter-spacing:0.05em;padding:0 4px;background:rgba(34,201,122,0.12);border:1px solid rgba(34,201,122,0.22);border-radius:3px;margin-left:3px">MORE EXTREME</span>':''}
+            ${igHistPct!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${igHistPct<=25?'#22c97a':igHistPct<=50?'#5aaa7a':igHistPct<=75?'#c8a96e':'#e03a2a'};padding:1px 6px;border-radius:5px;background:${igHistPct<=25?'rgba(34,201,122,0.12)':igHistPct<=75?'rgba(200,169,110,0.12)':'rgba(224,58,42,0.12)'};border:1px solid rgba(255,255,255,0.10)">${(n=>{const s=Math.round(n);return s===1?s+'<sup>st</sup>':s===2?s+'<sup>nd</sup>':s===3?s+'<sup>rd</sup>':s+'<sup>th</sup>';})(igHistPct)}</span>`:''}${igHistPct!=null&&hyHistPct!=null&&igHistPct<hyHistPct?'<span style="font-family:var(--mono);font-size:7px;font-weight:800;color:rgba(34,201,122,0.80);letter-spacing:0.05em;padding:0 4px;background:rgba(34,201,122,0.12);border:1px solid rgba(34,201,122,0.22);border-radius:3px;margin-left:3px">MORE EXTREME</span>':''}
           </div>
         </div>
         <!-- PERCENTILE RANGE TRACKS -->
@@ -28014,8 +28051,16 @@ function renderMacroDataPanels(reg){
           </div>
           <span class="ov-mc-badge" style="color:${scBadgeCol};background:${scBadgeCol}1a;border:1px solid ${scBadgeCol}38">${scBadgeLabel}</span>
         </div>
-        <!-- Narrative verdict line -->
-        <div style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.62);line-height:1.45;margin-bottom:8px;margin-top:-2px">${vixSkewDiv?'VIX low but SKEW elevated \u2014 hidden tail stress, surface complacent':scOverall>=1?'Risk-on regime active \u00b7 Breadth confirming \u00b7 Vol surface in check':scOverall<=-1?'Risk-off conditions \u00b7 Elevated volatility \u00b7 Defensive bias':'Mixed signals \u00b7 Monitor breadth and vol for regime shift'}</div>
+        <!-- Composite verdict chip + narrative line -->
+        ${(()=>{
+          const verdLabel = vixSkewDiv?'HIDDEN STRESS':scOverall>=2?'BULLISH':scOverall>=1?'LEAN BULL':scOverall<=-2?'BEARISH':scOverall<=-1?'LEAN BEAR':'MIXED';
+          const verdCol   = vixSkewDiv?'#f5a442':scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#c8a96e';
+          const subLabel  = vixSkewDiv?'VIX low, SKEW elevated — surface calm, smart money hedging':scOverall>=1?'Bullish momentum · Vol contained · Watch valuation':scOverall<=-1?'Risk-off · Elevated vol · Defensive bias':'Mixed — bullish momentum vs extended valuation';
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:-2px;flex-wrap:wrap">
+            <span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;padding:3px 10px;border-radius:5px;background:${verdCol}18;border:1px solid ${verdCol}45;color:${verdCol}">${verdLabel}</span>
+            <span style="font-family:var(--mono);font-size:9px;font-weight:500;color:rgba(173,184,208,0.58);flex:1;line-height:1.4">${subLabel}</span>
+          </div>`;
+        })()}
 
         <!-- SENTIMENT sub-header -->
         <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Volatility Surface</div><div class="mc-sect-line"></div></div>
@@ -28070,6 +28115,8 @@ function renderMacroDataPanels(reg){
           })()}
         </div>
 
+        <!-- VIX+SKEW joint read — always visible -->
+        ${vixNum>0&&skewNum>0?`<div style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.50);font-style:italic;text-align:center;margin:-4px 0 6px;line-height:1.4">VIX ${vixNum<18?'LOW':vixNum<25?'MODERATE':'HIGH'} + SKEW ${skewNum<125?'NORMAL':'ELEVATED'} — ${vixSkewDiv?'complacency + tail hedging (hidden stress)':vixNum<18&&skewNum<125?'calm surface, low tail demand':vixNum<25&&skewNum<135?'normal vol regime':'elevated vol, monitor positioning'}</div>`:''}
         ${vixSkewDiv?`<div class="ov-divergence-box">
            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
              <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#f5a442;letter-spacing:0.04em">HIDDEN STRESS</span>
@@ -28087,14 +28134,17 @@ function renderMacroDataPanels(reg){
             ${(()=>{
               if(!fpeNum) return '';
               const fc = sigCol(fpeSig.score??0);
-              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+              const isExtreme = fpeNum>25;
+              const extBg = isExtreme?'background:rgba(224,58,42,0.06);border:1px solid rgba(224,58,42,0.12);border-radius:6px;padding:6px 6px 4px;':'padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);';
+              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;${extBg}">
                 <div>
                   <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">S&P 500 P/E</div>
                   ${thermoBar({value:fpeNum,min:10,max:40,zones:[{v0:10,v1:14,col:'rgba(34,201,122,0.80)'},{v0:14,v1:18,col:'rgba(80,180,110,0.65)'},{v0:18,v1:23,col:'rgba(200,169,110,0.65)'},{v0:23,v1:30,col:'rgba(240,140,60,0.72)'},{v0:30,v1:40,col:'rgba(220,60,42,0.82)'}],leftLabel:'10x cheap',rightLabel:'40x extreme',benchmarks:[{v:17.5,col:'rgba(173,184,208,0.55)'},{v:21.4,col:'rgba(200,169,110,0.45)'}]})}
+                  ${isExtreme?`<div style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.45);margin-top:2px">avg 18× since 1990</div>`:''}
                 </div>
                 <div style="text-align:right;min-width:68px">
-                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</div>
-                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${fc};text-transform:uppercase;letter-spacing:0.05em">${fpeSig.label||'\u2014'}</div>
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${isExtreme?'#e03a2a':'#e8e6e3'};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</div>
+                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${fc};text-transform:uppercase;letter-spacing:0.05em">${isExtreme?'EXPENSIVE':fpeSig.label||'\u2014'}</div>
                 </div>
               </div>`;
             })()}
@@ -28103,14 +28153,17 @@ function renderMacroDataPanels(reg){
             ${(()=>{
               if(!pcrNum) return '';
               const pc = sigCol(pcrSig.score??0);
-              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+              const isExtreme = pcrNum<0.50;
+              const extBg = isExtreme?'background:rgba(224,58,42,0.06);border:1px solid rgba(224,58,42,0.12);border-radius:6px;padding:6px 6px 4px;margin-top:4px;':'padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);margin-top:4px;';
+              return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;${extBg}">
                 <div>
-                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">Equity P/C Ratio <span style="font-weight:400;opacity:0.50;font-size:8px;text-transform:none">low = complacency</span></div>
-                  ${thermoBar({value:pcrNum,min:0.35,max:1.20,zones:[{v0:0.35,v1:0.50,col:'rgba(224,58,42,0.80)'},{v0:0.50,v1:0.65,col:'rgba(220,120,50,0.68)'},{v0:0.65,v1:0.80,col:'rgba(200,169,110,0.58)'},{v0:0.80,v1:1.00,col:'rgba(80,180,110,0.68)'},{v0:1.00,v1:1.20,col:'rgba(34,201,122,0.80)'}],leftLabel:'0.35 complacency',rightLabel:'1.2 fear/hedge',benchmarks:[{v:0.70,col:'rgba(173,184,208,0.50)'}]})}
+                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">P/C Ratio <span style="font-weight:400;opacity:0.50;font-size:8px;text-transform:none">low = complacency</span></div>
+                  ${thermoBar({value:pcrNum,min:0.35,max:1.20,zones:[{v0:0.35,v1:0.50,col:'rgba(224,58,42,0.80)'},{v0:0.50,v1:0.65,col:'rgba(220,120,50,0.68)'},{v0:0.65,v1:0.80,col:'rgba(200,169,110,0.58)'},{v0:0.80,v1:1.00,col:'rgba(80,180,110,0.68)'},{v0:1.00,v1:1.20,col:'rgba(34,201,122,0.80)'}],leftLabel:'0.35 greed',rightLabel:'1.2 fear',benchmarks:[{v:0.70,col:'rgba(173,184,208,0.50)'}]})}
+                  ${isExtreme?`<div style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.45);margin-top:2px">fear &lt;0.7, greed &lt;0.5</div>`:''}
                 </div>
                 <div style="text-align:right;min-width:68px">
-                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em">${pcrNum.toFixed(2)}</div>
-                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${pc};text-transform:uppercase;letter-spacing:0.05em">${pcrSig.label||'\u2014'}</div>
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${isExtreme?'#e03a2a':'#e8e6e3'};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</div>
+                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${pc};text-transform:uppercase;letter-spacing:0.05em">${isExtreme?'EXTREME GREED':pcrSig.label||'\u2014'}</div>
                 </div>
               </div>`;
             })()}
@@ -28147,23 +28200,27 @@ function renderMacroDataPanels(reg){
               </div>`;
             })()}
 
-            <!-- NFCI + ERP side by side (conditions row) -->
+            <!-- NFCI + ERP side by side (conditions row) — graceful N/A handling -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:7px 0">
               <div>
                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
-                  <div style="width:4px;height:4px;border-radius:50%;background:${dotCol(nfciSig.score??0)};flex-shrink:0"></div>
+                  <div style="width:4px;height:4px;border-radius:50%;background:${nfciSig.value?dotCol(nfciSig.score??0):'rgba(173,184,208,0.25)'};flex-shrink:0"></div>
                   <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.50)">NFCI</span>
                 </div>
-                <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(nfciSig.score??0)};letter-spacing:-0.01em">${nfciSig.value||'\u2014'}</div>
-                <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${sigCol(nfciSig.score??0)};text-transform:uppercase;letter-spacing:0.04em;opacity:0.85">${(nfciSig.label||'\u2014').replace('VERY LOOSE','EASY').replace('Very Loose','Easy')}</div>
+                ${nfciSig.value?`<div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(nfciSig.score??0)};letter-spacing:-0.01em">${nfciSig.value}</div>
+                <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${sigCol(nfciSig.score??0)};text-transform:uppercase;letter-spacing:0.04em;opacity:0.85">${(nfciSig.label||'').replace('VERY LOOSE','EASY').replace('Very Loose','Easy')}</div>`
+                :`<div style="font-family:var(--mono);font-size:10px;color:rgba(173,184,208,0.35);font-style:italic">Weekly release</div>
+                <div style="font-family:var(--mono);font-size:8px;color:rgba(173,184,208,0.28)">Fin. conditions index</div>`}
               </div>
               <div>
                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
-                  <div style="width:4px;height:4px;border-radius:50%;background:${dotCol(erpSig.score??0)};flex-shrink:0"></div>
+                  <div style="width:4px;height:4px;border-radius:50%;background:${erpSig.value?dotCol(erpSig.score??0):'rgba(173,184,208,0.25)'};flex-shrink:0"></div>
                   <span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.50)">Eq. Risk Premium</span>
                 </div>
-                <div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(erpSig.score??0)};letter-spacing:-0.01em">${erpSig.value||'\u2014'}</div>
-                <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${sigCol(erpSig.score??0)};text-transform:uppercase;letter-spacing:0.04em;opacity:0.85">${erpSig.label||'\u2014'}</div>
+                ${erpSig.value?`<div style="font-family:var(--mono);font-size:13px;font-weight:900;color:${sigCol(erpSig.score??0)};letter-spacing:-0.01em">${erpSig.value}</div>
+                <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${sigCol(erpSig.score??0)};text-transform:uppercase;letter-spacing:0.04em;opacity:0.85">${erpSig.label||''}</div>`
+                :`<div style="font-family:var(--mono);font-size:10px;color:rgba(173,184,208,0.35);font-style:italic">Est. ~2.4% (E/P − 10Y)</div>
+                <div style="font-family:var(--mono);font-size:8px;color:rgba(173,184,208,0.28)">Earnings yield spread</div>`}
               </div>
             </div>
 
