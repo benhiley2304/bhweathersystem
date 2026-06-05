@@ -3610,9 +3610,13 @@ def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
     Uses the shared app executor to avoid thread pool deadlocks.
     """
     flat_events = []
-    with _cf.ThreadPoolExecutor(max_workers=3) as ex:  # capped: FF month fetches, each makes HTTP calls
-        futs = {ex.submit(_fetch_ff_month, y, m): (y, m) for y, m in year_month_pairs}
-        for fut in _cf.as_completed(futs):
+    _ex_months = _cf.ThreadPoolExecutor(max_workers=3)  # capped: FF month fetches, each makes HTTP calls
+    try:
+        futs = {_ex_months.submit(_fetch_ff_month, y, m): (y, m) for y, m in year_month_pairs}
+        done, pending = _cf.wait(futs, timeout=45)  # hard 45s wall-clock cap
+        for fut in pending:
+            fut.cancel()
+        for fut in done:
             try:
                 days = fut.result()  # list of day-dicts from new _fetch_ff_month
                 for day in days:
@@ -3636,6 +3640,8 @@ def _fetch_ff_months_parallel(year_month_pairs: list) -> list:
                         })
             except Exception:
                 pass
+    finally:
+        _ex_months.shutdown(wait=False)
     return flat_events
 
 
@@ -3674,7 +3680,7 @@ def _fetch_ff_week_html(week_str: str) -> list:
         "Referer": "https://www.forexfactory.com/",
     }
     try:
-        r = requests.get(url, timeout=20, headers=headers)
+        r = requests.get(url, timeout=8, headers=headers)
         if r.status_code != 200:
             return []
         html = r.text
@@ -3739,14 +3745,21 @@ def _fetch_ff_labour_surprises(force: bool = False) -> dict:
     week_strings = _get_week_strings(14)  # 14 weeks back (~3.5 months)
     all_events = []
 
-    # Fetch weeks in parallel (ThreadPool)
-    with _cf.ThreadPoolExecutor(max_workers=3) as ex:
-        futs = {ex.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
-        for fut in _cf.as_completed(futs):
+    # Hard 45s wall-clock cap — prevents thread hangs from blocking the scoring pipeline
+    # Use shutdown(wait=False) so the executor doesn't block the calling thread
+    _ex_labour = _cf.ThreadPoolExecutor(max_workers=3)
+    try:
+        futs = {_ex_labour.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
+        done, pending = _cf.wait(futs, timeout=45)
+        for fut in pending:
+            fut.cancel()
+        for fut in done:
             try:
                 all_events.extend(fut.result())
             except Exception:
                 pass
+    finally:
+        _ex_labour.shutdown(wait=False)
 
     # Filter: USD only, has actual AND forecast, is a key labour event
     releases: dict = {key_info["key"]: [] for key_info in _FF_LABOUR_EVENTS.values()}
@@ -3879,13 +3892,21 @@ def _fetch_ff_inflation_surprises(force: bool = False) -> dict:
     week_strings = _get_week_strings(16)  # 16 weeks ≈ 4 months (CPI/PCE monthly releases)
     all_events = []
 
-    with _cf.ThreadPoolExecutor(max_workers=3) as ex:
-        futs = {ex.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
-        for fut in _cf.as_completed(futs):
+    # Hard 45s wall-clock cap — prevents thread hangs from blocking the scoring pipeline
+    # Use shutdown(wait=False) so the executor doesn't block the calling thread
+    _ex_infl = _cf.ThreadPoolExecutor(max_workers=3)
+    try:
+        futs = {_ex_infl.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
+        done, pending = _cf.wait(futs, timeout=45)
+        for fut in pending:
+            fut.cancel()
+        for fut in done:
             try:
                 all_events.extend(fut.result())
             except Exception:
                 pass
+    finally:
+        _ex_infl.shutdown(wait=False)
 
     # Deduplicate: FF HTML sometimes returns same event twice per week
     seen = set()
@@ -11499,13 +11520,19 @@ async def upcoming_events(force: bool = False):
     week_strings = _get_future_week_strings(3)  # current + next 2 weeks (covers 10-day window)
     all_events: list = []
 
-    with _cf.ThreadPoolExecutor(max_workers=3) as ex:
-        futs = {ex.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
-        for fut in _cf.as_completed(futs):
+    _ex_upev = _cf.ThreadPoolExecutor(max_workers=3)
+    try:
+        futs = {_ex_upev.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
+        done, pending = _cf.wait(futs, timeout=30)
+        for fut in pending:
+            fut.cancel()
+        for fut in done:
             try:
                 all_events.extend(fut.result())
             except Exception:
                 pass
+    finally:
+        _ex_upev.shutdown(wait=False)
 
     now_utc = datetime.now(timezone.utc)
     cutoff = now_utc + timedelta(days=10)
