@@ -1389,6 +1389,7 @@ def fetch_pcr_history() -> Optional[pd.DataFrame]:
         df_all = pd.concat([df_old, df_new], ignore_index=True)
         df_all = df_all.sort_values("DATE").drop_duplicates("DATE").reset_index(drop=True)
         df_all = df_all.set_index("DATE")
+        df_all["pc_ma5"]  = df_all["equity_pc"].rolling(5).mean()
         df_all["pc_ma10"] = df_all["equity_pc"].rolling(10).mean()
         df_all["pc_ma20"] = df_all["equity_pc"].rolling(20).mean()
 
@@ -1511,24 +1512,29 @@ def score_pcr(market_id: str) -> dict:
     source = tier_cfg.get("source", "")
 
     # ── EQUITY: use daily CBOE aggregate equity P/C ratio ──────────────────
+    # Scoring uses 5-day MA of daily PCR — fast enough to catch spikes within
+    # 1 week, but not single-day noise. The 20-day MA is kept for chart display only.
     if source == "cboe_equity":
         df = fetch_pcr_history()
         if df is None or df.empty:
             return {"score": 5.0, "label": "No Data", "tier": tier,
                     "detail": {"error": "Could not fetch P/C ratio data"}}
 
-        df_clean = df.dropna(subset=["pc_ma20"])
+        df_clean = df.dropna(subset=["pc_ma5"])
         if df_clean.empty:
             return {"score": 5.0, "label": "No Data", "tier": tier,
                     "detail": {"error": "Insufficient history for MA"}}
 
         latest        = df_clean.iloc[-1]
         current_daily = float(latest["equity_pc"])
-        current_ma20  = float(latest["pc_ma20"])
+        current_ma5   = float(latest["pc_ma5"])
+        current_ma20  = float(latest["pc_ma20"]) if not pd.isna(latest.get("pc_ma20", float("nan"))) else current_ma5
         latest_date   = str(df_clean.index[-1].date())
 
-        all_ma20   = df_clean["pc_ma20"].values
-        percentile = float(np.mean(all_ma20 < current_ma20))
+        # Percentile ranks 5-day MA vs full history of 5-day MAs
+        # This gives same-week responsiveness while filtering single-day noise
+        all_ma5    = df_clean["pc_ma5"].values
+        percentile = float(np.mean(all_ma5 < current_ma5))
         score      = round(max(0.0, min(10.0, percentile * 10)), 1)
 
         if percentile >= 0.90:   label = "Extreme Fear"
@@ -1549,18 +1555,20 @@ def score_pcr(market_id: str) -> dict:
             "score": score, "label": label, "tier": tier,
             "detail": {
                 "current_daily": round(current_daily, 3),
+                "ma5":  round(current_ma5,  3),
                 "ma20": round(current_ma20, 3),
                 "percentile": round(percentile * 100, 1),
                 "signal": signal, "label": label,
                 "latest_date": latest_date,
                 "source": "CBOE Aggregate Equity P/C",
+                "scoring_basis": "5-day MA percentile",
                 "thresholds": {
-                    "extreme_greed": round(float(np.percentile(all_ma20, 10)), 3),
-                    "moderate_greed": round(float(np.percentile(all_ma20, 25)), 3),
-                    "neutral_low":    round(float(np.percentile(all_ma20, 40)), 3),
-                    "neutral_high":   round(float(np.percentile(all_ma20, 60)), 3),
-                    "moderate_fear":  round(float(np.percentile(all_ma20, 75)), 3),
-                    "extreme_fear":   round(float(np.percentile(all_ma20, 90)), 3),
+                    "extreme_greed": round(float(np.percentile(all_ma5, 10)), 3),
+                    "moderate_greed": round(float(np.percentile(all_ma5, 25)), 3),
+                    "neutral_low":    round(float(np.percentile(all_ma5, 40)), 3),
+                    "neutral_high":   round(float(np.percentile(all_ma5, 60)), 3),
+                    "moderate_fear":  round(float(np.percentile(all_ma5, 75)), 3),
+                    "extreme_fear":   round(float(np.percentile(all_ma5, 90)), 3),
                 }
             }
         }
@@ -6134,30 +6142,36 @@ def compute_stock_climate() -> dict:
         try:
             _pcr_df = fetch_pcr_history()
             if _pcr_df is not None and not _pcr_df.empty:
-                _pcr_latest = _pcr_df["equity_pc"].dropna()
-                if len(_pcr_latest) > 0:
-                    pcr_now = float(_pcr_latest.iloc[-1])
+                _pcr_ma5_series = _pcr_df["pc_ma5"].dropna() if "pc_ma5" in _pcr_df.columns else None
+                _pcr_daily = _pcr_df["equity_pc"].dropna()
+                if _pcr_ma5_series is not None and len(_pcr_ma5_series) > 0:
+                    pcr_now  = float(_pcr_daily.iloc[-1])          # raw daily (display only)
+                    pcr_ma5  = float(_pcr_ma5_series.iloc[-1])     # 5d MA — scoring basis
                     pcr_ma20 = float(_pcr_df["pc_ma20"].dropna().iloc[-1]) if "pc_ma20" in _pcr_df.columns else None
-                    pcr_date = str(_pcr_latest.index[-1].date())
-                    if pcr_now > 0.90:
+                    pcr_date = str(_pcr_daily.index[-1].date())
+                    # Score on 5-day MA — fast-responding, not single-day noise
+                    # Thresholds calibrated to CBOE equity PCR distribution 2006-present
+                    if pcr_ma5 > 0.85:
                         pcr_score, pcr_label = 2, "Elevated Fear"
-                    elif pcr_now > 0.75:
+                    elif pcr_ma5 > 0.68:
                         pcr_score, pcr_label = 1, "Defensive"
-                    elif pcr_now > 0.60:
+                    elif pcr_ma5 > 0.55:
                         pcr_score, pcr_label = 0, "Neutral"
-                    elif pcr_now > 0.45:
+                    elif pcr_ma5 > 0.45:
                         pcr_score, pcr_label = -1, "Greed"
                     else:
                         pcr_score, pcr_label = -2, "Extreme Greed"
                     signals["PUT_CALL"] = {
                         "title": "CBOE Equity Put/Call",
-                        "value": f"{pcr_now:.2f}",
+                        "value": f"{pcr_ma5:.2f}",  # 5d MA as headline
                         "label": pcr_label,
                         "score": pcr_score,
                         "category": "sentiment",
-                        "raw": round(pcr_now, 3),
-                        "ma20": round(pcr_ma20, 3) if pcr_ma20 else None,
-                        "date": pcr_date,
+                        "raw":   round(pcr_ma5,  3),  # 5d MA used by thermometer
+                        "daily": round(pcr_now,  3),  # raw daily for tooltip context
+                        "ma5":   round(pcr_ma5,  3),
+                        "ma20":  round(pcr_ma20, 3) if pcr_ma20 else None,
+                        "date":  pcr_date,
                     }
         except Exception:
             pass
@@ -9888,30 +9902,38 @@ async def get_pcr_history(lookback: int = 252, market: str = ""):
             rows.append({
                 "date": str(idx.date()),
                 "equity_pc": round(float(row["equity_pc"]), 3),
-                "pc_ma10": round(float(row["pc_ma10"]), 3) if not pd.isna(row["pc_ma10"]) else None,
-                "pc_ma20": round(float(row["pc_ma20"]), 3) if not pd.isna(row["pc_ma20"]) else None,
+                "pc_ma5":  round(float(row["pc_ma5"]),  3) if not pd.isna(row.get("pc_ma5",  float("nan"))) else None,
+                "pc_ma10": round(float(row["pc_ma10"]), 3) if not pd.isna(row.get("pc_ma10", float("nan"))) else None,
+                "pc_ma20": round(float(row["pc_ma20"]), 3) if not pd.isna(row.get("pc_ma20", float("nan"))) else None,
             })
 
-        df_scored = df.dropna(subset=["pc_ma20"])
-        current_ma20 = float(df_scored["pc_ma20"].iloc[-1])
-        current_pct = float(np.mean(all_ma20 < current_ma20))
+        # Score on 5-day MA (matches scoring logic in score_pcr)
+        df_scored5  = df.dropna(subset=["pc_ma5"])
+        all_ma5     = df_scored5["pc_ma5"].values
+        current_ma5 = float(df_scored5["pc_ma5"].iloc[-1])
+        current_pct = float(np.mean(all_ma5 < current_ma5))
         current_score = round(current_pct * 10, 1)
+
+        df_scored20 = df.dropna(subset=["pc_ma20"])
+        current_ma20 = float(df_scored20["pc_ma20"].iloc[-1]) if not df_scored20.empty else current_ma5
 
         return {
             "market": market or "equity",
             "ticker": "CBOE Equity",
             "data": rows,
+            "current_ma5":  round(current_ma5,  3),
             "current_ma20": round(current_ma20, 3),
-            "current_daily": round(float(df_scored["equity_pc"].iloc[-1]), 3),
+            "current_daily": round(float(df_scored5["equity_pc"].iloc[-1]), 3),
             "current_score": current_score,
             "current_percentile": round(current_pct * 100, 1),
+            "scoring_basis": "5-day MA percentile",
             "thresholds": {
-                "extreme_greed": round(float(np.percentile(all_ma20, 10)), 3),
-                "moderate_greed": round(float(np.percentile(all_ma20, 25)), 3),
-                "moderate_fear": round(float(np.percentile(all_ma20, 75)), 3),
-                "extreme_fear": round(float(np.percentile(all_ma20, 90)), 3),
+                "extreme_greed": round(float(np.percentile(all_ma5, 10)), 3),
+                "moderate_greed": round(float(np.percentile(all_ma5, 25)), 3),
+                "moderate_fear": round(float(np.percentile(all_ma5, 75)), 3),
+                "extreme_fear": round(float(np.percentile(all_ma5, 90)), 3),
             },
-            "latest_date": str(df_scored.index[-1].date()),
+            "latest_date": str(df_scored5.index[-1].date()),
         }
 
     # ── Route: ETF / Crypto markets ───────────────────────────────────────
