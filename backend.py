@@ -11895,6 +11895,18 @@ async def upcoming_events(force: bool = False):
 async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
 
+@app.api_route("/api/health/ready", methods=["GET", "HEAD"])
+async def health_ready():
+    """Readiness probe — returns 503 while the cache is warming up.
+    Point Render's health-check path at /api/health/ready so it only
+    routes traffic once ALL_DATA_CACHE is actually populated."""
+    from fastapi.responses import JSONResponse as _JR
+    if _WARMING["done"]:
+        return {"status": "ready", "time": datetime.utcnow().isoformat()}
+    if _WARMING["started"]:
+        return _JR({"status": "warming", "message": "Cache warming — not ready"}, status_code=503)
+    return _JR({"status": "cold", "message": "Startup not yet begun"}, status_code=503)
+
 @app.get("/api/debug-yc")
 async def debug_yc():
     """Debug: test FRED yield curve fetch and show raw response."""
@@ -12255,6 +12267,18 @@ async def _startup_load_ice_data():
 async def warmup_status():
     return {"ready": _WARMING["done"], "warming": _WARMING["started"]}
 
+@app.on_event("shutdown")
+async def graceful_shutdown():
+    """Graceful SIGTERM handler — gives in-flight requests up to 30 seconds to
+    complete before the process exits. Prevents dropped requests on Render deploy."""
+    import asyncio as _ashutdown
+    print("[shutdown] SIGTERM received — starting 30s graceful drain...", flush=True)
+    _WARMING["done"] = False  # Stop accepting new scores requests during drain
+    # Give in-flight requests time to complete
+    await _ashutdown.sleep(30)
+    print("[shutdown] 30s drain complete — process exiting", flush=True)
+
+
 @app.on_event("startup")
 async def warmup_cache():
     """Fully pre-warm all caches on startup — calls get_all_scores() directly so
@@ -12275,21 +12299,26 @@ async def warmup_cache():
 
         print("[startup] Pre-warming all caches (full scores run)...")
         try:
-            # Call the full scores endpoint directly (not HTTP) — this populates
-            # ALL_DATA_CACHE, MACRO_CACHE, REGIME_CACHE, FF_MACRO_CACHE in one shot.
-            # force=True skips the 202 guard so we don't get stuck in warming loop.
-            await get_all_scores(force=True)
-            print("[startup] Pre-warm complete — ALL_DATA_CACHE populated")
-        except Exception as e:
-            print(f"[startup] Pre-warm error (non-fatal): {e}")
-        # Pre-warm yield curve history cache (separate FRED fetch, not in scores)
-        try:
-            await _fetch_yield_curve_history_async()
-            print("[startup] Yield curve history cache pre-warmed")
-        except Exception as e:
-            print(f"[startup] Yield curve pre-warm error (non-fatal): {e}")
-        _gc_if_heavy("post-startup-warmup")
-        _WARMING["done"] = True
+            try:
+                # Call the full scores endpoint directly (not HTTP) — this populates
+                # ALL_DATA_CACHE, MACRO_CACHE, REGIME_CACHE, FF_MACRO_CACHE in one shot.
+                # force=True skips the 202 guard so we don't get stuck in warming loop.
+                await get_all_scores(force=True)
+                print("[startup] Pre-warm complete — ALL_DATA_CACHE populated")
+            except Exception as e:
+                print(f"[startup] Pre-warm error (non-fatal): {e}")
+            # Pre-warm yield curve history cache (separate FRED fetch, not in scores)
+            try:
+                await _fetch_yield_curve_history_async()
+                print("[startup] Yield curve history cache pre-warmed")
+            except Exception as e:
+                print(f"[startup] Yield curve pre-warm error (non-fatal): {e}")
+            _gc_if_heavy("post-startup-warmup")
+        finally:
+            # CRITICAL: always mark warming done — even if an unhandled exception
+            # occurred above, so the backend never gets stuck in permanent 202 state.
+            _WARMING["done"] = True
+            print("[startup] _WARMING[done]=True set (try/finally guaranteed)")
     _astart.ensure_future(_warm())
     print("[startup] Backend ready — full cache pre-warming in background")
 
