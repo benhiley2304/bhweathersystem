@@ -6502,26 +6502,33 @@ def compute_risk_regime() -> dict:
     returns: dict = {}
     levels:  dict = {}
 
-    # Parallel fetch all RISK_ASSETS — reduces cold-start from 22*20s=440s to ~20s
+    # Fetch RISK_ASSETS using fetch_price_data (uses PRICE_CACHE + _yf_with_timeout)
+    # PRICE_CACHE is pre-warmed before compute_risk_regime() is called, so these
+    # are typically instant cache hits — no raw yfinance calls needed at this point.
     def _fetch_one_risk_asset(name_ticker):
         name, ticker = name_ticker
         try:
-            tk = yf.Ticker(ticker)
-            hist = tk.history(period="3mo", interval="1wk")
-            if hist is not None and not hist.empty and len(hist) >= 4:
-                close = hist["Close"].values.astype(float)
-                ret_1w = (close[-1] / close[-2] - 1) * 100 if len(close) >= 2 else 0
-                ret_1m = (close[-1] / close[-4] - 1) * 100 if len(close) >= 4 else 0
-                ret_3m = (close[-1] / close[0]  - 1) * 100 if len(close) >= 3 else 0
-                return name, {"return_1w": round(ret_1w, 2), "return_1m": round(ret_1m, 2), "return_3m": round(ret_3m, 2)}, round(float(close[-1]), 4)
-        except Exception:
-            pass
+            # Use fetch_price_data: respects PRICE_CACHE + _yf_with_timeout (20s)
+            df = fetch_price_data(ticker)
+            if df is not None and not df.empty and len(df) >= 5:
+                # Resample daily → weekly (Friday close)
+                weekly = df["Close"].resample("W-FRI").last().dropna()
+                close = weekly.values.astype(float)
+                if len(close) >= 4:
+                    ret_1w = (close[-1] / close[-2] - 1) * 100 if len(close) >= 2 else 0
+                    ret_1m = (close[-1] / close[-4] - 1) * 100 if len(close) >= 4 else 0
+                    # 3m ≈ 13 weekly bars; fall back to earliest available
+                    idx_3m = max(0, len(close) - 13)
+                    ret_3m = (close[-1] / close[idx_3m] - 1) * 100
+                    return name, {"return_1w": round(ret_1w, 2), "return_1m": round(ret_1m, 2), "return_3m": round(ret_3m, 2)}, round(float(close[-1]), 4)
+        except Exception as _e:
+            print(f"[regime_fetch] {name}/{ticker}: {_e}", flush=True)
         return name, {"return_1w": 0, "return_1m": 0, "return_3m": 0}, None
 
     _ra_ex = _cf.ThreadPoolExecutor(max_workers=8)
     try:
         _ra_futs = {_ra_ex.submit(_fetch_one_risk_asset, item): item[0] for item in RISK_ASSETS.items()}
-        done_ra, _ = _cf.wait(_ra_futs, timeout=25)  # 25s hard cap for all RISK_ASSETS
+        done_ra, _ = _cf.wait(_ra_futs, timeout=60)  # 60s — each call uses _yf_with_timeout(20s)
         for fut in done_ra:
             try:
                 name, ret_dict, level = fut.result()
@@ -9424,6 +9431,8 @@ async def _do_scores_refresh(force: bool = False):
     # On cold start, 62 markets × fetch_price_data (20s timeout each) = 1240s sequential.
     # Pre-warm all market price caches in parallel before the scoring loop.
     _price_tickers = [m["yf"] for m in MARKETS if m.get("yf")]
+    # Also pre-warm RISK_ASSETS tickers so compute_risk_regime() can use cache
+    _price_tickers += list(RISK_ASSETS.values())
     _price_tickers_uniq = list(dict.fromkeys(_price_tickers))  # deduplicate preserving order
     def _prewarm_prices():
         _px_ex = _cf.ThreadPoolExecutor(max_workers=15)
