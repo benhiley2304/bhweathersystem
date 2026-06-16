@@ -85,7 +85,7 @@ _APP_EXECUTOR = _cf.ThreadPoolExecutor(max_workers=5, thread_name_prefix="bh-wor
 # Dedicated low-priority executor for score_history heavy yfinance prefetch.
 # Capped at 2 workers so concurrent history requests cannot OOM by competing
 # with the main scores/FRED/COT executor on the 2GB Render instance.
-_SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bh-sh")
+_SH_EXECUTOR  = _cf.ThreadPoolExecutor(max_workers=1, thread_name_prefix="bh-sh")  # single worker: walk-forward is memory-heavy (see _SH_GLOBAL_MAX)
 # Per-market in-progress guard: prevents concurrent score_history prefetches doubling memory
 _SH_MARKET_LOCKS: dict = {}
 _photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
@@ -182,43 +182,43 @@ MARKETS = [
 
     # ── FX Cross Pairs (derived COT from base/quote leg Briese differential) ──
     {"id": "EURJPY", "name": "EUR/JPY", "ticker": "EURJPY", "yf": "EURJPY=X", "category": "fx_cross", "cross": True, "base_leg": "6E", "quote_leg": "6J",
-     "cot_note": "COT derived: 6E Briese − 6J Briese. Measures EUR positioning advantage over JPY."},
+     "cot_note": "COT: 3-category net spread of 6E vs 6J legs (commercials / large specs / small specs, OI-normalised). Measures EUR positioning advantage over JPY."},
     {"id": "EURGBP", "name": "EUR/GBP", "ticker": "EURGBP", "yf": "EURGBP=X", "category": "fx_cross", "cross": True, "base_leg": "6E", "quote_leg": "6B",
-     "cot_note": "COT derived: 6E Briese − 6B Briese. Measures EUR positioning advantage over GBP."},
+     "cot_note": "COT: 3-category net spread of 6E vs 6B legs (commercials / large specs / small specs, OI-normalised). Measures EUR positioning advantage over GBP."},
     {"id": "EURAUD", "name": "EUR/AUD", "ticker": "EURAUD", "yf": "EURAUD=X", "category": "fx_cross", "cross": True, "base_leg": "6E", "quote_leg": "6A",
-     "cot_note": "COT derived: 6E Briese − 6A Briese. Measures EUR positioning advantage over AUD."},
+     "cot_note": "COT: 3-category net spread of 6E vs 6A legs (commercials / large specs / small specs, OI-normalised). Measures EUR positioning advantage over AUD."},
     {"id": "EURCAD", "name": "EUR/CAD", "ticker": "EURCAD", "yf": "EURCAD=X", "category": "fx_cross", "cross": True, "base_leg": "6E", "quote_leg": "6C",
-     "cot_note": "COT derived: 6E Briese − 6C Briese. Measures EUR positioning advantage over CAD."},
+     "cot_note": "COT: 3-category net spread of 6E vs 6C legs (commercials / large specs / small specs, OI-normalised). Measures EUR positioning advantage over CAD."},
     {"id": "EURNZD", "name": "EUR/NZD", "ticker": "EURNZD", "yf": "EURNZD=X", "category": "fx_cross", "cross": True, "base_leg": "6E", "quote_leg": "6N",
-     "cot_note": "COT derived: 6E Briese − 6N Briese. Measures EUR positioning advantage over NZD."},
+     "cot_note": "COT: 3-category net spread of 6E vs 6N legs (commercials / large specs / small specs, OI-normalised). Measures EUR positioning advantage over NZD."},
     {"id": "EURCHF", "name": "EUR/CHF", "ticker": "EURCHF", "yf": "EURCHF=X", "category": "fx_cross", "cross": True, "base_leg": "6E", "quote_leg": "6S",
-     "cot_note": "COT derived: 6E Briese − 6S Briese. Measures EUR positioning advantage over CHF."},
+     "cot_note": "COT: 3-category net spread of 6E vs 6S legs (commercials / large specs / small specs, OI-normalised). Measures EUR positioning advantage over CHF."},
     {"id": "GBPJPY", "name": "GBP/JPY", "ticker": "GBPJPY", "yf": "GBPJPY=X", "category": "fx_cross", "cross": True, "base_leg": "6B", "quote_leg": "6J",
-     "cot_note": "COT derived: 6B Briese − 6J Briese. Measures GBP positioning advantage over JPY."},
+     "cot_note": "COT: 3-category net spread of 6B vs 6J legs (commercials / large specs / small specs, OI-normalised). Measures GBP positioning advantage over JPY."},
     {"id": "GBPAUD", "name": "GBP/AUD", "ticker": "GBPAUD", "yf": "GBPAUD=X", "category": "fx_cross", "cross": True, "base_leg": "6B", "quote_leg": "6A",
-     "cot_note": "COT derived: 6B Briese − 6A Briese. Measures GBP positioning advantage over AUD."},
+     "cot_note": "COT: 3-category net spread of 6B vs 6A legs (commercials / large specs / small specs, OI-normalised). Measures GBP positioning advantage over AUD."},
     {"id": "GBPCAD", "name": "GBP/CAD", "ticker": "GBPCAD", "yf": "GBPCAD=X", "category": "fx_cross", "cross": True, "base_leg": "6B", "quote_leg": "6C",
-     "cot_note": "COT derived: 6B Briese − 6C Briese. Measures GBP positioning advantage over CAD."},
+     "cot_note": "COT: 3-category net spread of 6B vs 6C legs (commercials / large specs / small specs, OI-normalised). Measures GBP positioning advantage over CAD."},
     {"id": "GBPNZD", "name": "GBP/NZD", "ticker": "GBPNZD", "yf": "GBPNZD=X", "category": "fx_cross", "cross": True, "base_leg": "6B", "quote_leg": "6N",
-     "cot_note": "COT derived: 6B Briese − 6N Briese. Measures GBP positioning advantage over NZD."},
+     "cot_note": "COT: 3-category net spread of 6B vs 6N legs (commercials / large specs / small specs, OI-normalised). Measures GBP positioning advantage over NZD."},
     {"id": "GBPCHF", "name": "GBP/CHF", "ticker": "GBPCHF", "yf": "GBPCHF=X", "category": "fx_cross", "cross": True, "base_leg": "6B", "quote_leg": "6S",
-     "cot_note": "COT derived: 6B Briese − 6S Briese. Measures GBP positioning advantage over CHF."},
+     "cot_note": "COT: 3-category net spread of 6B vs 6S legs (commercials / large specs / small specs, OI-normalised). Measures GBP positioning advantage over CHF."},
     {"id": "AUDJPY", "name": "AUD/JPY", "ticker": "AUDJPY", "yf": "AUDJPY=X", "category": "fx_cross", "cross": True, "base_leg": "6A", "quote_leg": "6J",
-     "cot_note": "COT derived: 6A Briese − 6J Briese. Classic risk barometer — bullish = risk-on."},
+     "cot_note": "COT: 3-category net spread of 6A vs 6J legs (commercials / large specs / small specs, OI-normalised). Classic risk barometer — bullish = risk-on."},
     {"id": "AUDNZD", "name": "AUD/NZD", "ticker": "AUDNZD", "yf": "AUDNZD=X", "category": "fx_cross", "cross": True, "base_leg": "6A", "quote_leg": "6N",
-     "cot_note": "COT derived: 6A Briese − 6N Briese. Measures AUD positioning advantage over NZD."},
+     "cot_note": "COT: 3-category net spread of 6A vs 6N legs (commercials / large specs / small specs, OI-normalised). Measures AUD positioning advantage over NZD."},
     {"id": "AUDCAD", "name": "AUD/CAD", "ticker": "AUDCAD", "yf": "AUDCAD=X", "category": "fx_cross", "cross": True, "base_leg": "6A", "quote_leg": "6C",
-     "cot_note": "COT derived: 6A Briese − 6C Briese. Both commodity currencies — spread captures relative commodity exposure."},
+     "cot_note": "COT: 3-category net spread of 6A vs 6C legs (commercials / large specs / small specs, OI-normalised). Both commodity currencies — spread captures relative commodity exposure."},
     {"id": "NZDJPY", "name": "NZD/JPY", "ticker": "NZDJPY", "yf": "NZDJPY=X", "category": "fx_cross", "cross": True, "base_leg": "6N", "quote_leg": "6J",
-     "cot_note": "COT derived: 6N Briese − 6J Briese. Risk barometer — bullish = risk-on."},
+     "cot_note": "COT: 3-category net spread of 6N vs 6J legs (commercials / large specs / small specs, OI-normalised). Risk barometer — bullish = risk-on."},
     {"id": "NZDCAD", "name": "NZD/CAD", "ticker": "NZDCAD", "yf": "NZDCAD=X", "category": "fx_cross", "cross": True, "base_leg": "6N", "quote_leg": "6C",
-     "cot_note": "COT derived: 6N Briese − 6C Briese. Commodity currency spread."},
+     "cot_note": "COT: 3-category net spread of 6N vs 6C legs (commercials / large specs / small specs, OI-normalised). Commodity currency spread."},
     {"id": "CADJPY", "name": "CAD/JPY", "ticker": "CADJPY", "yf": "CADJPY=X", "category": "fx_cross", "cross": True, "base_leg": "6C", "quote_leg": "6J",
-     "cot_note": "COT derived: 6C Briese − 6J Briese. Oil-linked risk barometer."},
+     "cot_note": "COT: 3-category net spread of 6C vs 6J legs (commercials / large specs / small specs, OI-normalised). Oil-linked risk barometer."},
     {"id": "CHFJPY", "name": "CHF/JPY", "ticker": "CHFJPY", "yf": "CHFJPY=X", "category": "fx_cross", "cross": True, "base_leg": "6S", "quote_leg": "6J",
-     "cot_note": "COT derived: 6S Briese − 6J Briese. Dual safe-haven pair — risk-off = bearish (JPY strengthens more)."},
+     "cot_note": "COT: 3-category net spread of 6S vs 6J legs (commercials / large specs / small specs, OI-normalised). Dual safe-haven pair — risk-off = bearish (JPY strengthens more)."},
     {"id": "AUDCHF", "name": "AUD/CHF", "ticker": "AUDCHF", "yf": "AUDCHF=X", "category": "fx_cross", "cross": True, "base_leg": "6A", "quote_leg": "6S",
-     "cot_note": "COT derived: 6A Briese − 6S Briese. Risk appetite gauge — AUD vs safe-haven CHF."},
+     "cot_note": "COT: 3-category net spread of 6A vs 6S legs (commercials / large specs / small specs, OI-normalised). Risk appetite gauge — AUD vs safe-haven CHF."},
 
     # ── ICE Europe markets ───────────────────────────────────────────────────────────
     # COT sourced from ICE Europe (not CFTC). Use ice_code field instead of cftc_code.
@@ -3092,8 +3092,73 @@ def compute_crypto_cot_score(df: Optional[pd.DataFrame], market_id: str = "") ->
     }
 
 
+def build_cross_cot_df(base_leg: str, quote_leg: str, cot_cache: dict):
+    """Construct a SYNTHETIC 3-category COT DataFrame for an FX cross from its two
+    USD-denominated futures legs, so a cross gets the SAME full v2 treatment as an
+    outright market (all three legacy categories + divergence/exhaustion/turning/
+    phase) instead of the old single-number commercial-Briese differential.
+
+    Construction logic
+    ------------------
+    The cross PRICE is literally base_future / quote_future (e.g. GBPJPY = 6B / 6J),
+    so holding 1 unit of the cross ≈ LONG the base leg + SHORT the quote leg.
+    Therefore, for EACH legacy category C (commercials, large specs / non-commercials,
+    small specs / non-reportables) the cross net position is:
+
+        cross_net_C = net_C(base) − net_C(quote)
+
+    Raw contract counts are NOT comparable across two differently-sized currency books
+    (one market can have 5x the open interest of the other), so we normalise each leg's
+    net by its OWN open interest first, difference the two, then re-express the spread
+    in contract-equivalent units using the average OI of the legs:
+
+        cross_net_C = ( net_C(base)/OI(base) − net_C(quote)/OI(quote) ) * (OI(base)+OI(quote))/2
+
+    This preserves all three categories (no Briese collapse), keeps the magnitudes in a
+    sane contract range for the v2 thresholds, and is sign-correct: cross_comm_net > 0
+    means commercials are net-long the cross (long base / short quote).
+    """
+    df_b = cot_cache.get(base_leg)
+    df_q = cot_cache.get(quote_leg)
+    need = ["date", "comm_net", "lspec_net", "sspec_net", "open_interest_all"]
+    if (df_b is None or df_q is None or len(df_b) < 12 or len(df_q) < 12 or
+            any(c not in df_b.columns for c in need) or any(c not in df_q.columns for c in need)):
+        return None
+    try:
+        b = df_b[need].copy()
+        q = df_q[need].copy()
+        b["date"] = pd.to_datetime(b["date"]).dt.tz_localize(None).dt.normalize()
+        q["date"] = pd.to_datetime(q["date"]).dt.tz_localize(None).dt.normalize()
+        m = pd.merge_asof(b.sort_values("date"), q.sort_values("date"), on="date",
+                          direction="nearest", tolerance=pd.Timedelta(days=10),
+                          suffixes=("_b", "_q")).dropna()
+        if len(m) < 12:
+            return None
+        oi_b = m["open_interest_all_b"].replace(0, np.nan)
+        oi_q = m["open_interest_all_q"].replace(0, np.nan)
+        ref_oi = (oi_b + oi_q) / 2.0
+        out = pd.DataFrame({"date": m["date"].values})
+        for cat in ("comm_net", "lspec_net", "sspec_net"):
+            base_pct  = m[f"{cat}_b"] / oi_b
+            quote_pct = m[f"{cat}_q"] / oi_q
+            out[cat] = ((base_pct - quote_pct) * ref_oi).round()
+        out["open_interest_all"] = ref_oi.round()
+        out = out.dropna().reset_index(drop=True)
+        if len(out) < 12:
+            return None
+        out["lspec_chg"] = out["lspec_net"].diff().fillna(0)
+        return out
+    except Exception as _e:
+        print(f"[build_cross_cot_df] {base_leg}/{quote_leg}: {_e}", flush=True)
+        return None
+
+
 def compute_cross_cot_score(market_id: str, base_leg: str, quote_leg: str, cot_cache: dict) -> dict:
     """
+    DEPRECATED (kept for reference / fallback): single-number commercial-Briese
+    differential. Superseded by build_cross_cot_df() + compute_cot_score_v2(), which
+    constructs all three legacy categories for the cross. See build_cross_cot_df.
+
     Derive COT score for a cross pair from two USD-denominated futures legs.
     cot_cache: dict mapping market_id -> pd.DataFrame (already fetched in main loop)
     Returns same dict structure as compute_cot_score().
@@ -3353,6 +3418,35 @@ def score_momentum(yf_ticker: str) -> dict:
     roc13w = round((closes[-1] / closes[-14] - 1) * 100, 2) if len(closes) >= 14 else 0
     roc26w = round((closes[-1] / closes[-27] - 1) * 100, 2) if len(closes) >= 27 else roc13w
 
+    # ── Regime / trend inputs for the scoring engine, on a WEEKLY series ───────
+    # The factor ROCs above run on daily bars (their thresholds are calibrated that
+    # way). The ENGINE's regime gate and multi-timeframe trend need true weekly
+    # horizons, so resample to weekly here. Winsorise weekly returns first to absorb
+    # front-month roll gaps that would otherwise spike the efficiency ratio.
+    try:
+        _wk = df["Close"].resample("W-FRI").last().dropna()
+        wk_closes = _wk.values.astype(float)
+    except Exception:
+        wk_closes = closes[::5]   # fallback: every 5th daily bar ≈ weekly
+    if len(wk_closes) >= 6:
+        _wk_ret = np.diff(wk_closes) / wk_closes[:-1]
+        _cap = np.nanpercentile(np.abs(_wk_ret), 98) if len(_wk_ret) >= 10 else np.inf
+        _wk_ret = np.clip(_wk_ret, -_cap, _cap)                 # winsorise roll gaps
+        wk_clean = wk_closes[0] * np.concatenate([[1.0], np.cumprod(1 + _wk_ret)])
+    else:
+        wk_clean = wk_closes
+    # Kaufman Efficiency Ratio over ~26 WEEKS: |net move| / sum(|week-to-week moves|).
+    # 0 = pure chop, 1 = clean trend. Regime-gate input (validated, Rounds 10-12).
+    _ern = 26 if len(wk_clean) >= 27 else max(4, len(wk_clean) - 1)
+    _er_seg = wk_clean[-(_ern + 1):]
+    _net = abs(_er_seg[-1] - _er_seg[0])
+    _path = float(np.sum(np.abs(np.diff(_er_seg))))
+    efficiency_ratio = round(_net / _path, 4) if _path > 0 else 0.0
+    # True weekly trend horizons for the engine's multi-timeframe read
+    roc_lt_pct = round((wk_clean[-1] / wk_clean[-27] - 1) * 100, 2) if len(wk_clean) >= 27 else \
+                 (round((wk_clean[-1] / wk_clean[0] - 1) * 100, 2) if len(wk_clean) >= 2 else 0.0)
+    roc_st_pct = round((wk_clean[-1] / wk_clean[-5] - 1) * 100, 2) if len(wk_clean) >= 5 else 0.0
+
     # Sub-scores: each −2 to +2
     # WEIGHT RATIONALE (v2 — evidence-led):
     # Academic evidence (Moskowitz et al., AQR) shows medium-term momentum (8-26w)
@@ -3428,6 +3522,9 @@ def score_momentum(yf_ticker: str) -> dict:
             "roc4w_pct":  float(roc4w),
             "roc13w_pct": float(roc13w),
             "roc26w_pct": float(roc26w),
+            "efficiency_ratio": float(efficiency_ratio),
+            "roc_lt_pct": float(roc_lt_pct),   # true ~26-week trend (engine MTF)
+            "roc_st_pct": float(roc_st_pct),   # true ~4-week trend  (engine MTF)
             "sub_scores": sub_scores,
         },
     }
@@ -3452,6 +3549,52 @@ _FF_MONTH_CACHE: dict = {}
 FRED_CACHE = {}
 FRED_CACHE_TIME_MAP = {}
 FRED_CACHE_TTL = 3600 * 6
+# Per-currency FRED economy-score cache (was used but never initialised at module
+# scope — defining here removes a latent NameError on the first scoring call).
+_FRED_CCY_CACHE: dict = {}
+_FRED_CCY_TTL = 3600          # 1h; ff_injected entries use a 24h TTL (checked inline)
+
+# Per-currency FRED indicator config (was referenced but never defined — so every
+# non-USD currency silently fell back to a flat 5.0 macro score). These are long-
+# standing OECD/Eurostat series on FRED. Each entry:
+#   key: (fred_id, transform, higher_is_good, label, category)
+# transform: 'yoy' (index → year-over-year %), 'level' (use level vs trailing avg).
+# If any series id fails to resolve in prod it is simply skipped (graceful), and the
+# live ForexFactory surprise tilt still drives the currency macro.
+_FRED_CCY_SERIES: dict = {
+    "EUR": {
+        "cpi":   ("CP0000EZ19M086NEST", "yoy",   False, "Euro Area HICP",          "inflation"),
+        "unemp": ("LRHUTTTTEZM156S",     "level", False, "Euro Area Unemployment",  "jobs"),
+        "ip":    ("EA19PRINTO01GYSAM",   "level", True,  "Euro Area Industrial Prod","growth"),
+    },
+    "GBP": {
+        "cpi":   ("GBRCPIALLMINMEI", "yoy",   False, "UK CPI",          "inflation"),
+        "unemp": ("LRHUTTTTGBM156S", "level", False, "UK Unemployment", "jobs"),
+        "ip":    ("GBRPROINDMISMEI", "yoy",   True,  "UK Industrial Prod","growth"),
+    },
+    "JPY": {
+        "cpi":   ("JPNCPIALLMINMEI", "yoy",   False, "Japan CPI",          "inflation"),
+        "unemp": ("LRHUTTTTJPM156S", "level", False, "Japan Unemployment", "jobs"),
+        "ip":    ("JPNPROINDMISMEI", "yoy",   True,  "Japan Industrial Prod","growth"),
+    },
+    "AUD": {
+        "cpi":   ("AUSCPIALLQINMEI", "yoy",   False, "Australia CPI",          "inflation"),
+        "unemp": ("LRHUTTTTAUM156S", "level", False, "Australia Unemployment", "jobs"),
+    },
+    "CAD": {
+        "cpi":   ("CANCPIALLMINMEI", "yoy",   False, "Canada CPI",          "inflation"),
+        "unemp": ("LRHUTTTTCAM156S", "level", False, "Canada Unemployment", "jobs"),
+        "ip":    ("CANPROINDMISMEI", "yoy",   True,  "Canada Industrial Prod","growth"),
+    },
+    "CHF": {
+        "cpi":   ("CHECPIALLMINMEI", "yoy",   False, "Swiss CPI",          "inflation"),
+        "unemp": ("LRHUTTTTCHM156S", "level", False, "Swiss Unemployment", "jobs"),
+    },
+    "NZD": {
+        "cpi":   ("NZLCPIALLQINMEI", "yoy",   False, "NZ CPI",          "inflation"),
+        "unemp": ("LRHUTTTTNZQ156S", "level", False, "NZ Unemployment", "jobs"),
+    },
+}
 
 FRED_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv?id="
 
@@ -3716,6 +3859,159 @@ def _fetch_ff_week_html(week_str: str) -> list:
         return []
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# FAIR ECONOMY JSON CALENDAR FEED  (reliable replacement for the forexfactory.com
+# HTML scrape, which Cloudflare-blocks datacenter IPs in production)
+# ────────────────────────────────────────────────────────────────────────────
+# forexfactory.com publishes its calendar as JSON via the Fair Economy CDN. That
+# CDN does NOT IP-block, so it works from Render/cloud. The feed is current-week
+# only, so we MERGE released prints into a small on-disk store to build the rolling
+# history the labour-EMS / surprise scoring needs.
+_FF_JSON_URLS = (
+    "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+)
+_FF_STORE_PATH   = os.path.join(DATA_DIR, "ff_event_store.json")
+_FF_STORE_MAX_DAYS = 180
+_FF_JSON_CACHE   = {"data": None, "time": 0}
+_FF_JSON_TTL     = 1800  # 30 min
+
+def _ff_impact_norm(s) -> str:
+    s = (s or "").lower()
+    if "high" in s:   return "high"
+    if "med" in s:    return "medium"
+    if "low" in s:    return "low"
+    return ""
+
+def fetch_ff_calendar_json(force: bool = False) -> list:
+    """Current-week FF calendar from the Fair Economy JSON feed, mapped to the same
+    event dict shape the rest of the pipeline expects
+    (name/actual/forecast/previous/currency/dateline/impactClass)."""
+    now = time.time()
+    if not force and _FF_JSON_CACHE["data"] is not None and (now - _FF_JSON_CACHE["time"]) < _FF_JSON_TTL:
+        return _FF_JSON_CACHE["data"]
+    out = []
+    for url in _FF_JSON_URLS:
+        try:
+            r = httpx.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15, follow_redirects=True)
+            if r.status_code != 200:
+                continue
+            raw = r.json()
+            for e in raw:
+                iso = e.get("date", "") or ""
+                try:
+                    ts = datetime.fromisoformat(iso).timestamp()
+                except Exception:
+                    ts = None
+                out.append({
+                    "name":        e.get("title", "") or "",
+                    "actual":      e.get("actual", "") or "",
+                    "forecast":    e.get("forecast", "") or "",
+                    "previous":    e.get("previous", "") or "",
+                    "currency":    e.get("country", "") or "",   # FF 'country' holds the currency code
+                    "dateline":    ts,
+                    "impactClass": _ff_impact_norm(e.get("impact", "")),
+                })
+            if out:
+                break
+        except Exception as _e:
+            print(f"[FF JSON] fetch error {url}: {_e}", flush=True)
+    _FF_JSON_CACHE["data"] = out
+    _FF_JSON_CACHE["time"] = now
+    return out
+
+def _ff_store_load() -> dict:
+    try:
+        with open(_FF_STORE_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _ff_store_save(store: dict) -> None:
+    try:
+        with open(_FF_STORE_PATH, "w") as f:
+            json.dump(store, f)
+    except Exception as _e:
+        print(f"[FF store] save error: {_e}", flush=True)
+
+def refresh_ff_event_store() -> list:
+    """Merge newly-released events (those with an 'actual') from the live feed into the
+    persistent store, keyed by currency|name|day so re-fetches are idempotent. Prunes to
+    _FF_STORE_MAX_DAYS. Returns the full list of stored event dicts."""
+    store = _ff_store_load()
+    for ev in fetch_ff_calendar_json():
+        if not ev.get("actual"):          # keep only RELEASED prints (have an actual)
+            continue
+        ts = ev.get("dateline")
+        day = datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d") if ts else "na"
+        store[f"{ev.get('currency','')}|{ev.get('name','')}|{day}"] = ev
+    cutoff = time.time() - _FF_STORE_MAX_DAYS * 86400
+    store = {k: v for k, v in store.items() if (v.get("dateline") or 0) >= cutoff}
+    _ff_store_save(store)
+    return list(store.values())
+
+# Per-currency macro-surprise tilt — name-substring → (category, higher_is_good)
+_FF_SURPRISE_MAP = [
+    ("Non-Farm Employment",   ("jobs",   True)),
+    ("Employment Change",     ("jobs",   True)),
+    ("ADP",                   ("jobs",   True)),
+    ("Unemployment Rate",     ("jobs",   False)),
+    ("Unemployment Claims",   ("jobs",   False)),
+    ("Claimant Count",        ("jobs",   False)),
+    ("Average Hourly Earnings",("wages", True)),
+    ("Average Earnings",      ("wages",  True)),
+    ("GDP",                   ("growth", True)),
+    ("Retail Sales",          ("growth", True)),
+    ("Manufacturing PMI",     ("growth", True)),
+    ("Services PMI",          ("growth", True)),
+    ("ISM",                   ("growth", True)),
+    ("Industrial Production", ("growth", True)),
+    ("Ifo Business Climate",  ("growth", True)),
+    ("ZEW Economic Sentiment",("growth", True)),
+    ("Tankan",                ("growth", True)),
+    ("CPI",                   ("inflation", True)),   # hot inflation = hawkish = currency-supportive
+    ("PPI",                   ("inflation", True)),
+    ("PCE",                   ("inflation", True)),
+]
+_FF_SURPRISE_HALFLIFE_DAYS = 21   # ~3 weeks: a surprise fades to half-weight after 3wk
+
+def compute_ff_surprise_tilt(currency: str, store_events: list = None) -> dict:
+    """Recency-decayed macro-surprise tilt for a currency, in [-1, +1], from the FF
+    store's released prints. Each surprise is signed (actual vs forecast, oriented by
+    higher_is_good), weighted by impact (high=1.0, medium=0.5) and an exponential
+    half-life (~3wk). Returns {tilt, n, detail}. tilt 0 = no recent surprise signal."""
+    if store_events is None:
+        store_events = _ff_store_load().values()
+    now = time.time()
+    num = 0.0; den = 0.0; n = 0; contribs = []
+    for ev in store_events:
+        if ev.get("currency") != currency:
+            continue
+        a = _parse_ff_value(ev.get("actual", ""))
+        f = _parse_ff_value(ev.get("forecast", ""))
+        if a is None or f is None:
+            continue
+        name = ev.get("name", "")
+        cat_info = next((ci for sub, ci in _FF_SURPRISE_MAP if sub in name), None)
+        if cat_info is None:
+            continue
+        _cat, higher_is_good = cat_info
+        denom = max(abs(f), 1e-9)
+        rel = (a - f) / denom                       # relative surprise
+        signed = rel if higher_is_good else -rel
+        signed = max(-1.0, min(1.0, signed * 4.0))  # scale & clamp (25% beat ~ full)
+        impact_w = 1.0 if ev.get("impactClass") == "high" else 0.5 if ev.get("impactClass") == "medium" else 0.2
+        ts = ev.get("dateline") or now
+        age_days = max(0.0, (now - ts) / 86400.0)
+        decay = 0.5 ** (age_days / _FF_SURPRISE_HALFLIFE_DAYS)
+        w = impact_w * decay
+        num += signed * w; den += w; n += 1
+        contribs.append((name, round(signed, 2), round(w, 2)))
+    tilt = round(num / den, 3) if den > 0 else 0.0
+    contribs.sort(key=lambda x: -x[2])
+    return {"tilt": tilt, "n": n, "detail": contribs[:6]}
+
+
+
 def _get_week_strings(n_weeks: int = 12) -> list:
     """
     Generate last n_weeks FF week URL strings (week starts Sunday).
@@ -3750,24 +4046,16 @@ def _fetch_ff_labour_surprises(force: bool = False) -> dict:
     if not force and _FF_LABOUR_CACHE["data"] and (now - _FF_LABOUR_CACHE["time"]) < _FF_LABOUR_CACHE_TTL:
         return _FF_LABOUR_CACHE["data"]
 
-    week_strings = _get_week_strings(14)  # 14 weeks back (~3.5 months)
-    all_events = []
-
-    # Hard 45s wall-clock cap — prevents thread hangs from blocking the scoring pipeline
-    # Use shutdown(wait=False) so the executor doesn't block the calling thread
-    _ex_labour = _cf.ThreadPoolExecutor(max_workers=3)
+    # Source: refresh the persistent FF event store from the Fair Economy JSON feed
+    # (reliable; the old per-week forexfactory.com scrape is Cloudflare-blocked in prod),
+    # then take the last 14 weeks of released prints from the store.
     try:
-        futs = {_ex_labour.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
-        done, pending = _cf.wait(futs, timeout=45)
-        for fut in pending:
-            fut.cancel()
-        for fut in done:
-            try:
-                all_events.extend(fut.result())
-            except Exception:
-                pass
-    finally:
-        _ex_labour.shutdown(wait=False)
+        store_events = refresh_ff_event_store()
+    except Exception as _se:
+        print(f"[FF Labour] store refresh error: {_se}", flush=True)
+        store_events = list(_ff_store_load().values())
+    _cutoff = now - 14 * 7 * 86400
+    all_events = [e for e in store_events if (e.get("dateline") or 0) >= _cutoff]
 
     # Filter: USD only, has actual AND forecast, is a key labour event
     releases: dict = {key_info["key"]: [] for key_info in _FF_LABOUR_EVENTS.values()}
@@ -4002,74 +4290,6 @@ def _fetch_ff_inflation_surprises(force: bool = False) -> dict:
     return result
 
 
-def _classify_ff_event(name: str, currency: str):
-    """
-    Returns (category, higher_is_good) if the event matches a known indicator,
-    otherwise None.
-    """
-    nl = name.lower()
-    # USD
-    if currency == "USD":
-        ind_map = US_MACRO_INDICATOR_MAP
-    else:
-        ind_map = FF_CURRENCY_INDICATOR_MAP.get(currency, {})
-
-    for substr, (category, hig) in ind_map.items():
-        if substr.lower() in nl:
-            return category, hig
-    return None
-
-
-# ── FRED series IDs for each non-USD currency ──────────────────────────────
-_FRED_CCY_SERIES = {
-    # ── EUROZONE ────────────────────────────────────────────────────────────────────
-    # DEUCPIALLMINMEI (Germany CPI index, monthly — most current EA CPI proxy)
-    # NAEXKP01EZQ661S (EA GDP chain-linked, quarterly)
-    # LRHUTTTTEZM156S (EA unemployment rate, monthly)
-    "EUR": {
-        "cpi":   ("DEUCPIALLMINMEI", "mom", True,  "CPI MoM (Germany proxy)", "inflation"),
-        "unemp": ("LRHUTTTTEZM156S", "level", False, "EA Unemployment Rate", "jobs"),
-        "gdp":   ("NAEXKP01EZQ661S", "qoq", True,  "GDP (Chain-Linked)", "growth"),
-    },
-    # ── UK (GBP) ────────────────────────────────────────────────────────────────────
-    "GBP": {
-        "cpi":   ("GBRCPIALLMINMEI", "mom", True,  "CPI MoM", "inflation"),
-        "cpi_q": ("CPHPTT01GBQ659N", "level", True, "CPI YoY (quarterly)", "inflation"),
-        "unemp": ("LRHUTTTTGBM156S", "level", False, "Unemployment Rate", "jobs"),
-        "gdp":   ("NAEXKP01GBQ661S", "qoq", True,   "GDP (Chain-Linked)", "growth"),
-    },
-    # ── JAPAN (JPY) ─────────────────────────────────────────────────────────────────
-    "JPY": {
-        "cpi":   ("JPNCPIALLMINMEI", "mom", True,  "CPI MoM", "inflation"),
-        "unemp": ("LRUN64TTJPM156S", "level", False, "Unemployment Rate", "jobs"),
-        "indpro":("JPNPROINDMISMEI", "mom", True,  "Industrial Production", "growth"),
-    },
-    # ── AUSTRALIA (AUD) ─────────────────────────────────────────────────────────────
-    "AUD": {
-        "cpi":   ("AUSCPIALLQINMEI", "qoq", True,  "CPI (Quarterly)", "inflation"),
-        "unemp": ("LRHUTTTTAUM156S", "level", False, "Unemployment Rate", "jobs"),
-    },
-    # ── CANADA (CAD) ─────────────────────────────────────────────────────────────────
-    "CAD": {
-        "cpi":   ("CANCPIALLMINMEI", "mom", True,  "CPI MoM", "inflation"),
-        "unemp": ("LRHUTTTTCAM156S", "level", False, "Unemployment Rate", "jobs"),
-    },
-    # ── SWITZERLAND (CHF) ────────────────────────────────────────────────────────────
-    "CHF": {
-        "cpi":   ("CHECPIALLMINMEI", "mom", True,  "CPI MoM", "inflation"),
-    },
-    # ── NEW ZEALAND (NZD) ────────────────────────────────────────────────────────────
-    "NZD": {
-        "cpi":   ("NZLCPIALLQINMEI", "qoq", True,  "CPI (Quarterly)", "inflation"),
-        "unemp": ("LRUN64TTNZQ156S", "level", False, "Unemployment Rate", "jobs"),
-    },
-}
-
-# Cache: {currency: {"data": ..., "time": ...}}
-_FRED_CCY_CACHE: dict = {}
-_FRED_CCY_TTL = 3600  # 1 hour — aligns with main scores cache TTL
-
-
 def compute_fred_economy_score(currency: str) -> dict:
     """
     FRED-based economy score for a non-USD currency.
@@ -4123,10 +4343,28 @@ def compute_fred_economy_score(currency: str) -> dict:
                 chgs   = [(vals[i]/vals[i-1]-1.0)*100 for i in range(max(1,len(vals)-4), len(vals)-1) if vals[i-1] != 0]
                 hist   = chgs if chgs else [0]
             elif transform == "yoy":
-                if len(vals) < 13:
+                # Infer sampling frequency from the series dates so YoY uses the
+                # correct lag: monthly->12, quarterly->4, annual->1. (Bug fix:
+                # AUS/NZ CPI are quarterly; a hardcoded 12-period lag compared
+                # points ~3yr apart and produced absurd readings like +13% CPI.)
+                lag = 12
+                try:
+                    dts = [datetime.strptime(x["date"], "%Y-%m-%d")
+                           for x in raw if x.get("value") is not None and x.get("date")]
+                    if len(dts) >= 3:
+                        gaps = sorted((dts[i] - dts[i-1]).days for i in range(1, len(dts)))
+                        mgap = gaps[len(gaps)//2]
+                        if mgap >= 250:   lag = 1     # annual
+                        elif mgap >= 75:  lag = 4     # quarterly
+                        else:             lag = 12    # monthly
+                except Exception:
+                    lag = 12
+                if len(vals) < lag + 1:
                     continue
-                actual = (vals[-1] / vals[-13] - 1.0) * 100 if vals[-13] != 0 else 0
-                yoys   = [(vals[i]/vals[i-12]-1.0)*100 for i in range(max(12,len(vals)-4), len(vals)-1) if len(vals) > i-12 and vals[i-12] != 0]
+                actual = (vals[-1] / vals[-1-lag] - 1.0) * 100 if vals[-1-lag] != 0 else 0
+                yoys   = [(vals[i]/vals[i-lag]-1.0)*100
+                          for i in range(max(lag, len(vals)-4), len(vals)-1)
+                          if i-lag >= 0 and vals[i-lag] != 0]
                 hist   = yoys if yoys else [0]
             else:
                 continue
@@ -4204,8 +4442,30 @@ def compute_fred_economy_score(currency: str) -> dict:
 
 
 def compute_ff_economy_score(events: list, currency: str) -> dict:
-    """Wrapper: always use FRED-based score (FF is blocked in this environment)."""
-    return compute_fred_economy_score(currency)
+    """FRED-based macro score, overlaid with the live ForexFactory surprise tilt
+    (recency-decayed, from the Fair Economy feed store). FRED remains the base and the
+    fallback: when the FF store has no recent surprises for the currency, tilt = 0 and
+    the score is pure FRED."""
+    try:
+        base = compute_fred_economy_score(currency)
+    except Exception as _fe:
+        print(f"[FRED macro] {currency} failed ({_fe}) — using neutral base + FF surprise", flush=True)
+        base = {"score": 5.0, "label": f"{currency} Macro Neutral", "currency": currency, "cats": {}, "cat_details": []}
+    try:
+        st = compute_ff_surprise_tilt(currency)
+        tilt = st.get("tilt", 0.0)
+        if tilt:
+            base = dict(base)
+            base_score = base.get("score", 5.0)
+            # A full +1 surprise composite nudges the macro read by 1.5 points (bounded).
+            base["score"] = round(max(0.0, min(10.0, base_score + tilt * 1.5)), 1)
+            base["label"] = _macro_label(base["score"] - 5.0) if "_macro_label" in globals() else base.get("label")
+            base["ff_surprise_tilt"] = tilt
+            base["ff_surprise_n"]    = st.get("n", 0)
+            base["ff_surprise_detail"] = st.get("detail", [])
+    except Exception as _te:
+        print(f"[FF surprise] {currency}: {_te}", flush=True)
+    return base
 
 
 def compute_all_ff_macro() -> dict:
@@ -4299,6 +4559,8 @@ FRED_SERIES = {
     "NFP":      "PAYEMS",
     "UNEMP":    "UNRATE",
     "CLAIMS":   "ICSA",
+    "ADP":      "ADPMNUSNERSA",   # ADP National Employment Report — total private (level, persons)
+    "WAGES":    "CES0500000003",   # Avg Hourly Earnings, Total Private ($/hr) — m/m % computed
     "DGS2":     "DGS2",
     "DGS10":    "DGS10",
     "YLDCRV":   "T10Y2Y",
@@ -4979,7 +5241,7 @@ def compute_macro_all() -> dict:
     except Exception as _ff_ie:
         print(f"[FF Inflation] Injection error (non-fatal): {_ff_ie}")
 
-    nfp_data = fetch_fred_series("NFP", 12)
+    nfp_data = fetch_fred_series("NFP", 12) or fetch_fred_series("NFP", 12)
     if nfp_data:
         r = compute_macro_surprise(nfp_data, higher_is_good=True, transform="mom", scale=80)
         if r["actual"] is not None:
@@ -4990,17 +5252,43 @@ def compute_macro_all() -> dict:
         components["JOBS"] = {**r, "title": "Non-Farm Payrolls", "category": "jobs",
                               "display": r.get("display", "—")}
 
-    unemp_data = fetch_fred_series("UNEMP", 12)
+    unemp_data = fetch_fred_series("UNEMP", 12) or fetch_fred_series("UNEMP", 12)
     if unemp_data:
         r = compute_macro_surprise(unemp_data, higher_is_good=False, transform="level", scale=0.15)
         components["UNEMP"] = {**r, "title": "Unemployment Rate", "category": "jobs",
                                 "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
 
-    claims_data = fetch_fred_series("CLAIMS", 26)  # 26 weeks = 6m for stable baseline
+    claims_data = fetch_fred_series("CLAIMS", 26) or fetch_fred_series("CLAIMS", 26)  # 26 weeks = 6m for stable baseline
     if claims_data:
         r = compute_macro_surprise(claims_data, higher_is_good=False, transform="level", scale=15000)
         components["CLAIMS"] = {**r, "title": "Initial Claims", "category": "jobs",
                                  "display": f"{int(r['actual']):,}" if r['actual'] is not None else "—"}
+
+    # ADP (FRED fallback) — ADP National Employment Report level (persons). Compute the
+    # m/m change in thousands so it reads like NFP. FF data overlays this when available.
+    adp_data = fetch_fred_series("ADP", 14) or fetch_fred_series("ADP", 14)
+    if adp_data and len(adp_data) >= 5:
+        _chg = [(adp_data[i]["value"] - adp_data[i-1]["value"]) / 1000.0 for i in range(1, len(adp_data))]
+        if len(_chg) >= 4:
+            _a = round(_chg[-1]); _e = round(sum(_chg[-4:-1]) / 3); _s = _a - _e
+            components["ADP"] = {"actual": _a, "expected": _e, "surprise": _s,
+                                  "higher_is_good": True, "category": "jobs",
+                                  "score": 1 if _s > 25 else -1 if _s < -25 else 0,
+                                  "title": "ADP Non-Farm Employment",
+                                  "display": f"{_a:+d}K"}
+
+    # WAGES (FRED fallback) — Avg Hourly Earnings level ($); compute m/m % change.
+    wages_data = fetch_fred_series("WAGES", 14) or fetch_fred_series("WAGES", 14)
+    if wages_data and len(wages_data) >= 5:
+        _pct = [(wages_data[i]["value"] / wages_data[i-1]["value"] - 1.0) * 100
+                for i in range(1, len(wages_data)) if wages_data[i-1]["value"]]
+        if len(_pct) >= 4:
+            _a = round(_pct[-1], 2); _e = round(sum(_pct[-4:-1]) / 3, 2); _s = round(_a - _e, 2)
+            components["WAGES"] = {"actual": _a, "expected": _e, "surprise": _s,
+                                    "higher_is_good": True, "category": "jobs",
+                                    "score": 1 if _s > 0.05 else -1 if _s < -0.05 else 0,
+                                    "title": "Avg Hourly Earnings m/m",
+                                    "display": f"{_a:.2f}%"}
 
     # ── Inject ForexFactory labour data onto JOBS/UNEMP/CLAIMS/WAGES/ADP ─────────
     # FF provides real market consensus vs actual for NFP, ADP, Unemployment,
@@ -5051,6 +5339,7 @@ def compute_macro_all() -> dict:
             # From a market perspective: wage beat = labour market tighter than expected = positive USD
             _wg_score_raw = _ff_lab_scores.get("wages")
             components["WAGES"] = {
+                **components.get("WAGES", {}),   # keep FRED fallback fields; FF overlays below
                 "actual":      f"{_wg_lat.get('actual')}%" if _wg_lat.get('actual') is not None else "—",
                 "forecast":    f"{_wg_lat.get('forecast')}%" if _wg_lat.get('forecast') is not None else "—",
                 "actual_ff":   _wg_lat.get("actual"),
@@ -5070,6 +5359,7 @@ def compute_macro_all() -> dict:
         if _adp_lat:
             _adp_beat = _adp_lat.get("beat", False)
             components["ADP"] = {
+                **components.get("ADP", {}),   # keep FRED fallback fields; FF overlays below
                 "actual":      f"{_adp_lat.get('actual')}K" if _adp_lat.get('actual') is not None else "—",
                 "forecast":    f"{_adp_lat.get('forecast')}K" if _adp_lat.get('forecast') is not None else "—",
                 "actual_ff":   _adp_lat.get("actual"),
@@ -5106,7 +5396,7 @@ def compute_macro_all() -> dict:
     # ── Category aggregation ──────────────────────────────────────────────────
     growth_scores    = [components[k]["score"] for k in ["GDP", "MFG_PMI", "SVC_PMI", "RETAIL"] if k in components]
     inflation_scores = [components[k]["score"] for k in ["CPI", "CORE_CPI", "PPI", "PCE", "CORE_PCE"] if k in components]
-    jobs_scores      = [components[k]["score"] for k in ["JOBS", "UNEMP", "CLAIMS"] if k in components]
+    jobs_scores      = [components[k]["score"] for k in ["JOBS", "UNEMP", "CLAIMS", "ADP", "WAGES"] if k in components]
     rates_scores     = [components[k]["score"] for k in ["DGS2", "YLDCRV"] if k in components]
 
     def avg_score(lst): return sum(lst) / len(lst) if lst else 0
@@ -7928,17 +8218,29 @@ def generate_asset_narratives(news_items: list) -> dict:
     headline_str = "\n".join(headlines)
 
     prompt = (
-        "You are a professional markets analyst. Below are the latest high/medium-impact financial "
-        "news headlines from the last 48 hours.\n\n"
+        "You are the markets analyst for the BH Weather System, a swing-trading bias tool for "
+        "2-4 week futures positions. Your commentary must speak the system's methodology, which is:\n"
+        "  • Directional bias = a trend-gated CONFLUENCE of the factors with real edge (risk regime, "
+        "macro surprise, seasonality) — NOT a simple average. Factors with no clear view abstain.\n"
+        "  • COT positioning is a RISK/REWARD SETUP signal, not a directional vote: side WITH "
+        "commercials against a crowded-spec extreme, use a tight stop, let winners run. Judge it by "
+        "reward-to-risk, NOT hit-rate. Positioning extremes that price hasn't yet confirmed are "
+        "'wait' setups (don't fight price).\n"
+        "  • Conviction is gated by REGIME: act in clean trends, stand aside in chop.\n"
+        "  • Multi-timeframe: the long-term trend sets the stable bias; a short-term counter-move is "
+        "an entry-watch zone, not a reversal.\n\n"
+        "Below are the latest high/medium-impact financial news headlines from the last 48 hours.\n\n"
         f"HEADLINES:\n{headline_str}\n\n"
-        "For each of the following futures/FX instruments, produce TWO things:\n"
-        "1. A SHORT 1-2 sentence analyst comment connecting the current news backdrop to that "
-        "instrument's likely price action or sentiment. Be specific: geopolitical escalation → "
-        "gold safe-haven bid, crude supply risk, yen flows; rate decisions → bond/FX/equity impact. "
-        "Infer the effect even if the asset isn't mentioned. Use direct market language: "
-        "'bid', 'offered', 'headwind', 'tailwind', 'under pressure', 'supported'.\n"
-        "2. A sentiment SCORE from -1.0 (most bearish) to +1.0 (most bullish), reflecting how the "
-        "current news backdrop affects that instrument. 0.0 = neutral/no clear news effect.\n\n"
+        "For each instrument below, produce TWO things:\n"
+        "1. A SHORT 1-2 sentence analyst comment that adds NEWS / MACRO COLOR consistent with the "
+        "methodology above. Explain how the current backdrop supports or challenges the read, and "
+        "flag positioning setups in risk/reward terms (e.g. 'commercials absorbing the spec short — "
+        "a contrarian long setup if price confirms'). Do NOT issue a blunt standalone buy/sell call "
+        "that competes with the engine; CONTEXTUALISE. Use direct market language: 'bid', 'offered', "
+        "'headwind', 'tailwind', 'under pressure', 'supported', 'crowded', 'squeeze risk'. Infer the "
+        "effect even if the asset isn't named in the headlines.\n"
+        "2. A news sentiment SCORE from -1.0 (most bearish) to +1.0 (most bullish), reflecting how the "
+        "current NEWS backdrop alone affects that instrument. 0.0 = neutral/no clear news effect.\n\n"
         "Return ONLY valid JSON — NO markdown fences, NO code blocks, NO extra text before or after. "
         "Each key is the instrument ID, each value is an object with 'text' (string) and 'score' (float -1.0 to +1.0). "
         "Start your response with { and end with }. Example:\n"
@@ -8695,7 +8997,7 @@ _COT_V2_SIGNAL_KEYS: tuple = (
 )
 
 # ── Weight-map router — single source of truth ─────────────────────────────────
-# Called from compute_weighted_bias, the main scoring loop, the DX feedback loop,
+# Called from compute_engine_bias, the main scoring loop, the DX feedback loop,
 # and score_history. Previously the 30-line if/elif chain was copy-pasted four
 # times; any future weight tier change now only needs editing here.
 _FX_MARKET_IDS = frozenset({
@@ -8743,120 +9045,261 @@ def _get_weight_map(market_id: str) -> dict:
     return WEIGHTS  # Fallback
 
 
-def compute_weighted_bias(scores: dict, market_id: str = "",
-                           cot_detail: dict = None) -> dict:
-    """
-    Compute weighted composite score (0-10) across all factors.
+# ═══════════════════════════════════════════════════════════════════════════
+# VALIDATED SCORING ENGINE (v3) — trend-gated confluence, regime gate, MTF, tiers
+# ───────────────────────────────────────────────────────────────────────────
+# Replaces the linear weighted-average (which collapsed everything to Neutral and
+# could not surface shorts). Validated out-of-sample on ~20yr futures data:
+# IC +0.066 vs +0.035 for the weighted average; expectancy harness 48% win,
+# PF 1.62, +0.21R/trade. See BH_Backtest_Findings_R1.md and
+# BH_Weather_System_FINAL_Scoring_and_Logic.md.
+#
+# Core ideas:
+#   1) DIRECTIONAL BACKDROP = trend-gated confluence of the factors that actually
+#      carry directional edge (regime, macro, seasonality). Factors with no clear
+#      view ABSTAIN — they do not vote Neutral (the bug that flat-lined the old tool).
+#   2) CONVICTION = net count of trend-aligned factors agreeing, x regime gate.
+#   3) REGIME GATE = Kaufman efficiency ratio — act big in trends, stand aside in chop.
+#   4) MULTI-TIMEFRAME = long-term trend sets the stable bias; short-term
+#      counter-move is an entry-watch zone (for the user's supply/demand entries).
+#   5) SETUP / R-R = COT positioning + relval + PCR/VIX define a setup-QUALITY
+#      tier, NOT a directional vote. COT is judged by risk/reward, not hit-rate.
+# ═══════════════════════════════════════════════════════════════════════════
+_ENG_ER_CHOPPY, _ENG_ER_TREND = 0.10, 0.35   # efficiency-ratio gate bounds
+_ENG_GATE_FLOOR = 0.30                        # min conviction multiplier in chop
+_ENG_TIER_CUTS = {"Strong": 3.0, "Setup": 1.5, "Watch": 0.5}   # |conviction| cuts
+_ENG_DEADBAND = 0.5    # |score-5| below this ⇒ factor abstains (no directional view)
 
-    Confluence Bonus:
-    ─────────────────
-    A small bonus (+/-0.35 on the 0-10 scale) is added when the COT
-    STORY is genuinely in motion AND the confirming factors agree.
+# Which factor families are trusted per market group (Rounds 7-9):
+#   commodity pairs (metal/energy) mean-revert on relval BOTH sides; everything
+#   else only counts relval when it is trend-aligned. PCR only for equities.
+_ENG_MARKET_GROUP = {
+    "ES":"equity","NQ":"equity","YM":"equity","RTY":"equity","Z":"equity",
+    "GC":"metal","SI":"metal","HG":"metal","PL":"metal","PA":"metal",
+    "CL":"energy","B":"energy","NG":"energy","RB":"energy","HO":"energy","GO":"energy",
+    "ZB":"rates","ZN":"rates","ZF":"rates","ZT":"rates","R":"rates",
+    "6E":"fx","6J":"fx","6B":"fx","6A":"fx","6C":"fx","6N":"fx","6S":"fx","6M":"fx","DX":"fx",
+    "ZS":"ag","ZC":"ag","ZW":"ag","CC":"ag","KC":"ag","RC":"ag","SB":"ag","CT":"ag",
+    "LE":"ag","HE":"ag","GF":"ag",
+}
 
-    The COT story must be active — not just a high static snapshot.
-    "In motion" means one or more of:
-      - divergence signal firing (managers diverging from price)
-      - normalise_signal firing (riding an extreme unwind)
-      - convergence_signal firing (all three groups aligned)
-      - comm_momentum_signal firing (commercials accelerating)
-      - flatten_signal firing (managers flat while price at extreme)
+def _eng_signed(score, deadband: float = _ENG_DEADBAND):
+    """0-10 factor score → signed directional value, or None to ABSTAIN.
+    Near-neutral scores abstain rather than dragging the composite to Neutral."""
+    if score is None:
+        return None
+    try:
+        d = float(score) - 5.0
+    except (TypeError, ValueError):
+        return None
+    return None if abs(d) < deadband else d
 
-    AND at least 2 of the 3 confirmation factors (macro, momentum,
-    seasonal) must agree with the COT direction (score >= 6.2 bull
-    or <= 3.8 bear).
+def _eng_sign(x) -> int:
+    if x is None:
+        return 0
+    try:
+        if x > 0: return 1
+        if x < 0: return -1
+    except TypeError:
+        return 0
+    return 0
 
-    Philosophy: COT finds the early thesis with good R/R. Macro,
-    momentum, and seasonality confirm that the environment will
-    drive follow-through. When ALL of these align around an active
-    COT story, it is genuinely a high-conviction setup.
-    """
-    # ── Weight routing via shared helper (single source of truth) ──────────────
-    w_map = _get_weight_map(market_id)
-    # Guard: filter out keys where the score value is None (data not yet available)
-    _valid_keys = [k for k in w_map if k in scores and scores[k] is not None]
-    total_w = sum(w_map[k] for k in _valid_keys)
-    if total_w == 0:
-        return {"weighted": 5.0, "bias": "Neutral", "color": "#94a3b8", "confluence_bonus": 0.0}
-    weighted = sum(w_map[k] * float(scores[k]) for k in _valid_keys) / total_w
+def _eng_regime_gate(er: float) -> float:
+    return float(max(_ENG_GATE_FLOOR, min(1.0,
+        (er - _ENG_ER_CHOPPY) / (_ENG_ER_TREND - _ENG_ER_CHOPPY))))
 
-    # ── Confluence Bonus ────────────────────────────────────────────────────
-    # Only applies when the COT *story* is active (not just a static level).
-    # Bonus: +/-0.35 when COT story + 2/3 confirming factors all agree.
-    # Bonus: +/-0.20 when COT story + 1/3 confirming factors agree (weaker).
-    confluence_bonus  = 0.0
-    confluence_reason = None
+def _eng_regime_label(er: float) -> str:
+    if er >= _ENG_ER_TREND:  return "Trending"
+    if er <= _ENG_ER_CHOPPY: return "Choppy"
+    return "Mixed"
 
-    if cot_detail and isinstance(cot_detail, dict):
-        cot_score = cot_detail.get("score", 5.0) or 5.0
+def _eng_trend_state(lt: int, st: int) -> str:
+    if lt > 0 and st < 0: return "Uptrend · short-term pullback (entry-watch for longs)"
+    if lt > 0 and st > 0: return "Uptrend · momentum aligned (continuation)"
+    if lt > 0:            return "Uptrend · short-term flat"
+    if lt < 0 and st > 0: return "Downtrend · short-term bounce (entry-watch for shorts)"
+    if lt < 0 and st < 0: return "Downtrend · momentum aligned (continuation)"
+    if lt < 0:            return "Downtrend · short-term flat"
+    return "Rangebound · no clear trend"
 
-        # Determine COT direction
-        cot_bull = cot_score >= 6.5
-        cot_bear = cot_score <= 3.5
+def _eng_setup_quality(grp: str, spec_idx, comm_idx, spec_chg, price_confirm, cot_sign):
+    """COT setup-quality / risk-reward read. The COT setup has its OWN direction
+    (side WITH commercials / fade the crowd) which can differ from the macro
+    backdrop — so we surface it explicitly. This is the user's primary R/R engine:
+    judged by risk/reward (tight stop, let winners run), NOT hit-rate.
+    Returns (tier_label, setup_dir, list_of_driver_strings)."""
+    drv = []
+    if spec_idx is None or comm_idx is None:
+        return "n/a", 0, drv
+    extreme = abs(spec_idx - 50) >= 30          # large specs crowded one side
+    if not extreme:
+        return "no positioning extreme", 0, drv
+    # side with commercials; if cot score is exactly neutral at an extreme,
+    # fall back to fading the crowd (crowded long → bearish setup, & vice-versa)
+    setup_dir = cot_sign if cot_sign != 0 else (-1 if spec_idx >= 70 else 1 if spec_idx <= 30 else 0)
+    dword = "bullish" if setup_dir > 0 else "bearish" if setup_dir < 0 else ""
+    crowd = "specs crowded long" if spec_idx >= 70 else "specs crowded short"
+    diverging = (spec_chg is not None and
+                 ((spec_idx >= 70 and spec_chg < 0) or (spec_idx <= 30 and spec_chg > 0)))
+    if not price_confirm:
+        drv.append(f"COT {dword} setup ({crowd}) — price not yet confirming, wait (don't fight price)")
+        return "ripe, unconfirmed", setup_dir, drv
+    if diverging:
+        drv.append(f"COT {dword} setup: {crowd} + crowd unwinding + price confirming — high-quality R/R")
+        return "high-quality", setup_dir, drv
+    drv.append(f"COT {dword} setup ({crowd}) + price confirming")
+    return "confirmed", setup_dir, drv
 
-        # Check if the COT STORY is genuinely in motion (not just a static extreme)
-        story_active = any([
-            cot_detail.get("divergence"),         # Layer 2: price/manager divergence
-            cot_detail.get("normalise_signal"),   # Layer 8c: riding the unwind
-            cot_detail.get("convergence_signal"), # Layer 8b: all three groups aligned
-            cot_detail.get("comm_momentum_signal") and  # Layer 6: commercials accelerating
-                (cot_detail["comm_momentum_signal"].get("type") == ("bull" if cot_bull else "bear")),
-            cot_detail.get("flatten_signal"),     # Layer 8a: manager flattening
-            cot_detail.get("exhaustion"),         # Layer 3: manager exhaustion at extreme
-        ])
 
-        if story_active and (cot_bull or cot_bear):
-            # Count confirming factors (macro, momentum, seasonal)
-            # "Confirming" = score >= 6.2 (bull) or <= 3.8 (bear), same direction as COT
-            macro_s    = scores.get("macro",    5.0)
-            momentum_s = scores.get("momentum", 5.0)
-            seasonal_s = scores.get("seasonal", 5.0)
+def compute_engine_bias(scores: dict, market_id: str = "",
+                        cot_detail: dict = None, momentum_detail: dict = None) -> dict:
+    """Validated trend-gated confluence engine. Drop-in replacement for
+    compute_weighted_bias — returns a SUPERSET of its keys (weighted/bias/color)
+    plus the engine state (direction/conviction/tier/regime/trend_state/
+    setup_quality/drivers/factor_votes) consumed by the redesigned UI."""
+    cot_detail = cot_detail or {}
+    momentum_detail = momentum_detail or {}
+    mid = (market_id or "").upper()
+    grp = _ENG_MARKET_GROUP.get(mid, "other")
 
-            if cot_bull:
-                confirmers = sum([
-                    macro_s    >= 6.2,
-                    momentum_s >= 6.2,
-                    seasonal_s >= 6.2,
-                ])
-                if confirmers >= 2:
-                    confluence_bonus  = +0.35
-                    confluence_reason = f"Confluence: COT story active + {confirmers}/3 factors confirming bull"
-                elif confirmers == 1:
-                    confluence_bonus  = +0.20
-                    confluence_reason = f"Confluence: COT story active + 1/3 factors confirming bull"
-            elif cot_bear:
-                confirmers = sum([
-                    macro_s    <= 3.8,
-                    momentum_s <= 3.8,
-                    seasonal_s <= 3.8,
-                ])
-                if confirmers >= 2:
-                    confluence_bonus  = -0.35
-                    confluence_reason = f"Confluence: COT story active + {confirmers}/3 factors confirming bear"
-                elif confirmers == 1:
-                    confluence_bonus  = -0.20
-                    confluence_reason = f"Confluence: COT story active + 1/3 factors confirming bear"
+    # ── signed factor values (None = abstain) ──────────────────────────────
+    seas_z   = _eng_signed(scores.get("seasonal"))
+    regime_z = _eng_signed(scores.get("regime"))
+    macro_z  = _eng_signed(scores.get("macro"))
+    mom_z    = _eng_signed(scores.get("momentum"))
+    cot_z    = _eng_signed(scores.get("cot"))
+    rv_z     = _eng_signed(scores.get("relval"))
+    pcr_z    = _eng_signed(scores.get("pcr")) if ("pcr" in scores) else None
 
-    weighted = round(max(0.0, min(10.0, weighted + confluence_bonus)), 2)
+    # ── trend signs (multi-timeframe) from momentum detail ─────────────────
+    # Prefer the true weekly horizons (roc_lt_pct ~26wk, roc_st_pct ~4wk); the daily
+    # roc26w/roc4w are factor-calibrated misnomers, so fall back to them only if needed.
+    roc26 = momentum_detail.get("roc_lt_pct", momentum_detail.get("roc26w_pct"))
+    roc4  = momentum_detail.get("roc_st_pct", momentum_detail.get("roc4w_pct"))
+    trend_lt = (1 if (roc26 is not None and roc26 > 2.0) else
+                -1 if (roc26 is not None and roc26 < -2.0) else 0)
+    if trend_lt == 0 and momentum_detail.get("sma200_above") is not None:
+        spd = momentum_detail.get("sma200_pct_diff", 0) or 0
+        trend_lt = 1 if spd > 3 else -1 if spd < -3 else 0
+    trend_st = (1 if (roc4 is not None and roc4 > 1.0) else
+                -1 if (roc4 is not None and roc4 < -1.0) else 0)
+    er = momentum_detail.get("efficiency_ratio")
+    if er is None:
+        er = 0.20
 
-    # Bias labels for 0-10 scale (5.0 = neutral)
-    bias = "Neutral"; color = "#94a3b8"
-    if   weighted >= 8.0:  bias = "Very Bullish";    color = "#22c55e"
-    elif weighted >= 7.0:  bias = "Bullish";          color = "#4ade80"
-    elif weighted >= 6.2:  bias = "Mildly Bullish";   color = "#86efac"
-    elif weighted >= 5.5:  bias = "Lean Bullish";     color = "#a7f3d0"
-    elif weighted >= 4.5:  bias = "Neutral";          color = "#94a3b8"
-    elif weighted >= 3.8:  bias = "Lean Bearish";     color = "#fde68a"
-    elif weighted >= 3.0:  bias = "Mildly Bearish";   color = "#fca5a5"
-    elif weighted >= 2.0:  bias = "Bearish";          color = "#f87171"
-    else:                  bias = "Very Bearish";     color = "#ef4444"
+    # ── 1) DIRECTIONAL BACKDROP — only edge-bearing factors, abstain-aware ──
+    bd_vals = [v for v in (seas_z, regime_z, macro_z) if v is not None]
+    backdrop = (sum(bd_vals) / len(bd_vals)) if bd_vals else 0.0
+    bias = _eng_sign(backdrop)
+
+    # ── 2) TREND-GATED CONFLUENCE ──────────────────────────────────────────
+    cot_vote = _eng_sign(cot_z) if (_eng_sign(cot_z) != 0 and _eng_sign(cot_z) == trend_lt) else 0
+    if grp in ("metal", "energy"):
+        rv_vote = _eng_sign(rv_z)
+    else:
+        rv_vote = _eng_sign(rv_z) if (_eng_sign(rv_z) != 0 and _eng_sign(rv_z) == trend_lt) else 0
+    pcr_vote = _eng_sign(pcr_z) if grp == "equity" else 0
+
+    votes = {
+        "seasonal": _eng_sign(seas_z), "regime": _eng_sign(regime_z), "macro": _eng_sign(macro_z),
+        "momentum": _eng_sign(mom_z), "cot": cot_vote, "relval": rv_vote, "pcr": pcr_vote,
+    }
+    agree    = sum(1 for v in votes.values() if bias != 0 and v == bias)
+    disagree = sum(1 for v in votes.values() if bias != 0 and v == -bias)
+    # CONVICTION is driven by the EDGE-bearing factors (seasonal / regime / macro — the
+    # only factors with validated standalone IC: +0.034 / +0.046 / +0.036 on a 14-market
+    # walk-forward). The remaining factors (momentum / cot / relval / pcr — ~0 IC alone)
+    # act as HALF-WEIGHT CONFIRMATION: they can reinforce a genuine edge-factor signal but
+    # cannot manufacture a high-conviction tier on their own.
+    # WHY: with all-equal votes the "Strong" tier was the WEAKEST cohort (+0.17% fwd,
+    # because zero-IC factors inflated conviction); edge-weighted conviction makes Strong
+    # the BEST cohort (+1.18% fwd, 57% hit) — i.e. the tiers now actually rank edge.
+    _EDGE_F = ("seasonal", "regime", "macro")
+    _CONF_F = ("momentum", "cot", "relval", "pcr")
+    edge_net = (sum(1 for f in _EDGE_F if bias != 0 and votes[f] == bias)
+                - sum(1 for f in _EDGE_F if bias != 0 and votes[f] == -bias))
+    conf_net = (sum(1 for f in _CONF_F if bias != 0 and votes[f] == bias)
+                - sum(1 for f in _CONF_F if bias != 0 and votes[f] == -bias))
+    raw_conv = edge_net + 0.5 * conf_net
+
+    # ── 3) REGIME GATE — scale conviction by trend quality ─────────────────
+    gate = _eng_regime_gate(er)
+    conviction = round(bias * raw_conv * gate, 2)
+    a = abs(conviction)
+    tier = ("Strong" if a >= _ENG_TIER_CUTS["Strong"] else
+            "Setup"  if a >= _ENG_TIER_CUTS["Setup"]  else
+            "Watch"  if a >= _ENG_TIER_CUTS["Watch"]  else "Neutral")
+    direction = "Bullish" if bias > 0 else "Bearish" if bias < 0 else "Neutral"
+
+    # ── 4) MULTI-TIMEFRAME trend state ─────────────────────────────────────
+    trend_state = _eng_trend_state(trend_lt, trend_st)
+
+    # ── 5) SETUP QUALITY (R-R) from positioning + price confirmation ───────
+    spec_idx = cot_detail.get("lspec_index")
+    comm_idx = cot_detail.get("comm_index")
+    spec_chg = cot_detail.get("lspec_chg_3w")
+    # COT direction uses the raw score sign (no deadband) — at an extreme the score
+    # is decisive, and we want the setup's own direction even if the backdrop abstains.
+    _cot_raw = scores.get("cot")
+    cot_sign = _eng_sign((_cot_raw - 5.0)) if _cot_raw is not None else 0
+    price_confirm = (trend_st != 0 and trend_st == cot_sign)
+    setup_quality, setup_dir, setup_drivers = _eng_setup_quality(
+        grp, spec_idx, comm_idx, spec_chg, price_confirm, cot_sign)
+    if setup_dir == 0:      setup_vs_backdrop = "none"
+    elif bias == 0:         setup_vs_backdrop = "standalone"   # backdrop neutral → COT is the signal
+    elif setup_dir == bias: setup_vs_backdrop = "aligned"      # COT confirms backdrop → strongest
+    else:                   setup_vs_backdrop = "counter"      # COT fades backdrop → mean-reversion watch
+    setup_direction = "Bullish" if setup_dir > 0 else "Bearish" if setup_dir < 0 else "Neutral"
+
+    # ── human-readable drivers ─────────────────────────────────────────────
+    _names = {"seasonal":"Seasonality","regime":"Risk regime","macro":"Macro",
+              "momentum":"Momentum","cot":"COT (trend-aligned)","relval":"Relative value",
+              "pcr":"Sentiment"}
+    drivers = []
+    for k, v in votes.items():
+        if v > 0:   drivers.append(f"{_names[k]}: bullish")
+        elif v < 0: drivers.append(f"{_names[k]}: bearish")
+    drivers += setup_drivers
+
+    # ── climate score (0-10) for the gauge — derived from bias x conviction ─
+    weighted = round(max(0.2, min(9.8, 5.0 + conviction)), 2)
+
+    bias_lbl = "Neutral"; color = "#94a3b8"
+    if   weighted >= 8.0:  bias_lbl = "Very Bullish";    color = "#22c55e"
+    elif weighted >= 7.0:  bias_lbl = "Bullish";         color = "#4ade80"
+    elif weighted >= 6.2:  bias_lbl = "Mildly Bullish";  color = "#86efac"
+    elif weighted >= 5.5:  bias_lbl = "Lean Bullish";    color = "#a7f3d0"
+    elif weighted >= 4.5:  bias_lbl = "Neutral";         color = "#94a3b8"
+    elif weighted >= 3.8:  bias_lbl = "Lean Bearish";    color = "#fde68a"
+    elif weighted >= 3.0:  bias_lbl = "Mildly Bearish";  color = "#fca5a5"
+    elif weighted >= 2.0:  bias_lbl = "Bearish";         color = "#f87171"
+    else:                  bias_lbl = "Very Bearish";    color = "#ef4444"
 
     return {
         "weighted":          weighted,
-        "bias":              bias,
+        "bias":              bias_lbl,
         "color":             color,
-        "confluence_bonus":  confluence_bonus,
-        "confluence_reason": confluence_reason,
+        "confluence_bonus":  0.0,
+        "confluence_reason": None,
+        "direction":         direction,
+        "bias_sign":         bias,
+        "conviction":        conviction,
+        "tier":              tier,
+        "regime":            _eng_regime_label(er),
+        "efficiency_ratio":  round(float(er), 3),
+        "regime_gate":       round(gate, 3),
+        "trend_lt":          trend_lt,
+        "trend_st":          trend_st,
+        "trend_state":       trend_state,
+        "setup_quality":     setup_quality,
+        "setup_direction":   setup_direction,
+        "setup_vs_backdrop": setup_vs_backdrop,
+        "agree":             agree,
+        "disagree":          disagree,
+        "factor_votes":      votes,
+        "drivers":           drivers,
     }
+
 
 # ============================================================
 # MAIN API ENDPOINTS
@@ -8880,39 +9323,16 @@ def _save_scores_snapshot(scores_map: dict) -> None:
     except Exception as _e:
         print(f"[snapshot] save failed: {_e}")
 
-def _load_weekly_snapshot() -> dict:
-    """Load the closest snapshot that is 5–9 days old (tolerates weekend downtime)."""
-    try:
-        today = date.today()
-        for days_back in range(5, 10):
-            candidate = today - timedelta(days=days_back)
-            fname = os.path.join(DATA_DIR, f"scores_snapshot_{candidate.isoformat()}.json")
-            if os.path.exists(fname):
-                with open(fname) as fh:
-                    return json.load(fh).get("scores", {})
-        # Fallback: any snapshot older than 4 days
-        cutoff = time.time() - 4 * 86400
-        candidates = sorted(
-            [f for f in glob.glob(os.path.join(DATA_DIR, "scores_snapshot_*.json"))
-             if os.path.getmtime(f) < cutoff],
-            reverse=True
-        )
-        if candidates:
-            with open(candidates[0]) as fh:
-                return json.load(fh).get("scores", {})
-    except Exception as _e:
-        print(f"[snapshot] load failed: {_e}")
-    return {}
-
+# ------------------------------------------------------------------
+# Scores cache + concurrency guard (restored — these module globals
+# were inadvertently dropped during an earlier dead-code cleanup)
+# ------------------------------------------------------------------
 ALL_DATA_CACHE = {"data": None, "time": 0}
 ALL_DATA_TTL = 3600  # 60 min — data sources (COT, macro, prices) change at most hourly
-# FIX: Single async lock prevents cache stampede — when N concurrent requests all
+# Single async lock prevents cache stampede — when N concurrent requests all
 # find an expired cache simultaneously, only ONE recomputes; the rest wait and
-# then get the freshly cached result. Without this, N concurrent /api/scores
-# calls each spawn compute_macro_all+compute_risk_regime+compute_ff_macro in
-# parallel threads, multiplying memory usage by N and causing OOM.
+# then get the freshly cached result.
 _SCORES_LOCK = asyncio.Lock()
-
 _SCORES_BG_RUNNING = False  # True while a background refresh is in flight
 
 async def _refresh_scores_background():
@@ -9267,12 +9687,25 @@ async def _do_scores_refresh(force: bool = False):
     
         # ── COT scoring ──────────────────────────────────────────────────────────
         if is_cross:
-            cot_data = compute_cross_cot_score(
-                mid,
-                market["base_leg"],
-                market["quote_leg"],
-                cot_df_cache,
-            )
+            # Build a synthetic 3-category cross COT (commercials / large specs /
+            # small specs) from the two USD legs, then run it through the SAME v2
+            # scorer the outright markets use — full parity, all three categories.
+            cross_df = build_cross_cot_df(market["base_leg"], market["quote_leg"], cot_df_cache)
+            if cross_df is not None and len(cross_df) >= 12:
+                cross_df = _merge_price_into_cot(cross_df, market["yf"], mid)
+                cot_data = compute_cot_score_v2(cross_df, market_id=mid)
+                # tag cross metadata so the UI can label legs / methodology
+                if isinstance(cot_data, dict):
+                    _cd = cot_data.setdefault("detail", {}) or {}
+                    _cd["cross"]     = True
+                    _cd["base_leg"]  = market["base_leg"]
+                    _cd["quote_leg"] = market["quote_leg"]
+                    _cd["cross_method"] = "3-category net spread (base − quote, OI-normalised)"
+                    cot_data["detail"] = _cd
+            else:
+                # Fallback: legacy commercial-Briese differential if legs unavailable
+                cot_data = compute_cross_cot_score(
+                    mid, market["base_leg"], market["quote_leg"], cot_df_cache)
         elif market.get("crypto_cot_mode"):
             cot_df = cot_df_cache.get(mid)
             cot_df = _merge_price_into_cot(cot_df, market["yf"], mid)
@@ -9304,15 +9737,16 @@ async def _do_scores_refresh(force: bool = False):
         if mid in PCR_EQUITY_SYMBOLS:
             scores["pcr"] = pcr_data["score"]
     
-        # Build a merged cot_detail dict for compute_weighted_bias.
+        # Build a merged cot_detail dict for compute_engine_bias.
         # compute_cot_score_v2 returns v2 signal keys at the TOP LEVEL of cot_data, NOT inside
-        # cot_data["detail"]. We must merge both so story_active in compute_weighted_bias can
+        # cot_data["detail"]. We must merge both so the COT signals in compute_engine_bias can
         # see them. Without this the confluence bonus never fires.
         # _COT_V2_SIGNAL_KEYS is the module-level tuple defined above the weight maps.
         _cot_detail_inner  = cot_data.get("detail", {}) or {}
         _cot_v2_signals    = {k: cot_data[k] for k in _COT_V2_SIGNAL_KEYS if k in cot_data}
         _cot_detail_merged = {**_cot_detail_inner, **_cot_v2_signals, "score": cot_data.get("score", 5.0)}
-        bias = compute_weighted_bias(scores, market_id=mid, cot_detail=_cot_detail_merged)
+        bias = compute_engine_bias(scores, market_id=mid, cot_detail=_cot_detail_merged,
+                                   momentum_detail=momentum_data.get("detail", {}))
     
         # Include v2 debug fields alongside the cot entry so they
         # are visible in /api/scores for client-side debugging.
@@ -9345,7 +9779,7 @@ async def _do_scores_refresh(force: bool = False):
                 "detail": pcr_data.get("detail", {}),
             }
     
-        # Determine the actual weight map used for this market (mirrors compute_weighted_bias routing)
+        # Determine the actual weight map used for this market (legacy per-market weight mini-bars)
         # This is exposed per-market so the frontend can render the correct weight mini-bars
         mkt_weights = _get_weight_map(mid)
         # Only expose weights for factors actually present in this market's scores
@@ -9368,6 +9802,24 @@ async def _do_scores_refresh(force: bool = False):
             "color":             bias["color"],
             "confluence_bonus":  bias.get("confluence_bonus", 0.0),
             "confluence_reason": bias.get("confluence_reason"),
+            # ── validated engine state (primary signal for the UI) ─────────────
+            "direction":         bias.get("direction", "Neutral"),
+            "bias_sign":         bias.get("bias_sign", 0),
+            "conviction":        bias.get("conviction", 0.0),
+            "tier":              bias.get("tier", "Neutral"),
+            "regime":            bias.get("regime", "Mixed"),
+            "efficiency_ratio":  bias.get("efficiency_ratio"),
+            "regime_gate":       bias.get("regime_gate"),
+            "trend_lt":          bias.get("trend_lt", 0),
+            "trend_st":          bias.get("trend_st", 0),
+            "trend_state":       bias.get("trend_state", ""),
+            "setup_quality":     bias.get("setup_quality", "n/a"),
+            "setup_direction":   bias.get("setup_direction", "Neutral"),
+            "setup_vs_backdrop": bias.get("setup_vs_backdrop", "none"),
+            "agree":             bias.get("agree", 0),
+            "disagree":          bias.get("disagree", 0),
+            "factor_votes":      bias.get("factor_votes", {}),
+            "drivers":           bias.get("drivers", []),
             "scores":            scores_out,
             "weights":           active_weights,  # Per-market weight map (varies by data quality + PCR tier)
         })
@@ -9460,7 +9912,7 @@ async def _do_scores_refresh(force: bool = False):
             new_regime_score = round(max(0.0, min(10.0, old_regime_score + raw_tilt)), 2)
     
             # Recompute weighted score with adjusted regime score
-            # Guard against None scores (None-safe — compute_weighted_bias handles None filtering)
+            # Guard against None scores (None-safe — compute_engine_bias handles None filtering)
             factor_scores = {
                 k: mkt["scores"][k]["score"]
                 for k in mkt["scores"]
@@ -9473,9 +9925,11 @@ async def _do_scores_refresh(force: bool = False):
             _dx_cot_inner = _dx_cot_raw.get("detail", {}) or {}
             _dx_v2_sigs = {k: _dx_cot_raw[k] for k in _COT_V2_SIGNAL_KEYS if k in _dx_cot_raw}
             cot_detail_for_mid = {**_dx_cot_inner, **_dx_v2_sigs, "score": _dx_cot_raw.get("score", 5.0)}
-            new_bias = compute_weighted_bias(factor_scores, market_id=mid, cot_detail=cot_detail_for_mid)
+            _dx_mom_detail = mkt["scores"].get("momentum", {}).get("detail", {}) or {}
+            new_bias = compute_engine_bias(factor_scores, market_id=mid, cot_detail=cot_detail_for_mid,
+                                           momentum_detail=_dx_mom_detail)
     
-            # Update the result in place
+            # Update the result in place — re-flow the FULL engine state after the tilt
             mkt["scores"]["regime"]["score"]  = new_regime_score
             mkt["scores"]["regime"]["dx_tilt"] = round(raw_tilt, 3)
             mkt["scores"]["regime"]["dx_tilt_source"] = f"DX {dx_score:.1f}/10 → {'bull' if dx_deviation > 0 else 'bear'} dollar feedback"
@@ -9483,6 +9937,10 @@ async def _do_scores_refresh(force: bool = False):
             mkt["bias"]            = new_bias["bias"]
             mkt["color"]           = new_bias["color"]
             mkt["confluence_bonus"]= new_bias.get("confluence_bonus", 0.0)
+            for _k in ("direction","bias_sign","conviction","tier","regime","efficiency_ratio",
+                       "regime_gate","trend_lt","trend_st","trend_state","setup_quality",
+                       "setup_direction","setup_vs_backdrop","agree","disagree","factor_votes","drivers"):
+                mkt[_k] = new_bias.get(_k, mkt.get(_k))
     
     results.sort(key=lambda x: x["weighted_score"], reverse=True)
     
@@ -9555,7 +10013,8 @@ async def get_news_context(force: bool = False):
 # ============================================================
 import os as _os
 
-_SEASONALITY_PATH = _os.path.join(_os.path.dirname(__file__), "seasonality_all21.json")
+# Seasonality is now built dynamically (see _build_seasonality_from_closes / _load_dyn_seas_file).
+# The old static 29MB seasonality_all21.json is no longer read.
 _SEASONALITY_CACHE = {"data": None}
 
 # Cache for current-year actual price returns (refreshed every 30 min)
@@ -9622,17 +10081,19 @@ def _get_current_year_actual(market_id: str) -> list:
 
 @app.get("/api/seasonality")
 async def get_seasonality(market: str = None):
-    if _SEASONALITY_CACHE["data"] is None:
+    # Dynamic seasonality: build the requested market on demand (cached/weekly),
+    # then serve from the dynamic cache. No static 29MB file.
+    if market:
         try:
-            with open(_SEASONALITY_PATH) as f:
-                _SEASONALITY_CACHE["data"] = json.load(f)
-        except Exception as e:
-            return {"error": str(e)}
-    data = _SEASONALITY_CACHE["data"]
+            await asyncio.get_event_loop().run_in_executor(
+                _APP_EXECUTOR, _ensure_market_seas, market.upper())
+        except Exception as _e:
+            print(f"[seas api] ensure {market}: {_e}", flush=True)
+    data = _load_seas_data()
     if market:
         m = market.upper()
-        if m not in data:
-            return {"error": f"Market '{m}' not found"}
+        if m not in data or not data[m].get("snapshots"):
+            return {"error": f"Seasonality for '{m}' is still building or unavailable"}
         mkt_data  = data[m]
         snapshots = mkt_data.get("snapshots", {})
         # Use "current" snapshot for display (all available data, no lookahead needed for live)
@@ -9649,6 +10110,17 @@ async def get_seasonality(market: str = None):
         _today = _seas_dt.date.today()
         _doy   = _today.timetuple().tm_yday
         _current_td = max(1, min(252, round((_doy / 365) * 252)))
+        # Month-boundary markers on the 1-252 trading-day axis (calendar-driven,
+        # identical for every market). The frontend spreads/iterates this array
+        # (`[...months]`, `months[i].td/.label`), so it MUST be a list of
+        # {td, label} — not a dict. (Bug fix: the dynamic generator has no
+        # top-level "months" key, so the old `data.get("months", {})` returned
+        # an empty dict and threw "months is not iterable" in the seasonal tab.)
+        _months_axis = []
+        for _mo in range(1, 13):
+            _md = _seas_dt.date(_today.year, _mo, 1)
+            _mtd = max(1, min(252, round((_md.timetuple().tm_yday / 365) * 252)))
+            _months_axis.append({"td": _mtd, "label": _md.strftime("%b")})
         return {
             "market": m,
             "all":    current_snap.get("all", []),
@@ -9657,7 +10129,7 @@ async def get_seasonality(market: str = None):
             "midterm":       current_snap.get("midterm", []),
             "pre_election":  current_snap.get("pre_election", []),
             "election":      current_snap.get("election", []),
-            "months": data.get("months", {}),
+            "months": _months_axis,
             "current_td": _current_td,
             "current_year_actual": cy_actual,
         }
@@ -9703,7 +10175,10 @@ async def get_cot_history(market: str):
     if _rc4 and (_rn4 - _rc4["ts"]) < _COT_HIST_RESULT_TTL:
         return _SafeJSONResponse(_rc4["data"])
 
-    # ── FX CROSS PAIR: return Briese differential ─────────────────────────────
+    # ── FX CROSS PAIR: synthetic 3-category history (commercials / large specs /
+    #    small specs), built from the two USD legs the SAME way the live scorer does
+    #    (OI-normalised net spread, base − quote). Returns the standard market shape
+    #    so the cross renders through the normal 3-category COT view & charts.
     if mkt.get("cross"):
         base_id  = mkt["base_leg"]
         quote_id = mkt["quote_leg"]
@@ -9715,14 +10190,8 @@ async def get_cot_history(market: str):
         df_quote = await fetch_cot_history(quote_mkt["cftc_code"], quote_mkt["name"])
         if df_base is None or df_base.empty or df_quote is None or df_quote.empty:
             return {"market": m_upper, "dates": [], "cross": True,
-                    "differential": [], "base_briese": [], "quote_briese": [],
+                    "comm_net": [], "lspec_net": [], "sspec_net": [],
                     "base_id": base_id, "quote_id": quote_id}
-
-        window = min(520, len(df_base), len(df_quote))
-        # Align on common date range
-        n_common = min(len(df_base), len(df_quote))
-        df_base  = df_base.tail(n_common).copy()
-        df_quote = df_quote.tail(n_common).copy()
 
         def rolling_briese_arr(arr, window=520):
             result = []
@@ -9733,38 +10202,49 @@ async def get_cot_history(market: str):
                 else: result.append(round((arr[i] - lo) / (hi - lo) * 100, 1))
             return result
 
-        base_comm  = [float(v) for v in df_base["comm_net"].tolist()]
-        quote_comm = [float(v) for v in df_quote["comm_net"].tolist()]
-        base_briese_series  = rolling_briese_arr(base_comm)
-        quote_briese_series = rolling_briese_arr(quote_comm)
-        differential_series = [round(b - q, 1) for b, q in zip(base_briese_series, quote_briese_series)]
-
-        # Use base leg dates
-        dates = df_base["date"].dt.strftime("%Y-%m-%d").tolist()
-        # Tail 520 bars (~10yr)
-        dates               = dates[-520:]
-        base_briese_series  = base_briese_series[-520:]
-        quote_briese_series = quote_briese_series[-520:]
-        differential_series = differential_series[-520:]
-
+        # Align the two legs by date (nearest weekly), then build the 3-category spread.
+        b = df_base[["date", "comm_net", "lspec_net", "sspec_net", "open_interest_all"]].copy()
+        q = df_quote[["date", "comm_net", "lspec_net", "sspec_net", "open_interest_all"]].copy()
+        b["date"] = pd.to_datetime(b["date"]).dt.tz_localize(None).dt.normalize()
+        q["date"] = pd.to_datetime(q["date"]).dt.tz_localize(None).dt.normalize()
+        mrg = pd.merge_asof(b.sort_values("date"), q.sort_values("date"), on="date",
+                            direction="nearest", tolerance=pd.Timedelta(days=10),
+                            suffixes=("_b", "_q")).dropna()
+        if len(mrg) < 12:
+            return {"market": m_upper, "dates": [], "cross": True,
+                    "comm_net": [], "lspec_net": [], "sspec_net": [],
+                    "base_id": base_id, "quote_id": quote_id}
+        oi_b = mrg["open_interest_all_b"].replace(0, np.nan)
+        oi_q = mrg["open_interest_all_q"].replace(0, np.nan)
+        ref_oi = (oi_b + oi_q) / 2.0
+        cross_cat = {}
+        for cat in ("comm_net", "lspec_net", "sspec_net"):
+            cross_cat[cat] = ((mrg[f"{cat}_b"] / oi_b - mrg[f"{cat}_q"] / oi_q) * ref_oi)
+        comm_net_s  = [int(v) if pd.notna(v) else None for v in cross_cat["comm_net"].round().tolist()]
+        lspec_net_s = [int(v) if pd.notna(v) else None for v in cross_cat["lspec_net"].round().tolist()]
+        sspec_net_s = [int(v) if pd.notna(v) else None for v in cross_cat["sspec_net"].round().tolist()]
+        oi_s        = [int(v) if pd.notna(v) else None for v in ref_oi.round().tolist()]
+        dates       = mrg["date"].dt.strftime("%Y-%m-%d").tolist()
+        # Per-category rolling Briese indices for the 'index' chart mode
+        comm_idx  = rolling_briese_arr([float(v or 0) for v in comm_net_s])
+        lspec_idx = rolling_briese_arr([float(v or 0) for v in lspec_net_s])
+        sspec_idx = rolling_briese_arr([float(v or 0) for v in sspec_net_s])
+        sl = slice(-520, None)   # last ~10yr
         _cot_cross = {
             "market":        m_upper,
             "name":          mkt["name"],
             "cross":         True,
             "base_id":       base_id,
             "quote_id":      quote_id,
-            "dates":         dates,
-            "base_briese":   base_briese_series,
-            "quote_briese":  quote_briese_series,
-            "differential":  differential_series,
-            # Repurpose standard fields for compatibility
-            "comm_net":      differential_series,     # differential (0=neutral)
-            "lspec_net":     base_briese_series,      # base Briese
-            "sspec_net":     quote_briese_series,     # quote Briese
-            "open_interest": [],
-            "comm_idx_series":  differential_series,
-            "lspec_idx_series": base_briese_series,
-            "sspec_idx_series": quote_briese_series,
+            "cross_method":  "3-category net spread (base − quote, OI-normalised)",
+            "dates":         dates[sl],
+            "comm_net":      comm_net_s[sl],
+            "lspec_net":     lspec_net_s[sl],
+            "sspec_net":     sspec_net_s[sl],
+            "open_interest": oi_s[sl],
+            "comm_idx_series":  comm_idx[sl],
+            "lspec_idx_series": lspec_idx[sl],
+            "sspec_idx_series": sspec_idx[sl],
         }
         _COT_HIST_RESULT_CACHE[m_upper] = {"ts": time.time(), "data": _cot_cross}
         return _SafeJSONResponse(_cot_cross)
@@ -10078,6 +10558,7 @@ def score_seasonality(market_id: str) -> dict:
     current_td = max(1, min(252, round((doy / 365) * 252)))
     cycle_key = _cycle_key_for_year(today.year)
 
+    _ensure_market_seas(market_id)
     raw = _score_seasonality_at(market_id.upper(), today)
     score = round(float(raw), 1)
     if score >= 7.5:
@@ -10165,16 +10646,133 @@ def _get_seas_normaliser(market_id: str, seas: dict) -> float:
         return 3.0
 
 
-def _load_seas_data() -> dict:
-    """Load seasonality data from disk, using cached value if available."""
-    import os as _os2
+# ════════════════════════════════════════════════════════════════════════════
+# DYNAMIC ROLLING SEASONALITY  (replaces the static 29MB seasonality_all21.json)
+# ────────────────────────────────────────────────────────────────────────────
+# Curves are computed LIVE from ~22yr of price history per market, prior-years-only
+# (zero look-ahead), cycle-weighted (midterm 2.5x) and recency-decayed (0.88^age),
+# producing the exact snapshot schema the scorer consumes. Built lazily per market,
+# cached in-memory + persisted to a small JSON, and auto-rebuilt weekly so the
+# seasonal read is never stale. Markets not yet built fall back to the calendar
+# SEASONAL_WINDOWS heuristic in _score_seasonality_at.
+_DYN_SEAS_PATH = os.path.join(DATA_DIR, "seasonality_dynamic.json")
+_DYN_SEAS_TTL  = 7 * 86400      # rebuild each market weekly
+_DYN_SEAS_BUILT: dict = {}      # market_id -> last build ts (in-memory)
+
+def _build_seasonality_from_closes(closes, current_year: int,
+                                   years_back: int = 22, snap_years: int = 11) -> dict:
+    """Build the {'snapshots': {...}} structure from a daily Close series."""
+    closes = closes.dropna()
+    try:
+        if closes.index.tz is not None:
+            closes.index = closes.index.tz_localize(None)
+    except Exception:
+        pass
+    by_year: dict = {}
+    for yr, grp in closes.groupby(closes.index.year):
+        if len(grp) < 30:
+            continue
+        base = float(grp.iloc[0])
+        if base == 0:
+            continue
+        path = {}
+        for ts, px in grp.items():
+            doy = ts.timetuple().tm_yday
+            td = max(1, min(252, round(doy / 365 * 252)))
+            path[td] = (float(px) / base - 1.0) * 100.0
+        by_year[int(yr)] = path
+
+    def build_curve(years, asof):
+        accv = [0.0] * 253; wsum = [0.0] * 253
+        for yr in years:
+            path = by_year.get(yr)
+            if not path:
+                continue
+            w = (2.5 if yr % 4 == 2 else 1.0) * (0.88 ** max(0, asof - 1 - yr))
+            last = 0.0
+            for td in range(1, 253):
+                if td in path:
+                    last = path[td]
+                accv[td] += last * w; wsum[td] += w
+        return [[td, round(accv[td] / wsum[td], 3)] for td in range(1, 253) if wsum[td] > 0]
+
+    def snapshot_for(asof, full=False):
+        prior = [y for y in by_year if y < asof and y >= asof - years_back]
+        snap = {"all": build_curve(prior, asof)}
+        # Cycle-specific curves are only used by the chart (the scorer reads 'all'),
+        # so build them only for the 'current' snapshot to keep the file small.
+        if full:
+            for cyc in ("midterm", "pre_election", "post_election", "election"):
+                yrs = [y for y in prior if _cycle_key_for_year(y) == cyc]
+                if yrs:
+                    snap[cyc] = build_curve(yrs, asof)
+        return snap
+
+    snapshots = {}
+    for Y in range(current_year - snap_years + 1, current_year + 1):
+        s = snapshot_for(Y)
+        if s.get("all"):
+            snapshots[str(Y)] = s
+    cur = snapshot_for(current_year, full=True)
+    if cur.get("all"):
+        snapshots["current"] = cur
+    return {"snapshots": snapshots}
+
+def _load_dyn_seas_file() -> dict:
+    try:
+        with open(_DYN_SEAS_PATH) as f:
+            d = json.load(f)
+        for mid, ent in d.items():
+            if isinstance(ent, dict) and ent.get("_built"):
+                _DYN_SEAS_BUILT[mid] = ent["_built"]
+        return d
+    except Exception:
+        return {}
+
+def _save_dyn_seas_file(data: dict) -> None:
+    try:
+        with open(_DYN_SEAS_PATH, "w") as f:
+            json.dump(data, f)
+    except Exception as _e:
+        print(f"[seas dyn] save error: {_e}", flush=True)
+
+def _ensure_market_seas(market_id: str) -> None:
+    """Ensure dynamic seasonality for one market is built & fresh in the cache."""
+    mid = (market_id or "").upper()
+    if not mid:
+        return
     if _SEASONALITY_CACHE["data"] is None:
-        p = _os2.path.join(_os2.path.dirname(__file__), "seasonality_all21.json")
-        try:
-            with open(p) as f:
-                _SEASONALITY_CACHE["data"] = json.load(f)
-        except Exception:
-            return {}
+        _SEASONALITY_CACHE["data"] = _load_dyn_seas_file()
+    data = _SEASONALITY_CACHE["data"]
+    now = time.time()
+    if (mid in data and data[mid].get("snapshots")
+            and (now - _DYN_SEAS_BUILT.get(mid, 0)) < _DYN_SEAS_TTL):
+        return
+    mkt = next((x for x in MARKETS if x["id"] == mid), None)
+    if not mkt or not mkt.get("yf"):
+        return
+    try:
+        from datetime import date as _d
+        df = _yf_with_timeout(yf.Ticker(mkt["yf"]).history, period="max", interval="1d",
+                              auto_adjust=True, label=f"seas_{mid}")
+        if df is None or df.empty or len(df) < 300:
+            return
+        built = _build_seasonality_from_closes(df["Close"], _d.today().year)
+        if built.get("snapshots"):
+            built["_built"] = now
+            data[mid] = built
+            _DYN_SEAS_BUILT[mid] = now
+            _save_dyn_seas_file(data)
+    except Exception as _e:
+        print(f"[seas dyn] {mid}: {_e}", flush=True)
+
+
+
+def _load_seas_data() -> dict:
+    """Return the dynamic seasonality cache (built lazily per market via
+    _ensure_market_seas). No longer loads the 29MB static file."""
+    if _SEASONALITY_CACHE["data"] is None:
+        _SEASONALITY_CACHE["data"] = _load_dyn_seas_file()
     return _SEASONALITY_CACHE["data"] or {}
 
 
@@ -10201,6 +10799,7 @@ def _score_seasonality_at(market_id: str, bar_date) -> float:
         (post_election / midterm / pre_election / election), falls back to 'all'.
     """
     from datetime import date as _date
+    _ensure_market_seas(market_id)
     seas = _load_seas_data()
     if not seas:
         return 5.0
@@ -10879,6 +11478,12 @@ def _score_regime_at(market_id: str, bar_date_norm,
 
 _SH_RESULT_CACHE: dict = {}
 _SH_RESULT_TTL = 3600 * 2  # 2 hours
+# Global concurrency guard: only ONE walk-forward computes at a time. Each walk-forward
+# loads full multi-decade FRED/price history and builds large per-week feature arrays;
+# two running concurrently was OOM-killing the process. Extra requests get 202 + retry
+# (the frontend already polls), so this only adds a short queue, never an error.
+_SH_GLOBAL_MAX = 1
+_SH_GLOBAL_ACTIVE = 0
 _SH_PREFETCH_CACHE: dict = {}
 _SH_PREFETCH_TTL = 3600 * 3   # FIX: 12h→3h — prevents pandas yfinance frames accumulating overnight
 
@@ -10902,7 +11507,13 @@ async def get_score_history(market: str):
     # Per-market guard — prevents duplicate concurrent prefetches (OOM risk)
     if _SH_MARKET_LOCKS.get(m_upper):
         return JSONResponse({"status": "computing", "message": "Score history computing, retry in 30s"}, status_code=202)
+    # Global guard — bound peak memory to a single walk-forward (no await between the
+    # check and the increment below, so this is atomic on the event loop).
+    global _SH_GLOBAL_ACTIVE
+    if _SH_GLOBAL_ACTIVE >= _SH_GLOBAL_MAX:
+        return JSONResponse({"status": "computing", "message": "Score history busy, retry in 20s"}, status_code=202)
     _SH_MARKET_LOCKS[m_upper] = True
+    _SH_GLOBAL_ACTIVE += 1
     try:
     
         # ── Pre-fetch all historical data (cached per market, 2h TTL) ──────────────
@@ -11307,6 +11918,7 @@ async def get_score_history(market: str):
         return JSONResponse({"error": "Score history computation failed", "detail": str(_sh_exc)}, status_code=500)
     finally:
         _SH_MARKET_LOCKS.pop(m_upper, None)  # always release — even on exception
+        _SH_GLOBAL_ACTIVE = max(0, _SH_GLOBAL_ACTIVE - 1)
         gc.collect()
 
 # ── GLOBAL REGIME HISTORY endpoint ─────────────────────────────────────────

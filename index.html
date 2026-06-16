@@ -19,7 +19,7 @@
 <meta property="og:site_name" content="BH Weather System"/>
 <meta property="og:url" content="https://bhweathersystem.onrender.com/"/>
 <meta property="og:title" content="BH Weather System — Macro Trading Intelligence"/>
-<meta property="og:description" content="62 markets. 7 weighted factors. One composite score. Track institutional positioning, seasonality, and macro regime in real time."/>
+<meta property="og:description" content="62 markets, one trend-gated confluence engine. Directional bias, conviction tiers, and COT risk/reward setups in real time."/>
 <meta property="og:image" content="https://bhweathersystem.onrender.com/photos/og.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -27,7 +27,7 @@
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="BH Weather System — Macro Trading Intelligence"/>
-<meta name="twitter:description" content="62 markets. 7 weighted factors. One composite score. COT positioning, seasonality, macro regime."/>
+<meta name="twitter:description" content="62 markets, one trend-gated confluence engine. Directional bias, conviction tiers, and COT setups."/>
 <meta name="twitter:image" content="https://bhweathersystem.onrender.com/photos/og.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -3062,9 +3062,13 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .hc-conf-chip{font-size:8px;font-weight:600;color:var(--accent);background:rgba(200,169,110,0.1);border-radius:3px;padding:1px 4px;flex-shrink:0;white-space:nowrap}
 
 /* ── CONFLUENCE DOT in rankings list ── */
-.mr-conf-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px 1px rgba(200,169,110,0.55);flex-shrink:0;margin-right:4px}
+.mr-conf-dot{width:5px;height:5px;border-radius:50%;background:#22c97a;box-shadow:0 0 5px 1px rgba(34,201,122,0.55);flex-shrink:0;margin-right:4px}
 .mr-conf-dot.bear{background:var(--sm1);box-shadow:0 0 5px 1px rgba(214,58,36,0.5)}
+.mr-conf-dot.setup{background:#f5c842;box-shadow:0 0 5px 1px rgba(245,200,66,0.45)}
+.mr-conf-dot.watch{width:4px;height:4px;background:#22c97a;box-shadow:none;opacity:.55}
+.mr-conf-dot.watch.bear{background:var(--sm1)}
 .mr-conf-ph{width:5px;height:5px;flex-shrink:0;margin-right:4px}
+.mr-setup{font-size:8px;margin-left:3px;vertical-align:middle;opacity:.92}
 
 /* ── MACRO ENV PILL STRIP ── */
 .ov-macro-env-wrap{
@@ -17093,6 +17097,62 @@ h3.label,
   background:var(--surf);border:1px solid rgba(255,255,255,0.055);
   border-radius:6px;overflow:hidden;margin-bottom:10px;
 }
+/* ── ENGINE READ panel (replaces weight×score attribution) ───────────────── */
+.ov-eng-wrap{
+  background:var(--surf);border:1px solid rgba(255,255,255,0.055);
+  border-radius:6px;padding:13px 15px 14px;margin-bottom:10px;
+}
+.ov-eng-head{
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--mono),monospace;font-size:9px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-bottom:11px;
+}
+.ov-eng-accent{width:18px;height:2px;background:var(--accent);border-radius:1px;display:inline-block;}
+.ov-eng-top{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:9px;}
+.ov-eng-dir{font-family:var(--head),sans-serif;font-size:19px;font-weight:700;letter-spacing:-.01em;}
+.ov-eng-tier{
+  font-family:var(--mono),monospace;font-size:9.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 9px;border-radius:5px;border:1px solid transparent;
+}
+.ov-eng-conv{font-family:var(--mono),monospace;font-size:10.5px;color:var(--faint);margin-left:auto;}
+.ov-eng-conv b{font-family:var(--mono),monospace;font-size:13px;font-variant-numeric:tabular-nums;}
+.ov-eng-meter{position:relative;height:6px;background:rgba(255,255,255,0.05);border-radius:4px;margin-bottom:13px;}
+.ov-eng-meter-mid{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:rgba(255,255,255,0.18);}
+.ov-eng-meter-dot{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);}
+.ov-eng-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.ov-eng-row{display:flex;gap:10px;align-items:baseline;font-size:11px;}
+.ov-eng-k{font-family:var(--mono),monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);min-width:50px;flex-shrink:0;}
+.ov-eng-v{color:var(--text);line-height:1.4;}
+.ov-eng-votes-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  font-family:var(--mono),monospace;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:7px;padding-top:11px;border-top:1px solid rgba(255,255,255,0.05);
+}
+.ov-eng-tally{color:var(--text);font-weight:600;}
+.ov-eng-votes{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
+.ov-eng-vote{
+  font-family:var(--mono),monospace;font-size:9.5px;font-weight:600;
+  padding:3px 8px;border-radius:5px;border:1px solid transparent;
+}
+.ov-eng-abst{font-size:9.5px;color:var(--faint);font-style:italic;}
+.ov-eng-setup{margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,0.05);}
+.ov-eng-setup-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.ov-eng-setup-tag{
+  font-family:var(--mono),monospace;font-size:9px;font-weight:700;letter-spacing:.08em;
+  padding:3px 8px;border-radius:5px;border:1px solid transparent;
+}
+.ov-eng-setup-qual{font-size:10.5px;color:var(--text);}
+.ov-eng-setup-rel{font-size:10px;margin-top:5px;}
+.ov-eng-setup-none{margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,0.05);font-size:10px;color:var(--faint);font-style:italic;}
+/* ── Methodology note ────────────────────────────────────────────────────── */
+.ov-method-card{
+  display:flex;gap:10px;align-items:flex-start;
+  background:rgba(200,169,110,0.045);border:1px solid rgba(200,169,110,0.16);
+  border-radius:6px;padding:11px 14px;margin-bottom:10px;
+}
+.ov-method-accent{width:3px;align-self:stretch;background:var(--accent);border-radius:2px;flex-shrink:0;opacity:.7;}
+.ov-method-txt{font-size:10.5px;line-height:1.55;color:var(--muted,#8a97a8);}
+.ov-method-txt b{color:var(--text);font-weight:600;}
 .ov-attr-head{
   display:grid;
   grid-template-columns:minmax(150px,1fr) 130px 54px 52px 110px;
@@ -24087,6 +24147,7 @@ let API = (function() {
   const h = location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:5000';
   if (h.endsWith('.ngrok-free.app') || h.endsWith('.ngrok-free.dev') || h.endsWith('.ngrok.io')) return location.origin;
+  if (h.endsWith('.trycloudflare.com')) return location.origin;
   // All other hosts (Render static site, Perplexity CDN, etc.) → Render backend
   return 'https://bhweathersystem-backend.onrender.com';
 })();
@@ -24364,16 +24425,12 @@ document.addEventListener('DOMContentLoaded',()=>{
 function renderHCModule(allMarkets){
   const el = document.getElementById('hc-module');
   if(!el) return;
-  const SCORE_THRESH = 1.5;   // |score-5| must be >= this
-  const CONF_THRESH  = 0.15;  // |confluence_bonus| must be >= this
+  // Surface the ENGINE's actionable tiers (Strong / Setup) ranked by |conviction|.
+  // (Was gated on the legacy confluence_bonus, which the trend-gated engine leaves at
+  // 0 — so this headline section was rendering empty after the engine migration.)
   const hits = allMarkets
-    .filter(m => Math.abs((m.weighted_score||5)-5) >= SCORE_THRESH && Math.abs(m.confluence_bonus||0) >= CONF_THRESH)
-    .sort((a,b) => {
-      // sort by conviction strength: |score-5| + |bonus|
-      const ca = Math.abs((a.weighted_score||5)-5) + Math.abs(a.confluence_bonus||0);
-      const cb = Math.abs((b.weighted_score||5)-5) + Math.abs(b.confluence_bonus||0);
-      return cb - ca;
-    })
+    .filter(m => m.tier === 'Strong' || m.tier === 'Setup')
+    .sort((a,b) => Math.abs(b.conviction||0) - Math.abs(a.conviction||0))
     .slice(0,5); // cap at 5 cards
 
   if(!hits.length){ el.innerHTML=''; el.style.display='none'; return; }
@@ -24384,10 +24441,21 @@ function renderHCModule(allMarkets){
     const col = sHex(ws);
     const bull = ws >= 5;
     const dir  = bull ? 'hc-bull' : 'hc-bear';
-    const bonus= m.confluence_bonus||0;
-    const bonusStr = (bonus>=0?'+':'')+bonus.toFixed(2);
-    // Strip the trailing +/−X.XX from the reason string (we show it as a chip)
-    const reason = (m.confluence_reason||'').replace(/^Confluence:\s*/i,'').replace(/[+−\-][\d.]+$/, '').trim();
+    // Engine-aligned context: tier + conviction chip, with the top driver / COT setup.
+    const conv = m.conviction||0;
+    const bonusStr = (m.tier||'') + ' ' + (conv>=0?'+':'') + conv.toFixed(1);
+    const _sd = m.setup_direction||0;
+    const _sq = m.setup_quality||'';
+    let reason = '';
+    if(_sd!==0 && _sq && _sq!=='n/a' && _sq!=='no positioning extreme'){
+      reason = 'COT '+(_sd>0?'bullish':'bearish')+' setup · '+_sq;
+    } else if(Array.isArray(m.drivers) && m.drivers.length){
+      reason = String(m.drivers[0]).replace(/^Confluence:\s*/i,'').replace(/[+−\-][\d.]+$/, '').trim();
+    } else {
+      reason = [m.regime, m.trend_state].filter(Boolean).join(' · ');
+    }
+    if(reason.length>54) reason = reason.slice(0,53)+'…';
+    const bonus = 1; // always show the tier/conviction chip
     const shortName = m.name.length > 16 ? m.name.slice(0,15)+'…' : m.name;
     const biasShort = (m.bias||'').replace('Very ','').replace('Mildly ','').replace('mildly ','');
     const tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
@@ -24452,11 +24520,18 @@ function renderList(){
 
     // Shorten ticker for display: FX crosses like GBPAUD -> GBP, NZDCAD -> NZD etc
     const _tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
-    // Confluence dot: show gold dot for bull confluence, red dot for bear confluence
-    const _cfBonus = m.confluence_bonus||0;
-    const _cfDot = Math.abs(_cfBonus)>=0.15
-      ? `<div class="mr-conf-dot${_cfBonus<0?' bear':''}"></div>`
+    // Engine tier marker (replaces old confluence dot): Strong = solid dir-colour,
+    // Setup = gold, Watch = faint dir-tint, Neutral = placeholder.
+    const _tier = m.tier; const _ds = m.bias_sign||0;
+    const _cfDot = _tier==='Strong' ? `<div class="mr-conf-dot${_ds<0?' bear':''}" title="Strong conviction"></div>`
+      : _tier==='Setup' ? `<div class="mr-conf-dot setup" title="Setup tier"></div>`
+      : _tier==='Watch' ? `<div class="mr-conf-dot watch${_ds<0?' bear':''}" title="Watch"></div>`
       : `<div class="mr-conf-ph"></div>`;
+    // COT positioning-setup glyph (only when an actionable R/R setup exists)
+    const _hasSetup = m.setup_quality && m.setup_quality!=='n/a' && m.setup_quality!=='no positioning extreme';
+    const _setupMark = _hasSetup
+      ? `<span class="mr-setup" title="COT ${m.setup_direction} setup · ${m.setup_quality}${m.setup_vs_backdrop==='counter'?' (counter)':''}" style="color:${m.setup_direction==='Bullish'?'#22c97a':m.setup_direction==='Bearish'?'#e03a2a':'#c8a96e'}">\u25C9</span>`
+      : '';
     // Band label + macro badge
     const _bandLbl = bandLabel(ws);
     const _macroBadge = macroBadge(m);
@@ -24471,7 +24546,7 @@ function renderList(){
       </div>
       ${_cfDot}
       <div class="mr-right">
-        <span class="mr-score-badge" style="color:${col}">${ws.toFixed(1)}</span>
+        <span class="mr-score-badge" style="color:${col}">${ws.toFixed(1)}${_setupMark}</span>
         <span class="mr-band-lbl" style="color:${col}">${_bandLbl}</span>
       </div>
     </div>`;
@@ -32174,14 +32249,14 @@ function assetGraphic(m){
     let baseId=id, quoteId='DX';
     if(m.cross && m.base_leg && m.quote_leg){ baseId=m.base_leg; quoteId=m.quote_leg; }
 
-    // Cross pairs: use per-cross composite (base city left, quote city right)
-    if(cat==='fx_cross'){
-      const cityPhoto = `photos/fx_cross_${id}.jpg`;
-      return `<div class="d-head-graphic" data-type="fx-city">`+
-        `<div class="d-head-graphic-inner" style="background-image:url('${cityPhoto}')"></div></div>`;
-    }
+    // Cross pairs fall through to the same city-photo + currency-pill rendering as
+    // straight FX (using the BASE currency's city photo). The old per-cross composite
+    // requested photos/fx_cross_<id>.jpg, which don't exist — every cross 404'd and showed
+    // an empty banner. Reusing the base-currency city photo (which exists) fixes that and
+    // the base/quote pill below already communicates the pair.
 
-    // City photo map: currency code → photo file (straight FX only)
+    // City photo map: currency code → photo file
+
     const FX_CITY_PHOTO = {
       'EUR':'photos/fx_eur_city.jpg',
       'GBP':'photos/fx_gbp_city.jpg',
@@ -33589,6 +33664,86 @@ function ovFactorAccent(factorKey, score){
   return sHex(score??5);
 }
 
+// ── ENGINE READ panel — surfaces the validated engine state (direction,
+//    conviction tier, regime gate, multi-timeframe trend, COT setup) in place of
+//    the old weight×score attribution table. Mono/terminal aesthetic.
+function engineReadPanel(m){
+  const ws = m.weighted_score ?? 5;
+  const dir  = m.direction || (ws>=5.5?'Bullish':ws<=4.5?'Bearish':'Neutral');
+  const tier = m.tier || 'Neutral';
+  const conv = (m.conviction!=null)?m.conviction:(ws-5);
+  const regime = m.regime || 'Mixed';
+  const er   = (m.efficiency_ratio!=null)?m.efficiency_ratio:null;
+  const gate = (m.regime_gate!=null)?m.regime_gate:null;
+  const trendState = m.trend_state || '';
+  const votes = m.factor_votes || {};
+  const agree = m.agree||0, disagree = m.disagree||0;
+  const setupDir = m.setup_direction || 'Neutral';
+  const setupQual = m.setup_quality || 'n/a';
+  const setupRel = m.setup_vs_backdrop || 'none';
+
+  const dCol = dir==='Bullish'?'#22c97a':dir==='Bearish'?'#e03a2a':'#7a8ab0';
+  // tier badge styling
+  const tierStyle = tier==='Strong'
+      ? `background:${dCol};color:#04130c;border-color:${dCol}`
+    : tier==='Setup'
+      ? `background:rgba(245,200,66,0.14);color:#f5c842;border-color:rgba(245,200,66,0.45)`
+    : tier==='Watch'
+      ? `background:transparent;color:#c8a96e;border-color:rgba(200,169,110,0.45)`
+      : `background:transparent;color:#5a6678;border-color:rgba(120,135,168,0.30)`;
+  // conviction meter: centre = 0, clamp ±5
+  const convPct = Math.min(98, Math.max(2, 50 + (Math.max(-5,Math.min(5,conv))/5)*50));
+  const convStr = (conv>=0?'+':'')+conv.toFixed(1);
+  // regime colour
+  const rgCol = regime==='Trending'?'#3fb9c9':regime==='Choppy'?'#b04060':'#c8a96e';
+
+  // factor vote chips (trend-gated). Show voters; tally abstainers.
+  const NAMES = {seasonal:'Seasonality',regime:'Risk regime',macro:'Macro',momentum:'Momentum',cot:'COT',relval:'Rel value',pcr:'Sentiment'};
+  const ORDER = ['seasonal','regime','macro','momentum','cot','relval','pcr'];
+  let abst=0;
+  const voteChips = ORDER.filter(k=>k in votes).map(k=>{
+    const v=votes[k];
+    if(v===0){abst++;return '';}
+    const c = v>0?'#22c97a':'#e03a2a';
+    const arrow = v>0?'\u25B2':'\u25BC';
+    return `<span class="ov-eng-vote" style="color:${c};border-color:${c}44;background:${c}10">${arrow} ${NAMES[k]||k}</span>`;
+  }).join('');
+  const abstNote = abst>0?`<span class="ov-eng-abst">${abst} abstaining (no clear view / gated)</span>`:'';
+
+  // COT setup line
+  const sCol = setupDir==='Bullish'?'#22c97a':setupDir==='Bearish'?'#e03a2a':'#7a8ab0';
+  const relMap = {aligned:['confirms backdrop','#22c97a'],counter:['counter-backdrop · mean-reversion watch','#f5c842'],standalone:['standalone (backdrop neutral)','#3fb9c9'],none:['',''],};
+  const [relTxt,relCol] = relMap[setupRel]||['',''];
+  const hasSetup = setupQual && setupQual!=='n/a' && setupQual!=='no positioning extreme';
+  const setupHtml = hasSetup
+    ? `<div class="ov-eng-setup">
+        <div class="ov-eng-setup-head">
+          <span class="ov-eng-setup-tag" style="color:${sCol};border-color:${sCol}55;background:${sCol}12">COT SETUP · ${setupDir}</span>
+          <span class="ov-eng-setup-qual">${setupQual}</span>
+        </div>
+        ${relTxt?`<div class="ov-eng-setup-rel" style="color:${relCol}">${relTxt}</div>`:''}
+      </div>`
+    : `<div class="ov-eng-setup ov-eng-setup-none">COT: no positioning extreme — no R/R setup right now</div>`;
+
+  return `<div class="ov-eng-wrap">
+    <div class="ov-eng-head"><span class="ov-eng-accent"></span>ENGINE READ</div>
+    <div class="ov-eng-top">
+      <span class="ov-eng-dir" style="color:${dCol}">${dir}</span>
+      <span class="ov-eng-tier" style="${tierStyle}">${tier}</span>
+      <span class="ov-eng-conv">conviction <b style="color:${dCol}">${convStr}</b></span>
+    </div>
+    <div class="ov-eng-meter"><div class="ov-eng-meter-mid"></div><div class="ov-eng-meter-dot" style="left:${convPct}%;background:${dCol};box-shadow:0 0 8px ${dCol}aa"></div></div>
+    <div class="ov-eng-rows">
+      <div class="ov-eng-row"><span class="ov-eng-k">Regime</span><span class="ov-eng-v" style="color:${rgCol}">${regime}${er!=null?` · ER ${er.toFixed(2)}`:''}${gate!=null?` · gate ${gate.toFixed(2)}`:''}</span></div>
+      ${trendState?`<div class="ov-eng-row"><span class="ov-eng-k">Trend</span><span class="ov-eng-v">${trendState}</span></div>`:''}
+    </div>
+    <div class="ov-eng-votes-head">Trend-gated factor votes <span class="ov-eng-tally">${agree} agree · ${disagree} disagree</span></div>
+    <div class="ov-eng-votes">${voteChips||'<span class="ov-eng-abst">no factor has a directional view</span>'}</div>
+    ${abstNote}
+    ${setupHtml}
+  </div>`;
+}
+
 function buildOverview(m){
   const ws = m.weighted_score;
   const wts = m.weights || {};
@@ -33607,10 +33762,38 @@ function buildOverview(m){
   const nav = OV_NARRATIVES[m.id] || {};
   const eyebrow = nav.eyebrow || `Macro Outlook \u00b7 ${m.name} \u00b7 ${m.category||'Market'}`;
 
-  // Auto-generate narrative if not in curated list
+  // Auto-generate narrative if not in curated list.
+  // Prefer the ENGINE READ (direction/conviction/tier/regime/trend/COT setup) so the
+  // on-screen narrative always stays in sync with the validated engine; fall back to a
+  // score-based summary only when engine fields are absent (e.g. old payload).
   const narrative = nav.narrative || (()=>{
-    const parts = [];
     const s = scores;
+    if(m.tier!=null && m.direction!=null){
+      const cls = m.direction==='Bullish'?'hb':m.direction==='Bearish'?'hr':'hn';
+      const dirHtml = `<span class="${cls}">${m.direction}</span>`;
+      const conv = (m.conviction!=null)?((m.conviction>=0?'+':'')+m.conviction.toFixed(1)):'';
+      const drv = (m.drivers||[]).filter(d=>!/COT|setup/i.test(d))
+                    .map(d=>d.replace(/:.*$/,'').trim().toLowerCase());
+      let txt;
+      if(m.direction==='Neutral' || (m.agree||0)===0){
+        txt = `Edge factors (regime, macro, seasonality) show no clear lean, so the engine reads ${dirHtml} and abstains rather than forcing a call.`;
+      } else {
+        const tierWord = m.tier==='Strong'?'a high-conviction':m.tier==='Setup'?'a':'an early';
+        txt = `${dirHtml} — ${tierWord} ${m.tier.toLowerCase()} read (conviction ${conv}) from ${m.agree||0} aligned factor${(m.agree||0)===1?'':'s'}`+
+              (drv.length?` (${drv.slice(0,3).join(', ')})`:'')+
+              `, gated by the ${(m.regime||'mixed').toLowerCase()} regime.`;
+      }
+      if(m.trend_state) txt += ` ${m.trend_state}.`;
+      const sq = m.setup_quality;
+      if(sq && sq!=='n/a' && sq!=='no positioning extreme'){
+        const scls = m.setup_direction==='Bullish'?'hb':m.setup_direction==='Bearish'?'hr':'hn';
+        const rel = m.setup_vs_backdrop==='counter'?' (counter-backdrop — mean-reversion watch)':m.setup_vs_backdrop==='standalone'?' (standalone)':'';
+        txt += ` COT setup: <span class="${scls}">${m.setup_direction}</span> · ${sq}${rel}.`;
+      }
+      return txt;
+    }
+    // ── legacy fallback (no engine fields) ──
+    const parts = [];
     if(s?.cot?.score!=null){ const v=s.cot.score; parts.push(v>=6.5?'<span class="hb">COT positioning bullish</span>':v<=3.5?'<span class="hr">COT positioning bearish</span>':'COT positioning neutral'); }
     if(s?.seasonal?.score!=null){ const v=s.seasonal.score; parts.push(v>=6.5?'seasonal window <span class="hb">favourable</span>':v<=3.5?'seasonal window <span class="hr">adverse</span>':'seasonal window neutral'); }
     if(s?.regime?.score!=null||s?.climate?.score!=null){ const v=(s.regime?.score??s.climate?.score); parts.push(v>=6.5?'risk climate <span class="hb">supportive</span>':v<=3.5?'risk climate <span class="hr">adverse</span>':'risk climate mixed'); }
@@ -33736,37 +33919,30 @@ function buildOverview(m){
     return `<div class="ov-conf-dot ${cls}" title="${FACTOR_LABELS[k]||k}: ${sc.toFixed(1)}/10"></div>`;
   }).join('');
 
+  // ── Confluence summary — driven by the ENGINE's trend-gated votes (not raw
+  //    score thresholds). Falls back to score counts only if engine state absent.
   let confTitle = '';
   let confText = '';
-  if(bullCount >= Math.ceil(total*0.7)){
-    const aligned = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    confTitle = 'Strong Confluence';
-    confText = `<strong>${bullCount} of ${total} factors bullish.</strong> ${aligned} all pointing bullish.`;
-  } else if(bearCount >= Math.ceil(total*0.7)){
-    const aligned = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    confTitle = 'Strong Bearish Confluence';
-    confText = `<strong>${bearCount} of ${total} factors bearish.</strong> ${aligned} all pointing bearish.`;
-  } else if(bullCount > bearCount){
-    const bull = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    const bear = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    confTitle = 'Moderate Confluence';
-    confText = `<strong>${bullCount} of ${total} factors bullish.</strong> ${bull||'Some factors'} lean bullish.${ bear ? ` ${bear} diverge bearishly.` : '' }`;
-  } else if(bearCount > bullCount){
-    const bull = factorKeys.filter(k=>(normalisedScores[k]?.score??5)>=6.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    const bear = factorKeys.filter(k=>(normalisedScores[k]?.score??5)<=3.5).map(k=>FACTOR_LABELS[k]).join(', ');
-    confTitle = 'Moderate Bearish Confluence';
-    confText = `<strong>${bearCount} of ${total} factors bearish.</strong> ${bear||'Some factors'} lean bearish.${ bull ? ` ${bull} diverge bullishly.` : '' }`;
+  const _agree = m.agree, _dis = m.disagree, _tier = m.tier, _dir = m.direction;
+  if(_tier!=null && _dir!=null){
+    const dirWord = _dir==='Bullish'?'bullish':_dir==='Bearish'?'bearish':'neutral';
+    const drv = (m.drivers||[]).filter(d=>!/COT|setup/i.test(d));
+    if(_dir==='Neutral' || (_agree||0)===0){
+      confTitle = 'No Directional Edge';
+      confText = 'The edge factors (regime, macro, seasonality) have no clear lean here, so the engine abstains rather than forcing a call.';
+    } else {
+      confTitle = _tier==='Strong'?`Strong ${dirWord} confluence`
+                : _tier==='Setup'?`${dirWord[0].toUpperCase()+dirWord.slice(1)} setup`
+                : `${dirWord[0].toUpperCase()+dirWord.slice(1)} watch`;
+      confText = `<strong>${_agree} factor${_agree===1?'':'s'} agree, ${_dis} disagree</strong> on a ${dirWord} read`+
+                 (drv.length?` — ${drv.slice(0,4).join(', ')}.`:'.')+
+                 ` Conviction is gated by the ${(m.regime||'mixed').toLowerCase()} regime.`;
+    }
   } else {
-    confTitle = 'Mixed Signals';
-    confText = 'Factors are evenly split. No strong directional confluence.';
-  }
-
-  // Confluence bonus from live data
-  if(m.confluence_bonus && Math.abs(m.confluence_bonus) >= 0.15){
-    const cb = m.confluence_bonus;
-    const cr = (m.confluence_reason||'').replace(/^Confluence:\s*/i,'').replace(/[+\-−][\d.]+$/,'').trim();
-    const bs = (cb>=0?'+':'')+cb.toFixed(2);
-    confText += ` <span style="color:${cb>=0?'var(--accent)':'var(--sm1)'};font-weight:600">${cr||'Confluence bonus'}: ${bs}</span>`;
+    // legacy fallback
+    if(bullCount > bearCount){ confTitle='Moderate Confluence'; confText=`${bullCount} of ${total} factors lean bullish.`; }
+    else if(bearCount > bullCount){ confTitle='Moderate Bearish Confluence'; confText=`${bearCount} of ${total} factors lean bearish.`; }
+    else { confTitle='Mixed Signals'; confText='Factors are evenly split. No strong directional confluence.'; }
   }
 
   // ── Weight bar ──
@@ -33870,27 +34046,8 @@ function buildOverview(m){
         ${pillsHtml ? `<div class="ov-pills">${pillsHtml}</div>` : ''}
       </div>
 
-      <!-- RIGHT: Factor attribution table -->
-      <div class="ov-attr-wrap" style="--ov-stripe-rgb:${stripeRgb}">
-        <div class="ov-attr-head">
-          <div class="ov-ah">Factor</div>
-          <div class="ov-ah ov-ah-bar"></div>
-          <div class="ov-ah r">Score</div>
-          <div class="ov-ah r">Wt.</div>
-          <div class="ov-ah r ov-ah-contrib">Contribution</div>
-        </div>
-        ${attrRows}
-        <div class="ov-atotal">
-          <div class="ov-at-lbl">Composite Total${totalLabelNote}</div>
-          <div></div>
-          <div class="ov-at-score-lbl"></div>
-          <div class="ov-at-wt-lbl">${totalWtPct}%</div>
-          <div class="ov-at-contrib">
-            <div class="ov-at-num">${ws.toFixed(1)}</div>
-            <div class="ov-at-sub">/ 10</div>
-          </div>
-        </div>
-      </div>
+      <!-- RIGHT: Engine read (validated confluence/conviction/regime/COT setup) -->
+      ${engineReadPanel(m)}
 
     </div><!-- end .ov-r39-grid -->
 
@@ -33906,11 +34063,12 @@ function buildOverview(m){
       </div>
     </div>
 
-    <!-- WEIGHT BREAKDOWN BAR -->
-    <div class="ov-wt-card">
-      <div class="ov-wt-lbl">Composite Weighting</div>
-      <div class="ov-wt-bar">${wtSegs}</div>
-      <div class="ov-wt-leg">${wtLeg}</div>
+    <!-- METHODOLOGY NOTE — how the read is formed (no longer a weighted average) -->
+    <div class="ov-method-card">
+      <span class="ov-method-accent"></span>
+      <div class="ov-method-txt">
+        <b>How this reads:</b> directional bias = trend-gated <b>confluence</b> of the factors with validated edge (regime, macro, seasonality) — factors with no clear view abstain rather than dragging to neutral. <b>Conviction</b> = net agreeing factors × regime gate (stand aside in chop). <b>COT</b> sets the setup / risk-reward tier, not a directional vote.
+      </div>
     </div>
 
   </div>`;
@@ -34382,24 +34540,28 @@ function openMethModal(assetId) {
   const wts = m?.weights||{};
   const keys = Object.keys(wts).filter(k=>wts[k]>0);
 
-  // Factor grid — dynamic weights
+  // Factor roles in the ENGINE (this is a trend-gated confluence model, NOT a
+  // weighted sum -- so each factor has a role, not a fixed weight).
   const FC_CFG = {
-    cot:     {cls:'fc-cot',    name:'COT Positioning',    desc:'Commercial hedger and large speculator net positioning vs 3-year historical range — converted to a 0–10 percentile score. Updated weekly (CFTC Friday release).',                                     pills:['<span class="meth-pill bull">Spec longs extreme</span>','<span class="meth-pill bear">Spec shorts extreme</span>','<span class="meth-pill neut">Mid-range</span>']},
-    momentum:{cls:'fc-mom',   name:'Momentum',           desc:'Price momentum across multiple timeframes: EMA slope, 52-week range percentile, 13-week rate of change, and position vs 200 SMA. Trend-following bias.',                                          pills:['<span class="meth-pill bull">Uptrend + high range</span>','<span class="meth-pill bear">Downtrend</span>','<span class="meth-pill neut">Flat / range-bound</span>']},
-    seasonal:{cls:'fc-seas',  name:'Seasonality',        desc:'Average historical price tendency for the current calendar period across 5, 10, and 25-year lookbacks — blended into a single directional score with recency weighting.',                         pills:['<span class="meth-pill bull">Strong seasonal tailwind</span>','<span class="meth-pill bear">Seasonal headwind</span>','<span class="meth-pill neut">Flat / mixed</span>']},
-    macro:   {cls:'fc-macro', name:'Macro Regime',       desc:'Rate path, inflation trajectory, central bank balance sheet, and economic momentum — scored relative to consensus expectations using surprise-adjusted signals.',                             pills:['<span class="meth-pill bull">Rate cuts + cooling CPI</span>','<span class="meth-pill bear">Hiking path + hot CPI</span>','<span class="meth-pill neut">On hold</span>']},
-    relval:  {cls:'fc-relval',name:'Relative Value',     desc:'Recent asset performance vs macro-relevant peers — detects divergences where an asset is stretched or cheap relative to its fundamental drivers using stochastic percentile.',               pills:['<span class="meth-pill bull">Cheap vs peers</span>','<span class="meth-pill bear">Expensive vs peers</span>','<span class="meth-pill neut">Fair value</span>']},
-    regime:  {cls:'fc-clim',  name:'Market Climate',     desc:'Geopolitical risk, news sentiment, and risk-on/risk-off regime from the macro environment tracker. Breaking events update intraday via the news pipeline.',                                  pills:['<span class="meth-pill bull">Risk-on regime</span>','<span class="meth-pill bear">Risk-off shock</span>','<span class="meth-pill neut">Consolidating</span>']},
-    pcr:     {cls:'fc-hist',  name:'Put/Call Ratio',     desc:'Equity options market sentiment via put/call ratio. Scored on the 5-day MA of the CBOE equity P/C ratio — fast enough to catch spikes within one week, not single-day noise. High PCR = excess fear = contrarian bullish signal. Low PCR = excess complacency = contrarian bearish signal.',                         pills:['<span class="meth-pill bull">High PCR (fear)</span>','<span class="meth-pill bear">Low PCR (greed)</span>','<span class="meth-pill neut">Normal range</span>']},
+    macro:   {cls:'fc-macro', role:'VOTES',   name:'Macro Regime',     desc:'Rate path, inflation trajectory, central-bank balance sheets and growth -- scored vs consensus using surprise-adjusted signals (FRED + ForexFactory). A directional voter when it has a clear view; abstains near neutral.', pills:['<span class="meth-pill bull">Cuts + cooling CPI</span>','<span class="meth-pill bear">Hikes + hot CPI</span>','<span class="meth-pill neut">Abstains if mixed</span>']},
+    regime:  {cls:'fc-clim',  role:'VOTES',   name:'Market Climate',   desc:'Risk-on / risk-off regime from the cross-asset tracker (VIX, credit spreads, breadth, news). A directional voter in a clear risk regime; abstains when signals conflict.', pills:['<span class="meth-pill bull">Risk-on</span>','<span class="meth-pill bear">Risk-off shock</span>','<span class="meth-pill neut">Abstains if mixed</span>']},
+    seasonal:{cls:'fc-seas',  role:'VOTES',   name:'Seasonality',      desc:'Prior-years-only historical tendency for the current calendar window -- cycle-weighted (election cycle) with recency decay, rebuilt from ~22yr of data. Votes when the seasonal edge is strong; abstains when flat.', pills:['<span class="meth-pill bull">Strong tailwind</span>','<span class="meth-pill bear">Strong headwind</span>','<span class="meth-pill neut">Abstains if flat</span>']},
+    momentum:{cls:'fc-mom',   role:'GATE',    name:'Momentum / Trend', desc:'Multi-timeframe trend (20/50/200 MAs, 52-week range, weekly ROC) plus the Kaufman efficiency ratio. Sets the regime GATE -- conviction is amplified in clean trends and suppressed in chop -- and adds a trend vote.', pills:['<span class="meth-pill bull">Clean uptrend</span>','<span class="meth-pill bear">Clean downtrend</span>','<span class="meth-pill neut">Choppy -> gate down</span>']},
+    cot:     {cls:'fc-cot',   role:'SETUP',   name:'COT Positioning',  desc:'Commercials / large specs / small specs vs their own 3-year range (OI-normalised; FX crosses built from both legs). A risk/reward SETUP with its own direction -- aligned / counter / standalone -- judged on R/R. It does NOT vote in the directional score.', pills:['<span class="meth-pill bull">Comms long extreme</span>','<span class="meth-pill bear">Specs crowded long</span>','<span class="meth-pill neut">Mid-range</span>']},
+    relval:  {cls:'fc-relval',role:'CONTEXT', name:'Relative Value',   desc:'Stochastic percentile vs macro-relevant peers -- flags when an asset is stretched or cheap relative to its drivers. Context for entry timing; not a primary directional voter.', pills:['<span class="meth-pill bull">Cheap vs peers</span>','<span class="meth-pill bear">Expensive vs peers</span>','<span class="meth-pill neut">Fair value</span>']},
+    pcr:     {cls:'fc-hist',  role:'CONTEXT', name:'Put/Call Ratio',   desc:'5-day MA of the CBOE equity put/call ratio -- a contrarian sentiment gauge. High = fear (contrarian bullish), low = complacency (contrarian bearish). Context only.', pills:['<span class="meth-pill bull">High P/C (fear)</span>','<span class="meth-pill bear">Low P/C (greed)</span>','<span class="meth-pill neut">Normal</span>']},
   };
 
-  const factorCards = keys.map(k=>{
-    const cfg = FC_CFG[k]||{cls:'fc-hist',name:k,desc:'',pills:[]};
-    const pct = Math.round((wts[k]||0)*100);
+  // Canonical order: voters -> gate -> setup -> context. Show factors this market actually has.
+  const _ORDER = ['macro','regime','seasonal','momentum','cot','relval','pcr'];
+  const _scoreKeys = m && m.scores ? Object.keys(m.scores) : keys;
+  const _present = _ORDER.filter(k => _scoreKeys.includes(k));
+  const factorCards = (_present.length ? _present : _ORDER).map(k=>{
+    const cfg = FC_CFG[k]||{cls:'fc-hist',role:'',name:k,desc:'',pills:[]};
     return `<div class="meth-fc ${cfg.cls}">
       <div class="meth-fc-top">
         <span class="meth-fc-name">${cfg.name}</span>
-        <span class="meth-fc-wt">${pct}%</span>
+        <span class="meth-fc-wt">${cfg.role}</span>
       </div>
       <div class="meth-fc-desc">${cfg.desc}</div>
       <div class="meth-fc-pills">${cfg.pills.join('')}</div>
@@ -34407,63 +34569,63 @@ function openMethModal(assetId) {
   }).join('');
 
   const body = `
-    <!-- 1. Score Pipeline -->
+    <!-- 1. Engine Pipeline -->
     <div class="meth-section">
-      <div class="meth-section-lbl">Score Pipeline</div>
+      <div class="meth-section-lbl">Engine Pipeline</div>
       <div class="meth-pipeline">
-        <div class="meth-pipe-step"><div class="meth-pipe-icon">${keys.length}</div><div class="meth-pipe-lbl">Factor<br>Scores</div></div>
-        <div class="meth-pipe-step"><div class="meth-pipe-icon">&times;</div><div class="meth-pipe-lbl">Asset<br>Weights</div></div>
-        <div class="meth-pipe-step"><div class="meth-pipe-icon">&Sigma;</div><div class="meth-pipe-lbl">Weighted<br>Sum</div></div>
-        <div class="meth-pipe-step"><div class="meth-pipe-icon">&plusmn;</div><div class="meth-pipe-lbl">Confluence<br>Bonus</div></div>
-        <div class="meth-pipe-step"><div class="meth-pipe-icon final">1–10</div><div class="meth-pipe-lbl">Final<br>Score</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon">&#8623;</div><div class="meth-pipe-lbl">Factors<br>Score</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon">&#8709;</div><div class="meth-pipe-lbl">Edge Filter<br>(abstain)</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon">&Sigma;</div><div class="meth-pipe-lbl">Confluence<br>Backdrop</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon">&times;</div><div class="meth-pipe-lbl">Regime<br>Gate</div></div>
+        <div class="meth-pipe-step"><div class="meth-pipe-icon final">1&ndash;10</div><div class="meth-pipe-lbl">Direction<br>+ Tier</div></div>
       </div>
       <div class="meth-formula">
-        <span class="mf-comment">// Weighted composite (0–10)</span><br>
-        score = <span class="mf-key">&Sigma;</span>( factor_score &times; weight ) + <span class="mf-key">confluence_bonus</span><br><br>
-        <span class="mf-comment">// Each factor&apos;s contribution</span><br>
-        contribution = ( factor_score &divide; <span class="mf-val">10</span> ) &times; weight &times; <span class="mf-val">10</span>
+        <span class="mf-comment">// Trend-gated confluence &mdash; not a weighted average</span><br>
+        backdrop&nbsp;&nbsp;&nbsp;= <span class="mf-key">&Sigma;</span> sign(edge factors with a clear view)&nbsp;&nbsp; <span class="mf-comment">// neutral factors abstain</span><br>
+        conviction = backdrop &times; confluence &times; <span class="mf-key">regime_gate</span>&nbsp;&nbsp; <span class="mf-comment">// gate = Kaufman efficiency ratio</span><br>
+        score&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="mf-val">5.0</span> + conviction&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="mf-comment">// clamped 0.2&ndash;9.8</span>
       </div>
       <div class="meth-note">
         <span class="meth-note-i">i</span>
-        <span>Weights are <strong style="color:var(--dim)">asset-specific</strong> — ${m?'<strong style="color:var(--text)">'+(m.name||assetId)+'</strong> weights reflect its primary economic drivers.':'each asset\'s weight profile reflects its primary economic drivers.'}</span>
+        <span>Factors with no clear view <strong style="color:var(--text)">abstain</strong> rather than voting neutral &mdash; so a genuine signal isn&apos;t diluted by quiet factors. ${m?'<strong style="color:var(--text)">'+(m.name||assetId)+'</strong> is scored by the same engine as every market.':'Every market is scored by the same engine.'}</span>
       </div>
     </div>
 
     <!-- 2. Factor Grid -->
     <div class="meth-section">
-      <div class="meth-section-lbl">The ${keys.length} Scoring Factors</div>
+      <div class="meth-section-lbl">The Factors &amp; Their Roles</div>
       <div class="meth-factor-grid">${factorCards}</div>
     </div>
 
-    <!-- 3. Confluence Bonus -->
+    <!-- 3. Regime Gate + Conviction Tiers -->
     <div class="meth-section">
-      <div class="meth-section-lbl">Confluence Bonus</div>
+      <div class="meth-section-lbl">Regime Gate &amp; Conviction Tiers</div>
       <div class="meth-conf-box">
         <div class="meth-conf-hdr">
           <div class="meth-conf-dot"></div>
-          <span class="meth-conf-title">When multiple factors align, the composite score is amplified</span>
+          <span class="meth-conf-title">Act in clean trends &mdash; stand aside in chop</span>
         </div>
-        <div class="meth-conf-body">The confluence bonus activates when COT positioning reaches an extreme AND at least one independent factor (macro, climate, or seasonality) confirms the same directional view. This rewards genuine multi-factor alignment — not a single dominant driver inflating the score.</div>
+        <div class="meth-conf-body">Conviction is the agreeing-factor confluence scaled by the <strong style="color:var(--dim)">regime gate</strong> &mdash; the Kaufman efficiency ratio, measuring how cleanly price is trending. In a choppy regime the gate collapses toward zero, so even aligned factors yield only a Watch / Neutral read. This enforces &ldquo;don&apos;t fight price&rdquo; and keeps the book quiet when there&apos;s no clean trend to trade.</div>
         <div class="meth-thresh-rows">
-          <div class="meth-thresh-row">
-            <div class="meth-thresh-badge meth-thresh-pos">+0.35</div>
-            <div class="meth-thresh-desc">COT extreme (≥6.5 bull / ≤3.5 bear) + story active + <strong>2 confirmers</strong> each ≥6.2 / ≤3.8</div>
-          </div>
-          <div class="meth-thresh-row">
-            <div class="meth-thresh-badge meth-thresh-pos">+0.20</div>
-            <div class="meth-thresh-desc">COT extreme + story active + <strong>1 confirmer</strong> ≥6.2 / ≤3.8</div>
-          </div>
-          <div class="meth-thresh-row">
-            <div class="meth-thresh-badge meth-thresh-neg">−0.20</div>
-            <div class="meth-thresh-desc">COT extreme in the <strong>opposite direction</strong> to overall score — flags potential reversal risk</div>
-          </div>
+          <div class="meth-thresh-row"><div class="meth-thresh-badge meth-thresh-pos">STRONG</div><div class="meth-thresh-desc">High conviction &mdash; multiple edge factors agree <strong>and</strong> the trend is clean (|conviction| &ge; 3.0)</div></div>
+          <div class="meth-thresh-row"><div class="meth-thresh-badge meth-thresh-pos">SETUP</div><div class="meth-thresh-desc">Actionable lean forming &mdash; factors agree with moderate trend quality (|conviction| &ge; 1.5)</div></div>
+          <div class="meth-thresh-row"><div class="meth-thresh-badge meth-thresh-pos">WATCH</div><div class="meth-thresh-desc">Early / unconfirmed &mdash; some agreement, but trend or confirmation still lacking (|conviction| &ge; 0.5)</div></div>
+          <div class="meth-thresh-row"><div class="meth-thresh-badge" style="background:var(--surf3);color:var(--faint);min-width:40px;text-align:center;padding:3px 5px;border-radius:5px;flex-shrink:0;font-family:var(--head);font-size:11px;font-weight:700">NEUTRAL</div><div class="meth-thresh-desc">No clear edge, or factors offset each other &mdash; stand aside</div></div>
         </div>
       </div>
     </div>
 
-    <!-- 4. Score Scale -->
+    <!-- 4. COT as a setup -->
     <div class="meth-section">
-      <div class="meth-section-lbl">Score Scale (1–10)</div>
+      <div class="meth-section-lbl">COT &mdash; A Risk/Reward Setup, Not a Vote</div>
+      <div class="meth-conf-box">
+        <div class="meth-conf-body">Positioning extremes are treated as <strong style="color:var(--dim)">risk/reward setups</strong> with their own direction, tagged <strong>aligned</strong> (with the backdrop), <strong>counter</strong> (mean-reversion against it), or <strong>standalone</strong>. They are judged on reward-to-risk &mdash; not hit-rate &mdash; and kept <strong style="color:var(--dim)">separate from the directional score</strong>, so a crowded-but-unconfirmed extreme never forces a trade. A &#9673; glyph in the rankings marks a market with an active setup.</div>
+      </div>
+    </div>
+
+    <!-- 5. Score Scale -->
+    <div class="meth-section">
+      <div class="meth-section-lbl">Score Scale (1&ndash;10)</div>
       <div class="meth-scale-bar">
         <div class="meth-scale-cell" style="background:var(--sm2);color:#fff">1</div>
         <div class="meth-scale-cell" style="background:var(--sm2);color:#fff">2</div>
@@ -34477,14 +34639,14 @@ function openMethModal(assetId) {
         <div class="meth-scale-cell" style="background:var(--s2);color:#031a0e">10</div>
       </div>
       <div class="meth-scale-foot"><span>Strong Bearish</span><span>Neutral</span><span>Strong Bullish</span></div>
-      <div class="meth-scale-caption"><strong>5 = neutral.</strong> Scores ≥7 or ≤3 indicate a meaningful directional lean. Scores ≥8 or ≤2 represent high conviction. The composite is clamped to the 1–10 range after confluence adjustment.</div>
+      <div class="meth-scale-caption"><strong>5 = neutral.</strong> The score is <strong>5.0 + conviction</strong>, where conviction = directional confluence &times; regime gate. Scores &ge;7 or &le;3 indicate a meaningful, trend-confirmed lean; &ge;8 or &le;2 represent high conviction. Clamped to 0.2&ndash;9.8.</div>
     </div>
 
-    <!-- 5. Update cadence -->
+    <!-- 6. Update cadence -->
     <div class="meth-section">
       <div class="meth-note">
-        <span class="meth-note-i" style="color:var(--accent)">↻</span>
-        <span><strong style="color:var(--dim)">Update cadence:</strong> COT data refreshes weekly (Friday evening). Macro scores update on new economic releases. Climate and news scores update intraday. The composite always reflects the most recently available data across all factors at the time of load.</span>
+        <span class="meth-note-i" style="color:var(--accent)">&#8635;</span>
+        <span><strong style="color:var(--dim)">Update cadence:</strong> COT refreshes weekly (CFTC Friday release). Macro updates on new economic releases and ForexFactory surprises; seasonality rebuilds weekly. Climate, momentum and news update intraday. The read always reflects the most recently available data across all factors at load.</span>
       </div>
     </div>`;
 
@@ -35054,6 +35216,15 @@ function _tabSummary(text, col) {
 
 function cotTab(m){
   const d=m.scores.cot?.detail||{};
+  // Net contract values (and index fallbacks) live at the cot top level, not inside
+  // detail — backfill so the per-group cards render real "Net: ±NNNk" instead of "—".
+  const _cotTop = m.scores.cot || {};
+  if(d.comm_net==null)   d.comm_net   = _cotTop.comm_net;
+  if(d.lspec_net==null)  d.lspec_net  = _cotTop.lspec_net;
+  if(d.sspec_net==null)  d.sspec_net  = _cotTop.sspec_net;
+  if(d.comm_index==null) d.comm_index = _cotTop.comm_index;
+  if(d.lspec_index==null)d.lspec_index= _cotTop.lspec_index;
+  if(d.sspec_index==null)d.sspec_index= _cotTop.sspec_index;
   if(d.comm_index==null){
     return `<div style="padding:8px;color:var(--faint);font-size:11px">No COT data available for ${m.name}. CFTC may not report this instrument separately.</div>`;
   }
@@ -35071,100 +35242,9 @@ function cotTab(m){
   })();
   const _cotPrefix = _tabSummary(_cotSummaryText, _cotCol);
 
-  // ── CROSS PAIR BRANCH ─────────────────────────────────────────────────────
-  if(d.cross){
-    const baseLeg  = d.base_leg  || '?';
-    const quoteLeg = d.quote_leg || '?';
-    const baseBr   = d.base_briese  ?? d.comm_index  ?? 50;
-    const quoteBr  = d.quote_briese ?? d.lspec_index ?? 50;
-    const diff     = d.differential ?? (baseBr - quoteBr);
-    // Fixed per-leg palette — must match renderCotHistory crossConfigs colours
-    const baseCol  = '#5c9eff';   // base leg blue
-    const quoteCol = '#f5c842';   // quote leg gold
-    const diffCol  = diff>=10?'#22c97a':diff<=-10?'#e03a2a':'#e8d5b0'; // diff: directional tint on warm-white
-    const biasText = diff>=30?`Bullish ${m.id.slice(0,3)}`:diff<=-30?`Bearish ${m.id.slice(0,3)}`:diff>=10?`Mild Bullish ${m.id.slice(0,3)}`:diff<=-10?`Mild Bearish ${m.id.slice(0,3)}`:'Neutral';
-    const cotScore = m.scores.cot?.score ?? 5;
-    const cotScoreCol = sHex(cotScore);
-
-    let html=`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;background:rgba(92,158,255,0.06);border:1px solid rgba(92,158,255,0.15);margin-bottom:12px">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#5c9eff" stroke-width="1.5"><path d="M6 1v10M1 6h10" stroke-linecap="round"/></svg>
-      <div style="font-size:9px;color:#7bb8ff;line-height:1.4">
-        <strong style="color:#a8cfff">Derived COT Score</strong> — Briese Index differential: ${baseLeg} minus ${quoteLeg}<br>
-        <span style="color:rgba(168,207,255,0.65)">Both legs are USD-denominated futures. Positive differential = base currency better positioned = bullish cross.</span>
-      </div>
-    </div>`;
-
-    html+=`<div class="cot-cards">`;
-    // Base leg card
-    const baseExtreme = baseBr>=80||baseBr<=20;
-    const baseTag = baseBr>=80?'EXTREME LONG':baseBr<=20?'EXTREME SHORT':'';
-    html+=`<div class="cot-card">
-      <div class="cc-head">Base: ${baseLeg}</div>
-      <div class="cc-idx" style="color:${baseCol}">${baseBr.toFixed(0)}<sup>/100</sup></div>
-      <div class="cc-gauge"><div class="cc-gauge-dot" style="left:${baseBr}%;background:${baseBr>=60?'#22c97a':baseBr<=40?'#e03a2a':'#c47a4a'};box-shadow:0 0 8px ${baseBr>=60?'#22c97a99':baseBr<=40?'#e03a2a99':'#c47a4a99'}"></div></div>
-      ${baseExtreme?`<div class="cc-tag" style="color:${baseCol}">${baseTag}</div>`:''}
-      <div class="cc-desc">Briese Index — commercial sentiment for ${baseLeg} futures (0=max short, 100=max long)</div>
-    </div>`;
-    // Quote leg card
-    const quoteExtreme = quoteBr>=80||quoteBr<=20;
-    const quoteTag = quoteBr>=80?'EXTREME LONG':quoteBr<=20?'EXTREME SHORT':'';
-    html+=`<div class="cot-card">
-      <div class="cc-head">Quote: ${quoteLeg}</div>
-      <div class="cc-idx" style="color:${quoteCol}">${quoteBr.toFixed(0)}<sup>/100</sup></div>
-      <div class="cc-gauge"><div class="cc-gauge-dot" style="left:${quoteBr}%;background:${quoteBr>=60?'#22c97a':quoteBr<=40?'#e03a2a':'#c47a4a'};box-shadow:0 0 8px ${quoteBr>=60?'#22c97a99':quoteBr<=40?'#e03a2a99':'#c47a4a99'}"></div></div>
-      ${quoteExtreme?`<div class="cc-tag" style="color:${quoteCol}">${quoteTag}</div>`:''}
-      <div class="cc-desc">Briese Index — commercial sentiment for ${quoteLeg} futures (0=max short, 100=max long)</div>
-    </div>`;
-    // Differential card
-    const diffNorm = Math.min(100,Math.max(0,(diff+100)/2)); // -100..+100 → 0..100%
-    html+=`<div class="cot-card">
-      <div class="cc-head">Differential</div>
-      <div class="cc-idx" style="color:${diffCol}">${diff>=0?'+':''}${diff.toFixed(0)}<sup>/±100</sup></div>
-      <div class="cc-gauge"><div class="cc-gauge-dot" style="left:${diffNorm}%;background:${diffNorm>=60?'#22c97a':diffNorm<=40?'#e03a2a':'#c47a4a'};box-shadow:0 0 8px ${diffNorm>=60?'#22c97a99':diffNorm<=40?'#e03a2a99':'#c47a4a99'}"></div></div>
-      <div class="cc-desc">${baseLeg} Briese minus ${quoteLeg} Briese — positive = bullish ${m.id.slice(0,3)}, negative = bearish</div>
-    </div>`;
-    html+=`</div>`;
-
-    // Cross stacked charts (3 panels: Base / Quote / Differential)
-    html+=`<div class="cot-stacked">
-      <div class="cot-stacked-head">
-        <span class="cot-stacked-title">Briese Index History — 3 Years</span>
-        <div class="cot-mode-btns"></div>
-      </div>
-      <div class="cot-legend">
-        <div class="cleg"><div class="cleg-dot" style="background:${baseCol}"></div>${baseLeg} (Base)</div>
-        <div class="cleg"><div class="cleg-dot" style="background:${quoteCol}"></div>${quoteLeg} (Quote)</div>
-        <div class="cleg"><div class="cleg-dot" style="background:${diffCol}"></div>Differential</div>
-      </div>
-      <div class="cot-panel">
-        <div class="cot-panel-label" style="color:${baseCol}">${baseLeg} Briese <span id="comm-latest">${baseBr.toFixed(0)}/100</span></div>
-        <div class="cot-panel-chart"><canvas id="cot-c0"></canvas></div>
-      </div>
-      <div class="cot-panel-divider"></div>
-      <div class="cot-panel">
-        <div class="cot-panel-label" style="color:${quoteCol}">${quoteLeg} Briese <span id="lspec-latest">${quoteBr.toFixed(0)}/100</span></div>
-        <div class="cot-panel-chart"><canvas id="cot-c1"></canvas></div>
-      </div>
-      <div class="cot-panel-divider"></div>
-      <div class="cot-panel">
-        <div class="cot-panel-label" style="color:${diffCol}">Differential <span id="sspec-latest">${diff>=0?'+':''}${diff.toFixed(0)}</span></div>
-        <div class="cot-panel-chart"><canvas id="cot-c2"></canvas></div>
-      </div>
-    </div>`;
-
-    // Alignment / score summary
-    const aln=(d.alignment||'').toLowerCase();
-    const alCol=aln.includes('bull')?'#22c97a':aln.includes('bear')?'#e06030':'#4a5268';
-    html+=`<div class="cot-align" style="border-color:${alCol}33;background:${alCol}0d">
-      <div class="ca-marker" style="background:${alCol}"></div>
-      <div class="ca-body">
-        <div class="ca-title" style="color:${alCol}">${d.alignment||biasText}</div>
-        <div class="ca-sub">${d.signal_detail||''}</div>
-      </div>
-    </div>`;
-
-    return _cotPrefix + html;
-  }
+  // ── CROSS PAIRS now render through the STANDARD 3-category branch below.
+  //    They carry real commercials / large-spec / small-spec data built from the
+  //    two USD legs (OI-normalised net spread). Construction note rides via m.cot_note.
 
   // ── STANDARD MARKET BRANCH ────────────────────────────────────────────────
   // Inversion note for contracts where long futures ≠ long spot pair
@@ -35553,8 +35633,8 @@ async function initCotCharts(marketId){
   const mktObj=DATA?.markets?.find(x=>x.id===marketId);
   const isCross=data.cross===true||(mktObj&&mktObj.category==='fx_cross');
 
-  // ── CROSS PAIR: Briese index + differential charts
-  if(isCross){
+  // ── CROSS PAIRS use the STANDARD 3-category charts below (real comm/lspec/sspec
+  if(false){ // cross pairs now use standard 3-category charts
     const baseId  = data.base_id  || mktObj?.base_leg  || '?';
     const quoteId = data.quote_id || mktObj?.quote_leg || '?';
     const baseSeries  = data.base_briese  || [];
@@ -39954,16 +40034,13 @@ function phaseTab(m){
   // ── Readings section ───────────────────────────────────────────────────────
   let readingsHtml = '';
   if(isCross){
-    const dCol = diff>=20?'#22c97a':diff<=-20?'#e03a2a':'#7a8ab0';
+    // Cross legacy categories are the net SPREAD of the two legs (base − quote,
+    // OI-normalised), so the same 3-category readings apply as an outright market.
     readingsHtml = `<div class="ph-readings">
-      ${gaugeRow(`${d.base_leg||'Base'} Briese LT`, baseBr, false)}
-      ${gaugeRow(`${d.quote_leg||'Quote'} Briese LT`, quoteBr, false)}
-      <div class="ph-gauge">
-        <div class="ph-gauge-head">
-          <span class="ph-gauge-label">Differential</span>
-          <span class="ph-gauge-val" style="color:${dCol}">${diff>=0?'+':''}${(diff||0).toFixed(0)}</span>
-        </div>
-      </div>
+      <div class="ph-sec-label">Cross Spread Readings · ${d.base_leg||'base'} − ${d.quote_leg||'quote'}</div>
+      ${gaugeRow('Commercial Index', (commLT??d.comm_index), false)}
+      ${gaugeRow('Large Spec Index', lspecIdx, false)}
+      ${gaugeRow('Small Spec Index', sspecIdx, false)}
     </div>`;
   } else if(!isCrypto){
     readingsHtml = `<div class="ph-readings">
@@ -40420,6 +40497,7 @@ async function fetchSeas(id){
 }
 
 function getMonth(td,months){
+  if(!Array.isArray(months))return'Jan';
   for(let i=months.length-1;i>=0;i--)if(td>=months[i].td)return months[i].label;
   return'Jan';
 }
@@ -40531,7 +40609,7 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
       }
 
       // ── Month boundary lines + labels ─────────────────────
-      const mSorted=[...months].sort((a,b)=>a.td-b.td);
+      const mSorted=(Array.isArray(months)?[...months]:[]).sort((a,b)=>a.td-b.td);
       mSorted.forEach((m,mi)=>{
         const px=x.getPixelForValue(m.td);
         if(px<x.left||px>x.right)return;
@@ -40908,12 +40986,12 @@ const OB_STEPS = [
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="rgba(200,169,110,0.5)" stroke-width="1.5"/><text x="16" y="21" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#c8a96e">7.2</text></svg>`,
     title: 'What the Score Means',
-    body: 'Each of 62 markets receives a composite score from 1–10. <strong style="color:var(--s1)">Above 6 = bullish</strong> conditions across most factors. <strong style="color:var(--sm1)">Below 4 = bearish</strong>. Around 5 = no clear signal. The score is built from seven weighted factors — COT positioning, seasonality, momentum, fundamentals, macro regime, relative value, and put/call ratio.'
+    body: 'Each of 62 markets gets a 1–10 composite. <strong style="color:var(--s1)">Above 6 = bullish</strong>, <strong style="color:var(--sm1)">below 4 = bearish</strong>, around 5 = no clear signal. It is <strong style="color:var(--text)">not a weighted average</strong> — edge-bearing factors (macro, climate, seasonality) vote only when they have a clear view and abstain otherwise; their agreement is scaled by a trend/regime gate (clean trend = high conviction, chop = stand aside). COT positioning rides alongside as a separate risk/reward setup.'
   },
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="3" rx="1.5" fill="rgba(200,169,110,0.6)"/><rect x="4" y="15" width="18" height="3" rx="1.5" fill="rgba(200,169,110,0.35)"/><rect x="4" y="22" width="21" height="3" rx="1.5" fill="rgba(200,169,110,0.25)"/></svg>`,
     title: 'How to Use the Home Screen',
-    body: 'The <strong style="color:var(--text)">High Conviction</strong> section surfaces the strongest multi-factor setups — check this first. The rankings list shows all markets sorted by score. Gold dots signal confluence is active. Use the category filters or search bar to quickly find a specific market.'
+    body: 'The <strong style="color:var(--text)">High Conviction</strong> section surfaces the strongest multi-factor setups — check this first. The rankings list shows all markets sorted by score. A gold ◉ glyph flags markets with an active COT risk/reward setup. Use the category filters or search bar to quickly find a specific market.'
   },
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="5" stroke="rgba(200,169,110,0.7)" stroke-width="1.5"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="rgba(200,169,110,0.4)" stroke-width="1.5" stroke-linecap="round"/></svg>`,
