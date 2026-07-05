@@ -12679,6 +12679,10 @@ async def clear_narrative_cache():
     _FF_INFL_CACHE["time"] = 0
     _FF_LABOUR_CACHE["data"] = None
     _FF_LABOUR_CACHE["time"] = 0
+    RISK_REGIME_CACHE["data"] = None
+    RISK_REGIME_CACHE["time"] = 0
+    US_MACRO_CACHE["data"] = None
+    US_MACRO_CACHE["time"] = 0
     print("[cache] Full cache bust via /api/clear-narrative-cache", flush=True)
     return {
         "cleared": True,
@@ -12931,11 +12935,15 @@ async def inject_ff_labour(payload: dict):
     store = {k: v for k, v in store.items() if (v.get("dateline") or 0) >= cutoff}
     _ff_store_save(store)
 
-    # Bust FF labour and inflation caches so next scores request re-reads the store
+    # Bust FF labour, inflation, macro, and regime caches so next scores request re-reads the store
     _FF_LABOUR_CACHE["data"] = None
     _FF_LABOUR_CACHE["time"] = 0
     _FF_INFL_CACHE["data"] = None
     _FF_INFL_CACHE["time"] = 0
+    US_MACRO_CACHE["data"] = None
+    US_MACRO_CACHE["time"] = 0
+    RISK_REGIME_CACHE["data"] = None
+    RISK_REGIME_CACHE["time"] = 0
     ALL_DATA_CACHE["data"] = None
     ALL_DATA_CACHE["time"] = 0
 
