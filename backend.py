@@ -12594,6 +12594,27 @@ async def upcoming_events(force: bool = False):
 async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
 
+
+@app.get("/api/debug-ff-store")
+async def debug_ff_store():
+    """Debug endpoint: returns FF store stats and sample events. Remove before prod."""
+    store = _ff_store_load()
+    now = time.time()
+    cutoff_14w = now - 14 * 7 * 86400
+    recent = {k: v for k, v in store.items() if (v.get("dateline") or 0) >= cutoff_14w}
+    # Count by event name
+    from collections import Counter
+    name_counts = Counter(v.get("name","?") for v in recent.values())
+    usd_counts  = Counter(v.get("name","?") for v in recent.values() if v.get("currency") == "USD")
+    return {
+        "total_store": len(store),
+        "within_14w":  len(recent),
+        "store_path":  _FF_STORE_PATH,
+        "usd_event_counts": dict(usd_counts.most_common(20)),
+        "all_name_counts": dict(name_counts.most_common(20)),
+        "sample_nfp": next((v for v in recent.values() if v.get("name") == "Non-Farm Employment Change"), None),
+    }
+
 @app.api_route("/api/health/ready", methods=["GET", "HEAD"])
 async def health_ready():
     """Readiness probe — returns 503 while the cache is warming up.
