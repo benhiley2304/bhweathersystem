@@ -5342,10 +5342,10 @@ def compute_macro_all() -> dict:
             # Re-score JOBS using real FF consensus surprise (K), not FRED rolling avg
             # Scale: 80K = 1 sigma for NFP surprises historically
             if _nfp_surp is not None:
-                _nfp_norm = (_nfp_surp if not isinstance(_nfp_surp, str) else 0) / 80.0
-                _nfp_score_ff = (2 if _nfp_norm > 1.5 else
+                _nfp_norm = (_nfp_surp if not isinstance(_nfp_surp, str) else 0) / 60.0
+                _nfp_score_ff = (2 if _nfp_norm > 1.25 else
                                  1 if _nfp_norm > 0.4 else
-                                -2 if _nfp_norm < -1.5 else
+                                -2 if _nfp_norm < -1.25 else
                                 -1 if _nfp_norm < -0.4 else 0)
                 components["JOBS"]["score"]    = _nfp_score_ff
                 components["JOBS"]["label"]    = (
@@ -7131,10 +7131,10 @@ def compute_risk_regime() -> dict:
                 _nfp_surp = _nfp_mom[-1] - _nfp_exp
                 _lab["nfp_surprise"]   = round(_nfp_surp, 0)
                 _lab["nfp_surprise_label"] = (
-                    "Strong Beat" if _nfp_surp > 80  else
-                    "Beat"        if _nfp_surp > 25  else
-                    "Strong Miss" if _nfp_surp < -80 else
-                    "Miss"        if _nfp_surp < -25 else "In Line"
+                    "Strong Beat" if _nfp_surp > 40  else
+                    "Beat"        if _nfp_surp > 15  else
+                    "Strong Miss" if _nfp_surp < -40 else
+                    "Miss"        if _nfp_surp < -15 else "In Line"
                 )
                 # Raw score from compute_macro_all components (JOBS is in category 'jobs')
                 _us_macro = compute_macro_all()
@@ -7243,10 +7243,10 @@ def compute_risk_regime() -> dict:
                         _beat = _nfp_lat.get("beat")
                         _surp_val = _nfp_lat.get("surprise", 0) or 0
                         _lab["nfp_surprise_label"] = (
-                            "Strong Beat" if _beat and abs(_surp_val) > 80 else
-                            "Beat"        if _beat else
-                            "Strong Miss" if not _beat and abs(_surp_val) > 80 else
-                            "Miss"        if not _beat else "In Line"
+                            "Strong Beat" if _beat and abs(_surp_val) > 40 else
+                            "Beat"        if _beat and abs(_surp_val) > 15 else
+                            "Strong Miss" if not _beat and abs(_surp_val) > 40 else
+                            "Miss"        if not _beat and abs(_surp_val) > 15 else "In Line"
                         )
                 if "unrate" in _ff_scores and _ff_scores["unrate"] is not None:
                     _lab["unrate_score_10"] = _ff_scores["unrate"]
