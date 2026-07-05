@@ -3885,7 +3885,9 @@ def _fetch_ff_week_html(week_str: str) -> list:
 # history the labour-EMS / surprise scoring needs.
 _FF_JSON_URLS = (
     "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
-    "https://nfs.faireconomy.media/ff_calendar_lastweek.json",   # catch events released at week boundary
+    # Note: ff_calendar_lastweek.json returns 404 — faireconomy only serves thisweek/nextweek.
+    # Historical USD labour/inflation events are injected via inject_ff_labour.py (daily cron)
+    # which uses the ForexFactory HTML scrape from the sandbox (accessible there, not on Render).
 )
 _FF_STORE_PATH   = os.path.join(DATA_DIR, "ff_event_store.json")
 _FF_STORE_MAX_DAYS = 180
@@ -12875,6 +12877,67 @@ async def inject_ff_macro(payload: dict):
 
     print(f"[FF MACRO INJECT] {currency}: score={score:.1f}, label={label}, cats={cats}")
     return {"ok": True, "currency": currency, "score": score, "label": label}
+
+
+@app.post("/api/inject-ff-labour")
+async def inject_ff_labour(payload: dict):
+    """
+    Accepts pre-fetched ForexFactory USD labour + inflation event data from the sandbox
+    (where FF is accessible) and merges it into the on-disk ff_event_store.json.
+    This keeps the store populated with NFP/UNEMP/Claims/ADP/Wages/CPI data even
+    after the current week rolls over on the faireconomy JSON feed.
+
+    Payload schema:
+    {
+      "events": [
+        {
+          "name": "Non-Farm Payrolls",
+          "currency": "USD",
+          "actual": "57K",
+          "forecast": "164K",
+          "previous": "139K",
+          "dateline": 1751540400,
+          "impactClass": "high"
+        }, ...
+      ]
+    }
+    Returns: {ok, n_merged, n_store_total}
+    """
+    global _FF_LABOUR_CACHE, _FF_INFL_CACHE, ALL_DATA_CACHE
+
+    events = payload.get("events", [])
+    if not events or not isinstance(events, list):
+        return {"ok": False, "error": "Missing or invalid events list"}
+
+    store = _ff_store_load()
+    n_merged = 0
+    for ev in events:
+        if not ev.get("actual") or not ev.get("name"):
+            continue
+        ts = ev.get("dateline")
+        if ts:
+            day = datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d")
+        else:
+            day = "na"
+        key = f"{ev.get('currency','')}|{ev.get('name','')}|{day}"
+        store[key] = ev
+        n_merged += 1
+
+    # Prune old events
+    cutoff = time.time() - _FF_STORE_MAX_DAYS * 86400
+    store = {k: v for k, v in store.items() if (v.get("dateline") or 0) >= cutoff}
+    _ff_store_save(store)
+
+    # Bust FF labour and inflation caches so next scores request re-reads the store
+    _FF_LABOUR_CACHE["data"] = None
+    _FF_LABOUR_CACHE["time"] = 0
+    _FF_INFL_CACHE["data"] = None
+    _FF_INFL_CACHE["time"] = 0
+    ALL_DATA_CACHE["data"] = None
+    ALL_DATA_CACHE["time"] = 0
+
+    print(f"[FF LABOUR INJECT] Merged {n_merged} events into store ({len(store)} total)")
+    return {"ok": True, "n_merged": n_merged, "n_store_total": len(store)}
 
 
 @app.get("/api/tunnel-url")
