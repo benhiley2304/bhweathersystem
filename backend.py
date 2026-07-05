@@ -3805,13 +3805,29 @@ _FF_LABOUR_CACHE: dict = {"data": None, "time": 0}
 _FF_LABOUR_CACHE_TTL = 3600  # 1 hour — aligns with main scores cache TTL
 
 # Key labour event names as they appear on ForexFactory
+# Maps FF event name → internal key. Includes BOTH the old HTML scrape names
+# (forexfactory.com) AND the faireconomy.media JSON feed title variants so that
+# whichever source populates the store, events are always matched.
 _FF_LABOUR_EVENTS = {
+    # ── NFP — HTML name vs JSON title ────────────────────────────────────────
     "Non-Farm Employment Change":        {"key": "nfp",    "unit": "K",  "higher_is_good": True},
+    "Non-Farm Payrolls":                 {"key": "nfp",    "unit": "K",  "higher_is_good": True},  # faireconomy title
+    "Nonfarm Payrolls":                  {"key": "nfp",    "unit": "K",  "higher_is_good": True},  # alternate spelling
+    # ── ADP ──────────────────────────────────────────────────────────────────
     "ADP Non-Farm Employment Change":    {"key": "adp",    "unit": "K",  "higher_is_good": True},
+    "ADP Non-Farm Employment":           {"key": "adp",    "unit": "K",  "higher_is_good": True},  # faireconomy title
+    "ADP Nonfarm Employment":            {"key": "adp",    "unit": "K",  "higher_is_good": True},
+    # ── Unemployment ─────────────────────────────────────────────────────────
     "Unemployment Rate":                 {"key": "unrate", "unit": "%",  "higher_is_good": False},
+    # ── Claims ───────────────────────────────────────────────────────────────
     "Unemployment Claims":               {"key": "claims", "unit": "K",  "higher_is_good": False},
+    "Initial Jobless Claims":            {"key": "claims", "unit": "K",  "higher_is_good": False},  # faireconomy title
+    # ── JOLTS ─────────────────────────────────────────────────────────────────
     "JOLTS Job Openings":                {"key": "jolts",  "unit": "M",  "higher_is_good": True},
+    "JOLTs Job Openings":                {"key": "jolts",  "unit": "M",  "higher_is_good": True},  # capitalisation variant
+    # ── Wages ─────────────────────────────────────────────────────────────────
     "Average Hourly Earnings m/m":       {"key": "wages",  "unit": "%",  "higher_is_good": True},
+    "Avg. Hourly Earnings m/m":          {"key": "wages",  "unit": "%",  "higher_is_good": True},  # faireconomy abbrev
 }
 
 
@@ -3869,6 +3885,7 @@ def _fetch_ff_week_html(week_str: str) -> list:
 # history the labour-EMS / surprise scoring needs.
 _FF_JSON_URLS = (
     "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+    "https://nfs.faireconomy.media/ff_calendar_lastweek.json",   # catch events released at week boundary
 )
 _FF_STORE_PATH   = os.path.join(DATA_DIR, "ff_event_store.json")
 _FF_STORE_MAX_DAYS = 180
@@ -3883,13 +3900,16 @@ def _ff_impact_norm(s) -> str:
     return ""
 
 def fetch_ff_calendar_json(force: bool = False) -> list:
-    """Current-week FF calendar from the Fair Economy JSON feed, mapped to the same
-    event dict shape the rest of the pipeline expects
-    (name/actual/forecast/previous/currency/dateline/impactClass)."""
+    """This-week + last-week FF calendar from the Fair Economy JSON feed, merged and
+    deduped, mapped to the same event dict shape the rest of the pipeline expects
+    (name/actual/forecast/previous/currency/dateline/impactClass).
+    Fetches ALL URLs (not just the first successful one) so released events at
+    the week boundary are never missed."""
     now = time.time()
     if not force and _FF_JSON_CACHE["data"] is not None and (now - _FF_JSON_CACHE["time"]) < _FF_JSON_TTL:
         return _FF_JSON_CACHE["data"]
     out = []
+    seen_keys: set = set()
     for url in _FF_JSON_URLS:
         try:
             r = httpx.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15, follow_redirects=True)
@@ -3902,7 +3922,7 @@ def fetch_ff_calendar_json(force: bool = False) -> list:
                     ts = datetime.fromisoformat(iso).timestamp()
                 except Exception:
                     ts = None
-                out.append({
+                ev = {
                     "name":        e.get("title", "") or "",
                     "actual":      e.get("actual", "") or "",
                     "forecast":    e.get("forecast", "") or "",
@@ -3910,9 +3930,13 @@ def fetch_ff_calendar_json(force: bool = False) -> list:
                     "currency":    e.get("country", "") or "",   # FF 'country' holds the currency code
                     "dateline":    ts,
                     "impactClass": _ff_impact_norm(e.get("impact", "")),
-                })
-            if out:
-                break
+                }
+                # Deduplicate by currency|name|day so merging two weeks never double-counts
+                _day = iso[:10] if iso else "na"
+                _key = f"{ev['currency']}|{ev['name']}|{_day}"
+                if _key not in seen_keys:
+                    seen_keys.add(_key)
+                    out.append(ev)
         except Exception as _e:
             print(f"[FF JSON] fetch error {url}: {_e}", flush=True)
     _FF_JSON_CACHE["data"] = out
@@ -5303,12 +5327,40 @@ def compute_macro_all() -> dict:
         # NFP → JOBS
         _nfp_lat = _ff_lab_latest.get("nfp")
         if _nfp_lat and "JOBS" in components:
-            components["JOBS"]["actual_ff"]   = _nfp_lat.get("actual")   # K
-            components["JOBS"]["forecast_ff"] = _nfp_lat.get("forecast") # K
-            components["JOBS"]["surprise_ff"] = _nfp_lat.get("surprise") # K
-            components["JOBS"]["beat_ff"]     = _nfp_lat.get("beat")
+            _nfp_act  = _nfp_lat.get("actual")    # K
+            _nfp_fc   = _nfp_lat.get("forecast")  # K
+            _nfp_surp = _nfp_lat.get("surprise")  # K
+            _nfp_beat = _nfp_lat.get("beat")      # bool
+            components["JOBS"]["actual_ff"]   = _nfp_act
+            components["JOBS"]["forecast_ff"] = _nfp_fc
+            components["JOBS"]["surprise_ff"] = _nfp_surp
+            components["JOBS"]["beat_ff"]     = _nfp_beat
             components["JOBS"]["ff_releases"] = _ff_lab_releases.get("nfp", [])
             components["JOBS"]["ff_score"]    = _ff_lab_scores.get("nfp")
+            # Re-score JOBS using real FF consensus surprise (K), not FRED rolling avg
+            # Scale: 80K = 1 sigma for NFP surprises historically
+            if _nfp_surp is not None:
+                _nfp_norm = (_nfp_surp if not isinstance(_nfp_surp, str) else 0) / 80.0
+                _nfp_score_ff = (2 if _nfp_norm > 1.5 else
+                                 1 if _nfp_norm > 0.4 else
+                                -2 if _nfp_norm < -1.5 else
+                                -1 if _nfp_norm < -0.4 else 0)
+                components["JOBS"]["score"]    = _nfp_score_ff
+                components["JOBS"]["label"]    = (
+                    "Strong Beat" if _nfp_score_ff == 2 else
+                    "Beat"        if _nfp_score_ff == 1 else
+                    "Strong Miss" if _nfp_score_ff == -2 else
+                    "Miss"        if _nfp_score_ff == -1 else "In Line"
+                )
+            # Override display fields with FF consensus values
+            if _nfp_act is not None:
+                components["JOBS"]["actual"]   = f"{round(_nfp_act):+d}K" if isinstance(_nfp_act, (int, float)) else str(_nfp_act)
+                components["JOBS"]["display"]  = components["JOBS"]["actual"]
+            if _nfp_fc is not None:
+                components["JOBS"]["expected"] = round(_nfp_fc) if isinstance(_nfp_fc, (int, float)) else _nfp_fc
+                components["JOBS"]["forecast"] = f"{round(_nfp_fc):+d}K" if isinstance(_nfp_fc, (int, float)) else str(_nfp_fc)
+            if _nfp_surp is not None:
+                components["JOBS"]["surprise"] = round(_nfp_surp) if isinstance(_nfp_surp, (int, float)) else _nfp_surp
 
         # Unemployment Rate → UNEMP
         _un_lat = _ff_lab_latest.get("unrate")
@@ -7070,15 +7122,17 @@ def compute_risk_regime() -> dict:
                 _lab["nfp_6m_avg"]     = round(sum(_nfp_window) / len(_nfp_window), 0) if _nfp_window else None
                 # 3m avg for recent trend
                 _lab["nfp_3m_avg"]     = round(sum(_nfp_mom[-4:-1]) / 3, 0)
-                # Surprise vs 6m avg (more stable than 3m for benchmark-revised data)
-                _nfp_exp = _lab["nfp_6m_avg"] or _lab["nfp_3m_avg"] or 0
+                # Surprise vs 3m avg (closer to Wall Street consensus than 6m avg,
+                # which gets diluted by stale winter prints after BLS revisions).
+                # FF overlay (below) replaces this with the real market consensus when available.
+                _nfp_exp = _lab["nfp_3m_avg"] or _lab["nfp_6m_avg"] or 0
                 _nfp_surp = _nfp_mom[-1] - _nfp_exp
                 _lab["nfp_surprise"]   = round(_nfp_surp, 0)
                 _lab["nfp_surprise_label"] = (
-                    "Strong Beat" if _nfp_surp > 120 else
-                    "Beat"        if _nfp_surp > 32  else
-                    "Strong Miss" if _nfp_surp < -120 else
-                    "Miss"        if _nfp_surp < -32  else "In Line"
+                    "Strong Beat" if _nfp_surp > 80  else
+                    "Beat"        if _nfp_surp > 25  else
+                    "Strong Miss" if _nfp_surp < -80 else
+                    "Miss"        if _nfp_surp < -25 else "In Line"
                 )
                 # Raw score from compute_macro_all components (JOBS is in category 'jobs')
                 _us_macro = compute_macro_all()
