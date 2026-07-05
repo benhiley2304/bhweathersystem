@@ -12595,25 +12595,6 @@ async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
 
 
-@app.get("/api/debug-ff-store")
-async def debug_ff_store():
-    """Debug endpoint: returns FF store stats and sample events. Remove before prod."""
-    store = _ff_store_load()
-    now = time.time()
-    cutoff_14w = now - 14 * 7 * 86400
-    recent = {k: v for k, v in store.items() if (v.get("dateline") or 0) >= cutoff_14w}
-    # Count by event name
-    from collections import Counter
-    name_counts = Counter(v.get("name","?") for v in recent.values())
-    usd_counts  = Counter(v.get("name","?") for v in recent.values() if v.get("currency") == "USD")
-    return {
-        "total_store": len(store),
-        "within_14w":  len(recent),
-        "store_path":  _FF_STORE_PATH,
-        "usd_event_counts": dict(usd_counts.most_common(20)),
-        "all_name_counts": dict(name_counts.most_common(20)),
-        "sample_nfp": next((v for v in recent.values() if v.get("name") == "Non-Farm Employment Change"), None),
-    }
 
 @app.api_route("/api/health/ready", methods=["GET", "HEAD"])
 async def health_ready():
@@ -12665,40 +12646,6 @@ async def debug_yc():
     results["_yf_yield_cache_keys"] = list(_YF_YIELD_CACHE.keys())
     return results
 
-@app.get("/api/debug-fred")
-async def debug_fred():
-    """Debug: test FRED series fetch directly. Shows whether FRED is accessible from this host."""
-    import traceback, time as _time
-    results = {}
-    test_series = [
-        ("PAYEMS", "NFP"),
-        ("UNRATE", "Unemployment"),
-        ("ICSA", "Claims"),
-        ("CPIAUCSL", "CPI"),
-    ]
-    for sid, label in test_series:
-        try:
-            t0 = _time.time()
-            url = FRED_BASE + sid
-            r = requests.get(url, timeout=12)
-            elapsed = round(_time.time() - t0, 2)
-            if r.status_code == 200:
-                lines = r.text.strip().split("\n")
-                last_line = lines[-1] if lines else ""
-                results[label] = {
-                    "ok": True,
-                    "rows": len(lines) - 1,
-                    "last_row": last_line,
-                    "elapsed_s": elapsed
-                }
-            else:
-                results[label] = {"ok": False, "status": r.status_code, "elapsed_s": elapsed}
-        except Exception as e:
-            results[label] = {"ok": False, "error": str(e), "trace": traceback.format_exc()[-300:]}
-    # Also show what's in FRED_CACHE
-    results["_fred_cache_keys"] = list(FRED_CACHE.keys())
-    results["_fred_cache_count"] = len(FRED_CACHE)
-    return results
 
 @app.get("/api/clear-regime-cache")
 async def clear_regime_cache():
