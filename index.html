@@ -40685,6 +40685,14 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
   scoreDetail = scoreDetail||{};
   cycles = cycles||{};
   band = band||[];
+  // Display smoothing — light 3-pt weighted MA (×2) removes pixel noise, keeps peaks/troughs sharp
+  const _sm3=a=>a.map((v,i)=>{
+    if(v==null)return v;
+    const p=a[i-1],n=a[i+1];
+    if(p==null||n==null)return v;
+    return 0.25*p+0.5*v+0.25*n;
+  });
+  allV=_sm3(_sm3(allV));
   const horizStart = scoreDetail.horizon_td_start||scoreDetail.td_start||todayTD;
   const horizEnd   = scoreDetail.horizon_td_end||scoreDetail.td_end||Math.min(252,todayTD+20);
   const slope      = scoreDetail.median_pct??scoreDetail.slope_pct;
@@ -40771,6 +40779,22 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
     afterDatasetsDraw(chart){
       const{ctx:c,scales:{x,y}}=chart;
 
+      // ── Label collision system: pills reserve space, later pills nudge away ──
+      const _placed=[];
+      const _hit=r=>_placed.some(p=>!(r.x+r.w+2<p.x||p.x+p.w+2<r.x||r.y+r.h+2<p.y||p.y+p.h+2<r.y));
+      const _reserve=r=>_placed.push(r);
+      const _resolve=(r,dir)=>{
+        let n=0;
+        while(_hit(r)&&n<12){r.y+=dir*(r.h+3);n++;}
+        if(r.y<y.top+2||r.y+r.h>y.bottom-2){
+          r.y=Math.max(y.top+2,Math.min(y.bottom-r.h-2,r.y));
+          n=0;
+          while(_hit(r)&&n<12){r.y-=dir*(r.h+3);n++;}
+          r.y=Math.max(y.top+2,Math.min(y.bottom-r.h-2,r.y));
+        }
+        return r;
+      };
+
       // ── Zero baseline ──────────────────────────────────────
       const y0=y.getPixelForValue(0);
       if(y0>=y.top && y0<=y.bottom){
@@ -40808,36 +40832,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
         c.restore();
       });
 
-      // ── Seasonal turn markers (high-probability peaks/troughs) ──
-      (turns||[]).forEach(t=>{
-        const px=x.getPixelForValue(t.td);
-        if(px<x.left+4||px>x.right-4)return;
-        const py=y.getPixelForValue(t.val);
-        if(py<y.top||py>y.bottom)return;
-        const isPeak=t.type==='peak';
-        const col=isPeak?'224,58,42':'34,201,122';
-        c.save();
-        // halo + dot on the curve
-        c.beginPath();c.arc(px,py,7,0,Math.PI*2);c.fillStyle='rgba('+col+',0.12)';c.fill();
-        c.beginPath();c.arc(px,py,3.5,0,Math.PI*2);c.fillStyle='rgba('+col+',0.28)';c.fill();
-        c.beginPath();c.arc(px,py,2,0,Math.PI*2);c.fillStyle='rgb('+col+')';c.fill();
-        // label pill — peaks above, troughs below
-        const lbl=(isPeak?'PEAK ':'LOW ')+t.consistency+'%';
-        c.font='700 '+(isModal?'8px':'7px')+' Inter,sans-serif';
-        const tw=c.measureText(lbl).width;
-        const pw=tw+10,ph=isModal?15:13;
-        let lx=px-pw/2;
-        lx=Math.max(x.left+2,Math.min(x.right-pw-2,lx));
-        let ly=isPeak?py-ph-8:py+8;
-        ly=Math.max(y.top+2,Math.min(y.bottom-ph-2,ly));
-        c.fillStyle='rgba(5,7,13,0.88)';
-        c.strokeStyle='rgba('+col+',0.5)';c.lineWidth=1;
-        c.beginPath();c.roundRect(lx,ly,pw,ph,3);c.fill();c.stroke();
-        c.fillStyle='rgb('+col+')';
-        c.textAlign='center';
-        c.fillText(lbl,lx+pw/2,ly+(isModal?10.5:9));
-        c.restore();
-      });
+      // (turn markers drawn last — after TODAY + projection labels reserve space)
 
       // ── TODAY vertical line ───────────────────────────────
       if(todayTD){
@@ -40867,6 +40862,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
         c.fillStyle='#fff';
         c.textAlign='center';
         c.fillText(lbl,px,pillY+9.5);
+        _reserve({x:pillX,y:pillY,w:pillW,h:pillH});
         c.restore();
 
         // Live data endpoint dot on the YTD actual line
@@ -40889,8 +40885,9 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
             const vw=c.measureText(valStr).width;
             const vPillW=vw+10,vPillH=15;
             const rightSide=dotX+10;
-            const vPillX=(rightSide+vPillW<=x.right)?rightSide:dotX-vPillW-10;
-            const vPillY=dotY-(vPillH/2);
+            const _vr={x:(rightSide+vPillW<=x.right)?rightSide:dotX-vPillW-10,y:dotY-(vPillH/2),w:vPillW,h:vPillH};
+            _resolve(_vr,-1);
+            const vPillX=_vr.x,vPillY=_vr.y;
             c.fillStyle='rgba(5,7,13,0.92)';
             c.strokeStyle='rgba(34,201,122,0.5)';
             c.lineWidth=1;
@@ -40900,6 +40897,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
             c.fillStyle='#22c97a';
             c.textAlign='left';
             c.fillText(valStr,vPillX+5,vPillY+10.5);
+            _reserve(_vr);
             c.restore();
           }
         }
@@ -40941,15 +40939,58 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           const tw2=c.measureText(slStr).width;
           const lblX=xB+6, lblY=pyB+(pyB>pyA?9:-9);
           const inBounds=lblX+tw2+8<x.right;
-          const fx=inBounds?lblX:(xA+xB)/2-tw2/2;
-          const fy=inBounds?lblY:Math.min(pyA,pyB)-9;
+          const _hr={x:(inBounds?lblX:(xA+xB)/2-tw2/2)-3,y:(inBounds?lblY:Math.min(pyA,pyB)-9)-10,w:tw2+8,h:14};
+          _resolve(_hr,pyB>pyA?1:-1);
+          const fx=_hr.x+3,fy=_hr.y+10;
           c.fillStyle='rgba(9,11,16,0.9)';
-          c.beginPath();c.roundRect(fx-3,fy-10,tw2+8,14,3);c.fill();
+          c.beginPath();c.roundRect(_hr.x,_hr.y,_hr.w,_hr.h,3);c.fill();
           c.fillStyle=scoreColor;
           c.fillText(slStr,fx,fy);
+          _reserve(_hr);
           c.restore();
         }
       }
+
+      // ── Seasonal turn markers (drawn last: lane-resolved against all other labels) ──
+      const _tdIdx=new Map(labels.map((td,i)=>[td,i]));
+      (turns||[]).forEach(t=>{
+        const px=x.getPixelForValue(t.td);
+        if(px<x.left+4||px>x.right-4)return;
+        const _i=_tdIdx.get(t.td);
+        const _dv=(_i!=null&&allV[_i]!=null)?allV[_i]:t.val;
+        const py=y.getPixelForValue(_dv);
+        if(py<y.top||py>y.bottom)return;
+        const isPeak=t.type==='peak';
+        const col=isPeak?'224,58,42':'34,201,122';
+        c.save();
+        // halo + dot pinned to the displayed curve
+        c.beginPath();c.arc(px,py,7,0,Math.PI*2);c.fillStyle='rgba('+col+',0.12)';c.fill();
+        c.beginPath();c.arc(px,py,3.5,0,Math.PI*2);c.fillStyle='rgba('+col+',0.28)';c.fill();
+        c.beginPath();c.arc(px,py,2,0,Math.PI*2);c.fillStyle='rgb('+col+')';c.fill();
+        // label pill — peaks above, troughs below, nudged clear of other labels
+        const lbl=(isPeak?'PEAK ':'LOW ')+t.consistency+'%';
+        c.font='700 '+(isModal?'8px':'7px')+' Inter,sans-serif';
+        const tw=c.measureText(lbl).width;
+        const pw=tw+10,ph=isModal?15:13;
+        const r={x:Math.max(x.left+2,Math.min(x.right-pw-2,px-pw/2)),y:isPeak?py-ph-9:py+9,w:pw,h:ph};
+        r.y=Math.max(y.top+2,Math.min(y.bottom-ph-2,r.y));
+        _resolve(r,isPeak?-1:1);
+        // dotted connector when the pill sits away from its dot
+        const edgeY=isPeak?r.y+r.h:r.y;
+        if(Math.abs(edgeY-py)>14){
+          const cx2=Math.max(r.x+3,Math.min(r.x+r.w-3,px));
+          c.beginPath();c.moveTo(px,py+(isPeak?-8:8));c.lineTo(cx2,edgeY+(isPeak?2:-2));
+          c.strokeStyle='rgba('+col+',0.35)';c.lineWidth=1;c.setLineDash([2,2]);c.stroke();c.setLineDash([]);
+        }
+        c.fillStyle='rgba(5,7,13,0.88)';
+        c.strokeStyle='rgba('+col+',0.5)';c.lineWidth=1;
+        c.beginPath();c.roundRect(r.x,r.y,pw,ph,3);c.fill();c.stroke();
+        c.fillStyle='rgb('+col+')';
+        c.textAlign='center';
+        c.fillText(lbl,r.x+pw/2,r.y+(isModal?10.5:9));
+        _reserve(r);
+        c.restore();
+      });
     }
   };
 
