@@ -9194,15 +9194,25 @@ def _eng_setup_quality(grp: str, spec_idx, comm_idx, spec_chg, price_confirm, co
     drv = []
     if spec_idx is None or comm_idx is None:
         return "n/a", 0, drv
-    extreme = abs(spec_idx - 50) >= 30          # large specs crowded one side
-    if not extreme:
+    spec_extreme = abs(spec_idx - 50) >= 30     # large specs crowded one side
+    comm_extreme = abs(comm_idx - 50) >= 30     # commercials heavily loaded one side
+    # An extreme on EITHER side of the market counts — the user's framework follows
+    # the commercials, so comms heavily loaded (e.g. CHF comms 83 net long) is a valid
+    # setup even when the spec index sits just inside the crowd threshold.
+    if not (spec_extreme or comm_extreme):
         return "no positioning extreme", 0, drv
     # side with commercials; if cot score is exactly neutral at an extreme,
     # fall back to fading the crowd (crowded long → bearish setup, & vice-versa)
-    setup_dir = cot_sign if cot_sign != 0 else (-1 if spec_idx >= 70 else 1 if spec_idx <= 30 else 0)
+    setup_dir = cot_sign
+    if setup_dir == 0:
+        if spec_extreme: setup_dir = -1 if spec_idx >= 70 else 1
+        else:            setup_dir = 1 if comm_idx >= 50 else -1
     dword = "bullish" if setup_dir > 0 else "bearish" if setup_dir < 0 else ""
-    crowd = "specs crowded long" if spec_idx >= 70 else "specs crowded short"
-    diverging = (spec_chg is not None and
+    if spec_extreme:
+        crowd = "specs crowded long" if spec_idx >= 70 else "specs crowded short"
+    else:
+        crowd = "commercials heavily net long" if comm_idx >= 50 else "commercials heavily net short"
+    diverging = (spec_extreme and spec_chg is not None and
                  ((spec_idx >= 70 and spec_chg < 0) or (spec_idx <= 30 and spec_chg > 0)))
     if not price_confirm:
         drv.append(f"COT {dword} setup ({crowd}) — price not yet confirming, wait (don't fight price)")

@@ -24445,7 +24445,8 @@ function renderHCModule(allMarkets){
     // Engine-aligned context: tier + conviction chip, with the top driver / COT setup.
     const conv = m.conviction||0;
     const bonusStr = (m.tier||'') + ' ' + (conv>=0?'+':'') + conv.toFixed(1);
-    const _sd = m.setup_direction||0;
+    // setup_direction is a STRING from the backend ('Bullish'/'Bearish'/'Neutral')
+    const _sd = m.setup_direction==='Bullish' ? 1 : m.setup_direction==='Bearish' ? -1 : 0;
     const _sq = m.setup_quality||'';
     let reason = '';
     if(_sd!==0 && _sq && _sq!=='n/a' && _sq!=='no positioning extreme'){
@@ -24473,6 +24474,53 @@ function renderHCModule(allMarkets){
     </div>`;
   }).join('');
 
+  // ── COT SETUPS rail — bring forward markets where positioning itself is the signal
+  // (commercials loaded / specs crowded, per the follow-the-commercials framework),
+  // even when the composite engine reads Neutral because the market is rangebound.
+  const _qRank = {'high-quality':3,'confirmed':2,'ripe, unconfirmed':1};
+  const _qLabel = {'high-quality':'high-quality R/R','confirmed':'price confirming','ripe, unconfirmed':'ripe · awaiting price'};
+  const hitIds = new Set(hits.map(m=>m.id));
+  const setups = allMarkets
+    .filter(m => _qRank[m.setup_quality] && (m.setup_direction==='Bullish'||m.setup_direction==='Bearish') && !hitIds.has(m.id))
+    .sort((a,b) => {
+      const q = _qRank[b.setup_quality]-_qRank[a.setup_quality];
+      if(q) return q;
+      const ca = Math.abs((a.scores?.cot?.score??5)-5), cb = Math.abs((b.scores?.cot?.score??5)-5);
+      return cb-ca;
+    })
+    .slice(0,6);
+
+  const setupCards = setups.map(m=>{
+    const bull = m.setup_direction==='Bullish';
+    const dir = bull ? 'hc-bull' : 'hc-bear';
+    const cotSc = m.scores?.cot?.score;
+    const phase = m.scores?.cot?.detail?.cot_phase_label || '';
+    const reasonRaw = [phase, _qLabel[m.setup_quality]||m.setup_quality].filter(Boolean).join(' · ');
+    const reason = reasonRaw.length>54 ? reasonRaw.slice(0,53)+'…' : reasonRaw;
+    const shortName = m.name.length > 16 ? m.name.slice(0,15)+'…' : m.name;
+    const tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
+    return `<div class="hc-card ${dir}" onclick="selectMkt('${m.id}')">
+      <div class="hc-card-inner">
+        <div class="hc-card-top">
+          <span class="hc-card-tid">${tidDisplay}</span>
+          <span class="hc-card-name">${shortName}</span>
+          <span class="hc-card-score ${dir}">${cotSc!=null?Number(cotSc).toFixed(1):'—'}</span>
+          <span class="hc-card-badge ${dir}">${bull?'BULL SETUP':'BEAR SETUP'}</span>
+        </div>
+        ${reason ? '<div class="hc-card-bottom"><span class="hc-card-reason">'+reason+'</span></div>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const setupHeader = setups.length ?
+    `<div class="hc-header" style="margin-top:12px">
+      <div class="hc-header-left">
+        <div class="hc-glow-dot" style="background:var(--s1);box-shadow:0 0 6px rgba(38,201,122,0.5)"></div>
+        <span class="hc-label">COT Setups</span>
+      </div>
+      <span class="hc-count">${setups.length} ${setups.length===1?'Setup':'Setups'}</span>
+    </div>` : '';
+
   el.innerHTML =
     `<div class="hc-header">
       <div class="hc-header-left">
@@ -24480,7 +24528,7 @@ function renderHCModule(allMarkets){
         <span class="hc-label">High Conviction</span>
       </div>
       <span class="hc-count">${hits.length} ${hits.length===1?'Signal':'Signals'}</span>
-    </div>` + cards;
+    </div>` + cards + setupHeader + setupCards;
 }
 
 function renderList(){
