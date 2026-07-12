@@ -40804,7 +40804,9 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
   if(_cvals.length){
     const _lo=Math.min(..._cvals),_hi=Math.max(..._cvals);
     const _pad=Math.max(1,(_hi-_lo)*0.18);
-    _yClampMin=Math.floor(_lo-_pad);_yClampMax=Math.ceil(_hi+_pad);
+    const _step=((_hi+_pad)-(_lo-_pad)>=20)?5:1;
+    _yClampMin=Math.floor((_lo-_pad)/_step)*_step;
+    _yClampMax=Math.ceil((_hi+_pad)/_step)*_step;
   }
 
   // Historical Median — PAST segment
