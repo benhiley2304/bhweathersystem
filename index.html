@@ -24485,10 +24485,13 @@ function renderHCModule(allMarkets){
     .sort((a,b) => {
       const q = _qRank[b.setup_quality]-_qRank[a.setup_quality];
       if(q) return q;
+      // prefer confirmed spec turns — the entry trigger in the follow-the-commercials framework
+      const ta = a.scores?.cot?.v2_spec_turn_confirmed?1:0, tb = b.scores?.cot?.v2_spec_turn_confirmed?1:0;
+      if(tb-ta) return tb-ta;
       const ca = Math.abs((a.scores?.cot?.score??5)-5), cb = Math.abs((b.scores?.cot?.score??5)-5);
       return cb-ca;
     })
-    .slice(0,6);
+    .slice(0,8);
 
   const setupCards = setups.map(m=>{
     const bull = m.setup_direction==='Bullish';
