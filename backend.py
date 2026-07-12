@@ -141,7 +141,7 @@ MARKETS = [
     {"id": "PL",  "name": "Platinum",      "ticker": "PL1!",  "yf": "PL=F",     "category": "commodity", "cftc_code": "076651", "cftc_name": "PLATINUM"},
     {"id": "PA",  "name": "Palladium",     "ticker": "PA1!",  "yf": "PA=F",     "category": "commodity", "cftc_code": "075651", "cftc_name": "PALLADIUM"},
     {"id": "KC",  "name": "Coffee",        "ticker": "KC1!",  "yf": "KC=F",     "category": "commodity", "cftc_code": "083731", "cftc_name": "COFFEE C",
-     "cot_note": "Pure CFTC Arabica COT data (NY, ~196k OI). Arabica and Robusta are structurally different commodities with separate supply chains, participant profiles, and commercial bases — blending their COT data adds noise rather than signal. KC scores are therefore based solely on Arabica positioning. Cross-reference RC (standalone ICE Robusta) for the separate Robusta market view."},
+     "cot_note": "Pure CFTC Arabica COT data (NY, ~196k OI). Arabica and Robusta are structurally different commodities with separate supply chains, participant profiles, and commercial bases — blending their COT data adds noise rather than signal. KC scores are therefore based solely on Arabica positioning."},
     {"id": "SB",  "name": "Sugar",         "ticker": "SB1!",  "yf": "SB=F",     "category": "commodity", "cftc_code": "080732", "cftc_name": "SUGAR NO. 11"},
     {"id": "ZC",  "name": "Corn",          "ticker": "ZC1!",  "yf": "ZC=F",     "category": "commodity", "cftc_code": "002602", "cftc_name": "CORN"},
     {"id": "ZS",  "name": "Soybeans",      "ticker": "ZS1!",  "yf": "ZS=F",     "category": "commodity", "cftc_code": "005602", "cftc_name": "SOYBEANS"},
@@ -10277,6 +10277,7 @@ async def get_seasonality(market: str = None):
             "current_year_actual": cy_actual,
             "n_years": ent.get("n_years"),
             "years_span": ent.get("years_span"),
+            "turns": ent.get("turns", []),
             "window": stats,
         }
     return _SafeJSONResponse(data)
@@ -11059,6 +11060,103 @@ _DYN_SEAS_PATH = os.path.join(DATA_DIR, "seasonality_dynamic.json")
 _DYN_SEAS_TTL  = 7 * 86400      # rebuild each market weekly
 _DYN_SEAS_BUILT: dict = {}      # market_id -> last build ts (in-memory)
 
+_SEAS_BUILDER_VERSION = 3   # bump to force rebuild of cached dynamic seasonality
+
+
+def _find_seas_turns(med: list, by_year: dict, prior: list, weights: dict = None) -> list:
+    """Detect the significant seasonal peaks/troughs of the median curve via a
+    zigzag (reversal threshold = 18% of curve range), then measure how
+    consistently prior years actually turned there: for a peak at TD t, the
+    (year-weighted) share of years whose path fell over the next 15 TDs
+    (rose, for a trough). Only turns where history agrees ≥60% and the median
+    forward move matches the turn direction survive; near-duplicates within
+    12 TDs collapse to the more consistent one.
+    Returns [{td, val, type, consistency, fwd_move}] sorted by td."""
+    n = len(med)
+    rng = (max(med) - min(med)) or 1.0
+    thr = 0.18 * rng
+    H = 15                      # forward window (~3 weeks) for consistency
+    EDGE = 6                    # ignore year-boundary artefacts
+    MIN_SEP = 12                # min TD separation between reported turns
+
+    # ── zigzag extrema ──
+    raw = []
+    cand_i, cand_v = 0, med[0]
+    direction = 0               # +1 tracking a high, -1 tracking a low
+    for i in range(1, n):
+        v = med[i]
+        if direction == 0:
+            # bootstrap: pick initial direction once we move thr from start
+            if v - med[0] >= thr:
+                direction, cand_i, cand_v = 1, i, v
+            elif med[0] - v >= thr:
+                direction, cand_i, cand_v = -1, i, v
+        elif direction > 0:
+            if v > cand_v:
+                cand_i, cand_v = i, v
+            elif cand_v - v >= thr:
+                raw.append((cand_i, "peak"))
+                direction, cand_i, cand_v = -1, i, v
+        else:
+            if v < cand_v:
+                cand_i, cand_v = i, v
+            elif v - cand_v >= thr:
+                raw.append((cand_i, "trough"))
+                direction, cand_i, cand_v = 1, i, v
+
+    scored = []
+    for i, typ in raw:
+        if i < EDGE or i > n - 1 - EDGE:
+            continue
+        w_hit = w_tot = 0.0
+        moves = []
+        for y in prior:
+            p = by_year.get(y)
+            if not p:
+                continue
+            j = min(n - 1, i + H)
+            d = p[j] - p[i]
+            moves.append(d)
+            w = (weights or {}).get(y, 1.0)
+            w_tot += w
+            if (typ == "peak" and d < 0) or (typ == "trough" and d > 0):
+                w_hit += w
+        if len(moves) < 6 or w_tot <= 0:
+            continue
+        cons = round(100.0 * w_hit / w_tot)
+        sm = sorted(moves)
+        k = len(sm)
+        med_move = sm[k // 2] if k % 2 else (sm[k // 2 - 1] + sm[k // 2]) / 2
+        # direction sanity: a peak must actually lead down, a trough up
+        if typ == "peak" and med_move >= 0:
+            continue
+        if typ == "trough" and med_move <= 0:
+            continue
+        scored.append({
+            "td": i + 1,
+            "val": round(med[i], 2),
+            "type": typ,
+            "consistency": cons,
+            "fwd_move": round(med_move, 2),
+        })
+
+    strong = [t for t in scored if t["consistency"] >= 60]
+    if len(strong) < 2:   # weak seasonal market: surface the best 2 anyway (≥52%)
+        strong = sorted([t for t in scored if t["consistency"] >= 52],
+                        key=lambda t: -t["consistency"])[:2]
+    strong.sort(key=lambda t: t["td"])
+
+    # collapse near-duplicates: keep the more consistent of any pair within MIN_SEP
+    out = []
+    for t in strong:
+        if out and t["td"] - out[-1]["td"] < MIN_SEP:
+            if t["consistency"] > out[-1]["consistency"]:
+                out[-1] = t
+        else:
+            out.append(t)
+    return out[:6]
+
+
 def _build_seasonality_from_closes(closes, current_year: int,
                                    years_back: int = 22, snap_years: int = 11) -> dict:
     """
@@ -11129,10 +11227,13 @@ def _build_seasonality_from_closes(closes, current_year: int,
         med_raw.append(_seas_wq(vals, ws, 0.5))
         lo_raw.append(_seas_wq(vals, ws, 0.25))
         hi_raw.append(_seas_wq(vals, ws, 0.75))
-    med_s = _smooth(med_raw); lo_s = _smooth(lo_raw); hi_s = _smooth(hi_raw)
+    # Median curve: UNSMOOTHED (Seasonax-style) — raw day-level texture makes
+    # genuine seasonal peaks/troughs precise. Band: k=7 smoothing, calm context.
+    med_s = list(med_raw); lo_s = _smooth(lo_raw, k=7); hi_s = _smooth(hi_raw, k=7)
 
     curve = [[i + 1, round(med_s[i], 3)] for i in range(252)]
     band = [[i + 1, round(lo_s[i], 3), round(hi_s[i], 3)] for i in range(252)]
+    turns = _find_seas_turns(med_s, by_year, prior, W)
 
     cycles = {}
     for cyc in ("midterm", "pre_election", "post_election", "election"):
@@ -11149,9 +11250,11 @@ def _build_seasonality_from_closes(closes, current_year: int,
 
     return {
         "v": 2,
+        "bv": _SEAS_BUILDER_VERSION,
         "years": {str(y): by_year[y] for y in by_year},
         "curve": curve,
         "band": band,
+        "turns": turns,
         "cycles": cycles,
         "n_years": len(prior),
         "years_span": f"{min(prior)}\u2013{max(prior)}",
@@ -11185,6 +11288,7 @@ def _ensure_market_seas(market_id: str) -> None:
     data = _SEASONALITY_CACHE["data"]
     now = time.time()
     if (mid in data and data[mid].get("v") == 2 and data[mid].get("curve")
+            and data[mid].get("bv") == _SEAS_BUILDER_VERSION
             and (now - _DYN_SEAS_BUILT.get(mid, 0)) < _DYN_SEAS_TTL):
         return
     mkt = next((x for x in MARKETS if x["id"] == mid), None)

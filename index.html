@@ -36093,7 +36093,7 @@ async function loadSeasTab(marketId,marketName){
     miniSeasChart=buildSeasChart(
       canvas.getContext('2d'),
       all.map(p=>p[0]),all.map(p=>p[1]),
-      band||[],cya||[],months,td,'mini',sd,cycles,false
+      band||[],cya||[],months,td,'mini',sd,cycles,false,data.turns||[]
     );
     renderSeasInsight(all,mt,td,sd,cya||[],'seas-insight-row');
   }catch(e){
@@ -37204,7 +37204,7 @@ function macroTab(m){
     </div>`,
     'KC': `<div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:7px;background:rgba(92,158,255,0.05);border:1px solid rgba(92,158,255,0.18);margin-bottom:12px;font-size:9.5px;color:#7bb8ff;line-height:1.5">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#5c9eff" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><circle cx="6" cy="6" r="5"/><path d="M6 4v3M6 8.5h.01" stroke-linecap="round"/></svg>
-      <div><strong style="color:#a8cfff">Coffee (Arabica) Macro Note</strong> — Pure CFTC Arabica. Macro score: USD direction via 2Y yield is the primary macro transmission — rising USD = headwind for dollar-priced Arabica exports. Hot CPI signals Fed hawkishness, strengthening USD and compounding the headwind. Brazil weather and crop cycle events dominate over macro — COT and seasonality are the primary signals here. Macro provides a background directional signal only. Cross-reference RC (Robusta) for a complementary view on the broader coffee complex.</div>
+      <div><strong style="color:#a8cfff">Coffee (Arabica) Macro Note</strong> — Pure CFTC Arabica. Macro score: USD direction via 2Y yield is the primary macro transmission — rising USD = headwind for dollar-priced Arabica exports. Hot CPI signals Fed hawkishness, strengthening USD and compounding the headwind. Brazil weather and crop cycle events dominate over macro — COT and seasonality are the primary signals here. Macro provides a background directional signal only.</div>
     </div>`,
   };
   if(UK_MACRO_NOTES[m.id]) html += UK_MACRO_NOTES[m.id];
@@ -40621,7 +40621,7 @@ async function openModal(marketId,marketName){
     document.getElementById('modal-today-text').textContent='Trading day '+td+' of 252 — '+getMonth(td,months);
     const cycles={midterm,pre_election,post_election,election};
     const ctx=document.getElementById('modal-chart').getContext('2d');
-    modalChart=buildSeasChart(ctx,labels,allV,band||[],cya||[],months,td,'modal',sd,cycles,true);
+    modalChart=buildSeasChart(ctx,labels,allV,band||[],cya||[],months,td,'modal',sd,cycles,true,data.turns||[]);
     renderSeasStats(all,mt,td,sd,cya||[],'modal-stats');
   }catch(e){
     document.getElementById('modal-loading').innerHTML='<span style="color:var(--sm2);font-size:10px">Error: '+e.message+'</span>';
@@ -40797,6 +40797,37 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           c.textAlign='center';
           c.fillText(m.label,midPx,y.bottom-4);
         }
+        c.restore();
+      });
+
+      // ── Seasonal turn markers (high-probability peaks/troughs) ──
+      (turns||[]).forEach(t=>{
+        const px=x.getPixelForValue(t.td);
+        if(px<x.left+4||px>x.right-4)return;
+        const py=y.getPixelForValue(t.val);
+        if(py<y.top||py>y.bottom)return;
+        const isPeak=t.type==='peak';
+        const col=isPeak?'224,58,42':'34,201,122';
+        c.save();
+        // halo + dot on the curve
+        c.beginPath();c.arc(px,py,7,0,Math.PI*2);c.fillStyle='rgba('+col+',0.12)';c.fill();
+        c.beginPath();c.arc(px,py,3.5,0,Math.PI*2);c.fillStyle='rgba('+col+',0.28)';c.fill();
+        c.beginPath();c.arc(px,py,2,0,Math.PI*2);c.fillStyle='rgb('+col+')';c.fill();
+        // label pill — peaks above, troughs below
+        const lbl=(isPeak?'PEAK ':'LOW ')+t.consistency+'%';
+        c.font='700 '+(isModal?'8px':'7px')+' Inter,sans-serif';
+        const tw=c.measureText(lbl).width;
+        const pw=tw+10,ph=isModal?15:13;
+        let lx=px-pw/2;
+        lx=Math.max(x.left+2,Math.min(x.right-pw-2,lx));
+        let ly=isPeak?py-ph-8:py+8;
+        ly=Math.max(y.top+2,Math.min(y.bottom-ph-2,ly));
+        c.fillStyle='rgba(5,7,13,0.88)';
+        c.strokeStyle='rgba('+col+',0.5)';c.lineWidth=1;
+        c.beginPath();c.roundRect(lx,ly,pw,ph,3);c.fill();c.stroke();
+        c.fillStyle='rgb('+col+')';
+        c.textAlign='center';
+        c.fillText(lbl,lx+pw/2,ly+(isModal?10.5:9));
         c.restore();
       });
 
