@@ -41423,7 +41423,7 @@ initNexusNoise();
 <div id="app-status-bar">
   <span id="asb-ts" class="asb-ts"></span>
   <span class="asb-sep">|</span>
-  <span class="asb-src">Data: CFTC COT · ICE · Fed &amp; G10 central banks · Market prices</span>
+  <span class="asb-src">Data: CFTC COT · Fed &amp; G10 central banks · Market prices</span>
   <span class="asb-sep">|</span>
   <span class="asb-disc">Directional bias indicators only — not financial advice</span>
 </div>
@@ -41456,7 +41456,8 @@ initNexusNoise();
     const ts=document.getElementById('asb-ts');
     const appTs=document.getElementById('ts');
     if(ts&&appTs&&appTs.textContent&&appTs.textContent!=='\u2014'){
-      ts.textContent='Updated '+appTs.textContent;
+      const raw=appTs.textContent.trim();
+      ts.textContent=/^(Updated|Just)/i.test(raw)?raw:'Updated '+raw;
     }
   }
   // Poll for timestamp update
