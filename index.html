@@ -24119,7 +24119,7 @@ canvas.chartjs-render-monitor{
           <div class="ml-item"><div class="ml-line" style="border-top:2.5px solid #6b7cff"></div>Hist. Median</div>
           <div class="ml-item"><div class="ml-line" style="border-top:1.5px dashed rgba(91,110,245,0.55)"></div>Projected</div>
           <div class="ml-item"><div class="ml-line" style="height:7px;background:rgba(107,124,255,0.18);border-top:none;border-radius:2px"></div>25–75% range</div>
-          <div class="ml-item"><div class="ml-line" style="border-top:1.5px solid rgba(255,255,255,0.85)"></div>2026 Actual YTD</div>
+          <div class="ml-item"><div class="ml-line" style="border-top:1.5px solid rgba(255,255,255,0.85)"></div><span class="js-cur-year">2026</span>&nbsp;Actual YTD</div>
           <div class="ml-item" style="opacity:0.55"><div class="ml-line" style="border-top:1px dashed #f0c060"></div>This Cycle</div>
           <div class="ml-item" style="opacity:0.4"><div class="ml-line" style="border-top:1px dashed #a78bfa"></div>Pre-Election</div>
           <div class="ml-item" style="opacity:0.4"><div class="ml-line" style="border-top:1px dashed #34d399"></div>Post-Election</div>
@@ -24434,6 +24434,8 @@ function _clearSearch(){
   if(clr)clr.style.display='none';
 }
 document.addEventListener('DOMContentLoaded',()=>{
+  // Future-proofing: any element tagged .js-cur-year always shows the current year
+  document.querySelectorAll('.js-cur-year').forEach(el=>{el.textContent=String(new Date().getFullYear());});
   const inp=document.getElementById('sb-search');
   const clr=document.getElementById('sb-search-clear');
   if(inp){
@@ -25597,7 +25599,7 @@ function renderOverview(){
     const rateSig = reg.rate_signal||{};
     const rateLabel = reg.rate_label||'';
     const effr = rateSig.effr;                         // FFF month-0 implied (market pricing)
-    const effrActual = (reg.intl_rates||{}).US?.rate ?? 3.64;  // actual FEDFUNDS effective rate
+    const effrActual = (reg.intl_rates||{}).US?.rate ?? rateSig.effr ?? 3.64;  // actual EFFR, falls back to live FFF-implied before static
     const cuts12m = rateSig.cuts_12m;
     const cuts18m = rateSig.cuts_18m;
     const hikeProbNext = rateSig.hike_prob_next ?? 0;
@@ -35953,7 +35955,7 @@ function seasTabStub(m){
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2.5px solid #6b7cff"></span>Hist. Median (past)</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:1.5px dashed rgba(107,124,255,0.5)"></span>Projected</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="height:7px;background:rgba(107,124,255,0.16);border-top:none;border-radius:2px"></span>25–75% range</span>
-    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2px solid rgba(255,255,255,0.85)"></span>2026 YTD Actual</span>
+    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2px solid rgba(255,255,255,0.85)"></span><span class="js-cur-year">2026</span>&nbsp;YTD Actual</span>
     <span class="seas-leg-item"><span class="seas-leg-dot" style="background:#e03a2a"></span>Today</span>
   </div>
   <div class="seas-mini" id="seas-mini">

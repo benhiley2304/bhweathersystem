@@ -6008,39 +6008,74 @@ _CB_RATE_SERIES = {
 }
 
 # ── Hardcoded CB policy rate fallback layer ───────────────────────────────────
-# These are actual policy/target rates as of the last confirmed decision.
-# Used to OVERRIDE the FRED series when FRED diverges >30bp or is >30 days stale.
-# Update whenever a CB makes a rate decision.
-# Format: { CB_KEY: { "rate": float, "date": "YYYY-MM-DD", "next_meeting": "YYYY-MM-DD",
+# Anchor rates as of the last confirmed decision + PUBLISHED meeting calendars.
+# The 'rate' is only a safety anchor: for true policy-rate FRED series
+# (FEDFUNDS/SONIA/ECBDFR) fresh FRED data always wins; for interbank proxies the
+# rate auto-tracks FRED moves after the anchor date (see _compute_intl_rates).
+# 'meetings' = published decision dates (ISO). next_meeting is computed
+# dynamically at request time — never hardcode a single date.
+# Format: { CB_KEY: { "rate": float, "date": "YYYY-MM-DD", "meetings": [...],
 #                     "prev_rate": float, "cycle_peak": float, "cycle_trough": float } }
 _CB_POLICY_FALLBACK = {
-    # US: FEDFUNDS actual effective rate (not FFF-implied)
-    # Updated May 2026: Fed cut rates through late 2025; current target 3.50-3.75% (midpoint 3.625%)
-    "US":    {"rate": 3.64,  "date": "2026-04-30", "next_meeting": "2026-06-11",
+    # US: target 3.50-3.75% (held 17 Jun 2026, first meeting under Warsh). EFFR ~3.63.
+    # FOMC decision days: federalreserve.gov/monetarypolicy/fomccalendars.htm
+    "US":    {"rate": 3.63,  "date": "2026-06-17",
+              "meetings": ["2026-07-29", "2026-09-16", "2026-10-28", "2026-12-09",
+                           "2027-01-27", "2027-03-17", "2027-04-28", "2027-06-09",
+                           "2027-07-28", "2027-09-15", "2027-10-27", "2027-12-08"],
               "prev_rate": 4.33, "cycle_peak": 5.33, "cycle_trough": 0.08,
               "target_low": 3.50, "target_high": 3.75},
-    # BoE: Bank Rate 3.75% held April 30 2026
-    "BOE":   {"rate": 3.75,  "date": "2026-04-30", "next_meeting": "2026-06-18",
-              "prev_rate": 4.50, "cycle_peak": 5.25, "cycle_trough": 0.10},
-    # ECB: Deposit facility rate 2.00% (April 2026)
-    "ECB":   {"rate": 2.00,  "date": "2026-04-17", "next_meeting": "2026-06-05",
-              "prev_rate": 4.00, "cycle_peak": 4.00, "cycle_trough": -0.50},
-    # BoJ: Policy rate 0.75% held April 28 2026
-    "BOJ":   {"rate": 0.75,  "date": "2026-04-28", "next_meeting": "2026-06-16",
-              "prev_rate": 0.50, "cycle_peak": 0.75, "cycle_trough": -0.10},
-    # RBA: Cash rate 4.35% (hiked +25bp May 6 2026)
-    "RBA":   {"rate": 4.35,  "date": "2026-05-06", "next_meeting": "2026-07-08",
-              "prev_rate": 4.10, "cycle_peak": 4.35, "cycle_trough": 0.10},
-    # BoC: Policy rate 2.25% held April 29 2026
-    "BOC":   {"rate": 2.25,  "date": "2026-04-29", "next_meeting": "2026-06-04",
-              "prev_rate": 3.25, "cycle_peak": 5.00, "cycle_trough": 0.25},
-    # RBNZ: OCR 2.25% (cutting cycle)
-    "RBNZ":  {"rate": 2.25,  "date": "2026-04-09", "next_meeting": "2026-05-28",
-              "prev_rate": 3.50, "cycle_peak": 5.50, "cycle_trough": 0.25},
-    # SNB: Policy rate 0.00% since June 2025
-    "SNB":   {"rate": 0.00,  "date": "2026-03-20", "next_meeting": "2026-06-19",
-              "prev_rate": 1.00, "cycle_peak": 1.75, "cycle_trough": -0.75},
+    # BoE: Bank Rate 3.75% (held 18 Jun 2026, 7-2). bankofengland.co.uk MPC dates
+    "BOE":   {"rate": 3.75,  "date": "2026-06-18",
+              "meetings": ["2026-07-30", "2026-09-17", "2026-11-05", "2026-12-17",
+                           "2027-02-04", "2027-03-18", "2027-04-29", "2027-06-17",
+                           "2027-07-29", "2027-09-16", "2027-11-04", "2027-12-16"],
+              "prev_rate": 4.25, "cycle_peak": 5.25, "cycle_trough": 0.10},
+    # ECB: Deposit facility rate 2.25% (HIKED +25bp 11 Jun 2026, effective 17 Jun)
+    "ECB":   {"rate": 2.25,  "date": "2026-06-11",
+              "meetings": ["2026-07-23", "2026-09-10", "2026-10-29", "2026-12-17",
+                           "2027-02-04", "2027-03-18", "2027-04-29", "2027-06-10",
+                           "2027-07-22", "2027-09-09", "2027-10-28", "2027-12-16"],
+              "prev_rate": 2.00, "cycle_peak": 4.00, "cycle_trough": -0.50},
+    # BoJ: Policy rate 1.00% (HIKED +25bp 16 Jun 2026). 2027 dates not yet published.
+    "BOJ":   {"rate": 1.00,  "date": "2026-06-16",
+              "meetings": ["2026-07-31", "2026-09-18", "2026-10-30", "2026-12-18"],
+              "prev_rate": 0.50, "cycle_peak": 1.00, "cycle_trough": -0.10},
+    # RBA: Cash rate 4.35% (hiked 6 May 2026, held 17 Jun). Decision = day 2 of meeting.
+    "RBA":   {"rate": 4.35,  "date": "2026-05-06",
+              "meetings": ["2026-08-11", "2026-09-29", "2026-11-03", "2026-12-08"],
+              "prev_rate": 3.85, "cycle_peak": 4.35, "cycle_trough": 0.10},
+    # BoC: Policy rate 2.25% (held 10 Jun 2026, 5th consecutive hold)
+    "BOC":   {"rate": 2.25,  "date": "2026-06-10",
+              "meetings": ["2026-07-15", "2026-09-02", "2026-10-28", "2026-12-09"],
+              "prev_rate": 2.75, "cycle_peak": 5.00, "cycle_trough": 0.25},
+    # RBNZ: OCR 2.50% (HIKED +25bp 8 Jul 2026, tightening bias)
+    "RBNZ":  {"rate": 2.50,  "date": "2026-07-08",
+              "meetings": ["2026-09-02", "2026-10-28", "2026-12-09", "2027-02-10"],
+              "prev_rate": 3.25, "cycle_peak": 5.50, "cycle_trough": 0.25},
+    # SNB: Policy rate 0.00% (held 18 Jun 2026). Quarterly assessments.
+    "SNB":   {"rate": 0.00,  "date": "2026-06-18",
+              "meetings": ["2026-09-24", "2026-12-17"],
+              "prev_rate": 0.00, "cycle_peak": 1.75, "cycle_trough": -0.75},
 }
+
+def _next_cb_meeting(fallback: dict):
+    """First not-yet-past decision date from the CB's published calendar.
+
+    Computed at request time so the value rolls forward automatically as
+    meetings pass. Returns None once the calendar is exhausted (frontend
+    renders a null meeting gracefully) — refresh the 'meetings' lists when
+    central banks publish their next-year schedules.
+    """
+    from datetime import datetime as _dtm
+    today = _dtm.utcnow().strftime("%Y-%m-%d")
+    for d in fallback.get("meetings") or []:
+        if d >= today:
+            return d
+    legacy = fallback.get("next_meeting")
+    if legacy and legacy >= today:
+        return legacy
+    return None
 
 def _compute_intl_rates() -> dict:
     """Fetch central bank policy rates from FRED, apply hardcoded fallback for accuracy.
@@ -6097,16 +6132,46 @@ def _compute_intl_rates() -> dict:
             trend_12m = round(fred_rate - v_12m, 3)
             bias = 1 if trend_6m > 0.1 else -1 if trend_6m < -0.1 else 0
 
-            # Determine if we should override rate with fallback
-            use_fallback_rate = False
+            # ── Rate determination (future-proof) ──────────────────────────
+            # Policy-rate series (FEDFUNDS, SONIA, ECBDFR) track the true policy
+            # rate on FRED → trust FRED whenever it is fresh; the hardcoded
+            # fallback is only a safety net for stale/broken feeds. (The old
+            # logic did the opposite — a >30bp divergence made the stale
+            # hardcoded rate override fresh data, so real hikes/cuts were hidden.)
+            # Interbank proxies (IR3TIB01*): start from the hand-verified anchor
+            # rate and auto-track FRED moves AFTER the anchor, snapped to 25bp.
+            # Baseline = first observation >=35 days post-anchor, so the move
+            # that prompted the anchor update is never double-counted.
+            _is_policy_series = fred_id in ("FEDFUNDS", "IUDSOIA", "ECBDFR")
             fallback_rate = fallback.get("rate")
-            if fallback_rate is not None:
-                diverges = abs(fred_rate - fallback_rate) > FALLBACK_DIVERGE_THRESHOLD
-                is_stale = days_old > FALLBACK_STALE_DAYS
-                if diverges or is_stale:
-                    use_fallback_rate = True
-
-            actual_rate = fallback_rate if use_fallback_rate and fallback_rate is not None else fred_rate
+            rate_source = "fred"
+            actual_rate = fred_rate
+            if _is_policy_series:
+                # Monthly series (FEDFUNDS) publish with ~1 month lag — allow 75d
+                _stale_days = FALLBACK_STALE_DAYS if cb in _DAILY_CBS else 75
+                if days_old > _stale_days and fallback_rate is not None:
+                    actual_rate = fallback_rate
+                    rate_source = "fallback"
+            elif fallback_rate is not None:
+                actual_rate = fallback_rate
+                rate_source = "fallback"
+                try:
+                    _anchor = fallback.get("date")
+                    if _anchor:
+                        _anchor_dt = _dt.strptime(_anchor, "%Y-%m-%d")
+                        _baseline = None
+                        for _d, _v in zip(dates, vals):
+                            if (_dt.strptime(_d, "%Y-%m-%d") - _anchor_dt).days >= 35:
+                                _baseline = _v
+                                break
+                        if _baseline is not None:
+                            _step = round((fred_rate - _baseline) / 0.25) * 0.25
+                            if abs(_step) >= 0.25:
+                                actual_rate = fallback_rate + _step
+                                rate_source = "fallback+delta"
+                except Exception:
+                    pass
+            use_fallback_rate = rate_source != "fred"
 
             # --- Label logic ---
             # For CB policy rates (FEDFUNDS, IUDSOIA, ECBDFR): use t3 as primary
@@ -6164,9 +6229,17 @@ def _compute_intl_rates() -> dict:
                 else:
                     _label = "Paused" if (abs(trend_6m) > 0.3 or abs(fb_delta_12m) > 0.3) else "Flat"
 
+            # Dynamic Fed target band: derive from the live effective rate so
+            # the band moves automatically with future hikes/cuts (25bp grid).
+            _tgt_low  = fallback.get("target_low")
+            _tgt_high = fallback.get("target_high")
+            if cb == "US" and actual_rate is not None:
+                _tgt_low  = int(actual_rate / 0.25) * 0.25
+                _tgt_high = round(_tgt_low + 0.25, 2)
+
             result[cb] = {
                 "rate":           round(actual_rate, 2),
-                "rate_source":    "fallback" if use_fallback_rate else "fred",
+                "rate_source":    rate_source,
                 "fred_rate":      round(fred_rate, 3),
                 "trend_3m":       trend_3m,
                 "trend_6m":       trend_6m,
@@ -6175,12 +6248,12 @@ def _compute_intl_rates() -> dict:
                 "bias":           bias,
                 "data_date":      dates[-1],
                 "label":          _label,
-                "next_meeting":   fallback.get("next_meeting"),
+                "next_meeting":   _next_cb_meeting(fallback),
                 "cycle_peak":     fallback.get("cycle_peak"),
                 "cycle_trough":   fallback.get("cycle_trough"),
                 "change_from_peak": round(actual_rate - fallback.get("cycle_peak", actual_rate), 2) if fallback.get("cycle_peak") is not None else None,
-                "target_low":     fallback.get("target_low"),
-                "target_high":    fallback.get("target_high"),
+                "target_low":     _tgt_low,
+                "target_high":    _tgt_high,
             }
         except Exception:
             # FRED fetch failed entirely — use fallback-only if available
@@ -6207,7 +6280,7 @@ def _compute_intl_rates() -> dict:
                     "bias":           1 if fb_delta > 0.1 else -1 if fb_delta < -0.1 else 0,
                     "data_date":      fallback.get("date"),
                     "label":          _label,
-                    "next_meeting":   fallback.get("next_meeting"),
+                    "next_meeting":   _next_cb_meeting(fallback),
                     "cycle_peak":     fallback.get("cycle_peak"),
                     "cycle_trough":   fallback.get("cycle_trough"),
                     "change_from_peak": round(fb_rate - fallback.get("cycle_peak", fb_rate), 2) if fallback.get("cycle_peak") is not None else None,
