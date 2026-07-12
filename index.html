@@ -24072,7 +24072,7 @@ canvas.chartjs-render-monitor{
     <div class="modal-head">
       <div>
         <h2 id="modal-title">Seasonal Pattern</h2>
-        <p>25-year weighted curve · Recency-adjusted · Midterm overlay · 3-4 week projection</p>
+        <p>Cycle 2.5x + recency-weighted median · 25–75% historical range · 3–4 week window stats</p>
       </div>
       <button class="modal-close" onclick="closeModal()">
         <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2">
@@ -24091,8 +24091,9 @@ canvas.chartjs-render-monitor{
           <span id="modal-today-text">Today: trading day — of 252</span>
         </div>
         <div class="modal-legend">
-          <div class="ml-item"><div class="ml-line" style="border-top:2.5px solid #6b7cff"></div>Historical Avg</div>
+          <div class="ml-item"><div class="ml-line" style="border-top:2.5px solid #6b7cff"></div>Hist. Median</div>
           <div class="ml-item"><div class="ml-line" style="border-top:1.5px dashed rgba(91,110,245,0.55)"></div>Projected</div>
+          <div class="ml-item"><div class="ml-line" style="height:7px;background:rgba(107,124,255,0.18);border-top:none;border-radius:2px"></div>25–75% range</div>
           <div class="ml-item"><div class="ml-line" style="border-top:1.5px solid rgba(255,255,255,0.85)"></div>2026 Actual YTD</div>
           <div class="ml-item" style="opacity:0.55"><div class="ml-line" style="border-top:1px dashed #f0c060"></div>This Cycle</div>
           <div class="ml-item" style="opacity:0.4"><div class="ml-line" style="border-top:1px dashed #a78bfa"></div>Pre-Election</div>
@@ -40792,9 +40793,23 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
     });
   }
 
-  // Historical Avg — PAST segment
+  // ── Y-axis clamp: scale to the seasonal curve + band (not intra-year price spikes) ──
+  // Extreme moves in the current-year actual line (e.g. NG +110% in Jan) would otherwise
+  // squash the seasonal median into a flat line. The live dot (last actual) stays in range.
+  const _cvals=allV.filter(v=>v!=null)
+    .concat(bandUpper.filter(v=>v!=null),bandLower.filter(v=>v!=null));
+  const _lastCy=(cyActual&&cyActual.length)?cyActual[cyActual.length-1][1]:null;
+  if(_lastCy!=null&&isFinite(_lastCy))_cvals.push(_lastCy);
+  let _yClampMin,_yClampMax;
+  if(_cvals.length){
+    const _lo=Math.min(..._cvals),_hi=Math.max(..._cvals);
+    const _pad=Math.max(1,(_hi-_lo)*0.18);
+    _yClampMin=Math.floor(_lo-_pad);_yClampMax=Math.ceil(_hi+_pad);
+  }
+
+  // Historical Median — PAST segment
   datasets.push({
-    label:'Historical Avg',
+    label:'Hist. Median',
     data:histPast,
     borderColor:isModal?'rgba(107,124,255,0.95)':'rgba(91,110,245,0.85)',
     borderWidth:isModal?2.5:2,
@@ -40889,6 +40904,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           border:{color:'rgba(255,255,255,0.08)'}
         },
         y:{
+          min:_yClampMin,max:_yClampMax,
           ticks:{
             color:'rgba(255,255,255,0.28)',
             font:{size:isModal?8:7.5,family:'JetBrains Mono,monospace'},
@@ -40991,7 +41007,7 @@ function renderSeasStats(all,mt,todayTD,sd,cya,containerId){
     {l:'Hit Rate', v:hr!=null?hr+'%'+(nY?' ('+nPos+'/'+nY+')':''):'—',
      col:hr==null?'#5a6480':hr>=60?'#22c97a':hr<=40?'#e03a2a':'#94a3b8',
      top:hr==null?'rgba(90,100,128,0.2)':hr>=60?'rgba(34,201,122,0.5)':hr<=40?'rgba(224,58,42,0.5)':'rgba(148,165,190,0.3)'},
-    {l:'Best–Worst', v:(best!=null&&worst!=null)?(best>=0?'+':'')+best.toFixed(1)+'% / '+(worst>=0?'+':'')+worst.toFixed(1)+'%':'+'+rangeVal.toFixed(2)+'%',
+    {l:'Best–Worst', v:(best!=null&&worst!=null)?(best>=0?'+':'')+best.toFixed(1)+'/'+(worst>=0?'+':'')+worst.toFixed(1)+'%':'+'+rangeVal.toFixed(2)+'%',
      col:_col(0,true), top:_top(0,true)},
   ];
   el.innerHTML=stats.map(s=>`<div class="sstat" style="--sstat-top:${s.top}"><div class="sstat-l">${s.l}</div><div class="sstat-v" style="color:${s.col}">${s.v}</div></div>`).join('');
