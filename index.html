@@ -19,7 +19,7 @@
 <meta property="og:site_name" content="BH Weather System"/>
 <meta property="og:url" content="https://bhweathersystem.onrender.com/"/>
 <meta property="og:title" content="BH Weather System — Macro Trading Intelligence"/>
-<meta property="og:description" content="62 markets, one trend-gated confluence engine. Directional bias, conviction tiers, and COT risk/reward setups in real time."/>
+<meta property="og:description" content="57 markets, one trend-gated confluence engine. Directional bias, conviction tiers, and COT risk/reward setups in real time."/>
 <meta property="og:image" content="https://bhweathersystem.onrender.com/photos/og.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -27,7 +27,7 @@
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="BH Weather System — Macro Trading Intelligence"/>
-<meta name="twitter:description" content="62 markets, one trend-gated confluence engine. Directional bias, conviction tiers, and COT setups."/>
+<meta name="twitter:description" content="57 markets, one trend-gated confluence engine. Directional bias, conviction tiers, and COT setups."/>
 <meta name="twitter:image" content="https://bhweathersystem.onrender.com/photos/og.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -23980,8 +23980,6 @@ canvas.chartjs-render-monitor{
         </div>
         <span id="sb-count">—</span>
       </div>
-      <!-- High Conviction module -->
-      <div id="hc-module"></div>
       <!-- Market Search -->
       <div class="sb-search-wrap">
         <svg class="sb-search-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -24449,123 +24447,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-/* ──────────────────────────────────────────────────
-   HIGH CONVICTION MODULE
-   Criteria: |score−5| ≥1.5 AND |confluence_bonus| ≥0.15
-────────────────────────────────────────────────── */
-function renderHCModule(allMarkets){
-  const el = document.getElementById('hc-module');
-  if(!el) return;
-  // Surface the ENGINE's actionable tiers (Strong / Setup) ranked by |conviction|.
-  // (Was gated on the legacy confluence_bonus, which the trend-gated engine leaves at
-  // 0 — so this headline section was rendering empty after the engine migration.)
-  const hits = allMarkets
-    .filter(m => m.tier === 'Strong' || m.tier === 'Setup')
-    .sort((a,b) => Math.abs(b.conviction||0) - Math.abs(a.conviction||0))
-    .slice(0,5); // cap at 5 cards
-
-  if(!hits.length){ el.innerHTML=''; el.style.display='none'; return; }
-  el.style.display='';
-
-  const cards = hits.map(m=>{
-    const ws  = m.weighted_score||5;
-    const col = sHex(ws);
-    const bull = ws >= 5;
-    const dir  = bull ? 'hc-bull' : 'hc-bear';
-    // Engine-aligned context: tier + conviction chip, with the top driver / COT setup.
-    const conv = m.conviction||0;
-    const bonusStr = (m.tier||'') + ' ' + (conv>=0?'+':'') + conv.toFixed(1);
-    // setup_direction is a STRING from the backend ('Bullish'/'Bearish'/'Neutral')
-    const _sd = m.setup_direction==='Bullish' ? 1 : m.setup_direction==='Bearish' ? -1 : 0;
-    const _sq = m.setup_quality||'';
-    let reason = '';
-    if(_sd!==0 && _sq && _sq!=='n/a' && _sq!=='no positioning extreme'){
-      reason = 'COT '+(_sd>0?'bullish':'bearish')+' setup · '+_sq;
-    } else if(Array.isArray(m.drivers) && m.drivers.length){
-      reason = String(m.drivers[0]).replace(/^Confluence:\s*/i,'').replace(/[+−\-][\d.]+$/, '').trim();
-    } else {
-      reason = [m.regime, m.trend_state].filter(Boolean).join(' · ');
-    }
-    if(reason.length>54) reason = reason.slice(0,53)+'…';
-    const bonus = 1; // always show the tier/conviction chip
-    const shortName = m.name.length > 16 ? m.name.slice(0,15)+'…' : m.name;
-    const biasShort = (m.bias||'').replace('Very ','').replace('Mildly ','').replace('mildly ','');
-    const tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
-    return `<div class="hc-card ${dir}" onclick="selectMkt('${m.id}')">
-      <div class="hc-card-inner">
-        <div class="hc-card-top">
-          <span class="hc-card-tid">${tidDisplay}</span>
-          <span class="hc-card-name">${shortName}</span>
-          <span class="hc-card-score ${dir}">${ws.toFixed(1)}</span>
-          <span class="hc-card-badge ${dir}">${biasShort}</span>
-        </div>
-        ${reason ? '<div class="hc-card-bottom"><span class="hc-card-reason">'+reason+'</span>'+(bonus?'<span class="hc-conf-chip">'+bonusStr+'</span>':'')+'</div>' : ''}
-      </div>
-    </div>`;
-  }).join('');
-
-  // ── COT SETUPS rail — bring forward markets where positioning itself is the signal
-  // (commercials loaded / specs crowded, per the follow-the-commercials framework),
-  // even when the composite engine reads Neutral because the market is rangebound.
-  const _qRank = {'high-quality':3,'confirmed':2,'ripe, unconfirmed':1};
-  const _qLabel = {'high-quality':'high-quality R/R','confirmed':'price confirming','ripe, unconfirmed':'ripe · awaiting price'};
-  const hitIds = new Set(hits.map(m=>m.id));
-  const setups = allMarkets
-    .filter(m => _qRank[m.setup_quality] && (m.setup_direction==='Bullish'||m.setup_direction==='Bearish') && !hitIds.has(m.id))
-    .sort((a,b) => {
-      const q = _qRank[b.setup_quality]-_qRank[a.setup_quality];
-      if(q) return q;
-      // prefer confirmed spec turns — the entry trigger in the follow-the-commercials framework
-      const ta = a.scores?.cot?.v2_spec_turn_confirmed?1:0, tb = b.scores?.cot?.v2_spec_turn_confirmed?1:0;
-      if(tb-ta) return tb-ta;
-      const ca = Math.abs((a.scores?.cot?.score??5)-5), cb = Math.abs((b.scores?.cot?.score??5)-5);
-      return cb-ca;
-    })
-    .slice(0,8);
-
-  const setupCards = setups.map(m=>{
-    const bull = m.setup_direction==='Bullish';
-    const dir = bull ? 'hc-bull' : 'hc-bear';
-    const cotSc = m.scores?.cot?.score;
-    const phase = (m.scores?.cot?.detail?.cot_phase_label || '').replace(/^(Bull|Bear)\s*/,'');
-    const _qShort = {'high-quality':'HQ','confirmed':'confirmed','ripe, unconfirmed':'ripe'};
-    const miniPhase = [phase, _qShort[m.setup_quality]||''].filter(Boolean).join(' · ');
-    const fullReason = [m.scores?.cot?.detail?.cot_phase_label||'', _qLabel[m.setup_quality]||m.setup_quality].filter(Boolean).join(' · ');
-    const shortName = m.name.length > 13 ? m.name.slice(0,12)+'…' : m.name;
-    const tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
-    const phTok = (phase.match(/^P\d/)||[''])[0];
-    return `<div class="hc-card hc-mini ${dir}" onclick="selectMkt('${m.id}')" title="${m.name} — ${fullReason}">
-      <div class="hc-card-inner">
-        <div class="hc-card-top">
-          <span class="hc-card-tid">${tidDisplay}</span>
-          <span class="hc-card-name">${shortName}</span>
-          <span class="hc-mini-phase" data-setupstats="${m.id}" data-ph="${phTok}" data-phfull="${miniPhase}">${miniPhase}</span>
-          <span class="hc-card-score ${dir}">${cotSc!=null?Number(cotSc).toFixed(1):'—'}</span>
-          <span class="hc-card-badge ${dir}">${bull?'BULL':'BEAR'}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  const setupHeader = setups.length ?
-    `<div class="hc-header" style="margin-top:12px">
-      <div class="hc-header-left">
-        <div class="hc-glow-dot" style="background:var(--s1);box-shadow:0 0 6px rgba(38,201,122,0.5)"></div>
-        <span class="hc-label">COT Setups</span>
-      </div>
-      <span class="hc-count">${setups.length} ${setups.length===1?'Setup':'Setups'}</span>
-    </div>` : '';
-
-  el.innerHTML =
-    `<div class="hc-header">
-      <div class="hc-header-left">
-        <div class="hc-glow-dot"></div>
-        <span class="hc-label">High Conviction</span>
-      </div>
-      <span class="hc-count">${hits.length} ${hits.length===1?'Signal':'Signals'}</span>
-    </div>` + cards + setupHeader + setupCards;
-  _loadSetupStats(setups.map(m=>m.id));
-}
+/* High Conviction / COT Setups sidebar module removed — the score-ranked list IS the conviction view. */
 
 // ── SETUP STATS — walk-forward historical evidence per COT phase ──
 window.SETUP_STATS = window.SETUP_STATS || {};
@@ -24638,8 +24520,6 @@ function renderSetupEvidence(id){
 
 function renderList(){
   if(!DATA)return;
-  // Always render HC module from full market list (not filtered)
-  renderHCModule(DATA.markets);
   const _srchQ = (document.getElementById('sb-search')?.value||'').trim().toLowerCase();
   const markets=DATA.markets.filter(m=>{
     const catOk = selCat==='all'||m.category===selCat;
@@ -41263,12 +41143,12 @@ const OB_STEPS = [
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="rgba(200,169,110,0.5)" stroke-width="1.5"/><text x="16" y="21" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#c8a96e">7.2</text></svg>`,
     title: 'What the Score Means',
-    body: 'Each of 62 markets gets a 1–10 composite. <strong style="color:var(--s1)">Above 6 = bullish</strong>, <strong style="color:var(--sm1)">below 4 = bearish</strong>, around 5 = no clear signal. It is <strong style="color:var(--text)">not a weighted average</strong> — edge-bearing factors (macro, climate, seasonality) vote only when they have a clear view and abstain otherwise; their agreement is scaled by a trend/regime gate (clean trend = high conviction, chop = stand aside). COT positioning rides alongside as a separate risk/reward setup.'
+    body: 'Each of 57 markets gets a 1–10 composite. <strong style="color:var(--s1)">Above 6 = bullish</strong>, <strong style="color:var(--sm1)">below 4 = bearish</strong>, around 5 = no clear signal. It is <strong style="color:var(--text)">not a weighted average</strong> — edge-bearing factors (macro, climate, seasonality) vote only when they have a clear view and abstain otherwise; their agreement is scaled by a trend/regime gate (clean trend = high conviction, chop = stand aside). COT positioning rides alongside as a separate risk/reward setup.'
   },
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="3" rx="1.5" fill="rgba(200,169,110,0.6)"/><rect x="4" y="15" width="18" height="3" rx="1.5" fill="rgba(200,169,110,0.35)"/><rect x="4" y="22" width="21" height="3" rx="1.5" fill="rgba(200,169,110,0.25)"/></svg>`,
     title: 'How to Use the Home Screen',
-    body: 'The <strong style="color:var(--text)">High Conviction</strong> section surfaces the strongest multi-factor setups — check this first. The rankings list shows all markets sorted by score. A gold ◉ glyph flags markets with an active COT risk/reward setup. Use the category filters or search bar to quickly find a specific market.'
+    body: 'The rankings list shows all markets sorted by composite score — the strongest setups rise to the top, the weakest sink to the bottom. A gold ◉ glyph flags markets with an active COT risk/reward setup. Use the category filters or search bar to quickly find a specific market.'
   },
   {
     icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="5" stroke="rgba(200,169,110,0.7)" stroke-width="1.5"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="rgba(200,169,110,0.4)" stroke-width="1.5" stroke-linecap="round"/></svg>`,
