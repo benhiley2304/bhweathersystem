@@ -24337,6 +24337,9 @@ async function loadData(force=false){
     DATA = await _loadWithRetry(force);
     // Clear per-market caches so stale data doesn't persist across refresh cycles
     cotCache={}; seasCache={}; candleCache={}; ovChartCache={};
+    // Bust stale AI narrative cache on EVERY refresh cycle (not just overview renders)
+    // so generated text auto-updates even when sitting on a market detail page.
+    resetNewsCtxCache();
     renderAll();
     // Pre-warm news context cache in background so regime tab narratives are ready
     getNewsContext().catch(()=>{});
@@ -29951,11 +29954,14 @@ function getNewsContext(){
   }
   return _newsCtxPromise;
 }
-// Reset news context cache — only bust if explicitly forced or cache is stale (>90min)
+// Reset news context cache — bust if explicitly forced or cache is older than 10min.
+// Backend regenerates narratives every ~2h in the background; a short client TTL means
+// each 5-min auto-refresh cycle picks up fresh AI text within minutes of regeneration
+// (the fetch is cheap — backend serves from its own cache).
 let _newsCtxFetchedAt = 0;
 function resetNewsCtxCache(force=false){
   const age = (Date.now() - _newsCtxFetchedAt) / 60000;
-  if(force || age > 90){
+  if(force || age > 10){
     _newsCtxPromise=null;
     _newsCtxFetchedAt=0;
   }
