@@ -10366,6 +10366,191 @@ async def get_cot_history(market: str):
     return _SafeJSONResponse(_cot_reg_r)
 
 # ============================================================
+# SETUP STATS — walk-forward COT-phase evidence engine
+# For each market: classify every week since 2008 into its COT phase using
+# ONLY data available at the time (rolling Briese indices), then measure what
+# price did over the following 4 and 8 weeks. Gives per-phase win rate,
+# median move, median adverse excursion and reward:risk — the historical
+# evidence behind each COT setup card.
+# ============================================================
+_SETUP_STATS_CACHE: dict = {}
+_SETUP_STATS_TTL = 3600 * 24 * 7   # phases move weekly; recompute weekly
+
+def _fetch_price_weekly_max(yf_ticker: str) -> Optional[pd.DataFrame]:
+    """Max-history weekly bars (cached)."""
+    cache_key = yf_ticker + "_maxwk"
+    now = time.time()
+    if cache_key in PRICE_CACHE and (now - PRICE_CACHE.get(cache_key + "_t", 0)) < _SETUP_STATS_TTL:
+        return PRICE_CACHE[cache_key]
+    try:
+        tk = yf.Ticker(yf_ticker)
+        df = _yf_with_timeout(tk.history, period="max", interval="1wk", label=yf_ticker + "_maxwk")
+        if df is None or df.empty:
+            return None
+        _price_cache_evict()
+        PRICE_CACHE[cache_key] = df
+        PRICE_CACHE[cache_key + "_t"] = now
+        return df
+    except Exception as _e:
+        print(f"[fetch_price_weekly_max] {yf_ticker}: {_e}")
+        return None
+
+
+def _compute_setup_stats_sync(market_id: str, px: pd.DataFrame, cot: pd.DataFrame) -> dict:
+    """Pure computation: walk-forward phase classification + forward-return stats."""
+    MIN_HISTORY = 104   # need 2y of COT before classifying (index stabilisation)
+    H_LONG, H_SHORT = 8, 4
+
+    c = cot.copy()
+    c["date"] = pd.to_datetime(c["date"]).dt.tz_localize(None).dt.normalize()
+    c = c.sort_values("date").reset_index(drop=True)
+
+    def _roll_idx(series):
+        s = pd.to_numeric(series, errors="coerce").astype(float)
+        lo = s.rolling(520, min_periods=1).min()
+        hi = s.rolling(520, min_periods=1).max()
+        rng = (hi - lo).replace(0, np.nan)
+        return ((s - lo) / rng * 100).fillna(50.0)
+
+    comm_i, lspec_i, sspec_i = _roll_idx(c["comm_net"]), _roll_idx(c["lspec_net"]), _roll_idx(c["sspec_net"])
+
+    pxx = px.copy()
+    try:
+        pxx.index = pxx.index.tz_localize(None)
+    except Exception:
+        pass
+    pxx = pxx[~pxx.index.duplicated(keep="last")].sort_index()
+    closes, highs, lows = pxx["Close"].values, pxx["High"].values, pxx["Low"].values
+    pidx = pxx.index
+
+    # Walk the weeks; an 'entry' is the first week a (phase, dir) pair appears.
+    prev_key = None
+    episodes = []   # (key, cot_row_i)
+    phases_seq = []
+    for i in range(len(c)):
+        ph, pdir, _, _ = _classify_cot_phase(float(comm_i[i]), float(lspec_i[i]), float(sspec_i[i]))
+        key = f"{pdir}_p{ph}" if ph > 0 else None
+        phases_seq.append(key)
+        if i < MIN_HISTORY:
+            prev_key = key
+            continue
+        if key and key != prev_key:
+            episodes.append((key, i))
+        prev_key = key
+
+    buckets: dict = {}
+    first_entry_year = None
+    for key, i in episodes:
+        d = c["date"].iloc[i]
+        # Entry = close of the weekly bar covering the report's release week.
+        pos = pidx.searchsorted(d) 
+        entry_i = pos - 1 if pos > 0 else 0
+        if entry_i < 0 or entry_i + H_LONG >= len(closes):
+            continue
+        entry = float(closes[entry_i])
+        if not np.isfinite(entry) or entry == 0:
+            continue
+        # Stats are measured in the TRADE direction of the setup, matching how the
+        # app surfaces it: P1/P2 = trade with the cycle; P3/P4 (crowded /
+        # overstretched) = fade the cycle.
+        cyc = 1 if key.startswith("bull") else -1
+        ph_num = int(key[-1])
+        sign = cyc if ph_num <= 2 else -cyc
+        f8 = (float(closes[entry_i + H_LONG]) / entry - 1) * sign
+        f4 = (float(closes[entry_i + H_SHORT]) / entry - 1) * sign
+        hi_w = highs[entry_i + 1: entry_i + H_LONG + 1]
+        lo_w = lows[entry_i + 1: entry_i + H_LONG + 1]
+        if sign > 0:
+            mfe = float(np.nanmax(hi_w)) / entry - 1
+            mae = 1 - float(np.nanmin(lo_w)) / entry
+        else:
+            mfe = 1 - float(np.nanmin(lo_w)) / entry
+            mae = float(np.nanmax(hi_w)) / entry - 1
+        b = buckets.setdefault(key, {"f8": [], "f4": [], "mfe": [], "mae": []})
+        b["f8"].append(f8); b["f4"].append(f4); b["mfe"].append(max(mfe, 0)); b["mae"].append(max(mae, 0))
+        if first_entry_year is None:
+            first_entry_year = int(d.year)
+
+    def _trade_dir(key):
+        cyc = 1 if key.startswith("bull") else -1
+        return "long" if (cyc if int(key[-1]) <= 2 else -cyc) > 0 else "short"
+
+    def _agg(b):
+        n = len(b["f8"])
+        if n == 0:
+            return None
+        arr8, arr4 = np.array(b["f8"]), np.array(b["f4"])
+        med_mfe = float(np.median(b["mfe"])) * 100
+        med_mae = float(np.median(b["mae"])) * 100
+        rr = round(med_mfe / med_mae, 2) if med_mae > 0.05 else None
+        return {
+            "n": n,
+            "wr": round(float((arr8 > 0).mean()) * 100, 1),
+            "wr4": round(float((arr4 > 0).mean()) * 100, 1),
+            "med_ret": round(float(np.median(arr8)) * 100, 2),
+            "med_ret4": round(float(np.median(arr4)) * 100, 2),
+            "med_mfe": round(med_mfe, 2),
+            "med_mae": round(med_mae, 2),
+            "rr": rr,
+        }
+
+    phases_out = {}
+    for k, b in buckets.items():
+        v = _agg(b)
+        if v:
+            v["trade_dir"] = _trade_dir(k)
+            phases_out[k] = v
+
+    # Current phase from the latest row (same classification the scorer uses)
+    cur_ph, cur_dir, cur_label, _ = _classify_cot_phase(
+        float(comm_i.iloc[-1]), float(lspec_i.iloc[-1]), float(sspec_i.iloc[-1]))
+    cur_key = f"{cur_dir}_p{cur_ph}" if cur_ph > 0 else None
+    return {
+        "market": market_id,
+        "supported": True,
+        "since": first_entry_year,
+        "horizon": H_LONG,
+        "horizon_short": H_SHORT,
+        "current": {"phase": cur_ph, "dir": cur_dir, "label": cur_label, "key": cur_key},
+        "current_stats": phases_out.get(cur_key) if cur_key else None,
+        "phases": phases_out,
+    }
+
+
+@app.get("/api/setup-stats")
+async def get_setup_stats(market: str):
+    """Walk-forward historical evidence for the market's COT phases."""
+    m_upper = market.upper()
+    mkt = next((x for x in MARKETS if x["id"] == m_upper), None)
+    if not mkt:
+        return {"error": f"Market '{m_upper}' not found"}
+    now = time.time()
+    rc = _SETUP_STATS_CACHE.get(m_upper)
+    if rc and (now - rc["ts"]) < _SETUP_STATS_TTL:
+        return _SafeJSONResponse(rc["data"])
+    if mkt.get("cross"):
+        out = {"market": m_upper, "supported": False, "reason": "cross pair — no native COT phases"}
+    elif mkt.get("crypto_cot_mode"):
+        out = {"market": m_upper, "supported": False, "reason": "crypto COT mode — phases not applicable"}
+    else:
+        df = await fetch_cot_history(mkt.get("cftc_code", ""), mkt.get("name", ""))
+        if df is None or len(df) < 150:
+            out = {"market": m_upper, "supported": False, "reason": "insufficient COT history"}
+        else:
+            px = await asyncio.to_thread(_fetch_price_weekly_max, mkt.get("yf", ""))
+            if px is None or len(px) < 150:
+                out = {"market": m_upper, "supported": False, "reason": "insufficient price history"}
+            else:
+                try:
+                    out = await asyncio.to_thread(_compute_setup_stats_sync, m_upper, px, df)
+                except Exception as _e:
+                    print(f"[setup-stats] {m_upper}: {_e}", flush=True)
+                    out = {"market": m_upper, "supported": False, "reason": "computation error"}
+    _SETUP_STATS_CACHE[m_upper] = {"ts": now, "data": out}
+    return _SafeJSONResponse(out)
+
+
+# ============================================================
 # PUT/CALL RATIO HISTORY ENDPOINT
 # ============================================================
 @app.get("/api/pcr-history")
