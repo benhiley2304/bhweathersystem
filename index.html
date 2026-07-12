@@ -3060,6 +3060,18 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .hc-card-bottom{display:flex;align-items:center;gap:5px;margin-top:3px;min-width:0}
 .hc-card-reason{font-size:9px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .hc-conf-chip{font-size:8px;font-weight:600;color:var(--accent);background:rgba(200,169,110,0.1);border-radius:3px;padding:1px 4px;flex-shrink:0;white-space:nowrap}
+/* Compact one-line COT setup rows — keep the rankings list visible below */
+.hc-card.hc-mini{padding:5px 9px 5px 11px;margin-bottom:3px;border-radius:5px}
+.hc-card.hc-mini .hc-card-top{gap:5px}
+.hc-card.hc-mini .hc-card-name{font-size:10px;flex:0 1 auto;max-width:92px}
+.hc-card.hc-mini .hc-mini-phase{font-size:8.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;text-align:right;font-family:var(--mono)}
+.hc-card.hc-mini .hc-card-score{font-size:11px;min-width:20px}
+.hc-card.hc-mini .hc-card-badge{font-size:7px;padding:1px 4px;letter-spacing:0.05em}
+/* Safety: the HC module may never swallow the rankings list */
+#hc-module{max-height:48vh;overflow-y:auto;flex-shrink:0}
+#hc-module::-webkit-scrollbar{width:3px}
+#hc-module::-webkit-scrollbar-track{background:transparent}
+#hc-module::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}
 
 /* ── CONFLUENCE DOT in rankings list ── */
 .mr-conf-dot{width:5px;height:5px;border-radius:50%;background:#22c97a;box-shadow:0 0 5px 1px rgba(34,201,122,0.55);flex-shrink:0;margin-right:4px}
@@ -4303,6 +4315,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
   /* Market list: no clip */
   .mkt-list{max-height:none;overflow-y:visible}
+  #hc-module{max-height:none;overflow-y:visible}
 
   /* Market rows: premium mobile treatment */
   .mkt-row{
@@ -24497,20 +24510,21 @@ function renderHCModule(allMarkets){
     const bull = m.setup_direction==='Bullish';
     const dir = bull ? 'hc-bull' : 'hc-bear';
     const cotSc = m.scores?.cot?.score;
-    const phase = m.scores?.cot?.detail?.cot_phase_label || '';
-    const reasonRaw = [phase, _qLabel[m.setup_quality]||m.setup_quality].filter(Boolean).join(' · ');
-    const reason = reasonRaw.length>54 ? reasonRaw.slice(0,53)+'…' : reasonRaw;
-    const shortName = m.name.length > 16 ? m.name.slice(0,15)+'…' : m.name;
+    const phase = (m.scores?.cot?.detail?.cot_phase_label || '').replace(/^(Bull|Bear)\s*/,'');
+    const _qShort = {'high-quality':'HQ','confirmed':'confirmed','ripe, unconfirmed':'ripe'};
+    const miniPhase = [phase, _qShort[m.setup_quality]||''].filter(Boolean).join(' · ');
+    const fullReason = [m.scores?.cot?.detail?.cot_phase_label||'', _qLabel[m.setup_quality]||m.setup_quality].filter(Boolean).join(' · ');
+    const shortName = m.name.length > 13 ? m.name.slice(0,12)+'…' : m.name;
     const tidDisplay = m.id.length > 4 ? m.id.slice(0,3) : m.id;
-    return `<div class="hc-card ${dir}" onclick="selectMkt('${m.id}')">
+    return `<div class="hc-card hc-mini ${dir}" onclick="selectMkt('${m.id}')" title="${m.name} — ${fullReason}">
       <div class="hc-card-inner">
         <div class="hc-card-top">
           <span class="hc-card-tid">${tidDisplay}</span>
           <span class="hc-card-name">${shortName}</span>
+          <span class="hc-mini-phase">${miniPhase}</span>
           <span class="hc-card-score ${dir}">${cotSc!=null?Number(cotSc).toFixed(1):'—'}</span>
-          <span class="hc-card-badge ${dir}">${bull?'BULL SETUP':'BEAR SETUP'}</span>
+          <span class="hc-card-badge ${dir}">${bull?'BULL':'BEAR'}</span>
         </div>
-        ${reason ? '<div class="hc-card-bottom"><span class="hc-card-reason">'+reason+'</span></div>' : ''}
       </div>
     </div>`;
   }).join('');
