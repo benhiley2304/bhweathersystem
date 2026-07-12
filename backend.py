@@ -220,7 +220,12 @@ MARKETS = [
     {"id": "AUDCHF", "name": "AUD/CHF", "ticker": "AUDCHF", "yf": "AUDCHF=X", "category": "fx_cross", "cross": True, "base_leg": "6A", "quote_leg": "6S",
      "cot_note": "COT: 3-category net spread of 6A vs 6S legs (commercials / large specs / small specs, OI-normalised). Risk appetite gauge — AUD vs safe-haven CHF."},
 
-    # ── ICE Europe markets ───────────────────────────────────────────────────────────
+    # ── ICE Europe markets: REMOVED 2026-07-12 at Ben's request ──
+    # (Brent B, LS Gas Oil GO, Robusta RC, FTSE 100 Z, Long Gilt R — different COT
+    # layout, never traded. ICE fetch/inject plumbing left dormant elsewhere.)
+]
+
+_REMOVED_ICE_MARKETS = [
     # COT sourced from ICE Europe (not CFTC). Use ice_code field instead of cftc_code.
     # Disaggregated markets (energy/softs): same scoring pipeline as CFTC disagg.
     # Financial markets (FTSE/Gilt): TFF format, AM mapped to comm_net, LevFund to lspec_net.
@@ -13356,6 +13361,9 @@ async def _startup_load_ice_data():
     Runs BEFORE the main scores pre-warm so ICE COT data is available
     immediately for get_all_scores() on the first startup.
     """
+    # ICE markets removed from the app (2026-07-12) — nothing to warm up.
+    return
+
     import asyncio as _ice_loop
     import time as _ice_time
 
