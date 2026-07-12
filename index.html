@@ -29943,6 +29943,7 @@ function _drawSpxMiniChart(canvasId, closes, col){
 
 // ── Score history chart loader
 
+let _newsCtxPromise=null;
 function getNewsContext(){
   if(!_newsCtxPromise){
     _newsCtxFetchedAt = Date.now();
@@ -32126,9 +32127,12 @@ function initDHeadCanvas(scoreCol, ws){
 function animateScoreHero(targetScore, col){
   const el=document.querySelector('.d-score-hero-num');
   if(!el)return;
+  el.dataset.score=targetScore.toFixed(1);           // true value — never read animated text
+  const gen=(el._animGen=(el._animGen||0)+1);        // cancel any in-flight animation
   const start=0, dur=600;
   const t0=performance.now();
   function step(now){
+    if(el._animGen!==gen)return;
     const p=Math.min(1,(now-t0)/dur);
     // Ease out cubic
     const e=1-Math.pow(1-p,3);
@@ -32150,10 +32154,13 @@ function animateScoreHero(targetScore, col){
 // Animated score count-up for individual score elements (IDEA-09)
 function animateScoreNumber(el, targetVal, col){
   if(!el) return;
+  el.dataset.score=targetVal.toFixed(1);             // true value — never read animated text
+  const gen=(el._animGen=(el._animGen||0)+1);        // cancel any in-flight animation
   const startVal = 5.0;
   const dur = 420;
   const t0 = performance.now();
   function step(now){
+    if(el._animGen!==gen)return;
     const p = Math.min(1, (now - t0) / dur);
     // Ease-out curve
     const e = 1 - Math.pow(1 - p, 2.5);
@@ -32171,14 +32178,15 @@ function animateTabScores(){
   // Animate the main hero score
   const heroEl = document.querySelector('.d-score-hero-num');
   const heroCol = heroEl ? heroEl.style.color : null;
-  const heroVal = heroEl ? parseFloat(heroEl.textContent) : null;
+  const heroVal = heroEl ? parseFloat(heroEl.dataset.score ?? heroEl.textContent) : null;
   if(heroEl && heroVal !== null && !isNaN(heroVal)) animateScoreNumber(heroEl, heroVal, heroCol);
 
   // Animate visible factor score numbers in the active tab
   const activeTab = document.querySelector('.tab.on');
   if(!activeTab) return;
   activeTab.querySelectorAll('.score-num,[class*="score-val"],[class*="sc-val"]').forEach(el=>{
-    const v = parseFloat(el.textContent);
+    if(el.dataset.score===undefined) el.dataset.score=el.textContent.trim();
+    const v = parseFloat(el.dataset.score);
     if(!isNaN(v) && v >= 0 && v <= 10) animateScoreNumber(el, v, el.style.color || null);
   });
 }
