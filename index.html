@@ -40979,7 +40979,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
   // 2026 Actual — bright white, crisp
   if(cyActual&&cyActual.length>1){
     datasets.unshift({
-      label:'2026 Actual YTD',
+      label:new Date().getFullYear()+' Actual YTD',
       data:cyV,
       borderColor:'rgba(255,255,255,0.92)',
       borderWidth:isModal?2:1.6,
@@ -41012,7 +41012,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
               if(item.dataset.label==='Projected'||item.dataset.label==='_band_upper'||item.dataset.label==='25–75% range')return null;
               const v=item.raw;if(v==null)return null;
               const lbl=item.dataset.label;
-              const pref=lbl==='2026 Actual YTD'?'● ':'  ';
+              const pref=lbl===new Date().getFullYear()+' Actual YTD'?'● ':'  ';
               return pref+lbl+': '+(v>=0?'+':'')+v.toFixed(2)+'%';
             }
           }
@@ -41088,7 +41088,7 @@ function renderSeasInsight(all,mt,todayTD,sd,cya,containerId){
       <div class="sic-sub">${nY?`<strong>${nPos}/${nY}</strong> yrs up &nbsp;&middot;&nbsp; med ${medStr}`:'3–4 wk window'}</div>
     </div>
     <div class="seas-insight-cell" style="--sic-accent:${divAccent}">
-      <div class="sic-label">2026 vs Hist. Median</div>
+      <div class="sic-label">${new Date().getFullYear()} vs Hist. Median</div>
       <div class="sic-value" style="color:${divCol}">${divStr}</div>
       <div class="sic-sub"><strong>${cyStr}</strong> actual &nbsp;&middot;&nbsp; ${histStr} hist</div>
     </div>
@@ -41120,7 +41120,7 @@ function renderSeasStats(all,mt,todayTD,sd,cya,containerId){
   const nY=sd?.n_years, nPos=sd?.n_pos;
   const best=sd?.best_pct, worst=sd?.worst_pct;
   const stats=[
-    {l:'2026 Actual', v:cyNow!=null?(cyNow>=0?'+':'')+cyNow.toFixed(2)+'%':'—', col:cyC, top:cyTop},
+    {l:new Date().getFullYear()+' Actual', v:cyNow!=null?(cyNow>=0?'+':'')+cyNow.toFixed(2)+'%':'—', col:cyC, top:cyTop},
     {l:'Hist. Today', v:(tv>=0?'+':'')+tv.toFixed(2)+'%', col:_col(tv), top:_top(tv)},
     {l:'Year-End Med', v:(ye>=0?'+':'')+ye.toFixed(2)+'%', col:_col(ye), top:_top(ye)},
     {l:'Window Median', v:med!=null?(med>=0?'+':'')+med.toFixed(2)+'%':'—',
