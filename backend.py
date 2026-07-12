@@ -10611,7 +10611,10 @@ async def get_setup_stats(market: str):
     elif mkt.get("crypto_cot_mode"):
         out = {"market": m_upper, "supported": False, "reason": "crypto COT mode — phases not applicable"}
     else:
-        df = await fetch_cot_history(mkt.get("cftc_code", ""), mkt.get("name", ""))
+        if mkt.get("ice_code"):
+            df = await fetch_ice_cot_history(mkt["ice_code"])
+        else:
+            df = await fetch_cot_history(mkt.get("cftc_code", ""), mkt.get("name", ""))
         if df is None or len(df) < 150:
             out = {"market": m_upper, "supported": False, "reason": "insufficient COT history"}
         else:
