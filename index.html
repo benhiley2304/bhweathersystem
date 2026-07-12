@@ -24588,7 +24588,7 @@ function _applySetupStats(id){
     const ph=el.getAttribute('data-ph')||'';
     if(cs.n>=8){
       const rrTxt = cs.rr!=null?cs.rr.toFixed(1)+'R':'—';
-      el.innerHTML=(ph?ph+' · ':'')+'<span class="hc-mini-stats">'+cs.wr.toFixed(0)+'% · '+rrTxt+'</span>';
+      el.innerHTML=(ph?ph+' ':'')+'<span class="hc-mini-stats">'+cs.wr.toFixed(0)+'%·'+rrTxt+'</span>';
       const card=el.closest('.hc-card');
       if(card) card.title=card.title.split(' | ')[0]+' | Since '+(st.since||'2008')+': '+cs.n+' signals · '+cs.wr.toFixed(0)+'% win over '+st.horizon+'w · '+(cs.rr!=null?cs.rr.toFixed(1)+':1 R/R':'R/R n/a');
     } else {
@@ -24629,7 +24629,7 @@ function renderSetupEvidence(id){
     +'<div class="se-line">'+st.horizon_short+'-week: '+cs.wr4.toFixed(0)+'% win · median '+fmtPct(cs.med_ret4)+'</div>'
     +thinNote
     +chipsHtml
-    +'<div class="se-note">Each week since 2008 is classified into its COT phase using only data available at the time (no lookahead), then forward returns are measured in the trade direction of the setup. Weekly closes; excursions from weekly highs/lows.</div>'
+    +'<div class="se-note">Each week since '+(st.since||2008)+' is classified into its COT phase using only data available at the time (no lookahead), then forward returns are measured in the trade direction of the setup. Weekly closes; excursions from weekly highs/lows.</div>'
     +'</div>';
 }
 
