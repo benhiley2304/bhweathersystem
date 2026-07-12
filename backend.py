@@ -1719,6 +1719,52 @@ def _load_ice_from_disk(ice_market_code: str):
     return None
 
 
+_ICE_DISK_MAX_AGE_DAYS = 12  # disk-cached data older than this triggers a live refetch attempt
+
+
+def _ice_df_age_days(df) -> float:
+    """Days since the newest COT row in the frame (9999 on any error)."""
+    try:
+        return float((pd.Timestamp.now() - pd.to_datetime(df["date"]).max()).days)
+    except Exception:
+        return 9999.0
+
+
+def _ice_merge_frames(old_df, new_df):
+    """Union two ICE COT frames by date. On duplicate dates the FRESHER frame
+    (later max date) wins. Never lets a stale fetch shrink or roll back history."""
+    if old_df is None or getattr(old_df, "empty", True):
+        return new_df
+    if new_df is None or getattr(new_df, "empty", True):
+        return old_df
+    try:
+        if pd.to_datetime(new_df["date"]).max() >= pd.to_datetime(old_df["date"]).max():
+            frames = [old_df, new_df]   # keep='last' -> new wins on duplicate dates
+        else:
+            frames = [new_df, old_df]   # old frame is fresher -> old wins
+        merged = pd.concat(frames, ignore_index=True)
+        merged = merged.drop_duplicates(subset=["date"], keep="last").sort_values("date").reset_index(drop=True)
+        return merged
+    except Exception:
+        return new_df if len(new_df) >= len(old_df) else old_df
+
+
+def _ice_store_merged(ice_market_code: str, df):
+    """Merge df with whatever is currently cached (mem, then disk) and store the
+    union to BOTH mem and disk. Closes the race where a slow boot-time live fetch
+    lands after an injection and would otherwise overwrite fresher data."""
+    cur = None
+    c = _ICE_MEM_CACHE.get(ice_market_code)
+    if c is not None:
+        cur = c.get("df")
+    if cur is None or getattr(cur, "empty", True):
+        cur = _load_ice_from_disk(ice_market_code)
+    merged = _ice_merge_frames(cur, df)
+    _ICE_MEM_CACHE[ice_market_code] = {"df": merged, "ts": time.time()}
+    _save_ice_to_disk(ice_market_code, merged)
+    return merged
+
+
 def _fetch_ice_fin_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     """
     Fetch ICE Europe TFF (Traders in Financial Futures) COT data for Z (FTSE 100)
@@ -1741,9 +1787,11 @@ def _fetch_ice_fin_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
         return cached["df"]
 
     disk_df = _load_ice_from_disk(ice_market_code)
-    if disk_df is not None and not disk_df.empty:
+    if disk_df is not None and not disk_df.empty and _ice_df_age_days(disk_df) <= _ICE_DISK_MAX_AGE_DAYS:
         _ICE_MEM_CACHE[ice_market_code] = {"df": disk_df, "ts": now}
         return disk_df
+    # Disk data missing or stale (> _ICE_DISK_MAX_AGE_DAYS old) -> attempt live refetch;
+    # stale disk_df is retained as merge base / fallback.
 
     _headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
@@ -1856,8 +1904,9 @@ def _fetch_ice_fin_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
         print(f"[ICE FIN COT] {ice_market_code}: {len(df)} rows fetched, "
               f"date range {df['date'].iloc[0].date()} to {df['date'].iloc[-1].date()}")
 
-        _ICE_MEM_CACHE[ice_market_code] = {"df": df, "ts": now}
-        _save_ice_to_disk(ice_market_code, df)
+        # Merge with any existing cached history (mem/disk) so a stale or partial
+        # live fetch can never roll back or shrink previously known data.
+        df = _ice_store_merged(ice_market_code, df)
         return df
 
     except Exception as e:
@@ -1924,11 +1973,12 @@ def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     if cached and (now - cached["ts"]) < _ICE_MEM_CACHE_TTL:
         return cached["df"]
 
-    # Disk cache (survives warm restarts)
+    # Disk cache (survives warm restarts) — only trusted while reasonably fresh.
     disk_df = _load_ice_from_disk(ice_market_code)
-    if disk_df is not None and not disk_df.empty:
+    if disk_df is not None and not disk_df.empty and _ice_df_age_days(disk_df) <= _ICE_DISK_MAX_AGE_DAYS:
         _ICE_MEM_CACHE[ice_market_code] = {"df": disk_df, "ts": now}
         return disk_df
+    # Disk data missing or stale -> fall through to live fetch (stale disk kept as fallback).
 
     # TFF markets (FTSE100, Long Gilt) use the financial futures series
     if ice_market_code in ("Z", "R"):
@@ -2013,8 +2063,9 @@ def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
         print(f"[ICE COT] {ice_market_code}: {len(df)} rows, "
               f"{df['date'].iloc[0].date()} → {df['date'].iloc[-1].date()}")
 
-        _ICE_MEM_CACHE[ice_market_code] = {"df": df, "ts": now}
-        _save_ice_to_disk(ice_market_code, df)
+        # Merge with any existing cached history (mem/disk) so a stale or partial
+        # live fetch can never roll back or shrink previously known data.
+        df = _ice_store_merged(ice_market_code, df)
         return df
 
     except Exception as e:
@@ -12830,6 +12881,18 @@ async def upcoming_events(force: bool = False):
 
     filtered.sort(key=lambda e: e.get("datetime_utc") or "")
 
+    # Dedupe — the FF calendar HTML embeds each event JSON blob twice, so an
+    # identical (name, currency, datetime) tuple appears 2x without this.
+    _seen_ev: set = set()
+    _deduped: list = []
+    for _e in filtered:
+        _k = (_e["name"], _e["currency"], _e["datetime_utc"])
+        if _k in _seen_ev:
+            continue
+        _seen_ev.add(_k)
+        _deduped.append(_e)
+    filtered = _deduped
+
     result = {"events": filtered, "count": len(filtered), "generated_utc": now_utc.isoformat()}
     _UPCOMING_EVENTS_CACHE["data"] = result
     _UPCOMING_EVENTS_CACHE["time"] = now
@@ -12979,6 +13042,22 @@ async def debug_ice(market: str = "B"):
     }
 
 
+@app.get("/api/clear-cot-cache")
+async def clear_cot_cache(market: str = ""):
+    """Bust the per-market COT result caches (cot-history + setup-stats).
+    ?market=ES clears one market; no param clears all. Used by the weekly
+    COT refresh cron after new CFTC/ICE data lands."""
+    if market:
+        m = market.upper()
+        hit_hist  = _COT_HIST_RESULT_CACHE.pop(m, None) is not None
+        hit_stats = _SETUP_STATS_CACHE.pop(m, None) is not None
+        return {"ok": True, "market": m, "cleared": {"cot_history": hit_hist, "setup_stats": hit_stats}}
+    n_hist, n_stats = len(_COT_HIST_RESULT_CACHE), len(_SETUP_STATS_CACHE)
+    _COT_HIST_RESULT_CACHE.clear()
+    _SETUP_STATS_CACHE.clear()
+    return {"ok": True, "cleared": {"cot_history": n_hist, "setup_stats": n_stats}}
+
+
 @app.post("/api/inject-ice-cache")
 async def inject_ice_cache(payload: dict):
     """Accepts pre-fetched ICE COT CSV rows and injects them into memory + disk cache.
@@ -13060,11 +13139,23 @@ def _inject_ice_sync(market: str, rows: list, fmt: str) -> dict:
         df = df[[c for c in keep_cols if c in df.columns]].dropna(subset=["comm_net"])
         df = df.drop_duplicates(subset=["date"], keep="last").sort_values("date").reset_index(drop=True)
 
-        _ICE_MEM_CACHE[market] = {"df": df, "ts": _time.time()}
-        _save_ice_to_disk(market, df)
+        n_new = len(df)
+        # Merge with existing cached history instead of replacing it — keeps the
+        # full multi-year history while adding/refreshing the injected weeks.
+        df = _ice_store_merged(market, df)
 
-        print(f"[INJECT ICE] {market} ({fmt}): {len(df)} rows injected, "
-              f"{df['date'].iloc[0].date()} → {df['date'].iloc[-1].date()}")
+        # Bust downstream result caches so the fresh data is served immediately
+        # (cot-history and setup-stats are result-cached per MARKET ID for 1h).
+        try:
+            _mkt_id = next((x["id"] for x in MARKETS if x.get("ice_code") == market), None)
+            if _mkt_id:
+                _COT_HIST_RESULT_CACHE.pop(_mkt_id, None)
+                _SETUP_STATS_CACHE.pop(_mkt_id, None)
+        except Exception:
+            pass
+
+        print(f"[INJECT ICE] {market} ({fmt}): {n_new} rows injected, merged store now "
+              f"{len(df)} rows, {df['date'].iloc[0].date()} → {df['date'].iloc[-1].date()}")
         return {
             "ok": True,
             "market": market,
