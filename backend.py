@@ -1765,6 +1765,31 @@ def _ice_store_merged(ice_market_code: str, df):
     return merged
 
 
+def _ice_disk_mtime(ice_market_code: str) -> float:
+    """mtime of the shared disk cache file (0.0 if missing)."""
+    try:
+        return os.path.getmtime(_ice_disk_cache_path(ice_market_code))
+    except OSError:
+        return 0.0
+
+
+def _ice_mem_lookup(ice_market_code: str, now: float):
+    """Return the mem-cached frame if still valid. Render runs multiple worker
+    processes sharing ONE disk: if another worker wrote a newer disk file since
+    this worker cached in memory (e.g. a cron injection), merge the disk data
+    in so every worker converges on the freshest history within seconds."""
+    cached = _ICE_MEM_CACHE.get(ice_market_code)
+    if not cached or (now - cached["ts"]) >= _ICE_MEM_CACHE_TTL:
+        return None
+    if _ice_disk_mtime(ice_market_code) > cached["ts"] + 1.0:
+        disk_df = _load_ice_from_disk(ice_market_code)
+        if disk_df is not None and not disk_df.empty:
+            merged = _ice_merge_frames(cached["df"], disk_df)
+            _ICE_MEM_CACHE[ice_market_code] = {"df": merged, "ts": now}
+            return merged
+    return cached["df"]
+
+
 def _fetch_ice_fin_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     """
     Fetch ICE Europe TFF (Traders in Financial Futures) COT data for Z (FTSE 100)
@@ -1782,9 +1807,9 @@ def _fetch_ice_fin_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     import io as _io
 
     now = time.time()
-    cached = _ICE_MEM_CACHE.get(ice_market_code)
-    if cached and (now - cached["ts"]) < _ICE_MEM_CACHE_TTL:
-        return cached["df"]
+    _mem_df = _ice_mem_lookup(ice_market_code, now)
+    if _mem_df is not None:
+        return _mem_df
 
     disk_df = _load_ice_from_disk(ice_market_code)
     if disk_df is not None and not disk_df.empty and _ice_df_age_days(disk_df) <= _ICE_DISK_MAX_AGE_DAYS:
@@ -1969,9 +1994,9 @@ def _fetch_ice_cot_raw(ice_market_code: str) -> Optional[pd.DataFrame]:
     import io as _io
 
     now = time.time()
-    cached = _ICE_MEM_CACHE.get(ice_market_code)
-    if cached and (now - cached["ts"]) < _ICE_MEM_CACHE_TTL:
-        return cached["df"]
+    _mem_df = _ice_mem_lookup(ice_market_code, now)
+    if _mem_df is not None:
+        return _mem_df
 
     # Disk cache (survives warm restarts) — only trusted while reasonably fresh.
     disk_df = _load_ice_from_disk(ice_market_code)
@@ -10288,7 +10313,8 @@ async def get_cot_history(market: str):
         return {"error": f"Market '{m_upper}' not found"}
     _rn4 = time.time()
     _rc4 = _COT_HIST_RESULT_CACHE.get(m_upper)
-    if _rc4 and (_rn4 - _rc4["ts"]) < _COT_HIST_RESULT_TTL:
+    if (_rc4 and (_rn4 - _rc4["ts"]) < _COT_HIST_RESULT_TTL
+            and not (mkt.get("ice_code") and _ice_disk_mtime(mkt["ice_code"]) > _rc4["ts"] + 1.0)):
         return _SafeJSONResponse(_rc4["data"])
 
     # ── FX CROSS PAIR: synthetic 3-category history (commercials / large specs /
@@ -10577,7 +10603,8 @@ async def get_setup_stats(market: str):
         return {"error": f"Market '{m_upper}' not found"}
     now = time.time()
     rc = _SETUP_STATS_CACHE.get(m_upper)
-    if rc and (now - rc["ts"]) < _SETUP_STATS_TTL:
+    if (rc and (now - rc["ts"]) < _SETUP_STATS_TTL
+            and not (mkt.get("ice_code") and _ice_disk_mtime(mkt["ice_code"]) > rc["ts"] + 1.0)):
         return _SafeJSONResponse(rc["data"])
     if mkt.get("cross"):
         out = {"market": m_upper, "supported": False, "reason": "cross pair — no native COT phases"}
