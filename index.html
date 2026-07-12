@@ -35852,25 +35852,35 @@ function seasTabStub(m){
   const sc=m.scores.seasonal?.score||0;
   const col=sHex(sc);
   const bg=sBg(sc);
-  const slope=d.slope_pct;
-  const slopeStr=slope!=null?(slope>=0?'+':'')+slope.toFixed(2)+'%':'—';
+  const med=d.median_pct??d.slope_pct;
+  const medStr=med!=null?(med>=0?'+':'')+med.toFixed(2)+'%':'—';
+  const hr=d.hit_rate;
+  const nY=d.n_years, nPos=d.n_pos;
 
   // Score label
   const scoreLbl=sc>=8?'Strong Bull':sc>=6.5?'Bull Window':sc>=5.5?'Mild Bull':sc>=4.5?'Neutral':sc>=3.5?'Mild Bear':sc>=2?'Bear Window':'Strong Bear';
 
-  const arrowSym=slope==null?'':slope>=0?'▲':'▼';
-  const slopeAccent=slope==null?'rgba(255,255,255,0.15)':slope>=0?'rgba(34,201,122,0.18)':'rgba(224,58,42,0.18)';
-  const slopeTxt=slope==null?'':slope>=0?'var(--s1)':'var(--sm1)';
+  const arrowSym=med==null?'':med>=0?'▲':'▼';
+  const slopeAccent=med==null?'rgba(255,255,255,0.15)':med>=0?'rgba(34,201,122,0.18)':'rgba(224,58,42,0.18)';
+  const slopeTxt=med==null?'':med>=0?'var(--s1)':'var(--sm1)';
   const cycleKey=d.cycle_key||'';
   const cycleLabel={'post_election':'Post-Election','midterm':'Midterm','pre_election':'Pre-Election','election':'Election Year'}[cycleKey]||cycleKey;
 
-  // ── Tab summary sentence ──
+  // ── Tab summary sentence — driven by real window statistics ──
   const _seasSummaryText = (()=>{
-    if(sc>=7.5) return `Seasonal window is <strong style="color:${col}">strongly bullish</strong> — historical tendency shows consistent gains over the next 3–4 weeks. Seasonal tailwind confirmed.`;
-    if(sc>=6)   return `Seasonal window is <strong style="color:${col}">bullish</strong> — historical patterns lean positive over the current window. Moderate seasonal tailwind.`;
-    if(sc>=5)   return `Seasonal window is <strong style="color:var(--faint)">neutral to mildly bullish</strong> — no strong historical directional bias. Price action and other factors dominate.`;
-    if(sc>=3.5) return `Seasonal window is <strong style="color:${col}">bearish</strong> — historical patterns show a tendency for weakness over the coming weeks. Seasonal headwind.`;
-    return `Seasonal window is <strong style="color:${col}">strongly bearish</strong> — persistent historical weakness over this period. Seasonal headwind is well-established.`;
+    const verdict = sc>=7.5?`<strong style="color:${col}">strong seasonal tailwind</strong>`
+      : sc>=6?`<strong style="color:${col}">moderate seasonal tailwind</strong>`
+      : sc>=4.5?`<strong style="color:var(--faint)">no reliable seasonal edge</strong> — other factors dominate`
+      : sc>=2.5?`<strong style="color:${col}">seasonal headwind</strong>`
+      : `<strong style="color:${col}">strong seasonal headwind</strong>`;
+    if(hr!=null&&nY){
+      return `Over the next 3–4 weeks this market rose in <strong style="color:var(--text)">${nPos} of the last ${nY} years</strong> (${hr}% cycle-weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>. Verdict: ${verdict}.`;
+    }
+    if(sc>=7.5) return `Seasonal window is <strong style="color:${col}">strongly bullish</strong> — historical tendency shows consistent gains over the next 3–4 weeks.`;
+    if(sc>=6)   return `Seasonal window is <strong style="color:${col}">bullish</strong> — historical patterns lean positive over the current window.`;
+    if(sc>=4.5) return `Seasonal window is <strong style="color:var(--faint)">neutral</strong> — no strong historical directional bias. Price action and other factors dominate.`;
+    if(sc>=2.5) return `Seasonal window is <strong style="color:${col}">bearish</strong> — historical patterns show a tendency for weakness over the coming weeks.`;
+    return `Seasonal window is <strong style="color:${col}">strongly bearish</strong> — persistent historical weakness over this period.`;
   })();
   const _seasPrefix = _tabSummary(_seasSummaryText, col);
 
@@ -35881,11 +35891,11 @@ function seasTabStub(m){
     </div>
     <div class="ss-content">
       <div class="ss-signal" style="color:${col}">${scoreLbl}</div>
-      ${slope!=null?`<div class="ss-slope-row">
-        <span class="ss-slope-arrow" style="background:${slopeAccent};color:${slopeTxt}">${arrowSym} ${slopeStr}</span>
-        <span style="font-size:8px;color:rgba(255,255,255,0.52)">TD ${d.horizon_td_start}→${d.horizon_td_end} · 3–4 week window</span>
+      ${med!=null?`<div class="ss-slope-row">
+        <span class="ss-slope-arrow" style="background:${slopeAccent};color:${slopeTxt}">${arrowSym} ${medStr} median</span>
+        <span style="font-size:8px;color:rgba(255,255,255,0.52)">${hr!=null&&nY?nPos+'/'+nY+' yrs up · ':''}TD ${d.horizon_td_start}→${d.horizon_td_end}</span>
       </div>`:`<div style="font-size:8.5px;color:var(--dim);margin-bottom:4px">Window-based estimate</div>`}
-      <div class="ss-meta">Source: <strong>${d.source==='curve'?'25yr recency-weighted curve':'Seasonal window'}</strong>${cycleLabel?' · '+cycleLabel+' year':''}</div>
+      <div class="ss-meta">Source: <strong>${nY?nY+' yrs ('+(d.years_span||'')+') · cycle 2.5x + recency weighted':'Seasonal window'}</strong>${cycleLabel?' · '+cycleLabel+' year':''}</div>
     </div>
     <div class="ss-actions">
       <button class="ss-btn" onclick="openModal('${m.id}','${m.name}')">Full Chart ↗</button>
@@ -35893,8 +35903,9 @@ function seasTabStub(m){
     </div>
   </div>
   <div class="seas-legend">
-    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2.5px solid #6b7cff"></span>Hist. Avg (past)</span>
+    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2.5px solid #6b7cff"></span>Hist. Median (past)</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:1.5px dashed rgba(107,124,255,0.5)"></span>Projected</span>
+    <span class="seas-leg-item"><span class="seas-leg-line" style="height:7px;background:rgba(107,124,255,0.16);border-top:none;border-radius:2px"></span>25–75% range</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2px solid rgba(255,255,255,0.85)"></span>2026 YTD Actual</span>
     <span class="seas-leg-item"><span class="seas-leg-dot" style="background:#e03a2a"></span>Today</span>
   </div>
@@ -35906,8 +35917,8 @@ function seasTabStub(m){
     <canvas id="seas-mini-c" style="display:none"></canvas>
   </div>
   <div class="seas-insight-row" id="seas-insight-row"></div>
-  ${{'B':'Curve computed from Brent Crude (BZ=F) 18yr weekly price data. Windows: Bull Jan-Feb (winter supply squeeze), Apr-May (driving season). Bear Jun-Sep (post-peak) + Nov-Dec (OPEC uncertainty).','GO':'Curve computed from NYMEX Heating Oil (HO=F) — best available proxy for Gas Oil seasonal pattern (European diesel). Windows: Bull Apr-Jun (spring/jet fuel) + Aug-Oct (heating build). Bear Mar + Jul + Nov (worst month -5%).','RC':'Curve computed from CFTC Arabica Coffee (KC=F) — Robusta shares identical harvest/weather seasonal drivers. Windows: Bull Jan-Feb + Jul-Sep (Vietnam dry season/production risk) + Nov (+4%). Bear Mar + Jun (worst: -3%) + Oct.','Z':'Curve computed from FTSE 100 (^FTSE) 42yr weekly price data. Windows: Bull Q1 Jan-Apr + Nov-Dec (Santa rally). Bear Jun (summer start) + Sep (September effect — globally persistent).','R':'Curve computed from iShares UK Gilt ETF (IGLT.L) 18yr weekly data. Windows: Bull Mar + Jul-Aug (risk-off summer bid) + Nov-Dec. Bear Apr (post-BoE) + Sep-Oct (rate risk season).'}[m.id]?`<div style="margin-top:8px;padding:7px 10px;border-radius:6px;background:rgba(92,158,255,0.04);border:1px solid rgba(92,158,255,0.12);font-size:8.5px;color:var(--dim);line-height:1.5">
-    <strong style="color:#6ea8d6">Data note:</strong> ${{'B':'Curve computed from Brent Crude (BZ=F) 18yr weekly price data. Windows: Bull Jan-Feb (winter supply squeeze), Apr-May (driving season). Bear Jun-Sep (post-peak) + Nov-Dec (OPEC uncertainty).','GO':'Curve computed from NYMEX Heating Oil (HO=F) — best available proxy for Gas Oil seasonal pattern (European diesel). Windows: Bull Apr-Jun (spring/jet fuel) + Aug-Oct (heating build). Bear Mar + Jul + Nov (worst month -5%).','RC':'Curve computed from CFTC Arabica Coffee (KC=F) — Robusta shares identical harvest/weather seasonal drivers. Windows: Bull Jan-Feb + Jul-Sep (Vietnam dry season/production risk) + Nov (+4%). Bear Mar + Jun (worst: -3%) + Oct.','Z':'Curve computed from FTSE 100 (^FTSE) 42yr weekly price data. Windows: Bull Q1 Jan-Apr + Nov-Dec (Santa rally). Bear Jun (summer start) + Sep (September effect — globally persistent).','R':'Curve computed from iShares UK Gilt ETF (IGLT.L) 18yr weekly data. Windows: Bull Mar + Jul-Aug (risk-off summer bid) + Nov-Dec. Bear Apr (post-BoE) + Sep-Oct (rate risk season).'}[m.id]}
+  ${{'B':'Curve computed from Brent Crude (BZ=F) daily history — direct proxy for ICE Brent.','GO':'Curve computed from NYMEX Heating Oil (HO=F) — best available proxy for ICE Gas Oil (European diesel).','RC':'Curve computed from Arabica Coffee (KC=F) — Robusta shares the same harvest/weather seasonal drivers.','Z':'Curve computed from FTSE 100 index (^FTSE) daily history.','R':'Curve computed from iShares UK Gilt ETF (IGLT.L) — proxy for Long Gilt futures.'}[m.id]?`<div style="margin-top:8px;padding:7px 10px;border-radius:6px;background:rgba(92,158,255,0.04);border:1px solid rgba(92,158,255,0.12);font-size:8.5px;color:var(--dim);line-height:1.5">
+    <strong style="color:#6ea8d6">Data note:</strong> ${{'B':'Curve computed from Brent Crude (BZ=F) daily history — direct proxy for ICE Brent.','GO':'Curve computed from NYMEX Heating Oil (HO=F) — best available proxy for ICE Gas Oil (European diesel).','RC':'Curve computed from Arabica Coffee (KC=F) — Robusta shares the same harvest/weather seasonal drivers.','Z':'Curve computed from FTSE 100 index (^FTSE) daily history.','R':'Curve computed from iShares UK Gilt ETF (IGLT.L) — proxy for Long Gilt futures.'}[m.id]}
   </div>`:''}`;
 }
 
@@ -35920,14 +35931,16 @@ async function loadSeasTab(marketId,marketName){
     const load=document.getElementById('seas-mini-load');
     if(load)load.style.display='none';
     canvas.style.display='block';
-    const{all,mt,midterm,pre_election,post_election,election,months,current_td:td,current_year_actual:cya}=data;
+    const{all,band,mt,midterm,pre_election,post_election,election,months,current_td:td,current_year_actual:cya}=data;
     const mktData=DATA?.markets?.find(x=>x.id===marketId);
-    const sd=mktData?.scores?.seasonal?.detail||{};
+    const sd={...(mktData?.scores?.seasonal?.detail||{}),...(data.window||{})};
+    if(data.n_years)sd.n_years=sd.n_years||data.n_years;
+    if(data.years_span)sd.years_span=sd.years_span||data.years_span;
     const cycles={midterm,pre_election,post_election,election};
     miniSeasChart=buildSeasChart(
       canvas.getContext('2d'),
       all.map(p=>p[0]),all.map(p=>p[1]),
-      cya||[],months,td,'mini',sd,cycles,false
+      band||[],cya||[],months,td,'mini',sd,cycles,false
     );
     renderSeasInsight(all,mt,td,sd,cya||[],'seas-insight-row');
   }catch(e){
@@ -40445,15 +40458,17 @@ async function openModal(marketId,marketName){
     const data=await fetchSeas(marketId);
     document.getElementById('modal-loading').style.display='none';
     document.getElementById('modal-content').style.display='block';
-    const{all,mt,midterm,pre_election,post_election,election,months,current_td:td,current_year_actual:cya}=data;
+    const{all,band,mt,midterm,pre_election,post_election,election,months,current_td:td,current_year_actual:cya}=data;
     const labels=all.map(p=>p[0]);
     const allV=all.map(p=>p[1]);
     const mktData=DATA.markets.find(x=>x.id===marketId);
-    const sd=mktData?.scores?.seasonal?.detail||{};
+    const sd={...(mktData?.scores?.seasonal?.detail||{}),...(data.window||{})};
+    if(data.n_years)sd.n_years=sd.n_years||data.n_years;
+    if(data.years_span)sd.years_span=sd.years_span||data.years_span;
     document.getElementById('modal-today-text').textContent='Trading day '+td+' of 252 — '+getMonth(td,months);
     const cycles={midterm,pre_election,post_election,election};
     const ctx=document.getElementById('modal-chart').getContext('2d');
-    modalChart=buildSeasChart(ctx,labels,allV,cya||[],months,td,'modal',sd,cycles,true);
+    modalChart=buildSeasChart(ctx,labels,allV,band||[],cya||[],months,td,'modal',sd,cycles,true);
     renderSeasStats(all,mt,td,sd,cya||[],'modal-stats');
   }catch(e){
     document.getElementById('modal-loading').innerHTML='<span style="color:var(--sm2);font-size:10px">Error: '+e.message+'</span>';
@@ -40505,12 +40520,13 @@ function getMonth(td,months){
 /* ════════════════════════════════════════════
    SEASONAL CHART BUILDER
 ════════════════════════════════════════════ */
-function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDetail,cycles,isModal){
+function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scoreDetail,cycles,isModal){
   scoreDetail = scoreDetail||{};
   cycles = cycles||{};
-  const horizStart = scoreDetail.horizon_td_start||todayTD;
-  const horizEnd   = scoreDetail.horizon_td_end||Math.min(252,todayTD+20);
-  const slope      = scoreDetail.slope_pct;
+  band = band||[];
+  const horizStart = scoreDetail.horizon_td_start||scoreDetail.td_start||todayTD;
+  const horizEnd   = scoreDetail.horizon_td_end||scoreDetail.td_end||Math.min(252,todayTD+20);
+  const slope      = scoreDetail.median_pct??scoreDetail.slope_pct;
 
   // ── Data arrays ──────────────────────────────────────────
   const histPast   = allV.map((v,i)=> labels[i]<=todayTD ? v : null);
@@ -40748,37 +40764,33 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
   // ── Datasets ─────────────────────────────────────────────
   const datasets=[];
 
-  // ±1σ confidence band derived from the variance of the all-seasons curve
-  // σ is estimated as the RMS of absolute deviations of all values from zero (typical historical spread)
-  // Displayed as a fill between upper/lower bounds to give the user context on typical range
-  const _nonNull = allV.filter(v=>v!=null);
-  const _rms = _nonNull.length>0 ? Math.sqrt(_nonNull.reduce((s,v)=>s+v*v,0)/_nonNull.length) : 2;
-  const _sigma = Math.max(0.5, _rms * 0.65); // scale to approx ±1σ visual band
-  const sigmaUpper = allV.map(v => v != null ? v + _sigma : null);
-  const sigmaLower = allV.map(v => v != null ? v - _sigma : null);
-
-  // Upper band (invisible, just for fill reference)
-  datasets.push({
-    label:'_sigma_upper',
-    data:sigmaUpper,
-    borderColor:'transparent',
-    borderWidth:0,
-    pointRadius:0,
-    tension:0,
-    fill:false, // filled from below
-    order:20,
-  });
-  // Lower band fill — fills between lower and upper
-  datasets.push({
-    label:'\u00b11\u03c3 Band',
-    data:sigmaLower,
-    borderColor:'transparent',
-    borderWidth:0,
-    pointRadius:0,
-    tension:0,
-    fill:{target:'-1',above:'rgba(107,124,255,0.07)',below:'rgba(107,124,255,0.07)'},
-    order:19,
-  });
+  // REAL interquartile band (25–75% of historical year paths, cycle+recency weighted)
+  // Served by the backend — honest dispersion, not a synthetic sigma.
+  const bandMap=new Map(band.map(p=>[p[0],[p[1],p[2]]]));
+  const bandUpper=labels.map(td=>bandMap.has(td)?bandMap.get(td)[1]:null);
+  const bandLower=labels.map(td=>bandMap.has(td)?bandMap.get(td)[0]:null);
+  if(bandMap.size>0){
+    datasets.push({
+      label:'_band_upper',
+      data:bandUpper,
+      borderColor:'transparent',
+      borderWidth:0,
+      pointRadius:0,
+      tension:0,
+      fill:false,
+      order:20,
+    });
+    datasets.push({
+      label:'25–75% range',
+      data:bandLower,
+      borderColor:'transparent',
+      borderWidth:0,
+      pointRadius:0,
+      tension:0,
+      fill:{target:'-1',above:'rgba(107,124,255,0.09)',below:'rgba(107,124,255,0.09)'},
+      order:19,
+    });
+  }
 
   // Historical Avg — PAST segment
   datasets.push({
@@ -40860,7 +40872,7 @@ function buildSeasChart(ctx,labels,allV,cyActual,months,todayTD,prefix,scoreDeta
           callbacks:{
             title:items=>'TD '+items[0].label+' — '+getMonth(parseInt(items[0].label),months),
             label:item=>{
-              if(item.dataset.label==='Projected'||item.dataset.label==='_sigma_upper'||item.dataset.label==='±1σ Band')return null;
+              if(item.dataset.label==='Projected'||item.dataset.label==='_band_upper'||item.dataset.label==='25–75% range')return null;
               const v=item.raw;if(v==null)return null;
               const lbl=item.dataset.label;
               const pref=lbl==='2026 Actual YTD'?'● ':'  ';
@@ -40917,11 +40929,12 @@ function renderSeasInsight(all,mt,todayTD,sd,cya,containerId){
   const divStr=divergence==null?'—':(divergence>=0?'+':'')+divergence.toFixed(1)+'%';
   const divAccent=_accentFromVal(divergence);
 
-  const slope=sd?.slope_pct;
-  const slopeCol=slope==null?'rgba(255,255,255,0.3)':slope>=0?'#22c97a':'#e03a2a';
-  const slopeStr=slope==null?'—':(slope>=0?'+':'')+slope.toFixed(2)+'%';
-  const slopeAccent=_accentFromVal(slope??0);
-  const horizStr=slope!=null?'TD '+sd.horizon_td_start+'→'+sd.horizon_td_end:'3–4 wk window';
+  const med=sd?.median_pct??sd?.slope_pct;
+  const hr=sd?.hit_rate;
+  const nY=sd?.n_years, nPos=sd?.n_pos;
+  const medStr=med==null?'—':(med>=0?'+':'')+med.toFixed(2)+'%';
+  const hrCol=hr==null?'rgba(255,255,255,0.3)':hr>=60?'#22c97a':hr<=40?'#e03a2a':'#94a3b8';
+  const hrAccent=hr==null?'rgba(255,255,255,0.12)':hr>=60?'rgba(34,201,122,0.7)':hr<=40?'rgba(224,58,42,0.7)':'rgba(148,165,190,0.35)';
 
   const ye=allV[allV.length-1];
   const yeCol=ye>=0?'#22c97a':'#e03a2a';
@@ -40931,20 +40944,20 @@ function renderSeasInsight(all,mt,todayTD,sd,cya,containerId){
   const histStr=histNow!=null?(histNow>=0?'+':'')+histNow.toFixed(1)+'%':'—';
 
   el.innerHTML=`
+    <div class="seas-insight-cell" style="--sic-accent:${hrAccent}">
+      <div class="sic-label">Window Odds</div>
+      <div class="sic-value" style="color:${hrCol}">${hr!=null?hr+'%':'—'}</div>
+      <div class="sic-sub">${nY?`<strong>${nPos}/${nY}</strong> yrs up &nbsp;&middot;&nbsp; med ${medStr}`:'3–4 wk window'}</div>
+    </div>
     <div class="seas-insight-cell" style="--sic-accent:${divAccent}">
-      <div class="sic-label">2026 vs Hist. Avg</div>
+      <div class="sic-label">2026 vs Hist. Median</div>
       <div class="sic-value" style="color:${divCol}">${divStr}</div>
       <div class="sic-sub"><strong>${cyStr}</strong> actual &nbsp;&middot;&nbsp; ${histStr} hist</div>
-    </div>
-    <div class="seas-insight-cell" style="--sic-accent:${slopeAccent}">
-      <div class="sic-label">3–4 Wk Slope</div>
-      <div class="sic-value" style="color:${slopeCol}">${slopeStr}</div>
-      <div class="sic-sub">${horizStr} &nbsp;&middot;&nbsp; ${sd?.source==='curve'?'Curve':'Window'}</div>
     </div>
     <div class="seas-insight-cell" style="--sic-accent:${yeAccent}">
       <div class="sic-label">Hist. Year-End</div>
       <div class="sic-value" style="color:${yeCol}">${(ye>=0?'+':'')+ye.toFixed(1)+'%'}</div>
-      <div class="sic-sub">25yr recency-weighted avg</div>
+      <div class="sic-sub">${nY?nY+'yr cycle+recency wtd median':'weighted median'}</div>
     </div>`;
 }
 
@@ -40964,14 +40977,22 @@ function renderSeasStats(all,mt,todayTD,sd,cya,containerId){
   const _top=(v,neutral)=>neutral?'rgba(148,165,190,0.3)':v>=0?'rgba(34,201,122,0.5)':'rgba(224,58,42,0.5)';
   const cyC=cyNow!=null?_col(cyNow):'#5a6480';
   const cyTop=cyNow!=null?_top(cyNow):'rgba(90,100,128,0.2)';
+  const med=sd?.median_pct??sd?.slope_pct;
+  const hr=sd?.hit_rate;
+  const nY=sd?.n_years, nPos=sd?.n_pos;
+  const best=sd?.best_pct, worst=sd?.worst_pct;
   const stats=[
     {l:'2026 Actual', v:cyNow!=null?(cyNow>=0?'+':'')+cyNow.toFixed(2)+'%':'—', col:cyC, top:cyTop},
     {l:'Hist. Today', v:(tv>=0?'+':'')+tv.toFixed(2)+'%', col:_col(tv), top:_top(tv)},
-    {l:'Year-End Avg', v:(ye>=0?'+':'')+ye.toFixed(2)+'%', col:_col(ye), top:_top(ye)},
-    {l:'Seas. Range', v:'+'+rangeVal.toFixed(2)+'%', col:_col(0,true), top:_top(0,true)},
-    {l:'3–4wk Slope', v:sd?.slope_pct!=null?(sd.slope_pct>=0?'+':'')+sd.slope_pct.toFixed(2)+'%':'—',
-     col:sd?.slope_pct!=null?_col(sd.slope_pct):'#5a6480',
-     top:sd?.slope_pct!=null?_top(sd.slope_pct):'rgba(90,100,128,0.2)'},
+    {l:'Year-End Med', v:(ye>=0?'+':'')+ye.toFixed(2)+'%', col:_col(ye), top:_top(ye)},
+    {l:'Window Median', v:med!=null?(med>=0?'+':'')+med.toFixed(2)+'%':'—',
+     col:med!=null?_col(med):'#5a6480',
+     top:med!=null?_top(med):'rgba(90,100,128,0.2)'},
+    {l:'Hit Rate', v:hr!=null?hr+'%'+(nY?' ('+nPos+'/'+nY+')':''):'—',
+     col:hr==null?'#5a6480':hr>=60?'#22c97a':hr<=40?'#e03a2a':'#94a3b8',
+     top:hr==null?'rgba(90,100,128,0.2)':hr>=60?'rgba(34,201,122,0.5)':hr<=40?'rgba(224,58,42,0.5)':'rgba(148,165,190,0.3)'},
+    {l:'Best–Worst', v:(best!=null&&worst!=null)?(best>=0?'+':'')+best.toFixed(1)+'% / '+(worst>=0?'+':'')+worst.toFixed(1)+'%':'+'+rangeVal.toFixed(2)+'%',
+     col:_col(0,true), top:_top(0,true)},
   ];
   el.innerHTML=stats.map(s=>`<div class="sstat" style="--sstat-top:${s.top}"><div class="sstat-l">${s.l}</div><div class="sstat-v" style="color:${s.col}">${s.v}</div></div>`).join('');
 }

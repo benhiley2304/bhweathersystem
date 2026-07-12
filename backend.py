@@ -10157,46 +10157,36 @@ async def get_seasonality(market: str = None):
     data = _load_seas_data()
     if market:
         m = market.upper()
-        if m not in data or not data[m].get("snapshots"):
+        if m not in data or data[m].get("v") != 2 or not data[m].get("curve"):
             return {"error": f"Seasonality for '{m}' is still building or unavailable"}
-        mkt_data  = data[m]
-        snapshots = mkt_data.get("snapshots", {})
-        # Use "current" snapshot for display (all available data, no lookahead needed for live)
-        current_snap = snapshots.get("current", {})
-        if not current_snap:
-            # Legacy flat format fallback
-            current_snap = mkt_data
+        ent = data[m]
         cy_actual = _get_current_year_actual(m)
-        # current_td = today's position on the 1-252 TD scale.
-        # Use calendar-based DOY mapping — same formula used by historical curves.
-        # Do NOT use cy_actual[-1][0]: the linear index maps the LAST data point
-        # to TD 252 regardless of date, which makes the chart think today = year-end.
         import datetime as _seas_dt
         _today = _seas_dt.date.today()
         _doy   = _today.timetuple().tm_yday
         _current_td = max(1, min(252, round((_doy / 365) * 252)))
-        # Month-boundary markers on the 1-252 trading-day axis (calendar-driven,
-        # identical for every market). The frontend spreads/iterates this array
-        # (`[...months]`, `months[i].td/.label`), so it MUST be a list of
-        # {td, label} — not a dict. (Bug fix: the dynamic generator has no
-        # top-level "months" key, so the old `data.get("months", {})` returned
-        # an empty dict and threw "months is not iterable" in the seasonal tab.)
         _months_axis = []
         for _mo in range(1, 13):
             _md = _seas_dt.date(_today.year, _mo, 1)
             _mtd = max(1, min(252, round((_md.timetuple().tm_yday / 365) * 252)))
             _months_axis.append({"td": _mtd, "label": _md.strftime("%b")})
+        cycles = ent.get("cycles") or {}
+        stats = _seas_window_stats(m, _today)
         return {
             "market": m,
-            "all":    current_snap.get("all", []),
-            "mt":     current_snap.get("midterm", current_snap.get("mt", [])),
-            "post_election": current_snap.get("post_election", []),
-            "midterm":       current_snap.get("midterm", []),
-            "pre_election":  current_snap.get("pre_election", []),
-            "election":      current_snap.get("election", []),
+            "all":    ent.get("curve", []),
+            "band":   ent.get("band", []),
+            "mt":     cycles.get("midterm", []),
+            "post_election": cycles.get("post_election", []),
+            "midterm":       cycles.get("midterm", []),
+            "pre_election":  cycles.get("pre_election", []),
+            "election":      cycles.get("election", []),
             "months": _months_axis,
             "current_td": _current_td,
             "current_year_actual": cy_actual,
+            "n_years": ent.get("n_years"),
+            "years_span": ent.get("years_span"),
+            "window": stats,
         }
     return _SafeJSONResponse(data)
 
@@ -10611,11 +10601,119 @@ async def get_pcr_history(lookback: int = 252, market: str = ""):
     }
 
 
+_SEAS_YEARS_BACK = 22
+_SEAS_RECENCY = 0.93       # recency decay: age 10 -> 0.48, age 20 -> 0.23
+_SEAS_CYCLE_BOOST = 2.5    # boost for years matching current election-cycle position
+
+
+def _seas_wq(vals, ws, q):
+    """Weighted quantile of vals with weights ws (0<=q<=1)."""
+    pairs = sorted(zip(vals, ws))
+    tot = sum(w for _, w in pairs)
+    if tot <= 0:
+        return 0.0
+    acc = 0.0
+    prev_v = pairs[0][0]
+    for v, w in pairs:
+        if (acc + w / 2) / tot >= q:
+            return v
+        acc += w
+        prev_v = v
+    return prev_v
+
+
+def _seas_weights(years, asof_year):
+    """Per-year weights: election-cycle years matching asof_year's cycle get a
+    2.5x boost; recency decay 0.93^age keeps recent years dominant over old ones
+    (age 10 -> 0.48, age 20 -> 0.23)."""
+    ck = _cycle_key_for_year(asof_year)
+    return {y: ((_SEAS_CYCLE_BOOST if _cycle_key_for_year(y) == ck else 1.0)
+                * (_SEAS_RECENCY ** max(0, asof_year - 1 - y))) for y in years}
+
+
+def _seas_window_stats(market_id: str, bar_date) -> dict | None:
+    """
+    Core seasonal statistic engine (v2).
+
+    For the 3-4 week window starting at bar_date, computes the ACTUAL historical
+    return over that same trading-day window for each of the last ~22 completed
+    years (zero look-ahead: only years strictly before bar_date's year are used).
+
+    Cycle + recency weighted: years matching the scoring year's election-cycle
+    position get 2.5x weight, recent years outweigh old (0.93^age).
+
+    Score = 5 + 2.5*direction + 2.5*magnitude where
+      direction = (weighted_hit_rate - 0.5) * 2       (how consistently up/down)
+      magnitude = clip(weighted_median / IQR_halfwidth) (how big vs typical spread)
+    """
+    from datetime import date as _date
+    seas = _load_seas_data()
+    ent = seas.get((market_id or "").upper())
+    if not ent or ent.get("v") != 2:
+        return None
+    years = ent.get("years") or {}
+    if hasattr(bar_date, 'date'):
+        d = bar_date.date()
+    elif isinstance(bar_date, _date):
+        d = bar_date
+    else:
+        try:
+            d = pd.to_datetime(bar_date).date()
+        except Exception:
+            return None
+    doy = d.timetuple().tm_yday
+    td_a = max(1, min(252, round((doy / 365) * 252)))
+    td_b = min(252, td_a + 20)
+    if td_b <= td_a:
+        td_a = max(1, 252 - 20); td_b = 252
+    yrs = sorted(int(y) for y in years
+                 if int(y) < d.year and int(y) >= d.year - _SEAS_YEARS_BACK)
+    rets = []
+    used = []
+    for y in yrs:
+        arr = years.get(str(y))
+        if not arr or len(arr) < 252:
+            continue
+        a = arr[td_a - 1]; b = arr[td_b - 1]
+        if a is None or b is None or (1 + a / 100) == 0:
+            continue
+        rets.append(((1 + b / 100) / (1 + a / 100) - 1) * 100)
+        used.append(y)
+    n = len(rets)
+    if n < 8:
+        return None
+    W = _seas_weights(used, d.year)
+    ws = [W[y] for y in used]
+    tot_w = sum(ws)
+    whit = sum(w for r, w in zip(rets, ws) if r > 0) / tot_w
+    wmed = _seas_wq(rets, ws, 0.5)
+    iqr_half = max(0.5, (_seas_wq(rets, ws, 0.75) - _seas_wq(rets, ws, 0.25)) / 2)
+    n_pos = sum(1 for r in rets if r > 0)
+    dir_c = (whit - 0.5) * 2
+    mag_c = max(-1.0, min(1.0, wmed / iqr_half))
+    score = round(max(0.0, min(10.0, 5 + 2.5 * dir_c + 2.5 * mag_c)), 1)
+    return {
+        "score": score,
+        "n_years": n, "n_pos": n_pos, "n_neg": n - n_pos,
+        "hit_rate": round(whit * 100),
+        "raw_hit_rate": round(100 * n_pos / n),
+        "median_pct": round(wmed, 2),
+        "mean_pct": round(sum(r * w for r, w in zip(rets, ws)) / tot_w, 2),
+        "best_pct": round(max(rets), 2),
+        "worst_pct": round(min(rets), 2),
+        "td_start": td_a, "td_end": td_b,
+        "years_span": f"{min(used)}\u2013{max(used)}" if used else "",
+        "cycle_key": _cycle_key_for_year(d.year),
+        "weighting": "cycle 2.5x + recency 0.93^age",
+    }
+
+
 def score_seasonality(market_id: str) -> dict:
     """
     Public wrapper: compute current seasonality score for a market.
-    Returns {score, label, detail} matching the pattern of other score_* functions.
-    Includes slope_pct, horizon_td_start, horizon_td_end, cycle_key for chart rendering.
+    v2: score is derived from real per-year window statistics (hit rate +
+    median return over the next 3-4 week trading-day window) rather than
+    point-sampling a noisy averaged curve.
     """
     from datetime import date as _date_cls
     today = _date_cls.today()
@@ -10624,8 +10722,14 @@ def score_seasonality(market_id: str) -> dict:
     cycle_key = _cycle_key_for_year(today.year)
 
     _ensure_market_seas(market_id)
-    raw = _score_seasonality_at(market_id.upper(), today)
-    score = round(float(raw), 1)
+    stats = _seas_window_stats(market_id.upper(), today)
+
+    if stats is not None:
+        score = stats["score"]
+    else:
+        score = _score_seasonality_at(market_id.upper(), today)
+
+    score = round(float(score), 1)
     if score >= 7.5:
         label = "Strong Seasonal Bull"
     elif score >= 6.0:
@@ -10637,78 +10741,28 @@ def score_seasonality(market_id: str) -> dict:
     else:
         label = "Strong Seasonal Bear"
 
-    # Compute slope for chart horizon shading
-    slope_pct = None
-    try:
-        seas = _load_seas_data()
-        m_upper = market_id.upper()
-        if m_upper in seas:
-            mkt_data = seas[m_upper]
-            snapshots = mkt_data.get("snapshots", {})
-            snap = snapshots.get(str(today.year)) or snapshots.get("current", {})
-            # Always score from the all-years curve (already cycle-weighted internally)
-            curve = snap.get("all", [])
-            if curve:
-                td_map = {p[0]: p[1] for p in curve}
-                def _near(t):
-                    if t in td_map: return td_map[t]
-                    return td_map[min(td_map.keys(), key=lambda k: abs(k - t))]
-                val_now = _near(current_td)
-                val_3w  = _near(min(252, current_td + 15))
-                val_4w  = _near(min(252, current_td + 20))
-                slope_pct = round(((val_3w + val_4w) / 2) - val_now, 3)
-    except Exception:
-        pass
-
-    return {
+    detail = {
         "score": score,
         "label": label,
-        "detail": {
-            "score": score,
-            "label": label,
-            "market_id": market_id.upper(),
-            "date": today.isoformat(),
-            "current_td": current_td,
-            "cycle_key": cycle_key,
-            "slope_pct": slope_pct,
-            "horizon_td_start": current_td,
-            "horizon_td_end": min(252, current_td + 20),
-            "source": "curve" if slope_pct is not None else "window",
-        }
+        "market_id": market_id.upper(),
+        "date": today.isoformat(),
+        "current_td": current_td,
+        "cycle_key": cycle_key,
+        "horizon_td_start": current_td,
+        "horizon_td_end": min(252, current_td + 20),
+        "source": "stats" if stats is not None else "window",
+        # slope_pct kept for backward compat with chart bracket = median window return
+        "slope_pct": stats["median_pct"] if stats is not None else None,
     }
-
-
-# ── Per-asset seasonal slope normaliser ─────────────────────────────────────
-# Computed once from the all-years curve: 90th-percentile absolute 20-day slope.
-# Used to make scoring relative to each asset's own seasonal volatility.
-# e.g. SB p90 ≈ 22pp, 6E p90 ≈ 3.5pp — a +5% slope means very different things.
-_SEAS_NORM_CACHE: dict = {}  # {market_id: normaliser_pp}
-
-def _get_seas_normaliser(market_id: str, seas: dict) -> float:
-    """Return p90 absolute 20-day slope for market_id, cached after first call."""
-    if market_id in _SEAS_NORM_CACHE:
-        return _SEAS_NORM_CACHE[market_id]
-    try:
-        curve = seas.get(market_id, {}).get("snapshots", {}).get("current", {}).get("all", [])
-        if not curve:
-            return 3.0  # fallback
-        td_map = {p[0]: p[1] for p in curve}
-        slopes = []
-        for td in range(1, 233):
-            v0 = td_map.get(td)
-            v1 = td_map.get(td + 20)
-            if v0 is not None and v1 is not None:
-                slopes.append(abs(v1 - v0))
-        if not slopes:
-            return 3.0
-        slopes.sort()
-        p90 = slopes[int(len(slopes) * 0.90)]
-        # Floor at 1.0 to avoid division by near-zero for very stable assets
-        norm = max(1.0, round(p90, 2))
-        _SEAS_NORM_CACHE[market_id] = norm
-        return norm
-    except Exception:
-        return 3.0
+    if stats is not None:
+        detail.update({
+            "n_years": stats["n_years"], "n_pos": stats["n_pos"],
+            "n_neg": stats["n_neg"], "hit_rate": stats["hit_rate"],
+            "median_pct": stats["median_pct"], "mean_pct": stats["mean_pct"],
+            "best_pct": stats["best_pct"], "worst_pct": stats["worst_pct"],
+            "years_span": stats["years_span"],
+        })
+    return {"score": score, "label": label, "detail": detail}
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -10726,7 +10780,25 @@ _DYN_SEAS_BUILT: dict = {}      # market_id -> last build ts (in-memory)
 
 def _build_seasonality_from_closes(closes, current_year: int,
                                    years_back: int = 22, snap_years: int = 11) -> dict:
-    """Build the {'snapshots': {...}} structure from a daily Close series."""
+    """
+    Build seasonality v2 structure from a daily Close series.
+
+    {
+      "v": 2,
+      "years":  {"2004": [252 floats], ...}   raw cumulative %-from-Jan-1 paths,
+                                              TD-indexed 1..252, forward-filled,
+      "curve":  [[td, val], ...]              cycle-boosted (2.5x matching cycle
+                                              years) + recency-weighted (0.93^age)
+                                              MEDIAN of prior-year paths, 5-TD smoothed,
+      "band":   [[td, p25, p75], ...]         honest interquartile range band,
+      "cycles": {"midterm": [[td,val],...], ...}  unweighted median per cycle,
+      "n_years", "years_span"
+    }
+
+    Median (not mean) so a single outlier year (e.g. PL +124% in 2025) cannot
+    bend the whole curve. Zero look-ahead for scoring: the scorer filters
+    `years` to those strictly before the bar year.
+    """
     closes = closes.dropna()
     try:
         if closes.index.tz is not None:
@@ -10740,48 +10812,69 @@ def _build_seasonality_from_closes(closes, current_year: int,
         base = float(grp.iloc[0])
         if base == 0:
             continue
-        path = {}
+        arr = [None] * 252   # index 0 = TD1
         for ts, px in grp.items():
             doy = ts.timetuple().tm_yday
             td = max(1, min(252, round(doy / 365 * 252)))
-            path[td] = (float(px) / base - 1.0) * 100.0
-        by_year[int(yr)] = path
+            arr[td - 1] = (float(px) / base - 1.0) * 100.0
+        last = 0.0
+        for i in range(252):
+            if arr[i] is None:
+                arr[i] = last
+            else:
+                last = arr[i]
+        by_year[int(yr)] = [round(v, 2) for v in arr]
 
-    def build_curve(years, asof):
-        accv = [0.0] * 253; wsum = [0.0] * 253
-        for yr in years:
-            path = by_year.get(yr)
-            if not path:
-                continue
-            w = (2.5 if yr % 4 == 2 else 1.0) * (0.88 ** max(0, asof - 1 - yr))
-            last = 0.0
-            for td in range(1, 253):
-                if td in path:
-                    last = path[td]
-                accv[td] += last * w; wsum[td] += w
-        return [[td, round(accv[td] / wsum[td], 3)] for td in range(1, 253) if wsum[td] > 0]
+    def _smooth(vals, k=5):
+        n = len(vals)
+        half = k // 2
+        out = []
+        for i in range(n):
+            lo = max(0, i - half); hi = min(n, i + half + 1)
+            seg = vals[lo:hi]
+            out.append(sum(seg) / len(seg))
+        return out
 
-    def snapshot_for(asof, full=False):
-        prior = [y for y in by_year if y < asof and y >= asof - years_back]
-        snap = {"all": build_curve(prior, asof)}
-        # Cycle-specific curves are only used by the chart (the scorer reads 'all'),
-        # so build them only for the 'current' snapshot to keep the file small.
-        if full:
-            for cyc in ("midterm", "pre_election", "post_election", "election"):
-                yrs = [y for y in prior if _cycle_key_for_year(y) == cyc]
-                if yrs:
-                    snap[cyc] = build_curve(yrs, asof)
-        return snap
+    prior = sorted(y for y in by_year
+                   if y < current_year and y >= current_year - years_back)
+    if len(prior) < 8:
+        return {}
 
-    snapshots = {}
-    for Y in range(current_year - snap_years + 1, current_year + 1):
-        s = snapshot_for(Y)
-        if s.get("all"):
-            snapshots[str(Y)] = s
-    cur = snapshot_for(current_year, full=True)
-    if cur.get("all"):
-        snapshots["current"] = cur
-    return {"snapshots": snapshots}
+    W = _seas_weights(prior, current_year)
+    ws = [W[y] for y in prior]
+    med_raw, lo_raw, hi_raw = [], [], []
+    for i in range(252):
+        vals = [by_year[y][i] for y in prior]
+        med_raw.append(_seas_wq(vals, ws, 0.5))
+        lo_raw.append(_seas_wq(vals, ws, 0.25))
+        hi_raw.append(_seas_wq(vals, ws, 0.75))
+    med_s = _smooth(med_raw); lo_s = _smooth(lo_raw); hi_s = _smooth(hi_raw)
+
+    curve = [[i + 1, round(med_s[i], 3)] for i in range(252)]
+    band = [[i + 1, round(lo_s[i], 3), round(hi_s[i], 3)] for i in range(252)]
+
+    cycles = {}
+    for cyc in ("midterm", "pre_election", "post_election", "election"):
+        yrs = [y for y in prior if _cycle_key_for_year(y) == cyc]
+        if len(yrs) >= 3:
+            cm = []
+            for i in range(252):
+                vals = sorted(by_year[y][i] for y in yrs)
+                n = len(vals)
+                mid = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
+                cm.append(mid)
+            cm = _smooth(cm)
+            cycles[cyc] = [[i + 1, round(cm[i], 3)] for i in range(252)]
+
+    return {
+        "v": 2,
+        "years": {str(y): by_year[y] for y in by_year},
+        "curve": curve,
+        "band": band,
+        "cycles": cycles,
+        "n_years": len(prior),
+        "years_span": f"{min(prior)}\u2013{max(prior)}",
+    }
 
 def _load_dyn_seas_file() -> dict:
     try:
@@ -10810,7 +10903,7 @@ def _ensure_market_seas(market_id: str) -> None:
         _SEASONALITY_CACHE["data"] = _load_dyn_seas_file()
     data = _SEASONALITY_CACHE["data"]
     now = time.time()
-    if (mid in data and data[mid].get("snapshots")
+    if (mid in data and data[mid].get("v") == 2 and data[mid].get("curve")
             and (now - _DYN_SEAS_BUILT.get(mid, 0)) < _DYN_SEAS_TTL):
         return
     mkt = next((x for x in MARKETS if x["id"] == mid), None)
@@ -10823,7 +10916,7 @@ def _ensure_market_seas(market_id: str) -> None:
         if df is None or df.empty or len(df) < 300:
             return
         built = _build_seasonality_from_closes(df["Close"], _d.today().year)
-        if built.get("snapshots"):
+        if built.get("curve"):
             built["_built"] = now
             data[mid] = built
             _DYN_SEAS_BUILT[mid] = now
@@ -10857,17 +10950,16 @@ def _score_seasonality_at(market_id: str, bar_date) -> float:
     """
     Compute seasonality score for a historical bar date — ZERO lookahead.
 
-    Uses the 4-cycle snapshot system:
-      - snapshots[str(bar_year)] was built from data in years < bar_year only.
-        This means it is the curve that was observable BEFORE bar_year began.
-      - Within that snapshot, selects the presidential cycle curve matching bar_year
-        (post_election / midterm / pre_election / election), falls back to 'all'.
+    v2: derives the score from real per-year window statistics using only
+    years strictly BEFORE bar_date's year (see _seas_window_stats).
+    Falls back to the calendar SEASONAL_WINDOWS heuristic when the market
+    has no v2 seasonal data yet.
     """
     from datetime import date as _date
     _ensure_market_seas(market_id)
-    seas = _load_seas_data()
-    if not seas:
-        return 5.0
+    stats = _seas_window_stats(market_id, bar_date)
+    if stats is not None:
+        return stats["score"]
 
     if hasattr(bar_date, 'date'):
         d = bar_date.date()
@@ -10878,48 +10970,6 @@ def _score_seasonality_at(market_id: str, bar_date) -> float:
             d = pd.to_datetime(bar_date).date()
         except Exception:
             return 5.0
-
-    day_of_year = d.timetuple().tm_yday
-    current_td  = max(1, min(252, round((day_of_year / 365) * 252)))
-
-    bar_year  = d.year
-    cycle_key = _cycle_key_for_year(bar_year)
-
-    curve_score = None
-    if market_id in seas:
-        mkt_data  = seas[market_id]
-        snapshots = mkt_data.get("snapshots", {})
-
-        # Prefer the year-specific snapshot (zero lookahead).
-        # Fall back to "current" if this year's snapshot doesn't exist yet
-        # (e.g. bar is before we had enough data to build any curves).
-        snap = snapshots.get(str(bar_year)) or snapshots.get("current", {})
-        if not snap:
-            snap = mkt_data  # legacy flat fallback
-
-        # Always use the all-years curve — it already incorporates cycle weighting
-        # (midterm years get 2.5x uplift, recency decay 0.88^age).
-        # The cycle-specific curves are for reference only, not scoring.
-        curve = snap.get("all", [])
-
-        if curve:
-            if isinstance(curve[0], (list, tuple)):
-                td_map = {p[0]: p[1] for p in curve}
-            else:
-                td_map = {round((i / 365) * 252): float(v) for i, v in enumerate(curve) if v is not None}
-
-            def _nearest(td):
-                return td_map.get(td, td_map[min(td_map.keys(), key=lambda k: abs(k - td))])
-
-            val_now   = _nearest(current_td)
-            val_3w    = _nearest(min(252, current_td + 15))
-            val_4w    = _nearest(min(252, current_td + 20))
-            slope_pct = ((val_3w + val_4w) / 2) - val_now
-            _norm = _get_seas_normaliser(market_id, seas)
-            curve_score = round(max(0.0, min(10.0, (slope_pct / _norm) * 5.0 + 5.0)), 1)
-
-    if curve_score is not None:
-        return curve_score
 
     # Window-based fallback
     month = d.month
