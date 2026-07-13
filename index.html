@@ -24215,8 +24215,8 @@ canvas.chartjs-render-monitor{
         <div class="ov-cat-bar" id="ov-cat-bar"></div>
         <!-- macro env pill strip -->
         <div id="ov-macro-env-strip"></div>
-        <!-- consensus fade / crowded-trade detector -->
-        <div id="ov-fade-panel"></div>
+        <!-- consensus-fade / crowded-trade detector REMOVED — amalgamated into the
+             Consensus & Offside Risk section inside the Global Market Climate panel -->
         <!-- macro data panels: yield curve, credit spreads, fed balance sheet -->
         <div id="ov-macro-panels-wrap"></div>
         <!-- global climate panel -->
@@ -25633,7 +25633,6 @@ function renderOverview(){
   })();
 
   // ── 3b. GLOBAL CLIMATE PANEL ────────────────────────
-  renderFadePanel();
   renderClimatePanel(reg, markets, mktMap);
 
   // ── 4. HEATMAP ───────────────────────────────────
@@ -26457,6 +26456,12 @@ function renderOverview(){
 // GLOBAL CLIMATE PANEL
 // ══════════════════════════════════════════════════════
 function renderFadePanel(){
+  // REMOVED: the standalone consensus-fade / crowded-trade detector was a
+  // weaker duplicate of the COT positioning read. Its purpose is now folded
+  // into the "Consensus & Offside Risk" section (Global Market Climate panel),
+  // which pairs the consensus narrative with live COT positioning extremes.
+  return;
+  /* eslint-disable no-unreachable */
   const el=document.getElementById('ov-fade-panel');
   if(!el||!DATA)return;
   const cf=DATA.consensus_fade||{};
