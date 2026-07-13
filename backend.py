@@ -10186,6 +10186,53 @@ def _save_scores_snapshot(scores_map: dict) -> None:
     except Exception as _e:
         print(f"[snapshot] save failed: {_e}")
 
+# ── Full-payload scores snapshot (cold-start instant render) ──────────────────
+# The full /api/scores payload is persisted to disk after every successful
+# refresh. On boot (before the warm-up finishes) it is loaded back so the very
+# first visitor gets last-known data INSTANTLY instead of a 202 "warming" blank.
+# Survives soft/periodic instance restarts; a full redeploy wipes it but the
+# first post-deploy warm-up repopulates it.
+_FULL_SNAPSHOT_PATH = os.path.join(DATA_DIR, "scores_full_snapshot.json")
+_FULL_SNAPSHOT_MAX_AGE = 24 * 3600  # don't serve a snapshot older than 24h
+
+def _save_full_scores_snapshot(payload: dict) -> None:
+    """Persist the complete /api/scores payload to disk (atomic write)."""
+    try:
+        tmp = _FULL_SNAPSHOT_PATH + ".tmp"
+        with open(tmp, "wb") as fh:
+            fh.write(orjson.dumps({"saved_at": time.time(), "payload": payload},
+                                  default=str, option=orjson.OPT_NON_STR_KEYS))
+        os.replace(tmp, _FULL_SNAPSHOT_PATH)  # atomic
+    except Exception as _e:
+        print(f"[snapshot] full save failed: {_e}")
+
+def _load_full_scores_snapshot() -> bool:
+    """Load the disk snapshot into ALL_DATA_CACHE if present and fresh enough.
+    Marks it STALE (time older than TTL) so a background refresh still fires on
+    the first real request. Returns True if a snapshot was loaded."""
+    try:
+        if not os.path.exists(_FULL_SNAPSHOT_PATH):
+            return False
+        with open(_FULL_SNAPSHOT_PATH, "rb") as fh:
+            blob = orjson.loads(fh.read())
+        saved_at = float(blob.get("saved_at", 0))
+        payload  = blob.get("payload")
+        if not payload:
+            return False
+        age = time.time() - saved_at
+        if age > _FULL_SNAPSHOT_MAX_AGE:
+            print(f"[snapshot] full snapshot too old ({age/3600:.1f}h) — skipping", flush=True)
+            return False
+        ALL_DATA_CACHE["data"] = payload
+        # Backdate the timestamp so the cache reads as STALE and the next request
+        # triggers a background refresh (stale-while-revalidate).
+        ALL_DATA_CACHE["time"] = time.time() - ALL_DATA_TTL - 1
+        print(f"[snapshot] full snapshot loaded ({age/60:.0f}min old) — instant cold-start render enabled", flush=True)
+        return True
+    except Exception as _e:
+        print(f"[snapshot] full load failed: {_e}")
+        return False
+
 # ------------------------------------------------------------------
 # Scores cache + concurrency guard (restored — these module globals
 # were inadvertently dropped during an earlier dead-code cleanup)
@@ -10891,6 +10938,11 @@ async def _do_scores_refresh(force: bool = False):
         _save_scores_snapshot(_snap_map)
     except Exception as _snap_e:
         print(f"[snapshot] save error: {_snap_e}")
+    # Persist the FULL payload to disk so the next cold start renders instantly
+    try:
+        _save_full_scores_snapshot(output)
+    except Exception as _fs_e:
+        print(f"[snapshot] full save error: {_fs_e}")
     print(f"[scores] Cache populated — total {time.time()-_refresh_start:.1f}s", flush=True)
 
 # ============================================================
@@ -14302,6 +14354,13 @@ async def warmup_cache():
     ALL_DATA_CACHE is fully populated before any user request arrives."""
     import asyncio as _astart
     async def _warm():
+        # ── INSTANT cold-start: load last full payload from disk FIRST, before the
+        # (slow) full warm-up. This lets /api/scores serve last-known data
+        # immediately during the warming window instead of a 202 blank screen.
+        try:
+            _load_full_scores_snapshot()
+        except Exception as _e:
+            print(f"[startup] full snapshot load error (non-fatal): {_e}")
         await _astart.sleep(2)
         _WARMING["started"] = True
 
