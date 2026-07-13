@@ -1366,19 +1366,28 @@ def fetch_pcr_history() -> Optional[pd.DataFrame]:
         def _fetch_day(d):
             date_str = d.strftime("%Y-%m-%d")
             url = f"https://cdn.cboe.com/data/us/options/market_statistics/daily/{date_str}_daily_options"
-            try:
-                resp = requests.get(url, headers=daily_headers, timeout=5)
-                if resp.status_code == 200:
-                    j = resp.json()
-                    equity = next(
-                        (float(x["value"]) for x in j.get("ratios", [])
-                         if "EQUITY PUT" in x.get("name", "")),
-                        None
-                    )
-                    if equity is not None:
-                        return {"DATE": d, "equity_pc": equity}
-            except Exception:
-                pass
+            # Retry a couple of times — the CBOE CDN intermittently 403s at the
+            # edge even for days that exist. A short retry avoids silently
+            # dropping the freshest print (which matters for a daily indicator).
+            for attempt in range(3):
+                try:
+                    resp = requests.get(url, headers=daily_headers, timeout=6)
+                    if resp.status_code == 200:
+                        j = resp.json()
+                        equity = next(
+                            (float(x["value"]) for x in j.get("ratios", [])
+                             if "EQUITY PUT" in x.get("name", "")),
+                            None
+                        )
+                        if equity is not None:
+                            return {"DATE": d, "equity_pc": equity}
+                        return None  # day exists but no equity ratio — don't retry
+                    if resp.status_code == 404:
+                        return None  # day genuinely not published — don't retry
+                    # 403/5xx — transient edge block, retry after a brief pause
+                except Exception:
+                    pass
+                time.sleep(0.4 * (attempt + 1))
             return None
 
         with _TPE(max_workers=4) as ex:  # FIX: reduced from 8
@@ -1516,64 +1525,89 @@ def score_pcr(market_id: str) -> dict:
     tier = tier_cfg.get("tier", 0)
     source = tier_cfg.get("source", "")
 
-    # ── EQUITY: use daily CBOE aggregate equity P/C ratio ──────────────────
-    # Scoring uses 5-day MA of daily PCR — fast enough to catch spikes within
-    # 1 week, but not single-day noise. The 20-day MA is kept for chart display only.
+    # ── EQUITY: use LATEST DAILY CBOE aggregate equity P/C ratio ────────────
+    # FAST-REACTING redesign: score off the newest daily print (no MA smoothing)
+    # so a sharp same-day swing into fear/greed registers immediately. Extremes
+    # are calibrated against the trailing ~1yr distribution of DAILY prints, and
+    # a z-score flags how far the current print sits from its recent normal —
+    # so a big one-day jump reads as extreme even before percentile saturates.
     if source == "cboe_equity":
         df = fetch_pcr_history()
         if df is None or df.empty:
             return {"score": 5.0, "label": "No Data", "tier": tier,
                     "detail": {"error": "Could not fetch P/C ratio data"}}
 
-        df_clean = df.dropna(subset=["pc_ma5"])
+        df_clean = df.dropna(subset=["equity_pc"])
         if df_clean.empty:
             return {"score": 5.0, "label": "No Data", "tier": tier,
-                    "detail": {"error": "Insufficient history for MA"}}
+                    "detail": {"error": "No daily P/C values"}}
 
         latest        = df_clean.iloc[-1]
         current_daily = float(latest["equity_pc"])
-        current_ma5   = float(latest["pc_ma5"])
-        current_ma20  = float(latest["pc_ma20"]) if not pd.isna(latest.get("pc_ma20", float("nan"))) else current_ma5
+        # prior print for a same-day delta / "today's move" readout
+        prev_daily    = float(df_clean["equity_pc"].iloc[-2]) if len(df_clean) >= 2 else current_daily
+        daily_change  = current_daily - prev_daily
+        # short context MA (display only — NOT used for scoring)
+        ma5_series    = df_clean["equity_pc"].rolling(5).mean()
+        current_ma5   = float(ma5_series.iloc[-1]) if not pd.isna(ma5_series.iloc[-1]) else current_daily
         latest_date   = str(df_clean.index[-1].date())
 
-        # Percentile ranks 5-day MA vs full history of 5-day MAs
-        # This gives same-week responsiveness while filtering single-day noise
-        all_ma5    = df_clean["pc_ma5"].values
-        percentile = float(np.mean(all_ma5 < current_ma5))
-        score      = round(max(0.0, min(10.0, percentile * 10)), 1)
+        # Regime window: trailing ~1yr of DAILY prints (calibrate extremes to
+        # the current environment, not the 2008/2020 tails).
+        daily_all  = df_clean["equity_pc"].values
+        window     = daily_all[-252:] if len(daily_all) >= 60 else daily_all
+        # Percentile of the latest DAILY print vs the trailing window
+        percentile = float(np.mean(window < current_daily))
+        # z-score: how far today's print is from its recent normal (fast flag)
+        w_mean = float(np.mean(window))
+        w_std  = float(np.std(window)) or 1e-6
+        zscore = (current_daily - w_mean) / w_std
 
-        if percentile >= 0.90:   label = "Extreme Fear"
-        elif percentile >= 0.75: label = "High Fear"
-        elif percentile >= 0.60: label = "Mild Fear"
-        elif percentile >= 0.40: label = "Neutral"
-        elif percentile >= 0.25: label = "Mild Greed"
-        elif percentile >= 0.10: label = "High Greed"
-        else:                    label = "Extreme Greed"
+        # Score blends percentile position (0-10) with a z-score nudge so a
+        # sharp same-day spike pushes toward the extreme faster than percentile
+        # alone. Clamped to 0-10.
+        base_score = percentile * 10.0
+        z_nudge    = max(-1.5, min(1.5, zscore)) * 0.8  # up to ±1.2 pts
+        score      = round(max(0.0, min(10.0, base_score + z_nudge)), 1)
 
-        if percentile >= 0.75:   signal = "Contrarian Bullish"
-        elif percentile >= 0.60: signal = "Lean Bullish"
-        elif percentile <= 0.25: signal = "Contrarian Bearish"
-        elif percentile <= 0.40: signal = "Lean Bearish"
-        else:                    signal = "Neutral"
+        # Labels driven by BOTH percentile and z-score, so a big absolute jump
+        # earns an "extreme" tag even if the 1yr percentile is still climbing.
+        hot_fear  = (percentile >= 0.90) or (zscore >= 1.5)
+        hot_greed = (percentile <= 0.10) or (zscore <= -1.5)
+        if   hot_fear:            label = "Extreme Fear"
+        elif percentile >= 0.75:  label = "High Fear"
+        elif percentile >= 0.60:  label = "Mild Fear"
+        elif percentile >= 0.40:  label = "Neutral"
+        elif percentile >= 0.25:  label = "Mild Greed"
+        elif not hot_greed:       label = "High Greed"
+        else:                     label = "Extreme Greed"
+
+        if   percentile >= 0.75 or hot_fear:   signal = "Contrarian Bullish"
+        elif percentile >= 0.60:               signal = "Lean Bullish"
+        elif percentile <= 0.25 or hot_greed:  signal = "Contrarian Bearish"
+        elif percentile <= 0.40:               signal = "Lean Bearish"
+        else:                                  signal = "Neutral"
 
         return {
             "score": score, "label": label, "tier": tier,
             "detail": {
                 "current_daily": round(current_daily, 3),
-                "ma5":  round(current_ma5,  3),
-                "ma20": round(current_ma20, 3),
+                "prev_daily":    round(prev_daily, 3),
+                "daily_change":  round(daily_change, 3),
+                "ma5":  round(current_ma5,  3),  # display context only
                 "percentile": round(percentile * 100, 1),
+                "zscore": round(zscore, 2),
                 "signal": signal, "label": label,
                 "latest_date": latest_date,
                 "source": "CBOE Aggregate Equity P/C",
-                "scoring_basis": "5-day MA percentile",
+                "scoring_basis": "latest daily print (1yr percentile + z-score)",
                 "thresholds": {
-                    "extreme_greed": round(float(np.percentile(all_ma5, 10)), 3),
-                    "moderate_greed": round(float(np.percentile(all_ma5, 25)), 3),
-                    "neutral_low":    round(float(np.percentile(all_ma5, 40)), 3),
-                    "neutral_high":   round(float(np.percentile(all_ma5, 60)), 3),
-                    "moderate_fear":  round(float(np.percentile(all_ma5, 75)), 3),
-                    "extreme_fear":   round(float(np.percentile(all_ma5, 90)), 3),
+                    "extreme_greed":  round(float(np.percentile(window, 10)), 3),
+                    "moderate_greed": round(float(np.percentile(window, 25)), 3),
+                    "neutral_low":    round(float(np.percentile(window, 40)), 3),
+                    "neutral_high":   round(float(np.percentile(window, 60)), 3),
+                    "moderate_fear":  round(float(np.percentile(window, 75)), 3),
+                    "extreme_fear":   round(float(np.percentile(window, 90)), 3),
                 }
             }
         }
@@ -6795,31 +6829,34 @@ def compute_stock_climate() -> dict:
                 _pcr_ma5_series = _pcr_df["pc_ma5"].dropna() if "pc_ma5" in _pcr_df.columns else None
                 _pcr_daily = _pcr_df["equity_pc"].dropna()
                 if _pcr_ma5_series is not None and len(_pcr_ma5_series) > 0:
-                    pcr_now  = float(_pcr_daily.iloc[-1])          # raw daily (display only)
-                    pcr_ma5  = float(_pcr_ma5_series.iloc[-1])     # 5d MA — scoring basis
+                    pcr_now  = float(_pcr_daily.iloc[-1])          # raw daily — SCORING basis (fast)
+                    pcr_prev = float(_pcr_daily.iloc[-2]) if len(_pcr_daily) >= 2 else pcr_now
+                    pcr_ma5  = float(_pcr_ma5_series.iloc[-1])     # 5d MA — kept as context only
                     pcr_ma20 = float(_pcr_df["pc_ma20"].dropna().iloc[-1]) if "pc_ma20" in _pcr_df.columns else None
                     pcr_date = str(_pcr_daily.index[-1].date())
-                    # Score on 5-day MA — fast-responding, not single-day noise
+                    # FAST-REACTING: score off the latest DAILY print, not the MA,
+                    # so a sharp same-day swing into fear/greed shows immediately.
                     # Thresholds calibrated to CBOE equity PCR distribution 2006-present
-                    if pcr_ma5 > 0.85:
+                    if pcr_now > 0.85:
                         pcr_score, pcr_label = 2, "Elevated Fear"
-                    elif pcr_ma5 > 0.68:
+                    elif pcr_now > 0.68:
                         pcr_score, pcr_label = 1, "Defensive"
-                    elif pcr_ma5 > 0.55:
+                    elif pcr_now > 0.55:
                         pcr_score, pcr_label = 0, "Neutral"
-                    elif pcr_ma5 > 0.45:
+                    elif pcr_now > 0.45:
                         pcr_score, pcr_label = -1, "Greed"
                     else:
                         pcr_score, pcr_label = -2, "Extreme Greed"
                     signals["PUT_CALL"] = {
                         "title": "CBOE Equity Put/Call",
-                        "value": f"{pcr_ma5:.2f}",  # 5d MA as headline
+                        "value": f"{pcr_now:.2f}",  # latest daily print as headline
                         "label": pcr_label,
                         "score": pcr_score,
                         "category": "sentiment",
-                        "raw":   round(pcr_ma5,  3),  # 5d MA used by thermometer
-                        "daily": round(pcr_now,  3),  # raw daily for tooltip context
-                        "ma5":   round(pcr_ma5,  3),
+                        "raw":   round(pcr_now,  3),  # daily print used by thermometer
+                        "daily": round(pcr_now,  3),
+                        "change": round(pcr_now - pcr_prev, 3),  # today's move
+                        "ma5":   round(pcr_ma5,  3),  # context only
                         "ma20":  round(pcr_ma20, 3) if pcr_ma20 else None,
                         "date":  pcr_date,
                     }

@@ -28543,12 +28543,14 @@ function renderMacroDataPanels(reg){
                 : isFear
                   ? 'background:rgba(34,201,122,0.05);border:1px solid rgba(34,201,122,0.10);border-radius:6px;padding:6px 6px 4px;margin-top:4px;'
                   : 'padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);margin-top:4px;';
-              const pcrDaily = pcrSig.daily ?? null;
+              const pcrChg = pcrSig.change ?? null;
+              const pcrChgCol = pcrChg==null?'rgba(173,184,208,0.40)':(pcrChg>0?'#22c97a':pcrChg<0?'#e03a2a':'rgba(173,184,208,0.40)');
+              const pcrChgTxt = pcrChg==null?'':`${pcrChg>0?'▲ +':pcrChg<0?'▼ ':''}${pcrChg.toFixed(2)} today`;
               return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;${extBg}">
                 <div>
-                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">P/C Ratio <span style="font-weight:400;opacity:0.50;font-size:8px;text-transform:none">5d MA &middot; high = fear</span></div>
+                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60);margin-bottom:2px">P/C Ratio <span style="font-weight:400;opacity:0.50;font-size:8px;text-transform:none">daily &middot; high = fear</span></div>
                   ${thermoBar({value:pcrNum,min:0.35,max:1.20,zones:[{v0:0.35,v1:0.50,col:'rgba(224,58,42,0.80)'},{v0:0.50,v1:0.65,col:'rgba(220,120,50,0.68)'},{v0:0.65,v1:0.80,col:'rgba(200,169,110,0.58)'},{v0:0.80,v1:1.00,col:'rgba(80,180,110,0.68)'},{v0:1.00,v1:1.20,col:'rgba(34,201,122,0.80)'}],leftLabel:'greed',rightLabel:'fear',benchmarks:[{v:0.68,col:'rgba(173,184,208,0.50)'}]})}
-                  ${pcrDaily!=null?`<div style="font-family:var(--mono);font-size:8px;color:rgba(173,184,208,0.40);margin-top:2px">Daily: ${pcrDaily.toFixed(2)}</div>`:''}
+                  ${pcrChg!=null?`<div style="font-family:var(--mono);font-size:8px;color:${pcrChgCol};margin-top:2px">${pcrChgTxt}</div>`:''}
                 </div>
                 <div style="text-align:right;min-width:68px">
                   <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${isExtreme?'#e03a2a':isFear?'#22c97a':'#e8e6e3'};letter-spacing:-0.02em">${pcrNum.toFixed(2)}</div>
@@ -34917,7 +34919,7 @@ function openMethModal(assetId) {
     momentum:{cls:'fc-mom',   role:'GATE',    name:'Momentum / Trend', desc:'Multi-timeframe trend (20/50/200 MAs, 52-week range, weekly ROC) plus the Kaufman efficiency ratio. Sets the regime GATE -- conviction is amplified in clean trends and suppressed in chop -- and adds a trend vote.', pills:['<span class="meth-pill bull">Clean uptrend</span>','<span class="meth-pill bear">Clean downtrend</span>','<span class="meth-pill neut">Choppy -> gate down</span>']},
     cot:     {cls:'fc-cot',   role:'SETUP',   name:'COT Positioning',  desc:'Commercials / large specs / small specs vs their own 3-year range (OI-normalised; FX crosses built from both legs). A risk/reward SETUP with its own direction -- aligned / counter / standalone -- judged on R/R. It does NOT vote in the directional score.', pills:['<span class="meth-pill bull">Comms long extreme</span>','<span class="meth-pill bear">Specs crowded long</span>','<span class="meth-pill neut">Mid-range</span>']},
     relval:  {cls:'fc-relval',role:'CONTEXT', name:'Relative Value',   desc:'Stochastic percentile vs macro-relevant peers -- flags when an asset is stretched or cheap relative to its drivers. Context for entry timing; not a primary directional voter.', pills:['<span class="meth-pill bull">Cheap vs peers</span>','<span class="meth-pill bear">Expensive vs peers</span>','<span class="meth-pill neut">Fair value</span>']},
-    pcr:     {cls:'fc-hist',  role:'CONTEXT', name:'Put/Call Ratio',   desc:'5-day MA of the CBOE equity put/call ratio -- a contrarian sentiment gauge. High = fear (contrarian bullish), low = complacency (contrarian bearish). Context only.', pills:['<span class="meth-pill bull">High P/C (fear)</span>','<span class="meth-pill bear">Low P/C (greed)</span>','<span class="meth-pill neut">Normal</span>']},
+    pcr:     {cls:'fc-hist',  role:'CONTEXT', name:'Put/Call Ratio',   desc:'Latest daily CBOE equity put/call print (1yr percentile + z-score) -- fast-reacting contrarian sentiment gauge. High = fear (contrarian bullish), low = complacency (contrarian bearish). Context only.', pills:['<span class="meth-pill bull">High P/C (fear)</span>','<span class="meth-pill bear">Low P/C (greed)</span>','<span class="meth-pill neut">Normal</span>']},
   };
 
   // Canonical order: voters -> gate -> setup -> context. Show factors this market actually has.
@@ -39943,6 +39945,11 @@ function pcrTabStub(m){
   const pcrOI = d.pcr_oi != null ? d.pcr_oi : (d.current_daily != null ? d.current_daily : null);
   const pcrVol = d.pcr_vol != null ? d.pcr_vol : null;
   const isEtfOrCrypto = ['GC','SI','CL','BTC','ETH'].includes(m.id);
+  // Today's move: signed 1-day change in the daily print (equities only)
+  const dchg = d.daily_change;
+  const chgCol = dchg==null ? 'var(--dim)' : (dchg>0 ? '#22c97a' : dchg<0 ? '#e03a2a' : 'var(--dim)');
+  const chgTxt = dchg==null ? '—' : (dchg>0?'+':'')+dchg.toFixed(2);
+  const chgArrow = dchg==null||dchg===0 ? '' : (dchg>0?'▲':'▼');
   const tierLabel = tier===1?'Tier 1 — Deep market':tier===2?'Tier 2 — Moderate liquidity':'Tier 3 — Deribit';
   const col = sHex(score);
   return `<div id="pcr-inner">
@@ -39955,9 +39962,9 @@ function pcrTabStub(m){
           <div style="font-size:8px;color:var(--dim);margin-top:4px">${isEtfOrCrypto?(d.exchange||'Live snapshot'):'as of '+(d.latest_date||'—')}</div>
         </div>
         <div style="flex:1;min-width:110px;background:rgba(255,255,255,0.025);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:13px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08)">
-          <div style="font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">${isEtfOrCrypto?'Vol P/C':'5-Day MA'}</div>
-          <div style="font-size:24px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1">${isEtfOrCrypto?(d.pcr_vol!=null?d.pcr_vol:'—'):(d.ma5||d.ma20||'—')}</div>
-          <div style="font-size:8px;color:var(--dim);margin-top:4px">${isEtfOrCrypto?'volume-based ratio':'scoring basis'}</div>
+          <div style="font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">${isEtfOrCrypto?'Vol P/C':"Today's Move"}</div>
+          <div style="font-size:24px;font-weight:700;color:${isEtfOrCrypto?'var(--text)':chgCol};font-family:var(--mono);line-height:1">${isEtfOrCrypto?(d.pcr_vol!=null?d.pcr_vol:'—'):(chgArrow+' '+chgTxt)}</div>
+          <div style="font-size:8px;color:var(--dim);margin-top:4px">${isEtfOrCrypto?'volume-based ratio':'1-day change in print'}</div>
         </div>
         <div style="flex:1;min-width:110px;background:${score<4?'rgba(240,64,64,0.08)':score>6?'rgba(38,201,122,0.07)':'var(--surf2)'};border:1px solid ${score<4?'rgba(240,64,64,0.25)':score>6?'rgba(38,201,122,0.22)':'var(--bdr2)'};border-radius:10px;padding:13px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
           <div style="font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">Signal</div>
@@ -39984,7 +39991,7 @@ function pcrTabStub(m){
       </div>
 
       <!-- Chart placeholder -->
-      <div id="pcr-chart-title" style="font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--bdr)">Put/Call Ratio History &mdash; <span style="color:#5c9eff">5d MA</span> scores &middot; <span style="color:rgba(160,120,255,0.6)">20d MA</span> context</div>
+      <div id="pcr-chart-title" style="font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--bdr)">Put/Call Ratio History &mdash; <span style="color:#5c9eff">daily print</span> &middot; latest reading marked</div>
       <div id="pcr-chart-wrap" style="position:relative;height:260px;background:var(--surf);border-radius:8px;display:flex;align-items:center;justify-content:center">
         <div style="color:var(--faint);font-size:11px">Loading chart…</div>
       </div>
@@ -40012,9 +40019,9 @@ async function loadPcrTab(marketId){
 
   if(titleEl){
     if(isEtf){
-      titleEl.innerHTML = sourceName + ' &mdash; Put/Call Ratio History <span style="color:var(--gold);font-size:9px;font-weight:600;letter-spacing:0">(proxy-scaled from ETP aggregate before live cache)</span>';
+      titleEl.innerHTML = sourceName + ' &mdash; Daily Put/Call Ratio <span style="color:var(--gold);font-size:9px;font-weight:600;letter-spacing:0">(proxy-scaled from ETP aggregate before live cache)</span>';
     } else {
-      titleEl.textContent = 'CBOE Equity Put/Call Ratio \u2014 1 Year';
+      titleEl.innerHTML = 'CBOE Equity Put/Call Ratio \u2014 <span style="color:#5c9eff">daily print</span> &middot; 1 Year &middot; latest reading marked';
     }
   }
 
@@ -40036,16 +40043,14 @@ async function loadPcrTab(marketId){
     const canvas = document.getElementById('pcr-chart');
 
     // For equity: use equity_pc field. For ETF/crypto: use pcr field (also set to equity_pc in backend)
+    // FAST-REACTING: the raw DAILY print is the hero. No MA scoring line.
     const labels = rows.map(r=>r.date);
     const daily  = rows.map(r=> r.pcr != null ? r.pcr : r.equity_pc);
-    const ma5    = rows.map(r=>r.pc_ma5  ?? null);
-    const ma20   = rows.map(r=>r.pc_ma20 ?? null);
-    const hasMA5 = ma5.some(v=>v!=null);
 
     if(pcrChartInst) { pcrChartInst.destroy(); pcrChartInst=null; }
 
     // Compute tight y-axis range — clip outliers using 2nd/98th percentile
-    const allVals = [...daily.filter(v=>v!=null), ...ma20.filter(v=>v!=null)].sort((a,b)=>a-b);
+    const allVals = [...daily.filter(v=>v!=null)].sort((a,b)=>a-b);
     const p2  = allVals[Math.floor(allVals.length * 0.02)] ?? allVals[0];
     const p98 = allVals[Math.floor(allVals.length * 0.98)] ?? allVals[allVals.length-1];
     const span = p98 - p2;
@@ -40128,6 +40133,18 @@ async function loadPcrTab(marketId){
       }
     };
 
+    // Highlight the most recent print with a visible marker so the latest
+    // reading (what we score off) is unmistakable.
+    const lastIdx = daily.length - 1;
+    const ptRadius = daily.map((v,i)=> i===lastIdx && v!=null ? 4 : 0);
+    const ptColor  = daily.map((v,i)=>{
+      if(i!==lastIdx || v==null) return 'rgba(0,0,0,0)';
+      // colour the latest dot by fear(green)/greed(red) vs thresholds
+      if(v >= mf) return '#22c97a';        // fear → contrarian bullish → green
+      if(v <= mg) return '#e03a2a';        // greed → contrarian bearish → red
+      return '#c8a96e';                    // neutral → gold
+    });
+
     pcrChartInst = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: {
@@ -40136,35 +40153,14 @@ async function loadPcrTab(marketId){
           {
             label: 'Daily P/C',
             data: daily,
-            borderColor: 'rgba(160,180,220,0.35)',
-            borderWidth: 1,
-            pointRadius: 0,
-            fill: false,
-            tension: 0.2,
-            order: 3,
-          },
-          // 5-day MA — scoring line, bright and prominent
-          ...(hasMA5 ? [{
-            label: '5-Day MA (Scoring)',
-            data: ma5,
             borderColor: '#5c9eff',
-            borderWidth: 2.5,
-            pointRadius: 0,
+            borderWidth: 2,
+            pointRadius: ptRadius,
+            pointBackgroundColor: ptColor,
+            pointBorderColor: ptColor,
             fill: false,
-            tension: 0.35,
+            tension: 0.15,
             order: 1,
-          }] : []),
-          // 20-day MA — context only, faint
-          {
-            label: '20-Day MA',
-            data: ma20,
-            borderColor: 'rgba(160,120,255,0.35)',
-            borderWidth: 1.5,
-            borderDash: [4,3],
-            pointRadius: 0,
-            fill: false,
-            tension: 0.4,
-            order: 2,
           },
         ]
       },
@@ -40197,20 +40193,7 @@ async function loadPcrTab(marketId){
           }
         },
         plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            align: 'end',
-            labels: {
-              color: '#7a8ab0',
-              font: {size: 9},
-              boxWidth: 18,
-              boxHeight: 2,
-              padding: 10,
-              usePointStyle: false,
-              filter: item => item.text !== 'Daily P/C', // hide noisy daily from legend
-            }
-          },
+          legend: { display: false },  // single daily line — zone shading carries the meaning
           tooltip: {
             mode: 'index', intersect: false,
             backgroundColor: '#0d0f17',
