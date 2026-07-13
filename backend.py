@@ -9037,8 +9037,15 @@ def generate_consensus_outlook() -> dict:
                 "dir":   cd,
                 "note":  str(c.get("note", ""))[:260],
             })
+        outlook_raw = str(parsed.get("outlook", "")).strip() if isinstance(parsed, dict) else ""
+        # Clamp without cutting mid-sentence: if too long, trim back to the last
+        # sentence-ending punctuation within the limit.
+        if len(outlook_raw) > 1400:
+            cut = outlook_raw[:1400]
+            last_end = max(cut.rfind(". "), cut.rfind("? "), cut.rfind("! "))
+            outlook_raw = (cut[:last_end + 1] if last_end > 200 else cut.rstrip()).strip()
         result = {
-            "outlook":   str(parsed.get("outlook", ""))[:1200] if isinstance(parsed, dict) else "",
+            "outlook":   outlook_raw,
             "crowded":   crowded[:8],
             "as_of":     today,
             "citations": [str(c)[:300] for c in citations][:20],

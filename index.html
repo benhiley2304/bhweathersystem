@@ -30143,7 +30143,12 @@ function renderConsensusOutlook(con, updAt){
     .replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
     .replace(/(^|[\s(])_(.+?)_([\s.,;:)]|$)/g,'$1$2$3')
     .replace(/\[(\d+)\]/g,'').trim();
-  const outlook=con&&con.outlook?clean(con.outlook):'';
+  var outlook=con&&con.outlook?clean(con.outlook):'';
+  // If the text ends mid-sentence (no terminal punctuation), trim the dangling fragment.
+  if(outlook && !/[.!?]["')\]]?$/.test(outlook)){
+    var lastEnd=Math.max(outlook.lastIndexOf('. '),outlook.lastIndexOf('? '),outlook.lastIndexOf('! '));
+    if(lastEnd>120) outlook=outlook.slice(0,lastEnd+1).trim();
+  }
   if(!outlook){ wrap.style.display='none'; return; }
   wrap.style.display='';
   // Timestamp — prefer as_of label from the model, else derive from updAt
