@@ -8949,23 +8949,142 @@ def _save_consensus_to_disk() -> None:
         print(f"[consensus] disk save failed: {e}", flush=True)
 
 
+# Map COT market ids/names to the consensus 'trade' language a strategist speaks.
+# dir_if_long = what going long the FUTURE means in crowd terms.
+_COT_TRADE_MAP = {
+    "DX":  "long US dollar",       "6E": "long EUR / short USD",  "6B": "long GBP / short USD",
+    "6J":  "long JPY / short USD", "6A": "long AUD / short USD",  "6C": "long CAD / short USD",
+    "6S":  "long CHF / short USD", "6N": "long NZD / short USD",
+    "ES":  "long US equities (S&P)", "NQ": "long US tech (Nasdaq)", "YM": "long US large-cap (Dow)",
+    "RTY": "long US small-caps",   "Z":  "long UK equities (FTSE)",
+    "GC":  "long gold", "SI": "long silver", "HG": "long copper", "PA": "long palladium", "PL": "long platinum",
+    "CL":  "long crude oil", "NG": "long natural gas", "RB": "long gasoline", "HO": "long heating oil",
+    "ZB":  "long long-bond / duration", "ZN": "long 10y Treasuries", "ZT": "long 2y Treasuries",
+    "ZF":  "long 5y Treasuries",
+    "ZC":  "long corn", "ZW": "long wheat", "ZS": "long soybeans",
+    "CC":  "long cocoa", "KC": "long coffee", "SB": "long sugar", "CT": "long cotton",
+    "LE":  "long live cattle", "HE": "long lean hogs",
+    "BTC": "long bitcoin", "ETH": "long ether",
+}
+
+
+def _assemble_offside_brief() -> dict:
+    """Assemble the app's OWN hard data into a compact brief the consensus prompt
+    can reason against — so Sonar isn't guessing where the crowd is offside.
+
+    Three dynamic inputs:
+      1. COT positioning EXTREMES  — large-spec percentile >=85 (crowd very long)
+         or <=15 (crowd very short), plus whether specs are starting to TURN
+         (the early-reversal tell). Pulled live from the scores cache.
+      2. Upcoming CATALYSTS        — high/medium-impact FF calendar events still
+         ahead of now this week (data releases, central-bank decisions, speakers),
+         with forecast vs previous so the prompt can see the setup.
+      3. News / real-world flow    — latest headline framing.
+
+    Returns {"positioning": str, "catalysts": str, "news": str} — all plain text.
+    """
+    positioning_lines: list[str] = []
+    catalysts_lines: list[str] = []
+    news_lines: list[str] = []
+
+    # ---- 1. COT extremes from the live scores cache -------------------------
+    try:
+        blob = ALL_DATA_CACHE.get("data") or {}
+        markets = blob.get("markets", []) or []
+        rows = []
+        for m in markets:
+            cot = (m.get("scores") or {}).get("cot") or {}
+            li = cot.get("lspec_index")
+            ci = cot.get("comm_index")
+            if li is None:
+                continue
+            if li >= 85 or li <= 15:
+                mid = (m.get("id") or "").upper()
+                trade = _COT_TRADE_MAP.get(mid, f"long {m.get('name','?')}")
+                # Large specs = trend-following crowd. High index = crowd very long.
+                crowd_side = "very long" if li >= 85 else "very short"
+                # Are specs starting to turn against their extreme? (early reversal)
+                turn_dir = cot.get("v2_spec_turn_dir")
+                turn_conf = cot.get("v2_spec_turn_confirmed")
+                turn_txt = ""
+                if turn_conf and turn_dir in (1, -1):
+                    turn_txt = " — specs CONFIRMED turning" + (" up" if turn_dir == 1 else " down")
+                elif turn_dir in (1, -1):
+                    turn_txt = " — specs tentatively turning" + (" up" if turn_dir == 1 else " down")
+                extremity = abs(li - 50)
+                rows.append((extremity, m.get("name", "?"), trade, crowd_side,
+                             round(li, 0), round(ci, 0) if ci is not None else None, turn_txt))
+        rows.sort(key=lambda r: -r[0])
+        for _, name, trade, side, li, ci, turn in rows[:12]:
+            cpart = f", commercials {int(ci)}th pct" if ci is not None else ""
+            positioning_lines.append(
+                f"- {name}: large specs {side} ({int(li)}th pct{cpart}) => crowd is {trade}{turn}"
+            )
+    except Exception as e:
+        print(f"[consensus] positioning assemble failed: {e}", flush=True)
+
+    # ---- 2. Upcoming catalysts from the FF calendar -------------------------
+    try:
+        cal = fetch_ff_calendar_json() or []
+        now_ts = time.time()
+        up = []
+        for e in cal:
+            dl = e.get("dateline")
+            imp = (e.get("impactClass") or "").lower()
+            if dl and dl > now_ts and imp in ("high", "medium"):
+                up.append((dl, imp, e))
+        up.sort(key=lambda x: x[0])
+        for dl, imp, e in up[:14]:
+            when = datetime.utcfromtimestamp(dl).strftime("%a %d %b %H:%M")
+            cur = e.get("currency", "")
+            nm = e.get("name", "")
+            fc = e.get("forecast", ""); pv = e.get("previous", "")
+            fcpart = f" (fc {fc} vs prev {pv})" if (fc or pv) else ""
+            tag = "HIGH" if imp == "high" else "med"
+            catalysts_lines.append(f"- {when} UTC [{tag}] {cur} {nm}{fcpart}")
+    except Exception as e:
+        print(f"[consensus] catalysts assemble failed: {e}", flush=True)
+
+    # ---- 3. News / real-world flow -----------------------------------------
+    try:
+        news = fetch_ff_news(hours_back=48) or []
+        for n in news[:10]:
+            t = (n.get("title") or "").strip()
+            if t:
+                news_lines.append(f"- {t[:130]}")
+    except Exception as e:
+        print(f"[consensus] news assemble failed: {e}", flush=True)
+
+    return {
+        "positioning": "\n".join(positioning_lines) if positioning_lines else "(no extreme COT positioning detected)",
+        "catalysts":   "\n".join(catalysts_lines) if catalysts_lines else "(no high/medium-impact events remaining this week)",
+        "news":        "\n".join(news_lines) if news_lines else "(no recent headlines)",
+    }
+
+
 def generate_consensus_outlook() -> dict:
     """
-    Read the week's market commentary — sell-side bank/broker outlooks, CTA /
-    trend-following fund positioning notes, and financial news flow — via a
-    web-search-enabled Sonar call, and distil a single CROSS-ASSET CONSENSUS
-    OUTLOOK: what trend-following funds and bank desks collectively believe
-    right now, and where the crowd is most one-sided.
+    Build the CONSENSUS & OFFSIDE-RISK read: a robust synthesis of what the crowd
+    (bank desks / CTAs / fund surveys / news flow) collectively believes right
+    now, woven together with WHERE THAT CONSENSUS IS MOST LIKELY TO BE CAUGHT
+    OFFSIDE — i.e. a widely-held belief that an upcoming catalyst, real-world
+    event, performance shift, or stretched positioning could violently unwind.
 
-    This is the qualitative "if you read enough fund-manager outlooks you'd pick
-    up the consensus fast" layer. It sits ALONGSIDE the Market Narrative block
-    as a Consensus Market Outlook — NOT a per-market score.
+    The purpose is NOT to list crowded trades (COT already does that). It is to
+    identify asymmetry: where the narrative and the positioning point the same
+    way AND a catalyst sits ahead that could break it.
+
+    Sonar (web-search) gathers this week's commentary; we hand it the app's OWN
+    hard data via _assemble_offside_brief() — live COT positioning extremes,
+    upcoming FF catalysts, and news flow — so the offside cross-reference is
+    grounded in real numbers, not guessed.
 
     Returns:
       {
-        "outlook":   "3-5 sentence synthesised consensus narrative",
-        "crowded":   [ {"label": "Long US equities", "note": "why / who"}, ... ],
-        "as_of":     "09 July 2026",
+        "outlook":   "woven consensus narrative (what the crowd believes + why)",
+        "offside":   [ {"belief": "...", "catalyst": "...", "positioning": "...",
+                        "risk": "long|short|two-way", "note": "..."}, ... ],
+        "as_of":     "13 July 2026",
         "citations": [ ...urls... ]
       }
     Returns {} on any error (graceful degradation — the block just hides).
@@ -8976,29 +9095,48 @@ def generate_consensus_outlook() -> dict:
         return {}
 
     today = datetime.utcnow().strftime("%d %B %Y")
+    brief = _assemble_offside_brief()
 
     prompt = (
-        f"Today is {today}. You are the positioning strategist for a macro swing-trading desk. "
-        "Read THIS WEEK's market commentary and synthesise the CONSENSUS (crowd) view across "
-        "global markets — the way you would if you'd read a stack of fund-manager outlooks.\n\n"
-        "Draw from the LATEST (last 7-10 days) sources:\n"
+        f"Today is {today}. You are the head strategist for a macro swing-trading desk. "
+        "Your job this week is to (1) capture the CONSENSUS view across global markets, and "
+        "(2) identify WHERE THAT CONSENSUS IS MOST LIKELY TO BE CAUGHT OFFSIDE.\n\n"
+        "Read THIS WEEK's commentary the way you would if you'd read a stack of fund-manager "
+        "outlooks. Draw from the LATEST (last 7-10 days):\n"
         "  • Sell-side bank & broker weekly outlooks (JPMorgan, Goldman Sachs, Morgan Stanley, "
         "Citi, Barclays, BofA, UBS, Deutsche, Nomura, Scotiabank, Commerzbank, ING).\n"
         "  • CTA / trend-following & macro fund positioning notes and surveys (BofA CTA monitor, "
         "SocGen CTA index, BofA Global Fund Manager Survey, 'most crowded trade' polls).\n"
         "  • Financial news flow framing (Reuters / Bloomberg / FT-style).\n\n"
-        "Cover the major arenas: the US dollar & G10 FX, US and global equities, rates/bonds, "
-        "gold & metals, crude oil & energy, and crypto. Focus on WHERE THE CROWD IS LEANING and "
-        "HOW ONE-SIDED it is — the crowded trades a contrarian would watch to fade.\n\n"
-        "Return ONLY valid JSON — no markdown fences, no text before or after. Shape:\n"
+        "You have been given the desk's OWN hard data below. USE IT to ground your offside calls "
+        "— when the crowd's talked-about view lines up with a stretched positioning reading AND a "
+        "catalyst sits ahead, that is a high-value offside setup. Catalysts can be economic data "
+        "releases, central-bank decisions/speakers, real-world/geopolitical events, or performance "
+        "itself (a move that's gone too far, too fast).\n\n"
+        "=== DESK POSITIONING DATA (live COT extremes — large specs = trend-following crowd) ===\n"
+        f"{brief['positioning']}\n\n"
+        "=== UPCOMING CATALYSTS (high/medium-impact events still ahead this week) ===\n"
+        f"{brief['catalysts']}\n\n"
+        "=== RECENT NEWS / REAL-WORLD FLOW ===\n"
+        f"{brief['news']}\n\n"
+        "Now produce the read. Return ONLY valid JSON — no markdown, no text before/after. "
+        "Do NOT use asterisks, underscores, or bracketed [n] citation markers inside any string. Shape:\n"
         "{\n"
-        '  "outlook": "3-5 sentences: the prevailing cross-asset consensus this week and why, '
-        'naming the desks/surveys driving it (e.g. what CTAs are positioned in, what the FMS shows).",\n'
-        '  "crowded": [ {"label": "short 3-6 word crowded-trade name", "dir": "long|short", '
-        '"note": "1 sentence: who holds it and the fade risk"} ]\n'
+        '  "outlook": "4-6 sentences: the prevailing cross-asset consensus this week and why, '
+        'naming the desks/surveys driving it. This is the robust narrative of what the crowd '
+        'believes across USD/G10 FX, equities, rates, metals, energy and crypto.",\n'
+        '  "offside": [ {\n'
+        '     "belief": "the specific consensus belief at risk (e.g. \'strong US labour market\')",\n'
+        '     "catalyst": "the event/data/move that could break it, with timing if known",\n'
+        '     "positioning": "how stretched/aligned positioning is (cite the COT reading above if it parallels), or \'n/a\' if positioning is not a factor",\n'
+        '     "risk": "long|short|two-way",\n'
+        '     "note": "1 crisp sentence on the asymmetry / what unwinds if the belief is wrong"\n'
+        '  } ]\n'
         "}\n"
-        "List 4-7 of the most one-sided / widely-cited crowded trades in 'crowded'. "
-        "Start with { and end with }."
+        "Give 3-5 offside setups, ranked most-asymmetric first. Prioritise setups where the "
+        "consensus narrative AND the positioning data above point the same way and a catalyst is "
+        "imminent. 'risk' = the direction of the crowd's exposure that is vulnerable (e.g. if "
+        "everyone is long USD and it could unwind, risk='long'). Start with { and end with }."
     )
 
     try:
@@ -9008,11 +9146,11 @@ def generate_consensus_outlook() -> dict:
             json={
                 "model": "sonar-pro",           # web-search enabled — actually reads the outlooks
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 3000,
+                "max_tokens": 3500,
                 "temperature": 0.2,
                 "search_recency_filter": "week",
             },
-            timeout=90.0,
+            timeout=110.0,
         )
         data = resp.json()
         raw = data["choices"][0]["message"]["content"].strip()
@@ -9024,33 +9162,38 @@ def generate_consensus_outlook() -> dict:
         if s != -1 and e != -1 and e > s:
             raw = raw[s:e + 1]
         parsed = json.loads(raw)
-        crowded_in = parsed.get("crowded", []) if isinstance(parsed, dict) else []
-        crowded = []
-        for c in crowded_in:
-            if not isinstance(c, dict):
+        offside_in = parsed.get("offside", []) if isinstance(parsed, dict) else []
+        offside = []
+        for o in offside_in:
+            if not isinstance(o, dict):
                 continue
-            cd = str(c.get("dir", "")).lower().strip()
-            if cd not in ("long", "short"):
-                cd = ""
-            crowded.append({
-                "label": str(c.get("label", ""))[:80],
-                "dir":   cd,
-                "note":  str(c.get("note", ""))[:260],
+            rk = str(o.get("risk", "")).lower().strip()
+            if rk not in ("long", "short", "two-way"):
+                rk = "two-way"
+            belief = str(o.get("belief", ""))[:160].strip()
+            if not belief:
+                continue
+            offside.append({
+                "belief":      belief,
+                "catalyst":    str(o.get("catalyst", ""))[:220].strip(),
+                "positioning": str(o.get("positioning", ""))[:220].strip(),
+                "risk":        rk,
+                "note":        str(o.get("note", ""))[:260].strip(),
             })
         outlook_raw = str(parsed.get("outlook", "")).strip() if isinstance(parsed, dict) else ""
         # Clamp without cutting mid-sentence: if too long, trim back to the last
         # sentence-ending punctuation within the limit.
-        if len(outlook_raw) > 1400:
-            cut = outlook_raw[:1400]
+        if len(outlook_raw) > 1600:
+            cut = outlook_raw[:1600]
             last_end = max(cut.rfind(". "), cut.rfind("? "), cut.rfind("! "))
             outlook_raw = (cut[:last_end + 1] if last_end > 200 else cut.rstrip()).strip()
         result = {
             "outlook":   outlook_raw,
-            "crowded":   crowded[:8],
+            "offside":   offside[:6],
             "as_of":     today,
             "citations": [str(c)[:300] for c in citations][:20],
         }
-        print(f"[consensus] outlook read: {len(result['outlook'])} chars, {len(crowded)} crowded trades", flush=True)
+        print(f"[consensus] read: {len(result['outlook'])} chars outlook, {len(offside)} offside setups", flush=True)
         return result
     except Exception as e:
         print(f"[consensus] error: {e}", flush=True)
@@ -9070,7 +9213,7 @@ def compute_consensus_outlook(force: bool = False) -> dict:
         _save_consensus_to_disk()
         return fresh
     # generation failed — serve any stale cache rather than nothing
-    return CONSENSUS_CACHE["data"] or {"outlook": "", "crowded": [], "as_of": "", "citations": []}
+    return CONSENSUS_CACHE["data"] or {"outlook": "", "offside": [], "as_of": "", "citations": []}
 
 
 def compute_news_context(force: bool = False) -> dict:
