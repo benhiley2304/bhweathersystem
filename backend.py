@@ -9317,7 +9317,20 @@ def compute_consensus_outlook(force: bool = False) -> dict:
     if not force and not _markets and CONSENSUS_CACHE["data"] is not None:
         print("[consensus] scores cache cold — keeping existing consensus, skip regen", flush=True)
         return CONSENSUS_CACHE["data"]
+    # How many COT extremes are available right now? If >=2, we expect the
+    # offside read to surface at least 2 positioning parallels. sonar-pro is
+    # non-deterministic, so retry once if the first read ignored positioning.
+    _n_extremes = len(_assemble_offside_brief().get("extremes", []))
+    def _pos_count(d):
+        return sum(1 for o in (d.get("offside") or []) if (o.get("positioning") or "").strip())
     fresh = generate_consensus_outlook()
+    if (fresh and fresh.get("outlook") and _n_extremes >= 2
+            and _pos_count(fresh) < 2):
+        print(f"[consensus] only {_pos_count(fresh)} positioning parallels vs "
+              f"{_n_extremes} extremes available — regenerating once", flush=True)
+        retry = generate_consensus_outlook()
+        if retry and retry.get("outlook") and _pos_count(retry) > _pos_count(fresh):
+            fresh = retry
     if fresh and fresh.get("outlook"):
         CONSENSUS_CACHE["data"] = fresh
         CONSENSUS_CACHE["time"] = now
