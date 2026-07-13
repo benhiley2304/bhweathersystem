@@ -9205,6 +9205,7 @@ def generate_consensus_outlook() -> dict:
             "offside":   offside[:6],
             "as_of":     today,
             "citations": [str(c)[:300] for c in citations][:20],
+            "_brief_pos": brief.get("positioning", "")[:600],  # DEBUG: confirm COT fed in
         }
         print(f"[consensus] read: {len(result['outlook'])} chars outlook, {len(offside)} offside setups", flush=True)
         return result
