@@ -8481,6 +8481,17 @@ NEWS_CACHE_TTL = FF_NEWS_TTL
 NARR_CACHE: dict = {"data": None, "time": 0}
 NARR_CACHE_TTL = 3600 * 2  # 2 hours, same as news
 
+# ── Weekly consensus-outlook cache ────────────────────────────────────────────
+# Reads the week's bank/broker outlooks, CTA/trend-fund commentary and news flow
+# via a web-search-enabled Sonar call, and distils the CROWD VIEW per market:
+# what the consensus believes, how one-sided it is, and the fade angle. This is
+# the qualitative "read the outlooks" layer that feeds the Consensus-Fade panel.
+# Refreshed weekly (fund managers publish weekly), cached to disk so a Render
+# redeploy doesn't wipe it.
+CONSENSUS_CACHE: dict = {"data": None, "time": 0}
+CONSENSUS_CACHE_TTL = 3600 * 24 * 7          # 7 days
+CONSENSUS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "consensus_cache.json")
+
 
 def generate_asset_narratives(news_items: list) -> dict:
     """
@@ -8910,6 +8921,151 @@ def generate_global_narrative(regime_data: dict, news_items: list) -> str | None
         return None
 
 
+# ============================================================
+# WEEKLY CONSENSUS OUTLOOK  (read the fund-manager / bank outlooks)
+# ============================================================
+
+
+def _load_consensus_from_disk() -> None:
+    """Warm CONSENSUS_CACHE from disk on boot so a Render redeploy keeps the
+    last weekly read until the next scheduled refresh."""
+    try:
+        if os.path.exists(CONSENSUS_CACHE_FILE):
+            with open(CONSENSUS_CACHE_FILE, "r") as f:
+                blob = json.load(f)
+            if isinstance(blob, dict) and blob.get("data"):
+                CONSENSUS_CACHE["data"] = blob["data"]
+                CONSENSUS_CACHE["time"] = float(blob.get("time", 0))
+                print(f"[consensus] warmed {len(blob['data'].get('markets', {}))} markets from disk", flush=True)
+    except Exception as e:
+        print(f"[consensus] disk warm failed: {e}", flush=True)
+
+
+def _save_consensus_to_disk() -> None:
+    try:
+        with open(CONSENSUS_CACHE_FILE, "w") as f:
+            json.dump({"data": CONSENSUS_CACHE["data"], "time": CONSENSUS_CACHE["time"]}, f)
+    except Exception as e:
+        print(f"[consensus] disk save failed: {e}", flush=True)
+
+
+def generate_consensus_outlook() -> dict:
+    """
+    Read the week's market commentary — sell-side bank/broker outlooks, CTA /
+    trend-following fund positioning notes, and financial news flow — via a
+    web-search-enabled Sonar call, and distil a single CROSS-ASSET CONSENSUS
+    OUTLOOK: what trend-following funds and bank desks collectively believe
+    right now, and where the crowd is most one-sided.
+
+    This is the qualitative "if you read enough fund-manager outlooks you'd pick
+    up the consensus fast" layer. It sits ALONGSIDE the Market Narrative block
+    as a Consensus Market Outlook — NOT a per-market score.
+
+    Returns:
+      {
+        "outlook":   "3-5 sentence synthesised consensus narrative",
+        "crowded":   [ {"label": "Long US equities", "note": "why / who"}, ... ],
+        "as_of":     "09 July 2026",
+        "citations": [ ...urls... ]
+      }
+    Returns {} on any error (graceful degradation — the block just hides).
+    """
+    api_key = os.environ.get("PPLX_API_KEY", "")
+    if not api_key:
+        print("[consensus] no PPLX_API_KEY — skipping", flush=True)
+        return {}
+
+    today = datetime.utcnow().strftime("%d %B %Y")
+
+    prompt = (
+        f"Today is {today}. You are the positioning strategist for a macro swing-trading desk. "
+        "Read THIS WEEK's market commentary and synthesise the CONSENSUS (crowd) view across "
+        "global markets — the way you would if you'd read a stack of fund-manager outlooks.\n\n"
+        "Draw from the LATEST (last 7-10 days) sources:\n"
+        "  • Sell-side bank & broker weekly outlooks (JPMorgan, Goldman Sachs, Morgan Stanley, "
+        "Citi, Barclays, BofA, UBS, Deutsche, Nomura, Scotiabank, Commerzbank, ING).\n"
+        "  • CTA / trend-following & macro fund positioning notes and surveys (BofA CTA monitor, "
+        "SocGen CTA index, BofA Global Fund Manager Survey, 'most crowded trade' polls).\n"
+        "  • Financial news flow framing (Reuters / Bloomberg / FT-style).\n\n"
+        "Cover the major arenas: the US dollar & G10 FX, US and global equities, rates/bonds, "
+        "gold & metals, crude oil & energy, and crypto. Focus on WHERE THE CROWD IS LEANING and "
+        "HOW ONE-SIDED it is — the crowded trades a contrarian would watch to fade.\n\n"
+        "Return ONLY valid JSON — no markdown fences, no text before or after. Shape:\n"
+        "{\n"
+        '  "outlook": "3-5 sentences: the prevailing cross-asset consensus this week and why, '
+        'naming the desks/surveys driving it (e.g. what CTAs are positioned in, what the FMS shows).",\n'
+        '  "crowded": [ {"label": "short 3-6 word crowded-trade name", "dir": "long|short", '
+        '"note": "1 sentence: who holds it and the fade risk"} ]\n'
+        "}\n"
+        "List 4-7 of the most one-sided / widely-cited crowded trades in 'crowded'. "
+        "Start with { and end with }."
+    )
+
+    try:
+        resp = httpx.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "sonar-pro",           # web-search enabled — actually reads the outlooks
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 3000,
+                "temperature": 0.2,
+                "search_recency_filter": "week",
+            },
+            timeout=90.0,
+        )
+        data = resp.json()
+        raw = data["choices"][0]["message"]["content"].strip()
+        citations = data.get("citations", []) or []
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+            raw = raw.rsplit("```", 1)[0].strip()
+        s = raw.find("{"); e = raw.rfind("}")
+        if s != -1 and e != -1 and e > s:
+            raw = raw[s:e + 1]
+        parsed = json.loads(raw)
+        crowded_in = parsed.get("crowded", []) if isinstance(parsed, dict) else []
+        crowded = []
+        for c in crowded_in:
+            if not isinstance(c, dict):
+                continue
+            cd = str(c.get("dir", "")).lower().strip()
+            if cd not in ("long", "short"):
+                cd = ""
+            crowded.append({
+                "label": str(c.get("label", ""))[:80],
+                "dir":   cd,
+                "note":  str(c.get("note", ""))[:260],
+            })
+        result = {
+            "outlook":   str(parsed.get("outlook", ""))[:1200] if isinstance(parsed, dict) else "",
+            "crowded":   crowded[:8],
+            "as_of":     today,
+            "citations": [str(c)[:300] for c in citations][:20],
+        }
+        print(f"[consensus] outlook read: {len(result['outlook'])} chars, {len(crowded)} crowded trades", flush=True)
+        return result
+    except Exception as e:
+        print(f"[consensus] error: {e}", flush=True)
+        return {}
+
+
+def compute_consensus_outlook(force: bool = False) -> dict:
+    """Cached wrapper around generate_consensus_outlook (weekly TTL + disk)."""
+    now = time.time()
+    if (not force and CONSENSUS_CACHE["data"] is not None
+            and (now - CONSENSUS_CACHE["time"]) < CONSENSUS_CACHE_TTL):
+        return CONSENSUS_CACHE["data"]
+    fresh = generate_consensus_outlook()
+    if fresh and fresh.get("outlook"):
+        CONSENSUS_CACHE["data"] = fresh
+        CONSENSUS_CACHE["time"] = now
+        _save_consensus_to_disk()
+        return fresh
+    # generation failed — serve any stale cache rather than nothing
+    return CONSENSUS_CACHE["data"] or {"outlook": "", "crowded": [], "as_of": "", "citations": []}
+
+
 def compute_news_context(force: bool = False) -> dict:
     """
     News feed: qualitative financial headlines from ForexFactory /news page,
@@ -8974,11 +9130,28 @@ def compute_news_context(force: bool = False) -> dict:
         else:
             print("[global_narr] Generation failed — will use fallback", flush=True)
 
+    # ── 4. Weekly consensus outlook (Sonar web-search) — own 7-day cache ────
+    # Read the week's fund-manager / bank-desk / CTA outlooks and distil the
+    # cross-asset crowd view. Sits alongside the Market Narrative on the front
+    # end. Weekly TTL so it doesn't re-run on every 2h news refresh. `force`
+    # here would over-run the weekly cadence, so we only force it when there is
+    # no data at all (first populate); otherwise honour its own TTL.
+    try:
+        consensus_outlook = compute_consensus_outlook(
+            force=(force and CONSENSUS_CACHE["data"] is None)
+        )
+    except Exception as _ce:
+        print(f"[consensus] compute failed: {_ce}", flush=True)
+        consensus_outlook = CONSENSUS_CACHE["data"] or {}
+    consensus_ts = CONSENSUS_CACHE["time"] or None
+
     return {
         "narratives":        narratives_text,    # {assetId: "text string"} — frontend display
         "narrative_scores":  narratives_scores,  # {assetId: 0-10 float} — regime blending
         "news_items":        news_items[:20],
         "global_narrative":  global_narrative,
+        "consensus_outlook": consensus_outlook,   # weekly cross-asset crowd view
+        "consensus_updated_at": consensus_ts,
         "price_context":     {},
         "updated_at":        news_ts,
         "ff_event_count":    len(news_items),
@@ -10427,6 +10600,26 @@ async def get_news_context(force: bool = False):
         return _SafeJSONResponse(ctx)
     except Exception as e:
         return {"narratives": {}, "news_items": [], "price_context": {}, "error": str(e), "updated_at": time.time()}
+
+
+@app.get("/api/consensus-outlook")
+async def get_consensus_outlook(force: bool = False):
+    """
+    Weekly cross-asset consensus outlook — the synthesised "what the crowd /
+    trend-following funds believe" read from this week's bank & CTA commentary.
+    Cached 7 days. force=true triggers a fresh Sonar web-search read (used by
+    the weekly pre-warm cron).
+    """
+    import asyncio
+    loop = asyncio.get_event_loop()
+    try:
+        out = await loop.run_in_executor(_APP_EXECUTOR, lambda: compute_consensus_outlook(force=force))
+        return _SafeJSONResponse({
+            "consensus_outlook": out,
+            "updated_at": CONSENSUS_CACHE["time"] or None,
+        })
+    except Exception as e:
+        return {"consensus_outlook": {}, "error": str(e), "updated_at": None}
 
 # ============================================================
 # SEASONALITY ENDPOINT — serves pre-computed curves for all 21 markets
@@ -13800,6 +13993,12 @@ async def warmup_cache():
     async def _warm():
         await _astart.sleep(2)
         _WARMING["started"] = True
+
+        # ── Consensus outlook: warm from disk so a redeploy keeps last week's read
+        try:
+            _load_consensus_from_disk()
+        except Exception as _e:
+            print(f"[startup] consensus disk warm error (non-fatal): {_e}")
 
         # ── ICE COT startup fetch ────────────────────────────────────────────
         # Attempt to load ICE data before the main pre-warm so COT scores for
