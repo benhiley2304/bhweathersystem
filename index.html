@@ -30138,7 +30138,12 @@ function renderConsensusOutlook(con, updAt){
   const body=document.getElementById('ov-cp-con-body');
   const tsEl=document.getElementById('ov-cp-con-ts');
   if(!wrap||!body)return;
-  const outlook=con&&con.outlook?String(con.outlook).trim():'';
+  // Strip markdown emphasis markers Sonar sometimes emits (*x*, _x_) and normalise quotes.
+  const clean=s=>String(s==null?'':s)
+    .replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
+    .replace(/(^|[\s(])_(.+?)_([\s.,;:)]|$)/g,'$1$2$3')
+    .replace(/\[(\d+)\]/g,'').trim();
+  const outlook=con&&con.outlook?clean(con.outlook):'';
   if(!outlook){ wrap.style.display='none'; return; }
   wrap.style.display='';
   // Timestamp — prefer as_of label from the model, else derive from updAt
@@ -30161,8 +30166,8 @@ function renderConsensusOutlook(con, updAt){
       html+=`<div class="ov-cp-con-chip">`
         +`<div class="ov-cp-con-chip-dir ${cls}">${dlabel}</div>`
         +`<div class="ov-cp-con-chip-body">`
-        +`<div class="ov-cp-con-chip-label">${_esc(c.label)}</div>`
-        +(c.note?`<div class="ov-cp-con-chip-note">${_esc(c.note)}</div>`:'')
+        +`<div class="ov-cp-con-chip-label">${_esc(clean(c.label))}</div>`
+        +(c.note?`<div class="ov-cp-con-chip-note">${_esc(clean(c.note))}</div>`:'')
         +`</div></div>`;
     });
     html+=`</div>`;
