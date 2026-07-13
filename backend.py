@@ -8986,11 +8986,15 @@ def _assemble_offside_brief() -> dict:
     positioning_lines: list[str] = []
     catalysts_lines: list[str] = []
     news_lines: list[str] = []
+    _dbg = {"n_markets": 0, "n_li": 0, "n_ext": 0}
 
     # ---- 1. COT extremes from the live scores cache -------------------------
     try:
         blob = ALL_DATA_CACHE.get("data") or {}
         markets = blob.get("markets", []) or []
+        _n_li = sum(1 for m in markets if ((m.get("scores") or {}).get("cot") or {}).get("lspec_index") is not None)
+        _dbg["n_markets"] = len(markets); _dbg["n_li"] = _n_li
+        print(f"[consensus] assemble: {len(markets)} markets, {_n_li} with lspec_index", flush=True)
         rows = []
         for m in markets:
             cot = (m.get("scores") or {}).get("cot") or {}
@@ -9055,10 +9059,12 @@ def _assemble_offside_brief() -> dict:
     except Exception as e:
         print(f"[consensus] news assemble failed: {e}", flush=True)
 
+    _dbg["n_ext"] = len(positioning_lines)
     return {
         "positioning": "\n".join(positioning_lines) if positioning_lines else "(no extreme COT positioning detected)",
         "catalysts":   "\n".join(catalysts_lines) if catalysts_lines else "(no high/medium-impact events remaining this week)",
         "news":        "\n".join(news_lines) if news_lines else "(no recent headlines)",
+        "_dbg":        _dbg,
     }
 
 
@@ -9206,6 +9212,7 @@ def generate_consensus_outlook() -> dict:
             "as_of":     today,
             "citations": [str(c)[:300] for c in citations][:20],
             "_brief_pos": brief.get("positioning", "")[:600],  # DEBUG: confirm COT fed in
+            "_brief_dbg": brief.get("_dbg", {}),               # DEBUG: market/extreme counts
         }
         print(f"[consensus] read: {len(result['outlook'])} chars outlook, {len(offside)} offside setups", flush=True)
         return result
