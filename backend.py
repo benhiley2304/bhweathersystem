@@ -9004,9 +9004,29 @@ def _assemble_offside_brief() -> dict:
                 continue
             if li >= 85 or li <= 15:
                 mid = (m.get("id") or "").upper()
-                trade = _COT_TRADE_MAP.get(mid, f"long {m.get('name','?')}")
-                # Large specs = trend-following crowd. High index = crowd very long.
+                base_trade = _COT_TRADE_MAP.get(mid, f"long {m.get('name','?')}")
+                # Large specs = trend-following crowd. High index = crowd very LONG the
+                # base trade; low index = crowd very SHORT it, so invert the phrasing.
                 crowd_side = "very long" if li >= 85 else "very short"
+                if li <= 15:
+                    # Flip "long A / short B" -> "short A / long B"; else prepend short.
+                    if " / " in base_trade:
+                        legs = []
+                        for leg in base_trade.split(" / "):
+                            leg = leg.strip()
+                            if leg.startswith("long "):
+                                legs.append("short " + leg[5:])
+                            elif leg.startswith("short "):
+                                legs.append("long " + leg[6:])
+                            else:
+                                legs.append(leg)
+                        trade = " / ".join(legs)
+                    elif base_trade.startswith("long "):
+                        trade = "short " + base_trade[5:]
+                    else:
+                        trade = "short " + base_trade
+                else:
+                    trade = base_trade
                 # Are specs starting to turn against their extreme? (early reversal)
                 turn_dir = cot.get("v2_spec_turn_dir")
                 turn_conf = cot.get("v2_spec_turn_confirmed")
