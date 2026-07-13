@@ -10272,6 +10272,22 @@ async def _refresh_scores_background():
     finally:
         _SCORES_BG_RUNNING = False
 
+@app.head("/api/scores")
+async def head_all_scores():
+    """HEAD handler for uptime monitors (e.g. UptimeRobot free tier, which only
+    sends HEAD). Returns 200 instantly with no body, and fires a NON-BLOCKING
+    background refresh if the cache is stale/cold — so the ping actually warms
+    the data cache without making the monitor wait for the full build."""
+    from fastapi.responses import Response as _Resp
+    try:
+        now = time.time()
+        stale = (not ALL_DATA_CACHE["data"]) or (now - ALL_DATA_CACHE["time"]) >= ALL_DATA_TTL
+        if stale and not _SCORES_BG_RUNNING:
+            asyncio.ensure_future(_refresh_scores_background())
+    except Exception as _e:
+        print(f"[scores] HEAD warm trigger error (non-fatal): {_e}", flush=True)
+    return _Resp(status_code=200)
+
 @app.get("/api/scores")
 async def get_all_scores(force: bool = False):
     now = time.time()
