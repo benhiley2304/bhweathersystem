@@ -9303,6 +9303,15 @@ def compute_consensus_outlook(force: bool = False) -> dict:
     if (not force and CONSENSUS_CACHE["data"] is not None
             and (now - CONSENSUS_CACHE["time"]) < CONSENSUS_CACHE_TTL):
         return CONSENSUS_CACHE["data"]
+    # Guard: never regenerate against a cold scores cache — the offside brief
+    # would carry NO COT positioning, producing positioning-less cards that
+    # overwrite a good cached read. Only allow a cold-cache regen when there is
+    # no existing consensus at all (first populate). An explicit force still
+    # regenerates (the caller is expected to warm /api/scores first).
+    _markets = ((ALL_DATA_CACHE.get("data") or {}).get("markets") or [])
+    if not force and not _markets and CONSENSUS_CACHE["data"] is not None:
+        print("[consensus] scores cache cold — keeping existing consensus, skip regen", flush=True)
+        return CONSENSUS_CACHE["data"]
     fresh = generate_consensus_outlook()
     if fresh and fresh.get("outlook"):
         CONSENSUS_CACHE["data"] = fresh
