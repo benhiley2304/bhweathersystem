@@ -8968,6 +8968,37 @@ _COT_TRADE_MAP = {
 }
 
 
+def _cot_match_keywords(name: str) -> list[str]:
+    """Lower-case tokens used to detect if an offside card references this market."""
+    n = (name or "").lower()
+    kw = set()
+    # base tokens from the market name
+    for tok in n.replace("/", " ").replace("-", " ").split():
+        if len(tok) >= 3:
+            kw.add(tok)
+    # asset-class synonyms so narrative phrasing matches
+    syn = {
+        "bitcoin": ["bitcoin", "btc", "crypto"],
+        "ether":   ["ether", "ethereum", "eth", "crypto"],
+        "gbp":     ["gbp", "sterling", "pound", "cable"],
+        "eur":     ["eur", "euro"],
+        "jpy":     ["jpy", "yen"],
+        "aud":     ["aud", "aussie"],
+        "cad":     ["cad", "loonie", "canada", "canadian"],
+        "nzd":     ["nzd", "kiwi"],
+        "chf":     ["chf", "franc", "swiss"],
+        "crude":   ["crude", "oil", "wti", "energy"],
+        "gold":    ["gold", "bullion", "xau"],
+        "copper":  ["copper"],
+        "silver":  ["silver"],
+        "gas":     ["gas", "natgas"],
+    }
+    for key, words in syn.items():
+        if key in n or any(w in n for w in words):
+            kw.update(words)
+    return sorted(kw)
+
+
 def _assemble_offside_brief() -> dict:
     """Assemble the app's OWN hard data into a compact brief the consensus prompt
     can reason against — so Sonar isn't guessing where the crowd is offside.
@@ -8986,6 +9017,7 @@ def _assemble_offside_brief() -> dict:
     positioning_lines: list[str] = []
     catalysts_lines: list[str] = []
     news_lines: list[str] = []
+    extremes: list[dict] = []
 
     # ---- 1. COT extremes from the live scores cache -------------------------
     try:
@@ -9041,6 +9073,15 @@ def _assemble_offside_brief() -> dict:
             positioning_lines.append(
                 f"- {name}: large specs {side} ({int(li)}th pct{cpart}) => crowd is {trade}{turn}"
             )
+            # Structured record for deterministic offside-card positioning fill.
+            _crowd_dir = "long" if side == "very long" else "short"
+            extremes.append({
+                "name": name,
+                "keywords": _cot_match_keywords(name),
+                "crowd_dir": _crowd_dir,
+                "text": f"Crowd is {'very ' if abs(li-50)>=40 else ''}{_crowd_dir} {trade} "
+                        f"({int(li)}th pct COT) — parallels the consensus view",
+            })
     except Exception as e:
         print(f"[consensus] positioning assemble failed: {e}", flush=True)
 
@@ -9080,6 +9121,7 @@ def _assemble_offside_brief() -> dict:
         "positioning": "\n".join(positioning_lines) if positioning_lines else "(no extreme COT positioning detected)",
         "catalysts":   "\n".join(catalysts_lines) if catalysts_lines else "(no high/medium-impact events remaining this week)",
         "news":        "\n".join(news_lines) if news_lines else "(no recent headlines)",
+        "extremes":    extremes,
     }
 
 
@@ -9197,6 +9239,25 @@ def generate_consensus_outlook() -> dict:
             sp = cut.rfind(" ")
             return (cut[:sp] if sp > n * 0.6 else cut).rstrip(" ,;:-") + "\u2026"
         offside_in = parsed.get("offside", []) if isinstance(parsed, dict) else []
+        extremes = brief.get("extremes", []) or []
+        def _fill_positioning(pos_txt, belief, note, risk):
+            """Deterministically attach a COT reading when a card references a market
+            that is at a positioning extreme and the crowd's side matches the
+            vulnerable direction — even if the model left positioning as 'n/a'."""
+            existing = str(pos_txt or "").strip()
+            if existing and existing.lower() not in ("n/a", "na", "none", "-"):
+                return existing
+            hay = f"{belief} {note}".lower()
+            for ex in extremes:
+                kws = ex.get("keywords") or []
+                if not any(k in hay for k in kws):
+                    continue
+                # only attach if the crowd's COT side matches the card's risk side
+                # (long-crowd card ↔ crowd long; short-crowd card ↔ crowd short)
+                if risk in ("long", "short") and ex.get("crowd_dir") != risk:
+                    continue
+                return ex.get("text", "")
+            return ""
         offside = []
         for o in offside_in:
             if not isinstance(o, dict):
@@ -9207,10 +9268,12 @@ def generate_consensus_outlook() -> dict:
             belief = _clip(o.get("belief", ""), 210)
             if not belief:
                 continue
+            pos_final = _fill_positioning(o.get("positioning", ""),
+                                          o.get("belief", ""), o.get("note", ""), rk)
             offside.append({
                 "belief":      belief,
                 "catalyst":    _clip(o.get("catalyst", ""), 240),
-                "positioning": _clip(o.get("positioning", ""), 240),
+                "positioning": _clip(pos_final, 240),
                 "risk":        rk,
                 "note":        _clip(o.get("note", ""), 280),
             })
