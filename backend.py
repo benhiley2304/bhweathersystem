@@ -9126,17 +9126,22 @@ def generate_consensus_outlook() -> dict:
         'naming the desks/surveys driving it. This is the robust narrative of what the crowd '
         'believes across USD/G10 FX, equities, rates, metals, energy and crypto.",\n'
         '  "offside": [ {\n'
-        '     "belief": "the specific consensus belief at risk (e.g. \'strong US labour market\')",\n'
+        '     "belief": "the consensus belief at risk, stated crisply in under 15 words (e.g. \'crowd firmly long USD on soft-landing\')",\n'
         '     "catalyst": "the event/data/move that could break it, with timing if known",\n'
         '     "positioning": "how stretched/aligned positioning is (cite the COT reading above if it parallels), or \'n/a\' if positioning is not a factor",\n'
         '     "risk": "long|short|two-way",\n'
         '     "note": "1 crisp sentence on the asymmetry / what unwinds if the belief is wrong"\n'
         '  } ]\n'
         "}\n"
-        "Give 3-5 offside setups, ranked most-asymmetric first. Prioritise setups where the "
-        "consensus narrative AND the positioning data above point the same way and a catalyst is "
-        "imminent. 'risk' = the direction of the crowd's exposure that is vulnerable (e.g. if "
-        "everyone is long USD and it could unwind, risk='long'). Start with { and end with }."
+        "Give 3-5 offside setups, ranked most-asymmetric first. CRITICAL: if the DESK POSITIONING "
+        "DATA above shows any stretched COT reading (crowd very long or very short) that lines up "
+        "with a talked-about consensus view, AT LEAST ONE OR TWO of your setups MUST be built around "
+        "that parallel — quote the specific market and percentile in the 'positioning' field (e.g. "
+        "'crowd is very long Bitcoin, 96th pct — matches the bullish crypto narrative'). Only use "
+        "'n/a' for positioning when there is genuinely no COT parallel in the data above. Do not set "
+        "every setup's positioning to 'n/a'. 'risk' = the direction of the crowd's exposure that is "
+        "vulnerable (e.g. if everyone is long USD and it could unwind, risk='long'). "
+        "Start with { and end with }."
     )
 
     try:
@@ -9162,6 +9167,14 @@ def generate_consensus_outlook() -> dict:
         if s != -1 and e != -1 and e > s:
             raw = raw[s:e + 1]
         parsed = json.loads(raw)
+        def _clip(txt, n):
+            """Clip to n chars on a word boundary (avoid mid-word cuts)."""
+            t = str(txt or "").strip()
+            if len(t) <= n:
+                return t
+            cut = t[:n]
+            sp = cut.rfind(" ")
+            return (cut[:sp] if sp > n * 0.6 else cut).rstrip(" ,;:-") + "\u2026"
         offside_in = parsed.get("offside", []) if isinstance(parsed, dict) else []
         offside = []
         for o in offside_in:
@@ -9170,15 +9183,15 @@ def generate_consensus_outlook() -> dict:
             rk = str(o.get("risk", "")).lower().strip()
             if rk not in ("long", "short", "two-way"):
                 rk = "two-way"
-            belief = str(o.get("belief", ""))[:160].strip()
+            belief = _clip(o.get("belief", ""), 210)
             if not belief:
                 continue
             offside.append({
                 "belief":      belief,
-                "catalyst":    str(o.get("catalyst", ""))[:220].strip(),
-                "positioning": str(o.get("positioning", ""))[:220].strip(),
+                "catalyst":    _clip(o.get("catalyst", ""), 240),
+                "positioning": _clip(o.get("positioning", ""), 240),
                 "risk":        rk,
-                "note":        str(o.get("note", ""))[:260].strip(),
+                "note":        _clip(o.get("note", ""), 280),
             })
         outlook_raw = str(parsed.get("outlook", "")).strip() if isinstance(parsed, dict) else ""
         # Clamp without cutting mid-sentence: if too long, trim back to the last
