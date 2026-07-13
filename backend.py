@@ -9196,15 +9196,19 @@ def generate_consensus_outlook() -> dict:
         '     "note": "1 crisp sentence on the asymmetry / what unwinds if the belief is wrong"\n'
         '  } ]\n'
         "}\n"
-        "Give 3-5 offside setups, ranked most-asymmetric first. CRITICAL: if the DESK POSITIONING "
-        "DATA above shows any stretched COT reading (crowd very long or very short) that lines up "
-        "with a talked-about consensus view, AT LEAST ONE OR TWO of your setups MUST be built around "
-        "that parallel — quote the specific market and percentile in the 'positioning' field (e.g. "
-        "'crowd is very long Bitcoin, 96th pct — matches the bullish crypto narrative'). Only use "
-        "'n/a' for positioning when there is genuinely no COT parallel in the data above. Do not set "
-        "every setup's positioning to 'n/a'. 'risk' = the direction of the crowd's exposure that is "
-        "vulnerable (e.g. if everyone is long USD and it could unwind, risk='long'). "
-        "Start with { and end with }."
+        "Give 3-5 offside setups, ranked most-asymmetric first. CRITICAL RULE ON POSITIONING: the "
+        "DESK POSITIONING DATA above lists the markets where the trend-following crowd is ALREADY at "
+        "a COT extreme. These are your highest-value offside candidates because the narrative AND the "
+        "positioning point the same way. You MUST build AT LEAST TWO of your setups directly around "
+        "the specific markets named in that positioning data (e.g. if it shows 'crowd very long "
+        "Bitcoin 96th pct' and 'crowd very short GBP 8th pct', make setups about crowded crypto longs "
+        "and crowded GBP shorts). In each such setup, NAME that market in the 'belief' text and quote "
+        "the exact percentile in the 'positioning' field (e.g. 'crowd is very long Bitcoin, 96th pct "
+        "— matches the bullish crypto narrative'). Only use 'n/a' for positioning on setups that are "
+        "genuinely macro/rates themes with no single-market COT parallel. Do NOT make every setup a "
+        "broad macro theme while ignoring the concrete positioning extremes handed to you. "
+        "'risk' = the direction of the crowd's exposure that is vulnerable (crowd long -> risk='long'; "
+        "crowd short -> risk='short'). Start with { and end with }."
     )
 
     try:
@@ -9256,6 +9260,7 @@ def generate_consensus_outlook() -> dict:
                 # (long-crowd card ↔ crowd long; short-crowd card ↔ crowd short)
                 if risk in ("long", "short") and ex.get("crowd_dir") != risk:
                     continue
+                # two-way cards accept either side (positioning still informative)
                 return ex.get("text", "")
             return ""
         offside = []
