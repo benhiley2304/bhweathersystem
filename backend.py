@@ -3022,6 +3022,158 @@ def _classify_cot_phase(comm_idx: float, lspec_idx: float, sspec_idx: float):
         return 0, "neutral", "Transitioning", "Positioning mid-range — no dominant phase signal"
 
 
+def compute_consensus_fade(cot_data: dict, news_sentiment: Optional[float],
+                           market_name: str = "", category: str = "") -> dict:
+    """
+    Consensus-fade / crowded-trade detector.
+
+    Ben's edge: the asymmetry isn't just extreme positioning — it's extreme
+    positioning that AGREES with a one-sided consensus narrative, where fading
+    the crowd has minimal downside (already priced in) and large upside (a
+    surprise the other way leaves everyone offside).
+
+    Blends two live inputs:
+      1. COT positioning extreme — managed-money (large spec) Briese percentile.
+         >72 = crowd crammed long; <28 = crowd crammed short. Weighted by whether
+         the crowd is STILL piling in (specs not yet turned) per Ben's framework
+         ("follow commercials, enter when non-commercials start to turn").
+      2. News/narrative one-sidedness — narrative_scores 0-10 (>6.5 bullish crowd,
+         <3.5 bearish crowd). Confirms the story everyone is trading.
+
+    The fade fires hardest when BOTH agree in the same direction and the crowd
+    hasn't turned yet.
+
+    Returns a dict:
+      fade_score      float 0-10   (magnitude of the crowded-trade / fade edge; 0 = no edge)
+      fade_dir        str          contrarian direction: 'long' | 'short' | None
+                                   (= the side to take AGAINST the crowd)
+      crowd_side      str          'long' | 'short' | None (what the crowd is doing)
+      spec_pctile     float|None   large-spec Briese percentile (0-100)
+      spec_adding     bool|None    True if crowd still piling in (not yet turned)
+      news_score      float|None   0-10 narrative sentiment
+      confirms        bool         True if positioning + narrative agree (both one-sided same way)
+      asymmetry       str          'what would put the crowd offside' note
+      inputs          dict         raw components for transparency
+    """
+    EMPTY = {
+        "fade_score": 0.0, "fade_dir": None, "crowd_side": None,
+        "spec_pctile": None, "spec_adding": None, "news_score": None,
+        "confirms": False, "asymmetry": "", "inputs": {},
+    }
+    if not cot_data:
+        return EMPTY
+
+    spec_idx = cot_data.get("lspec_index")
+    turning  = cot_data.get("turning")          # True once specs have TURNED (fade is then late)
+    chg3w    = cot_data.get("lspec_chg_3w")      # net spec change over 3w (>0 = still adding longs)
+    detail   = cot_data.get("detail", {}) or {}
+    phase_dir   = detail.get("cot_phase_dir")    # 'bull'/'bear'/'neutral'
+    phase_label = detail.get("cot_phase_label", "")
+
+    if spec_idx is None:
+        return EMPTY
+
+    # ── 1. Positioning extreme strength (0-1) ─────────────────────────────────
+    # Distance of large-spec percentile from the 50 midpoint, normalised so that
+    # the extreme zones (≥72 or ≤28) start to score and 90/10 ≈ full strength.
+    HI, LO = 72.0, 28.0
+    if spec_idx >= HI:
+        crowd_side = "long"          # managed money crammed net long
+        pos_strength = min(1.0, (spec_idx - HI) / (95.0 - HI))
+    elif spec_idx <= LO:
+        crowd_side = "short"         # managed money crammed net short
+        pos_strength = min(1.0, (LO - spec_idx) / (LO - 5.0))
+    else:
+        crowd_side = None
+        pos_strength = 0.0
+
+    # ── 2. "Still piling in" multiplier (Ben's timing rule) ───────────────────
+    # Best fade = crowd extreme AND hasn't turned yet (commercials still opposite).
+    # If specs have already turned (cot_data['turning']=True) the crowd is unwinding
+    # → the fade window is closing, so we discount it heavily.
+    still_adding = None
+    timing_mult = 1.0
+    if crowd_side is not None:
+        if turning:
+            timing_mult = 0.45           # crowd already reversing — late
+            still_adding = False
+        elif chg3w is not None:
+            # crowd adding in the SAME direction as its extreme = strongest fade
+            adding_long  = crowd_side == "long"  and chg3w > 0
+            adding_short = crowd_side == "short" and chg3w < 0
+            still_adding = bool(adding_long or adding_short)
+            timing_mult = 1.0 if still_adding else 0.8
+        else:
+            timing_mult = 0.9
+
+    # ── 3. Narrative one-sidedness (0-1) + agreement with positioning ─────────
+    news_side = None
+    news_strength = 0.0
+    if news_sentiment is not None:
+        if news_sentiment >= 6.5:
+            news_side = "long"
+            news_strength = min(1.0, (news_sentiment - 6.5) / (9.5 - 6.5))
+        elif news_sentiment <= 3.5:
+            news_side = "short"
+            news_strength = min(1.0, (3.5 - news_sentiment) / (3.5 - 0.5))
+
+    confirms = bool(crowd_side is not None and news_side is not None and crowd_side == news_side)
+
+    # ── 4. Blend into a 0-10 fade score ───────────────────────────────────────
+    # Positioning is the hard core (70%); narrative confirmation is the amplifier (30%).
+    # When narrative CONFIRMS the crowd, apply a confluence boost; when it CONTRADICTS,
+    # damp it (the story is fighting the positioning — weaker one-sided consensus).
+    base = pos_strength * timing_mult
+    if confirms:
+        blended = 0.70 * base + 0.30 * news_strength
+        blended = min(1.0, blended + 0.12 * base * news_strength)   # confluence boost
+    elif crowd_side is not None and news_side is not None and crowd_side != news_side:
+        blended = base * 0.75            # narrative fights positioning — softer edge
+    else:
+        blended = 0.70 * base            # positioning only, no narrative read
+
+    fade_score = round(blended * 10.0, 1)
+    fade_dir = None
+    if crowd_side == "long":
+        fade_dir = "short"               # fade the crowded long → take the short
+    elif crowd_side == "short":
+        fade_dir = "long"                # fade the crowded short → take the long
+
+    # ── 5. Asymmetry note — 'what would put the crowd offside' ────────────────
+    asym = ""
+    if crowd_side == "long":
+        story = " and news flow one-sided bullish" if confirms else ""
+        asym = (f"Crowd crammed long (specs {spec_idx:.0f}/100{story}). "
+                f"Upside largely priced in — a bearish surprise leaves longs offside; "
+                f"fade risk/reward favours the short if price and your zones confirm.")
+    elif crowd_side == "short":
+        story = " and news flow one-sided bearish" if confirms else ""
+        asym = (f"Crowd crammed short (specs {spec_idx:.0f}/100{story}). "
+                f"Downside largely priced in — a bullish surprise squeezes shorts; "
+                f"fade risk/reward favours the long if price and your zones confirm.")
+
+    return {
+        "fade_score":  fade_score,
+        "fade_dir":    fade_dir,
+        "crowd_side":  crowd_side,
+        "spec_pctile": round(float(spec_idx), 1),
+        "spec_adding": still_adding,
+        "news_score":  round(float(news_sentiment), 1) if news_sentiment is not None else None,
+        "confirms":    confirms,
+        "asymmetry":   asym,
+        "inputs": {
+            "pos_strength": round(pos_strength, 3),
+            "timing_mult":  round(timing_mult, 3),
+            "news_strength": round(news_strength, 3),
+            "news_side":    news_side,
+            "phase_label":  phase_label,
+            "phase_dir":    phase_dir,
+            "turning":      bool(turning) if turning is not None else None,
+            "lspec_chg_3w": chg3w,
+        },
+    }
+
+
 def compute_crypto_cot_score(df: Optional[pd.DataFrame], market_id: str = "") -> dict:
     """
     Crypto-specific COT scoring — simplified trend-following approach.
@@ -9951,6 +10103,8 @@ async def _do_scores_refresh(force: bool = False):
         macro_data    = get_macro_score_for_market(mid, macro, ff_macro=ff_macro)
         _news_sent    = news_ctx.get("narrative_scores", {}).get(mid)
         regime_data   = get_regime_score_for_market(mid, regime, news_sentiment=_news_sent)
+        fade_data     = compute_consensus_fade(cot_data, _news_sent,
+                                               market_name=market["name"], category=market["category"])
         relval_data   = compute_rel_val_score(mid)
         pcr_data      = score_pcr(mid)  # returns neutral for unsupported markets
     
@@ -10051,6 +10205,7 @@ async def _do_scores_refresh(force: bool = False):
             "drivers":           bias.get("drivers", []),
             "scores":            scores_out,
             "weights":           active_weights,  # Per-market weight map (varies by data quality + PCR tier)
+            "fade":              fade_data,        # consensus-fade / crowded-trade detector
         })
       return _results
     # end _compute_all_market_scores
@@ -10178,13 +10333,49 @@ async def _do_scores_refresh(force: bool = False):
         cot_detail = mkt.get("scores", {}).get("cot", {}).get("detail")
         if isinstance(cot_detail, dict):
             mkt["scores"]["cot"]["detail"] = {k: v for k, v in cot_detail.items() if v is not None}
-    
+
+    # ── Consensus-fade aggregate — ranked crowded-trade candidates for homepage ──
+    # Surface the markets where the crowd is most one-sided AND still offside, so
+    # Ben can see the best asymmetric fade setups at a glance. Threshold at 3.5 to
+    # keep only meaningful extremes; sort by fade_score desc.
+    _FADE_MIN = 3.5
+    _fade_candidates = []
+    for mkt in results:
+        fd = mkt.get("fade") or {}
+        fs = fd.get("fade_score") or 0.0
+        if fs >= _FADE_MIN and fd.get("fade_dir"):
+            _fade_candidates.append({
+                "id":          mkt["id"],
+                "name":        mkt["name"],
+                "category":    mkt["category"],
+                "fade_score":  fs,
+                "fade_dir":    fd.get("fade_dir"),
+                "crowd_side":  fd.get("crowd_side"),
+                "spec_pctile": fd.get("spec_pctile"),
+                "spec_adding": fd.get("spec_adding"),
+                "news_score":  fd.get("news_score"),
+                "confirms":    fd.get("confirms"),
+                "asymmetry":   fd.get("asymmetry"),
+                # engine's own directional read, so the panel can flag when the
+                # composite engine ALREADY agrees with the fade (extra confluence)
+                "engine_direction": mkt.get("direction", "Neutral"),
+                "engine_conviction": mkt.get("conviction", 0.0),
+                "weighted_score": mkt.get("weighted_score"),
+            })
+    _fade_candidates.sort(key=lambda x: x["fade_score"], reverse=True)
+    consensus_fade = {
+        "updated_at": datetime.utcnow().isoformat() + "Z",
+        "count":      len(_fade_candidates),
+        "candidates": _fade_candidates[:12],
+    }
+
     output = {
         "updated_at":      datetime.utcnow().isoformat() + "Z",
         "regime":          regime,
         "macro_all":       macro,
         "stock_climate":   stock_climate,
         "ff_macro":        ff_macro,  # per-currency FF economy scores
+        "consensus_fade":  consensus_fade,  # ranked crowded-trade / fade candidates
         "markets":       results,
         "weights":               WEIGHTS,               # Fallback
         "weights_hg":            WEIGHTS_HG,
