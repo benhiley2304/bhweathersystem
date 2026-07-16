@@ -2868,12 +2868,12 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .ov-news-row-info{flex:1;min-width:0}
 .ov-news-row-title{font-size:10.5px;color:rgba(232,238,252,0.95);line-height:1.5;font-weight:500}
 .ov-news-row-preview{font-size:9px;color:var(--dim);margin-top:2px;line-height:1.4;text-transform:none;font-style:italic;opacity:0.72}
-.ov-news-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;max-width:90px;overflow:hidden}
+.ov-news-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;max-width:112px;overflow:hidden}
 .ov-news-row-time{font-size:8px;color:rgba(173,184,208,0.55);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;display:block;text-align:right}
 @media(max-width:600px){
   .ov-news-row-title{font-size:10px}
   .ov-news-row-preview{font-size:8.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .ov-news-row-right{max-width:64px}
+  .ov-news-row-right{max-width:96px}
   .ov-news-row-time{font-size:9.5px}
 }
 
@@ -23039,8 +23039,10 @@ body {
   border-radius: 0 !important;
   background: transparent !important;
   box-sizing: border-box !important;
-  /* Seg layout — column: bar on top, label below */
-  flex: 0 0 var(--seg-pct, 14%) !important;
+  /* Seg layout — column: bar on top, label below.
+     flex-shrink:1 so segments compress instead of overflowing the card
+     (weights can sum >100%, which clipped the last bar on mobile) */
+  flex: 0 1 var(--seg-pct, 14%) !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 4px !important;
@@ -30293,7 +30295,7 @@ async function loadAiBrief(){
           </div>
           <div class="ov-news-row-right">
             <div class="ov-news-row-time">${n.time_label}</div>
-            ${n.source?`<div style="font-size:9.5px;color:rgba(173,184,208,0.48);text-align:right;margin-top:1px;font-family:var(--mono);letter-spacing:0.02em">${n.source}</div>`:''}
+            ${n.source?`<div style="font-size:9.5px;color:rgba(173,184,208,0.48);text-align:right;margin-top:1px;font-family:var(--mono);letter-spacing:0.02em;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block" title="${n.source}">${n.source}</div>`:''}
           </div>
         </div>`;
       }).join('');
@@ -36588,10 +36590,22 @@ function drawCandleChart(canvas,candles,ema20Arr,ema50Arr,sma200Arr){
   // Collect last values and sort by price descending to place labels
   const maLabels=maLines.map(ml=>({...ml,last:ml.arr.filter(v=>v!=null).pop()})).filter(ml=>ml.last!=null);
   maLabels.sort((a,b)=>b.last-a.last);
+  // Y positions already occupied by the price-axis labels (drawn at i/4 gridlines)
+  const axisLabelYs=[];
+  for(let i=0;i<=4;i++) axisLabelYs.push(mt+ch*(i/4)+3.5);
   let lastY=-999;
   for(const ml of maLabels){
     let y=toY(ml.last)+3;
     if(y-lastY<10) y=lastY+10;
+    // Nudge below any price-axis label it would overlap (labels are ~8px tall)
+    let moved=true;
+    while(moved){
+      moved=false;
+      for(const ay of axisLabelYs){
+        if(Math.abs(y-ay)<10){ y=ay+10; moved=true; }
+      }
+      if(y-lastY<10 && lastY>-999){ /* keep MA spacing after nudge */ }
+    }
     lastY=y;
     ctx.fillStyle=ml.color;
     ctx.fillText(ml.label,W-mr+6,y);
