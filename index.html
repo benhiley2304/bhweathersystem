@@ -40950,7 +40950,8 @@ function renderModalControls(){
     {g:'ytd',lbl:yr+' Actual',sw:'<span class="mchip-line" style="background:rgba(255,255,255,0.85)"></span>'},
     {g:'cycles',lbl:'Cycle Overlays',off:!_modalCyclesOn(),sw:'<span class="mchip-line" style="background:#f0c060"></span>'},
     {g:'turns',lbl:'Turns',sw:'<span class="mchip-dot" style="background:#22c97a"></span>'},
-    {g:'horizon',lbl:'3–4wk Horizon',sw:'<span class="mchip-line" style="background:#22c97a"></span>'}
+    {g:'horizon',lbl:'3–4wk Horizon',sw:'<span class="mchip-line" style="background:#22c97a"></span>'},
+    {g:'detrend',lbl:'Detrend',off:!modalChart.$detrendOn,sw:'<span class="mchip-dot" style="background:#c8a96e"></span>'}
   ];
   el.innerHTML=chips.map(ch=>`<div class="mchip${ch.off?' off':''}" data-g="${ch.g}" onclick="_seasModalToggle('${ch.g}',this)">${ch.sw}${ch.lbl}</div>`).join('');
 }
@@ -40961,11 +40962,45 @@ function _modalCyclesOn(){
   ch.data.datasets.forEach((ds,i)=>{if(_CYCLE_LBLS.includes(ds.label)&&ch.isDatasetVisible(i))any=true;});
   return any;
 }
+// Least-squares linear fit through {x,y} pairs, returns {a,b} for y = a*x + b
+function _linFit(pairs){
+  const n=pairs.length; if(n<2)return{a:0,b:0};
+  let sx=0,sy=0,sxx=0,sxy=0;
+  for(const [x,y] of pairs){sx+=x;sy+=y;sxx+=x*x;sxy+=x*y;}
+  const d=n*sxx-sx*sx;
+  if(d===0)return{a:0,b:sy/n};
+  const a=(n*sxy-sx*sy)/d;
+  const b=(sy-a*sx)/n;
+  return{a,b};
+}
+function _applyDetrend(ch,on){
+  if(!ch.$origDatasets){
+    // First-time: capture snapshot of each dataset's original y values
+    ch.$origDatasets=ch.data.datasets.map(ds=>Array.isArray(ds.data)?ds.data.slice():null);
+  }
+  const medIdx=ch.data.datasets.findIndex(d=>d.label==='Hist. Median');
+  if(medIdx<0)return;
+  const orig=ch.$origDatasets[medIdx]||[];
+  // Build [x,y] pairs from median line (skip nulls)
+  const pairs=[]; orig.forEach((v,i)=>{if(v!=null&&!isNaN(v))pairs.push([i,v]);});
+  const{a,b}=_linFit(pairs);
+  // Detrend every non-null dataset by subtracting a*x + b
+  ch.data.datasets.forEach((ds,i)=>{
+    const src=ch.$origDatasets[i]; if(!Array.isArray(src))return;
+    if(on){
+      ds.data=src.map((v,x)=>(v==null||isNaN(v))?v:(v-(a*x+b)));
+    }else{
+      ds.data=src.slice();
+    }
+  });
+  ch.update();
+}
 function _seasModalToggle(g,btn){
   const ch=modalChart;if(!ch)return;
   let on=true;
   if(g==='turns'){ch.$hideTurns=!ch.$hideTurns;on=!ch.$hideTurns;ch.update();}
   else if(g==='horizon'){ch.$hideHorizon=!ch.$hideHorizon;on=!ch.$hideHorizon;ch.update();}
+  else if(g==='detrend'){ch.$detrendOn=!ch.$detrendOn; on=ch.$detrendOn; _applyDetrend(ch,on);}
   else{
     const yr=new Date().getFullYear();
     const match={
