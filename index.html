@@ -25039,9 +25039,9 @@ function renderOverview(){
           const up2 = regLabel.toUpperCase();
           let w1, w2;
           if (up2.includes('LEAN') && up2.includes('RISK-ON'))        { w1 = 'LEAN';   w2 = 'RISK-ON'; }
-          else if (up2.includes('LEAN') && up2.includes('RISK OFF'))  { w1 = 'LEAN';   w2 = 'RISK-OFF'; }
+          else if (up2.includes('LEAN') && (up2.includes('RISK-OFF') || up2.includes('RISK OFF')))  { w1 = 'LEAN';   w2 = 'RISK-OFF'; }
           else if (up2.includes('STRONG') && up2.includes('RISK-ON')) { w1 = 'STRONG'; w2 = 'RISK-ON'; }
-          else if (up2.includes('STRONG') && up2.includes('RISK OFF')){ w1 = 'STRONG'; w2 = 'RISK-OFF'; }
+          else if (up2.includes('STRONG') && (up2.includes('RISK-OFF') || up2.includes('RISK OFF'))){ w1 = 'STRONG'; w2 = 'RISK-OFF'; }
           else if (up2.includes('RISK-ON') || up2.includes('RISK ON'))   { w1 = 'RISK'; w2 = 'ON'; }
           else if (up2.includes('RISK-OFF') || up2.includes('RISK OFF')) { w1 = 'RISK'; w2 = 'OFF'; }
           else { const parts = up2.replace(/-/g,' ').split(' '); w1 = parts.slice(0,-1).join(' ') || 'MARKET'; w2 = parts[parts.length-1]; }
@@ -26548,7 +26548,7 @@ function regimePillarsHtml(pillars, opts={}){
     const half=Math.min(50,Math.abs(c)/mx*50);
     const col=c>0.05?'#22c97a':c<-0.05?'#e03a2a':'#7b8ba8';
     return `<div style="display:flex;align-items:center;gap:9px;padding:${compact?'2.5px':'3.5px'} 0">
-      <div style="width:${compact?'92px':'118px'};flex-shrink:0;font-size:${compact?'8.5':'9.5'}px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.label||p.key||''}</div>
+      <div style="width:${compact?'112px':'118px'};flex-shrink:0;font-size:${compact?'8.5':'9.5'}px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.label||p.key||''}</div>
       <div style="flex:1;height:${compact?'9px':'11px'};position:relative;background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.06);border-radius:6px;overflow:hidden">
         <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.16)"></div>
         <div style="position:absolute;top:1.5px;bottom:1.5px;${c>=0?'left:50%':'right:50%'};width:${half}%;background:${col};border-radius:4px;opacity:0.85"></div>
