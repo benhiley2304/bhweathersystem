@@ -36305,15 +36305,39 @@ function seasTabStub(m){
   const cycleKey=d.cycle_key||'';
   const cycleLabel={'post_election':'Post-Election','midterm':'Midterm','pre_election':'Pre-Election','election':'Election Year'}[cycleKey]||cycleKey;
 
-  // ── Tab summary sentence — driven by real window statistics ──
+  // ── Reliability grade + trimmed median for outlier detection ──
+  const grade = d.reliability_grade;
+  const trimMed = d.trimmed_median_pct;
+  const sn = d.signal_noise;
+  const regimeDelta = d.regime_delta_pts;
+  const bestPct = d.best_pct, worstPct = d.worst_pct;
+
+  // Grade→colour/label for chip + verdict copy
+  const gradeMeta = {
+    'A':{col:'#22c97a',bg:'rgba(34,201,122,0.14)',label:'Real edge',desc:'consistent, low dispersion'},
+    'B':{col:'#9dd66a',bg:'rgba(157,214,106,0.12)',label:'Decent',desc:'signal present, some noise'},
+    'C':{col:'#e8c66a',bg:'rgba(232,198,106,0.12)',label:'Mixed',desc:'dispersed, tradeable only with confirmation'},
+    'D':{col:'#e88a5a',bg:'rgba(232,138,90,0.12)',label:'Mirage',desc:'outlier-driven, unreliable'}
+  };
+  const gm = gradeMeta[grade] || gradeMeta['C'];
+
+  // ── Tab summary sentence — reliability-aware ──
   const _seasSummaryText = (()=>{
-    const verdict = sc>=7.5?`<strong style="color:${col}">strong seasonal tailwind</strong>`
+    // Baseline verdict from raw score
+    let verdict = sc>=7.5?`<strong style="color:${col}">strong seasonal tailwind</strong>`
       : sc>=6?`<strong style="color:${col}">moderate seasonal tailwind</strong>`
       : sc>=4.5?`<strong style="color:var(--faint)">no reliable seasonal edge</strong> — other factors dominate`
       : sc>=2.5?`<strong style="color:${col}">seasonal headwind</strong>`
       : `<strong style="color:${col}">strong seasonal headwind</strong>`;
+    // Downgrade verdict when reliability is poor (D grade) despite decent score
+    if(grade==='D' && (sc>=6 || sc<=4)){
+      verdict = `<strong style="color:${gm.col}">signal is outlier-driven</strong> — treat as unreliable`;
+    }
     if(hr!=null&&nY){
-      return `Over the next 3–4 weeks this market rose in <strong style="color:var(--text)">${nPos} of the last ${nY} years</strong> (${hr}% cycle-weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>. Verdict: ${verdict}.`;
+      const trimClause = (trimMed!=null && Math.abs(trimMed-med)>Math.abs(med)*0.4 && Math.abs(med)>0.5)
+        ? ` (trimmed ${(trimMed>=0?'+':'')+trimMed.toFixed(2)}%)`
+        : '';
+      return `Over the next 3–4 weeks this market rose in <strong style="color:var(--text)">${nPos} of the last ${nY} years</strong> (${hr}% cycle-weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>${trimClause}. Verdict: ${verdict}.`;
     }
     if(sc>=7.5) return `Seasonal window is <strong style="color:${col}">strongly bullish</strong> — historical tendency shows consistent gains over the next 3–4 weeks.`;
     if(sc>=6)   return `Seasonal window is <strong style="color:${col}">bullish</strong> — historical patterns lean positive over the current window.`;
@@ -36338,6 +36362,7 @@ function seasTabStub(m){
     </div>
     <div class="ss-actions">
       <button class="ss-btn" onclick="openModal('${m.id}','${m.name}')">Full Chart ↗</button>
+      ${grade?`<span class="ss-reliability" title="Reliability ${grade} — ${gm.desc}. Signal/Noise ${sn??'—'}, ${nY} yrs (${nPos} up)." style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:${gm.bg};color:${gm.col};font-size:9px;font-weight:700;letter-spacing:0.5px;border:1px solid ${gm.col}33"><span style="font-size:11px;line-height:1">${grade}</span>&nbsp;${gm.label.toUpperCase()}</span>`:''}
       ${cycleLabel?`<span class="ss-cycle-tag">${cycleLabel.toUpperCase()}</span>`:''}
     </div>
   </div>
@@ -41555,12 +41580,22 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
   // LEFT (y):  seasonal median + 25–75% band only  — the shape of the historical pattern
   // RIGHT (yActual): the current-year YTD path only — its own shape, own magnitude
   // The two share the same physical plot area but decouple their vertical scales.
-  const _svals=allV.filter(v=>v!=null)
-    .concat(bandUpper.filter(v=>v!=null),bandLower.filter(v=>v!=null));
+  // Seasonal clamp: driven mainly by the median line, with the band trimmed by a soft cap
+  // so a single extreme year (e.g. Cocoa 2024 +180%) can't blow out the whole axis.
+  const _medVals=allV.filter(v=>v!=null&&isFinite(v));
   let _yClampMin,_yClampMax;
-  if(_svals.length){
-    const _lo=Math.min(..._svals),_hi=Math.max(..._svals);
-    const _pad=Math.max(1,(_hi-_lo)*0.18);
+  if(_medVals.length){
+    const _mlo=Math.min(..._medVals),_mhi=Math.max(..._medVals);
+    const _medSpan=Math.max(2,_mhi-_mlo);
+    // Allow the band to push clamp outward, but capped at ~2.5× the median span
+    const _bandVals=bandUpper.filter(v=>v!=null).concat(bandLower.filter(v=>v!=null));
+    const _blo=_bandVals.length?Math.min(..._bandVals):_mlo;
+    const _bhi=_bandVals.length?Math.max(..._bandVals):_mhi;
+    const _capLo=_mlo-_medSpan*1.5;
+    const _capHi=_mhi+_medSpan*1.5;
+    const _lo=Math.max(_blo,_capLo);
+    const _hi=Math.min(_bhi,_capHi);
+    const _pad=Math.max(1,(_hi-_lo)*0.15);
     const _step=((_hi+_pad)-(_lo-_pad)>=20)?5:1;
     _yClampMin=Math.floor((_lo-_pad)/_step)*_step;
     _yClampMax=Math.ceil((_hi+_pad)/_step)*_step;

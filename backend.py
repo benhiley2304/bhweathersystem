@@ -12149,13 +12149,77 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     dir_c = (whit - 0.5) * 2
     mag_c = max(-1.0, min(1.0, wmed / iqr_half))
     score = round(max(0.0, min(10.0, 5 + 2.5 * dir_c + 2.5 * mag_c)), 1)
+    # ── Reliability metrics: separate real edge from outlier-driven mirage ──
+    # 1) Winsorised median: drop the 2 most extreme years each side, recompute median
+    #    (unweighted for interpretability). If the winsorised value collapses toward 0
+    #    while raw median is meaningful, the pattern is outlier-driven.
+    sorted_rets = sorted(rets)
+    trim = 2 if n >= 12 else (1 if n >= 8 else 0)
+    trimmed = sorted_rets[trim:len(sorted_rets)-trim] if trim else sorted_rets
+    trimmed_med = (sorted(trimmed)[len(trimmed)//2] if len(trimmed) % 2
+                   else 0.5*(sorted(trimmed)[len(trimmed)//2-1]+sorted(trimmed)[len(trimmed)//2])) if trimmed else 0.0
+    # 2) Cross-year stdev of returns (raw, unweighted) — measures dispersion
+    _mean = sum(rets)/n
+    _var = sum((r-_mean)**2 for r in rets)/max(1, n-1)
+    _sd = _var**0.5
+    # 3) Signal-to-noise: median / stdev.  |sn| >= 0.5 is strong, <0.2 is weak.
+    sig_noise = (wmed/_sd) if _sd > 0.01 else 0.0
+    # 4) Median-absolute-deviation ratio: MAD / |median|. Low = consistent, high = noisy.
+    _mad = sorted(abs(r-wmed) for r in rets)
+    mad = _mad[n//2] if n % 2 else 0.5*(_mad[n//2-1]+_mad[n//2])
+    mad_ratio = (mad/abs(wmed)) if abs(wmed) > 0.5 else None  # undefined for tiny signals
+    # 5) Regime-cluster flag: is hit-rate stable across halves of the sample?
+    if n >= 12:
+        mid = n // 2
+        older = rets[:mid]; newer = rets[mid:]
+        hr_older = sum(1 for r in older if r > 0)/len(older) if older else 0
+        hr_newer = sum(1 for r in newer if r > 0)/len(newer) if newer else 0
+        regime_delta = round(abs(hr_newer - hr_older)*100)  # pts diff between halves
+    else:
+        regime_delta = None
+    # 6) Reliability grade — A (real edge) / B (decent) / C (mixed) / D (mirage).
+    # Weighted blend of the criteria above.
+    _pts = 0
+    # Signal-to-noise (0-3 pts)
+    _sn_abs = abs(sig_noise)
+    if _sn_abs >= 0.6: _pts += 3
+    elif _sn_abs >= 0.35: _pts += 2
+    elif _sn_abs >= 0.2: _pts += 1
+    # Trimmed agrees with raw median (0-2 pts)
+    if abs(wmed) > 0.5 and (trimmed_med * wmed) > 0:  # same sign, meaningful magnitude
+        agree = abs(trimmed_med) / abs(wmed)
+        if agree >= 0.7: _pts += 2
+        elif agree >= 0.4: _pts += 1
+    # Hit-rate confidence (0-2 pts) — 90% binomial CI on n_pos/n away from 50%
+    _p = n_pos/n
+    _se = (_p*(1-_p)/n)**0.5
+    _ci_low = _p - 1.645*_se; _ci_high = _p + 1.645*_se
+    if _ci_low > 0.55 or _ci_high < 0.45: _pts += 2
+    elif abs(_p - 0.5) > 0.15: _pts += 1
+    # Regime stability (0-1 pt)
+    if regime_delta is not None and regime_delta <= 20: _pts += 1
+    # Sample size (0-1 pt)
+    if n >= 15: _pts += 1
+    # Total: 0-9 pts -> A/B/C/D
+    grade = 'A' if _pts >= 7 else ('B' if _pts >= 5 else ('C' if _pts >= 3 else 'D'))
     return {
         "score": score,
         "n_years": n, "n_pos": n_pos, "n_neg": n - n_pos,
         "hit_rate": round(whit * 100),
         "raw_hit_rate": round(100 * n_pos / n),
         "median_pct": round(wmed, 2),
+        "trimmed_median_pct": round(trimmed_med, 2),
         "mean_pct": round(sum(r * w for r, w in zip(rets, ws)) / tot_w, 2),
+        "stdev_pct": round(_sd, 2),
+        "signal_noise": round(sig_noise, 2),
+        "mad_ratio": (round(mad_ratio, 2) if mad_ratio is not None else None),
+        "regime_delta_pts": regime_delta,
+        "hit_ci_low": round(_ci_low*100),
+        "hit_ci_high": round(_ci_high*100),
+        "reliability_grade": grade,
+        "reliability_pts": _pts,
+        "per_year_rets": [{"y": y, "r": round(r, 2), "w": round(w, 3)}
+                          for y, r, w in zip(used, rets, ws)],
         "best_pct": round(max(rets), 2),
         "worst_pct": round(min(rets), 2),
         "td_start": td_a, "td_end": td_b,
@@ -12218,6 +12282,17 @@ def score_seasonality(market_id: str) -> dict:
             "median_pct": stats["median_pct"], "mean_pct": stats["mean_pct"],
             "best_pct": stats["best_pct"], "worst_pct": stats["worst_pct"],
             "years_span": stats["years_span"],
+            # Reliability metrics
+            "trimmed_median_pct": stats.get("trimmed_median_pct"),
+            "stdev_pct": stats.get("stdev_pct"),
+            "signal_noise": stats.get("signal_noise"),
+            "mad_ratio": stats.get("mad_ratio"),
+            "regime_delta_pts": stats.get("regime_delta_pts"),
+            "hit_ci_low": stats.get("hit_ci_low"),
+            "hit_ci_high": stats.get("hit_ci_high"),
+            "reliability_grade": stats.get("reliability_grade"),
+            "reliability_pts": stats.get("reliability_pts"),
+            "per_year_rets": stats.get("per_year_rets"),
         })
     return {"score": score, "label": label, "detail": detail}
 
