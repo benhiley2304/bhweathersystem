@@ -41443,12 +41443,13 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
         // the NEXT 4WK pill + colour match the visible detrended curve.
         let liveSlope=slope;
         if(chart.$detrendOn){
-          let sV=null,eV=null;
+          let sV=null,eV=null,sI=-1,eI=-1;
           for(let i=0;i<labels.length;i++){
-            if(sV==null && labels[i]>=horizStart && allV[i]!=null)sV=allV[i];
-            if(labels[i]<=horizEnd && allV[i]!=null)eV=allV[i];
+            if(sV==null && labels[i]>=horizStart && allV[i]!=null){sV=allV[i];sI=i;}
+            if(labels[i]<=horizEnd && allV[i]!=null){eV=allV[i];eI=i;}
           }
           if(sV!=null && eV!=null)liveSlope=eV-sV;
+          window._horizDbg={horizStart,horizEnd,sV,eV,sI,eI,liveSlope,detrendOn:chart.$detrendOn};
         }
         const isBull=liveSlope>=0;
         const hCol=isBull?'34,201,122':'224,58,42';
