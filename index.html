@@ -28230,10 +28230,11 @@ function renderMacroDataPanels(reg){
           </div>`:'<div></div>'}
           ${cuts12m!=null?(()=>{
             const path_bp = -cuts12m * 25;
-            const pathCol = path_bp>0?'#c8a96e':path_bp<0?'#30d988':'#adb8d0';
-            const pathBg  = path_bp>0?'rgba(200,169,110,0.05)':path_bp<0?'rgba(34,201,122,0.05)':'rgba(255,255,255,0.02)';
-            const pathBdr = path_bp>0?'rgba(200,169,110,0.25)':path_bp<0?'rgba(34,201,122,0.25)':'rgba(173,184,208,0.18)';
-            const pathLbl = path_bp>0?'HIKE':path_bp<0?'CUT':'HOLD';
+            const _isHike = path_bp > 2, _isCut = path_bp < -2;
+            const pathCol = _isHike?'#c8a96e':_isCut?'#30d988':'#adb8d0';
+            const pathBg  = _isHike?'rgba(200,169,110,0.05)':_isCut?'rgba(34,201,122,0.05)':'rgba(255,255,255,0.02)';
+            const pathBdr = _isHike?'rgba(200,169,110,0.25)':_isCut?'rgba(34,201,122,0.25)':'rgba(173,184,208,0.18)';
+            const pathLbl = _isHike?'HIKE':_isCut?'CUT':'HOLD';
             const pathStr = (path_bp>=0?'+':'')+Math.round(path_bp)+'bp';
             return `<div style="background:${pathBg};border:1px solid ${pathBdr};border-radius:7px;padding:7px 8px;display:flex;flex-direction:column;gap:1px">
               <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(173,184,208,0.65)">12M Path</span>
