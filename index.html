@@ -41320,7 +41320,9 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           const cyVal=nearestCy(cyMaxTD);  // use last available actual point
           if(cyVal!=null){
             const dotX=x.getPixelForValue(cyMaxTD);
-            const dotY=y.getPixelForValue(cyVal);
+            const _yA=chart.scales.yActual;
+            const _yAOn=!!(_yA&&_yA.options&&_yA.options.display);
+            const dotY=_yAOn?_yA.getPixelForValue(cyVal):y.getPixelForValue(cyVal);
             c.save();
             // Glow halo
             c.beginPath();c.arc(dotX,dotY,8,0,Math.PI*2);
@@ -41549,20 +41551,34 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
     });
   }
 
-  // ── Y-axis clamp: scale to the seasonal curve + band (not intra-year price spikes) ──
-  // Extreme moves in the current-year actual line (e.g. NG +110% in Jan) would otherwise
-  // squash the seasonal median into a flat line. The live dot (last actual) stays in range.
-  const _cvals=allV.filter(v=>v!=null)
+  // ── Y-axis clamps: dual-scale so seasonal SHAPE and YTD SHAPE both read clearly ──
+  // LEFT (y):  seasonal median + 25–75% band only  — the shape of the historical pattern
+  // RIGHT (yActual): the current-year YTD path only — its own shape, own magnitude
+  // The two share the same physical plot area but decouple their vertical scales.
+  const _svals=allV.filter(v=>v!=null)
     .concat(bandUpper.filter(v=>v!=null),bandLower.filter(v=>v!=null));
-  const _lastCy=(cyActual&&cyActual.length)?cyActual[cyActual.length-1][1]:null;
-  if(_lastCy!=null&&isFinite(_lastCy))_cvals.push(_lastCy);
   let _yClampMin,_yClampMax;
-  if(_cvals.length){
-    const _lo=Math.min(..._cvals),_hi=Math.max(..._cvals);
+  if(_svals.length){
+    const _lo=Math.min(..._svals),_hi=Math.max(..._svals);
     const _pad=Math.max(1,(_hi-_lo)*0.18);
     const _step=((_hi+_pad)-(_lo-_pad)>=20)?5:1;
     _yClampMin=Math.floor((_lo-_pad)/_step)*_step;
     _yClampMax=Math.ceil((_hi+_pad)/_step)*_step;
+  }
+  // Right-axis clamp from YTD actual only
+  const _cyValsOnly=(cyActual||[]).map(p=>p[1]).filter(v=>v!=null&&isFinite(v));
+  let _yAClampMin,_yAClampMax,_dualScales=false;
+  if(_cyValsOnly.length>=2){
+    const _clo=Math.min(..._cyValsOnly),_chi=Math.max(..._cyValsOnly);
+    // If YTD range comfortably fits inside the seasonal clamp, skip dual axis — one scale reads cleaner
+    const _fits=(_yClampMin!=null&&_yClampMax!=null&&_clo>=_yClampMin+1&&_chi<=_yClampMax-1);
+    if(!_fits){
+      const _cpad=Math.max(1,(_chi-_clo)*0.22);
+      const _cstep=((_chi+_cpad)-(_clo-_cpad)>=20)?5:1;
+      _yAClampMin=Math.floor((_clo-_cpad)/_cstep)*_cstep;
+      _yAClampMax=Math.ceil((_chi+_cpad)/_cstep)*_cstep;
+      _dualScales=true;
+    }
   }
 
   // Historical Median — PAST segment
@@ -41612,7 +41628,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
     });
   }
 
-  // 2026 Actual — bright white, crisp
+  // 2026 Actual — bright white, crisp — on right-hand yActual axis (dual-scale)
   if(cyActual&&cyActual.length>1){
     datasets.unshift({
       label:new Date().getFullYear()+' Actual YTD',
@@ -41624,7 +41640,8 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
       tension:0,
       spanGaps:false,
       fill:false,
-      order:1
+      order:1,
+      yAxisID: _dualScales?'yActual':'y'
     });
   }
 
@@ -41671,15 +41688,33 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           border:{color:'rgba(255,255,255,0.08)'}
         },
         y:{
+          position:'left',
           min:_yClampMin,max:_yClampMax,
+          title:_dualScales&&isModal?{display:true,text:'SEASONAL %',color:'rgba(107,124,255,0.55)',font:{size:8,weight:'600',family:'Inter,sans-serif'},padding:{bottom:4}}:{display:false},
           ticks:{
-            color:'rgba(255,255,255,0.28)',
+            color:_dualScales?'rgba(107,124,255,0.5)':'rgba(255,255,255,0.28)',
             font:{size:isModal?8:7.5,family:'JetBrains Mono,monospace'},
             callback:v=>(v>=0?'+':'')+v.toFixed(0)+'%',
             maxTicksLimit:isModal?8:6,
             padding:4
           },
           grid:{color:'rgba(255,255,255,0.04)'},
+          border:{color:'transparent'}
+        },
+        yActual:{
+          display:_dualScales,
+          position:'right',
+          min:_dualScales?_yAClampMin:_yClampMin,
+          max:_dualScales?_yAClampMax:_yClampMax,
+          title:_dualScales&&isModal?{display:true,text:'YTD %',color:'rgba(255,255,255,0.55)',font:{size:8,weight:'600',family:'Inter,sans-serif'},padding:{bottom:4}}:{display:false},
+          ticks:{
+            color:'rgba(255,255,255,0.45)',
+            font:{size:isModal?8:7.5,family:'JetBrains Mono,monospace'},
+            callback:v=>(v>=0?'+':'')+v.toFixed(0)+'%',
+            maxTicksLimit:isModal?8:6,
+            padding:4
+          },
+          grid:{display:false},
           border:{color:'transparent'}
         },
         yGhost:{display:false,axis:'y'}
