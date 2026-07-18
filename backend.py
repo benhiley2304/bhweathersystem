@@ -1626,7 +1626,89 @@ def score_pcr(market_id: str) -> dict:
 
         pcr = snap["pcr_oi"]
 
-        # Calibrated thresholds (from option market structural analysis + backtest)
+        # ── Regime-relative scoring (aligned with the P/C history chart) ────
+        # Static absolute thresholds mis-fire when an option market is
+        # structurally call- or put-heavy for long stretches (e.g. GLD in a
+        # gold bull run never prints PCR > 0.8, so "fear" was unreachable and
+        # the factor skewed permanently bearish while the chart showed puts at
+        # the top of their 1yr range). Score off the percentile + z-score of
+        # the live PCR vs the market's OWN trailing-year distribution — the
+        # exact series the chart plots — and only fall back to the legacy
+        # absolute thresholds if the history is too thin.
+        window = []
+        try:
+            _series, _sr = _build_etf_pcr_series(market_id.upper(), refresh=False)
+            # If no direct ticker snapshot is cached yet (e.g. right after a
+            # deploy wiped the disk cache), the series is unscaled ETP proxy on
+            # a different level — refresh once to anchor the scale.
+            if _sr == 1.0:
+                _series2, _sr2 = _build_etf_pcr_series(market_id.upper(), refresh=True)
+                if _series2:
+                    _series, _sr = _series2, _sr2
+            window = [v for _, v in _series][-252:]
+        except Exception as e:
+            print(f"[PCR] {market_id} relative-scoring history load failed: {e}")
+
+        # Scale-compatibility guard: if the live PCR sits wildly off the
+        # window's level, the backfill is unanchored — use absolute fallback.
+        if len(window) >= 60:
+            _med = float(np.median(window))
+            if _med <= 0 or not (0.4 <= pcr / _med <= 2.5):
+                print(f"[PCR] {market_id} window scale mismatch (pcr={pcr}, med={_med:.3f}) — absolute fallback")
+                window = []
+
+        if len(window) >= 60:
+            w = np.array(window, dtype=float)
+            percentile = float(np.mean(w < pcr))
+            w_mean = float(w.mean())
+            w_std  = float(w.std()) or 1e-6
+            zscore = (pcr - w_mean) / w_std
+
+            base_score = percentile * 10.0
+            z_nudge    = max(-1.5, min(1.5, zscore)) * 0.8  # up to ±1.2 pts
+            score      = round(max(0.0, min(10.0, base_score + z_nudge)), 1)
+
+            hot_fear  = (percentile >= 0.90) or (zscore >= 1.5)
+            hot_greed = (percentile <= 0.10) or (zscore <= -1.5)
+            if   hot_fear:            label = "Extreme Fear"
+            elif percentile >= 0.75:  label = "High Fear"
+            elif percentile >= 0.60:  label = "Mild Fear"
+            elif percentile >= 0.40:  label = "Neutral"
+            elif percentile >= 0.25:  label = "Mild Greed"
+            elif not hot_greed:       label = "High Greed"
+            else:                     label = "Extreme Greed"
+
+            if   percentile >= 0.75 or hot_fear:   signal = "Contrarian Bullish"
+            elif percentile >= 0.60:               signal = "Lean Bullish"
+            elif percentile <= 0.25 or hot_greed:  signal = "Contrarian Bearish"
+            elif percentile <= 0.40:               signal = "Lean Bearish"
+            else:                                  signal = "Neutral"
+
+            return {
+                "score": score, "label": label, "tier": tier,
+                "detail": {
+                    "pcr_oi": pcr,
+                    "pcr_vol": snap.get("pcr_vol"),
+                    "total_oi": snap["total_oi"],
+                    "n_strikes": snap.get("n_strikes"),
+                    "percentile": round(percentile * 100, 1),
+                    "zscore": round(zscore, 2),
+                    "signal": signal, "label": label,
+                    "proxy_ticker": proxy_ticker,
+                    "source": f"CBOE {proxy_ticker} Options",
+                    "scoring_basis": "live OI PCR vs own 1yr distribution (percentile + z-score)",
+                    "thresholds": {
+                        "extreme_greed":  round(float(np.percentile(w, 10)), 3),
+                        "moderate_greed": round(float(np.percentile(w, 25)), 3),
+                        "neutral_low":    round(float(np.percentile(w, 40)), 3),
+                        "neutral_high":   round(float(np.percentile(w, 60)), 3),
+                        "moderate_fear":  round(float(np.percentile(w, 75)), 3),
+                        "extreme_fear":   round(float(np.percentile(w, 90)), 3),
+                    },
+                }
+            }
+
+        # ── Fallback: legacy calibrated absolute thresholds (thin history) ─
         THRESHOLDS = {
             "GLD": {"xfear": 1.20, "hfear": 1.00, "mfear": 0.80,
                     "mgreed": 0.55, "hgreed": 0.45, "xgreed": 0.35},
@@ -11688,6 +11770,113 @@ async def get_setup_stats(market: str):
 # ============================================================
 # PUT/CALL RATIO HISTORY ENDPOINT
 # ============================================================
+# ── ETF/Crypto PCR history builder (shared by /api/pcr-history and score_pcr) ──
+_PCR_ETF_MAP = {"GC": "GLD", "SI": "SLV", "CL": "USO"}
+
+def _build_etf_pcr_series(market_upper: str, refresh: bool = True):
+    """
+    Build the combined daily PCR series for an ETF-proxied or crypto market:
+    direct snapshots (yfinance option-chain OI / Deribit) + scaled ETP proxy
+    backfill. Returns (sorted_series [(date_str, pcr), ...], scale_ratio).
+    Shared by the /api/pcr-history chart endpoint AND score_pcr so the score
+    tile and the chart always read off the same data basis.
+    """
+    import json as _json
+    ticker_cache_file = pathlib.Path(DATA_DIR) / "pcr_ticker_cache.json"
+    etp_file = pathlib.Path(DATA_DIR) / "etp_pcr_history.csv"
+    proxy_ticker = _PCR_ETF_MAP.get(market_upper)
+
+    def _load_ticker_cache():
+        if ticker_cache_file.exists():
+            try:
+                return _json.loads(ticker_cache_file.read_text())
+            except Exception:
+                return {}
+        return {}
+
+    def _fetch_yf_pcr_today(ticker: str):
+        try:
+            import yfinance as yf
+            tk = yf.Ticker(ticker)
+            p_oi = c_oi = 0
+            for exp in tk.options:
+                try:
+                    chain = tk.option_chain(exp)
+                    p_oi += float(chain.puts["openInterest"].fillna(0).sum())
+                    c_oi += float(chain.calls["openInterest"].fillna(0).sum())
+                except Exception:
+                    continue
+            if c_oi > 0:
+                return round(p_oi / c_oi, 4)
+        except Exception as e:
+            print(f"[PCR-HIST] yfinance {ticker} error: {e}")
+        return None
+
+    def _load_etp_proxy():
+        if not etp_file.exists():
+            return {}
+        try:
+            df_etp = pd.read_csv(etp_file, index_col=0)
+            df_etp.index = pd.to_datetime(df_etp.index)
+            col = df_etp.columns[0]
+            return {str(dt.date()): float(v) for dt, v in df_etp[col].dropna().items()}
+        except Exception as e:
+            print(f"[PCR-HIST] ETP proxy load error: {e}")
+            return {}
+
+    cache = _load_ticker_cache()
+    today_str = str(pd.Timestamp.now().date())
+    cache_key = proxy_ticker if proxy_ticker else market_upper
+    if cache_key not in cache:
+        cache[cache_key] = {}
+
+    if refresh and today_str not in cache[cache_key]:
+        if proxy_ticker:
+            val = _fetch_yf_pcr_today(proxy_ticker)
+        else:
+            currency = {"BTC": "BTC", "ETH": "ETH"}.get(market_upper)
+            if currency:
+                snap = fetch_deribit_pcr(currency)
+                val = snap["pcr_oi"] if snap else None
+            else:
+                val = None
+        if val is not None:
+            cache[cache_key][today_str] = val
+            try:
+                ticker_cache_file.write_text(_json.dumps(cache))
+            except Exception as e:
+                print(f"[PCR-HIST] cache save error: {e}")
+
+    ticker_history = cache.get(cache_key, {})
+    etp_proxy = _load_etp_proxy()
+
+    scale_ratio = 1.0
+    if ticker_history and etp_proxy:
+        common_dates = sorted(set(ticker_history.keys()) & set(etp_proxy.keys()), reverse=True)
+        if common_dates:
+            latest_common = common_dates[0]
+            etp_val = etp_proxy[latest_common]
+            tkr_val = ticker_history[latest_common]
+            if etp_val and etp_val > 0:
+                scale_ratio = tkr_val / etp_val
+        else:
+            tkr_latest = ticker_history[max(ticker_history.keys())]
+            etp_latest = etp_proxy[max(etp_proxy.keys())]
+            if etp_latest and etp_latest > 0:
+                scale_ratio = tkr_latest / etp_latest
+
+    all_dates = sorted(set(list(etp_proxy.keys()) + list(ticker_history.keys())))
+    combined = {}
+    for d in all_dates:
+        if d in ticker_history:
+            combined[d] = ticker_history[d]
+        elif d in etp_proxy:
+            combined[d] = round(etp_proxy[d] * scale_ratio, 4)
+
+    sorted_series = [(d, v) for d, v in sorted(combined.items()) if v is not None]
+    return sorted_series, scale_ratio
+
+
 @app.get("/api/pcr-history")
 async def get_pcr_history(lookback: int = 252, market: str = ""):
     """
@@ -11805,70 +11994,8 @@ async def get_pcr_history(lookback: int = 252, market: str = ""):
     market_upper = market.upper()
     proxy_ticker = ETF_MAP.get(market_upper)  # GLD / SLV / USO, or None for crypto
 
-    # Load disk cache and maybe refresh today's snapshot
-    cache = _load_ticker_cache()
-    today_str = str(pd.Timestamp.now().date())
-
-    cache_key = proxy_ticker if proxy_ticker else market_upper  # e.g. "GLD" or "BTC"
-
-    if cache_key not in cache:
-        cache[cache_key] = {}
-
-    # Refresh today's snapshot if not already cached
-    if today_str not in cache[cache_key]:
-        if proxy_ticker:
-            val = _fetch_yf_pcr_today(proxy_ticker)
-        else:
-            # Crypto: use Deribit snapshot
-            deribit_map = {"BTC": "BTC", "ETH": "ETH"}
-            currency = deribit_map.get(market_upper)
-            if currency:
-                snap = fetch_deribit_pcr(currency)
-                val = snap["pcr_oi"] if snap else None
-            else:
-                val = None
-        if val is not None:
-            cache[cache_key][today_str] = val
-            try:
-                _save_ticker_cache(cache)
-            except Exception as e:
-                print(f"[PCR-HIST] cache save error: {e}")
-
-    ticker_history = cache.get(cache_key, {})
-
-    # ── Backfill with ETP proxy for dates without direct data ─────────────
-    etp_proxy = _load_etp_proxy()
-
-    # Compute scaling ratio (current ticker PCR / current ETP PCR)
-    # Use most recent cached value if available
-    scale_ratio = 1.0
-    if ticker_history and etp_proxy:
-        # Find most recent date present in both
-        common_dates = sorted(set(ticker_history.keys()) & set(etp_proxy.keys()), reverse=True)
-        if common_dates:
-            latest_common = common_dates[0]
-            etp_val = etp_proxy[latest_common]
-            tkr_val = ticker_history[latest_common]
-            if etp_val and etp_val > 0:
-                scale_ratio = tkr_val / etp_val
-        elif ticker_history and etp_proxy:
-            # No overlap yet — use latest of each
-            tkr_latest = ticker_history[max(ticker_history.keys())]
-            etp_latest = etp_proxy[max(etp_proxy.keys())]
-            if etp_latest and etp_latest > 0:
-                scale_ratio = tkr_latest / etp_latest
-
-    # Build combined series: ETP proxy (scaled) + direct ticker data
-    all_dates = sorted(set(list(etp_proxy.keys()) + list(ticker_history.keys())))
-    combined = {}
-    for d in all_dates:
-        if d in ticker_history:
-            combined[d] = ticker_history[d]
-        elif d in etp_proxy:
-            combined[d] = round(etp_proxy[d] * scale_ratio, 4)
-
-    # Convert to sorted list and trim to lookback
-    sorted_series = [(d, v) for d, v in sorted(combined.items()) if v is not None]
+    # Build the combined series via the shared helper (same basis as score_pcr)
+    sorted_series, scale_ratio = _build_etf_pcr_series(market_upper, refresh=True)
     if len(sorted_series) > lookback:
         sorted_series = sorted_series[-lookback:]
 
