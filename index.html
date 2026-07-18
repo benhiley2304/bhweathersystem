@@ -25734,9 +25734,9 @@ function renderOverview(){
   const sigEntries=Object.entries(regSignals);
   if(sigEntries.length){
     const SIG_ICONS={
-      SPX:'S&P 500',RTY:'Russell 2000',VIX:'VIX',Credit:'Credit Spreads',
+      SPX:'S&P 500',NDX:'Nasdaq 100',RTY:'Russell 2000',VIX:'VIX',Credit:'Credit Spreads',
       'Yield Curve':'Yield Curve',DXY:'Dollar Index','USD/JPY':'USD/JPY',
-      Gold:'Gold',Copper:'Copper'
+      Gold:'Gold',Copper:'Copper','BTC/Gold':'BTC / Gold','Geo Risk':'Geopolitical Risk'
     };
     function sigDot(signal){
       if(signal>=0.8)return '#22c97a';
@@ -25746,9 +25746,10 @@ function renderOverview(){
       return '#4a5268';
     }
     const SIG_GROUPS={
-      'RISK':['SPX','RTY','VIX','Credit','Gold','Copper'],
-      'RATES':['Yield Curve','DXY'],
-      'FX':['USD/JPY']
+      'RISK':['SPX','NDX','RTY','VIX','Credit'],
+      'GROWTH & HAVENS':['Gold','Copper','BTC/Gold'],
+      'RATES & FX':['Yield Curve','DXY','USD/JPY'],
+      'GEOPOLITICS':['Geo Risk']
     };
     function buildSigCard(k,v){
       const col=sigDot(v.signal);
@@ -26538,6 +26539,32 @@ function renderFadePanel(){
   el.innerHTML=`<div class="ov-fade-wrap">${hdr}${sub}<div class="ov-fade-grid">${cards}</div></div>`;
 }
 
+function regimePillarsHtml(pillars, opts={}){
+  if(!pillars||!pillars.length)return'';
+  const compact=!!opts.compact;
+  const rows=pillars.map(p=>{
+    const c=(typeof p.contrib==='number')?p.contrib:0;
+    const mx=(typeof p.max==='number'&&p.max>0)?p.max:1;
+    const half=Math.min(50,Math.abs(c)/mx*50);
+    const col=c>0.05?'#22c97a':c<-0.05?'#e03a2a':'#7b8ba8';
+    return `<div style="display:flex;align-items:center;gap:9px;padding:${compact?'2.5px':'3.5px'} 0">
+      <div style="width:${compact?'92px':'118px'};flex-shrink:0;font-size:${compact?'8.5':'9.5'}px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.label||p.key||''}</div>
+      <div style="flex:1;height:${compact?'9px':'11px'};position:relative;background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.06);border-radius:6px;overflow:hidden">
+        <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.16)"></div>
+        <div style="position:absolute;top:1.5px;bottom:1.5px;${c>=0?'left:50%':'right:50%'};width:${half}%;background:${col};border-radius:4px;opacity:0.85"></div>
+      </div>
+      <div style="width:46px;flex-shrink:0;text-align:right;font-family:var(--mono);font-size:${compact?'9':'10'}px;font-weight:800;color:${col}">${c>0?'+':''}${c.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+  return `<div class="ov-cp-pillars" style="${compact?'margin:2px 0 12px':'position:relative;z-index:2;margin:0 0 14px;padding:12px 14px;background:rgba(255,255,255,0.02);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.06);border-radius:10px'}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:${compact?'8.5':'9.5'}px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint)">Climate Pillars</div>
+      <div style="font-size:8px;color:var(--dim);font-family:var(--mono);letter-spacing:0.03em">contribution to regime score</div>
+    </div>
+    ${rows}
+  </div>`;
+}
+
 function renderClimatePanel(reg, markets, mktMap){
   const el=document.getElementById('ov-climate-panel');
   if(!el)return;
@@ -26582,7 +26609,7 @@ function renderClimatePanel(reg, markets, mktMap){
   // ── Data extraction
   // Equities
   const spxRet1m=ret.SPX?.return_1m;
-  const rtyRet1m=ret.RTY?.return_1m;
+  const rtyRet1m=(ret.RUT||ret.RTY)?.return_1m;
   const ndxRet1m=ret.NDX?.return_1m;
   const spxRet1w=ret.SPX?.return_1w;
   const equityComp=mc.equity?.composite_10;
@@ -26962,6 +26989,7 @@ function renderClimatePanel(reg, markets, mktMap){
       </div>
     </div>
 
+    ${regimePillarsHtml(reg.pillars||[])}
     <div class="ov-cp-narrative" id="ov-cp-narrative">
       <div class="ov-cp-narr-header">
         <div class="ov-cp-narr-label">
@@ -38995,6 +39023,7 @@ function regimeTab(m){
         <div style="font-size:8px;color:${vixTs>=1?'#22c97a':vixTs<=-2?'#e03a2a':'var(--dim)'};margin-top:2px">${vixTs>=1?'Contango':vixTs<=-2?'Inverted':'Flat'}</div>
       </div>`:''}
     </div>`:''}
+    ${regimePillarsHtml(gReg.pillars||[],{compact:true})}
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px">
       ${Object.entries(signals).map(([k,v])=>{
         if(!v) return '';

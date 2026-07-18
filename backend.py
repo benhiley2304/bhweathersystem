@@ -6157,6 +6157,8 @@ RISK_ASSETS = {
     "OIL":    "CL=F",
     "COPPER": "HG=F",
     "USDJPY": "JPY=X",
+    # Bitcoin — speculative-appetite leg of the Growth & Crypto pillar (BTC/gold ratio)
+    "BTC":    "BTC-USD",
     # TIPS ETF: used as real-yield proxy in historical backtest
     # TIP modified duration ~7.5y → price change inversely tracks real yield changes
     "TIP":    "TIP",
@@ -6170,6 +6172,110 @@ RISK_ASSETS = {
 
 RISK_REGIME_CACHE: dict = {"data": None, "time": 0}
 RISK_REGIME_CACHE_TTL = 3600  # 1h — aligns with main scores cache TTL
+
+
+def _regime_core_score(rets: dict,
+                       vix: float = None, vix3m: float = None,
+                       hy_oas_bps: float = None, hy_delta_4w: float = None,
+                       hyg_1m: float = None, lqd_1m: float = None,
+                       geo_tension: float = None) -> dict:
+    """
+    Shared holistic risk-climate core — the SINGLE source of truth used by the
+    live scorer (compute_risk_regime), the historical backtest (_score_regime_at)
+    and the 52-week score-history endpoint. Graded (continuous) signals, no
+    hard threshold flips.
+
+    rets: {name: {"1w": pct, "1m": pct}} for any of
+          SPX, NDX, RUT, VIX, GLD, COPPER, BTC, DXY, USDJPY (missing → 0)
+    hy_oas_bps / hy_delta_4w: FRED BAML HY OAS level (bps) + 4-week change (bps).
+          When unavailable (backtest), falls back to HYG−LQD 1m return spread.
+    geo_tension: 0..1 geopolitical stress index from news scan, or None = no data.
+
+    Pillars (weights sum to 5.3 but total is clamped to ±4):
+      1. Equity trend        ±1.2   SPX 50% / RUT 25% / NDX 25%, 1m+1w blend
+      2. Volatility          ±1.2   VIX level (graded) + 1w momentum + term structure
+      3. Credit              ±1.0   HY OAS 4w trend + absolute level grade
+      4. Havens & FX         ±0.8   gold, USD/JPY carry, DXY
+      5. Growth & crypto     ±0.6   copper + BTC/gold ratio (speculative appetite)
+      6. Geopolitics      −0.5..+0.1 news-flow tension scan
+
+    Returns {"score": -4..+4, "components": {pillar: contrib}, "detail": {...}}
+    """
+    def _g(name, k):
+        try:
+            v = rets.get(name, {}).get(k)
+            return float(v) if v is not None else 0.0
+        except Exception:
+            return 0.0
+
+    def _cl(x, lo=-1.0, hi=1.0):
+        return max(lo, min(hi, x))
+
+    # ── 1. Equity trend ±1.2 — breadth-weighted, dual lookback ──────────────
+    # SPX carries half the pillar; RUT (breadth/cyclicals) and NDX (duration/
+    # speculative growth) a quarter each. NDX is deliberately NOT dominant.
+    eq_blend = 0.0
+    for _nm, _w in (("SPX", 0.50), ("RUT", 0.25), ("NDX", 0.25)):
+        eq_blend += _w * (0.6 * _g(_nm, "1m") + 0.4 * _g(_nm, "1w"))
+    eq_pillar = _cl(eq_blend / 2.0) * 1.2
+
+    # ── 2. Volatility ±1.2 — graded level + momentum + term structure ───────
+    vol_pillar = 0.0
+    vix_1w = _g("VIX", "1w")
+    if vix and vix > 0:
+        _lvl = _cl((19.0 - vix) / 5.0, -1.5, 1.2) * 0.50      # graded around 19
+        _chg = _cl(-vix_1w / 15.0) * 0.35                      # 1w VIX momentum
+        _ts = 0.0
+        if vix3m and vix3m > 0:
+            _ts = _cl((vix3m / vix - 1.0) * 10.0) * 0.35       # contango/inversion
+        vol_pillar = _cl(_lvl + _chg + _ts, -1.2, 1.2)
+
+    # ── 3. Credit ±1.0 — OAS trend + level; HYG−LQD fallback ────────────────
+    credit_pillar = 0.0
+    if hy_oas_bps is not None:
+        _d = _cl(-(hy_delta_4w or 0.0) / 30.0) * 0.6           # 4w spread trend
+        _lvlg = (0.4 if hy_oas_bps < 250 else
+                 0.2 if hy_oas_bps < 300 else
+                 0.0 if hy_oas_bps < 450 else
+                 -0.4 if hy_oas_bps < 550 else -0.6)           # absolute level
+        credit_pillar = _cl(_d + _lvlg)
+    elif hyg_1m is not None and lqd_1m is not None:
+        # Duration-matched-ish price fallback for history (no OAS series)
+        credit_pillar = _cl((hyg_1m - lqd_1m) / 3.0) * 0.6
+
+    # ── 4. Havens & FX ±0.8 — gold bid, JPY carry, dollar ────────────────────
+    hav = (_cl(-_g("GLD", "1m") / 6.0) * 0.30 +
+           _cl(_g("USDJPY", "1m") / 4.0) * 0.25 +
+           _cl(-_g("DXY", "1m") / 3.0) * 0.30)
+    hav_pillar = _cl(hav, -0.8, 0.8)
+
+    # ── 5. Growth commodities & crypto ±0.6 ─────────────────────────────────
+    grw = _cl(_g("COPPER", "1m") / 5.0) * 0.30
+    btc_rel = None
+    if "BTC" in rets:
+        btc_rel = _g("BTC", "1m") - _g("GLD", "1m")           # BTC/gold ratio proxy
+        grw += _cl(btc_rel / 12.0) * 0.30
+    grw_pillar = _cl(grw, -0.6, 0.6)
+
+    # ── 6. Geopolitics −0.5..+0.1 — asymmetric: tension penalises ────────────
+    geo_pillar = 0.0
+    if geo_tension is not None:
+        geo_pillar = 0.1 if geo_tension <= 0 else -0.5 * _cl(geo_tension, 0.0, 1.0)
+
+    score = _cl(eq_pillar + vol_pillar + credit_pillar + hav_pillar + grw_pillar + geo_pillar,
+                -4.0, 4.0)
+    return {
+        "score": round(score, 2),
+        "components": {
+            "equity":     round(eq_pillar, 2),
+            "volatility": round(vol_pillar, 2),
+            "credit":     round(credit_pillar, 2),
+            "havens":     round(hav_pillar, 2),
+            "growth":     round(grw_pillar, 2),
+            "geo":        round(geo_pillar, 2),
+        },
+        "detail": {"eq_blend": round(eq_blend, 2), "btc_rel": (round(btc_rel, 2) if btc_rel is not None else None)},
+    }
 
 STOCK_CLIMATE_CACHE: dict = {"data": None, "time": 0}
 STOCK_CLIMATE_CACHE_TTL = 3600  # 1h
@@ -6938,59 +7044,33 @@ def compute_risk_regime() -> dict:
         _ra_ex.shutdown(wait=False)
 
     regime_signals: dict = {}  # structured dict: key -> {signal, value, label}
-    regime_score = 0
 
-    # ── SPX / RUT trend ────────────────────────────────────────────────────
+    def _clamp1(x, lo=-1.0, hi=1.0):
+        return max(lo, min(hi, x))
+
+    # ── Raw inputs for the shared scoring core ──────────────────────────────
     spx_1m = returns.get("SPX", {}).get("return_1m", 0)
-    rut_1m = returns.get("RUT", {}).get("return_1m", 0)
+    spx_1w = returns.get("SPX", {}).get("return_1w", 0)
     ndx_1m = returns.get("NDX", {}).get("return_1m", 0)
-    spx_sig = 1 if spx_1m > 1.0 else -1 if spx_1m < -1.0 else 0
-    regime_score += spx_sig
-    if rut_1m > 1.0:  regime_score += 0.5
-    elif rut_1m < -1.0: regime_score -= 0.5
-    # Equity composite signal normalised -2..+2
-    eq_raw = spx_sig + (0.5 if rut_1m > 1 else -0.5 if rut_1m < -1 else 0)
-    regime_signals["SPX"] = {
-        "signal": round(eq_raw / 2, 2),
-        "value": f"{spx_1m:+.1f}%",
-        "label": "Bullish" if spx_1m > 1.0 else "Bearish" if spx_1m < -1.0 else "Neutral",
-    }
-    regime_signals["RTY"] = {
-        "signal": round((0.5 if rut_1m > 1 else -0.5 if rut_1m < -1 else 0), 2),
-        "value": f"{rut_1m:+.1f}%",
-        "label": "Bullish" if rut_1m > 1.0 else "Bearish" if rut_1m < -1.0 else "Neutral",
-    }
-
-    # ── VIX level + term structure ─────────────────────────────────────────
-    # Thresholds re-calibrated: historical median VIX ~17, so <17 should NOT equal risk-on.
-    # New neutral band: 17–21.  Extremes: <13 = euphoric (+2), >27 = stressed (−2).
-    # Old: <14=+2, <17=+1, >23=−1, >30=−2
-    # New: <13=+2, <17=+1, 17–21=0, >21=−1, >27=−2
+    ndx_1w = returns.get("NDX", {}).get("return_1w", 0)
+    rut_1m = returns.get("RUT", {}).get("return_1m", 0)
+    rut_1w = returns.get("RUT", {}).get("return_1w", 0)
+    gld_1m = returns.get("GLD", {}).get("return_1m", 0)
+    copper_1m = returns.get("COPPER", {}).get("return_1m", 0)
+    btc_1m = returns.get("BTC", {}).get("return_1m", 0)
+    dxy_1m = returns.get("DXY", {}).get("return_1m", 0)
+    usdjpy_1m = returns.get("USDJPY", {}).get("return_1m", 0)
+    vix_1w_chg = returns.get("VIX", {}).get("return_1w", 0)
     vix_level   = levels.get("VIX",  20.0)
-    vix3m_level = levels.get("VIX3M", 22.0)
-    vix_level_s  = (2 if vix_level < 13 else 1 if vix_level < 17 else
-                   -1 if vix_level > 21 else -2 if vix_level > 27 else 0)
-    vix_ts_signal = 0
-    if vix3m_level > 0 and vix_level > 0:
-        ts_ratio = vix3m_level / vix_level
-        if ts_ratio > 1.05:    vix_ts_signal = 1  # contango = calm
-        elif ts_ratio < 0.95:  vix_ts_signal = -1 # inversion = stress
-    regime_score += vix_level_s * 0.6 + vix_ts_signal * 0.3
-    ts_label = ("Contango" if vix_ts_signal > 0 else "Inverted" if vix_ts_signal < 0 else "Flat")
-    vix_sig_norm = round((vix_level_s * 0.6 + vix_ts_signal * 0.3) / 2, 2)
-    regime_signals["VIX"] = {
-        "signal": vix_sig_norm,
-        "value": f"{vix_level:.1f}",
-        "label": f"{ts_label} — {'Low' if vix_level < 16 else 'Elevated' if vix_level > 25 else 'Moderate'} vol",
-    }
+    vix3m_level = levels.get("VIX3M", 0.0)
+    ts_ratio = (vix3m_level / vix_level) if (vix_level > 0 and vix3m_level > 0) else None
 
-    # ── Credit spreads (HYG/LQD price signal + FRED BAML OAS) ───────────────
+    # ── Credit raw inputs (HYG/LQD price behaviour + FRED BAML OAS) ─────────
+    # NOTE: scoring now happens inside _regime_core_score — this block only
+    # gathers raw credit inputs + display enrichment (percentiles, deltas).
     hyg_1m = returns.get("HYG", {}).get("return_1m", 0)
     lqd_1m = returns.get("LQD", {}).get("return_1m", 0)
     spread_sig = hyg_1m - lqd_1m  # positive = HY outperforming = risk-on
-    if spread_sig > 1.5:   regime_score += 1
-    elif spread_sig < -1.5: regime_score -= 1
-    credit_sig_norm = round(min(1.0, max(-1.0, spread_sig / 3.0)), 2)
     credit_trend = "Tightening" if spread_sig > 0.3 else "Widening" if spread_sig < -0.3 else "Neutral"
 
     # Fetch actual OAS levels from FRED (BAML indices) — daily, in basis points
@@ -7033,9 +7113,6 @@ def compute_risk_regime() -> dict:
                     hy_pct_min = round(sorted_vals[0] * 100, 0)
                     hy_pct_max = round(sorted_vals[-1] * 100, 0)
                     del sorted_vals  # free large list
-                # Boost/dampen regime score based on OAS level
-                if hy_oas_bps < 250:   regime_score += 0.5
-                elif hy_oas_bps > 500: regime_score -= 0.5
     except Exception as _e: print(f"[credit_signal] {_e}")
     try:
         ig_data = fetch_fred_series("IGOAS", 780)   # ~3 years
@@ -7062,58 +7139,130 @@ def compute_risk_regime() -> dict:
                     del sorted_ig  # free large list
     except Exception as _e: print(f"[credit_percentile] {_e}")
 
-    # Blend HYG/LQD price signal with OAS level signal
-    if hy_oas_bps is not None:
-        credit_sig_norm = round(credit_sig_norm * 0.5 + hy_oas_score * 0.5, 2)
+    # ── Geopolitical tension scan — FF breaking news, 48h window ────────────
+    geo_hits = 0.0
+    geo_top = ""
+    geo_n_items = 0
+    try:
+        _geo_items = fetch_ff_news(hours_back=48) or []
+        geo_n_items = len(_geo_items)
+        _GEO_KW = ("war", "missile", "airstrike", "air strike", "strikes on", "attack",
+                   "invasion", "invade", "escalat", "sanction", "nuclear", "conflict",
+                   "troops", "airspace", "drone", "retaliat", "blockade", "embargo",
+                   "coup", "hostage", "tariff", "geopolit", "warship",
+                   "mobilis", "mobiliz", "martial law")
+        for _gi in _geo_items[:80]:
+            _gt = ((_gi.get("title") or "") + " " + (_gi.get("preview") or "")).lower()
+            if any(_kw in _gt for _kw in _GEO_KW):
+                geo_hits += 1.5 if (_gi.get("impact") == "high") else 1.0
+                if not geo_top:
+                    geo_top = (_gi.get("title") or "")[:90]
+    except Exception as _e:
+        print(f"[geo_signal] {_e}", flush=True)
+    geo_tension = (min(1.0, geo_hits / 8.0) if geo_n_items > 0 else None)
 
+    # ── Shared holistic core — single source of truth for the score ─────────
+    _core_rets = {}
+    for _nm in ("SPX", "NDX", "RUT", "VIX", "GLD", "COPPER", "BTC", "DXY", "USDJPY"):
+        if _nm in returns:
+            _core_rets[_nm] = {"1w": returns[_nm].get("return_1w", 0),
+                               "1m": returns[_nm].get("return_1m", 0)}
+    _core = _regime_core_score(
+        _core_rets,
+        vix=vix_level, vix3m=vix3m_level,
+        hy_oas_bps=hy_oas_bps, hy_delta_4w=hy_delta_4w,
+        hyg_1m=hyg_1m, lqd_1m=lqd_1m,
+        geo_tension=geo_tension,
+    )
+    regime_score = _core["score"]
+    _comp = _core["components"]
+    _btc_rel = _core["detail"].get("btc_rel")
+
+    # ── Legacy normalised vars still consumed by market-env composites ──────
+    eq_raw = round(_comp["equity"] / 1.2 * 1.5, 2)          # ±1.5 scale
+    credit_sig_norm = round(_clamp1(_comp["credit"]), 2)
+    dxy_sig_norm = round(_clamp1(-dxy_1m / 3.0), 2)
+
+    # ── Signals for the climate card (graded per-input reads) ───────────────
+    def _updown(v, up, down, pos="Bullish", neg="Bearish", mid="Neutral"):
+        return pos if v > up else neg if v < down else mid
+
+    regime_signals["SPX"] = {
+        "signal": round(_clamp1((0.6 * spx_1m + 0.4 * spx_1w) / 2.0), 2),
+        "value": f"{spx_1m:+.1f}%",
+        "label": _updown(spx_1m, 1.0, -1.0),
+    }
+    regime_signals["NDX"] = {
+        "signal": round(_clamp1((0.6 * ndx_1m + 0.4 * ndx_1w) / 2.0), 2),
+        "value": f"{ndx_1m:+.1f}%",
+        "label": _updown(ndx_1m, 1.0, -1.0),
+    }
+    regime_signals["RTY"] = {
+        "signal": round(_clamp1((0.6 * rut_1m + 0.4 * rut_1w) / 2.0), 2),
+        "value": f"{rut_1m:+.1f}%",
+        "label": _updown(rut_1m, 1.0, -1.0),
+    }
+    ts_label = ("Contango" if (ts_ratio or 1.0) > 1.02 else "Inverted" if (ts_ratio or 1.0) < 0.98 else "Flat")
+    regime_signals["VIX"] = {
+        "signal": round(_clamp1(_comp["volatility"] / 1.2), 2),
+        "value": f"{vix_level:.1f}",
+        "label": f"{ts_label} — {'Low' if vix_level < 16 else 'Elevated' if vix_level > 25 else 'Moderate'} vol"
+                 + (f", 1w {vix_1w_chg:+.0f}%" if abs(vix_1w_chg) >= 5 else ""),
+    }
     regime_signals["Credit"] = {
         "signal": credit_sig_norm,
-        "value": f"{spread_sig:+.1f}%",
-        "label": f"{credit_trend} (HYG {hyg_1m:+.1f}% / LQD {lqd_1m:+.1f}%)",
+        "value": (f"{hy_oas_bps:.0f}bp" if hy_oas_bps is not None else f"{spread_sig:+.1f}%"),
+        "label": (f"HY OAS {'+' if (hy_delta_4w or 0) >= 0 else ''}{(hy_delta_4w or 0):.0f}bp 4w — {credit_trend}"
+                  if hy_oas_bps is not None else
+                  f"{credit_trend} (HYG {hyg_1m:+.1f}% / LQD {lqd_1m:+.1f}%)"),
     }
-
-    # ── Gold vs equities ──────────────────────────────────────────────────
-    gld_1m = returns.get("GLD", {}).get("return_1m", 0)
-    copper_1m = returns.get("COPPER", {}).get("return_1m", 0)
-    if gld_1m > 3.0 and spx_1m < 0:
-        regime_score -= 0.5  # gold surging, equities down = risk-off
-    elif gld_1m < -1.0 and spx_1m > 1.0:
-        regime_score += 0.5  # gold weak, equities up = risk-on
-    gold_sig_norm = round(min(1.0, max(-1.0, -gld_1m / 8.0)), 2)  # inverse: gold up = risk-off
     regime_signals["Gold"] = {
-        "signal": gold_sig_norm,
+        "signal": round(_clamp1(-gld_1m / 6.0), 2),
         "value": f"{gld_1m:+.1f}%",
         "label": "Safe-haven bid" if gld_1m > 2 else "Risk-on" if gld_1m < -1 else "Neutral",
     }
-    copper_sig_norm = round(min(1.0, max(-1.0, copper_1m / 8.0)), 2)
     regime_signals["Copper"] = {
-        "signal": copper_sig_norm,
+        "signal": round(_clamp1(copper_1m / 5.0), 2),
         "value": f"{copper_1m:+.1f}%",
         "label": "Industrial demand" if copper_1m > 2 else "Demand weakness" if copper_1m < -2 else "Neutral",
     }
-
-    # ── DXY signal ────────────────────────────────────────────────────────
-    dxy_1m = returns.get("DXY", {}).get("return_1m", 0)
-    dxy_sig_norm = round(min(1.0, max(-1.0, -dxy_1m / 4.0)), 2)  # DXY up = risk-off for risk assets
+    if _btc_rel is not None:
+        regime_signals["BTC/Gold"] = {
+            "signal": round(_clamp1(_btc_rel / 12.0), 2),
+            "value": f"{_btc_rel:+.1f}%",
+            "label": ("Speculative appetite" if _btc_rel > 4 else
+                      "Defensive rotation" if _btc_rel < -4 else "Neutral")
+                     + f" — BTC {btc_1m:+.1f}% vs gold {gld_1m:+.1f}%",
+        }
     regime_signals["DXY"] = {
         "signal": dxy_sig_norm,
         "value": f"{dxy_1m:+.1f}%",
         "label": "Strengthening" if dxy_1m > 0.5 else "Weakening" if dxy_1m < -0.5 else "Flat",
     }
-
-    # ── USD/JPY ───────────────────────────────────────────────────────────
-    # USDJPY up = JPY weak = risk-on signal.
-    # Previously computed but NOT added to regime_score (was purely decorative).
-    # Now wired in at 0.30 weight: adds a meaningful carry/safe-haven dimension
-    # orthogonal to the VIX and credit signals already in the composite.
-    usdjpy_1m = returns.get("USDJPY", {}).get("return_1m", 0)
-    usdjpy_sig = round(min(1.0, max(-1.0, usdjpy_1m / 5.0)), 2)
-    regime_score += usdjpy_sig * 0.30
+    usdjpy_sig = round(_clamp1(usdjpy_1m / 4.0), 2)
     regime_signals["USD/JPY"] = {
         "signal": usdjpy_sig,
         "value": f"{usdjpy_1m:+.1f}%",
         "label": "JPY weakening (risk-on)" if usdjpy_1m > 1 else "JPY strengthening (risk-off)" if usdjpy_1m < -1 else "Neutral",
     }
+    if geo_tension is not None:
+        _geo_lbl = ("Low" if geo_tension < 0.15 else "Moderate" if geo_tension < 0.45 else
+                    "Elevated" if geo_tension < 0.75 else "Severe")
+        regime_signals["Geo Risk"] = {
+            "signal": round(_comp["geo"] / 0.5, 2),
+            "value": _geo_lbl,
+            "label": (geo_top if geo_top else "No major geopolitical stress in 48h news flow"),
+        }
+
+    # ── Pillar composition (for the climate card UI) ────────────────────────
+    regime_pillars = [
+        {"key": "equity",     "label": "Equity Trend",    "contrib": _comp["equity"],     "max": 1.2},
+        {"key": "volatility", "label": "Volatility",      "contrib": _comp["volatility"], "max": 1.2},
+        {"key": "credit",     "label": "Credit",          "contrib": _comp["credit"],     "max": 1.0},
+        {"key": "havens",     "label": "Havens & FX",     "contrib": _comp["havens"],     "max": 0.8},
+        {"key": "growth",     "label": "Growth & Crypto", "contrib": _comp["growth"],     "max": 0.6},
+        {"key": "geo",        "label": "Geopolitics",     "contrib": _comp["geo"],        "max": 0.5},
+    ]
 
     # Clamp to -4..+4
     regime_score = round(max(-4.0, min(4.0, regime_score)), 1)
@@ -7129,7 +7278,9 @@ def compute_risk_regime() -> dict:
 
     vix_level   = levels.get("VIX",  None)
     vix3m_level = levels.get("VIX3M", None)
-    vix_ts      = time.time()  # timestamp when VIX was fetched
+    # Discrete term-structure read for the frontend (legacy contract:
+    # >=1 Contango, <=-2 Inverted, else Flat)
+    vix_ts      = 1 if (ts_ratio or 1.0) > 1.02 else -2 if (ts_ratio or 1.0) < 0.98 else 0
 
     # ── MACRO DASHBOARD: FRED enrichment ─────────────────────────────────
     macro_dashboard = {}
@@ -7925,6 +8076,8 @@ def compute_risk_regime() -> dict:
         "vix3m_level":   vix3m_level,
         "vix_ts":        vix_ts,
         "signals":       regime_signals,
+        "pillars":       regime_pillars,
+        "geo_tension":   (round(geo_tension, 2) if geo_tension is not None else None),
         "returns":       returns,
         "levels":        levels,
         "rate_signal":   rate_signal,
@@ -12668,54 +12821,18 @@ def _score_regime_at(market_id: str, bar_date_norm,
     if not returns:
         return 5.0
 
-    regime_score = 0.0
-
-    if "SPX" in returns:
-        s = 1 if returns["SPX"]["1m"] > 2 else -1 if returns["SPX"]["1m"] < -3 else 0
-        regime_score += s * 1.2
-    if "RTY" in returns:
-        s = 1 if returns["RTY"]["1m"] > 3 else -1 if returns["RTY"]["1m"] < -4 else 0
-        regime_score += s * 0.6
-
-    vix_level  = levels.get("VIX", 20)
-    vix3m_level = levels.get("VIX3M", 20)
-    # VIX thresholds recalibrated to match compute_risk_regime (Phase 1A fix):
-    # median VIX ~17 → <17 alone is NOT a risk-on signal; >21 = mild risk-off.
-    if vix_level >= 27:   vix_level_s = -2
-    elif vix_level >= 21: vix_level_s = -1
-    elif vix_level <= 13: vix_level_s = 2
-    elif vix_level <= 17: vix_level_s = 1
-    else:                 vix_level_s = 0  # 17–21 = neutral
-
-    vix_ts = 0
-    if "VIX3M" in levels and "VIX" in levels:
-        ts_spread = vix3m_level - vix_level
-        if ts_spread > 3:    vix_ts = 1
-        elif ts_spread < -2: vix_ts = -2
-        elif ts_spread < 0:  vix_ts = -1
-    regime_score += (vix_level_s + vix_ts) / 2
-
-    if "HYG" in returns and "LQD" in returns:
-        spread = returns["HYG"]["1m"] - returns["LQD"]["1m"]
-        cs = 1 if spread > 1.5 else 0.5 if spread > 0.3 else -2 if spread < -2.0 else -1 if spread < -0.5 else 0
-        regime_score += cs * 0.8
-
-    tnx = levels.get("TNX")
-    irx = levels.get("IRX")
-    if tnx and irx:
-        term_spread = tnx - (irx / 100)
-        tnx_1m = returns.get("TNX", {}).get("1m", 0)
-        if term_spread > 1.5 and tnx_1m > 0:   yc_s = 1
-        elif term_spread > 0.5:                  yc_s = 0.5
-        elif term_spread < -0.5:                 yc_s = -1
-        elif term_spread < 0:                    yc_s = -0.5
-        else:                                    yc_s = 0
-        regime_score += yc_s * 0.7
-
-    if "USDJPY" in returns:
-        # USDJPY rising = JPY weakening = risk-on (matches live compute_risk_regime)
-        uj_s = max(-1.0, min(1.0, returns["USDJPY"]["1m"] / 5.0))
-        regime_score += uj_s * 0.30
+    # ── Shared holistic core (same maths as live compute_risk_regime) ───────
+    # Limitations in history: no FRED OAS series → core falls back to the
+    # HYG−LQD price spread; no news archive → geo_tension=None → geo pillar 0.
+    _core = _regime_core_score(
+        returns,
+        vix=levels.get("VIX"), vix3m=levels.get("VIX3M"),
+        hy_oas_bps=None, hy_delta_4w=None,
+        hyg_1m=(returns["HYG"]["1m"] if "HYG" in returns else None),
+        lqd_1m=(returns["LQD"]["1m"] if "LQD" in returns else None),
+        geo_tension=None,
+    )
+    regime_score = _core["score"]
 
     # ── Rate path proxy from IRX (13-week T-bill) ────────────────────────────
     # IRX tracks Fed Funds very closely (correlation >0.97).
@@ -13333,53 +13450,18 @@ async def get_regime_history():
             if not returns:
                 continue
 
-            rsc = 0.0  # regime_score accumulator
-
-            # Equities
-            if "SPX" in returns:
-                s = 1.2 if returns["SPX"]["1m"] > 3 else -1.2 if returns["SPX"]["1m"] < -4 else 0.5 if returns["SPX"]["1m"] > 0 else -0.5
-                rsc += s
-            if "RUT" in returns:
-                s = 1 if returns["RUT"]["1m"] > 3 else -1 if returns["RUT"]["1m"] < -4 else 0
-                rsc += s * 0.6
-
-            # VIX
-            vix_level  = levels.get("VIX", 20)
-            vix3m_level = levels.get("VIX3M", 20)
-            if vix_level >= 27:   vix_level_s = -2
-            elif vix_level >= 21: vix_level_s = -1
-            elif vix_level <= 13: vix_level_s = 2
-            elif vix_level <= 17: vix_level_s = 1
-            else:                 vix_level_s = 0
-            vix_ts = 0
-            if "VIX3M" in levels and "VIX" in levels:
-                ts_spread = vix3m_level - vix_level
-                if ts_spread > 3:    vix_ts = 1
-                elif ts_spread < -2: vix_ts = -2
-                elif ts_spread < 0:  vix_ts = -1
-            rsc += (vix_level_s + vix_ts) / 2
-
-            # Credit
-            if "HYG" in returns and "LQD" in returns:
-                spread = returns["HYG"]["1m"] - returns["LQD"]["1m"]
-                cs = 1 if spread > 1.5 else 0.5 if spread > 0.3 else -2 if spread < -2.0 else -1 if spread < -0.5 else 0
-                rsc += cs * 0.8
-
-            # Yield curve
-            tnx = levels.get("TNX")
-            irx = levels.get("IRX")
-            if tnx and irx:
-                term_spread = tnx - (irx / 100)
-                tnx_1m = returns.get("TNX", {}).get("1m", 0)
-                yc_s = 1 if term_spread > 1.5 and tnx_1m > 0 else 0.5 if term_spread > 0.5 else -1 if term_spread < -0.5 else -0.5 if term_spread < 0 else 0
-                rsc += yc_s * 0.7
-
-            # USD/JPY — rising USDJPY = JPY weakening = risk-on (matches live compute_risk_regime)
-            if "USDJPY" in returns:
-                uj_s = max(-1.0, min(1.0, returns["USDJPY"]["1m"] / 5.0))
-                rsc += uj_s * 0.30
-
-            rsc = round(max(-4.0, min(4.0, rsc)), 2)
+            # Shared holistic core (same maths as live compute_risk_regime).
+            # No OAS/news history here — HYG-LQD credit fallback, geo pillar 0.
+            vix_level = levels.get("VIX", 20)
+            _core = _regime_core_score(
+                returns,
+                vix=levels.get("VIX"), vix3m=levels.get("VIX3M"),
+                hy_oas_bps=None, hy_delta_4w=None,
+                hyg_1m=(returns["HYG"]["1m"] if "HYG" in returns else None),
+                lqd_1m=(returns["LQD"]["1m"] if "LQD" in returns else None),
+                geo_tension=None,
+            )
+            rsc = round(max(-4.0, min(4.0, _core["score"])), 2)
             label = _regime_label_from_score(rsc)
 
             # Signal snapshot for tooltip (expanded for richer display)
