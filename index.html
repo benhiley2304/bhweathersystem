@@ -38672,7 +38672,10 @@ function regimeTab(m){
       //             but us_rate_adj>0 = HIKING (opposite sign convention)
       const _rkProxy = (riskContrib !== null ? riskContrib : (d.raw_regime ?? rawScore ?? 0));
       const _usRateRaw = (d.us_rate_adj ?? 0);
-      const _rtProxy = (rateContrib !== null ? rateContrib : -_usRateRaw);
+      let _rtProxy = (rateContrib !== null ? rateContrib : -_usRateRaw);
+      // Dead zone: a near-flat rate path (|signal| < 0.25 on the -2..+2 scale,
+      // i.e. roughly a hold) must not read as "rate cuts" or "rate hikes".
+      if (Math.abs(_rtProxy) < 0.25) _rtProxy = 0;
       const _riText = _riFn(sc, _rkProxy, _rtProxy) || '';
       if(_riText){
         const _riRGB = rawScore>=6.5?'48,217,136':rawScore<=3.5?'240,64,64':'92,158,255';
@@ -39035,7 +39038,7 @@ function regimeTab(m){
         return `<div style="background:${bg};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid ${bdr};border-radius:7px;padding:9px 11px;overflow:hidden;position:relative">
           <div style="position:absolute;bottom:0;left:0;height:2px;width:${bar}%;background:${sc2};opacity:0.4"></div>
           <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--faint);margin-bottom:4px">${k}</div>
-          <div style="font-size:8.5px;font-weight:700;color:${sc2};margin-bottom:2px">${sv>0?'Risk-On':sv<0?'Risk-Off':'Neutral'}</div>
+          <div style="font-size:8.5px;font-weight:700;color:${sc2};margin-bottom:2px">${sv>0.15?'Risk-On':sv<-0.15?'Risk-Off':'Neutral'}</div>
           <div style="font-size:8px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.value||''}</div>
         </div>`;
       }).join('')}
@@ -39741,10 +39744,12 @@ function regimeTab(m){
   const _regCol = sHex(_regSc);
   const _regSummaryText = (()=>{
     const rn = (regName||'').toLowerCase();
-    if(_regSc>=7.5) return `Regime is <strong style="color:${_regCol}">strongly risk-on</strong> — equities leading, credit spreads tight, VIX subdued. ${m.name} should benefit from the current macro environment.`;
-    if(_regSc>=6)   return `Regime is <strong style="color:${_regCol}">risk-on</strong> — broad risk appetite positive. ${m.name} positioned constructively within the current macro backdrop.`;
-    if(_regSc>=4.5) return `Regime is <strong style="color:var(--faint)">mixed / transitional</strong> — conflicting signals between risk and safe-haven assets. Position sizing should reflect elevated uncertainty.`;
-    if(_regSc>=3)   return `Regime is <strong style="color:${_regCol}">risk-off</strong> — defensives leading, credit spreads widening, volatility elevated. ${m.name} faces macro headwinds.`;
+    if(_regSc>=8.75)  return `Regime is <strong style="color:${_regCol}">strongly risk-on</strong> — equities leading, credit spreads tight, VIX subdued. ${m.name} should benefit from the current macro environment.`;
+    if(_regSc>=7.25)  return `Regime is <strong style="color:${_regCol}">risk-on</strong> — broad risk appetite positive. ${m.name} positioned constructively within the current macro backdrop.`;
+    if(_regSc>=5.875) return `Regime is <strong style="color:${_regCol}">lean risk-on</strong> — mild risk appetite with some mixed signals. Constructive backdrop for ${m.name}, but conviction is moderate — favour buying dips over chasing strength.`;
+    if(_regSc>4.125)  return `Regime is <strong style="color:var(--faint)">mixed / transitional</strong> — conflicting signals between risk and safe-haven assets. Position sizing should reflect elevated uncertainty.`;
+    if(_regSc>=2.75)  return `Regime is <strong style="color:${_regCol}">lean risk-off</strong> — mild risk aversion building. Some defensive rotation underway; ${m.name} faces a modest macro headwind.`;
+    if(_regSc>=1.25)  return `Regime is <strong style="color:${_regCol}">risk-off</strong> — defensives leading, credit spreads widening, volatility elevated. ${m.name} faces macro headwinds.`;
     return `Regime is <strong style="color:${_regCol}">strongly risk-off</strong> — broad risk aversion, safe-haven flows dominant. Macro environment is challenging for ${m.name}.`;
   })();
   html = _tabSummary(_regSummaryText, _regCol) + html;

@@ -6290,6 +6290,8 @@ def _regime_core_score(rets: dict,
     # is shrugging off). With any one confirmation, half weight. With two or
     # more, full (still small) weight.
     geo_pillar = 0.0
+    _geo_confirms = None
+    _geo_scale = None
     if geo_tension is not None:
         if geo_tension <= 0:
             geo_pillar = 0.05
@@ -6300,6 +6302,8 @@ def _regime_core_score(rets: dict,
             _confirms = sum([(not vix_calm), credit_widening, havens_bid])
             _scale = 0.20 if _confirms == 0 else 0.5 if _confirms == 1 else 1.0
             geo_pillar = _raw_drag * _scale
+            _geo_confirms = _confirms
+            _geo_scale = _scale
 
     score = _cl(eq_pillar + vol_pillar + credit_pillar + hav_pillar + grw_pillar + geo_pillar,
                 -4.0, 4.0)
@@ -6313,7 +6317,8 @@ def _regime_core_score(rets: dict,
             "growth":     round(grw_pillar, 2),
             "geo":        round(geo_pillar, 2),
         },
-        "detail": {"eq_blend": round(eq_blend, 2), "btc_rel": (round(btc_rel, 2) if btc_rel is not None else None)},
+        "detail": {"eq_blend": round(eq_blend, 2), "btc_rel": (round(btc_rel, 2) if btc_rel is not None else None),
+                   "geo_confirms": _geo_confirms, "geo_scale": _geo_scale},
     }
 
 STOCK_CLIMATE_CACHE: dict = {"data": None, "time": 0}
@@ -7288,8 +7293,18 @@ def compute_risk_regime() -> dict:
     if geo_tension is not None:
         _geo_lbl = ("Low" if geo_tension < 0.15 else "Moderate" if geo_tension < 0.45 else
                     "Elevated" if geo_tension < 0.75 else "Severe")
+        # Corroboration-aware display: headline tension only matters if the
+        # market confirms it (VIX stressed / credit widening / havens bid).
+        _geo_conf = (_core.get("detail", {}) or {}).get("geo_confirms")
+        if geo_tension >= 0.30 and _geo_conf is not None:
+            if _geo_conf == 0:
+                _geo_lbl += " headlines \u00b7 markets calm"
+            elif _geo_conf == 1:
+                _geo_lbl += " \u00b7 partly confirmed"
+            else:
+                _geo_lbl += " \u00b7 market-confirmed"
         regime_signals["Geo Risk"] = {
-            "signal": round(_comp["geo"] / 0.5, 2),
+            "signal": round(_comp["geo"] / 0.15, 2),
             "value": _geo_lbl,
             "label": (geo_top if geo_top else "No major geopolitical stress in 48h news flow"),
         }
@@ -8306,10 +8321,14 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
             label = "Risk-on + Easing (Equity Bullish)"
         elif raw_score > 0.5 and _hiking_now:
             label = "Risk-on but Rate Headwind"
-        elif raw_score > 0.5:
+        elif raw_score > 1.8:
             label = "Risk-on (Equity Bullish)"
-        elif raw_score < -0.5:
+        elif raw_score > 0.5:
+            label = "Lean Risk-on (Mild Equity Tailwind)"
+        elif raw_score < -1.8:
             label = "Risk-off (Defensive)"
+        elif raw_score < -0.5:
+            label = "Lean Risk-off (Caution)"
         else:
             label = "Neutral"
 
