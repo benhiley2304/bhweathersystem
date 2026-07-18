@@ -27159,16 +27159,18 @@ function renderMacroDataPanels(reg){
   const hyPctMax  = cr.hy_pct_max??null;
   const igPctMin  = cr.ig_pct_min??null;
   const igPctMax  = cr.ig_pct_max??null;
-  const _pctZone = p => p==null?'—':p<=20?'Tight':p<=40?'Below Avg':p<=60?'Average':p<=80?'Above Avg':'Wide';
+  const _pctZone = p => p==null?'—':p<=20?'Tight':p<=40?'Below Avg':p<=60?'Mid-Range':p<=80?'Above Avg':'Wide';
   // Delta colours: green = spreads tightening (good), red = widening (bad)
   const _deltaCol = v => v==null?'#5a6480':v<0?'#22c97a':v>0?'#e03a2a':'#adb8d0';
   const _hyZoneFallback = hyOas!=null?(hyOas<250?'Tight':hyOas<350?'Normal':hyOas<500?'Wide':'Stress'):'—';
   const _igZoneFallback = igOas!=null?(igOas<80?'Tight':igOas<120?'Normal':igOas<170?'Wide':'Stress'):'—';
   const hyZoneLabel = hyHistPct!=null?_pctZone(hyHistPct):_hyZoneFallback;
   const igZoneLabel = igHistPct!=null?_pctZone(igHistPct):_igZoneFallback;
-  // HY/IG OAS level colours (green=tight, red=stressed) — used on numbers only
-  const _hyNumCol = hyOas!=null?(hyOas<250?'#22c97a':hyOas<350?'#adb8d0':hyOas<500?'#f5c842':'#e03a2a'):'#5a6480';
-  const _igNumCol = igOas!=null?(igOas<80?'#22c97a':igOas<120?'#adb8d0':igOas<170?'#f5c842':'#e03a2a'):'#5a6480';
+  // HY/IG OAS number colours — keyed to the SAME basis as the zone label beside them:
+  // 3-year percentile when available (so "Wide" never renders green), level fallback otherwise
+  const _pctNumCol = p => p<=20?'#22c97a':p<=45?'#7fc98a':p<=65?'#adb8d0':p<=80?'#f5c842':'#e03a2a';
+  const _hyNumCol = hyHistPct!=null?_pctNumCol(hyHistPct):(hyOas!=null?(hyOas<250?'#22c97a':hyOas<350?'#adb8d0':hyOas<500?'#f5c842':'#e03a2a'):'#5a6480');
+  const _igNumCol = igHistPct!=null?_pctNumCol(igHistPct):(igOas!=null?(igOas<80?'#22c97a':igOas<120?'#adb8d0':igOas<170?'#f5c842':'#e03a2a'):'#5a6480');
   // Card accent always blue
   const crSpreadCol = CREDIT_BLUE;
   // Status label
@@ -27367,8 +27369,8 @@ function renderMacroDataPanels(reg){
     const entries = walclHistory.filter(d=>d.v!=null);
     if(entries.length<2) return '';
     const vals = entries.map(d=>d.v);
-    const W=320, H=120;
-    const padL=30, padR=12, padT=12, padB=22;
+    const W=320, H=185;   // taller viewBox — matches the flex container aspect so the plot fills the box instead of letterboxing
+    const padL=34, padR=12, padT=12, padB=22;
     const gW=W-padL-padR, gH=H-padT-padB;
     const minV=Math.min(...vals), maxV=Math.max(...vals);
     const range=Math.max(0.5,maxV-minV);
@@ -27432,7 +27434,7 @@ function renderMacroDataPanels(reg){
       const isWhole=Math.abs(v-Math.round(v))<0.01;
       if(isWhole) gridVals.push({v,gy});
       grids+=`<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="${isWhole?'rgba(255,255,255,0.10)':'rgba(255,255,255,0.04)'}" stroke-width="${isWhole?'0.8':'0.6'}" stroke-dasharray="${isWhole?'3,8':'2,10'}"/>`;
-      if(isWhole) grids+=`<text x="${padL-4}" y="${(gy+2.2).toFixed(1)}" text-anchor="end" fill="rgba(200,169,110,0.60)" font-family="var(--mono)" font-size="5.5" font-weight="700">${v.toFixed(0)}</text>`;
+      if(isWhole) grids+=`<text x="${padL-4}" y="${(gy+2.2).toFixed(1)}" text-anchor="end" fill="rgba(200,169,110,0.60)" font-family="var(--mono)" font-size="6.5" font-weight="700">$${v.toFixed(0)}T</text>`;
     }
 
     // Year X-axis ticks
@@ -27589,9 +27591,15 @@ function renderMacroDataPanels(reg){
             surprise_disp = c.surprise_ff ?? (actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : null);
             beat_disp     = c.beat_ff;
           } else {
-            // FRED fallback
-            actual_disp   = parseFloat(c.actual ?? c.display) || null;
-            forecast_disp = parseFloat(c.expected) || null;
+            // FRED fallback — strip commas before parsing ("208,000" → 208000, not 208)
+            const _pfNum = x => { if(x==null) return null; const n = parseFloat(String(x).replace(/[,+]/g,'')); return isNaN(n)?null:n; };
+            actual_disp   = _pfNum(c.actual ?? c.display);
+            forecast_disp = _pfNum(c.expected);
+            // Normalise raw counts to thousands for K-unit rows (claims come as 208000 / est 216333.33)
+            if(p.unit === 'K'){
+              if(actual_disp   != null && Math.abs(actual_disp)   >= 10000) actual_disp   = Math.round(actual_disp/1000);
+              if(forecast_disp != null && Math.abs(forecast_disp) >= 10000) forecast_disp = Math.round(forecast_disp/1000);
+            }
             surprise_disp = actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : null;
             beat_disp     = c.higher_is_good != null
               ? (c.higher_is_good ? surprise_disp > 0 : surprise_disp < 0)
@@ -27777,7 +27785,8 @@ function renderMacroDataPanels(reg){
                 const prefix = rowSurpNum>=0?'+':'';
                 // If it's a whole number (or close to it), show as integer; else 2dp
                 const isWhole = Math.abs(rowSurpNum - Math.round(rowSurpNum)) < 0.001;
-                return prefix + (isWhole ? Math.round(rowSurpNum).toString() : rowSurpNum.toFixed(2));
+                // Both support rows (Init Claims, ADP) are K-unit — keep the unit on the delta
+                return prefix + (isWhole ? Math.round(rowSurpNum).toString() : rowSurpNum.toFixed(2)) + 'K';
               })() : null;
               const rowExpClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
               return `<div style="display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeSlideIn 0.4s ease both;animation-delay:${i*60}ms">
@@ -27974,8 +27983,11 @@ function renderMacroDataPanels(reg){
           const headlineHot = cpiRow&&cpiRow.isBeat;
           const pceCool = corePCE&&corePCE.isMiss;
           const pceHot = corePCE&&corePCE.isBeat;
-          const chipCol = headlineHot?'#e03a2a':_avgSurprise<-0.03?'#5c9eff':'#adb8d0';
-          const chipLabel = headlineHot?'HOT':_avgSurprise<-0.03?'COOLING':'ON TARGET';
+          // Chip reflects the LEVEL vs 2% target (matching the thesis text beside it),
+          // with surprise-based overrides for hot/cooling prints — never say "ON TARGET"
+          // while the note reads "X% above 2% target".
+          const chipCol = headlineHot?'#e03a2a':_avgSurprise<-0.03?'#5c9eff':(gap!=null&&gap>0.5?'#f5a442':gap!=null&&gap<-0.5?'#5c9eff':'#adb8d0');
+          const chipLabel = headlineHot?'HOT':_avgSurprise<-0.03?'COOLING':(gap!=null&&gap>0.5?'ABOVE TARGET':gap!=null&&gap<-0.5?'BELOW TARGET':'ON TARGET');
           // Build thesis: headline + PCE context
           const gapStr = gap!=null?(gap>=0?`${gap.toFixed(2)}% above 2% target`:`${Math.abs(gap).toFixed(2)}% below target`):'';
           let thesis = gapStr;
@@ -28114,7 +28126,18 @@ function renderMacroDataPanels(reg){
         <div style="margin-bottom:6px">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;flex-wrap:wrap">
             <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'\u2014'}</div>
-            ${(()=>{const status=fbChg3m!=null?(fbChg3m>0.02?'EXPANDING':fbChg3m<-0.02?'QT ACTIVE':'STABILISING'):null;if(!status)return '';const badgeCol=status==='EXPANDING'?'#22c97a':status==='QT ACTIVE'?'#e03a2a':'#c8a96e';return '<span class="ov-policy-badge" style="color:'+badgeCol+';background:'+badgeCol+'15;border-color:'+badgeCol+'45">'+status+'</span>';})()}
+            ${(()=>{
+              // 4-week run-rate chip — recent momentum (header badge already shows the regime,
+              // so don't repeat "EXPANDING" here; show the freshest delta instead)
+              const h=(fb.history||[]).filter(d=>d&&d.v!=null);
+              if(h.length<5) return '';
+              const chg4w=h[h.length-1].v-h[h.length-5].v;              // weekly WALCL → 4 steps ≈ 4W
+              const bil=Math.round(chg4w*1000);
+              if(!isFinite(bil)) return '';
+              const c=Math.abs(bil)<5?'#6a7a94':bil>0?'#22c97a':'#e03a2a';
+              const arrow=bil>4?'\u25b2':bil<-4?'\u25bc':'\u2192';
+              return '<span class="ov-policy-badge" style="color:'+c+';background:'+c+'15;border-color:'+c+'45">'+arrow+' '+(bil>=0?'+':'')+'$'+bil+'B \u00b7 4W</span>';
+            })()}
           </div>
           ${vsPeak!=null?`
           <!-- QE peak progress bar -->
@@ -28291,16 +28314,19 @@ function renderMacroDataPanels(reg){
         <!-- VERDICT ROW: credit context -->
         ${(()=>{
           const tightCount = [hyHistPct,igHistPct].filter(p=>p!=null&&p<=20).length;
+          const wideCount  = [hyHistPct,igHistPct].filter(p=>p!=null&&p>=80).length;
           const bothTight = tightCount===2;
-          const col = bothTight?'#22c97a':tightCount===1?'#5aaa7a':'#adb8d0';
-          const label = bothTight?'TIGHT':'WATCH';
+          const col = bothTight?'#22c97a':wideCount>=1?'#f5c842':tightCount===1?'#5aaa7a':'#adb8d0';
+          const label = bothTight?'TIGHT':wideCount>=1?'WIDENING RISK':'WATCH';
           const ordinal = n => { const s=Math.round(n); return s===1?s+'<sup>st</sup>':s===2?s+'<sup>nd</sup>':s===3?s+'<sup>rd</sup>':s+'<sup>th</sup>'; };
           const pctStr = [
             hyHistPct!=null?`HY ${ordinal(hyHistPct)} pctile`:'',
             igHistPct!=null?`IG ${ordinal(igHistPct)} pctile`:''
           ].filter(Boolean).join(' &middot; ');
           const warning = (hyHistPct!=null&&hyHistPct<=15)||(igHistPct!=null&&igHistPct<=15);
-          const contextNote = warning ? ' &middot; Priced for perfection &mdash; <30th pctile = complacency zone' : ' &middot; Mid-range; tight spreads = risk-on';
+          const contextNote = warning ? ' &middot; Priced for perfection &mdash; <30th pctile = complacency zone'
+            : wideCount>=1 ? ' &middot; Upper end of 3Y range &mdash; watch for widening momentum'
+            : ' &middot; Mid-range; tight spreads = risk-on';
           return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${col}0c;border-radius:7px;border-left:2px solid ${col}50">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${col};white-space:nowrap;padding-top:1px">${label}</span>
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${pctStr}${contextNote}</span>
@@ -28375,7 +28401,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- SPREAD MOMENTUM — VISUAL BAR MATRIX -->
         <div style="margin-top:2px">
-          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Spread Momentum <span style="font-size:7.5px;font-weight:500;letter-spacing:0.03em;text-transform:none;opacity:0.50;margin-left:3px">\u2193 tightening = risk-on · \u2191 widening = stress</span></div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 5px"><div class="mc-sect-lbl">Spread Momentum <span style="font-size:8px;font-weight:500;letter-spacing:0.02em;text-transform:none;opacity:0.55;margin-left:3px;white-space:nowrap">\u2193 tight = risk-on · \u2191 wide = stress</span></div><div class="mc-sect-line"></div></div>
           <!-- Column headers -->
           <div style="display:grid;grid-template-columns:28px 1fr 1fr;gap:4px;margin-bottom:5px;padding:0 2px">
             <div></div>
@@ -28501,10 +28527,18 @@ function renderMacroDataPanels(reg){
         ${(()=>{
           const verdLabel = vixSkewDiv?'HIDDEN STRESS':scOverall>=2?'BULLISH':scOverall>=1?'LEAN BULL':scOverall<=-2?'BEARISH':scOverall<=-1?'LEAN BEAR':'MIXED';
           const verdCol   = vixSkewDiv?'#f5a442':scOverall>=1?'#22c97a':scOverall<=-1?'#e03a2a':'#c8a96e';
-          const subLabel  = vixSkewDiv?'VIX low, SKEW elevated — surface calm, smart money hedging':scOverall>=1?'Bullish momentum · Vol contained · Watch valuation':scOverall<=-1?'Risk-off · Elevated vol · Defensive bias':'Mixed — bullish momentum vs extended valuation';
+          // Build the narrative from the actual signals rather than canned text
+          const _parts = [];
+          if(scSignals.SPX_MOM&&scSignals.SPX_MOM.score>0) _parts.push('Momentum positive'); else if(scSignals.SPX_MOM&&scSignals.SPX_MOM.score<0) _parts.push('Momentum negative');
+          if(vixNum>0) _parts.push(vixNum<18?'Vol contained':vixNum<25?'Vol moderate':'Vol elevated');
+          if(skewNum>=135) _parts.push('Tail hedging elevated');
+          if((scSignals.FWD_PE&&scSignals.FWD_PE.score<0)||(scSignals.ERP&&scSignals.ERP.score<0)) _parts.push('Valuation stretched');
+          const subLabel  = vixSkewDiv?'VIX low, SKEW elevated — surface calm, smart money hedging':(_parts.join(' · ')||'Mixed signals');
+          // Header badge already says Risk-On/Lean Bull/etc — only repeat a chip here when it ADDS information (divergence or mixed states)
+          const showChip = vixSkewDiv || verdLabel==='MIXED';
           return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:-2px;flex-wrap:wrap">
-            <span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;padding:3px 10px;border-radius:5px;background:${verdCol}18;border:1px solid ${verdCol}45;color:${verdCol}">${verdLabel}</span>
-            <span style="font-family:var(--mono);font-size:9px;font-weight:500;color:rgba(173,184,208,0.58);flex:1;line-height:1.4">${subLabel}</span>
+            ${showChip?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;padding:3px 10px;border-radius:5px;background:${verdCol}18;border:1px solid ${verdCol}45;color:${verdCol}">${verdLabel}</span>`:`<span style="width:7px;height:7px;border-radius:50%;background:${verdCol};box-shadow:0 0 7px ${verdCol}90;flex-shrink:0"></span>`}
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.62);flex:1;line-height:1.4">${subLabel}</span>
           </div>`;
         })()}
 
@@ -28563,8 +28597,12 @@ function renderMacroDataPanels(reg){
 
         <!-- VIX+SKEW joint read — always visible -->
         ${vixNum>0&&skewNum>0?(()=>{
-          const jRead = vixSkewDiv?'Complacency + tail hedging — hidden stress signal':vixNum<18&&skewNum<125?'Calm surface, low tail demand':vixNum<25&&skewNum<135?'Normal vol regime — no stress signal':'Elevated vol, monitor positioning';
-          const jCol = vixSkewDiv?'rgba(245,164,66,0.70)':vixNum<18&&skewNum<125?'rgba(34,201,122,0.55)':'rgba(173,184,208,0.55)';
+          const jRead = vixSkewDiv?'Complacency + tail hedging — hidden stress signal'
+            :vixNum<18&&skewNum<125?'Calm surface, low tail demand'
+            :vixNum<25&&skewNum>=135?'Vol calm-to-moderate, tail hedging elevated — quiet caution'
+            :vixNum<25?'Normal vol regime — no stress signal'
+            :'Elevated vol — monitor positioning';
+          const jCol = vixSkewDiv?'rgba(245,164,66,0.70)':vixNum<18&&skewNum<125?'rgba(34,201,122,0.55)':vixNum<25&&skewNum>=135?'rgba(245,196,66,0.65)':'rgba(173,184,208,0.55)';
           return `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:6px;margin:-2px 0 8px">
             <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(173,184,208,0.40);letter-spacing:0.05em;white-space:nowrap">VIX ${vixNum<18?'LOW':vixNum<25?'MOD':'HIGH'} + SKEW ${skewNum<125?'NORM':'ELEV'}</span>
             <div style="width:1px;height:10px;background:rgba(255,255,255,0.10);flex-shrink:0"></div>
@@ -28635,12 +28673,14 @@ function renderMacroDataPanels(reg){
             <!-- SPX Momentum -->
             ${(()=>{
               const mc = sigCol(momSig.score??0);
-              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-                <div style="display:flex;align-items:center;gap:7px">
+              const hasSpark = Array.isArray(scSignals['_spx_closes'])&&scSignals['_spx_closes'].length>3;
+              return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
                   <div style="width:6px;height:6px;border-radius:50%;background:${dotCol(momSig.score??0)};box-shadow:0 0 5px ${dotCol(momSig.score??0)}99;flex-shrink:0;margin-right:1px"></div>
                   <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60)">SPX Momentum (3M)</span>
                 </div>
-                <div style="display:flex;align-items:baseline;gap:5px">
+                ${hasSpark?`<canvas id="ov-sc-spx-chart" style="width:88px;height:24px;flex:0 1 88px;min-width:40px;opacity:0.9"></canvas>`:''}
+                <div style="display:flex;align-items:baseline;gap:5px;flex-shrink:0">
                   <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${mc};letter-spacing:-0.02em">${momSig.value||'\u2014'}</span>
                   <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:${mc};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${momSig.label||''}</span>
                 </div>

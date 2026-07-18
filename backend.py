@@ -4958,8 +4958,15 @@ def fetch_fred_series(series_id: str, periods: int = 24) -> Optional[list]:
     resolved_id = FRED_SERIES.get(series_id, series_id)
     cache_key = resolved_id
     now = time.time()
+    # CACHE FIX (2026-07-19): cache stores the FULL parsed series and each caller
+    # gets its own slice. Previously the cache stored only the first caller's
+    # truncated slice (keyed by series id alone), so e.g. the startup prefetch
+    # requesting HYOAS with periods=24 poisoned the credit dashboard's
+    # periods=780 request — 3M/6M spread deltas were always None and the
+    # "3-year percentile" was computed over 24 days.
     if cache_key in FRED_CACHE and (now - FRED_CACHE_TIME_MAP.get(cache_key, 0)) < FRED_CACHE_TTL:
-        return FRED_CACHE[cache_key]
+        _full = FRED_CACHE[cache_key]
+        return _full[-periods:] if len(_full) >= periods else _full
     try:
         url = FRED_BASE + resolved_id
         r = requests.get(url, timeout=12)
@@ -4979,7 +4986,7 @@ def fetch_fred_series(series_id: str, periods: int = 24) -> Optional[list]:
             oldest_key = min(FRED_CACHE_TIME_MAP, key=FRED_CACHE_TIME_MAP.get)
             FRED_CACHE.pop(oldest_key, None)
             FRED_CACHE_TIME_MAP.pop(oldest_key, None)
-        FRED_CACHE[cache_key]              = recent
+        FRED_CACHE[cache_key]              = data      # store FULL series, slice per request
         FRED_CACHE_TIME_MAP[cache_key]     = now
         return recent
     except Exception as e:
