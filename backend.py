@@ -6191,13 +6191,19 @@ def _regime_core_score(rets: dict,
           When unavailable (backtest), falls back to HYG−LQD 1m return spread.
     geo_tension: 0..1 geopolitical stress index from news scan, or None = no data.
 
-    Pillars (weights sum to 5.3 but total is clamped to ±4):
-      1. Equity trend        ±1.2   SPX 50% / RUT 25% / NDX 25%, 1m+1w blend
-      2. Volatility          ±1.2   VIX level (graded) + 1w momentum + term structure
+    Pillars (total clamped to ±4):
+      1. Equity trend        ±1.2   SPX 50% / RUT 25% / NDX 25%, 3m+1m+1w blend
+                                     (3m weighted for trend context, so a healthy
+                                     pullback inside a strong quarter reads as
+                                     consolidation — not a downtrend)
+      2. Volatility          ±1.2   VIX level (graded) + 1w momentum (capped,
+                                     only active when VIX>18) + term structure
       3. Credit              ±1.0   HY OAS 4w trend + absolute level grade
       4. Havens & FX         ±0.8   gold, USD/JPY carry, DXY
       5. Growth & crypto     ±0.6   copper + BTC/gold ratio (speculative appetite)
-      6. Geopolitics      −0.5..+0.1 news-flow tension scan
+      6. Geopolitics    −0.15..+0.05 news scan, multi-factor corroborated (tiny
+                                     weight by design — headlines are noisy;
+                                     drag scaled down when market shrugs it off)
 
     Returns {"score": -4..+4, "components": {pillar: contrib}, "detail": {...}}
     """
@@ -6211,20 +6217,34 @@ def _regime_core_score(rets: dict,
     def _cl(x, lo=-1.0, hi=1.0):
         return max(lo, min(hi, x))
 
-    # ── 1. Equity trend ±1.2 — breadth-weighted, dual lookback ──────────────
-    # SPX carries half the pillar; RUT (breadth/cyclicals) and NDX (duration/
-    # speculative growth) a quarter each. NDX is deliberately NOT dominant.
+    # ── 1. Equity trend ±1.2 — breadth-weighted, trend + pullback aware ─────
+    # SPX carries half; RUT (breadth/cyclicals) + NDX (duration/growth) quarter each.
+    # Blend across 3m/1m/1w = 0.45/0.40/0.15 so a healthy pullback inside a
+    # strong quarter reads as consolidation, not a downtrend. When 3m data is
+    # missing (backtest/history), the blend falls back to 1m/1w = 0.75/0.25.
     eq_blend = 0.0
+    _has_3m = any((_g(_n, "3m") != 0.0) for _n in ("SPX", "NDX", "RUT"))
     for _nm, _w in (("SPX", 0.50), ("RUT", 0.25), ("NDX", 0.25)):
-        eq_blend += _w * (0.6 * _g(_nm, "1m") + 0.4 * _g(_nm, "1w"))
-    eq_pillar = _cl(eq_blend / 2.0) * 1.2
+        if _has_3m:
+            eq_blend += _w * (0.45 * _g(_nm, "3m") + 0.40 * _g(_nm, "1m") + 0.15 * _g(_nm, "1w"))
+        else:
+            eq_blend += _w * (0.75 * _g(_nm, "1m") + 0.25 * _g(_nm, "1w"))
+    # Divisor lifted 2.0 → 3.0 with 3m data (a full-trend ±4.5% quarterly move
+    # is the ±1.2 anchor). Backtest keeps the 2.0 divisor for continuity.
+    eq_pillar = _cl(eq_blend / (3.0 if _has_3m else 2.0)) * 1.2
 
     # ── 2. Volatility ±1.2 — graded level + momentum + term structure ───────
+    # 1w VIX momentum divisor 15 → 25 and capped at ±0.20 so a mechanical spike
+    # off a low base (e.g. 15 → 19 = +25%) can't dominate the pillar. Also
+    # gated: the momentum sub-component only activates when VIX is genuinely
+    # elevated (>18) — below that, 1w changes are noise, not signal.
     vol_pillar = 0.0
     vix_1w = _g("VIX", "1w")
+    vix_calm = (vix is not None and vix > 0 and vix < 20.0)
     if vix and vix > 0:
         _lvl = _cl((19.0 - vix) / 5.0, -1.5, 1.2) * 0.50      # graded around 19
-        _chg = _cl(-vix_1w / 15.0) * 0.35                      # 1w VIX momentum
+        _chg_raw = _cl(-vix_1w / 25.0) * 0.35 if vix > 18.0 else 0.0
+        _chg = max(-0.20, min(0.20, _chg_raw))                 # cap ±0.20
         _ts = 0.0
         if vix3m and vix3m > 0:
             _ts = _cl((vix3m / vix - 1.0) * 10.0) * 0.35       # contango/inversion
@@ -6232,6 +6252,7 @@ def _regime_core_score(rets: dict,
 
     # ── 3. Credit ±1.0 — OAS trend + level; HYG−LQD fallback ────────────────
     credit_pillar = 0.0
+    credit_widening = False
     if hy_oas_bps is not None:
         _d = _cl(-(hy_delta_4w or 0.0) / 30.0) * 0.6           # 4w spread trend
         _lvlg = (0.4 if hy_oas_bps < 250 else
@@ -6239,15 +6260,19 @@ def _regime_core_score(rets: dict,
                  0.0 if hy_oas_bps < 450 else
                  -0.4 if hy_oas_bps < 550 else -0.6)           # absolute level
         credit_pillar = _cl(_d + _lvlg)
+        credit_widening = (hy_delta_4w or 0.0) > 15.0          # >+15bp 4w = meaningful stress
     elif hyg_1m is not None and lqd_1m is not None:
         # Duration-matched-ish price fallback for history (no OAS series)
         credit_pillar = _cl((hyg_1m - lqd_1m) / 3.0) * 0.6
+        credit_widening = (hyg_1m - lqd_1m) < -1.5             # HYG underperforming LQD
 
     # ── 4. Havens & FX ±0.8 — gold bid, JPY carry, dollar ────────────────────
     hav = (_cl(-_g("GLD", "1m") / 6.0) * 0.30 +
            _cl(_g("USDJPY", "1m") / 4.0) * 0.25 +
            _cl(-_g("DXY", "1m") / 3.0) * 0.30)
     hav_pillar = _cl(hav, -0.8, 0.8)
+    # Havens bid signal for geo corroboration — gold catching a real bid
+    havens_bid = _g("GLD", "1m") > 2.0
 
     # ── 5. Growth commodities & crypto ±0.6 ─────────────────────────────────
     grw = _cl(_g("COPPER", "1m") / 5.0) * 0.30
@@ -6257,10 +6282,24 @@ def _regime_core_score(rets: dict,
         grw += _cl(btc_rel / 12.0) * 0.30
     grw_pillar = _cl(grw, -0.6, 0.6)
 
-    # ── 6. Geopolitics −0.5..+0.1 — asymmetric: tension penalises ────────────
+    # ── 6. Geopolitics −0.15..+0.05 — noisy, multi-factor corroborated ───────
+    # News keyword scans are inconsistent and hard-to-quantify. Weight is tiny
+    # by design (max ±0.15 out of a ±4 raw score = ~3.75%). Additionally
+    # requires market corroboration: if VIX is calm AND credit isn't widening
+    # AND havens aren't bid, the drag is scaled to 20% (news noise the tape
+    # is shrugging off). With any one confirmation, half weight. With two or
+    # more, full (still small) weight.
     geo_pillar = 0.0
     if geo_tension is not None:
-        geo_pillar = 0.1 if geo_tension <= 0 else -0.5 * _cl(geo_tension, 0.0, 1.0)
+        if geo_tension <= 0:
+            geo_pillar = 0.05
+        else:
+            # Threshold: below 0.3 tension, ignore entirely (routine news flow)
+            _t = max(0.0, (_cl(geo_tension, 0.0, 1.0) - 0.30) / 0.70)
+            _raw_drag = -0.15 * _t
+            _confirms = sum([(not vix_calm), credit_widening, havens_bid])
+            _scale = 0.20 if _confirms == 0 else 0.5 if _confirms == 1 else 1.0
+            geo_pillar = _raw_drag * _scale
 
     score = _cl(eq_pillar + vol_pillar + credit_pillar + hav_pillar + grw_pillar + geo_pillar,
                 -4.0, 4.0)
@@ -7166,7 +7205,8 @@ def compute_risk_regime() -> dict:
     for _nm in ("SPX", "NDX", "RUT", "VIX", "GLD", "COPPER", "BTC", "DXY", "USDJPY"):
         if _nm in returns:
             _core_rets[_nm] = {"1w": returns[_nm].get("return_1w", 0),
-                               "1m": returns[_nm].get("return_1m", 0)}
+                               "1m": returns[_nm].get("return_1m", 0),
+                               "3m": returns[_nm].get("return_3m", 0)}
     _core = _regime_core_score(
         _core_rets,
         vix=vix_level, vix3m=vix3m_level,
@@ -7261,7 +7301,7 @@ def compute_risk_regime() -> dict:
         {"key": "credit",     "label": "Credit",          "contrib": _comp["credit"],     "max": 1.0},
         {"key": "havens",     "label": "Havens & FX",     "contrib": _comp["havens"],     "max": 0.8},
         {"key": "growth",     "label": "Growth & Crypto", "contrib": _comp["growth"],     "max": 0.6},
-        {"key": "geo",        "label": "Geopolitics",     "contrib": _comp["geo"],        "max": 0.5},
+        {"key": "geo",        "label": "Geopolitics",     "contrib": _comp["geo"],        "max": 0.15},
     ]
 
     # Clamp to -4..+4
@@ -12815,7 +12855,8 @@ def _score_regime_at(market_id: str, bar_date_norm,
         close = s.values.astype(float)
         ret_1w = (close[-1] / close[-2] - 1) * 100 if close[-2] != 0 else 0
         ret_1m = (close[-1] / close[max(-4, -len(close))] - 1) * 100  # max() not min(): we want 4 bars back, not all the way to bar[0]
-        returns[name] = {"1w": ret_1w, "1m": ret_1m}
+        ret_3m = (close[-1] / close[max(-13, -len(close))] - 1) * 100 if len(close) >= 5 else 0.0
+        returns[name] = {"1w": ret_1w, "1m": ret_1m, "3m": ret_3m}
         levels[name]  = float(close[-1])
 
     if not returns:
@@ -13444,7 +13485,8 @@ async def get_regime_history():
                 close = s.values.astype(float)
                 ret_1w = (close[-1] / close[-2] - 1) * 100 if close[-2] != 0 else 0
                 ret_1m = (close[-1] / close[max(-4, -len(close))] - 1) * 100
-                returns[name] = {"1w": ret_1w, "1m": ret_1m}
+                ret_3m = (close[-1] / close[max(-13, -len(close))] - 1) * 100 if len(close) >= 5 else 0.0
+                returns[name] = {"1w": ret_1w, "1m": ret_1m, "3m": ret_3m}
                 levels[name]  = float(close[-1])
 
             if not returns:
