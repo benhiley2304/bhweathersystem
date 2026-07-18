@@ -41231,6 +41231,20 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
         return r;
       };
 
+      // Pre-reserve turn-dot spots so value/horizon pills never sit on a dot
+      if(!chart.$hideTurns&&Array.isArray(turns)&&turns.length){
+        const _ti=new Map(labels.map((td,i)=>[td,i]));
+        turns.forEach(t=>{
+          const tx=x.getPixelForValue(t.td);
+          if(tx<x.left+4||tx>x.right-4)return;
+          const _j=_ti.get(t.td);
+          const dv=(_j!=null&&allV[_j]!=null)?allV[_j]:t.val;
+          const ty=y.getPixelForValue(dv);
+          if(ty<y.top||ty>y.bottom)return;
+          _placed.push({x:tx-9,y:ty-9,w:18,h:18});
+        });
+      }
+
       // ── Zero baseline ──────────────────────────────────────
       const y0=y.getPixelForValue(0);
       if(y0>=y.top && y0<=y.bottom){
