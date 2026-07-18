@@ -25186,9 +25186,9 @@ function renderOverview(){
         const up = regLabel.toUpperCase();
         let w1, w2;
         if (up.includes('LEAN') && up.includes('RISK-ON'))   { w1 = 'LEAN';   w2 = 'RISK-ON'; }
-        else if (up.includes('LEAN') && up.includes('RISK OFF')) { w1 = 'LEAN';   w2 = 'RISK-OFF'; }
+        else if (up.includes('LEAN') && (up.includes('RISK-OFF') || up.includes('RISK OFF'))) { w1 = 'LEAN';   w2 = 'RISK-OFF'; }
         else if (up.includes('STRONG') && up.includes('RISK-ON'))  { w1 = 'STRONG'; w2 = 'RISK-ON'; }
-        else if (up.includes('STRONG') && up.includes('RISK OFF')) { w1 = 'STRONG'; w2 = 'RISK-OFF'; }
+        else if (up.includes('STRONG') && (up.includes('RISK-OFF') || up.includes('RISK OFF'))) { w1 = 'STRONG'; w2 = 'RISK-OFF'; }
         else if (up.includes('RISK-ON') || up.includes('RISK ON'))   { w1 = 'RISK';   w2 = 'ON'; }
         else if (up.includes('RISK-OFF') || up.includes('RISK OFF')) { w1 = 'RISK';   w2 = 'OFF'; }
         else { const parts = up.replace(/-/g,' ').split(' '); w1 = parts[0] || 'MARKET'; w2 = parts.slice(1).join(' ') || up; }
