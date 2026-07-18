@@ -40999,6 +40999,7 @@ function _applyDetrend(ch,on){
   });
   // Also rewrite the closure-captured allV so overlays (horizon, turns, today pill,
   // callouts) draw against the detrended curve.
+  ch.$detrendOn=!!on;
   if(typeof ch.$mutateAllV==='function')ch.$mutateAllV(on);
   ch.update();
 }
@@ -41438,22 +41439,16 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
       if(slope!=null && horizStart && horizEnd && !chart.$hideHorizon){
         const xA=x.getPixelForValue(horizStart);
         const xB=x.getPixelForValue(horizEnd);
-        // When detrend is active, source median from the live dataset and recompute slope
-        // from the actual detrended endpoints so the pill + colour match what's drawn.
-        let liveV=allV;
+        // When detrend is active, recompute slope from the mutated allV closure so
+        // the NEXT 4WK pill + colour match the visible detrended curve.
         let liveSlope=slope;
         if(chart.$detrendOn){
-          const medDs=chart.data.datasets.find(d=>d.label==='Hist. Median');
-          if(medDs && Array.isArray(medDs.data)){
-            liveV=medDs.data;
-            // Find nearest indexed values at horizon start/end and take the delta
-            let sV=null,eV=null;
-            for(let i=0;i<labels.length;i++){
-              if(sV==null && labels[i]>=horizStart && liveV[i]!=null)sV=liveV[i];
-              if(labels[i]<=horizEnd && liveV[i]!=null)eV=liveV[i];
-            }
-            if(sV!=null && eV!=null)liveSlope=eV-sV;
+          let sV=null,eV=null;
+          for(let i=0;i<labels.length;i++){
+            if(sV==null && labels[i]>=horizStart && allV[i]!=null)sV=allV[i];
+            if(labels[i]<=horizEnd && allV[i]!=null)eV=allV[i];
           }
+          if(sV!=null && eV!=null)liveSlope=eV-sV;
         }
         const isBull=liveSlope>=0;
         const hCol=isBull?'34,201,122':'224,58,42';
@@ -41471,8 +41466,8 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
         for(let i=0;i<labels.length;i++){
           if(labels[i]<horizStart)continue;
           if(labels[i]>horizEnd)break;
-          if(liveV[i]==null)continue;
-          const px=x.getPixelForValue(labels[i]),py=y.getPixelForValue(liveV[i]);
+          if(allV[i]==null)continue;
+          const px=x.getPixelForValue(labels[i]),py=y.getPixelForValue(allV[i]);
           if(!_hs){c.moveTo(px,py);_hs=true;}else{c.lineTo(px,py);}
           _lastPy=py;
         }
