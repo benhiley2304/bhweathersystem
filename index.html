@@ -40923,11 +40923,18 @@ function renderModalControls(){
     {g:'median',lbl:'Hist. Median',sw:'<span class="mchip-line" style="background:#6b7cff"></span>'},
     {g:'range',lbl:'25–75% Range',sw:'<span class="mchip-band"></span>'},
     {g:'ytd',lbl:yr+' Actual',sw:'<span class="mchip-line" style="background:rgba(255,255,255,0.85)"></span>'},
-    {g:'cycles',lbl:'Cycle Overlays',sw:'<span class="mchip-line" style="background:#f0c060"></span>'},
+    {g:'cycles',lbl:'Cycle Overlays',off:!_modalCyclesOn(),sw:'<span class="mchip-line" style="background:#f0c060"></span>'},
     {g:'turns',lbl:'Turns',sw:'<span class="mchip-dot" style="background:#22c97a"></span>'},
     {g:'horizon',lbl:'3–4wk Horizon',sw:'<span class="mchip-line" style="background:#22c97a"></span>'}
   ];
-  el.innerHTML=chips.map(ch=>`<div class="mchip" data-g="${ch.g}" onclick="_seasModalToggle('${ch.g}',this)">${ch.sw}${ch.lbl}</div>`).join('');
+  el.innerHTML=chips.map(ch=>`<div class="mchip${ch.off?' off':''}" data-g="${ch.g}" onclick="_seasModalToggle('${ch.g}',this)">${ch.sw}${ch.lbl}</div>`).join('');
+}
+const _CYCLE_LBLS=['Midterm','Pre-Election','Post-Election','Election'];
+function _modalCyclesOn(){
+  const ch=modalChart;if(!ch)return false;
+  let any=false;
+  ch.data.datasets.forEach((ds,i)=>{if(_CYCLE_LBLS.includes(ds.label)&&ch.isDatasetVisible(i))any=true;});
+  return any;
 }
 function _seasModalToggle(g,btn){
   const ch=modalChart;if(!ch)return;
@@ -40940,7 +40947,7 @@ function _seasModalToggle(g,btn){
       median:l=>l==='Hist. Median'||l==='Projected',
       range:l=>l==='_band_upper'||l==='25–75% range',
       ytd:l=>l===yr+' Actual YTD',
-      cycles:l=>['Midterm','Pre-Election','Post-Election','Election'].includes(l)
+      cycles:l=>_CYCLE_LBLS.includes(l)
     }[g];
     if(!match)return;
     let vis=null;
@@ -41001,6 +41008,9 @@ async function openModal(marketId,marketName){
     const cycles={midterm,pre_election,post_election,election};
     const ctx=document.getElementById('modal-chart').getContext('2d');
     modalChart=buildSeasChart(ctx,labels,allV,band||[],cya||[],months,td,'modal',sd,cycles,true,data.turns||[]);
+    // Cycle overlays start hidden in the modal for clarity (chip toggles them on)
+    modalChart.data.datasets.forEach((ds,i)=>{if(_CYCLE_LBLS.includes(ds.label))modalChart.setDatasetVisibility(i,false);});
+    modalChart.update();
     renderModalControls();
     renderTurnCallout(modalChart.$turnCall,'modal-turn-callout');
     renderModalTurns(data.turns||[],td,months);
@@ -41305,11 +41315,14 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
             c.fillStyle='rgba(34,201,122,0.25)';c.fill();
             c.beginPath();c.arc(dotX,dotY,2.5,0,Math.PI*2);
             c.fillStyle='#22c97a';c.fill();
-            // Value pill
+            // Value pill — labelled so it's clear this is the live YTD reading
             const valStr=(cyVal>=0?'+':'')+cyVal.toFixed(1)+'%';
+            const yrLbl=String(new Date().getFullYear());
+            c.font='600 6.5px Inter,sans-serif';
+            const ylw=c.measureText(yrLbl).width;
             c.font='700 8px JetBrains Mono,monospace';
             const vw=c.measureText(valStr).width;
-            const vPillW=vw+10,vPillH=15;
+            const vPillW=ylw+vw+15,vPillH=15;
             const rightSide=dotX+10;
             const _vr={x:(rightSide+vPillW<=x.right)?rightSide:dotX-vPillW-10,y:dotY-(vPillH/2),w:vPillW,h:vPillH};
             _resolve(_vr,-1);
@@ -41320,9 +41333,13 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
             c.beginPath();
             c.roundRect(vPillX,vPillY,vPillW,vPillH,4);
             c.fill();c.stroke();
-            c.fillStyle='#22c97a';
             c.textAlign='left';
-            c.fillText(valStr,vPillX+5,vPillY+10.5);
+            c.fillStyle='rgba(255,255,255,0.55)';
+            c.font='600 6.5px Inter,sans-serif';
+            c.fillText(yrLbl,vPillX+5,vPillY+10.5);
+            c.fillStyle='#22c97a';
+            c.font='700 8px JetBrains Mono,monospace';
+            c.fillText(valStr,vPillX+5+ylw+4,vPillY+10.5);
             _reserve(_vr);
             c.restore();
           }
@@ -41362,21 +41379,30 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           c.shadowBlur=7;
           c.stroke();
           c.shadowBlur=0;
-          // End tick + label pill at the window edge
+          // End tick + labelled pill at the window edge (what the % means)
           if(_lastPy!=null){
             c.beginPath();c.arc(xB,_lastPy,2.8,0,Math.PI*2);
             c.fillStyle='rgb('+hCol+')';c.fill();
-            const slStr=(slope>=0?'+':'')+slope.toFixed(2)+'%';
+            const slStr=(slope>=0?'+':'')+slope.toFixed(1)+'%';
+            const hLbl='NEXT 4WK';
+            c.font='600 6.5px Inter,sans-serif';
+            const hlw=c.measureText(hLbl).width;
             c.font='700 7.5px JetBrains Mono,monospace';
-            c.textAlign='left';
             const tw2=c.measureText(slStr).width;
-            const inBounds=xB+6+tw2+8<x.right;
-            const _hr={x:(inBounds?xB+6:xB-tw2-14)-3,y:_lastPy-17,w:tw2+8,h:14};
+            const pw2=hlw+tw2+15,ph2=15;
+            const inBounds=xB+6+pw2<x.right;
+            const _hr={x:inBounds?xB+6:xB-pw2-10,y:_lastPy-19,w:pw2,h:ph2};
             _resolve(_hr,-1);
-            c.fillStyle='rgba(9,11,16,0.9)';
-            c.beginPath();c.roundRect(_hr.x,_hr.y,_hr.w,_hr.h,3);c.fill();
+            c.fillStyle='rgba(9,11,16,0.92)';
+            c.strokeStyle='rgba('+hCol+',0.45)';c.lineWidth=1;
+            c.beginPath();c.roundRect(_hr.x,_hr.y,pw2,ph2,4);c.fill();c.stroke();
+            c.textAlign='left';
+            c.fillStyle='rgba(255,255,255,0.55)';
+            c.font='600 6.5px Inter,sans-serif';
+            c.fillText(hLbl,_hr.x+5,_hr.y+10.5);
             c.fillStyle=isBull?'#22c97a':'#e03a2a';
-            c.fillText(slStr,_hr.x+3,_hr.y+10);
+            c.font='700 7.5px JetBrains Mono,monospace';
+            c.fillText(slStr,_hr.x+5+hlw+5,_hr.y+10.5);
             _reserve(_hr);
           }
         }
@@ -41434,10 +41460,12 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
         c.beginPath();c.arc(px,py,2,0,Math.PI*2);c.fillStyle='rgb('+col+')';c.fill();
         // label pill — peaks above, troughs below, nudged clear of other labels
         const arrow=isPeak?'\u25BC':'\u25B2';
-        let lbl=arrow+' '+(isPeak?'PEAK ':'LOW ')+t.consistency+'%';
+        const whenLbl=tdPhase(t.td,months).toUpperCase();
+        let lbl=arrow+' '+(isPeak?'PEAK':'LOW')+(whenLbl?' '+whenLbl:'');
+        if(isModal&&!isCall)lbl+=' \u00B7 '+t.consistency+'% OF YRS';
         if(isCall){
           const mv=(turnCall.move>=0?'+':'')+turnCall.move.toFixed(1)+'%';
-          lbl=arrow+' SEASONAL '+(isPeak?'HIGH':'LOW')+' \u00B7 '+mv+' \u2192 '+turnCall.endLabel.toUpperCase();
+          lbl=arrow+' '+(isModal?('SEASONAL '+(isPeak?'HIGH':'LOW')):(isPeak?'PEAK':'LOW'))+' \u00B7 '+mv+' \u2192 '+turnCall.endLabel.toUpperCase();
         }
         c.font='700 '+(isCall?(isModal?'8.5px':'7.5px'):(isModal?'8px':'7px'))+' Inter,sans-serif';
         const tw=c.measureText(lbl).width;
