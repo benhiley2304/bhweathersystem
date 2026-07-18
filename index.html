@@ -24839,6 +24839,10 @@ function goHome(){
           _setupArcTooltip(arcC,_arcData,_arcLive);
         }
       }
+      // Re-render macro data panels (YC, credit, fed BS, labour, inflation) —
+      // fixes issue where panels drawn while d-empty was hidden get 0-width
+      // and don't restore until page refresh.
+      try{ if(typeof renderMacroDataPanels==='function' && DATA && DATA.regime) renderMacroDataPanels(DATA.regime); }catch(e){ console.warn('macro repanel failed:',e); }
     }));
   }
   // scroll to overview (desktop: scroll within detail col; mobile: back to top)
@@ -41071,8 +41075,6 @@ async function openModal(marketId,marketName){
     const cycles={midterm,pre_election,post_election,election};
     const ctx=document.getElementById('modal-chart').getContext('2d');
     modalChart=buildSeasChart(ctx,labels,allV,band||[],cya||[],months,td,'modal',sd,cycles,true,data.turns||[]);
-    // Expose the smoothed median array + a redraw hook so detrend can mutate it in-place
-    modalChart.$mutateAllV = null; // set inside buildSeasChart below via chart._buildAllVMutator
     // Cycle overlays start hidden in the modal for clarity (chip toggles them on)
     modalChart.data.datasets.forEach((ds,i)=>{if(_CYCLE_LBLS.includes(ds.label))modalChart.setDatasetVisibility(i,false);});
     modalChart.update();
