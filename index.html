@@ -40993,6 +40993,9 @@ function _applyDetrend(ch,on){
       ds.data=src.slice();
     }
   });
+  // Also rewrite the closure-captured allV so overlays (horizon, turns, today pill,
+  // callouts) draw against the detrended curve.
+  if(typeof ch.$mutateAllV==='function')ch.$mutateAllV(on);
   ch.update();
 }
 function _seasModalToggle(g,btn){
@@ -41068,6 +41071,8 @@ async function openModal(marketId,marketName){
     const cycles={midterm,pre_election,post_election,election};
     const ctx=document.getElementById('modal-chart').getContext('2d');
     modalChart=buildSeasChart(ctx,labels,allV,band||[],cya||[],months,td,'modal',sd,cycles,true,data.turns||[]);
+    // Expose the smoothed median array + a redraw hook so detrend can mutate it in-place
+    modalChart.$mutateAllV = null; // set inside buildSeasChart below via chart._buildAllVMutator
     // Cycle overlays start hidden in the modal for clarity (chip toggles them on)
     modalChart.data.datasets.forEach((ds,i)=>{if(_CYCLE_LBLS.includes(ds.label))modalChart.setDatasetVisibility(i,false);});
     modalChart.update();
@@ -41149,6 +41154,11 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
     return 0.25*p+0.5*v+0.25*n;
   });
   allV=_sm3(_sm3(allV));
+  // Snapshot the smoothed raw curve so detrend can restore it, and expose live ref
+  // for post-hoc mutation (e.g. detrend toggle). All in-chart draw callbacks read
+  // through the outer allV closure, so mutating array contents in place propagates
+  // to every overlay on the next chart.update().
+  const _allVRaw = allV.slice();
   const horizStart = scoreDetail.horizon_td_start||scoreDetail.td_start||todayTD;
   const horizEnd   = scoreDetail.horizon_td_end||scoreDetail.td_end||Math.min(252,todayTD+20);
   const slope      = scoreDetail.median_pct??scoreDetail.slope_pct;
@@ -41426,7 +41436,24 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
       if(slope!=null && horizStart && horizEnd && !chart.$hideHorizon){
         const xA=x.getPixelForValue(horizStart);
         const xB=x.getPixelForValue(horizEnd);
-        const isBull=slope>=0;
+        // When detrend is active, source median from the live dataset and recompute slope
+        // from the actual detrended endpoints so the pill + colour match what's drawn.
+        let liveV=allV;
+        let liveSlope=slope;
+        if(chart.$detrendOn){
+          const medDs=chart.data.datasets.find(d=>d.label==='Hist. Median');
+          if(medDs && Array.isArray(medDs.data)){
+            liveV=medDs.data;
+            // Find nearest indexed values at horizon start/end and take the delta
+            let sV=null,eV=null;
+            for(let i=0;i<labels.length;i++){
+              if(sV==null && labels[i]>=horizStart && liveV[i]!=null)sV=liveV[i];
+              if(labels[i]<=horizEnd && liveV[i]!=null)eV=liveV[i];
+            }
+            if(sV!=null && eV!=null)liveSlope=eV-sV;
+          }
+        }
+        const isBull=liveSlope>=0;
         const hCol=isBull?'34,201,122':'224,58,42';
         c.save();
         c.beginPath();c.rect(x.left,y.top,x.right-x.left,y.bottom-y.top);c.clip();
@@ -41442,8 +41469,8 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
         for(let i=0;i<labels.length;i++){
           if(labels[i]<horizStart)continue;
           if(labels[i]>horizEnd)break;
-          if(allV[i]==null)continue;
-          const px=x.getPixelForValue(labels[i]),py=y.getPixelForValue(allV[i]);
+          if(liveV[i]==null)continue;
+          const px=x.getPixelForValue(labels[i]),py=y.getPixelForValue(liveV[i]);
           if(!_hs){c.moveTo(px,py);_hs=true;}else{c.lineTo(px,py);}
           _lastPy=py;
         }
@@ -41459,7 +41486,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           if(_lastPy!=null){
             c.beginPath();c.arc(xB,_lastPy,2.8,0,Math.PI*2);
             c.fillStyle='rgb('+hCol+')';c.fill();
-            const slStr=(slope>=0?'+':'')+slope.toFixed(1)+'%';
+            const slStr=(liveSlope>=0?'+':'')+liveSlope.toFixed(1)+'%';
             const hLbl='NEXT 4WK';
             c.font='600 6.5px Inter,sans-serif';
             const hlw=c.measureText(hLbl).width;
@@ -41793,6 +41820,28 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
     plugins:[mpPlugin]
   });
   _chartRef.$turnCall=turnCall;
+  // Detrend hook: mutates the closure-captured allV in place using the linear fit
+  // of the raw curve, so every overlay (turn dots, today pill, horizon shading,
+  // callouts) recomputes against the detrended values on next chart.update().
+  _chartRef.$mutateAllV = function(on){
+    if(on){
+      // Linear fit through the raw smoothed values
+      let sx=0,sy=0,sxx=0,sxy=0,nP=0;
+      for(let i=0;i<_allVRaw.length;i++){
+        const v=_allVRaw[i]; if(v==null||isNaN(v))continue;
+        sx+=i; sy+=v; sxx+=i*i; sxy+=i*v; nP++;
+      }
+      const dd=nP*sxx-sx*sx;
+      const a=dd?(nP*sxy-sx*sy)/dd:0;
+      const b=nP?(sy-a*sx)/nP:0;
+      for(let i=0;i<_allVRaw.length;i++){
+        const v=_allVRaw[i];
+        allV[i]=(v==null||isNaN(v))?v:(v-(a*i+b));
+      }
+    }else{
+      for(let i=0;i<_allVRaw.length;i++)allV[i]=_allVRaw[i];
+    }
+  };
   return _chartRef;
 }
 
