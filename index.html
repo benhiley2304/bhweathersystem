@@ -27691,7 +27691,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- VERDICT ROW: survey-regime insight — never repeats the hero numbers -->
         ${(()=>{
-          const chipLabel = gdpBeat===true?'BEAT':gdpBeat===false?'MISS':groLabel;
+          const chipLabel = gdpBeat===true?'GDP BEAT':gdpBeat===false?'GDP MISS':groLabel;
           const chipCol = gdpBeat===true?'#22c97a':gdpBeat===false?'#e03a2a':groCol;
           let insight, insCol;
           if(mfgT&&svcT){
@@ -27699,8 +27699,8 @@ function renderMacroDataPanels(reg){
             else if(mfgT.act<50&&svcT.act<50){ insight='both ISM surveys in contraction'; insCol='#e03a2a'; }
             else { insight=`split economy \u2014 ${svcT.act>=50?'services expanding, manufacturing contracting':'manufacturing expanding, services contracting'}`; insCol='#f5c842'; }
           } else { insight='survey data pending'; insCol='#6e7d90'; }
-          const consTilt = retRow&&retRow.beat!=null
-            ? ` \u00b7 consumer <span style="color:${retRow.beat?'#22c97a':'#e03a2a'};font-weight:700">${retRow.beat?'holding up':'softening'}</span>`
+          const consTilt = retRow&&(retRow.beat!=null||retRow.surp!=null)
+            ? ` \u00b7 consumer <span style="color:${retRow.beat===true?'#22c97a':retRow.beat===false?'#e03a2a':'#adb8d0'};font-weight:700">${retRow.beat===true?'holding up':retRow.beat===false?'softening':'steady'}</span>`
             : '';
           return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0d;border-radius:0 7px 7px 0;border-left:2px solid ${chipCol}55">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
@@ -27988,7 +27988,7 @@ function renderMacroDataPanels(reg){
               const verdict = r.isBeat?'HOT':r.isMiss?'COOL':'IN LINE';
               const vCol = r.isBeat?'#e03a2a':r.isMiss?'#5c9eff':'#6e7d90';
               const expVal = r.expected!=null ? r.expected.toFixed(2)+'%' : null;
-              const surpStr = r.surpLabel!=null ? (r.surpLabel.startsWith('-')?'':'+') + r.surpLabel : null;
+              const surpStr = r.surpLabel!=null ? ((r.surpLabel.startsWith('-')||r.surpLabel.startsWith('+'))?'':'+') + r.surpLabel : null;
               const actualStr = r.actualDisplay!=null ? r.actualDisplay.toFixed(2)+'%' : '\u2014';
               return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-left:3px solid ${vCol}70;border-radius:8px;padding:10px 12px;margin-bottom:8px;animation:fadeSlideIn 0.4s ease both">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
