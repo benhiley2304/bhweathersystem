@@ -27428,7 +27428,7 @@ function renderMacroDataPanels(reg){
     const gW=W-padL-padR, gH=H-padT-padB;
     const minV=Math.min(...vals), maxV=Math.max(...vals);
     const range=Math.max(0.5,maxV-minV);
-    const vMin=minV-range*0.04, vMax=maxV+range*0.14;
+    const vMin=minV-range*0.04, vMax=maxV+range*0.055;
     const vRange=vMax-vMin;
     const n=entries.length;
     // Non-linear X: recent 2 years get more horizontal space
@@ -27543,8 +27543,8 @@ function renderMacroDataPanels(reg){
         </linearGradient>
         <!-- Area fill: vertical, using recent colour with atmosphere -->
         <linearGradient id="${uid}area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="${recentCol}" stop-opacity="0.22"/>
-          <stop offset="45%"  stop-color="#3a5070" stop-opacity="0.10"/>
+          <stop offset="0%"   stop-color="${recentCol}" stop-opacity="0.30"/>
+          <stop offset="45%"  stop-color="#3a5070" stop-opacity="0.14"/>
           <stop offset="100%" stop-color="#060810"  stop-opacity="0.0"/>
         </linearGradient>
         <!-- Soft glow for the endpoint dot -->
@@ -27900,8 +27900,10 @@ function renderMacroDataPanels(reg){
 
           // For inflation: beat (actual > forecast) = HOT = red; miss (actual < forecast) = cool = blue
           // beat_disp=true means actual > forecast = hot
-          const isBeat  = beat_disp === true;   // hot
-          const isMiss  = beat_disp === false;  // cool
+          // Zero-surprise guard: |surprise| < 0.005 = in line, not hot/cool
+          const _zeroSurp = surprise_disp != null && Math.abs(surprise_disp) < 0.005;
+          const isBeat  = !_zeroSurp && beat_disp === true;   // hot
+          const isMiss  = !_zeroSurp && beat_disp === false;  // cool
 
           const sCol = isMiss ? '#5c9eff' : isBeat ? '#e03a2a' : '#adb8d0';
 
@@ -27961,6 +27963,35 @@ function renderMacroDataPanels(reg){
               const chipCol = isHot?'#e03a2a':isCool?'#5c9eff':'#6e7d90';
               const surpStr = surprise!=null ? ' ' + (surprise>=0?'+':'') + surprise.toFixed(2) + '%' : '';
               return `<span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;padding:3px 9px;border-radius:5px;background:${chipCol}22;border:1px solid ${chipCol}60;color:${chipCol}">${verdict}${surpStr}</span>`;
+            })()}
+            ${(()=>{
+              // Mini CPI m/m history bars — design continuity with Growth hero
+              const rl = ((macroComps['CPI']||{}).ff_releases||[]).filter(r=>r.actual!=null);
+              if(rl.length<2) return '';
+              const bars = rl.slice(-6);
+              const vals = bars.map(r=>+r.actual);
+              const mx = Math.max(...vals, 0), mn = Math.min(...vals, 0);
+              const range = Math.max(0.4, mx - mn);
+              const zeroPct = Math.max(0, (0 - mn) / range) * 100;
+              const barsHtml = bars.map((r,i)=>{
+                const isLast = i===bars.length-1;
+                const hot = r.forecast!=null ? +r.actual > +r.forecast : +r.actual > 0.25;
+                const full = hot ? '#e03a2a' : '#5c9eff';
+                const col = isLast ? full : hot ? 'rgba(224,58,42,0.40)' : 'rgba(92,158,255,0.40)';
+                const h = Math.max(4, Math.abs(+r.actual)/range*100);
+                const neg = +r.actual < 0;
+                const pos = neg ? `top:${(100-zeroPct).toFixed(1)}%` : `bottom:${zeroPct.toFixed(1)}%`;
+                const glow = isLast ? `box-shadow:0 0 8px ${full}55;` : '';
+                const rad = neg ? '0 0 2px 2px' : '2px 2px 0 0';
+                return `<div style="flex:1;position:relative;height:100%"><div style="position:absolute;left:1.5px;right:1.5px;${pos};height:${h.toFixed(1)}%;background:${col};border-radius:${rad};${glow}"></div></div>`;
+              }).join('');
+              return `<div style="flex:0 1 112px;min-width:66px;max-width:130px;margin-left:auto;display:flex;flex-direction:column;justify-content:flex-end">
+                <div style="display:flex;align-items:stretch;gap:2px;height:32px;position:relative">
+                  <div style="position:absolute;left:0;right:0;bottom:${zeroPct.toFixed(1)}%;height:0.5px;background:rgba(255,255,255,0.12);z-index:0"></div>
+                  ${barsHtml}
+                </div>
+                <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-top:3px;text-align:right">Last ${bars.length} \u00b7 CPI m/m</div>
+              </div>`;
             })()}
           </div>
           <!-- Row 2: EST figure + trend direction -->
@@ -28254,6 +28285,35 @@ function renderMacroDataPanels(reg){
               const deltaStr = surpK!=null ? ' ' + (surpK>=0?'+':'') + surpK + 'K' : '';
               return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:3px 9px;border-radius:10px;background:${col}22;border:1px solid ${col}60">${label}${deltaStr}</span>`;
             })()}
+            ${(()=>{
+              // Mini NFP history bars — design continuity with Growth/Inflation heroes
+              const rl = ((macroComps['JOBS']||{}).ff_releases||[]).filter(r=>r.actual!=null);
+              if(rl.length<2) return '';
+              const bars = rl.slice(-6);
+              const vals = bars.map(r=>+r.actual);
+              const mx = Math.max(...vals, 0), mn = Math.min(...vals, 0);
+              const range = Math.max(50, mx - mn);
+              const zeroPct = Math.max(0, (0 - mn) / range) * 100;
+              const barsHtml = bars.map((r,i)=>{
+                const isLast = i===bars.length-1;
+                const beat = r.forecast!=null ? +r.actual > +r.forecast : +r.actual > 0;
+                const full = beat ? '#22c97a' : '#e03a2a';
+                const col = isLast ? full : beat ? 'rgba(34,201,122,0.40)' : 'rgba(224,58,42,0.38)';
+                const h = Math.max(4, Math.abs(+r.actual)/range*100);
+                const neg = +r.actual < 0;
+                const pos = neg ? `top:${(100-zeroPct).toFixed(1)}%` : `bottom:${zeroPct.toFixed(1)}%`;
+                const glow = isLast ? `box-shadow:0 0 8px ${full}55;` : '';
+                const rad = neg ? '0 0 2px 2px' : '2px 2px 0 0';
+                return `<div style="flex:1;position:relative;height:100%"><div style="position:absolute;left:1.5px;right:1.5px;${pos};height:${h.toFixed(1)}%;background:${col};border-radius:${rad};${glow}"></div></div>`;
+              }).join('');
+              return `<div style="flex:0 1 112px;min-width:66px;max-width:130px;margin-left:auto;display:flex;flex-direction:column;justify-content:flex-end">
+                <div style="display:flex;align-items:stretch;gap:2px;height:32px;position:relative">
+                  <div style="position:absolute;left:0;right:0;bottom:${zeroPct.toFixed(1)}%;height:0.5px;background:rgba(255,255,255,0.12);z-index:0"></div>
+                  ${barsHtml}
+                </div>
+                <div style="font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.38);margin-top:3px;text-align:right">Last ${bars.length} \u00b7 NFP</div>
+              </div>`;
+            })()}
           </div>
           <!-- Row 2: EXP + trend direction + trend context -->
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
@@ -28272,7 +28332,7 @@ function renderMacroDataPanels(reg){
           </div>
           <!-- Row 3: meta context — date + 3m/6m averages -->
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">NFP${nfpDate?' \u00b7 '+nfpDate:''}</span>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">NFP${nfpDate?' \u00b7 '+(()=>{const m=String(nfpDate).match(/^(\d{4})-(\d{2})/);return m?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m[2]-1]+' '+m[1]:nfpDate;})():''}</span>
             ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">3m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
             ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">6m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
           </div>
@@ -28432,11 +28492,8 @@ function renderMacroDataPanels(reg){
             ${sChg3m!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${sCol3m};padding:1.5px 6px;border-radius:8px;background:${sCol3m}15;border:1px solid ${sCol3m}35;opacity:0.90">3M chg ${sChg3m>=0?'+':''}${sChg3m}bp</span>`:''}
             ${sChg6m!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${sCol6m};padding:1.5px 6px;border-radius:8px;background:${sCol6m}15;border:1px solid ${sCol6m}35;opacity:0.90">6M chg ${sChg6m>=0?'+':''}${sChg6m}bp</span>`:''}
           </div>
-          <!-- Inversion status + move type as second line of hero -->
+          <!-- Regime move type as second line of hero -->
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--faint);letter-spacing:0.04em">10Y\u22122Y</span>
-            ${t10y2y!=null&&t10y2y>0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#22c97a;padding:1px 6px;border-radius:10px;background:rgba(34,201,122,0.10);border:1px solid rgba(34,201,122,0.20);letter-spacing:0.06em">POSITIVE \u2191</span>`:''}
-            ${t10y2y!=null&&t10y2y<0?`<span style="font-family:var(--mono);font-size:8.5px;font-weight:800;color:#e03a2a;padding:1px 6px;border-radius:10px;background:rgba(224,58,42,0.10);border:1px solid rgba(224,58,42,0.20);letter-spacing:0.06em">INVERTED \u2193</span>`:''}
             ${yc_move_type&&yc_move_type!=='—'?`<div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:var(--mono);font-size:9px;font-weight:800;color:${moveCol};padding:2px 7px;border-radius:5px;background:${moveCol}18;border:1px solid ${moveCol}40;letter-spacing:0.04em">${yc_move_type}</span><span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.65);font-weight:600">${yc_move_type.includes('Bull Steep')?'Short end falling faster — rate cut signal':yc_move_type.includes('Bear Steep')?'Long rates rising faster — inflation risk':yc_move_type.includes('Bull Flat')?'Short end falling, long flat':yc_move_type.includes('Bear Flat')?'Short rates rising faster — tightening':''}</span></div>`:''}
           </div>
         </div>
@@ -28454,10 +28511,15 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:3px">30Y</div>
             <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:#e8e6e3;line-height:1;font-variant-numeric:tabular-nums">${t30!=null?t30.toFixed(2)+'%':'\u2014'}</div>
           </div>
-          <div style="padding:6px 4px;border-left:1px solid rgba(255,255,255,0.07)">
-            <div style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:3px">10Y−2Y</div>
-            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${spreadBps!=null&&spreadBps>0?'#22c97a':spreadBps!=null&&spreadBps<0?'#e03a2a':'#adb8d0'};line-height:1;font-variant-numeric:tabular-nums">${spreadBps!=null?(spreadBps>=0?'+':'')+spreadBps+'bp':'\u2014'}</div>
-          </div>
+          ${(()=>{
+            // 10Y\u22123M spread \u2014 complements the 10Y\u22122Y hero instead of duplicating it
+            const s103 = (t3m!=null&&t10!=null) ? Math.round((t10-t3m)*100) : null;
+            const c103 = s103==null?'#adb8d0':s103>0?'#22c97a':'#e03a2a';
+            return `<div style="padding:6px 4px;border-left:1px solid rgba(255,255,255,0.07)">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.50);margin-bottom:3px">10Y\u22123M</div>
+            <div style="font-family:var(--mono);font-size:15px;font-weight:900;letter-spacing:-0.02em;color:${c103};line-height:1;font-variant-numeric:tabular-nums">${s103!=null?(s103>=0?'+':'')+s103+'bp':'\u2014'}</div>
+          </div>`;
+          })()}
         </div>
         <!-- CHART: 12M yield curve history — primary analytical visual -->
         <div style="flex:1;min-height:0;max-height:260px;display:flex;flex-direction:column">
@@ -28607,12 +28669,15 @@ function renderMacroDataPanels(reg){
             igHistPct!=null?`IG ${ordinal(igHistPct)} pctile`:''
           ].filter(Boolean).join(' &middot; ');
           const warning = (hyHistPct!=null&&hyHistPct<=15)||(igHistPct!=null&&igHistPct<=15);
-          const contextNote = warning ? ' &middot; Priced for perfection &mdash; <30th pctile = complacency zone'
-            : wideCount>=1 ? ' &middot; Upper end of 3Y range &mdash; watch for widening momentum'
-            : ' &middot; Mid-range; tight spreads = risk-on';
-          return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${col}0c;border-radius:7px;border-left:2px solid ${col}50">
+          const contextNote = warning ? ' &middot; Priced for perfection'
+            : wideCount>=1 ? ' &middot; Upper end of 3Y range'
+            : ' &middot; Mid-range';
+          // Early-turn detection: short-horizon momentum opposing the medium-term trend
+          const turnWatch = (typeof hyDelta4w==='number'&&typeof hyDelta3m==='number'&&hyDelta4w>=3&&hyDelta3m<=-3)
+            ? `<span style="display:block;margin-top:3px;font-size:8.5px;font-weight:700;color:#f5a442">4W widening vs 3M tightening &mdash; early turn watch</span>` : '';
+          return `<div title="Percentile of 3Y range. Below 30th = spreads priced for perfection (complacency zone); above 80th = stress" style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${col}0c;border-radius:7px;border-left:2px solid ${col}50">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${col};white-space:nowrap;padding-top:1px">${label}</span>
-            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${pctStr}${contextNote}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${pctStr}${contextNote}${turnWatch}</span>
           </div>`;
         })()}
         <!-- HERO: HY OAS as dominant stat, IG as secondary row -->
@@ -28817,12 +28882,26 @@ function renderMacroDataPanels(reg){
           if(vixNum>0) _parts.push(vixNum<18?'Vol contained':vixNum<25?'Vol moderate':'Vol elevated');
           if(skewNum>=135) _parts.push('Tail hedging elevated');
           if((scSignals.FWD_PE&&scSignals.FWD_PE.score<0)||(scSignals.ERP&&scSignals.ERP.score<0)) _parts.push('Valuation stretched');
-          const subLabel  = vixSkewDiv?'VIX low, SKEW elevated — surface calm, smart money hedging':(_parts.join(' · ')||'Mixed signals');
           // Header badge already says Risk-On/Lean Bull/etc — only repeat a chip here when it ADDS information (divergence or mixed states)
           const showChip = vixSkewDiv || verdLabel==='MIXED';
-          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:-2px;flex-wrap:wrap">
-            ${showChip?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;padding:3px 10px;border-radius:5px;background:${verdCol}18;border:1px solid ${verdCol}45;color:${verdCol}">${verdLabel}</span>`:`<span style="width:7px;height:7px;border-radius:50%;background:${verdCol};box-shadow:0 0 7px ${verdCol}90;flex-shrink:0"></span>`}
-            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.62);flex:1;line-height:1.4">${subLabel}</span>
+          if(vixSkewDiv){
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:-2px;flex-wrap:wrap">
+            ${showChip?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;padding:3px 10px;border-radius:5px;background:${verdCol}18;border:1px solid ${verdCol}45;color:${verdCol}">${verdLabel}</span>`:''}
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.62);flex:1;line-height:1.4">VIX low, SKEW elevated — surface calm, smart money hedging</span>
+          </div>`;
+          }
+          // Signal chips — each sentiment gets its own colour-coded pill (scans faster than a dotted sentence)
+          const chipCol = p => /positive|contained/i.test(p) ? '#22c97a'
+            : /negative|stretched/i.test(p) ? '#e05a3a'
+            : /elevated/i.test(p) ? '#f5a442'
+            : '#adb8d0';
+          const chips = (_parts.length?_parts:['Mixed signals']).map(p=>{
+            const c = chipCol(p);
+            return `<span style="font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.03em;color:${c};padding:2.5px 7px;border-radius:5px;background:${c}12;border:1px solid ${c}30;display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><span style="width:4px;height:4px;border-radius:50%;background:${c};flex-shrink:0"></span>${p}</span>`;
+          }).join('');
+          return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;margin-top:-2px;flex-wrap:wrap">
+            ${showChip?`<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;padding:3px 10px;border-radius:5px;background:${verdCol}18;border:1px solid ${verdCol}45;color:${verdCol}">${verdLabel}</span>`:''}
+            ${chips}
           </div>`;
         })()}
 
@@ -28874,13 +28953,12 @@ function renderMacroDataPanels(reg){
                 </div>
                 <div style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${skc};letter-spacing:0.04em;margin-top:1px">${skewNum<115?'NORMAL':skewNum<125?'MODERATE':skewNum<135?'ELEVATED':'HIGH'} ${skewNum<115?'— avg tail demand':skewNum<130?'':'— smart money hedging'}</div>`;
               })():''}
-              <div style="font-family:var(--mono);font-size:8.5px;color:var(--faint)">Tail hedge demand</div>
             </div>`;
           })()}
         </div>
 
-        <!-- VIX+SKEW joint read — always visible -->
-        ${vixNum>0&&skewNum>0?(()=>{
+        <!-- VIX+SKEW joint read — only when it adds signal beyond the tiles (stress, no divergence box) -->
+        ${vixNum>0&&skewNum>0&&!vixSkewDiv&&vixNum>=25?(()=>{
           const jRead = vixSkewDiv?'Complacency + tail hedging — hidden stress signal'
             :vixNum<18&&skewNum<125?'Calm surface, low tail demand'
             :vixNum<25&&skewNum>=135?'Vol calm-to-moderate, tail hedging elevated — quiet caution'
@@ -29395,17 +29473,17 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // ── Inline legend: horizontal, compact, below chart ──────────────────────
   // Only show curves that have data
   const activeCurves = CURVES.filter(c => ALL_TENORS.some(t => tenorData[c.key]?.[t] != null));
-  const legendHTML = `<div style="display:flex;align-items:center;justify-content:flex-start;gap:16px;margin-top:5px;padding-left:${isMini?4:padL}px;flex-wrap:wrap">
+  const legendHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:5px;padding-left:${isMini?4:padL}px;padding-right:2px">
     ${activeCurves.map(c => {
       const isNow = c.key === 'now';
       const col   = c.color;
       const dashAttr = c.dash ? `stroke-dasharray="${c.dash}"` : '';
-      return `<div style="display:flex;align-items:center;gap:5px">
-        <svg width="24" height="9" style="flex-shrink:0;overflow:visible">
-          <line x1="0" y1="4.5" x2="24" y2="4.5" stroke="${col}" stroke-width="${isNow?2.8:1.8}" ${dashAttr} stroke-linecap="round"/>
-          ${isNow ? `<circle cx="12" cy="4.5" r="2.2" fill="#030508" stroke="${col}" stroke-width="1.3"/>` : ''}
+      return `<div style="display:flex;align-items:center;gap:4px;min-width:0">
+        <svg width="16" height="9" style="flex-shrink:0;overflow:visible">
+          <line x1="0" y1="4.5" x2="16" y2="4.5" stroke="${col}" stroke-width="${isNow?2.8:1.8}" ${dashAttr} stroke-linecap="round"/>
+          ${isNow ? `<circle cx="8" cy="4.5" r="2.2" fill="#030508" stroke="${col}" stroke-width="1.3"/>` : ''}
         </svg>
-        <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${isNow?col:'rgba(255,255,255,0.70)'};white-space:nowrap;letter-spacing:0.04em">${c.label}</span>
+        <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${isNow?col:'rgba(255,255,255,0.68)'};white-space:nowrap;letter-spacing:0.03em">${c.label}</span>
       </div>`;
     }).join('')}
   </div>`;
