@@ -14500,9 +14500,18 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
+BUILD_ID = "2026-07-19-r4"
+_PROC_START = time.time()
+
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 async def health():
-    return {"status": "ok", "time": datetime.utcnow().isoformat()}
+    try:
+        _n_store = len(_ff_store_load())
+    except Exception:
+        _n_store = -1
+    return {"status": "ok", "time": datetime.utcnow().isoformat(),
+            "build": BUILD_ID, "uptime_s": int(time.time() - _PROC_START),
+            "ff_store_n": _n_store}
 
 
 
