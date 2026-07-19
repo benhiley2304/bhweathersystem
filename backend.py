@@ -14589,6 +14589,8 @@ async def clear_narrative_cache():
     _FF_INFL_CACHE["time"] = 0
     _FF_LABOUR_CACHE["data"] = None
     _FF_LABOUR_CACHE["time"] = 0
+    _FF_GROWTH_CACHE["data"] = None
+    _FF_GROWTH_CACHE["time"] = 0
     RISK_REGIME_CACHE["data"] = None
     RISK_REGIME_CACHE["time"] = 0
     US_MACRO_CACHE["data"] = None
@@ -14598,7 +14600,7 @@ async def clear_narrative_cache():
         "cleared": True,
         "caches_zeroed": [
             "NARR_CACHE", "GLOBAL_NARR_CACHE", "NEWS_CACHE", "ALL_DATA_CACHE",
-            "US_MACRO_CACHE", "FF_MACRO_CACHE", "_FF_INFL_CACHE", "_FF_LABOUR_CACHE"
+            "US_MACRO_CACHE", "FF_MACRO_CACHE", "_FF_INFL_CACHE", "_FF_LABOUR_CACHE", "_FF_GROWTH_CACHE"
         ],
         "message": "Full cache bust complete — next /api/scores call re-fetches all macro data and regenerates narratives"
     }

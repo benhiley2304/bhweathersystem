@@ -27613,7 +27613,8 @@ function renderMacroDataPanels(reg){
           if(c.actual_ff==null) return null;
           const act=c.actual_ff, fc=c.forecast_ff;
           const surp=c.surprise_ff ?? (fc!=null?+(act-fc).toFixed(1):null);
-          const beat=c.beat_ff ?? (surp!=null?surp>0:null);
+          let beat=c.beat_ff ?? (surp!=null?surp>0:null);
+          if(surp!=null&&Math.abs(surp)<0.05) beat=null; // exact in-line print
           const lvlCol = act>52.5?'#22c97a':act>=50?'#adb8d0':act>=47.5?'#f5c842':'#e03a2a';
           const regime = act>=50?'EXPANSION':'CONTRACTION';
           const regimeCol = act>=50?'#22c97a':'#e03a2a';
@@ -27628,7 +27629,8 @@ function renderMacroDataPanels(reg){
           const fc  = hasFF ? c.forecast_ff : _pfNumG(c.expected);
           if(act==null) return null;
           const surp = hasFF ? (c.surprise_ff ?? +(act-(fc??act)).toFixed(2)) : (fc!=null?+(act-fc).toFixed(2):null);
-          const beat = hasFF ? c.beat_ff : (surp!=null?surp>0:null);
+          let beat = hasFF ? c.beat_ff : (surp!=null?surp>0:null);
+          if(surp!=null&&Math.abs(surp)<0.05) beat=null; // exact in-line print
           const score = c.ff_score ?? (beat===true?7:beat===false?3:5);
           const fmt = v => v==null?'\u2014':(unit==='%'?(v>=0?'+':'')+v.toFixed(1)+'%':v.toFixed(1));
           const dStr = surp!=null?((surp>=0?'+':'')+surp.toFixed(1)+(unit==='%'?'%':'')):null;
@@ -27664,8 +27666,9 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${gdpValCol}">${gdpAct!=null?gdpAct.toFixed(1)+'%':'\u2014'}</div>
             ${(()=>{
               if(gdpBeat==null) return '';
-              const label = gdpBeat?'BEAT':'MISS';
-              const col = gdpBeat?'#22c97a':'#e03a2a';
+              const inline = gdpSurp!=null && Math.abs(gdpSurp)<0.05;
+              const label = inline?'IN LINE':gdpBeat?'BEAT':'MISS';
+              const col = inline?'#6e7d90':gdpBeat?'#22c97a':'#e03a2a';
               const deltaStr = gdpSurp!=null ? ' ' + (gdpSurp>=0?'+':'') + gdpSurp.toFixed(1) + 'pp' : '';
               return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:3px 9px;border-radius:10px;background:${col}22;border:1px solid ${col}60">${label}${deltaStr}</span>`;
             })()}
@@ -27749,7 +27752,7 @@ function renderMacroDataPanels(reg){
               const isNeutral = r.score>=4&&r.score<=6;
               const beatCol = '#22c97a', missCol = '#e03a2a';
               const dc = isNeutral?'#6e7d90':(r.score>=6.5?'#22c97a':r.score>=5?'#6e7d90':r.score>=3.5?'#c8a96e':'#e03a2a');
-              const verdict = r.beat===true?'BEAT':r.beat===false?'MISS':'\u2014';
+              const verdict = r.beat===true?'BEAT':r.beat===false?'MISS':(r.surp!=null?'IN LINE':'\u2014');
               const vCol = r.beat===true?beatCol:r.beat===false?missCol:'#5a6480';
               const coreLine = (r.lbl==='Retail Sales'&&coreRet&&coreRet.act!=null)
                 ? `<div style="font-family:var(--mono);font-size:8.5px;color:rgba(173,184,208,0.48);margin-top:2px">core <span style="color:${coreRet.beat===true?'#22c97a':coreRet.beat===false?'#e03a2a':'rgba(173,184,208,0.72)'};font-weight:700">${(coreRet.act>=0?'+':'')+coreRet.act.toFixed(1)}%</span>${coreRet.fc!=null?` <span style="color:rgba(173,184,208,0.40)">est ${(coreRet.fc>=0?'+':'')+coreRet.fc.toFixed(1)}%</span>`:''}</div>`
