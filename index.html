@@ -27427,11 +27427,16 @@ function renderMacroDataPanels(reg){
     const entries = walclHistory.filter(d=>d.v!=null);
     if(entries.length<2) return '';
     const vals = entries.map(d=>d.v);
-    // Portrait viewBox — bottom-row panes are narrow-tall (~211w × 280h available for chart);
-    // Portrait viewBox tuned to the actual container aspect (~0.60) so preserveAspectRatio=meet fills the pane with no letterbox top/bottom
-    const W=180, H=300;
-    const padL=24, padR=14, padT=14, padB=26;
-    const gW=W-padL-padR, gH=H-padT-padB;
+    // Responsive viewBox — portrait on desktop bottom-row (narrow-tall ~211x280), landscape on mobile (wide-short ~330x270)
+    // Detect via window width so mobile stack renders with balanced aspect and no vertical stretch
+    const isMobileFB = (typeof window !== 'undefined') && window.innerWidth <= 640;
+    const W = isMobileFB ? 300 : 180;
+    const H = isMobileFB ? 200 : 300;
+    const padL = isMobileFB ? 30 : 24;
+    const padR = isMobileFB ? 20 : 14;
+    const padT = 14;
+    const padB = 26;
+    const gW = W-padL-padR, gH = H-padT-padB;
     const minV=Math.min(...vals), maxV=Math.max(...vals);
     const range=Math.max(0.5,maxV-minV);
     const vMin=minV-range*0.04, vMax=maxV+range*0.055;
@@ -28535,7 +28540,7 @@ function renderMacroDataPanels(reg){
         <!-- CHART: 12M yield curve history — primary analytical visual -->
         <div style="flex:1;min-height:0;max-height:200px;display:flex;flex-direction:column">
           <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Curve Shape (12M History)</div><div class="mc-sect-line"></div></div>
-          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:90px;max-height:158px"></div>
+          <div id="ov-yc-chart" style="position:relative;flex:1;min-height:90px;max-height:170px;overflow:hidden"></div>
         </div>
         <!-- POLICY CONTEXT: 3-box strip — Fed Funds / Real Yield / Mkt 12M Path -->
         ${(ryVal!=null||effr!=null||cuts12m!=null)?`
@@ -29265,7 +29270,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
 
   let containerH = elRect.height;
   const aspectH  = isMobile ? 0.72 : (W < 220 ? 0.80 : 0.65);
-  const minH     = isMobile ? 200 : 155;
+  const minH     = isMobile ? 140 : 130;
   const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), minH);
 
   // Padding: left leaves room for y-axis labels; bottom for x-axis
