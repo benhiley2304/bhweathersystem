@@ -1265,7 +1265,7 @@ a{color:inherit;text-decoration:none}
 .ov-macro-card{padding:16px 16px 14px;border-radius:12px;min-height:unset;height:auto}
   .ov-mc-hero{font-size:22px!important}
   .ov-yc-canvas-wrap{min-height:80px;max-height:160px}
-  #ov-yc-chart{min-height:200px!important;max-height:280px!important}
+  #ov-yc-chart{min-height:140px!important;max-height:180px!important;overflow:hidden!important}
   .ov-yc-hero-val{font-size:28px!important}
   /* Credit spreads mobile */
   .ov-cs-num-val.is-hy{font-size:32px!important}
@@ -29481,7 +29481,9 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   }
 
   // ── SVG wrapper ──────────────────────────────────────────────────────────
-  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block;overflow:visible" shape-rendering="geometricPrecision">
+  // On mobile, let SVG scale to container (capped by CSS max-height); on desktop, use explicit height for pixel-perfect layout
+  const svgH = isMobile ? `min(${H}px, 140px)` : `${H}px`;
+  const svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:${svgH};display:block;overflow:visible" shape-rendering="geometricPrecision">
     ${grids}${xAxis}${curveSvg}
   </svg>`;
 
