@@ -1215,14 +1215,27 @@ a{color:inherit;text-decoration:none}
 }
 .ov-macro-panels{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
-  grid-template-rows:repeat(2,minmax(420px,auto));
+  grid-template-columns:repeat(12,1fr);
+  grid-auto-rows:minmax(420px,auto);
   gap:12px;
   margin:0 20px 16px;
   align-items:stretch;
 }
-@media(max-width:1200px){.ov-macro-panels{grid-template-columns:1fr 1fr;grid-template-rows:none;align-items:stretch;margin:0 14px 14px}}
-@media(max-width:600px){.ov-macro-panels{grid-template-columns:1fr 1fr;grid-template-rows:none;gap:8px;margin:0 10px 12px;align-items:stretch}}
+/* Row 1 (fundamentals): 3 panes × span 4 · Row 2 (market indicators): 4 panes × span 3 */
+.ov-macro-panels>.ov-macro-card{grid-column:span 4;}
+.ov-macro-panels>#ov-macro-yc,
+.ov-macro-panels>#ov-macro-fedbs,
+.ov-macro-panels>#ov-macro-credit,
+.ov-macro-panels>#ov-macro-stock-climate{grid-column:span 3;}
+@media(max-width:1200px){
+  .ov-macro-panels{grid-template-columns:repeat(2,1fr);grid-auto-rows:auto;align-items:stretch;margin:0 14px 14px}
+  .ov-macro-panels>.ov-macro-card,
+  .ov-macro-panels>#ov-macro-yc,
+  .ov-macro-panels>#ov-macro-fedbs,
+  .ov-macro-panels>#ov-macro-credit,
+  .ov-macro-panels>#ov-macro-stock-climate{grid-column:span 1;}
+}
+@media(max-width:600px){.ov-macro-panels{gap:8px;margin:0 10px 12px}}
 @media(max-width:480px){.ov-macro-panels{grid-template-columns:1fr!important;gap:8px;margin:0 10px 12px}}
 /* 480px breakpoint handles single-col — 380px rule kept for safety */
 /* ── Final Refinement CSS ───────────────────────────────── */
@@ -25529,16 +25542,29 @@ function renderOverview(){
           title:`Rates/yields composite: ${(catScores.rates||0).toFixed(2)}${t10y2y}`};
       })(),
       (()=>{
+        const t=_fedTier(fb.trend);const lvl=fb.level!=null?`$${fb.level.toFixed(1)}T`:'—';
+        return{label:'Fed B/S',val:fb.trend||'—',cls:t.cls,col:t.col,pip:t.pip,
+          title:`Fed balance sheet ${lvl} — 3M change: ${fb.chg_3m_pct!=null?((fb.chg_3m_pct>=0?'+':'')+fb.chg_3m_pct.toFixed(1)+'%'):'—'}`};
+      })(),
+      (()=>{
         const t=_creditTier(cr.hy_trend, cr.hy_score);const l=_creditLabel(cr.hy_trend, cr.hy_oas_bps);
         return{label:'Credit',val:l,cls:t.cls,col:t.col,pip:t.pip,
           title:`HY spreads ${cr.hy_oas_bps!=null?Math.round(cr.hy_oas_bps)+'bps':'—'} (${cr.hy_pct!=null?Math.round(cr.hy_pct)+'th pct':'—'}) — ${cr.hy_trend||'Stable'}`};
       })(),
       (()=>{
-        const t=_fedTier(fb.trend);const lvl=fb.level!=null?`$${fb.level.toFixed(1)}T`:'—';
-        return{label:'Fed B/S',val:fb.trend||'—',cls:t.cls,col:t.col,pip:t.pip,
-          title:`Fed balance sheet ${lvl} — 3M change: ${fb.chg_3m_pct!=null?((fb.chg_3m_pct>=0?'+':'')+fb.chg_3m_pct.toFixed(1)+'%'):'—'}`};
+        // Equity conditions — mirrors PANEL 6 verdict (overall −3..+3)
+        const scq=(DATA.stock_climate)||{};
+        const so=scq.overall;
+        if(so==null)return null;
+        const val = so>=2?'Bullish':so>=1?'Lean Bull':so<=-2?'Bearish':so<=-1?'Lean Bear':'Mixed';
+        const t = so>=1?{cls:'menv-bull',col:'#26c97a',pip:'#26c97a'}
+                 :so<=-1?{cls:'menv-bear',col:'#e03a2a',pip:'#e03a2a'}
+                 :{cls:'menv-neut',col:'#7b8ba8',pip:'#7b8ba8'};
+        const vix=scq.signals&&scq.signals.VIX&&scq.signals.VIX.value?` • VIX ${scq.signals.VIX.value}`:'';
+        return{label:'Equity',val,cls:t.cls,col:t.col,pip:t.pip,
+          title:`Equity conditions composite ${so>=0?'+':''}${so}${vix}`};
       })(),
-    ];
+    ].filter(Boolean);
 
     el.innerHTML=`<div class="ov-macro-env-wrap"><div class="ov-macro-env-hdr"><span class="ov-macro-env-hdr-lbl">Macro Environment</span><div class="ov-macro-env-hdr-line"></div></div><div class="ov-macro-env-strip">${
       PILLS.map(p=>`<div class="ov-menv-pill ${p.cls}" title="${p.title}" style="--menv-col:${p.col}"><div class="ov-menv-pip" style="background:${p.pip}"></div><span class="ov-menv-lbl">${p.label}</span><span class="ov-menv-sep">•</span><span class="ov-menv-val">${p.val}</span></div>`).join('')
@@ -27243,6 +27269,16 @@ function renderMacroDataPanels(reg){
   const jcCol   = jobsComp!=null?(jobsComp>=7?'#22c97a':jobsComp>=5.5?'#5aaa7a':jobsComp>=4.5?'#f5c842':jobsComp>=3.5?'#e07a2a':'#e03a2a'):'#adb8d0';
   const jcLabel = jobsComp!=null?(jobsComp>=7?'Strong':jobsComp>=5.5?'Healthy':jobsComp>=4.5?'Neutral':jobsComp>=3.5?'Cooling':'Weak'):'—';
 
+  // ── Growth composite — FF surprise-momentum composite (0-10) with category-score fallback
+  const groComp = (()=>{
+    const ffg = macroComps['_ff_growth']||{};
+    if(ffg.composite!=null) return ffg.composite;
+    const cg = macroAll.category_scores?.growth;
+    return cg!=null ? Math.max(0,Math.min(10,(cg+2)/4*10)) : null;
+  })();
+  const groCol   = groComp!=null?(groComp>=7?'#22c97a':groComp>=5.5?'#5aaa7a':groComp>=4.5?'#f5c842':groComp>=3.5?'#e07a2a':'#e03a2a'):'#adb8d0';
+  const groLabel = groComp!=null?(groComp>=7?'Expanding':groComp>=5.5?'Solid':groComp>=4.5?'Mixed':groComp>=3.5?'Slowing':'Contracting'):'—';
+
   // ── Inflation: hoist badge colour so RAF block can reference it
   const inflComps = ['CPI','CORE_CPI','PPI','PCE','CORE_PCE'];
   const inflLabels = {CPI:'CPI YoY',CORE_CPI:'Core CPI',PPI:'PPI Final Demand',PCE:'PCE YoY',CORE_PCE:'Core PCE'};
@@ -27551,264 +27587,191 @@ function renderMacroDataPanels(reg){
 
       <!-- ══ ROW 1: FUNDAMENTALS ═══════════════════════════════════════════ -->
 
-      <!-- PANEL 1: LABOUR MARKET ══════════════════════════════════════════ -->
+      <!-- PANEL 0: GROWTH ════════════════════════════════════════════════ -->
       ${(()=>{
-        const arcPct = jobsComp!=null?jobsComp*10:50;
-        // Z-score style indicator bars — score 5=neutral, 0=bear, 10=bull
-        const adpScore  = ffScores.adp??5;
-        const wagesScore= ffScores.wages??5;
-        const adpVal    = ffAdp?.actual!=null?'+'+ffAdp.actual.toFixed(0)+'K':null;
-        const wagesVal  = ffWages?.actual!=null?ffWages.actual.toFixed(1)+'%':null;
-        const adpCol    = adpScore>=7?'#22c97a':adpScore>=5.5?'#adb8d0':adpScore>=4?'#f5c842':'#e03a2a';
-        const wagesCol  = wagesScore>=7?'#22c97a':wagesScore>=5.5?'#adb8d0':wagesScore>=4?'#f5c842':'#e03a2a';
-        // Pull forecast values from macroComps where available
-        const _cJobs   = macroComps['JOBS']||{};
-        const _cClaims = macroComps['CLAIMS']||{};
-        const _cUnemp  = macroComps['UNEMP']||{};
-        const _cAdp    = macroComps['ADP']||{};
-        const _cWages  = macroComps['WAGES_MOM']||macroComps['WAGES']||{};
-        // ── Labour pipe rows — FF-first, same pattern as inflation card ──
-        // Each row: FF actual vs FF consensus, FF surprise, FF beat/miss.
-        // FRED fallback only when FF data absent (JOLTS has no FF entry).
-        // Row order: NFP (headline), Unemployment, Wages m/m, Init. Claims, ADP.
-        // JOLTS dropped — no FF data, FRED lag too long to be useful in real-time.
-        const labPipeItems = [
-          {lbl:'NFP',         key:'JOBS',   unit:'K'},
-          {lbl:'Unemployment',key:'UNEMP',  unit:'%'},
-          {lbl:'Wages m/m',   key:'WAGES',  unit:'%'},
-          {lbl:'Init Claims',key:'CLAIMS', unit:'K'},
-          {lbl:'ADP',         key:'ADP',    unit:'K'},
-        ].map(p => {
-          const c = macroComps[p.key];
-          if (!c) return null;
+        // ── Data pulls (all FF-first with FRED fallback where meaningful) ──
+        const _cGdp  = macroComps['GDP']||{};
+        const _cMfg  = macroComps['MFG_PMI']||{};
+        const _cSvc  = macroComps['SVC_PMI']||{};
+        const _cRet  = macroComps['RETAIL']||{};
+        const _cConf = macroComps['CONF']||{};
+        const _pfNumG = x => { if(x==null) return null; const n = parseFloat(String(x).replace(/[,+%]/g,'')); return isNaN(n)?null:n; };
 
-          const hasFF = c.actual_ff != null && c.forecast_ff != null;
-          let actual_disp, forecast_disp, surprise_disp, beat_disp;
+        // GDP hero — FF actual/forecast preferred; FRED q/q annualised fallback
+        const gdpAct  = _cGdp.actual_ff ?? _pfNumG(_cGdp.actual ?? _cGdp.display);
+        const gdpFc   = _cGdp.forecast_ff ?? _pfNumG(_cGdp.expected);
+        const gdpSurp = _cGdp.surprise_ff ?? (gdpAct!=null&&gdpFc!=null ? +(gdpAct-gdpFc).toFixed(2) : null);
+        const gdpBeat = _cGdp.beat_ff ?? (gdpSurp!=null ? gdpSurp>0 : null);
+        const gdpPrev = (_cGdp.ff_releases&&_cGdp.ff_releases.length)?_cGdp.ff_releases[_cGdp.ff_releases.length-1].previous:null;
+        const gdpEvent= _cGdp.ff_event||null;
+        const gdpDate = (()=>{const rl=_cGdp.ff_releases; if(!rl||!rl.length||!rl[rl.length-1].dateline) return null;
+          try{return new Date(rl[rl.length-1].dateline*1000).toLocaleDateString('en-GB',{month:'short',day:'numeric'});}catch(e){return null;}})();
+        const gdpValCol = gdpBeat===true?'#22c97a':gdpBeat===false&&Math.abs(gdpSurp||0)>0.3?'#e03a2a':'#e8e6e3';
 
-          if (hasFF) {
-            actual_disp   = c.actual_ff;
-            forecast_disp = c.forecast_ff;
-            surprise_disp = c.surprise_ff ?? (actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : null);
-            beat_disp     = c.beat_ff;
-          } else {
-            // FRED fallback — strip commas before parsing ("208,000" → 208000, not 208)
-            const _pfNum = x => { if(x==null) return null; const n = parseFloat(String(x).replace(/[,+]/g,'')); return isNaN(n)?null:n; };
-            actual_disp   = _pfNum(c.actual ?? c.display);
-            forecast_disp = _pfNum(c.expected);
-            // Normalise raw counts to thousands for K-unit rows (claims come as 208000 / est 216333.33)
-            if(p.unit === 'K'){
-              if(actual_disp   != null && Math.abs(actual_disp)   >= 10000) actual_disp   = Math.round(actual_disp/1000);
-              if(forecast_disp != null && Math.abs(forecast_disp) >= 10000) forecast_disp = Math.round(forecast_disp/1000);
-            }
-            surprise_disp = actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : null;
-            beat_disp     = c.higher_is_good != null
-              ? (c.higher_is_good ? surprise_disp > 0 : surprise_disp < 0)
-              : null;
-          }
+        // PMI tiles — FF-only (FRED fallback value is a transform, not an ISM level)
+        const _pmiTileData = c => {
+          if(c.actual_ff==null) return null;
+          const act=c.actual_ff, fc=c.forecast_ff;
+          const surp=c.surprise_ff ?? (fc!=null?+(act-fc).toFixed(1):null);
+          const beat=c.beat_ff ?? (surp!=null?surp>0:null);
+          const lvlCol = act>52.5?'#22c97a':act>=50?'#adb8d0':act>=47.5?'#f5c842':'#e03a2a';
+          const regime = act>=50?'EXPANSION':'CONTRACTION';
+          const regimeCol = act>=50?'#22c97a':'#e03a2a';
+          return {act,fc,surp,beat,lvlCol,regime,regimeCol};
+        };
+        const mfgT = _pmiTileData(_cMfg), svcT = _pmiTileData(_cSvc);
 
-          // Format display value
-          const valStr = actual_disp != null
-            ? (p.unit === 'K' ? (actual_disp >= 0 ? '+' : '') + actual_disp.toFixed(0) + 'K'
-             : p.unit === '%' ? actual_disp.toFixed(2) + '%'
-             : actual_disp.toFixed(2))
-            : '—';
-          const expStr = forecast_disp != null
-            ? 'exp ' + (p.unit === 'K' ? (forecast_disp >= 0 ? '+' : '') + forecast_disp.toFixed(0) + 'K'
-                      : p.unit === '%' ? forecast_disp.toFixed(2) + '%'
-                      : forecast_disp.toFixed(2))
-            : null;
-          const surpStr = surprise_disp != null
-            ? (surprise_disp >= 0 ? '+' : '') + surprise_disp.toFixed(p.unit === 'K' ? 0 : 2) + (p.unit === 'K' ? 'K' : '%')
-            : null;
+        // Supporting rows — Retail + Confidence (FF-first)
+        const _rowData = (c, lbl, unit) => {
+          const hasFF = c.actual_ff!=null && c.forecast_ff!=null;
+          const act = hasFF ? c.actual_ff : _pfNumG(c.actual ?? c.display);
+          const fc  = hasFF ? c.forecast_ff : _pfNumG(c.expected);
+          if(act==null) return null;
+          const surp = hasFF ? (c.surprise_ff ?? +(act-(fc??act)).toFixed(2)) : (fc!=null?+(act-fc).toFixed(2):null);
+          const beat = hasFF ? c.beat_ff : (surp!=null?surp>0:null);
+          const score = c.ff_score ?? (beat===true?7:beat===false?3:5);
+          const fmt = v => v==null?'\u2014':(unit==='%'?(v>=0?'+':'')+v.toFixed(1)+'%':v.toFixed(1));
+          const dStr = surp!=null?((surp>=0?'+':'')+surp.toFixed(1)+(unit==='%'?'%':'')):null;
+          return {lbl, hasFF, act, fc, surp, beat, score, valStr:fmt(act), expStr:fc!=null?fmt(fc):null, dStr};
+        };
+        const retRow  = _rowData(_cRet,  'Retail Sales', '%');
+        const confRow = _rowData(_cConf, (_cConf.actual_ff!=null?'CB Confidence':'Confidence (UoM)'), 'idx');
+        const coreRet = _cRet.core_actual_ff!=null ? {act:_cRet.core_actual_ff, fc:_cRet.core_forecast_ff, beat:_cRet.core_beat_ff} : null;
 
-          // isBeat: actual beat consensus in the GOOD direction
-          // NFP/Wages/ADP: beat = higher than expected (strong labour)
-          // Unemployment/Claims: beat = lower than expected (tight/healthy)
-          const higherIsGood = p.key !== 'UNEMP' && p.key !== 'CLAIMS';
-          const isBeat = beat_disp != null ? beat_disp
-            : (surprise_disp != null ? (higherIsGood ? surprise_disp > 0 : surprise_disp < 0) : null);
-          const isMiss = isBeat === null ? null : !isBeat;
-
-          // Colour: beat = green, miss = red, neutral = grey
-          const dataCol = isBeat === true ? '#22c97a' : isBeat === false ? '#e03a2a' : '#adb8d0';
-
-          // Score for z-bar (use ff_score if available, else derive from beat/miss)
-          const score = c.ff_score ?? (isBeat === true ? 7 : isBeat === false ? 3 : 5);
-
-          return { ...p, actual_disp, forecast_disp, surprise_disp, isBeat, isMiss,
-                   valStr, expStr, surpStr, dataCol, score, hasFF };
-        }).filter(r => r && r.actual_disp != null);
-
-        // Legacy zIndicators kept for the score bar rendering (reuse same render loop)
-        const zIndicators = labPipeItems.map(r => ({
-          lbl: r.lbl, score: r.score, val: r.valStr, col: r.dataCol,
-          exp: r.expStr, surpStr: r.surpStr, isBeat: r.isBeat, hasFF: r.hasFF
-        }));
         return `
-      <div class="ov-macro-card" id="ov-macro-labour">
-        <div class="ov-macro-card-glow" style="background:${jcCol}"></div>
-        <div class="ov-macro-card-wash" style="background:${jcCol}"></div>
+      <div class="ov-macro-card" id="ov-macro-growth">
+        <div class="ov-macro-card-glow" style="background:${groCol}"></div>
+        <div class="ov-macro-card-wash" style="background:${groCol}"></div>
         <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${
-          jobsComp==null?'rgba(173,184,208,0.015)':
-          jobsComp>=7?'rgba(34,201,122,0.048)':
-          jobsComp>=5.5?'rgba(34,201,122,0.030)':
-          jobsComp>=4.5?'rgba(173,184,208,0.018)':
-          jobsComp>=3.5?'rgba(245,200,66,0.032)':
+          groComp==null?'rgba(173,184,208,0.015)':
+          groComp>=7?'rgba(34,201,122,0.048)':
+          groComp>=5.5?'rgba(34,201,122,0.030)':
+          groComp>=4.5?'rgba(173,184,208,0.018)':
+          groComp>=3.5?'rgba(245,200,66,0.032)':
           'rgba(224,58,42,0.048)'
         } 0%,transparent 72%)"></div>
-        <canvas class="ov-mc-particles" id="ov-mc-p1"></canvas>
+        <canvas class="ov-mc-particles" id="ov-mc-p0"></canvas>
         <div class="ov-mc-header">
           <div>
-            <div class="ov-mc-eyebrow">Employment</div>
-            <div class="ov-mc-title">Labour Market</div>
+            <div class="ov-mc-eyebrow">Economic Activity</div>
+            <div class="ov-mc-title">Growth</div>
           </div>
-          ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}1a;border:1px solid ${jcCol}38">${jcLabel}</span>`:''}
+          ${groComp!=null?`<span class="ov-mc-badge" style="color:${groCol};background:${groCol}1a;border:1px solid ${groCol}38">${groLabel}</span>`:''}
         </div>
-        <!-- HERO: NFP with consensus + surprise as first-class elements -->
+        <!-- HERO: GDP q/q with consensus + surprise as first-class elements -->
         <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07)">
-          <!-- Row 1: NFP number + BEAT/MISS+delta chip -->
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px">
-            <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'\u2014'}</div>
+            <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${gdpValCol}">${gdpAct!=null?gdpAct.toFixed(1)+'%':'\u2014'}</div>
             ${(()=>{
-              // Enhanced BEAT/MISS chip with numeric surprise delta
-              const useFF = ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null;
-              const beat = useFF ? ffNfp.beat : null;
-              const surpK = useFF&&ffNfp.actual!=null&&ffNfp.forecast!=null
-                ? Math.round(ffNfp.actual - ffNfp.forecast)
-                : null;
-              if(beat===null&&!nfpSurpL) return '';
-              const label = beat!=null?(beat?'BEAT':'MISS'):nfpSurpL;
-              const col = beat!=null?(beat?'#22c97a':'#e03a2a'):surpCol;
-              const deltaStr = surpK!=null ? ' ' + (surpK>=0?'+':'') + surpK + 'K' : '';
+              if(gdpBeat==null) return '';
+              const label = gdpBeat?'BEAT':'MISS';
+              const col = gdpBeat?'#22c97a':'#e03a2a';
+              const deltaStr = gdpSurp!=null ? ' ' + (gdpSurp>=0?'+':'') + gdpSurp.toFixed(1) + 'pp' : '';
               return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:3px 9px;border-radius:10px;background:${col}22;border:1px solid ${col}60">${label}${deltaStr}</span>`;
             })()}
           </div>
-          <!-- Row 2: EXP + trend direction + trend context -->
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+            ${gdpFc!=null?`<span style="font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(173,184,208,0.65)">EST <span style="color:rgba(173,184,208,0.85);font-weight:800">${gdpFc.toFixed(1)}%</span></span>`:''}
             ${(()=>{
-              if(!ffNfp||ffNfp.forecast==null) return '';
-              return `<span style="font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(173,184,208,0.65)">EST <span style="color:rgba(173,184,208,0.85);font-weight:800">${ffNfp.forecast>=0?'+':''}${Math.round(ffNfp.forecast)}K</span></span>`;
-            })()}
-            ${(()=>{
-              if(nfp3mAvg==null&&nfp6mAvg==null) return '';
-              const diff = (nfp3mAvg||0) - (nfp6mAvg||0);
-              const trendArrow = diff > 20 ? '\u25b2' : diff < -20 ? '\u25bc' : '\u2192';
-              const trendWord = diff > 20 ? 'Strengthening' : diff < -20 ? 'Weakening' : 'Stable';
-              const trendC = diff > 20 ? '#22c97a' : diff < -20 ? '#e03a2a' : '#6e7d90';
-              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;color:${trendC}">${trendArrow} ${trendWord}</span>`;
+              if(gdpAct==null||gdpPrev==null) return '';
+              const diff = gdpAct - gdpPrev;
+              const arrow = diff > 0.2 ? '\u25b2' : diff < -0.2 ? '\u25bc' : '\u2192';
+              const word  = diff > 0.2 ? 'Accelerating' : diff < -0.2 ? 'Decelerating' : 'Steady';
+              const tc    = diff > 0.2 ? '#22c97a' : diff < -0.2 ? '#e03a2a' : '#6e7d90';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;color:${tc}">${arrow} ${word}</span>`;
             })()}
           </div>
-          <!-- Row 3: meta context — date + 3m/6m averages -->
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">NFP${nfpDate?' \u00b7 '+nfpDate:''}</span>
-            ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">3m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
-            ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">6m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
+            <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">${gdpEvent?gdpEvent.replace(' q/q',''):'GDP q/q'}${gdpDate?' \u00b7 '+gdpDate:''} \u00b7 annualised</span>
+            ${gdpPrev!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">prior <span style="color:rgba(173,184,208,0.70);font-weight:700">${gdpPrev.toFixed(1)}%</span></span>`:''}
           </div>
         </div>
-        <!-- VERDICT ROW: new-information insight only — never repeats the hero numbers -->
+        <!-- VERDICT ROW: survey-regime insight — never repeats the hero numbers -->
         ${(()=>{
-          const useFF = ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null;
-          const beat = useFF ? ffNfp.beat : null;
-          const surpK = useFF&&ffNfp.actual!=null&&ffNfp.forecast!=null
-            ? Math.round(ffNfp.actual - ffNfp.forecast) : null;
-          const trendWord = (()=>{const diff=(nfp3mAvg||0)-(nfp6mAvg||0);return diff>20?'Strengthening':diff<-20?'Weakening':'Stable';})();
-          const trendC = (()=>{const diff=(nfp3mAvg||0)-(nfp6mAvg||0);return diff>20?'#22c97a':diff<-20?'#e03a2a':'#adb8d0';})();
-          const chipLabel = beat===true?'BEAT':beat===false?'MISS':jcLabel;
-          const chipCol = beat===true?'#22c97a':beat===false?'#e03a2a':jcCol;
-          // New-information only: stall speed context + trend — not the raw numbers (already in hero)
-          const stallSpeed = nfpMom!=null&&nfpMom>=60?'above stall-speed threshold':nfpMom!=null&&nfpMom>=0?'approaching stall-speed zone':'contraction territory';
-          const stallC = nfpMom!=null&&nfpMom>=60?'#22c97a':nfpMom!=null&&nfpMom>=0?'#c8a96e':'#e03a2a';
-          const trendAvg = nfp3mAvg!=null?` · 3M avg puts labour <span style="color:${trendC};font-weight:700">${trendWord}</span>`:''
+          const chipLabel = gdpBeat===true?'BEAT':gdpBeat===false?'MISS':groLabel;
+          const chipCol = gdpBeat===true?'#22c97a':gdpBeat===false?'#e03a2a':groCol;
+          let insight, insCol;
+          if(mfgT&&svcT){
+            if(mfgT.act>=50&&svcT.act>=50){ insight='both ISM surveys in expansion'; insCol='#22c97a'; }
+            else if(mfgT.act<50&&svcT.act<50){ insight='both ISM surveys in contraction'; insCol='#e03a2a'; }
+            else { insight=`split economy \u2014 ${svcT.act>=50?'services expanding, manufacturing contracting':'manufacturing expanding, services contracting'}`; insCol='#f5c842'; }
+          } else { insight='survey data pending'; insCol='#6e7d90'; }
+          const consTilt = retRow&&retRow.beat!=null
+            ? ` \u00b7 consumer <span style="color:${retRow.beat?'#22c97a':'#e03a2a'};font-weight:700">${retRow.beat?'holding up':'softening'}</span>`
+            : '';
           return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0d;border-radius:0 7px 7px 0;border-left:2px solid ${chipCol}55">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
-            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.70);line-height:1.45"><span style="color:${stallC};font-weight:700">${stallSpeed}</span>${trendAvg}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.70);line-height:1.45"><span style="color:${insCol};font-weight:700">${insight}</span>${consTilt}</span>
           </div>`;
         })()}
-        <!-- TIER 1: Primary KPI tiles — Unemployment + Wages side by side -->
+        <!-- TIER 1: ISM PMI tiles — Manufacturing + Services side by side -->
         ${(()=>{
-          const unempRow = zIndicators.find(r=>r.lbl==='Unemployment');
-          const wagesRow = zIndicators.find(r=>r.lbl==='Wages m/m');
-          const tileScoreCol = s => s>=6.5?'#22c97a':s>=5?'#adb8d0':s>=3.5?'#c8a96e':'#e03a2a';
-          const tile = (r, label) => {
-            if(!r) return '';
-            const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'IN LINE';
-            // Threshold-gate chip colour: only turn red for material misses (>0.15pp); amber for small miss
-            const surpNum = r.surpStr!=null ? parseFloat(r.surpStr) : null;
-            const vCol = r.isBeat===true?'#22c97a':
-              (r.isBeat===false?(Math.abs(surpNum||0)>0.15?'#e03a2a':'#c8a96e'):'#6e7d90');
-            const surpDisplay = (surpNum!=null && Math.abs(surpNum) >= 0.01)
-              ? ((surpNum>=0?'+':'')+surpNum.toFixed(2)) : null;
-            const expClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
-            // Coloured value: good = green, bad = red, near-target = neutral
-            const valCol = r.isBeat===true?'#22c97a':r.isBeat===false&&Math.abs(surpNum||0)>0.15?'#e03a2a':'#e8e6e3';
+          const tile = (t, label) => {
+            if(!t) return `<div style="padding:6px 8px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:8px">
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.42);margin-bottom:5px">${label}</div>
+              <div style="font-family:var(--mono);font-size:24px;font-weight:900;color:rgba(173,184,208,0.35)">\u2014</div>
+              <div style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.38);margin-top:4px">awaiting data</div>
+            </div>`;
+            const vCol = t.beat===true?'#22c97a':t.beat===false?(Math.abs(t.surp||0)>1.5?'#e03a2a':'#c8a96e'):'#6e7d90';
+            const verdict = t.beat===true?'BEAT':t.beat===false?'MISS':'IN LINE';
+            const surpDisplay = (t.surp!=null && Math.abs(t.surp)>=0.05) ? ((t.surp>=0?'+':'')+t.surp.toFixed(1)) : null;
             return `<div style="padding:6px 8px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:8px">
               <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.42);margin-bottom:5px">${label}</div>
               <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
-                <span style="font-family:var(--mono);font-size:24px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${valCol};font-variant-numeric:tabular-nums lining-nums">${r.val}</span>
+                <span style="font-family:var(--mono);font-size:24px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${t.lvlCol};font-variant-numeric:tabular-nums lining-nums">${t.act.toFixed(1)}</span>
                 <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.05em;color:${vCol};padding:2px 6px;border-radius:5px;background:${vCol}18;border:1px solid ${vCol}40">${verdict}</span>
               </div>
-              <div style="display:flex;align-items:baseline;gap:5px">
-                ${expClean!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.38)">est <span style="color:rgba(173,184,208,0.60);font-weight:700">${expClean}</span></span>`:''}
-                ${surpDisplay!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol};margin-left:2px">${surpDisplay}</span>`:''}
+              <div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap">
+                ${t.fc!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.38)">est <span style="color:rgba(173,184,208,0.60);font-weight:700">${t.fc.toFixed(1)}</span></span>`:''}
+                ${surpDisplay!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol}">${surpDisplay}</span>`:''}
+                <span style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:0.07em;color:${t.regimeCol};opacity:0.85;margin-left:auto">${t.regime}</span>
               </div>
             </div>`;
           };
           return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07)">
-            ${tile(unempRow,'Unemployment')}
-            ${tile(wagesRow,'Wages m/m')}
+            ${tile(mfgT,'ISM Mfg PMI')}
+            ${tile(svcT,'ISM Svc PMI')}
           </div>`;
         })()}
-        <div class="mc-group-label" style="margin-top:4px">Supporting Indicators</div>
-        <!-- TIER 2: Supporting signals — NFP row + Claims + ADP compact -->
+        <div class="mc-group-label" style="margin-top:4px">Consumer Pulse</div>
+        <!-- TIER 2: Retail Sales + Consumer Confidence -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
           <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 8px"></div>
           <div style="display:flex;flex-direction:column;gap:0">
           ${(()=>{
-            const scoreCol = s => s>=6.5?'#22c97a':s>=5?'#6e7d90':s>=3.5?'#c8a96e':'#e03a2a';
-            const supportRows = zIndicators.filter(r=>['Init Claims','ADP'].includes(r.lbl));
-            return supportRows.map((r,i)=>{
+            const rows = [retRow, confRow].filter(Boolean);
+            if(!rows.length) return `<div style="font-family:var(--mono);font-size:10px;color:rgba(173,184,208,0.40);padding:10px 0">Consumer data pending next release cycle</div>`;
+            return rows.map((r,i)=>{
               const isPos = r.score >= 5;
-              // Estimate-anchored: centre=estimate, fill left=miss, fill right=beat
-              // fillW proportional to how far from neutral (score-based, 0-50% of half-track)
-              const deviation = Math.abs(r.score - 5); // 0=neutral, 5=max
+              const deviation = Math.abs(r.score - 5);
               const fillW = Math.max(4, Math.min(46, deviation * 9.2));
               const fillStart = isPos ? 50 : Math.max(2, 50 - fillW);
               const isNeutral = r.score>=4&&r.score<=6;
-              const dc = isNeutral?'#6e7d90':scoreCol(r.score);
-              const beatCol = '#22c97a';
-              const missCol = '#e03a2a';
-              const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'\u2014';
-              const vCol = r.isBeat===true?beatCol:r.isBeat===false?missCol:'#5a6480';
-              // Numeric delta for this row — smart formatting
-              const rowSurpNum = r.surpStr!=null ? parseFloat(r.surpStr) : null;
-              const rowDeltaStr = rowSurpNum!=null ? (()=>{
-                const prefix = rowSurpNum>=0?'+':'';
-                // If it's a whole number (or close to it), show as integer; else 2dp
-                const isWhole = Math.abs(rowSurpNum - Math.round(rowSurpNum)) < 0.001;
-                // Both support rows (Init Claims, ADP) are K-unit — keep the unit on the delta
-                return prefix + (isWhole ? Math.round(rowSurpNum).toString() : rowSurpNum.toFixed(2)) + 'K';
-              })() : null;
-              const rowExpClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
+              const beatCol = '#22c97a', missCol = '#e03a2a';
+              const dc = isNeutral?'#6e7d90':(r.score>=6.5?'#22c97a':r.score>=5?'#6e7d90':r.score>=3.5?'#c8a96e':'#e03a2a');
+              const verdict = r.beat===true?'BEAT':r.beat===false?'MISS':'\u2014';
+              const vCol = r.beat===true?beatCol:r.beat===false?missCol:'#5a6480';
+              const coreLine = (r.lbl==='Retail Sales'&&coreRet&&coreRet.act!=null)
+                ? `<div style="font-family:var(--mono);font-size:8.5px;color:rgba(173,184,208,0.48);margin-top:2px">core <span style="color:${coreRet.beat===true?'#22c97a':coreRet.beat===false?'#e03a2a':'rgba(173,184,208,0.72)'};font-weight:700">${(coreRet.act>=0?'+':'')+coreRet.act.toFixed(1)}%</span>${coreRet.fc!=null?` <span style="color:rgba(173,184,208,0.40)">est ${(coreRet.fc>=0?'+':'')+coreRet.fc.toFixed(1)}%</span>`:''}</div>`
+                : '';
               return `<div style="display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeSlideIn 0.4s ease both;animation-delay:${i*60}ms">
-                <!-- Label + verdict chip -->
                 <div style="display:flex;flex-direction:column;gap:3px">
-                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.65)">${r.lbl==='Init Claims'?'Initial Claims':r.lbl==='ADP'?'ADP Payrolls':r.lbl}</span>
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.65)">${r.lbl}</span>
                   <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2px 6px;border-radius:7px;background:${vCol}25;border:1px solid ${vCol}55;display:inline-block;width:fit-content">${verdict}</span>
                 </div>
-                <!-- Divergence bar — no illegible axis labels -->
                 <div style="position:relative;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:visible">
                   <div style="position:absolute;inset:0;border-radius:4px;background:linear-gradient(90deg,${missCol}20 0%,${missCol}20 50%,${beatCol}20 50%,${beatCol}20 100%)"></div>
                   <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1.5px;transform:translateX(-50%);background:rgba(255,255,255,0.35);border-radius:1px;z-index:2"></div>
                   <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:${dc};border-radius:4px;opacity:0.88;box-shadow:0 0 5px ${dc}55"></div>
                 </div>
-                <!-- Value column: actual (large) + expected + delta -->
                 <div style="text-align:right;min-width:70px">
-                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em;line-height:1">${r.val}</div>
-                  ${rowExpClean!=null?`<div style="display:flex;align-items:baseline;gap:3px;justify-content:flex-end;margin-top:2px">
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em;line-height:1">${r.valStr}</div>
+                  ${r.expStr!=null?`<div style="display:flex;align-items:baseline;gap:3px;justify-content:flex-end;margin-top:2px">
                     <span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.48);font-weight:600">EST</span>
-                    <span style="font-family:var(--mono);font-size:10px;color:rgba(173,184,208,0.72);font-weight:700">${rowExpClean}</span>
+                    <span style="font-family:var(--mono);font-size:10px;color:rgba(173,184,208,0.72);font-weight:700">${r.expStr}</span>
                   </div>`:''}
-                  ${rowDeltaStr!=null?`<div style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol};margin-top:1px;letter-spacing:0.02em">${rowDeltaStr}</div>`:''}
+                  ${r.dStr!=null?`<div style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol};margin-top:1px;letter-spacing:0.02em">${r.dStr}</div>`:''}
+                  ${coreLine}
                 </div>
               </div>`;
             }).join('');
@@ -28103,91 +28066,272 @@ function renderMacroDataPanels(reg){
         </div>
       </div>`;
       })()}
-      <!-- PANEL 3: FED BALANCE SHEET ══════════════════════════════════════ -->
+      <!-- PANEL 1: LABOUR MARKET ══════════════════════════════════════════ -->
       ${(()=>{
+        const arcPct = jobsComp!=null?jobsComp*10:50;
+        // Z-score style indicator bars — score 5=neutral, 0=bear, 10=bull
+        const adpScore  = ffScores.adp??5;
+        const wagesScore= ffScores.wages??5;
+        const adpVal    = ffAdp?.actual!=null?'+'+ffAdp.actual.toFixed(0)+'K':null;
+        const wagesVal  = ffWages?.actual!=null?ffWages.actual.toFixed(1)+'%':null;
+        const adpCol    = adpScore>=7?'#22c97a':adpScore>=5.5?'#adb8d0':adpScore>=4?'#f5c842':'#e03a2a';
+        const wagesCol  = wagesScore>=7?'#22c97a':wagesScore>=5.5?'#adb8d0':wagesScore>=4?'#f5c842':'#e03a2a';
+        // Pull forecast values from macroComps where available
+        const _cJobs   = macroComps['JOBS']||{};
+        const _cClaims = macroComps['CLAIMS']||{};
+        const _cUnemp  = macroComps['UNEMP']||{};
+        const _cAdp    = macroComps['ADP']||{};
+        const _cWages  = macroComps['WAGES_MOM']||macroComps['WAGES']||{};
+        // ── Labour pipe rows — FF-first, same pattern as inflation card ──
+        // Each row: FF actual vs FF consensus, FF surprise, FF beat/miss.
+        // FRED fallback only when FF data absent (JOLTS has no FF entry).
+        // Row order: NFP (headline), Unemployment, Wages m/m, Init. Claims, ADP.
+        // JOLTS dropped — no FF data, FRED lag too long to be useful in real-time.
+        const labPipeItems = [
+          {lbl:'NFP',         key:'JOBS',   unit:'K'},
+          {lbl:'Unemployment',key:'UNEMP',  unit:'%'},
+          {lbl:'Wages m/m',   key:'WAGES',  unit:'%'},
+          {lbl:'Init Claims',key:'CLAIMS', unit:'K'},
+          {lbl:'ADP',         key:'ADP',    unit:'K'},
+        ].map(p => {
+          const c = macroComps[p.key];
+          if (!c) return null;
+
+          const hasFF = c.actual_ff != null && c.forecast_ff != null;
+          let actual_disp, forecast_disp, surprise_disp, beat_disp;
+
+          if (hasFF) {
+            actual_disp   = c.actual_ff;
+            forecast_disp = c.forecast_ff;
+            surprise_disp = c.surprise_ff ?? (actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : null);
+            beat_disp     = c.beat_ff;
+          } else {
+            // FRED fallback — strip commas before parsing ("208,000" → 208000, not 208)
+            const _pfNum = x => { if(x==null) return null; const n = parseFloat(String(x).replace(/[,+]/g,'')); return isNaN(n)?null:n; };
+            actual_disp   = _pfNum(c.actual ?? c.display);
+            forecast_disp = _pfNum(c.expected);
+            // Normalise raw counts to thousands for K-unit rows (claims come as 208000 / est 216333.33)
+            if(p.unit === 'K'){
+              if(actual_disp   != null && Math.abs(actual_disp)   >= 10000) actual_disp   = Math.round(actual_disp/1000);
+              if(forecast_disp != null && Math.abs(forecast_disp) >= 10000) forecast_disp = Math.round(forecast_disp/1000);
+            }
+            surprise_disp = actual_disp != null && forecast_disp != null ? +(actual_disp - forecast_disp).toFixed(2) : null;
+            beat_disp     = c.higher_is_good != null
+              ? (c.higher_is_good ? surprise_disp > 0 : surprise_disp < 0)
+              : null;
+          }
+
+          // Format display value
+          const valStr = actual_disp != null
+            ? (p.unit === 'K' ? (actual_disp >= 0 ? '+' : '') + actual_disp.toFixed(0) + 'K'
+             : p.unit === '%' ? actual_disp.toFixed(2) + '%'
+             : actual_disp.toFixed(2))
+            : '—';
+          const expStr = forecast_disp != null
+            ? 'exp ' + (p.unit === 'K' ? (forecast_disp >= 0 ? '+' : '') + forecast_disp.toFixed(0) + 'K'
+                      : p.unit === '%' ? forecast_disp.toFixed(2) + '%'
+                      : forecast_disp.toFixed(2))
+            : null;
+          const surpStr = surprise_disp != null
+            ? (surprise_disp >= 0 ? '+' : '') + surprise_disp.toFixed(p.unit === 'K' ? 0 : 2) + (p.unit === 'K' ? 'K' : '%')
+            : null;
+
+          // isBeat: actual beat consensus in the GOOD direction
+          // NFP/Wages/ADP: beat = higher than expected (strong labour)
+          // Unemployment/Claims: beat = lower than expected (tight/healthy)
+          const higherIsGood = p.key !== 'UNEMP' && p.key !== 'CLAIMS';
+          const isBeat = beat_disp != null ? beat_disp
+            : (surprise_disp != null ? (higherIsGood ? surprise_disp > 0 : surprise_disp < 0) : null);
+          const isMiss = isBeat === null ? null : !isBeat;
+
+          // Colour: beat = green, miss = red, neutral = grey
+          const dataCol = isBeat === true ? '#22c97a' : isBeat === false ? '#e03a2a' : '#adb8d0';
+
+          // Score for z-bar (use ff_score if available, else derive from beat/miss)
+          const score = c.ff_score ?? (isBeat === true ? 7 : isBeat === false ? 3 : 5);
+
+          return { ...p, actual_disp, forecast_disp, surprise_disp, isBeat, isMiss,
+                   valStr, expStr, surpStr, dataCol, score, hasFF };
+        }).filter(r => r && r.actual_disp != null);
+
+        // Legacy zIndicators kept for the score bar rendering (reuse same render loop)
+        const zIndicators = labPipeItems.map(r => ({
+          lbl: r.lbl, score: r.score, val: r.valStr, col: r.dataCol,
+          exp: r.expStr, surpStr: r.surpStr, isBeat: r.isBeat, hasFF: r.hasFF
+        }));
         return `
-      <div class="ov-macro-card" id="ov-macro-fedbs">
-        <div class="ov-macro-card-glow" style="background:${lineCol}"></div>
-        <div class="ov-macro-card-wash" style="background:${lineCol}"></div>
+      <div class="ov-macro-card" id="ov-macro-labour">
+        <div class="ov-macro-card-glow" style="background:${jcCol}"></div>
+        <div class="ov-macro-card-wash" style="background:${jcCol}"></div>
         <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${
-          lineCol==='#7ab8c4'?'rgba(122,184,196,0.042)':
-          lineCol==='#c8a96e'?'rgba(200,169,110,0.038)':
-          'rgba(106,122,148,0.022)'
+          jobsComp==null?'rgba(173,184,208,0.015)':
+          jobsComp>=7?'rgba(34,201,122,0.048)':
+          jobsComp>=5.5?'rgba(34,201,122,0.030)':
+          jobsComp>=4.5?'rgba(173,184,208,0.018)':
+          jobsComp>=3.5?'rgba(245,200,66,0.032)':
+          'rgba(224,58,42,0.048)'
         } 0%,transparent 72%)"></div>
-        <canvas class="ov-mc-particles" id="ov-mc-p3"></canvas>
+        <canvas class="ov-mc-particles" id="ov-mc-p1"></canvas>
         <div class="ov-mc-header">
           <div>
-            <div class="ov-mc-eyebrow">Federal Reserve</div>
-            <div class="ov-mc-title">Balance Sheet</div>
+            <div class="ov-mc-eyebrow">Employment</div>
+            <div class="ov-mc-title">Labour Market</div>
           </div>
-          <span class="ov-mc-badge" style="color:${lineCol};background:${lineCol}1a;border:1px solid ${lineCol}38">${fbTrend}</span>
+          ${jobsComp!=null?`<span class="ov-mc-badge" style="color:${jcCol};background:${jcCol}1a;border:1px solid ${jcCol}38">${jcLabel}</span>`:''}
         </div>
-        <!-- HERO: Level + regime + monthly run-rate -->
-        <div style="margin-bottom:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;flex-wrap:wrap">
-            <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'\u2014'}</div>
+        <!-- HERO: NFP with consensus + surprise as first-class elements -->
+        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07)">
+          <!-- Row 1: NFP number + BEAT/MISS+delta chip -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px">
+            <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3">${nfpMom!=null?(nfpMom>=0?'+':'')+nfpMom.toFixed(0)+'K':'\u2014'}</div>
             ${(()=>{
-              // 4-week run-rate chip — recent momentum (header badge already shows the regime,
-              // so don't repeat "EXPANDING" here; show the freshest delta instead)
-              const h=(fb.history||[]).filter(d=>d&&d.v!=null);
-              if(h.length<5) return '';
-              const chg4w=h[h.length-1].v-h[h.length-5].v;              // weekly WALCL → 4 steps ≈ 4W
-              const bil=Math.round(chg4w*1000);
-              if(!isFinite(bil)) return '';
-              const c=Math.abs(bil)<5?'#6a7a94':bil>0?'#22c97a':'#e03a2a';
-              const arrow=bil>4?'\u25b2':bil<-4?'\u25bc':'\u2192';
-              return '<span class="ov-policy-badge" style="color:'+c+';background:'+c+'15;border-color:'+c+'45">'+arrow+' '+(bil>=0?'+':'')+'$'+bil+'B \u00b7 4W</span>';
+              // Enhanced BEAT/MISS chip with numeric surprise delta
+              const useFF = ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null;
+              const beat = useFF ? ffNfp.beat : null;
+              const surpK = useFF&&ffNfp.actual!=null&&ffNfp.forecast!=null
+                ? Math.round(ffNfp.actual - ffNfp.forecast)
+                : null;
+              if(beat===null&&!nfpSurpL) return '';
+              const label = beat!=null?(beat?'BEAT':'MISS'):nfpSurpL;
+              const col = beat!=null?(beat?'#22c97a':'#e03a2a'):surpCol;
+              const deltaStr = surpK!=null ? ' ' + (surpK>=0?'+':'') + surpK + 'K' : '';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:3px 9px;border-radius:10px;background:${col}22;border:1px solid ${col}60">${label}${deltaStr}</span>`;
             })()}
           </div>
-          ${vsPeak!=null?`
-          <!-- QE peak progress bar -->
-          <div style="margin:6px 0 4px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <span style="font-family:var(--mono);font-size:8px;font-weight:600;color:rgba(173,184,208,0.40)">PRE-QE ~$4T</span>
-              <div style="text-align:center">
-                <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#c8a96e">${vsPeak}%</span>
-                <span style="font-family:var(--mono);font-size:7.5px;font-weight:600;color:rgba(200,169,110,0.55)"> of QE peak</span>
+          <!-- Row 2: EXP + trend direction + trend context -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+            ${(()=>{
+              if(!ffNfp||ffNfp.forecast==null) return '';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(173,184,208,0.65)">EST <span style="color:rgba(173,184,208,0.85);font-weight:800">${ffNfp.forecast>=0?'+':''}${Math.round(ffNfp.forecast)}K</span></span>`;
+            })()}
+            ${(()=>{
+              if(nfp3mAvg==null&&nfp6mAvg==null) return '';
+              const diff = (nfp3mAvg||0) - (nfp6mAvg||0);
+              const trendArrow = diff > 20 ? '\u25b2' : diff < -20 ? '\u25bc' : '\u2192';
+              const trendWord = diff > 20 ? 'Strengthening' : diff < -20 ? 'Weakening' : 'Stable';
+              const trendC = diff > 20 ? '#22c97a' : diff < -20 ? '#e03a2a' : '#6e7d90';
+              return `<span style="font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:0.04em;color:${trendC}">${trendArrow} ${trendWord}</span>`;
+            })()}
+          </div>
+          <!-- Row 3: meta context — date + 3m/6m averages -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">NFP${nfpDate?' \u00b7 '+nfpDate:''}</span>
+            ${nfp3mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">3m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp3mAvg>=0?'+':''}${nfp3mAvg.toFixed(0)}K</span></span>`:''}
+            ${nfp6mAvg!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">6m <span style="color:rgba(173,184,208,0.70);font-weight:700">${nfp6mAvg>=0?'+':''}${nfp6mAvg.toFixed(0)}K</span></span>`:''}
+          </div>
+        </div>
+        <!-- VERDICT ROW: new-information insight only — never repeats the hero numbers -->
+        ${(()=>{
+          const useFF = ffNfp&&ffNfp.actual!=null&&ffNfp.forecast!=null;
+          const beat = useFF ? ffNfp.beat : null;
+          const surpK = useFF&&ffNfp.actual!=null&&ffNfp.forecast!=null
+            ? Math.round(ffNfp.actual - ffNfp.forecast) : null;
+          const trendWord = (()=>{const diff=(nfp3mAvg||0)-(nfp6mAvg||0);return diff>20?'Strengthening':diff<-20?'Weakening':'Stable';})();
+          const trendC = (()=>{const diff=(nfp3mAvg||0)-(nfp6mAvg||0);return diff>20?'#22c97a':diff<-20?'#e03a2a':'#adb8d0';})();
+          const chipLabel = beat===true?'BEAT':beat===false?'MISS':jcLabel;
+          const chipCol = beat===true?'#22c97a':beat===false?'#e03a2a':jcCol;
+          // New-information only: stall speed context + trend — not the raw numbers (already in hero)
+          const stallSpeed = nfpMom!=null&&nfpMom>=60?'above stall-speed threshold':nfpMom!=null&&nfpMom>=0?'approaching stall-speed zone':'contraction territory';
+          const stallC = nfpMom!=null&&nfpMom>=60?'#22c97a':nfpMom!=null&&nfpMom>=0?'#c8a96e':'#e03a2a';
+          const trendAvg = nfp3mAvg!=null?` · 3M avg puts labour <span style="color:${trendC};font-weight:700">${trendWord}</span>`:''
+          return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0d;border-radius:0 7px 7px 0;border-left:2px solid ${chipCol}55">
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.70);line-height:1.45"><span style="color:${stallC};font-weight:700">${stallSpeed}</span>${trendAvg}</span>
+          </div>`;
+        })()}
+        <!-- TIER 1: Primary KPI tiles — Unemployment + Wages side by side -->
+        ${(()=>{
+          const unempRow = zIndicators.find(r=>r.lbl==='Unemployment');
+          const wagesRow = zIndicators.find(r=>r.lbl==='Wages m/m');
+          const tileScoreCol = s => s>=6.5?'#22c97a':s>=5?'#adb8d0':s>=3.5?'#c8a96e':'#e03a2a';
+          const tile = (r, label) => {
+            if(!r) return '';
+            const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'IN LINE';
+            // Threshold-gate chip colour: only turn red for material misses (>0.15pp); amber for small miss
+            const surpNum = r.surpStr!=null ? parseFloat(r.surpStr) : null;
+            const vCol = r.isBeat===true?'#22c97a':
+              (r.isBeat===false?(Math.abs(surpNum||0)>0.15?'#e03a2a':'#c8a96e'):'#6e7d90');
+            const surpDisplay = (surpNum!=null && Math.abs(surpNum) >= 0.01)
+              ? ((surpNum>=0?'+':'')+surpNum.toFixed(2)) : null;
+            const expClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
+            // Coloured value: good = green, bad = red, near-target = neutral
+            const valCol = r.isBeat===true?'#22c97a':r.isBeat===false&&Math.abs(surpNum||0)>0.15?'#e03a2a':'#e8e6e3';
+            return `<div style="padding:6px 8px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:8px">
+              <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(173,184,208,0.42);margin-bottom:5px">${label}</div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+                <span style="font-family:var(--mono);font-size:24px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:${valCol};font-variant-numeric:tabular-nums lining-nums">${r.val}</span>
+                <span style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.05em;color:${vCol};padding:2px 6px;border-radius:5px;background:${vCol}18;border:1px solid ${vCol}40">${verdict}</span>
               </div>
-              <span style="font-family:var(--mono);font-size:8px;font-weight:600;color:rgba(173,184,208,0.40)">PEAK $8.97T</span>
-            </div>
-            <div style="position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:visible">
-              <div style="position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,rgba(92,158,255,0.20) 0%,rgba(200,169,110,0.45) 60%,rgba(200,169,110,0.65) 100%)"></div>
-              <div style="position:absolute;top:0;left:0;height:100%;width:${vsPeak}%;background:linear-gradient(90deg,rgba(200,169,110,0.4) 0%,#c8a96e 100%);border-radius:3px"></div>
-              <div style="position:absolute;top:-5px;width:12px;height:12px;border-radius:50%;background:#c8a96e;border:2px solid rgba(255,255,255,0.65);left:${vsPeak}%;transform:translateX(-50%);box-shadow:0 0 8px rgba(200,169,110,0.75);z-index:2"></div>
-            </div>
-          </div>`:''}          
-        </div>
-        <!-- CHART: Full-width area — primary visual, annotated -->
-        <div style="flex:1;min-height:120px;margin:4px 0 0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);position:relative">
-          ${svgChart}
-        </div>
-        <!-- Compact arc canvas (hidden — legacy) -->
-        <div style="display:none"><canvas id="ov-bs-arc-canvas"></canvas></div>
-        <!-- DELTA STRIP: 3-period summary as a single compact row -->
-        <div style="margin-top:8px">
-          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Balance Sheet Change</div><div class="mc-sect-line"></div></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.05)">
-            ${(()=>{
-              const periodTile = (label, val) => {
-                if(val==null) return `<div style="text-align:center;padding:8px 4px">
-                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.07em;margin-bottom:5px">${label}</div>
-                  <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--faint)">\u2014</div>
-                </div>`;
-                const c = chgCol(val);
-                const arrow=val>0.005?'↑':val<-0.005?'↓':'→';
-                return `<div style="text-align:center;padding:8px 4px">
-                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(173,184,208,0.40);letter-spacing:0.07em;margin-bottom:5px">${label}</div>
-                  <div style="font-family:var(--mono);font-size:18px;font-weight:900;line-height:1;color:${c}">${chgFmt(val)}</div>
-                  <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${c};opacity:0.65;margin-top:1px">${arrow}</div>
-                </div>`;
-              };
-              return periodTile('3 months', fbChg3m) + periodTile('6 months', fbChg6m) + periodTile('12 months', fbChg12m);
-            })()}
+              <div style="display:flex;align-items:baseline;gap:5px">
+                ${expClean!=null?`<span style="font-family:var(--mono);font-size:9px;font-weight:600;color:rgba(173,184,208,0.38)">est <span style="color:rgba(173,184,208,0.60);font-weight:700">${expClean}</span></span>`:''}
+                ${surpDisplay!=null?`<span style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol};margin-left:2px">${surpDisplay}</span>`:''}
+              </div>
+            </div>`;
+          };
+          return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07)">
+            ${tile(unempRow,'Unemployment')}
+            ${tile(wagesRow,'Wages m/m')}
+          </div>`;
+        })()}
+        <div class="mc-group-label" style="margin-top:4px">Supporting Indicators</div>
+        <!-- TIER 2: Supporting signals — NFP row + Claims + ADP compact -->
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 8px"></div>
+          <div style="display:flex;flex-direction:column;gap:0">
+          ${(()=>{
+            const scoreCol = s => s>=6.5?'#22c97a':s>=5?'#6e7d90':s>=3.5?'#c8a96e':'#e03a2a';
+            const supportRows = zIndicators.filter(r=>['Init Claims','ADP'].includes(r.lbl));
+            return supportRows.map((r,i)=>{
+              const isPos = r.score >= 5;
+              // Estimate-anchored: centre=estimate, fill left=miss, fill right=beat
+              // fillW proportional to how far from neutral (score-based, 0-50% of half-track)
+              const deviation = Math.abs(r.score - 5); // 0=neutral, 5=max
+              const fillW = Math.max(4, Math.min(46, deviation * 9.2));
+              const fillStart = isPos ? 50 : Math.max(2, 50 - fillW);
+              const isNeutral = r.score>=4&&r.score<=6;
+              const dc = isNeutral?'#6e7d90':scoreCol(r.score);
+              const beatCol = '#22c97a';
+              const missCol = '#e03a2a';
+              const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'\u2014';
+              const vCol = r.isBeat===true?beatCol:r.isBeat===false?missCol:'#5a6480';
+              // Numeric delta for this row — smart formatting
+              const rowSurpNum = r.surpStr!=null ? parseFloat(r.surpStr) : null;
+              const rowDeltaStr = rowSurpNum!=null ? (()=>{
+                const prefix = rowSurpNum>=0?'+':'';
+                // If it's a whole number (or close to it), show as integer; else 2dp
+                const isWhole = Math.abs(rowSurpNum - Math.round(rowSurpNum)) < 0.001;
+                // Both support rows (Init Claims, ADP) are K-unit — keep the unit on the delta
+                return prefix + (isWhole ? Math.round(rowSurpNum).toString() : rowSurpNum.toFixed(2)) + 'K';
+              })() : null;
+              const rowExpClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
+              return `<div style="display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeSlideIn 0.4s ease both;animation-delay:${i*60}ms">
+                <!-- Label + verdict chip -->
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(173,184,208,0.65)">${r.lbl==='Init Claims'?'Initial Claims':r.lbl==='ADP'?'ADP Payrolls':r.lbl}</span>
+                  <span style="font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:0.06em;color:#fff;padding:2px 6px;border-radius:7px;background:${vCol}25;border:1px solid ${vCol}55;display:inline-block;width:fit-content">${verdict}</span>
+                </div>
+                <!-- Divergence bar — no illegible axis labels -->
+                <div style="position:relative;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:visible">
+                  <div style="position:absolute;inset:0;border-radius:4px;background:linear-gradient(90deg,${missCol}20 0%,${missCol}20 50%,${beatCol}20 50%,${beatCol}20 100%)"></div>
+                  <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1.5px;transform:translateX(-50%);background:rgba(255,255,255,0.35);border-radius:1px;z-index:2"></div>
+                  <div style="position:absolute;top:0;height:100%;left:${fillStart}%;width:${fillW}%;background:${dc};border-radius:4px;opacity:0.88;box-shadow:0 0 5px ${dc}55"></div>
+                </div>
+                <!-- Value column: actual (large) + expected + delta -->
+                <div style="text-align:right;min-width:70px">
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:#e8e6e3;letter-spacing:-0.02em;line-height:1">${r.val}</div>
+                  ${rowExpClean!=null?`<div style="display:flex;align-items:baseline;gap:3px;justify-content:flex-end;margin-top:2px">
+                    <span style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.48);font-weight:600">EST</span>
+                    <span style="font-family:var(--mono);font-size:10px;color:rgba(173,184,208,0.72);font-weight:700">${rowExpClean}</span>
+                  </div>`:''}
+                  ${rowDeltaStr!=null?`<div style="font-family:var(--mono);font-size:10px;font-weight:800;color:${vCol};margin-top:1px;letter-spacing:0.02em">${rowDeltaStr}</div>`:''}
+                </div>
+              </div>`;
+            }).join('');
+          })()}
           </div>
         </div>
       </div>`;
       })()}
-
       <!-- ══ ROW 2: MARKET INDICATORS ════════════════════════════════════ -->
 
       <!-- PANEL 4: YIELD CURVE ═══════════════════════════════════════════ -->
@@ -28296,6 +28440,91 @@ function renderMacroDataPanels(reg){
         </div>`:''}
       </div>`;
       })()}
+      <!-- PANEL 3: FED BALANCE SHEET ══════════════════════════════════════ -->
+      ${(()=>{
+        return `
+      <div class="ov-macro-card" id="ov-macro-fedbs">
+        <div class="ov-macro-card-glow" style="background:${lineCol}"></div>
+        <div class="ov-macro-card-wash" style="background:${lineCol}"></div>
+        <div class="ov-macro-card-tint" style="background:radial-gradient(ellipse 120% 100% at 50% 30%,${
+          lineCol==='#7ab8c4'?'rgba(122,184,196,0.042)':
+          lineCol==='#c8a96e'?'rgba(200,169,110,0.038)':
+          'rgba(106,122,148,0.022)'
+        } 0%,transparent 72%)"></div>
+        <canvas class="ov-mc-particles" id="ov-mc-p3"></canvas>
+        <div class="ov-mc-header">
+          <div>
+            <div class="ov-mc-eyebrow">Federal Reserve</div>
+            <div class="ov-mc-title">Balance Sheet</div>
+          </div>
+          <span class="ov-mc-badge" style="color:${lineCol};background:${lineCol}1a;border:1px solid ${lineCol}38">${fbTrend}</span>
+        </div>
+        <!-- HERO: Level + regime + monthly run-rate -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;flex-wrap:wrap">
+            <div style="font-family:var(--mono);font-size:clamp(28px,5.5vw,38px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#c8a96e">${fbLevel!=null?'$'+fbLevel.toFixed(2)+'T':'\u2014'}</div>
+            ${(()=>{
+              // 4-week run-rate chip — recent momentum (header badge already shows the regime,
+              // so don't repeat "EXPANDING" here; show the freshest delta instead)
+              const h=(fb.history||[]).filter(d=>d&&d.v!=null);
+              if(h.length<5) return '';
+              const chg4w=h[h.length-1].v-h[h.length-5].v;              // weekly WALCL → 4 steps ≈ 4W
+              const bil=Math.round(chg4w*1000);
+              if(!isFinite(bil)) return '';
+              const c=Math.abs(bil)<5?'#6a7a94':bil>0?'#22c97a':'#e03a2a';
+              const arrow=bil>4?'\u25b2':bil<-4?'\u25bc':'\u2192';
+              return '<span class="ov-policy-badge" style="color:'+c+';background:'+c+'15;border-color:'+c+'45">'+arrow+' '+(bil>=0?'+':'')+'$'+bil+'B \u00b7 4W</span>';
+            })()}
+          </div>
+          ${vsPeak!=null?`
+          <!-- QE peak progress bar -->
+          <div style="margin:6px 0 4px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span style="font-family:var(--mono);font-size:8px;font-weight:600;color:rgba(173,184,208,0.40)">PRE-QE ~$4T</span>
+              <div style="text-align:center">
+                <span style="font-family:var(--mono);font-size:10px;font-weight:800;color:#c8a96e">${vsPeak}%</span>
+                <span style="font-family:var(--mono);font-size:7.5px;font-weight:600;color:rgba(200,169,110,0.55)"> of QE peak</span>
+              </div>
+              <span style="font-family:var(--mono);font-size:8px;font-weight:600;color:rgba(173,184,208,0.40)">PEAK $8.97T</span>
+            </div>
+            <div style="position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:visible">
+              <div style="position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,rgba(92,158,255,0.20) 0%,rgba(200,169,110,0.45) 60%,rgba(200,169,110,0.65) 100%)"></div>
+              <div style="position:absolute;top:0;left:0;height:100%;width:${vsPeak}%;background:linear-gradient(90deg,rgba(200,169,110,0.4) 0%,#c8a96e 100%);border-radius:3px"></div>
+              <div style="position:absolute;top:-5px;width:12px;height:12px;border-radius:50%;background:#c8a96e;border:2px solid rgba(255,255,255,0.65);left:${vsPeak}%;transform:translateX(-50%);box-shadow:0 0 8px rgba(200,169,110,0.75);z-index:2"></div>
+            </div>
+          </div>`:''}          
+        </div>
+        <!-- CHART: Full-width area — primary visual, annotated -->
+        <div style="flex:1;min-height:120px;margin:4px 0 0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);position:relative">
+          ${svgChart}
+        </div>
+        <!-- Compact arc canvas (hidden — legacy) -->
+        <div style="display:none"><canvas id="ov-bs-arc-canvas"></canvas></div>
+        <!-- DELTA STRIP: 3-period summary as a single compact row -->
+        <div style="margin-top:8px">
+          <div class="mc-sect" style="margin:0 0 6px"><div class="mc-sect-lbl">Balance Sheet Change</div><div class="mc-sect-line"></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.05)">
+            ${(()=>{
+              const periodTile = (label, val) => {
+                if(val==null) return `<div style="text-align:center;padding:8px 4px">
+                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--faint);letter-spacing:0.07em;margin-bottom:5px">${label}</div>
+                  <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--faint)">\u2014</div>
+                </div>`;
+                const c = chgCol(val);
+                const arrow=val>0.005?'↑':val<-0.005?'↓':'→';
+                return `<div style="text-align:center;padding:8px 4px">
+                  <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:rgba(173,184,208,0.40);letter-spacing:0.07em;margin-bottom:5px">${label}</div>
+                  <div style="font-family:var(--mono);font-size:18px;font-weight:900;line-height:1;color:${c}">${chgFmt(val)}</div>
+                  <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:${c};opacity:0.65;margin-top:1px">${arrow}</div>
+                </div>`;
+              };
+              return periodTile('3 months', fbChg3m) + periodTile('6 months', fbChg6m) + periodTile('12 months', fbChg12m);
+            })()}
+          </div>
+        </div>
+      </div>`;
+      })()}
+
       <!-- PANEL 5: CREDIT SPREADS ════════════════════════════════════════ -->
       ${(()=>{
         return `
@@ -28736,6 +28965,7 @@ function renderMacroDataPanels(reg){
   // Draw canvases after DOM update — double RAF to ensure layout is complete
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     try { _drawFedBSArc(fbLevel, fbPct, fbCol); } catch(e){} // arc canvas may be hidden
+    try { _drawMacroParticles('ov-mc-p0', groCol||'#adb8d0'); } catch(e){}
     try { _drawMacroParticles('ov-mc-p1', jcCol); } catch(e){}
     try { _drawMacroParticles('ov-mc-p2', inflBadgeCol||'#adb8d0'); } catch(e){}
     try { _drawMacroParticles('ov-mc-p3', lineCol); } catch(e){}

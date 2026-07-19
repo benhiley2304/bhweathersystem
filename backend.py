@@ -4560,26 +4560,20 @@ def _fetch_ff_inflation_surprises(force: bool = False) -> dict:
     if not force and _FF_INFL_CACHE["data"] and (now - _FF_INFL_CACHE["time"]) < _FF_INFL_CACHE_TTL:
         return _FF_INFL_CACHE["data"]
 
-    week_strings = _get_week_strings(16)  # 16 weeks ≈ 4 months (CPI/PCE monthly releases)
-    all_events = []
-
-    # Hard 45s wall-clock cap — prevents thread hangs from blocking the scoring pipeline
-    # Use shutdown(wait=False) so the executor doesn't block the calling thread
-    _ex_infl = _cf.ThreadPoolExecutor(max_workers=3)
+    # Source: the persistent FF event store (Fair Economy feed + inject cron).
+    # FIX (2026-07-19): the old per-week forexfactory.com HTML scrape is
+    # Cloudflare-blocked on Render, so this fetcher silently returned 0 events in
+    # production and the inflation FF overlay never fired. Use the store, same
+    # as _fetch_ff_labour_surprises.
     try:
-        futs = {_ex_infl.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
-        done, pending = _cf.wait(futs, timeout=45)
-        for fut in pending:
-            fut.cancel()
-        for fut in done:
-            try:
-                all_events.extend(fut.result())
-            except Exception:
-                pass
-    finally:
-        _ex_infl.shutdown(wait=False)
+        store_events = refresh_ff_event_store()
+    except Exception as _se:
+        print(f"[FF Inflation] store refresh error: {_se}", flush=True)
+        store_events = list(_ff_store_load().values())
+    _cutoff = now - 16 * 7 * 86400  # 16 weeks ≈ 4 months (CPI/PCE monthly releases)
+    all_events = [e for e in store_events if (e.get("dateline") or 0) >= _cutoff]
 
-    # Deduplicate: FF HTML sometimes returns same event twice per week
+    # Deduplicate (store is keyed, but belt-and-braces)
     seen = set()
     unique_events = []
     for ev in all_events:
@@ -4662,6 +4656,134 @@ def _fetch_ff_inflation_surprises(force: bool = False) -> dict:
     _FF_INFL_CACHE["data"] = result
     _FF_INFL_CACHE["time"] = now
     print(f"[FF Inflation] Refreshed — {result['n_events_found']} releases, composite heat: {composite_heat}")
+    return result
+
+
+# ── ForexFactory Growth Surprises ────────────────────────────────────────────
+# Mirrors the labour/inflation pattern. FF provides real consensus + actual for
+# GDP q/q (advance/prelim/final), ISM Mfg/Services PMI, Retail Sales m/m,
+# Core Retail Sales m/m and CB Consumer Confidence.
+
+_FF_GROWTH_CACHE: dict = {"data": None, "time": 0}
+_FF_GROWTH_CACHE_TTL = 3600  # 1 hour
+
+# Exact event names as they appear on ForexFactory (USD events only).
+# All growth events: higher_is_good=True — a beat (actual > forecast) is BULLISH.
+_FF_GROWTH_EVENTS = {
+    "Advance GDP q/q":        {"key": "gdp",         "unit": "%",   "higher_is_good": True},
+    "Prelim GDP q/q":         {"key": "gdp",         "unit": "%",   "higher_is_good": True},
+    "Final GDP q/q":          {"key": "gdp",         "unit": "%",   "higher_is_good": True},
+    "ISM Manufacturing PMI":  {"key": "ism_mfg",     "unit": "idx", "higher_is_good": True},
+    "ISM Services PMI":       {"key": "ism_svc",     "unit": "idx", "higher_is_good": True},
+    "ISM Non-Manufacturing PMI": {"key": "ism_svc",  "unit": "idx", "higher_is_good": True},
+    "Retail Sales m/m":       {"key": "retail",      "unit": "%",   "higher_is_good": True},
+    "Core Retail Sales m/m":  {"key": "core_retail", "unit": "%",   "higher_is_good": True},
+    "CB Consumer Confidence": {"key": "conf_cb",     "unit": "idx", "higher_is_good": True},
+}
+
+
+def _fetch_ff_growth_surprises(force: bool = False) -> dict:
+    """
+    Fetch last 16 weeks of ForexFactory calendar and extract actual vs forecast
+    for key US growth events. Mirrors _fetch_ff_inflation_surprises exactly.
+    Returns per-event release lists + latest + composite growth score.
+    """
+    global _FF_GROWTH_CACHE
+    now = time.time()
+    if not force and _FF_GROWTH_CACHE["data"] and (now - _FF_GROWTH_CACHE["time"]) < _FF_GROWTH_CACHE_TTL:
+        return _FF_GROWTH_CACHE["data"]
+
+    # Source: the persistent FF event store (Fair Economy feed + inject cron).
+    # The old per-week forexfactory.com HTML scrape is Cloudflare-blocked on
+    # Render — the store is the production-reliable path (same as labour).
+    try:
+        store_events = refresh_ff_event_store()
+    except Exception as _se:
+        print(f"[FF Growth] store refresh error: {_se}", flush=True)
+        store_events = list(_ff_store_load().values())
+    _cutoff = now - 16 * 7 * 86400  # 16 weeks ≈ 4 months (GDP quarterly, PMIs monthly)
+    all_events = [e for e in store_events if (e.get("dateline") or 0) >= _cutoff]
+
+    # Deduplicate (store is keyed, but belt-and-braces)
+    seen = set()
+    unique_events = []
+    for ev in all_events:
+        dedup_key = (ev.get("name"), ev.get("dateline"), ev.get("actual"))
+        if dedup_key not in seen:
+            seen.add(dedup_key)
+            unique_events.append(ev)
+
+    releases: dict = {meta["key"]: [] for meta in _FF_GROWTH_EVENTS.values()}
+
+    for ev in unique_events:
+        if ev.get("currency") != "USD":
+            continue
+        name = ev.get("name", "")
+        actual_str   = ev.get("actual", "")
+        forecast_str = ev.get("forecast", "")
+        if not actual_str or not forecast_str or actual_str in ("", "—") or forecast_str in ("", "—"):
+            continue
+        for event_name, meta in _FF_GROWTH_EVENTS.items():
+            if name == event_name:
+                actual_raw   = _parse_ff_value(actual_str)
+                forecast_raw = _parse_ff_value(forecast_str)
+                previous_raw = _parse_ff_value(ev.get("previous", ""))
+                if actual_raw is None or forecast_raw is None:
+                    break
+                surprise_raw  = actual_raw - forecast_raw
+                # Growth: beat = actual > forecast = stronger than expected = BULLISH
+                beat = actual_raw > forecast_raw
+                releases[meta["key"]].append({
+                    "dateline": ev.get("dateline"),
+                    "actual":   round(actual_raw, 2),
+                    "forecast": round(forecast_raw, 2),
+                    "previous": round(previous_raw, 2) if previous_raw is not None else None,
+                    "surprise": round(surprise_raw, 3),
+                    "beat":     beat,
+                    "unit":     meta["unit"],
+                    "event":    event_name,
+                })
+                break
+
+    # Sort chronologically
+    for key in releases:
+        releases[key].sort(key=lambda x: x["dateline"] or 0)
+
+    # Most recent release per metric
+    latest = {key: rel_list[-1] for key, rel_list in releases.items() if rel_list}
+
+    # Growth momentum score per metric: +1 beat, -1 miss, recent releases weighted 1.5x
+    def _growth_score(rel_list: list) -> Optional[float]:
+        recent = rel_list[-6:]
+        if not recent:
+            return None
+        hits = [1 if r["beat"] else -1 for r in recent]
+        weights = [1.0] * len(hits)
+        for i in range(max(0, len(hits) - 3), len(hits)):
+            weights[i] = 1.5
+        raw = sum(h * w for h, w in zip(hits, weights)) / sum(weights)
+        return round(max(0, min(10, raw * 3 + 5)), 1)  # 0=contracting, 5=neutral, 10=expanding
+
+    scores = {}
+    for key, rel_list in releases.items():
+        if rel_list:
+            scores[key] = _growth_score(rel_list)
+
+    valid_scores = [s for s in scores.values() if s is not None]
+    composite_growth = round(sum(valid_scores) / len(valid_scores), 1) if valid_scores else None
+
+    result = {
+        "releases":         releases,
+        "scores":           scores,
+        "latest":           latest,
+        "composite_growth": composite_growth,
+        "fetched_at":       now,
+        "n_events_found":   sum(len(v) for v in releases.values()),
+    }
+
+    _FF_GROWTH_CACHE["data"] = result
+    _FF_GROWTH_CACHE["time"] = now
+    print(f"[FF Growth] Refreshed — {result['n_events_found']} releases, composite growth: {composite_growth}")
     return result
 
 
@@ -4951,6 +5073,8 @@ FRED_SERIES = {
     "IGOAS":    "BAMLC0A0CM",     # US IG OAS (bps)
     # Labour
     "JOLTS":    "JTSJOL",         # JOLTS job openings (thousands)
+    # Growth / sentiment
+    "UMCSENT":  "UMCSENT",        # UoM Consumer Sentiment (FRED fallback for CB Confidence)
 }
 
 
@@ -5459,7 +5583,7 @@ def compute_macro_all() -> dict:
     # Pre-fetch all needed series in parallel so total wait ~ 1 series (12s max).
     _FRED_PREFETCH_LIST = [
         # US macro
-        ("GDP", 24), ("INDPRO", 12), ("CFNAI", 12), ("RSAFS", 12),
+        ("GDP", 24), ("INDPRO", 12), ("CFNAI", 12), ("RSAFS", 12), ("UMCSENT", 14),
         ("CPI", 24), ("CORE_CPI", 24), ("PPI", 24), ("PCE", 24), ("CORE_PCE", 24),
         ("NFP", 12), ("UNEMP", 12), ("CLAIMS", 12), ("JOLTS", 12),
         ("DGS2", 30), ("YLDCRV", 30), ("WALCL", 160), ("HYOAS", 24),
@@ -5514,6 +5638,17 @@ def compute_macro_all() -> dict:
             r["display"] = f"{r['actual']:+.0f}M"
         components["RETAIL"] = {**r, "title": "Retail Sales", "category": "growth",
                                 "display": r.get("display", "—")}
+
+    # CONF (FRED fallback) — UoM Consumer Sentiment level. FF overlays CB Consumer
+    # Confidence on top when the FF event store is populated (different survey but
+    # both index-level sentiment reads; FF-first display wins in the frontend).
+    conf_data = fetch_fred_series("UMCSENT", 14)
+    if conf_data and len(conf_data) >= 5:
+        r = compute_macro_surprise(conf_data, higher_is_good=True, transform="level", scale=4.0)
+        if r.get("expected") is not None:
+            r["expected"] = round(r["expected"], 1)
+        components["CONF"] = {**r, "title": "Consumer Confidence", "category": "growth",
+                              "display": f"{r['actual']:.1f}" if r['actual'] is not None else "—"}
 
     # ── INFLATION ─────────────────────────────────────────────────────────────────────────
     cpi_data = fetch_fred_series("CPI", 24)
@@ -5622,6 +5757,146 @@ def compute_macro_all() -> dict:
             }
     except Exception as _ff_ie:
         print(f"[FF Inflation] Injection error (non-fatal): {_ff_ie}")
+
+    # ── Overlay real ForexFactory consensus + actual onto GROWTH components ──
+    # GDP q/q, ISM Mfg/Svc PMI, Retail Sales m/m, CB Consumer Confidence.
+    # FF-first: replaces FRED-proxy expectations with real market consensus and
+    # re-scores each component from the genuine surprise (JOBS re-score pattern).
+    try:
+        _ff_gro = _fetch_ff_growth_surprises()
+        if _ff_gro and _ff_gro.get("n_events_found", 0) > 0:
+            _fg_latest = _ff_gro.get("latest", {})
+            _fg_scores = _ff_gro.get("scores", {})
+            _fg_rels   = _ff_gro.get("releases", {})
+
+            def _surp_score(surp, sigma):
+                """Normalise a surprise into a -2..+2 score (JOBS pattern thresholds)."""
+                if surp is None or isinstance(surp, str):
+                    return None
+                n = surp / sigma
+                return (2 if n > 1.25 else 1 if n > 0.4 else
+                        -2 if n < -1.25 else -1 if n < -0.4 else 0)
+
+            def _score_label(s):
+                return ("Strong Beat" if s == 2 else "Beat" if s == 1 else
+                        "Strong Miss" if s == -2 else "Miss" if s == -1 else "In Line")
+
+            # GDP q/q (annualised) — sigma ~0.4pp for GDP surprises
+            _g_lat = _fg_latest.get("gdp")
+            if _g_lat and "GDP" in components:
+                _g_act, _g_fc = _g_lat.get("actual"), _g_lat.get("forecast")
+                components["GDP"]["actual_ff"]   = _g_act
+                components["GDP"]["forecast_ff"] = _g_fc
+                components["GDP"]["surprise_ff"] = _g_lat.get("surprise")
+                components["GDP"]["beat_ff"]     = _g_lat.get("beat")
+                components["GDP"]["ff_score"]    = _fg_scores.get("gdp")
+                components["GDP"]["ff_releases"] = _fg_rels.get("gdp", [])
+                components["GDP"]["ff_event"]    = _g_lat.get("event")
+                _s = _surp_score(_g_lat.get("surprise"), 0.4)
+                if _s is not None:
+                    components["GDP"]["score"] = _s
+                    components["GDP"]["label"] = _score_label(_s)
+                if _g_act is not None:
+                    components["GDP"]["actual"]  = f"{_g_act:.1f}%"
+                    components["GDP"]["display"] = f"{_g_act:.1f}%"
+                if _g_fc is not None:
+                    components["GDP"]["expected"] = _g_fc
+                    components["GDP"]["forecast"] = f"{_g_fc:.1f}%"
+
+            # ISM PMIs — surprise sigma ~1.2pts; blend in absolute level context
+            # (a PMI beat below 47.5 is still contraction; a miss above 52.5 is
+            #  still expansion) so the category score reflects reality.
+            for _pmi_key, _comp_key, _title in (("ism_mfg", "MFG_PMI", "ISM Manufacturing PMI"),
+                                                ("ism_svc", "SVC_PMI", "ISM Services PMI")):
+                _p_lat = _fg_latest.get(_pmi_key)
+                if not _p_lat or _comp_key not in components:
+                    continue
+                _p_act, _p_fc = _p_lat.get("actual"), _p_lat.get("forecast")
+                c = components[_comp_key]
+                c["actual_ff"]   = _p_act
+                c["forecast_ff"] = _p_fc
+                c["surprise_ff"] = _p_lat.get("surprise")
+                c["beat_ff"]     = _p_lat.get("beat")
+                c["ff_score"]    = _fg_scores.get(_pmi_key)
+                c["ff_releases"] = _fg_rels.get(_pmi_key, [])
+                c["title"]       = _title
+                _s = _surp_score(_p_lat.get("surprise"), 1.2)
+                if _s is not None and _p_act is not None:
+                    _lvl = 1 if _p_act > 52.5 else -1 if _p_act < 47.5 else 0
+                    _s = max(-2, min(2, _s + _lvl))
+                    c["score"] = _s
+                    c["label"] = _score_label(_s) if _lvl == 0 else (
+                        "Expansion" if _lvl == 1 else "Contraction")
+                if _p_act is not None:
+                    c["actual"]  = f"{_p_act:.1f}"
+                    c["display"] = f"{_p_act:.1f}"
+                if _p_fc is not None:
+                    c["expected"] = _p_fc
+                    c["forecast"] = f"{_p_fc:.1f}"
+
+            # Retail Sales m/m — sigma ~0.3pp; core retail rides as extra fields
+            _r_lat = _fg_latest.get("retail")
+            if _r_lat and "RETAIL" in components:
+                _r_act, _r_fc = _r_lat.get("actual"), _r_lat.get("forecast")
+                c = components["RETAIL"]
+                c["actual_ff"]   = _r_act
+                c["forecast_ff"] = _r_fc
+                c["surprise_ff"] = _r_lat.get("surprise")
+                c["beat_ff"]     = _r_lat.get("beat")
+                c["ff_score"]    = _fg_scores.get("retail")
+                c["ff_releases"] = _fg_rels.get("retail", [])
+                c["title"]       = "Retail Sales m/m"
+                _s = _surp_score(_r_lat.get("surprise"), 0.3)
+                if _s is not None:
+                    c["score"] = _s
+                    c["label"] = _score_label(_s)
+                if _r_act is not None:
+                    c["actual"]  = f"{_r_act:+.1f}%"
+                    c["display"] = f"{_r_act:+.1f}%"
+                if _r_fc is not None:
+                    c["expected"] = _r_fc
+                    c["forecast"] = f"{_r_fc:+.1f}%"
+                _cr_lat = _fg_latest.get("core_retail")
+                if _cr_lat:
+                    c["core_actual_ff"]   = _cr_lat.get("actual")
+                    c["core_forecast_ff"] = _cr_lat.get("forecast")
+                    c["core_surprise_ff"] = _cr_lat.get("surprise")
+                    c["core_beat_ff"]     = _cr_lat.get("beat")
+
+            # CB Consumer Confidence — sigma ~3.0 index pts; overlays UoM fallback
+            _cf_lat = _fg_latest.get("conf_cb")
+            if _cf_lat:
+                _c_act, _c_fc = _cf_lat.get("actual"), _cf_lat.get("forecast")
+                _s = _surp_score(_cf_lat.get("surprise"), 3.0)
+                components["CONF"] = {
+                    **components.get("CONF", {}),
+                    "actual":      f"{_c_act:.1f}" if _c_act is not None else "—",
+                    "forecast":    f"{_c_fc:.1f}" if _c_fc is not None else "—",
+                    "expected":    _c_fc,
+                    "actual_ff":   _c_act,
+                    "forecast_ff": _c_fc,
+                    "surprise_ff": _cf_lat.get("surprise"),
+                    "beat_ff":     _cf_lat.get("beat"),
+                    "ff_score":    _fg_scores.get("conf_cb"),
+                    "ff_releases": _fg_rels.get("conf_cb", []),
+                    "score":       _s if _s is not None else components.get("CONF", {}).get("score", 0),
+                    "label":       _score_label(_s) if _s is not None else components.get("CONF", {}).get("label", ""),
+                    "title":       "CB Consumer Confidence",
+                    "category":    "growth",
+                    "display":     f"{_c_act:.1f}" if _c_act is not None else "—",
+                }
+
+            # Composite growth momentum at top level (for pane badge)
+            components["_ff_growth"] = {
+                "composite": _ff_gro.get("composite_growth"),
+                "scores":    _fg_scores,
+                "n_events":  _ff_gro.get("n_events_found", 0),
+            }
+            print(f"[FF Growth] Injected into components: GDP={'actual_ff' in components.get('GDP',{})}, "
+                  f"MFG={'actual_ff' in components.get('MFG_PMI',{})}, SVC={'actual_ff' in components.get('SVC_PMI',{})}, "
+                  f"RETAIL={'actual_ff' in components.get('RETAIL',{})}, CONF={'actual_ff' in components.get('CONF',{})}")
+    except Exception as _ff_ge:
+        print(f"[FF Growth] Injection error (non-fatal): {_ff_ge}")
 
     nfp_data = fetch_fred_series("NFP", 12) or fetch_fred_series("NFP", 12)
     if nfp_data:
@@ -5804,7 +6079,7 @@ def compute_macro_all() -> dict:
                                   "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
 
     # ── Category aggregation ──────────────────────────────────────────────────
-    growth_scores    = [components[k]["score"] for k in ["GDP", "MFG_PMI", "SVC_PMI", "RETAIL"] if k in components]
+    growth_scores    = [components[k]["score"] for k in ["GDP", "MFG_PMI", "SVC_PMI", "RETAIL", "CONF"] if k in components]
     inflation_scores = [components[k]["score"] for k in ["CPI", "CORE_CPI", "PPI", "PCE", "CORE_PCE"] if k in components]
     jobs_scores      = [components[k]["score"] for k in ["JOBS", "UNEMP", "CLAIMS", "ADP", "WAGES"] if k in components]
     rates_scores     = [components[k]["score"] for k in ["DGS2", "YLDCRV"] if k in components]
@@ -14573,7 +14848,7 @@ async def inject_ff_labour(payload: dict):
     }
     Returns: {ok, n_merged, n_store_total}
     """
-    global _FF_LABOUR_CACHE, _FF_INFL_CACHE, ALL_DATA_CACHE
+    global _FF_LABOUR_CACHE, _FF_INFL_CACHE, _FF_GROWTH_CACHE, ALL_DATA_CACHE
 
     events = payload.get("events", [])
     if not events or not isinstance(events, list):
@@ -14603,6 +14878,8 @@ async def inject_ff_labour(payload: dict):
     _FF_LABOUR_CACHE["time"] = 0
     _FF_INFL_CACHE["data"] = None
     _FF_INFL_CACHE["time"] = 0
+    _FF_GROWTH_CACHE["data"] = None
+    _FF_GROWTH_CACHE["time"] = 0
     US_MACRO_CACHE["data"] = None
     US_MACRO_CACHE["time"] = 0
     RISK_REGIME_CACHE["data"] = None
