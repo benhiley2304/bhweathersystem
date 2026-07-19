@@ -27427,13 +27427,12 @@ function renderMacroDataPanels(reg){
     const entries = walclHistory.filter(d=>d.v!=null);
     if(entries.length<2) return '';
     const vals = entries.map(d=>d.v);
-    // Responsive viewBox — portrait on desktop bottom-row (narrow-tall ~211x280), landscape on mobile (wide-short ~330x270)
-    // Detect via window width so mobile stack renders with balanced aspect and no vertical stretch
-    const isMobileFB = (typeof window !== 'undefined') && window.innerWidth <= 640;
-    const W = isMobileFB ? 300 : 180;
-    const H = isMobileFB ? 200 : 300;
-    const padL = isMobileFB ? 30 : 24;
-    const padR = isMobileFB ? 20 : 14;
+    // Landscape viewBox on all viewports — the chart wrapper is landscape (~227x270 desktop, ~330x220 mobile).
+    // Use the same wide viewBox everywhere so the chart fills all available horizontal space.
+    const W = 300;
+    const H = 200;
+    const padL = 30;
+    const padR = 20;
     const padT = 14;
     const padB = 26;
     const gW = W-padL-padR, gH = H-padT-padB;
@@ -27443,7 +27442,7 @@ function renderMacroDataPanels(reg){
     const vRange=vMax-vMin;
     const n=entries.length;
     // Non-linear X: recent 2 years get more horizontal space
-    const px=(i)=>{ const t=i/(n-1); return padL+Math.pow(t,0.55)*gW; };
+    const px=(i)=>{ const t=i/(n-1); return padL+t*gW; };  // linear X axis — uniform time spacing
     const py=(v)=>padT+gH-((v-vMin)/vRange)*gH;
 
     // Date helpers

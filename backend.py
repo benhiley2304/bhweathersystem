@@ -14404,8 +14404,14 @@ def _parse_ff_datetime(dateline) -> str | None:
 @app.get("/api/upcoming-events")
 async def upcoming_events(force: bool = False):
     """
-    Return high-impact economic events for the next 7 days from ForexFactory.
-    Cached for 1 hour. Uses the existing _fetch_ff_week_html infrastructure.
+    Return high-impact economic events for the next 10 days.
+
+    Multi-source strategy (Render can't reach forexfactory.com HTML due to Cloudflare):
+      1. Fair Economy JSON feed (this-week only, works on Render)
+      2. FF HTML scrape (works locally / sandbox, blocked on Render — attempted anyway)
+      3. FF on-disk event store (populated by the daily inject cron)
+
+    Cached for 1 hour.
     """
     global _UPCOMING_EVENTS_CACHE
     now = time.time()
@@ -14415,13 +14421,21 @@ async def upcoming_events(force: bool = False):
     from datetime import datetime, timezone, timedelta
     import concurrent.futures as _cf
 
-    week_strings = _get_future_week_strings(3)  # current + next 2 weeks (covers 10-day window)
     all_events: list = []
 
+    # ── Source 1: Fair Economy JSON (Render-safe, this-week only) ────────
+    try:
+        json_events = fetch_ff_calendar_json(force=force)
+        all_events.extend(json_events)
+    except Exception as _e:
+        print(f"[upcoming-events] Fair Economy JSON fetch failed: {_e}", flush=True)
+
+    # ── Source 2: FF HTML scrape (works from sandbox/local; blocked on Render) ──
+    week_strings = _get_future_week_strings(3)  # current + next 2 weeks (covers 10-day window)
     _ex_upev = _cf.ThreadPoolExecutor(max_workers=3)
     try:
         futs = {_ex_upev.submit(_fetch_ff_week_html, ws): ws for ws in week_strings}
-        done, pending = _cf.wait(futs, timeout=30)
+        done, pending = _cf.wait(futs, timeout=15)
         for fut in pending:
             fut.cancel()
         for fut in done:
@@ -14431,6 +14445,22 @@ async def upcoming_events(force: bool = False):
                 pass
     finally:
         _ex_upev.shutdown(wait=False)
+
+    # ── Source 3: FF on-disk event store (populated by daily inject cron) ──
+    try:
+        store_events = list(_ff_store_load().values())
+        for se in store_events:
+            all_events.append({
+                "name":        se.get("name", "") or se.get("title", ""),
+                "actual":      se.get("actual", "") or "",
+                "forecast":    se.get("forecast", "") or "",
+                "previous":    se.get("previous", "") or "",
+                "currency":    se.get("currency", "") or se.get("country", ""),
+                "dateline":    se.get("dateline") or se.get("date_ts") or se.get("ts"),
+                "impactClass": _ff_impact_norm(se.get("impactClass", "") or se.get("impact", "")),
+            })
+    except Exception as _e:
+        print(f"[upcoming-events] FF store read failed: {_e}", flush=True)
 
     now_utc = datetime.now(timezone.utc)
     cutoff = now_utc + timedelta(days=10)
@@ -14501,7 +14531,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-07-19-r11"
+BUILD_ID = "2026-07-19-r12"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
