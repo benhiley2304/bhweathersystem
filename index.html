@@ -18515,7 +18515,7 @@ body {
    ONLY target container/panel elements — never eyebrow/title/header/badge/particles */
 .ov-mc-wrap, .macro-card, .ov-mc,
 .ov-mc-card, .ov-mc-inner,
-.ov-mc-p1, .ov-mc-p2, .ov-mc-p3, .ov-mc-p4, .ov-mc-p5, .ov-mc-p6 {
+.ov-mc-p0, .ov-mc-p1, .ov-mc-p2, .ov-mc-p3, .ov-mc-p4, .ov-mc-p5, .ov-mc-p6 {
   background: rgba(8,8,10,0.52) !important;
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
@@ -25488,11 +25488,12 @@ function renderOverview(){
       return{cls:'menv-neut',col:'#7b8ba8',pip:'#7b8ba8'};
     }
     function _labourLabel(score10){
+      // Mirrors the Labour pane badge tiers (jcLabel) so strip + pane never disagree
       if(score10==null)return'—';
-      if(score10>=7.5)return'Strong';
-      if(score10>=6.5)return'Solid';
-      if(score10>=5.0)return'Mixed';
-      if(score10>=4.0)return'Soft';
+      if(score10>=7)  return'Strong';
+      if(score10>=5.5)return'Healthy';
+      if(score10>=4.5)return'Neutral';
+      if(score10>=3.5)return'Cooling';
       return'Weak';
     }
     // Credit spreads: Tightening=risk-on=bullish, Widening=risk-off=bearish
@@ -25520,9 +25521,17 @@ function renderOverview(){
     // Build pills array
     const PILLS=[
       (()=>{
-        const t=_menvPill(catScores.growth);const l=_menvLabel(catScores.growth);
+        // Mirrors the Growth pane badge — FF growth composite (0-10) when available
+        const ffg=(macroAll.components||{})['_ff_growth']||{};
+        const gc=ffg.composite!=null?ffg.composite:(catScores.growth!=null?Math.max(0,Math.min(10,(catScores.growth+2)/4*10)):null);
+        const l=gc!=null?(gc>=7?'Expanding':gc>=5.5?'Solid':gc>=4.5?'Mixed':gc>=3.5?'Slowing':'Contracting'):_menvLabel(catScores.growth);
+        const t=gc==null?_menvPill(catScores.growth)
+          :gc>=5.5?{cls:'menv-bull',col:'#26c97a',pip:'#26c97a'}
+          :gc>=4.5?{cls:'menv-hot',col:'#f5c842',pip:'#f5c842'}
+          :gc>=3.5?{cls:'menv-hot',col:'#e07a2a',pip:'#e07a2a'}
+          :{cls:'menv-bear',col:'#e03a2a',pip:'#e03a2a'};
         return{label:'Growth',val:l,cls:t.cls,col:t.col,pip:t.pip,
-          title:`GDP/PMI/retail mix: ${(catScores.growth||0)>=0?'+':''}${(catScores.growth||0).toFixed(2)} vs expectations`};
+          title:`Growth composite ${gc!=null?gc.toFixed(1)+'/10':'\u2014'} \u2014 GDP, ISM PMIs, retail & confidence vs expectations`};
       })(),
       (()=>{
         const t=_inflTier(catScores.inflation);const l=_inflLabel(catScores.inflation,_cpiYoy);
@@ -27323,7 +27332,7 @@ function renderMacroDataPanels(reg){
   const _coolCount = _inflSurprises.filter(v=>v<0).length;
   // Also count from FF beat flags where available
   const _ffHeatComp = macroComps['_ff_infl_heat'];
-  const inflBadgeLabel = _avgSurprise > 0.15?'Hot':_avgSurprise > 0.03?'Warm':_avgSurprise < -0.15?'Cold':_avgSurprise < -0.03?'Cool':'On Target';
+  const inflBadgeLabel = _avgSurprise > 0.15?'Hot':_avgSurprise > 0.03?'Warm':_avgSurprise < -0.15?'Cold':_avgSurprise < -0.03?'Cool':'In Line';
   const inflBadgeCol   = _avgSurprise > 0.15?'#e03a2a':_avgSurprise > 0.03?'#f5c842':_avgSurprise < -0.15?'#4a90d9':_avgSurprise < -0.03?'#5c9eff':'#adb8d0';
   const inflArcCol     = inflBadgeCol;
   // Arc fill mirrors heat: hot = high fill (red), cold = low fill (blue)
@@ -27606,7 +27615,8 @@ function renderMacroDataPanels(reg){
         const gdpEvent= _cGdp.ff_event||null;
         const gdpDate = (()=>{const rl=_cGdp.ff_releases; if(!rl||!rl.length||!rl[rl.length-1].dateline) return null;
           try{return new Date(rl[rl.length-1].dateline*1000).toLocaleDateString('en-GB',{month:'short',day:'numeric'});}catch(e){return null;}})();
-        const gdpValCol = gdpBeat===true?'#22c97a':gdpBeat===false&&Math.abs(gdpSurp||0)>0.3?'#e03a2a':'#e8e6e3';
+        const _ffInline = s => s!=null && Math.abs(s) < 0.05; // shared in-line threshold (frontend display)
+        const gdpValCol = (gdpBeat==null||_ffInline(gdpSurp))?'#e8e6e3':gdpBeat?'#22c97a':'#e03a2a';
 
         // PMI tiles — FF-only (FRED fallback value is a transform, not an ISM level)
         const _pmiTileData = c => {
@@ -27666,7 +27676,7 @@ function renderMacroDataPanels(reg){
             <div style="font-family:var(--mono);font-size:clamp(30px,5.5vw,40px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${gdpValCol}">${gdpAct!=null?gdpAct.toFixed(1)+'%':'\u2014'}</div>
             ${(()=>{
               if(gdpBeat==null) return '';
-              const inline = gdpSurp!=null && Math.abs(gdpSurp)<0.05;
+              const inline = _ffInline(gdpSurp);
               const label = inline?'IN LINE':gdpBeat?'BEAT':'MISS';
               const col = inline?'#6e7d90':gdpBeat?'#22c97a':'#e03a2a';
               const deltaStr = gdpSurp!=null ? ' ' + (gdpSurp>=0?'+':'') + gdpSurp.toFixed(1) + 'pp' : '';
@@ -27695,16 +27705,16 @@ function renderMacroDataPanels(reg){
           const chipCol = gdpBeat===true?'#22c97a':gdpBeat===false?'#e03a2a':groCol;
           let insight, insCol;
           if(mfgT&&svcT){
-            if(mfgT.act>=50&&svcT.act>=50){ insight='both ISM surveys in expansion'; insCol='#22c97a'; }
-            else if(mfgT.act<50&&svcT.act<50){ insight='both ISM surveys in contraction'; insCol='#e03a2a'; }
-            else { insight=`split economy \u2014 ${svcT.act>=50?'services expanding, manufacturing contracting':'manufacturing expanding, services contracting'}`; insCol='#f5c842'; }
-          } else { insight='survey data pending'; insCol='#6e7d90'; }
+            if(mfgT.act>=50&&svcT.act>=50){ insight='Both ISM surveys in expansion'; insCol='#22c97a'; }
+            else if(mfgT.act<50&&svcT.act<50){ insight='Both ISM surveys in contraction'; insCol='#e03a2a'; }
+            else { insight=`Split economy \u2014 ${svcT.act>=50?'services expanding, manufacturing contracting':'manufacturing expanding, services contracting'}`; insCol='#f5c842'; }
+          } else { insight='Survey data pending'; insCol='#6e7d90'; }
           const consTilt = retRow&&(retRow.beat!=null||retRow.surp!=null)
-            ? ` \u00b7 consumer <span style="color:${retRow.beat===true?'#22c97a':retRow.beat===false?'#e03a2a':'#adb8d0'};font-weight:700">${retRow.beat===true?'holding up':retRow.beat===false?'softening':'steady'}</span>`
+            ? ` \u00b7 consumer <span style="color:${retRow.beat===true?'#22c97a':retRow.beat===false?'#e03a2a':'#adb8d0'};font-weight:700">${retRow.beat===true?'Holding up':retRow.beat===false?'Softening':'Steady'}</span>`
             : '';
           return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0d;border-radius:0 7px 7px 0;border-left:2px solid ${chipCol}55">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
-            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.70);line-height:1.45"><span style="color:${insCol};font-weight:700">${insight}</span>${consTilt}</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.70);line-height:1.45;text-wrap:pretty"><span style="color:${insCol};font-weight:700">${insight}</span>${consTilt}</span>
           </div>`;
         })()}
         <!-- TIER 1: ISM PMI tiles — Manufacturing + Services side by side -->
@@ -27715,7 +27725,7 @@ function renderMacroDataPanels(reg){
               <div style="font-family:var(--mono);font-size:24px;font-weight:900;color:rgba(173,184,208,0.35)">\u2014</div>
               <div style="font-family:var(--mono);font-size:9px;color:rgba(173,184,208,0.38);margin-top:4px">awaiting data</div>
             </div>`;
-            const vCol = t.beat===true?'#22c97a':t.beat===false?(Math.abs(t.surp||0)>1.5?'#e03a2a':'#c8a96e'):'#6e7d90';
+            const vCol = t.beat===true?'#22c97a':t.beat===false?'#e03a2a':'#6e7d90';
             const verdict = t.beat===true?'BEAT':t.beat===false?'MISS':'IN LINE';
             const surpDisplay = (t.surp!=null && Math.abs(t.surp)>=0.05) ? ((t.surp>=0?'+':'')+t.surp.toFixed(1)) : null;
             return `<div style="padding:6px 8px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:8px">
@@ -27739,7 +27749,6 @@ function renderMacroDataPanels(reg){
         <div class="mc-group-label" style="margin-top:4px">Consumer Pulse</div>
         <!-- TIER 2: Retail Sales + Consumer Confidence -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 8px"></div>
           <div style="display:flex;flex-direction:column;gap:0">
           ${(()=>{
             const rows = [retRow, confRow].filter(Boolean);
@@ -27889,7 +27898,7 @@ function renderMacroDataPanels(reg){
             <div class="ov-mc-eyebrow">Price Stability</div>
             <div class="ov-mc-title">Inflation</div>
           </div>
-          <span class="ov-mc-badge" style="color:#ffffff;background:${inflBadgeCol}28;border:1px solid ${inflBadgeCol}55">${inflBadgeLabel}${_hotCount>0?' · '+_hotCount+'×':''}</span>
+          <span class="ov-mc-badge" style="color:#ffffff;background:${inflBadgeCol}28;border:1px solid ${inflBadgeCol}55">${inflBadgeLabel}${(_hotCount>=2&&_avgSurprise>0.03)?' · '+_hotCount+'× hot':''}</span>
         </div>
         <!-- HERO: CPI actual + consensus + surprise as first-class design -->
         <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
@@ -28250,10 +28259,8 @@ function renderMacroDataPanels(reg){
           const tile = (r, label) => {
             if(!r) return '';
             const verdict = r.isBeat===true?'BEAT':r.isBeat===false?'MISS':'IN LINE';
-            // Threshold-gate chip colour: only turn red for material misses (>0.15pp); amber for small miss
             const surpNum = r.surpStr!=null ? parseFloat(r.surpStr) : null;
-            const vCol = r.isBeat===true?'#22c97a':
-              (r.isBeat===false?(Math.abs(surpNum||0)>0.15?'#e03a2a':'#c8a96e'):'#6e7d90');
+            const vCol = r.isBeat===true?'#22c97a':r.isBeat===false?'#e03a2a':'#6e7d90';
             const surpDisplay = (surpNum!=null && Math.abs(surpNum) >= 0.01)
               ? ((surpNum>=0?'+':'')+surpNum.toFixed(2)) : null;
             const expClean = r.exp!=null ? r.exp.replace(/^exp\s*/i,'') : null;
@@ -28279,7 +28286,6 @@ function renderMacroDataPanels(reg){
         <div class="mc-group-label" style="margin-top:4px">Supporting Indicators</div>
         <!-- TIER 2: Supporting signals — NFP row + Claims + ADP compact -->
         <div style="flex:1;display:flex;flex-direction:column;min-height:0">
-          <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 8px"></div>
           <div style="display:flex;flex-direction:column;gap:0">
           ${(()=>{
             const scoreCol = s => s>=6.5?'#22c97a':s>=5?'#6e7d90':s>=3.5?'#c8a96e':'#e03a2a';
@@ -28809,7 +28815,7 @@ function renderMacroDataPanels(reg){
             const skc = sigCol(sc2);
             return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${skc}18;border-top:2px solid ${skc}40;border-radius:9px;padding:10px 12px">
               <div style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">CBOE SKEW</div>
-              <div style="font-family:var(--mono);font-size:clamp(22px,5vw,30px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:#e8e6e3;margin-bottom:4px">${skewNum>0?skewNum.toFixed(0):'\u2014'}</div>
+              <div style="font-family:var(--mono);font-size:clamp(22px,5vw,30px);font-weight:900;letter-spacing:-0.04em;line-height:1;color:${skewNum>=135?skc:'#e8e6e3'};margin-bottom:4px">${skewNum>0?skewNum.toFixed(0):'\u2014'}</div>
               <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${skc};letter-spacing:0.04em;text-transform:uppercase;margin-bottom:5px">${skewSig.label||'\u2014'}</div>
               ${skewNum>0?(()=>{
                 const sMin=110,sMax=160,sPos=Math.min(100,Math.max(0,((skewNum-sMin)/(sMax-sMin))*100)).toFixed(1);
@@ -28869,7 +28875,7 @@ function renderMacroDataPanels(reg){
                 </div>
                 <div style="text-align:right;min-width:68px">
                   <div style="font-family:var(--mono);font-size:16px;font-weight:900;color:${isExtreme?'#e03a2a':'#e8e6e3'};letter-spacing:-0.02em">${fpeNum.toFixed(1)}x</div>
-                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${fc};text-transform:uppercase;letter-spacing:0.05em">${isExtreme?'EXPENSIVE':fpeSig.label||'\u2014'}</div>
+                  <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${isExtreme?'#e03a2a':fc};text-transform:uppercase;letter-spacing:0.05em">${isExtreme?'EXPENSIVE':fpeSig.label||'\u2014'}</div>
                 </div>
               </div>`;
             })()}
@@ -28912,7 +28918,7 @@ function renderMacroDataPanels(reg){
                   <div style="width:6px;height:6px;border-radius:50%;background:${dotCol(momSig.score??0)};box-shadow:0 0 5px ${dotCol(momSig.score??0)}99;flex-shrink:0;margin-right:1px"></div>
                   <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(173,184,208,0.60)">SPX Momentum (3M)</span>
                 </div>
-                ${hasSpark?`<canvas id="ov-sc-spx-chart" style="width:88px;height:24px;flex:0 1 88px;min-width:40px;opacity:0.9"></canvas>`:''}
+                ${hasSpark?`<canvas id="ov-sc-spx-chart" style="width:88px;height:24px;flex:0 1 88px;min-width:0;opacity:0.9"></canvas>`:''}
                 <div style="display:flex;align-items:baseline;gap:5px;flex-shrink:0">
                   <span style="font-family:var(--mono);font-size:13px;font-weight:900;color:${mc};letter-spacing:-0.02em">${momSig.value||'\u2014'}</span>
                   <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;color:${mc};text-transform:uppercase;letter-spacing:0.05em;opacity:0.85">${momSig.label||''}</span>

@@ -4684,7 +4684,7 @@ _FF_GROWTH_EVENTS = {
 
 def _fetch_ff_growth_surprises(force: bool = False) -> dict:
     """
-    Fetch last 16 weeks of ForexFactory calendar and extract actual vs forecast
+    Fetch last 26 weeks of ForexFactory calendar and extract actual vs forecast
     for key US growth events. Mirrors _fetch_ff_inflation_surprises exactly.
     Returns per-event release lists + latest + composite growth score.
     """
@@ -4701,7 +4701,7 @@ def _fetch_ff_growth_surprises(force: bool = False) -> dict:
     except Exception as _se:
         print(f"[FF Growth] store refresh error: {_se}", flush=True)
         store_events = list(_ff_store_load().values())
-    _cutoff = now - 16 * 7 * 86400  # 16 weeks ≈ 4 months (GDP quarterly, PMIs monthly)
+    _cutoff = now - 26 * 7 * 86400  # 26 weeks ≈ 6 months (ensures ≥2 quarterly GDP prints)
     all_events = [e for e in store_events if (e.get("dateline") or 0) >= _cutoff]
 
     # Deduplicate (store is keyed, but belt-and-braces)
@@ -4731,8 +4731,9 @@ def _fetch_ff_growth_surprises(force: bool = False) -> dict:
                 if actual_raw is None or forecast_raw is None:
                     break
                 surprise_raw  = actual_raw - forecast_raw
-                # Growth: beat = actual > forecast = stronger than expected = BULLISH
-                beat = actual_raw > forecast_raw
+                # Growth: beat = stronger than expected = BULLISH; respects
+                # higher_is_good so future lower-is-better events wire in correctly
+                beat = surprise_raw > 0 if meta.get("higher_is_good", True) else surprise_raw < 0
                 releases[meta["key"]].append({
                     "dateline": ev.get("dateline"),
                     "actual":   round(actual_raw, 2),
@@ -14500,7 +14501,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-07-19-r4"
+BUILD_ID = "2026-07-19-r5"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
@@ -14509,9 +14510,13 @@ async def health():
         _n_store = len(_ff_store_load())
     except Exception:
         _n_store = -1
+    try:
+        _g_age = int(time.time() - _FF_GROWTH_CACHE["time"]) if _FF_GROWTH_CACHE.get("data") else None
+    except Exception:
+        _g_age = None
     return {"status": "ok", "time": datetime.utcnow().isoformat(),
             "build": BUILD_ID, "uptime_s": int(time.time() - _PROC_START),
-            "ff_store_n": _n_store}
+            "ff_store_n": _n_store, "ff_growth_cache_age_s": _g_age}
 
 
 
