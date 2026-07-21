@@ -12485,8 +12485,52 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     if n >= 15: _pts += 1
     # Total: 0-9 pts -> A/B/C/D
     grade = 'A' if _pts >= 7 else ('B' if _pts >= 5 else ('C' if _pts >= 3 else 'D'))
+
+    # ── Reliability-aware score dampening ─────────────────────────
+    # A weak/noisy signal (Grade C or D) should NOT be scored as if it's a
+    # confident bull/bear read. Pull scores toward neutral proportional to
+    # reliability weakness so "Seasonal Bull" doesn't fire on 54% hit rate
+    # with CI [42, 76] and s/n = 0.16 (statistically indistinguishable from
+    # random). Grade A = full signal; Grade D = 60% dampening toward 5.0.
+    raw_score = score
+    _dampen_factor = {'A': 1.00, 'B': 0.85, 'C': 0.55, 'D': 0.40}.get(grade, 0.55)
+    score = round(5.0 + (raw_score - 5.0) * _dampen_factor, 1)
+
+    # ── Recent-regime override ───────────────────────────────
+    # When the last 5 years cluster strongly one-directional (>=4 of 5),
+    # the recent regime is telling us something the recency-weighted median
+    # is missing due to outlier drag (e.g. one huge +39% year from 2020 or
+    # +19% from 2013 masking a run of -8/-8/-5/-1/-5 in recent years).
+    # Blend a recent-regime score in so we don't miss regime shifts.
+    recent5 = [r for r, y in zip(rets, used) if y >= d.year - 5][-5:]
+    recent_regime_score = None
+    recent_regime_signal = None
+    if len(recent5) >= 5:
+        r5_pos = sum(1 for r in recent5 if r > 0)
+        r5_med = sorted(recent5)[len(recent5)//2] if len(recent5) % 2                  else 0.5 * (sorted(recent5)[len(recent5)//2 - 1] + sorted(recent5)[len(recent5)//2])
+        # Only override if clearly one-directional (>=4 of 5) AND the raw
+        # score is on the opposite side of neutral. This catches the exact
+        # "regime flip" bug the user flagged for Silver.
+        if r5_pos <= 1:  # 4 or 5 of last 5 down
+            recent_regime_signal = 'bear'
+            recent_regime_score = round(max(0.0, 5.0 - abs(r5_med) * 0.15 - 1.5), 1)
+            if score > 5.0:
+                # Weighted blend: recent regime carries 55%, dampened long-run 45%
+                score = round(recent_regime_score * 0.55 + score * 0.45, 1)
+        elif r5_pos >= 4:  # 4 or 5 of last 5 up
+            recent_regime_signal = 'bull'
+            recent_regime_score = round(min(10.0, 5.0 + abs(r5_med) * 0.15 + 1.5), 1)
+            if score < 5.0:
+                score = round(recent_regime_score * 0.55 + score * 0.45, 1)
+
     return {
         "score": score,
+        "raw_score": raw_score,
+        "dampen_factor": _dampen_factor,
+        "recent5_pos": (sum(1 for r in recent5 if r > 0) if len(recent5) >= 5 else None),
+        "recent5_rets": [round(r, 2) for r in recent5] if recent5 else [],
+        "recent_regime_signal": recent_regime_signal,
+        "recent_regime_score": recent_regime_score,
         "n_years": n, "n_pos": n_pos, "n_neg": n - n_pos,
         "hit_rate": round(whit * 100),
         "raw_hit_rate": round(100 * n_pos / n),
@@ -14531,7 +14575,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-07-19-r12"
+BUILD_ID = "2026-07-21-r13"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])

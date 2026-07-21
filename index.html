@@ -36756,6 +36756,13 @@ function seasTabStub(m){
     if(grade==='D' && (sc>=6 || sc<=4)){
       verdict = `<strong style="color:${gm.col}">signal is outlier-driven</strong> — treat as unreliable`;
     }
+    // Flag grade C as mixed even when the (dampened) score reads directional
+    else if(grade==='C' && sc>=5.5 && sc<7.5){
+      verdict = `<strong style="color:${gm.col}">mild seasonal lean, low reliability</strong> — signal is mixed`;
+    }
+    else if(grade==='C' && sc<=4.5 && sc>2.5){
+      verdict = `<strong style="color:${gm.col}">mild seasonal weakness, low reliability</strong> — signal is mixed`;
+    }
     if(hr!=null&&nY){
       const trimClause = (trimMed!=null && Math.abs(trimMed-med)>Math.abs(med)*0.4 && Math.abs(med)>0.5)
         ? ` (trimmed ${(trimMed>=0?'+':'')+trimMed.toFixed(2)}%)`
