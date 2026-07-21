@@ -12620,6 +12620,13 @@ def score_seasonality(market_id: str) -> dict:
             "reliability_grade": stats.get("reliability_grade"),
             "reliability_pts": stats.get("reliability_pts"),
             "per_year_rets": stats.get("per_year_rets"),
+            # r13: dampening + recent regime
+            "raw_score": stats.get("raw_score"),
+            "dampen_factor": stats.get("dampen_factor"),
+            "recent5_pos": stats.get("recent5_pos"),
+            "recent5_rets": stats.get("recent5_rets"),
+            "recent_regime_signal": stats.get("recent_regime_signal"),
+            "recent_regime_score": stats.get("recent_regime_score"),
         })
     return {"score": score, "label": label, "detail": detail}
 
@@ -14575,7 +14582,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-07-21-r13"
+BUILD_ID = "2026-07-21-r13b"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
