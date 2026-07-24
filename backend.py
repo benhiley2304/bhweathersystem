@@ -10632,8 +10632,12 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     backdrop = (sum(bd_vals) / len(bd_vals)) if bd_vals else 0.0
     bias = _eng_sign(backdrop)
 
-    # ── 2) TREND-GATED CONFLUENCE ──────────────────────────────────────────
-    cot_vote = _eng_sign(cot_z) if (_eng_sign(cot_z) != 0 and _eng_sign(cot_z) == trend_lt) else 0
+    # ── 2) CONFLUENCE (COT ungated as of r14) ──────────────────────────────
+    # COT no longer gated by trend — walk-forward on 10yr showed the gate
+    # muted the loudest factor exactly when it mattered most (Cotton IC=-0.27,
+    # Sugar -0.29, Coffee -0.23, Copper -0.09..-0.18 at 4wk fwd). COT votes at
+    # its natural sign now, period. User directive: "just listen to cot".
+    cot_vote = _eng_sign(cot_z)
     if grp in ("metal", "energy"):
         rv_vote = _eng_sign(rv_z)
     else:
@@ -14582,7 +14586,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-07-21-r13b"
+BUILD_ID = "2026-07-24-r14"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
