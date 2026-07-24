@@ -9214,12 +9214,13 @@ def generate_asset_narratives(news_items: list) -> dict:
     prompt = (
         "You are the markets analyst for the BH Weather System, a swing-trading bias tool for "
         "2-4 week futures positions. Your commentary must speak the system's methodology, which is:\n"
-        "  • Directional bias = a trend-gated CONFLUENCE of the factors with real edge (risk regime, "
+        "  • Directional bias = a CONFLUENCE of the factors with real edge (risk regime, "
         "macro surprise, seasonality) — NOT a simple average. Factors with no clear view abstain.\n"
-        "  • COT positioning is a RISK/REWARD SETUP signal, not a directional vote: side WITH "
-        "commercials against a crowded-spec extreme, use a tight stop, let winners run. Judge it by "
-        "reward-to-risk, NOT hit-rate. Positioning extremes that price hasn't yet confirmed are "
-        "'wait' setups (don't fight price).\n"
+        "  • COT positioning votes at its natural sign: extreme commercial buying is a bull vote, "
+        "extreme spec crowding is a bear vote, regardless of price trend. Extreme positioning that "
+        "disagrees with price trend is a mean-reversion warning, not noise. Also frames the R/R setup: "
+        "side WITH commercials against a crowded-spec extreme, tight stop, let winners run.\n"
+
         "  • Conviction is gated by REGIME: act in clean trends, stand aside in chop.\n"
         "  • Multi-timeframe: the long-term trend sets the stable bias; a short-term counter-move is "
         "an entry-watch zone, not a reversal.\n\n"
@@ -14586,7 +14587,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-07-24-r14"
+BUILD_ID = "2026-07-24-r14b"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
