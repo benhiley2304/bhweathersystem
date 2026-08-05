@@ -3844,11 +3844,61 @@ def score_momentum(yf_ticker: str) -> dict:
     # Map -2..+2 to 0..10
     score = round(max(0.0, min(10.0, raw * 2.5 + 5.0)), 1)
 
+    # ── MULTI-TIMEFRAME SUB-SCORES (r15) ─────────────────────────────────
+    # The composite score above blends all horizons into one number, which
+    # loses shape information: a strong LT uptrend with a stalling ST leg
+    # gets scored the same as a market that's ripping across all horizons.
+    # Expose three timeframe reads (0-10 each) and a majority-rule vote so
+    # the composite engine can weight confirmation correctly.
+    #
+    # ST  (1-4 weeks):  EMA8-vs-EMA21 slope + 4w ROC (roc4w)
+    # MT  (4-13 weeks): EMA20-vs-EMA50 slope + 13w ROC
+    # LT  (13-26 weeks): 26w ROC + price vs SMA200
+    def _clip10(x):
+        return round(max(0.0, min(10.0, x)), 1)
+    # ST: normalise slope and 4w ROC to ±1 each, sum → -2..+2 → 0..10
+    _st_slope_n = max(-1.0, min(1.0, ema_st_slope_pct / 2.5))   # ±2.5% = full
+    _st_roc_n   = max(-1.0, min(1.0, roc4w / 6.0))              # ±6% = full
+    mom_st_score = _clip10(5.0 + (_st_slope_n + _st_roc_n) * 2.5)
+    # MT: EMA20-vs-EMA50 slope + 13w ROC
+    _mt_slope_n = max(-1.0, min(1.0, ema_slope_pct / 4.0))       # ±4% = full
+    _mt_roc_n   = max(-1.0, min(1.0, roc13w / 10.0))             # ±10% = full
+    mom_mt_score = _clip10(5.0 + (_mt_slope_n + _mt_roc_n) * 2.5)
+    # LT: 26w ROC + SMA200 %-diff
+    _lt_roc_n   = max(-1.0, min(1.0, roc26w / 18.0))             # ±18% = full
+    _lt_sma_n   = max(-1.0, min(1.0, sma200_pct_diff / 10.0))    # ±10% = full
+    mom_lt_score = _clip10(5.0 + (_lt_roc_n + _lt_sma_n) * 2.5)
+
+    # Each horizon votes ±1 / 0 with a 0.5-point deadband
+    def _tf_sign(s):
+        d = s - 5.0
+        return 1 if d > 0.5 else -1 if d < -0.5 else 0
+    st_sign = _tf_sign(mom_st_score)
+    mt_sign = _tf_sign(mom_mt_score)
+    lt_sign = _tf_sign(mom_lt_score)
+    # Majority-rule momentum vote:
+    #   3 agree → ±1.0 (full trend confirmation)
+    #   2 agree → ±0.5 (partial confirmation)
+    #   split or all-neutral → 0 (abstain)
+    _up   = sum(1 for s in (st_sign, mt_sign, lt_sign) if s > 0)
+    _down = sum(1 for s in (st_sign, mt_sign, lt_sign) if s < 0)
+    if _up == 3:      mtf_vote =  1.0
+    elif _down == 3:  mtf_vote = -1.0
+    elif _up == 2 and _down == 0:  mtf_vote =  0.5
+    elif _down == 2 and _up == 0:  mtf_vote = -0.5
+    else:                          mtf_vote =  0.0
+
     if score >= 7.5:  label = "Strong Uptrend"
     elif score >= 6.0:label = "Mild Uptrend"
     elif score >= 4.5:label = "Neutral"
     elif score >= 3.0:label = "Mild Downtrend"
     else:              label = "Strong Downtrend"
+
+    # Add MTF colour to the label when horizons disagree (visual signal)
+    if abs(mtf_vote) == 0.5:
+        label += " (mixed)"
+    elif mtf_vote == 0.0 and (_up + _down) >= 2:
+        label += " (whipsaw)"
 
     return {
         "score": score,
@@ -3875,6 +3925,14 @@ def score_momentum(yf_ticker: str) -> dict:
             "roc_lt_pct": float(roc_lt_pct),   # true ~26-week trend (engine MTF)
             "roc_st_pct": float(roc_st_pct),   # true ~4-week trend  (engine MTF)
             "sub_scores": sub_scores,
+            # r15 multi-timeframe breakdown
+            "mom_st_score": mom_st_score,
+            "mom_mt_score": mom_mt_score,
+            "mom_lt_score": mom_lt_score,
+            "mtf_st_sign":  st_sign,
+            "mtf_mt_sign":  mt_sign,
+            "mtf_lt_sign":  lt_sign,
+            "mtf_vote":     mtf_vote,   # -1.0, -0.5, 0, 0.5, 1.0
         },
     }
 
@@ -10645,9 +10703,20 @@ def compute_engine_bias(scores: dict, market_id: str = "",
         rv_vote = _eng_sign(rv_z) if (_eng_sign(rv_z) != 0 and _eng_sign(rv_z) == trend_lt) else 0
     pcr_vote = _eng_sign(pcr_z) if grp == "equity" else 0
 
+    # ── r15: momentum uses multi-timeframe majority-rule vote ──────────────
+    # mtf_vote from score_momentum() is ±1.0 (all 3 TFs agree), ±0.5 (2 of 3),
+    # or 0 (split / whipsaw). We keep the raw ±1 sign for the votes dict
+    # (used by agree/disagree UI counters) but use the fractional value below
+    # in the conf_net conviction calc, so a mixed-timeframe momentum reads as
+    # partial confirmation rather than a full vote in either direction.
+    _mtf_vote_raw = momentum_detail.get("mtf_vote")
+    if _mtf_vote_raw is None:
+        _mtf_vote_raw = float(_eng_sign(mom_z))   # fallback if detail missing
+    _mom_vote_int = 1 if _mtf_vote_raw > 0.25 else -1 if _mtf_vote_raw < -0.25 else 0
+
     votes = {
         "seasonal": _eng_sign(seas_z), "regime": _eng_sign(regime_z), "macro": _eng_sign(macro_z),
-        "momentum": _eng_sign(mom_z), "cot": cot_vote, "relval": rv_vote, "pcr": pcr_vote,
+        "momentum": _mom_vote_int, "cot": cot_vote, "relval": rv_vote, "pcr": pcr_vote,
     }
     agree    = sum(1 for v in votes.values() if bias != 0 and v == bias)
     disagree = sum(1 for v in votes.values() if bias != 0 and v == -bias)
@@ -10660,11 +10729,16 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     # because zero-IC factors inflated conviction); edge-weighted conviction makes Strong
     # the BEST cohort (+1.18% fwd, 57% hit) — i.e. the tiers now actually rank edge.
     _EDGE_F = ("seasonal", "regime", "macro")
-    _CONF_F = ("momentum", "cot", "relval", "pcr")
+    _CONF_F_NON_MOM = ("cot", "relval", "pcr")
     edge_net = (sum(1 for f in _EDGE_F if bias != 0 and votes[f] == bias)
                 - sum(1 for f in _EDGE_F if bias != 0 and votes[f] == -bias))
-    conf_net = (sum(1 for f in _CONF_F if bias != 0 and votes[f] == bias)
-                - sum(1 for f in _CONF_F if bias != 0 and votes[f] == -bias))
+    conf_net_non_mom = (sum(1 for f in _CONF_F_NON_MOM if bias != 0 and votes[f] == bias)
+                        - sum(1 for f in _CONF_F_NON_MOM if bias != 0 and votes[f] == -bias))
+    # Momentum contributes its full fractional MTF vote (-1.0 / -0.5 / 0 / +0.5 / +1.0)
+    # aligned with the current bias direction. When bias is bullish (=+1), a +0.5 MTF
+    # vote contributes +0.5, a -0.5 contributes -0.5, etc.
+    mom_conf = _mtf_vote_raw * bias if bias != 0 else 0.0
+    conf_net = conf_net_non_mom + mom_conf
     raw_conv = edge_net + 0.5 * conf_net
 
     # ── 3) REGIME GATE — scale conviction by trend quality ─────────────────
@@ -12538,6 +12612,70 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
                 if score < 5.0:
                     score = round(recent_regime_score * 0.55 + score * 0.45, 1)
 
+    # ── FAR-WINDOW SEASONAL (r15) ──────────────────────────────────
+    # The 20-TD near window answers "where does the curve end up in ~4 weeks?"
+    # But that misses shape: a seasonal peak inside the window (up then down)
+    # can post a positive net return but be a bad long entry. Add a far window
+    # (TD_b → TD_b+40, i.e. the 8 weeks AFTER the near window) to detect
+    # peak/trough proximity and dampen fading edges.
+    td_c = min(252, td_b + 40)
+    far_score = None
+    far_median = None
+    far_hit_rate = None
+    seas_shape = 'confirmed'      # confirmed | fading | rising | undefined
+    shape_dampen = 1.0            # 1.0 = no dampen; <1.0 = dampen toward 5
+    if td_c > td_b + 5:
+        far_rets = []
+        for y in used:
+            arr = years.get(str(y))
+            if not arr or len(arr) < 252:
+                continue
+            _a = arr[td_b - 1]; _c = arr[td_c - 1]
+            if _a is None or _c is None or (1 + _a / 100) == 0:
+                continue
+            far_rets.append(((1 + _c / 100) / (1 + _a / 100) - 1) * 100)
+        if len(far_rets) >= 8:
+            _far_ws = ws[:len(far_rets)]
+            _far_tot_w = sum(_far_ws) if _far_ws else 1.0
+            _far_hit = sum(w for r, w in zip(far_rets, _far_ws) if r > 0) / _far_tot_w
+            _far_med = _seas_wq(far_rets, _far_ws, 0.5)
+            _far_iqr_half = max(0.5, (_seas_wq(far_rets, _far_ws, 0.75) - _seas_wq(far_rets, _far_ws, 0.25)) / 2)
+            _far_dir = (_far_hit - 0.5) * 2
+            _far_mag = max(-1.0, min(1.0, _far_med / _far_iqr_half))
+            far_score = round(max(0.0, min(10.0, 5 + 2.5 * _far_dir + 2.5 * _far_mag)), 1)
+            far_median = round(_far_med, 2)
+            far_hit_rate = round(_far_hit * 100)
+
+            # Classify shape by comparing NEAR vs FAR direction, using the
+            # dampened score for near (post-reliability) so a Grade C weak
+            # signal doesn't get flagged as a full peak-proximity fade.
+            _near_dir_dampened = score - 5.0             # signed − dampened by reliability
+            _far_dir_signed = far_score - 5.0
+            _near_meaningful = abs(_near_dir_dampened) >= 0.5
+            _far_meaningful  = abs(_far_dir_signed) >= 0.5
+            if _near_meaningful and _far_meaningful:
+                if _near_dir_dampened > 0 and _far_dir_signed < 0:
+                    seas_shape = 'fading'   # near bull, far bear → seasonal peak ahead
+                    shape_dampen = 0.6
+                elif _near_dir_dampened < 0 and _far_dir_signed > 0:
+                    seas_shape = 'rising'   # near bear, far bull → seasonal trough ahead
+                    shape_dampen = 0.6
+                elif (_near_dir_dampened > 0 and _far_dir_signed > 0) or \
+                     (_near_dir_dampened < 0 and _far_dir_signed < 0):
+                    # Both agree: keep as-is. If far is STRONGER, small reinforcement.
+                    if abs(_far_dir_signed) > abs(_near_dir_dampened) * 1.5:
+                        seas_shape = 'confirmed (trend building)'
+                    else:
+                        seas_shape = 'confirmed'
+            elif _near_meaningful and not _far_meaningful:
+                seas_shape = 'near-only'      # near has a view, far is flat — fine, no adjust
+            elif not _near_meaningful and _far_meaningful:
+                seas_shape = 'far-only'       # near flat, far has a view — short-term neutral
+
+            # Apply shape dampener
+            if shape_dampen < 1.0:
+                score = round(5.0 + (score - 5.0) * shape_dampen, 1)
+
     return {
         "score": score,
         "raw_score": raw_score,
@@ -12565,6 +12703,13 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "best_pct": round(max(rets), 2),
         "worst_pct": round(min(rets), 2),
         "td_start": td_a, "td_end": td_b,
+        # r15 far-window & shape
+        "td_far_end": td_c,
+        "far_score": far_score,
+        "far_median_pct": far_median,
+        "far_hit_rate": far_hit_rate,
+        "seas_shape": seas_shape,
+        "shape_dampen": shape_dampen,
         "years_span": f"{min(used)}\u2013{max(used)}" if used else "",
         "cycle_key": _cycle_key_for_year(d.year),
         "weighting": "cycle 2.5x + recency 0.93^age",
@@ -14597,7 +14742,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-05-r14c"
+BUILD_ID = "2026-08-05-r15"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
