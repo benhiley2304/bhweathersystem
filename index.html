@@ -36767,7 +36767,24 @@ function seasTabStub(m){
       const trimClause = (trimMed!=null && Math.abs(trimMed-med)>Math.abs(med)*0.4 && Math.abs(med)>0.5)
         ? ` (trimmed ${(trimMed>=0?'+':'')+trimMed.toFixed(2)}%)`
         : '';
-      return `Over the next 3–4 weeks this market rose in <strong style="color:var(--text)">${nPos} of the last ${nY} years</strong> (${hr}% cycle-weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>${trimClause}. Verdict: ${verdict}.`;
+      // r15: append near/far shape callout when meaningful
+      const _farS = d.far_score, _shape = d.seas_shape, _dampen = d.shape_dampen;
+      const _farMed = d.far_median_pct;
+      let _shapeTail = '';
+      if(_farS!=null && _shape){
+        const _fCol = _farS>=6?'var(--s1)':_farS<=4?'var(--sm1)':'var(--faint)';
+        const _fmedStr = _farMed==null?'':(_farMed>=0?'+':'')+_farMed.toFixed(2)+'%';
+        if(_shape==='fading'){
+          _shapeTail = ` Longer window (next 6–8w) <strong style="color:${_fCol}">reverses to ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong> — <strong style="color:var(--sm1)">near-term peak, fading edge</strong>; score dampened.`;
+        } else if(_shape==='rising'){
+          _shapeTail = ` Longer window (next 6–8w) <strong style="color:${_fCol}">turns to ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong> — <strong style="color:var(--s1)">setup building</strong>; score dampened.`;
+        } else if(_shape && _shape.indexOf('confirmed')===0){
+          _shapeTail = ` Longer window (next 6–8w) <strong style="color:${_fCol}">confirms at ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong>.`;
+        } else if(_shape==='far-only'){
+          _shapeTail = ` Near window is flat; the historical signal sits <strong style="color:${_fCol}">6–8 weeks out at ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong>.`;
+        }
+      }
+      return `Over the next 3–4 weeks this market rose in <strong style="color:var(--text)">${nPos} of the last ${nY} years</strong> (${hr}% cycle-weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>${trimClause}. Verdict: ${verdict}.${_shapeTail}`;
     }
     if(sc>=7.5) return `Seasonal window is <strong style="color:${col}">strongly bullish</strong> — historical tendency shows consistent gains over the next 3–4 weeks.`;
     if(sc>=6)   return `Seasonal window is <strong style="color:${col}">bullish</strong> — historical patterns lean positive over the current window.`;
@@ -36890,6 +36907,39 @@ function momTab(m){
   })();
   const _momPrefix = _tabSummary(_momSummaryText, col);
 
+  // r15: multi-timeframe strip (short / medium / long)
+  const _mtfChip = (label, sub, s10, sig) => {
+    if(s10==null) return `<div style="flex:1;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05)">
+      <div style="font-size:8px;letter-spacing:0.08em;color:var(--faint);text-transform:uppercase">${label}</div>
+      <div style="font-size:9px;color:var(--dim);margin-top:2px">—</div>
+    </div>`;
+    const _c = sig>0?'#22c97a':sig<0?'#e03a2a':'var(--faint)';
+    const _bg = sig>0?'rgba(34,201,122,0.06)':sig<0?'rgba(224,58,42,0.06)':'rgba(255,255,255,0.02)';
+    const _br = sig>0?'rgba(34,201,122,0.22)':sig<0?'rgba(224,58,42,0.22)':'rgba(255,255,255,0.08)';
+    const _arrow = sig>0?'▲':sig<0?'▼':'—';
+    const _tag = sig>0?'Bull':sig<0?'Bear':'Flat';
+    return `<div style="flex:1;padding:8px 10px;border-radius:8px;background:${_bg};border:1px solid ${_br}">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:8px;letter-spacing:0.08em;color:var(--faint);text-transform:uppercase">${label}</div>
+        <div style="font-size:9px;font-weight:700;color:${_c};font-family:var(--mono)">${s10.toFixed(1)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
+        <span style="color:${_c};font-size:11px;line-height:1">${_arrow}</span>
+        <span style="font-size:9.5px;color:${_c};font-weight:600">${_tag}</span>
+        <span style="font-size:8.5px;color:var(--dim);margin-left:auto">${sub}</span>
+      </div>
+    </div>`;
+  };
+  const _mtfVote = d.mtf_vote;
+  const _mtfStrip = (d.mom_st_score!=null||d.mom_mt_score!=null||d.mom_lt_score!=null) ? `
+    <div style="display:flex;gap:8px;margin:-4px 0 16px 0">
+      ${_mtfChip('Short', 'days', d.mom_st_score, d.mtf_st_sign)}
+      ${_mtfChip('Medium', '~1 mo', d.mom_mt_score, d.mtf_mt_sign)}
+      ${_mtfChip('Long', '3–6 mo', d.mom_lt_score, d.mtf_lt_sign)}
+    </div>
+    ${_mtfVote!=null?`<div style="font-size:9px;color:var(--dim);margin:-8px 0 14px 0;line-height:1.55">Timeframe vote: <strong style="color:${_mtfVote>0.5?'#22c97a':_mtfVote<-0.5?'#e03a2a':'var(--faint)'}">${_mtfVote>=1?'all three bullish':_mtfVote<=-1?'all three bearish':_mtfVote>0?'majority bull':_mtfVote<0?'majority bear':'mixed / whipsaw — abstain'}</strong>. Blended score uses only the agreeing timeframes; whipsaws collapse to 5.0.</div>`:''}
+  ` : '';
+
   return _momPrefix + `
   <!-- Score header -->
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
@@ -36902,6 +36952,7 @@ function momTab(m){
       <div style="font-size:9px;color:var(--dim);margin-top:3px">20 EMA · 50 EMA · 200 SMA · 52W range · 13W ROC</div>
     </div>
   </div>
+  ${_mtfStrip}
 
   <!-- Candlestick chart section -->
   <div class="mom-chart-wrap">
