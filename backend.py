@@ -13203,9 +13203,43 @@ def _score_momentum_at(px_closes: np.ndarray, px_dates_norm, bar_date_norm,
     roc_s10    = round(max(0.0, min(10.0, (roc4w / _roc_norm) * 5.0 + 5.0)), 1)
     sma200_s10 = round(max(0.0, min(10.0, ((curr - sma200) / sma200 * 100 / 10.0) * 5.0 + 5.0)), 1)                  if not np.isnan(sma200) and sma200 > 0 else 5.0
 
-    return round(max(0.0, min(10.0,
-        ema_st_s10 * 0.35 + ema_s10 * 0.20 + roc_s10 * 0.25 + sma200_s10 * 0.20
-    )), 1)
+    # r15: MTF backtest parity — compute ST/MT/LT sub-scores + majority vote,
+    # then blend the winning direction to match live scoring philosophy.
+    # roc13w and roc26w for MT/LT sub-scores
+    roc13w = (closes[-1] / closes[-65] - 1) * 100 if len(closes) >= 65 else 0
+    roc26w = (closes[-1] / closes[-130] - 1) * 100 if len(closes) >= 130 else 0
+    st_score = round(max(0.0, min(10.0, (ema_st_slope / 2.5 + roc4w / 6.0) * 2.5 + 5.0)), 1)
+    mt_score = round(max(0.0, min(10.0, (ema_slope / 4.0 + roc13w / 10.0) * 2.5 + 5.0)), 1)
+    if not np.isnan(sma200) and sma200 > 0:
+        sma_pct = (curr - sma200) / sma200 * 100
+        lt_score = round(max(0.0, min(10.0, (roc26w / 18.0 + sma_pct / 10.0) * 2.5 + 5.0)), 1)
+    else:
+        lt_score = 5.0
+    def _sign(s):
+        d = s - 5.0
+        if d > 0.5: return 1
+        if d < -0.5: return -1
+        return 0
+    st_sig, mt_sig, lt_sig = _sign(st_score), _sign(mt_score), _sign(lt_score)
+    vote_sum = st_sig + mt_sig + lt_sig
+    # Majority rule: if 2+ agree, use average of agreeing timeframes.
+    # If whipsaw (vote_sum=0 with mixed signs), abstain → 5.0.
+    signs = [st_sig, mt_sig, lt_sig]
+    scores = [st_score, mt_score, lt_score]
+    if vote_sum > 0:
+        agreeing = [s for s, sg in zip(scores, signs) if sg > 0]
+        mtf_score = sum(agreeing) / len(agreeing) if agreeing else 5.0
+    elif vote_sum < 0:
+        agreeing = [s for s, sg in zip(scores, signs) if sg < 0]
+        mtf_score = sum(agreeing) / len(agreeing) if agreeing else 5.0
+    else:
+        # Neutral or whipsaw: check if all-zero (neutral) or mixed (whipsaw abstain)
+        if any(sg != 0 for sg in signs):
+            mtf_score = 5.0  # whipsaw → abstain
+        else:
+            mtf_score = sum(scores) / 3.0  # all neutral → use average
+
+    return round(max(0.0, min(10.0, mtf_score)), 1)
 
 
 def _score_relval_at(market_id: str, bar_date_norm,
@@ -14749,7 +14783,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-05-r15b"
+BUILD_ID = "2026-08-05-r15c"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
