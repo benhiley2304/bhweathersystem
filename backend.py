@@ -12513,20 +12513,30 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     if len(recent5) >= 5:
         r5_pos = sum(1 for r in recent5 if r > 0)
         r5_med = sorted(recent5)[len(recent5)//2] if len(recent5) % 2                  else 0.5 * (sorted(recent5)[len(recent5)//2 - 1] + sorted(recent5)[len(recent5)//2])
+        # Magnitude guard (r14c): hit-count alone can lie — four tiny +0.5%
+        # years next to one -2.3% year is a "4 of 5 up" that's actually bearish
+        # in dollar terms. Require the median AND mean of recent5 to agree with
+        # the direction the hit-count would suggest before overriding.
+        r5_mean = sum(recent5) / 5
+        r5_pos_sum = sum(r for r in recent5 if r > 0)
+        r5_neg_sum = -sum(r for r in recent5 if r < 0)
         # Only override if clearly one-directional (>=4 of 5) AND the raw
-        # score is on the opposite side of neutral. This catches the exact
-        # "regime flip" bug the user flagged for Silver.
+        # score is on the opposite side of neutral AND the magnitudes back it up.
         if r5_pos <= 1:  # 4 or 5 of last 5 down
-            recent_regime_signal = 'bear'
-            recent_regime_score = round(max(0.0, 5.0 - abs(r5_med) * 0.15 - 1.5), 1)
-            if score > 5.0:
-                # Weighted blend: recent regime carries 55%, dampened long-run 45%
-                score = round(recent_regime_score * 0.55 + score * 0.45, 1)
+            # Guard: median AND mean must be negative, and total down > total up
+            if r5_med < 0 and r5_mean < 0 and r5_neg_sum > r5_pos_sum:
+                recent_regime_signal = 'bear'
+                recent_regime_score = round(max(0.0, 5.0 - abs(r5_med) * 0.15 - 1.5), 1)
+                if score > 5.0:
+                    # Weighted blend: recent regime carries 55%, dampened long-run 45%
+                    score = round(recent_regime_score * 0.55 + score * 0.45, 1)
         elif r5_pos >= 4:  # 4 or 5 of last 5 up
-            recent_regime_signal = 'bull'
-            recent_regime_score = round(min(10.0, 5.0 + abs(r5_med) * 0.15 + 1.5), 1)
-            if score < 5.0:
-                score = round(recent_regime_score * 0.55 + score * 0.45, 1)
+            # Guard: median AND mean must be positive, and total up > total down
+            if r5_med > 0 and r5_mean > 0 and r5_pos_sum > r5_neg_sum:
+                recent_regime_signal = 'bull'
+                recent_regime_score = round(min(10.0, 5.0 + abs(r5_med) * 0.15 + 1.5), 1)
+                if score < 5.0:
+                    score = round(recent_regime_score * 0.55 + score * 0.45, 1)
 
     return {
         "score": score,
@@ -14587,7 +14597,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-07-24-r14b"
+BUILD_ID = "2026-08-05-r14c"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
