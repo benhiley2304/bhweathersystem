@@ -38053,13 +38053,13 @@ function macroTab(m){
       rates:'Rising gilt yields = BEARISH — valuation compression for domestic FTSE names. Global 2Y direction also matters via rate contagion into UK credit conditions.'
     }},
     // ── Precious Metals ─────────────────────────────────────────────────────
-    GC: {cats:['rates','inflation','jobs','growth'], ratesSign:-1, inflSign:-1, explain:{
+    GC: {cats:['rates','inflation','jobs','growth'], ratesSign:-1, inflSign:-1, jobsSign:-1, growthSign:-1, explain:{
       rates:'Rising 2Y yield = BEARISH — real yield (nominal 2Y minus inflation expectations) is the primary gold driver. Gold yields nothing; as real yields rise, the opportunity cost of holding gold increases. The single most important macro variable for GC.',
       inflation:'Hot CPI = BEARISH (via rate mechanism) — Fed hikes in response, driving nominal yields higher than breakevens, spiking real yields. Cool CPI = Fed stays dovish = real yields compress = BULLISH gold. Disinflation signals (cool PPI) are the strongest leading indicator — PPI leads CPI by 2-3 months.',
       jobs:'Strong NFP = BEARISH — hawkish Fed reaction = higher-for-longer rates = real yield headwind. The most reliable single-release gold signal of the macro calendar.',
       growth:'GDP/PMI beat = BEARISH — risk-on environment reduces safe-haven demand, diverting capital from gold into equities and risk assets.'
     }},
-    SI: {cats:['rates','growth','inflation','jobs'], ratesSign:-1, inflSign:-1, explain:{
+    SI: {cats:['rates','growth','inflation','jobs'], ratesSign:-1, inflSign:-1, jobsSign:-1, explain:{
       rates:'Rising 2Y yield = BEARISH — real yield mechanism drives the precious metal component (41% of silver demand). Same transmission as gold but diluted by industrial demand.',
       growth:'GDP/Mfg PMI beat = BULLISH — 59% industrial demand (solar panels 25%, EV batteries, electronics). Manufacturing PMI is the most direct industrial silver signal. EV adoption is a structural tailwind.',
       inflation:'Hot CPI/PPI = BEARISH (via real yield) — hawkish Fed drives nominal yields above breakevens = real yield rise = bearish precious leg. PPI cooling = double benefit (lower input costs for industrial users AND lower real yields).',
@@ -38114,31 +38114,31 @@ function macroTab(m){
       inflation:'Hot CPI = BEARISH (via USD) — hawkish Fed response strengthens dollar, pressuring USD-denominated commodities.'
     }},
     // ── Bonds ───────────────────────────────────────────────────────────────
-    ZB: {cats:['inflation','jobs','growth','rates'], ratesSign:-1, inflSign:-1, explain:{
+    ZB: {cats:['inflation','jobs','growth','rates'], ratesSign:-1, inflSign:-1, jobsSign:-1, growthSign:-1, explain:{
       inflation:'Hot CPI/PPI = BEARISH — long-end yield spikes = 30Y bond price falls. PPI is the HIGHEST-CONVICTION leading signal for ZB: pipeline inflation leads CPI by 2-3 months. Cool PPI today = lower CPI ahead = 30Y yield compression = bond price rises.',
       jobs:'Strong NFP = BEARISH — Fed holds higher for longer = entire yield curve stays elevated = bond headwind. Wage growth is particularly important (signals persistent inflation = higher long-end yields).',
       growth:'GDP/PMI beat = BEARISH — no recession = no flight-to-safety bond bid. Growth removes the bull case for 30Y (no rate cuts needed, no safe-haven demand).',
       rates:'Rising 2Y yield = BEARISH — front-end tightening drives bear flattener risk. DGS2 direction sets the tone, but ZB responds most to long-end inflation signals and the inflation premium.'
     }},
-    ZN: {cats:['inflation','jobs','growth','rates'], ratesSign:-1, inflSign:-1, explain:{
+    ZN: {cats:['inflation','jobs','growth','rates'], ratesSign:-1, inflSign:-1, jobsSign:-1, growthSign:-1, explain:{
       inflation:'Hot CPI/PPI = BEARISH — 10Y yield rises = ZN price falls. CPI is the primary in-period signal; PPI provides 2-3 month forward visibility though slightly less extreme than for 30Y ZB.',
       jobs:'Strong NFP = BEARISH — #1 volume driver for 10Y. Generates 5-10bp yield moves on major surprises. The benchmark 10Y is the most watched payrolls reaction vehicle.',
       growth:'GDP/PMI beat = BEARISH — no recession bid. Risk assets are preferred over bonds when growth is strong.',
       rates:'Rising 2Y yield = BEARISH — front-end signal for 10Y direction. The 2-10 spread is the key curve signal to watch alongside ZN positioning.'
     }},
-    ZF: {cats:['inflation','jobs','rates','growth'], ratesSign:-1, inflSign:-1, explain:{
+    ZF: {cats:['inflation','jobs','rates','growth'], ratesSign:-1, inflSign:-1, jobsSign:-1, growthSign:-1, explain:{
       inflation:'Hot CPI = BEARISH — mid-curve yields rise = ZF price falls. The 5Y is balanced between near-term Fed policy and medium-term inflation outlook.',
       jobs:'Strong NFP = BEARISH — high sensitivity for the mid-curve. The Fed reaction function drives 5Y yields most directly — payrolls shape the hiking/cutting cycle.',
       rates:'Rising 2Y yield = BEARISH — direct mid-curve anchor. The 5Y is most sensitive to the rate cycle turning point (first cut/hike pricing).',
       growth:'GDP beat = BEARISH — reduces rate-cut pricing at the 5Y point on the curve.'
     }},
-    ZT: {cats:['inflation','jobs','rates','growth'], ratesSign:-1, inflSign:-1, explain:{
+    ZT: {cats:['inflation','jobs','rates','growth'], ratesSign:-1, inflSign:-1, jobsSign:-1, growthSign:-1, explain:{
       inflation:'Hot CPI = BEARISH — most impactful for 2Y (direct rate hike pricing). A 10bp upside CPI surprise historically = ~15bp 2Y yield rise. The 2Y is essentially a Fed Funds proxy.',
       jobs:'Strong NFP = BEARISH — #1 mover for near-term Fed expectations. The 2Y is the most sensitive bond maturity to payrolls surprises.',
       rates:'Rising 2Y yield = BEARISH — the 2Y note tracks DGS2 directly. Marginal additional signal is small versus forward-looking CPI/NFP inputs.',
       growth:'GDP beat = BEARISH (mild) — less impactful for 2Y than longer maturities. The 2Y is anchored to near-term Fed decisions, not long-run growth.'
     }},
-    R: {cats:['jobs','growth','inflation','rates'], ratesSign:-1, inflSign:-1, explain:{
+    R: {cats:['jobs','growth','inflation','rates'], ratesSign:-1, inflSign:-1, jobsSign:-1, growthSign:-1, explain:{
       jobs:'Rising UK unemployment = BULLISH — primary BoE dovishness signal. Higher unemployment = rate cuts more likely = Long Gilt bullish. This is the largest single weight in the formula.',
       growth:'Weaker UK growth = BULLISH — BoE cutting cycle = Gilt price rises. US risk-off also = flight-to-safety = Gilt support. Growth beats are bearish for the Gilt.',
       inflation:'Hot UK CPI = BEARISH — BoE holds or hikes = Gilt prices fall. The dominant inflation input for the BoE reaction function and the most impactful macro variable.',
@@ -38263,9 +38263,11 @@ function macroTab(m){
     if(_componentsByCat[_cat] !== undefined) return _componentsByCat[_cat];
     const _raw = cats[_cat] ?? null;
     if(_raw === null) return null;
-    if(_cat === 'rates')    return _raw * (_amc.ratesSign ?? -1);
-    if(_cat === 'inflation') return _raw * (_amc.inflSign  ?? -1);
-    return _raw; // growth, jobs, supply — sign is already correct in cats[]
+    if(_cat === 'rates')     return _raw * (_amc.ratesSign  ?? -1);
+    if(_cat === 'inflation') return _raw * (_amc.inflSign   ?? -1);
+    if(_cat === 'jobs')      return _raw * (_amc.jobsSign   ??  1);
+    if(_cat === 'growth')    return _raw * (_amc.growthSign ??  1);
+    return _raw; // supply etc. — sign already correct in cats[]
   };
 
   // Sort by absolute value descending (most impactful driver first)

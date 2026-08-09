@@ -5808,6 +5808,48 @@ def compute_macro_all() -> dict:
                     components["CORE_PCE"]["ff_score"]    = _ff_scores.get("core_pce_mom")
                     components["CORE_PCE"]["ff_releases"] = _ff_rels.get("core_pce_mom", [])
 
+            # ── Re-score inflation components using FF m/m surprises ──────
+            # BUG FIX (r15d): previously CPI/PCE score was computed from FRED
+            # YoY vs trailing-3-YoY average, which does NOT reflect what markets
+            # actually reacted to on release day. Homepage cards show FF m/m
+            # (real consensus surprise) while category_scores.inflation used
+            # the stale FRED-YoY score — producing sign mismatches for Gold and
+            # other assets. Mirror the JOBS/growth pattern: overwrite `score`
+            # and `label` from the FF m/m surprise. Sigma per series calibrated
+            # from historical release day |surprise| distributions.
+            def _score_from_surp(surp, sigma):
+                if surp is None or isinstance(surp, str) or sigma <= 0:
+                    return None
+                n = surp / sigma
+                return (2 if n > 1.25 else 1 if n > 0.4 else
+                        -2 if n < -1.25 else -1 if n < -0.4 else 0)
+            def _lbl(s):
+                return ("Strong Beat" if s == 2 else "Beat" if s == 1 else
+                        "Strong Miss" if s == -2 else "Miss" if s == -1 else "In Line")
+            # Sigma ≈ typical release-day |surprise| in pp for m/m readings
+            _infl_sigma = {"CPI": 0.15, "CORE_CPI": 0.10, "PPI": 0.35,
+                           "PCE": 0.10, "CORE_PCE": 0.10}
+            for _ikey in ("CPI", "CORE_CPI", "PPI", "PCE", "CORE_PCE"):
+                _cc = components.get(_ikey)
+                if not _cc:
+                    continue
+                _surp_ff = _cc.get("surprise_ff")
+                if _surp_ff is None:
+                    continue
+                _s_new = _score_from_surp(_surp_ff, _infl_sigma.get(_ikey, 0.15))
+                if _s_new is not None:
+                    _cc["score"] = _s_new
+                    _cc["label"] = _lbl(_s_new)
+                # Also override display so home cards + macro tab agree
+                _af = _cc.get("actual_ff")
+                _ff = _cc.get("forecast_ff")
+                if _af is not None:
+                    _cc["actual"] = f"{_af:.2f}%"
+                    _cc["display"] = _cc["actual"]
+                if _ff is not None:
+                    _cc["expected"] = _ff
+                    _cc["forecast"] = f"{_ff:.2f}%"
+
             # Composite heat score at top level (for P2 badge)
             components["_ff_infl_heat"] = {
                 "composite": _ff_infl.get("composite_heat"),
@@ -14783,7 +14825,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-05-r15c"
+BUILD_ID = "2026-08-05-r15d"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
