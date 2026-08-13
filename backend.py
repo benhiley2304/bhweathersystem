@@ -5836,19 +5836,37 @@ def compute_macro_all() -> dict:
                 _surp_ff = _cc.get("surprise_ff")
                 if _surp_ff is None:
                     continue
+                # SCORING uses m/m surprise vs forecast — that's what beats/misses are measured on.
                 _s_new = _score_from_surp(_surp_ff, _infl_sigma.get(_ikey, 0.15))
                 if _s_new is not None:
                     _cc["score"] = _s_new
                     _cc["label"] = _lbl(_s_new)
-                # Also override display so home cards + macro tab agree
+                # DISPLAY: for CPI/CORE_CPI, prefer y/y — that's what the panel is labelled
+                # "CPI YoY" and compared to the 2% Fed target. Using m/m here made
+                # 0.10% look like it was "1.90pp below 2% target" when YoY is actually ~3.4%
+                # (i.e. 1.4pp ABOVE target). Fix 2026-08-13.
+                _af_yoy = _cc.get("actual_ff_yoy") if _ikey in ("CPI", "CORE_CPI") else None
+                _ff_yoy = _cc.get("forecast_ff_yoy") if _ikey in ("CPI", "CORE_CPI") else None
                 _af = _cc.get("actual_ff")
                 _ff = _cc.get("forecast_ff")
-                if _af is not None:
-                    _cc["actual"] = f"{_af:.2f}%"
+                # Prefer y/y for CPI/CORE_CPI display; fall back to m/m for others (PPI, PCE, CORE_PCE)
+                # or when y/y is missing.
+                _af_disp = _af_yoy if _af_yoy is not None else _af
+                _ff_disp = _ff_yoy if _ff_yoy is not None else _ff
+                if _af_disp is not None:
+                    _cc["actual"] = f"{_af_disp:.2f}%"
                     _cc["display"] = _cc["actual"]
+                if _ff_disp is not None:
+                    _cc["expected"] = _ff_disp
+                    _cc["forecast"] = f"{_ff_disp:.2f}%"
+                # Keep m/m accessible in dedicated fields so the frontend can show the m/m
+                # print alongside the y/y headline without ambiguity.
+                if _af is not None:
+                    _cc["actual_mom"]   = f"{_af:.2f}%"
+                    _cc["actual_mom_ff"] = _af
                 if _ff is not None:
-                    _cc["expected"] = _ff
-                    _cc["forecast"] = f"{_ff:.2f}%"
+                    _cc["forecast_mom"]    = f"{_ff:.2f}%"
+                    _cc["forecast_mom_ff"] = _ff
 
             # Composite heat score at top level (for P2 badge)
             components["_ff_infl_heat"] = {
@@ -14825,7 +14843,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-09-r15f"
+BUILD_ID = "2026-08-13-r15g"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
