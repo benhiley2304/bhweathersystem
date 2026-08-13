@@ -27364,8 +27364,22 @@ function renderMacroDataPanels(reg){
   const _coolCount = _inflSurprises.filter(v=>v<0).length;
   // Also count from FF beat flags where available
   const _ffHeatComp = macroComps['_ff_infl_heat'];
-  const inflBadgeLabel = _avgSurprise > 0.15?'Hot':_avgSurprise > 0.03?'Warm':_avgSurprise < -0.15?'Cold':_avgSurprise < -0.03?'Cool':'In Line';
-  const inflBadgeCol   = _avgSurprise > 0.15?'#e03a2a':_avgSurprise > 0.03?'#f5c842':_avgSurprise < -0.15?'#4a90d9':_avgSurprise < -0.03?'#5c9eff':'#adb8d0';
+  // Tile-level badge reflects LEVEL vs 2% target (matching verdict chip below).
+  // Falls back to surprise-based when CPI YoY is unavailable.
+  const _tileCpiYoy = (()=>{ const c = macroComps['CPI']; if(!c) return null;
+    if(c.actual_ff_yoy!=null) return +c.actual_ff_yoy;
+    const a=parseFloat(c.actual??c.display); return isNaN(a)?null:a; })();
+  let inflBadgeLabel, inflBadgeCol;
+  if(_tileCpiYoy!=null){
+    if(_tileCpiYoy>=4.0){ inflBadgeLabel='Hot'; inflBadgeCol='#e03a2a'; }
+    else if(_tileCpiYoy>=3.0){ inflBadgeLabel='Elevated'; inflBadgeCol='#f5c842'; }
+    else if(_tileCpiYoy>=2.3){ inflBadgeLabel='Above Target'; inflBadgeCol='#c8a96e'; }
+    else if(_tileCpiYoy>=1.7){ inflBadgeLabel='On Target'; inflBadgeCol='#5cb47a'; }
+    else { inflBadgeLabel='Below Target'; inflBadgeCol='#5c9eff'; }
+  } else {
+    inflBadgeLabel = _avgSurprise > 0.15?'Hot':_avgSurprise > 0.03?'Warm':_avgSurprise < -0.15?'Cold':_avgSurprise < -0.03?'Cool':'In Line';
+    inflBadgeCol   = _avgSurprise > 0.15?'#e03a2a':_avgSurprise > 0.03?'#f5c842':_avgSurprise < -0.15?'#4a90d9':_avgSurprise < -0.03?'#5c9eff':'#adb8d0';
+  }
   const inflArcCol     = inflBadgeCol;
   // Arc fill mirrors heat: hot = high fill (red), cold = low fill (blue)
   const inflArcPct     = Math.max(0, Math.min(100, (inflAvg/10) * 100));
