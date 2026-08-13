@@ -4601,7 +4601,9 @@ _FF_INFL_EVENTS = {
     "CPI m/m":               {"key": "cpi_mom",     "unit": "%", "higher_is_good": False},
     "CPI y/y":               {"key": "cpi_yoy",     "unit": "%", "higher_is_good": False},
     "Core CPI m/m":          {"key": "core_cpi_mom","unit": "%", "higher_is_good": False},
+    "Core CPI y/y":          {"key": "core_cpi_yoy","unit": "%", "higher_is_good": False},
     "PPI m/m":               {"key": "ppi_mom",     "unit": "%", "higher_is_good": False},
+    "PPI y/y":               {"key": "ppi_yoy",     "unit": "%", "higher_is_good": False},
     "Core PPI m/m":          {"key": "core_ppi_mom","unit": "%", "higher_is_good": False},
     "Core PCE Price Index m/m": {"key": "core_pce_mom", "unit": "%", "higher_is_good": False},
 }
@@ -14843,7 +14845,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-13-r15h"
+BUILD_ID = "2026-08-13-r15i"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
