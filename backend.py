@@ -5835,6 +5835,18 @@ def compute_macro_all() -> dict:
                 _cc = components.get(_ikey)
                 if not _cc:
                     continue
+                # Preserve the pre-FF FRED-derived YoY value BEFORE any overwrite happens.
+                # For CPI/CORE_CPI/PPI/PCE/CORE_PCE, `_cc['actual']` at this point is the
+                # FRED YoY figure (see compute_macro_surprise transform="yoy" above).
+                _fred_yoy_actual = None
+                _av = _cc.get("actual")
+                if isinstance(_av, (int, float)):
+                    _fred_yoy_actual = float(_av)
+                elif isinstance(_av, str):
+                    try:
+                        _fred_yoy_actual = float(_av.replace('%','').strip())
+                    except Exception:
+                        _fred_yoy_actual = None
                 _surp_ff = _cc.get("surprise_ff")
                 if _surp_ff is None:
                     continue
@@ -5849,6 +5861,14 @@ def compute_macro_all() -> dict:
                 # (i.e. 1.4pp ABOVE target). Fix 2026-08-13.
                 _af_yoy = _cc.get("actual_ff_yoy") if _ikey in ("CPI", "CORE_CPI") else None
                 _ff_yoy = _cc.get("forecast_ff_yoy") if _ikey in ("CPI", "CORE_CPI") else None
+                # Fallback to FRED YoY when FF y/y isn't available (e.g. FF doesn't publish
+                # Core CPI y/y separately). This is the safety net that keeps the panel honest.
+                if _af_yoy is None and _ikey in ("CPI", "CORE_CPI") and _fred_yoy_actual is not None:
+                    _af_yoy = _fred_yoy_actual
+                    _cc["actual_ff_yoy"] = _fred_yoy_actual  # expose for frontend
+                    _cc["yoy_source"] = "FRED"
+                elif _af_yoy is not None:
+                    _cc["yoy_source"] = "FF"
                 _af = _cc.get("actual_ff")
                 _ff = _cc.get("forecast_ff")
                 # Prefer y/y for CPI/CORE_CPI display; fall back to m/m for others (PPI, PCE, CORE_PCE)
@@ -14845,7 +14865,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-13-r15i"
+BUILD_ID = "2026-08-13-r15j"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
