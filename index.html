@@ -25477,16 +25477,35 @@ function renderOverview(){
     }
     // Inflation: uses a separate hot/cool/neutral scale
     // High inflation score = CPI running ABOVE expectations → amber (stagflationary risk)
-    // Low inflation score = CPI running BELOW expectations → cool blue (disinflationary)
-    function _inflTier(rawScore){
+    // Colour reflects LEVEL vs 2% Fed target, not surprise. Above target = amber warning,
+    // on target = neutral, below target = cool blue.
+    function _inflTier(rawScore, cpiYoy){
       const s=rawScore||0;
-      if(s>=0.4)  return{cls:'menv-hot', col:'#f59e0b',pip:'#f59e0b'}; // amber: running hot
-      if(s<=-0.4) return{cls:'menv-cool',col:'#60a5fa',pip:'#60a5fa'}; // blue: easing/cool
+      if(cpiYoy!=null){
+        if(cpiYoy>=3.0) return{cls:'menv-hot', col:'#f59e0b',pip:'#f59e0b'}; // amber: elevated vs target
+        if(cpiYoy>=2.3) return{cls:'menv-hot', col:'#c8a96e',pip:'#c8a96e'}; // muted amber: slightly above
+        if(cpiYoy>=1.7) return{cls:'menv-neut',col:'#7b8ba8',pip:'#7b8ba8'}; // neutral: on target
+        return{cls:'menv-cool',col:'#60a5fa',pip:'#60a5fa'}; // cool: below target
+      }
+      // Fallback to surprise-based when CPI YoY unavailable
+      if(s>=0.4)  return{cls:'menv-hot', col:'#f59e0b',pip:'#f59e0b'};
+      if(s<=-0.4) return{cls:'menv-cool',col:'#60a5fa',pip:'#60a5fa'};
       return{cls:'menv-neut',col:'#7b8ba8',pip:'#7b8ba8'};
     }
     function _inflLabel(rawScore, cpiYoy){
       const s=rawScore||0;
       const cpiStr=cpiYoy!=null?` ${cpiYoy.toFixed(1)}%`:'';
+      // Level-first framing: 3.5% YoY is above target, not "On Track", regardless of surprise.
+      // Prefer YoY level over surprise score for the badge label to avoid contradictions with
+      // the vs-2%-target read shown elsewhere.
+      if(cpiYoy!=null){
+        if(cpiYoy>=4.0) return`Hot${cpiStr}`;
+        if(cpiYoy>=3.0) return`Above Target${cpiStr}`;
+        if(cpiYoy>=2.3) return`Above Target${cpiStr}`;
+        if(cpiYoy>=1.7) return`On Target${cpiStr}`;
+        return`Below Target${cpiStr}`;
+      }
+      // Fallback to surprise-based when no CPI YoY value available
       if(s>=1.2)  return`Hot${cpiStr}`;
       if(s>=0.4)  return`Elevated${cpiStr}`;
       if(s<=-0.8) return`Cooling${cpiStr}`;
@@ -25547,9 +25566,9 @@ function renderOverview(){
           title:`Growth composite ${gc!=null?gc.toFixed(1)+'/10':'\u2014'} \u2014 GDP, ISM PMIs, retail & confidence vs expectations`};
       })(),
       (()=>{
-        const t=_inflTier(catScores.inflation);const l=_inflLabel(catScores.inflation,_cpiYoy);
+        const t=_inflTier(catScores.inflation,_cpiYoy);const l=_inflLabel(catScores.inflation,_cpiYoy);
         return{label:'Inflation',val:l,cls:t.cls,col:t.col,pip:t.pip,
-          title:`CPI/PPI/PCE running ${(catScores.inflation||0)>=0?'above':'below'} expectations (score: ${(catScores.inflation||0).toFixed(2)}). Amber = stagflationary pressure.`};
+          title:`CPI ${_cpiYoy!=null?_cpiYoy.toFixed(1)+'% y/y vs 2% target':'\u2014'} (surprise score: ${(catScores.inflation||0).toFixed(2)}). Amber = above target.`};
       })(),
       (()=>{
         const sc10=lab.jobs_composite_10;const lv=_labourLabel(sc10);
@@ -28046,16 +28065,24 @@ function renderMacroDataPanels(reg){
           const headlineHot = cpiRow&&cpiRow.isBeat;
           const pceCool = corePCE&&corePCE.isMiss;
           const pceHot = corePCE&&corePCE.isBeat;
-          // Chip reflects the LEVEL vs 2% target (matching the thesis text beside it),
-          // with surprise-based overrides for hot/cooling prints — never say "ON TARGET"
-          // while the note reads "X% above 2% target".
-          const chipCol = headlineHot?'#e03a2a':_avgSurprise<-0.03?'#5c9eff':(gap!=null&&gap>0.5?'#f5a442':gap!=null&&gap<-0.5?'#5c9eff':'#adb8d0');
-          const chipLabel = headlineHot?'HOT':_avgSurprise<-0.03?'COOLING':(gap!=null&&gap>0.5?'ABOVE TARGET':gap!=null&&gap<-0.5?'BELOW TARGET':'ON TARGET');
-          // Build thesis: headline + PCE context
-          const gapStr = gap!=null?(gap>=0?`${gap.toFixed(2)}% above 2% target`:`${Math.abs(gap).toFixed(2)}% below target`):'';
-          let thesis = gapStr;
+          // Chip reflects the LEVEL vs 2% target — the panel's core question is "is inflation
+          // at, above, or below the Fed target?". Surprise (beat/miss) is captured by the
+          // HOT/IN LINE/COOL chip next to the CPI number, so the verdict chip stays about level.
+          // Never say "ON TARGET" or "COOLING" while headline is 1.4pp above target.
+          const inflTrend = (md.inflation||{}).trend || '';  // Rising/Falling/Stable
+          let chipLabel, chipCol;
+          if(gap!=null&&gap>1.0){ chipLabel='ABOVE TARGET'; chipCol='#f5a442'; }
+          else if(gap!=null&&gap>0.3){ chipLabel='ABOVE TARGET'; chipCol='#c8a96e'; }
+          else if(gap!=null&&gap>-0.3){ chipLabel='ON TARGET'; chipCol='#5cb47a'; }
+          else if(gap!=null){ chipLabel='BELOW TARGET'; chipCol='#5c9eff'; }
+          else { chipLabel='—'; chipCol='#adb8d0'; }
+          // Build thesis: headline + trend + PCE context (trend = YoY direction, more honest than surprise)
+          const gapStr = gap!=null?(gap>=0?`${gap.toFixed(2)}pp above 2% target`:`${Math.abs(gap).toFixed(2)}pp below target`):'';
+          const trendStr = inflTrend==='Falling'?' · trending lower':inflTrend==='Rising'?' · trending higher':' · stable trend';
+          let thesis = gapStr + trendStr;
           if(pceCool&&headlineHot) thesis += ' · Core PCE cooling — Fed sees relief ahead';
           else if(pceHot) thesis += ' · Core PCE also running hot';
+          else if(pceCool) thesis += ' · Core PCE cooling supports Fed easing';
           return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:10px;padding:8px 10px;background:${chipCol}0c;border-radius:7px;border-left:2px solid ${chipCol}50">
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:0.05em;color:${chipCol};white-space:nowrap;padding-top:1px">${chipLabel}</span>
             <span style="font-family:var(--mono);font-size:9.5px;font-weight:500;color:rgba(173,184,208,0.68);line-height:1.4">${thesis}</span>
