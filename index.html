@@ -24923,6 +24923,16 @@ async function loadData(force=false){
     // so generated text auto-updates even when sitting on a market detail page.
     resetNewsCtxCache();
     renderAll();
+    // AUDIT-LAB-UI: /api/scores can land AFTER the Lab was opened. The goldilocks
+    // countdown prefers the seasonal score detail, so refresh those surfaces once
+    // the payload arrives — otherwise the Lab shows the basket fallback while the
+    // detail page shows the authoritative timing.
+    try{
+      if(_labV2&&_labV2.marketId&&document.getElementById('lab-content')
+         &&document.getElementById('lab-content').style.display!=='none'){
+        _labV2RenderCallout(); _labV2RenderWindowSidebar();
+      }
+    }catch(_){}
     // Pre-warm news context cache in background so regime tab narratives are ready
     getNewsContext().catch(()=>{});
   }catch(e){
@@ -37168,13 +37178,28 @@ function seasGoldilocks(opts){
   const vAt=td=>vals[idxOf(td)];
   // 5-TD rolling median — turn LOCATION only, never displayed
   const sm=vals.map((v,i)=>{const a=vals.slice(Math.max(0,i-2),i+3).sort((x,y)=>x-y);return a[(a.length-1)>>1]});
-  const dir=seasBiasDir(sd);
+  // AUDIT-SEAS-DETAIL: the backend now scans for the goldilocks entry itself
+  // (days_to_goldilocks / entry_timing / goldilocks_dir) and that same read feeds
+  // the composite tilt. Where it exists it IS the answer — the client engine only
+  // supplies the labels (turn phase, leg end, consistency) and the fallback.
+  const bkDtg=(sd.days_to_goldilocks==null||isNaN(+sd.days_to_goldilocks))?null:Math.round(+sd.days_to_goldilocks);
+  const bkTiming=sd.entry_timing||null;
+  const bkDir=(sd.goldilocks_dir==null||!+sd.goldilocks_dir)?null:(+sd.goldilocks_dir>0?1:-1);
+  const dir=bkDir!=null?bkDir:seasBiasDir(sd);
   const now=vAt(todayTD);
   const wantType=dir>0?'trough':'peak';
   const turns=Array.isArray(o.turns)?o.turns:[];
 
   let tTd=null,cons=null,src='curve';
-  if(dir!==0){
+  if(bkDtg!=null&&bkTiming&&bkTiming!=='none'){
+    tTd=Math.max(1,Math.min(252,todayTD+bkDtg));
+    src='backend';
+    // Borrow the consistency of a detected turn of the right type sitting on top of it
+    const near=turns.filter(t=>t.type===wantType&&Math.abs(t.td-tTd)<=6)
+                    .sort((a,b)=>Math.abs(a.td-tTd)-Math.abs(b.td-tTd))[0];
+    if(near)cons=near.consistency??null;
+  }
+  else if(dir!==0){
     const cands=turns.filter(t=>t.type===wantType&&t.td>=todayTD-12&&t.td<=todayTD+40&&(t.consistency??0)>=55)
                      .sort((a,b)=>Math.abs(a.td-todayTD)-Math.abs(b.td-todayTD));
     if(cands.length){tTd=cands[0].td;cons=cands[0].consistency??null;src='turn';}
@@ -37204,7 +37229,16 @@ function seasGoldilocks(opts){
   const minLeg=Math.max(0.5,0.12*rng);
 
   let state;
-  if(legMove==null||legMove<minLeg) state='none';
+  if(src==='backend'){
+    // Map the backend's own timing verdict — do not second-guess it.
+    state = bkTiming==='now' ? 'now'
+      : bkTiming==='imminent' ? (dTd>3?'wait':'now')
+      : (bkTiming==='approaching'||bkTiming==='early') ? (dTd>28?'far':'wait')
+      : bkTiming==='just_passed' ? 'open'
+      : bkTiming==='past' ? ((capture!=null&&capture>=0.45)?'open':'past')
+      : 'none';
+  }
+  else if(legMove==null||legMove<minLeg) state='none';
   else if(dTd>28) state='far';
   else if(dTd>3) state='wait';
   else if(dTd>=-3) state='now';
@@ -37334,10 +37368,18 @@ function seasWindowStripHTML(sd){
   const shapeChip=`<div class="sx-win-shape" style="color:${sm.col};border-color:${sm.col}44;background:${sm.col}14"
       onclick="sxTip(this,event)" data-tip="${_sxEsc(sm.plain)}" data-tip-title="Far window: ${_sxEsc(sm.label)}">
       ${sm.key==='fading'?'▼':sm.key==='rising'?'▲':''} ${sm.label.toUpperCase()}${sd.far_score!=null?' · '+(+sd.far_score).toFixed(1):''}</div>`;
-  const nearLbl=(sd.horizon_td_start??sd.td_start)!=null?`TD ${sd.horizon_td_start??sd.td_start}→${sd.horizon_td_end??sd.td_end}`:'';
-  const farLbl=sd.td_far_end!=null?`TD ${sd.horizon_td_end??sd.td_end}→${sd.td_far_end}`:'';
-  return `<div class="sx-winrow">
-    ${cell('Near window','1–4 weeks · '+nearLbl,sd.median_pct??sd.slope_pct,sd.hit_rate,
+  const t0=sd.horizon_td_start??sd.td_start, t1=sd.horizon_td_end??sd.td_end;
+  const nearLbl=t0!=null?`TD ${t0}→${t1}`:'';
+  const farLbl=sd.td_far_end!=null?`TD ${t1}→${sd.td_far_end}`:'';
+  // AUDIT-SEAS-DETAIL: the backend also publishes the immediate 1–2 week read
+  // (imm_*) — the horizon Ben actually enters on, so it gets its own tile.
+  const hasImm=sd.imm_median_pct!=null||sd.imm_hit_rate!=null;
+  const immLbl=sd.td_imm_end!=null&&t0!=null?`TD ${t0}→${sd.td_imm_end}`:'';
+  const immCell=hasImm?cell('Next 1–2 weeks','immediate · '+immLbl,sd.imm_median_pct,sd.imm_hit_rate,
+      sd.imm_score!=null?`<div class="sx-win-m">window score <strong style="color:${sHex(+sd.imm_score)}">${(+sd.imm_score).toFixed(1)}</strong>/10</div>`:''):'';
+  return `<div class="sx-winrow${hasImm?' sx-winrow-3':''}">
+    ${immCell}
+    ${cell(hasImm?'Swing window':'Near window','3–4 weeks · '+nearLbl,sd.median_pct??sd.slope_pct,sd.hit_rate,
       sd.trimmed_median_pct!=null?`<div class="sx-win-m">trimmed ${pc(sd.trimmed_median_pct)} · ${sd.n_pos!=null?sd.n_pos+'/'+sd.n_years+' yrs up':''}</div>`:'')}
     ${cell('Far window','6–8 weeks · '+farLbl,sd.far_median_pct,sd.far_hit_rate,shapeChip)}
   </div>`;
@@ -42792,16 +42834,33 @@ function _labV2ComputeShape(paths,ws,we,td){
   return out;
 }
 
-// Days-to-goldilocks straight from the scoring payload when the backend ships one.
+// Days-to-goldilocks straight from the scoring payload when one exists.
+// AUDIT-LAB-UI: preference order is (1) the seasonal-score detail on /api/scores —
+// the same read that feeds the composite tilt and the detail-page goldilocks strip,
+// (2) any field the lab endpoint ships, (3) the client basket scan in
+// _labV2ComputeShape. Keeping (1) first means the Lab, the detail page and the
+// composite can never disagree about how far away the entry is.
 function _labV2PayloadGold(){
   const d=_labData;if(!d)return null;
-  const cands=[d.days_to_goldilocks,d.td_to_goldilocks,
-    d.score_detail&&d.score_detail.days_to_goldilocks,
-    d.score_detail&&d.score_detail.td_to_goldilocks,
-    d.window&&d.window.days_to_goldilocks];
-  const dir=(d.score_detail&&d.score_detail.goldilocks_dir)||(d.goldilocks_dir)||null;
-  for(const v of cands){
-    if(typeof v==='number'&&isFinite(v)&&v>=0)return {td:Math.round(v),dir};
+  const norm=v=>{
+    if(v==null)return null;
+    if(typeof v==='number')return v>0?'long':(v<0?'short':null);
+    const t=String(v).toLowerCase();
+    return t==='long'||t==='bull'||t==='up'?'long':(t==='short'||t==='bear'||t==='down'?'short':null);
+  };
+  const sd=(typeof DATA!=='undefined'&&DATA&&DATA.markets)
+    ? (((DATA.markets.find(x=>x.id===_labV2.marketId)||{}).scores||{}).seasonal||{}).detail||null
+    : null;
+  if(sd&&sd.days_to_goldilocks!=null&&isFinite(+sd.days_to_goldilocks)
+     &&sd.entry_timing&&sd.entry_timing!=='none'){
+    const td=Math.round(+sd.days_to_goldilocks);
+    if(td>=0)return {td,dir:norm(sd.goldilocks_dir),src:'score'};
+  }
+  const cands=[[d.days_to_goldilocks,d.goldilocks_dir],[d.td_to_goldilocks,d.goldilocks_dir],
+    [d.score_detail&&d.score_detail.days_to_goldilocks,d.score_detail&&d.score_detail.goldilocks_dir],
+    [d.window&&d.window.days_to_goldilocks,d.window&&d.window.goldilocks_dir]];
+  for(const [v,dr] of cands){
+    if(typeof v==='number'&&isFinite(v)&&v>=0)return {td:Math.round(v),dir:norm(dr),src:'score'};
   }
   return null;
 }
@@ -44548,6 +44607,7 @@ initNexusNoise();
 
 /* ── Near / far window strip ─────────────────────────────────────────────── */
 .sx-winrow{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.sx-winrow-3{grid-template-columns:1fr 1fr 1fr}
 .sx-win{
   position:relative;overflow:hidden;padding:12px 14px;border-radius:12px;
   background:linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.008));
@@ -44611,7 +44671,7 @@ initNexusNoise();
   .sx-gold-big{font-size:19px}
   .sx-gold-head{font-size:12.5px}
   .sx-gold-text{font-size:9.5px}
-  .sx-winrow{grid-template-columns:1fr;gap:8px}
+  .sx-winrow,.sx-winrow-3{grid-template-columns:1fr;gap:8px}
   .sx-two{grid-template-columns:1fr;gap:9px}
   .sx-py{height:120px}
   /* The old score card squashed badge/content/actions into one row on mobile —
