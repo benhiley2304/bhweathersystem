@@ -4415,7 +4415,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .mchip-band{width:14px;height:7px;border-radius:2px;background:rgba(107,124,255,0.28);flex-shrink:0}
 .mchip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 /* ── SEASONALITY LAB ── */
-.lab-modal{max-width:1100px}
+.lab-modal{max-width:1200px}
 .lab-sec-label{font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
 .lab-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .lab-preset{font-size:8.5px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--dim);padding:4px 11px;border-radius:14px;border:1px solid var(--bdr2);background:transparent;cursor:pointer;transition:all 130ms;user-select:none}
@@ -4438,11 +4438,113 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-month-wrap canvas{width:100%!important;height:100%!important}
 .lab-yrret{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .lab-yrret span{font-size:8.5px;font-weight:600;padding:3px 8px;border-radius:10px;border:1px solid var(--bdr2);background:var(--surf3)}
+
+/* ── SEASONALITY LAB V2 ── premium glassy blend controls, drag-select window, right stats sidebar ── */
+.lab-v2-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:14px;padding:10px 14px;background:linear-gradient(180deg,rgba(200,169,110,0.055),rgba(200,169,110,0.02));border:1px solid rgba(200,169,110,0.16);border-radius:12px;backdrop-filter:blur(6px)}
+.lab-v2-grade{display:inline-flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr2)}
+.lab-v2-grade .grade-badge{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;font-family:'DM Sans',sans-serif;letter-spacing:-0.5px;color:#0a0b0d}
+.lab-v2-grade .grade-badge.g-A{background:linear-gradient(135deg,#e3c789,#c8a96e);box-shadow:0 0 12px -3px rgba(200,169,110,0.6)}
+.lab-v2-grade .grade-badge.g-B{background:linear-gradient(135deg,#c8a96e,#a08249);color:#0a0b0d}
+.lab-v2-grade .grade-badge.g-C{background:linear-gradient(135deg,#7a7d85,#5a5d63);color:#e8e9ec}
+.lab-v2-grade .grade-badge.g-D{background:linear-gradient(135deg,#4a4d52,#2f3237);color:#c8c9cc}
+.lab-v2-grade .grade-txt{font-size:9px;font-weight:700;line-height:1.15}
+.lab-v2-grade .grade-txt b{display:block;font-size:10.5px;color:var(--text);font-weight:700;letter-spacing:-0.1px}
+.lab-v2-grade .grade-txt span{color:var(--dim);font-weight:600;letter-spacing:0.4px;text-transform:uppercase;font-size:7.5px}
+.lab-v2-blend{display:flex;align-items:center;gap:16px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+.lab-v2-blend-item{display:flex;flex-direction:column;gap:4px;min-width:150px}
+.lab-v2-blend-item .lbl{font-size:7.5px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;align-items:baseline}
+.lab-v2-blend-item .lbl b{color:var(--accent);font-size:10px;letter-spacing:-0.2px;font-weight:700;text-transform:none}
+.lab-v2-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;border-radius:3px;background:linear-gradient(90deg,rgba(107,124,255,0.4),rgba(200,169,110,0.7));outline:none;cursor:pointer}
+.lab-v2-slider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#c8a96e;border:2px solid #0a0b0d;box-shadow:0 0 8px -2px rgba(200,169,110,0.7);cursor:pointer;transition:all 120ms}
+.lab-v2-slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.lab-v2-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#c8a96e;border:2px solid #0a0b0d;box-shadow:0 0 8px -2px rgba(200,169,110,0.7);cursor:pointer}
+.lab-v2-select{background:var(--surf3);border:1px solid var(--bdr2);color:var(--text);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:600;font-family:inherit;cursor:pointer;outline:none;transition:border-color 130ms}
+.lab-v2-select:hover{border-color:var(--bdr3)}
+.lab-v2-select:focus{border-color:rgba(200,169,110,0.5)}
+.lab-v2-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr2);font-size:8.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text-dim);white-space:nowrap}
+.lab-v2-tag .tag-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.lab-v2-tag.class-cycle_heavy .tag-dot{background:#6b7cff}
+.lab-v2-tag.class-fx_cross .tag-dot{background:#c8a96e}
+.lab-v2-tag.class-all_years .tag-dot{background:#26c97a}
+.lab-v2-savebtn{padding:5px 11px;border-radius:8px;background:transparent;border:1px solid rgba(200,169,110,0.4);color:var(--accent);font-size:8.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;transition:all 130ms;font-family:inherit;white-space:nowrap}
+.lab-v2-savebtn:hover{background:rgba(200,169,110,0.09);border-color:rgba(200,169,110,0.6)}
+.lab-v2-savebtn.saved{color:var(--s1);border-color:rgba(38,201,122,0.4)}
+
+/* Two-col main body: 60% chart / 40% window stats */
+.lab-v2-body{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:14px}
+.lab-v2-body .col-main{min-width:0}
+.lab-v2-body .col-side{min-width:0;display:flex;flex-direction:column;gap:10px}
+
+.lab-v2-drag-hint{font-size:9px;color:var(--dim);margin-bottom:6px;letter-spacing:0.3px}
+.lab-v2-drag-hint b{color:var(--accent);font-weight:700}
+
+/* Right sidebar cards */
+.lab-v2-win{background:linear-gradient(180deg,rgba(255,255,255,0.025),rgba(255,255,255,0.005));border:1px solid var(--bdr2);border-radius:12px;padding:14px;display:flex;align-items:center;gap:14px}
+.lab-v2-win .donut{position:relative;width:88px;height:88px;flex-shrink:0}
+.lab-v2-win .donut svg{transform:rotate(-90deg)}
+.lab-v2-win .donut .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lab-v2-win .donut .center .pct{font-size:20px;font-weight:800;letter-spacing:-0.8px;line-height:1}
+.lab-v2-win .donut .center .cap{font-size:7px;font-weight:700;letter-spacing:0.7px;text-transform:uppercase;color:var(--dim);margin-top:2px}
+.lab-v2-win .info{flex:1;min-width:0}
+.lab-v2-win .info .win-title{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:2px}
+.lab-v2-win .info .win-sub{font-size:10.5px;color:var(--text);font-weight:600;line-height:1.4}
+.lab-v2-win .info .win-sub b{color:var(--text);font-weight:700}
+.lab-v2-win .info .win-sub .up{color:var(--s1)}
+.lab-v2-win .info .win-sub .dn{color:var(--sm2)}
+
+.lab-v2-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lab-v2-kpi{background:var(--surf3);border:1px solid var(--bdr2);border-radius:10px;padding:9px 11px}
+.lab-v2-kpi .kv{font-size:14px;font-weight:700;letter-spacing:-0.4px;line-height:1.1}
+.lab-v2-kpi .kk{font-size:7px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--dim);margin-top:3px;line-height:1.3}
+.lab-v2-kpi.wide{grid-column:1/-1}
+
+.lab-v2-yearbars-wrap{background:var(--surf3);border:1px solid var(--bdr2);border-radius:10px;padding:11px 12px}
+.lab-v2-yearbars-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.lab-v2-yearbars-head .t{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+.lab-v2-yearbars-head .r{font-size:8px;color:var(--dim)}
+.lab-v2-yearbars{position:relative;height:110px}
+.lab-v2-yearbars canvas{width:100%!important;height:100%!important}
+
+/* Per-year table */
+.lab-v2-table-wrap{background:var(--surf3);border:1px solid var(--bdr2);border-radius:10px;padding:0;overflow:hidden;margin-bottom:6px}
+.lab-v2-table-head{display:flex;justify-content:space-between;align-items:baseline;padding:10px 14px 6px}
+.lab-v2-table-head .t{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+.lab-v2-table-head .r{font-size:9px;color:var(--dim)}
+.lab-v2-table-scroll{max-height:240px;overflow-y:auto;scrollbar-width:thin}
+.lab-v2-table{width:100%;border-collapse:collapse;font-size:10px}
+.lab-v2-table thead th{position:sticky;top:0;background:var(--surf3);z-index:1;font-size:7.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--dim);padding:6px 10px 6px;text-align:right;border-bottom:1px solid var(--bdr2);white-space:nowrap}
+.lab-v2-table thead th:first-child{text-align:left}
+.lab-v2-table tbody td{padding:5px 10px;font-weight:600;text-align:right;border-bottom:1px solid rgba(255,255,255,0.02);white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-0.1px}
+.lab-v2-table tbody td:first-child{text-align:left;display:flex;align-items:center;gap:6px}
+.lab-v2-table tbody td .cyc-dot{width:6px;height:6px;border-radius:50%}
+.lab-v2-table tbody tr:hover{background:rgba(255,255,255,0.02)}
+.lab-v2-table tbody tr.excl{opacity:0.32}
+.lab-v2-table tbody tr.excl td{font-style:italic}
+.lab-v2-table .up{color:var(--s1)}
+.lab-v2-table .dn{color:var(--sm2)}
+.lab-v2-table .heavy{font-weight:700}
+
+.lab-v2-window-empty{background:var(--surf3);border:1px dashed var(--bdr2);border-radius:10px;padding:16px 14px;text-align:center}
+.lab-v2-window-empty .icon{font-size:16px;margin-bottom:4px;color:var(--accent);letter-spacing:2px}
+.lab-v2-window-empty .t{font-size:10.5px;color:var(--text);font-weight:600;margin-bottom:2px}
+.lab-v2-window-empty .sub{font-size:9px;color:var(--dim);line-height:1.4}
+
+@media(max-width:900px){
+  .lab-v2-body{grid-template-columns:1fr;gap:12px}
+  .lab-v2-body .col-side{order:2}
+}
+
 @media(max-width:700px){
   .lab-chart-wrap{height:290px}
   .lab-year{font-size:8px;padding:3px 7px}
   .lab-preset{font-size:7.5px;padding:3px 8px}
   .lab-stats{grid-template-columns:repeat(2,1fr)}
+  .lab-v2-head{padding:9px 11px;gap:8px 12px}
+  .lab-v2-blend-item{min-width:120px}
+  .lab-v2-win .donut{width:74px;height:74px}
+  .lab-v2-win .donut .center .pct{font-size:17px}
+  .lab-v2-table{font-size:9.5px}
+  .lab-v2-table thead th,.lab-v2-table tbody td{padding:5px 8px}
 }
 /* Turn timeline strip */
 .modal-turns-wrap{margin-bottom:12px}
@@ -24427,14 +24529,62 @@ canvas.chartjs-render-monitor{
         <span>Loading yearly paths…</span>
       </div>
       <div id="lab-content" style="display:none">
-        <div class="lab-sec-label">Presets</div>
+        <!-- V2: Blend controls + reliability grade -->
+        <div class="lab-v2-head" id="lab-v2-head">
+          <div class="lab-v2-grade" id="lab-v2-grade"></div>
+          <div class="lab-v2-blend">
+            <div class="lab-v2-blend-item">
+              <div class="lbl">Election-cycle weight <b id="lab-v2-cw-val">2.5×</b></div>
+              <input type="range" class="lab-v2-slider" id="lab-v2-cw" min="1" max="3" step="0.1" value="2.5">
+            </div>
+            <div class="lab-v2-blend-item" style="flex:0 0 auto;min-width:0">
+              <div class="lbl">Recency half-life</div>
+              <select class="lab-v2-select" id="lab-v2-hl">
+                <option value="999">Flat (no decay)</option>
+                <option value="20">20 years</option>
+                <option value="15" selected>15 years</option>
+                <option value="10">10 years</option>
+                <option value="5">5 years</option>
+              </select>
+            </div>
+          </div>
+          <div class="lab-v2-tag" id="lab-v2-tag"><span class="tag-dot"></span><span id="lab-v2-tag-label">—</span></div>
+          <button class="lab-v2-savebtn" id="lab-v2-savebtn" onclick="_labV2SaveDefault()" style="display:none">Set as default</button>
+        </div>
+
+        <div class="lab-sec-label">Basket — tap presets or individual years</div>
         <div class="lab-presets" id="lab-presets"></div>
-        <div class="lab-sec-label">Years <span id="lab-year-count" style="letter-spacing:0;color:var(--accent)"></span></div>
         <div class="lab-years" id="lab-years"></div>
         <div class="lab-sec-label">View</div>
         <div class="lab-opts" id="lab-opts"></div>
-        <div class="lab-callout" id="lab-callout" style="display:none"></div>
-        <div class="lab-chart-wrap"><canvas id="lab-chart"></canvas></div>
+
+        <!-- V2 two-column body: chart + window stats sidebar -->
+        <div class="lab-v2-body">
+          <div class="col-main">
+            <div class="lab-v2-drag-hint">Drag on the chart to pick a <b>window</b> — window stats appear on the right. Double-click to reset to <b>Today → +60TD</b>.</div>
+            <div class="lab-callout" id="lab-callout" style="display:none"></div>
+            <div class="lab-chart-wrap"><canvas id="lab-chart"></canvas></div>
+          </div>
+          <div class="col-side" id="lab-v2-side">
+            <!-- Filled by _labV2RenderWindow() — win-rate donut, KPIs, per-year bars -->
+          </div>
+        </div>
+
+        <!-- Per-year table (full width, below chart) -->
+        <div class="lab-v2-table-wrap" id="lab-v2-table-wrap" style="display:none">
+          <div class="lab-v2-table-head">
+            <div class="t">Per-year window returns — <span id="lab-v2-table-window">—</span></div>
+            <div class="r" id="lab-v2-table-note">—</div>
+          </div>
+          <div class="lab-v2-table-scroll">
+            <table class="lab-v2-table" id="lab-v2-table">
+              <thead><tr><th>Year</th><th>Return</th><th>Max rise</th><th>Max drop</th><th>Weight</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Legacy compact stats + month bars kept below for continuity -->
         <div class="lab-stats" id="lab-stats"></div>
         <div class="lab-sec-label">Average return by month — selected years</div>
         <div class="lab-month-wrap"><canvas id="lab-months"></canvas></div>
@@ -41694,15 +41844,40 @@ const _labCache={};
 const _LAB_FWD=60;  // forward window (trading days)
 const _LAB_CYC_COL={midterm:'#c8a96e',election:'#6b7cff',pre_election:'#26c97a',post_election:'#8a93a8'};
 const _LAB_CYC_LBL={midterm:'Midterm',election:'Election',pre_election:'Pre-Election',post_election:'Post-Election'};
+// V2 state
+let _labV2={
+  marketId:null, marketName:null,
+  blend:{cycle_w:2.5, halflife:15}, defaultBlend:{cycle_w:2.5, halflife:15},
+  assetClass:'all_years', assetTag:'—',
+  window:null,      // {ws, we} in trading days (null = default: today→+60)
+  windowStats:null, perYearWindow:[],
+  yearBars:null,
+  dragging:false, dragStart:null,
+  fetchInFlight:false
+};
+function _labV2LSKey(mkt){return 'seas_blend::'+mkt}
 
-async function fetchSeasLab(id){
-  const c=_labCache[id];
-  if(c&&(Date.now()-c._ts)<SEAS_CACHE_TTL)return c;
-  const r=await fetch(API+'/api/seasonality-lab?market='+id);
+async function fetchSeasLab(id, opts){
+  // opts: {cycle_w, halflife, window_start, window_end, basket, detrend}
+  // With opts → no cache (each blend/window call is fresh)
+  const params = new URLSearchParams({market:id});
+  const withOpts = opts && Object.keys(opts).length;
+  if(withOpts){
+    for(const k of ['cycle_w','halflife','window_start','window_end']){
+      if(opts[k]!=null) params.set(k, opts[k]);
+    }
+    if(opts.basket) params.set('basket', opts.basket);
+    if(opts.detrend) params.set('detrend','true');
+  }else{
+    const c=_labCache[id];
+    if(c&&(Date.now()-c._ts)<SEAS_CACHE_TTL)return c;
+  }
+  const r=await fetch(API+'/api/seasonality-lab?'+params.toString());
   if(!r.ok)throw new Error('HTTP '+r.status);
   const d=await r.json();
   if(d.error)throw new Error(d.error);
-  d._ts=Date.now();_labCache[id]=d;return d;
+  if(!withOpts){d._ts=Date.now();_labCache[id]=d;}
+  return d;
 }
 
 async function openSeasLab(marketId,marketName){
@@ -41711,19 +41886,36 @@ async function openSeasLab(marketId,marketName){
   document.getElementById('lab-title').textContent=(marketName||marketId)+' — Seasonality Lab';
   document.getElementById('lab-loading').style.display='flex';
   document.getElementById('lab-content').style.display='none';
+  _labV2.marketId=marketId;_labV2.marketName=marketName||marketId;
+  _labV2.window=null;_labV2.windowStats=null;_labV2.perYearWindow=[];
   try{
-    const d=await fetchSeasLab(marketId);
+    // Initial fetch: default blend (server chooses based on asset class)
+    // Use user-saved override if present
+    const saved=(function(){try{return JSON.parse(localStorage.getItem(_labV2LSKey(marketId))||'null')}catch(_){return null}})();
+    const initOpts = saved ? {cycle_w:saved.cycle_w, halflife:saved.halflife} : {};
+    const d=await fetchSeasLab(marketId, initOpts);
     _labData=d;
+    _labV2.defaultBlend={cycle_w:d.default_blend.cycle_w, halflife:d.default_blend.halflife};
+    _labV2.blend={cycle_w:d.effective_blend.cycle_w, halflife:d.effective_blend.halflife};
+    _labV2.assetClass=d.asset_class||'all_years';
+    _labV2.assetTag=(d.default_blend&&d.default_blend.tag)||'—';
     // Selectable years = completed historical years only
     _labData._yearList=Object.keys(d.years).map(Number).filter(y=>y<d.current_year).sort((a,b)=>a-b);
-    // Default basket: current cycle years (e.g. 2026 → midterm) — the question you're usually asking
-    _labSel=new Set(_labData._yearList.filter(y=>d.meta[y].cycle===d.current_cycle));
-    if(_labSel.size<3)_labSel=new Set(_labData._yearList);
-    _labPresetOn=d.current_cycle;
+    // Default basket: ALL years — blend does the cycle-weighting via server-side weights
+    // (v1 used current-cycle-only, v2 shows richer signal by including all years with recency+cycle weighting)
+    _labSel=new Set(_labData._yearList);
+    _labPresetOn='all';
+    // Default window: today → +60TD
+    const td=d.current_td, we=Math.min(251, td+_LAB_FWD);
+    _labV2.window={ws:td, we:we};
     document.getElementById('lab-loading').style.display='none';
     document.getElementById('lab-content').style.display='block';
+    _labV2RenderHead();
+    _labV2WireBlend();
     _labRenderControls();
     _labRender();
+    // Fetch window stats for default window
+    _labV2FetchWindow();
   }catch(e){
     document.getElementById('lab-loading').innerHTML='<span style="color:var(--sm2);font-size:10px">Error: '+e.message+'</span>';
   }
@@ -41761,7 +41953,7 @@ function _labRenderControls(){
     const m=d.meta[y],on=_labSel.has(y);
     return `<div class="lab-year${on?'':' off'}" onclick="_labToggleYear(${y})" title="${_LAB_CYC_LBL[m.cycle]} year · full-year ${m.ret!=null?(m.ret>=0?'+':'')+m.ret.toFixed(1)+'%':'—'}"><span class="cyc-dot" style="background:${_LAB_CYC_COL[m.cycle]}"></span>${y}</div>`;
   }).join('');
-  document.getElementById('lab-year-count').textContent='— '+_labSel.size+' selected';
+  const _lycEl=document.getElementById('lab-year-count'); if(_lycEl) _lycEl.textContent='— '+_labSel.size+' selected';
   const o=_labOpts;
   const opts=[
     ['avg-median','Median',o.avg==='median',"_labSetOpt('avg','median')"],
@@ -41929,7 +42121,261 @@ function _labRender(){
       plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'%'}}},
       scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:9}}},
         y:{grid:{color:'rgba(255,255,255,0.055)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>(v>=0?'+':'')+v+'%'}}}}});
+  // V2: attach drag-select on the chart canvas
+  _labV2AttachDragSelect();
+  // V2: sync save button visibility & render window sidebar from current state
+  _labV2UpdateSaveBtn();
+  _labV2RenderWindowSidebar();
 }
+
+/* ════ SEASONALITY LAB V2 ════ */
+
+// Render head: reliability grade, asset class tag
+function _labV2RenderHead(){
+  const d=_labData;
+  if(!d||!d.reliability)return;
+  const g=d.reliability.grade||'D', gEl=document.getElementById('lab-v2-grade');
+  const label={A:'Very reliable',B:'Reliable',C:'Fair signal',D:'Weak signal'}[g]||'—';
+  gEl.innerHTML = `<div class="grade-badge g-${g}">${g}</div><div class="grade-txt"><b>Reliability</b><span>${label} · ${d.reliability.n} yrs</span></div>`;
+  const tag=document.getElementById('lab-v2-tag');
+  tag.className='lab-v2-tag class-'+(_labV2.assetClass||'all_years');
+  document.getElementById('lab-v2-tag-label').textContent=_labV2.assetTag||'—';
+  // Sync slider/select to effective blend
+  document.getElementById('lab-v2-cw').value=_labV2.blend.cycle_w;
+  document.getElementById('lab-v2-cw-val').textContent=Number(_labV2.blend.cycle_w).toFixed(1)+'×';
+  const hlSel=document.getElementById('lab-v2-hl');
+  const hlVal=_labV2.blend.halflife>=999?'999':String(_labV2.blend.halflife);
+  hlSel.value=hlVal;
+  if(hlSel.selectedIndex<0){hlSel.value='15';}
+  _labV2UpdateSaveBtn();
+}
+
+function _labV2UpdateSaveBtn(){
+  const btn=document.getElementById('lab-v2-savebtn');
+  if(!btn)return;
+  const cur=_labV2.blend, def=_labV2.defaultBlend;
+  const differsFromDefault = Math.abs(cur.cycle_w-def.cycle_w)>0.05 || cur.halflife!==def.halflife;
+  const saved=(function(){try{return JSON.parse(localStorage.getItem(_labV2LSKey(_labV2.marketId))||'null')}catch(_){return null}})();
+  const matchesSaved = saved && Math.abs(cur.cycle_w-saved.cycle_w)<0.05 && cur.halflife===saved.halflife;
+  if(differsFromDefault && !matchesSaved){
+    btn.style.display='inline-block';btn.textContent='Set as default';btn.classList.remove('saved');
+  }else if(saved && matchesSaved){
+    btn.style.display='inline-block';btn.textContent='Saved as default';btn.classList.add('saved');
+  }else{
+    btn.style.display='none';
+  }
+}
+
+function _labV2SaveDefault(){
+  try{
+    localStorage.setItem(_labV2LSKey(_labV2.marketId), JSON.stringify(_labV2.blend));
+    _labV2UpdateSaveBtn();
+  }catch(e){}
+}
+
+let _labV2BlendDebounce=null;
+function _labV2WireBlend(){
+  const cw=document.getElementById('lab-v2-cw'), hl=document.getElementById('lab-v2-hl');
+  const cwVal=document.getElementById('lab-v2-cw-val');
+  cw.oninput = ()=>{ cwVal.textContent=Number(cw.value).toFixed(1)+'×'; };
+  cw.onchange = ()=>{ _labV2.blend.cycle_w=+cw.value; _labV2ReFetch(); };
+  hl.onchange = ()=>{ _labV2.blend.halflife=+hl.value; _labV2ReFetch(); };
+}
+
+async function _labV2ReFetch(){
+  if(_labV2.fetchInFlight) return;
+  _labV2.fetchInFlight=true;
+  try{
+    const opts={cycle_w:_labV2.blend.cycle_w, halflife:_labV2.blend.halflife};
+    if(_labV2.window){opts.window_start=_labV2.window.ws; opts.window_end=_labV2.window.we;}
+    const d=await fetchSeasLab(_labV2.marketId, opts);
+    _labData=d;
+    _labData._yearList=Object.keys(d.years).map(Number).filter(y=>y<d.current_year).sort((a,b)=>a-b);
+    _labV2.blend={cycle_w:d.effective_blend.cycle_w, halflife:d.effective_blend.halflife};
+    if(d.window){_labV2.windowStats=d.window.window_stats||null; _labV2.perYearWindow=d.window.per_year_windows||[];}
+    _labV2RenderHead();
+    _labRender();
+  }catch(e){console.warn('seas re-fetch failed',e);}
+  finally{_labV2.fetchInFlight=false;}
+}
+
+async function _labV2FetchWindow(){
+  if(!_labV2.window) return;
+  try{
+    const opts={cycle_w:_labV2.blend.cycle_w, halflife:_labV2.blend.halflife, window_start:_labV2.window.ws, window_end:_labV2.window.we};
+    const d=await fetchSeasLab(_labV2.marketId, opts);
+    if(d.window){_labV2.windowStats=d.window.window_stats||null; _labV2.perYearWindow=d.window.per_year_windows||[];}
+    _labV2RenderWindowSidebar();
+    _labV2RenderTable();
+  }catch(e){console.warn('seas window fetch failed',e);}
+}
+
+// Attach mouse drag-select on the main chart to pick a window
+function _labV2AttachDragSelect(){
+  if(!_labChart) return;
+  const cvs=document.getElementById('lab-chart');
+  if(!cvs || cvs._labV2Wired) return;
+  cvs._labV2Wired=true;
+
+  const tdFromEvent=(ev)=>{
+    const rect=cvs.getBoundingClientRect();
+    const x=ev.clientX-rect.left;
+    const sc=_labChart.scales.x;
+    if(!sc) return null;
+    const v=sc.getValueForPixel(x);
+    return Math.max(1, Math.min(252, Math.round(v)));
+  };
+
+  cvs.addEventListener('mousedown', (ev)=>{
+    const td=tdFromEvent(ev); if(td==null)return;
+    _labV2.dragging=true; _labV2.dragStart=td;
+    _labV2._pendingWs=td; _labV2._pendingWe=td;
+    _labV2DrawOverlay();
+    ev.preventDefault();
+  });
+  window.addEventListener('mousemove', (ev)=>{
+    if(!_labV2.dragging) return;
+    const td=tdFromEvent(ev); if(td==null)return;
+    const a=_labV2.dragStart, b=td;
+    _labV2._pendingWs=Math.min(a,b); _labV2._pendingWe=Math.max(a,b);
+    _labV2DrawOverlay();
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!_labV2.dragging) return;
+    _labV2.dragging=false;
+    if(_labV2._pendingWs!=null && _labV2._pendingWe!=null && (_labV2._pendingWe-_labV2._pendingWs)>=3){
+      _labV2.window={ws:_labV2._pendingWs, we:_labV2._pendingWe};
+      _labV2FetchWindow();
+      _labRender();  // redraw to bake the new window shading
+    }else{
+      _labV2DrawOverlay();
+    }
+  });
+  cvs.addEventListener('dblclick', ()=>{
+    const td=_labData.current_td, we=Math.min(251, td+_LAB_FWD);
+    _labV2.window={ws:td, we:we};
+    _labV2FetchWindow();
+    _labRender();
+  });
+}
+
+// Draw the drag overlay directly on the chart canvas (transient, not a Chart.js plugin)
+function _labV2DrawOverlay(){
+  if(!_labChart||!_labV2.dragging)return;
+  _labChart.update('none');
+  const ctx=_labChart.ctx, sc=_labChart.scales.x, ca=_labChart.chartArea;
+  const x0=sc.getPixelForValue(_labV2._pendingWs), x1=sc.getPixelForValue(_labV2._pendingWe);
+  ctx.save();
+  ctx.fillStyle='rgba(107,124,255,0.14)';
+  ctx.fillRect(Math.min(x0,x1), ca.top, Math.abs(x1-x0), ca.bottom-ca.top);
+  ctx.strokeStyle='rgba(107,124,255,0.55)';ctx.lineWidth=1;
+  ctx.strokeRect(Math.min(x0,x1), ca.top, Math.abs(x1-x0), ca.bottom-ca.top);
+  ctx.restore();
+}
+
+// Right sidebar: win-rate donut, KPIs, per-year bars
+function _labV2RenderWindowSidebar(){
+  const side=document.getElementById('lab-v2-side');
+  if(!side)return;
+  const s=_labV2.windowStats, py=_labV2.perYearWindow||[];
+  if(!s){
+    side.innerHTML=`<div class="lab-v2-window-empty"><div class="icon">▬ ▬</div><div class="t">Window stats loading…</div><div class="sub">Drag on the chart to pick a custom window, or wait a moment for the default forward window.</div></div>`;
+    _labV2.yearBars=null;
+    return;
+  }
+  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  const cls=v=>v==null?'':v>=0?'up':'dn';
+  const wr=s.win_rate!=null?Math.round(s.win_rate*100):null;
+  const wrCol=wr==null?'var(--dim)':wr>=55?'var(--s1)':wr<=45?'var(--sm2)':'var(--accent)';
+  // window label — use _labV2.window (backend does not echo window_start/end in stats)
+  const d=_labData;
+  const ws=(_labV2.window&&_labV2.window.ws)||0, we=(_labV2.window&&_labV2.window.we)||0;
+  const wsPhase=d.months?tdPhase(ws,d.months):'', wePhase=d.months?tdPhase(we,d.months):'';
+  const winLbl=`${wsPhase} → ${wePhase} · ${s.n_years} yrs`;
+  // best/worst year: derive from per-year (ret_pct) — reuse outer 'py'
+  let bestY=null,worstY=null;
+  if(py.length){const s2=[...py].sort((a,b)=>b.ret_pct-a.ret_pct); bestY=s2[0].year; worstY=s2[s2.length-1].year;}
+
+  const R=38, C=2*Math.PI*R;
+  const wrFrac=(wr==null?0:wr)/100;
+  const wrDashOn=(C*wrFrac).toFixed(1), wrDashOff=(C-C*wrFrac).toFixed(1);
+
+  side.innerHTML = `
+    <div class="lab-v2-win">
+      <div class="donut">
+        <svg viewBox="0 0 88 88" width="88" height="88">
+          <circle cx="44" cy="44" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="7"/>
+          <circle cx="44" cy="44" r="${R}" fill="none" stroke="${wrCol}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${wrDashOn} ${wrDashOff}"/>
+        </svg>
+        <div class="center"><div class="pct" style="color:${wrCol}">${wr==null?'—':wr+'%'}</div><div class="cap">Win rate</div></div>
+      </div>
+      <div class="info">
+        <div class="win-title">Window</div>
+        <div class="win-sub"><b>${winLbl}</b></div>
+        <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${s.n_gains} up · ${s.n_losses} down</div>
+      </div>
+    </div>
+    <div class="lab-v2-kpi-grid">
+      <div class="lab-v2-kpi"><div class="kv ${cls(s.w_median)}" style="color:${s.w_median>=0?'var(--s1)':'var(--sm2)'}">${pc(s.w_median)}</div><div class="kk">Median return (weighted)</div></div>
+      <div class="lab-v2-kpi"><div class="kv ${cls(s.w_mean)}" style="color:${s.w_mean>=0?'var(--s1)':'var(--sm2)'}">${pc(s.w_mean)}</div><div class="kk">Mean return (weighted)</div></div>
+      <div class="lab-v2-kpi"><div class="kv up" style="color:var(--s1)">${pc(s.avg_gain)}</div><div class="kk">Avg gain (up years)</div></div>
+      <div class="lab-v2-kpi"><div class="kv dn" style="color:var(--sm2)">${pc(s.avg_loss)}</div><div class="kk">Avg loss (down years)</div></div>
+      <div class="lab-v2-kpi"><div class="kv up" style="color:var(--s1)">${pc(s.max_gain)}</div><div class="kk">Best year${bestY?' • '+bestY:''}</div></div>
+      <div class="lab-v2-kpi"><div class="kv dn" style="color:var(--sm2)">${pc(s.max_loss)}</div><div class="kk">Worst year${worstY?' • '+worstY:''}</div></div>
+    </div>
+    <div class="lab-v2-yearbars-wrap">
+      <div class="lab-v2-yearbars-head"><div class="t">Per-year returns</div><div class="r">${py.length} yrs · sorted worst → best</div></div>
+      <div class="lab-v2-yearbars"><canvas id="lab-v2-yearbars-canvas"></canvas></div>
+    </div>`;
+  // draw per-year bars mini chart
+  _labV2DrawYearBars(py);
+  _labV2RenderTable();
+}
+
+function _labV2DrawYearBars(py){
+  const cvs=document.getElementById('lab-v2-yearbars-canvas');
+  if(!cvs)return;
+  if(_labV2.yearBars){try{_labV2.yearBars.destroy()}catch(e){}}
+  const sorted=[...py].sort((a,b)=>a.ret_pct-b.ret_pct);
+  _labV2.yearBars=new Chart(cvs.getContext('2d'),{
+    type:'bar',
+    data:{labels:sorted.map(p=>String(p.year).slice(2)),datasets:[{
+      data:sorted.map(p=>p.ret_pct),
+      backgroundColor:sorted.map(p=>p.ret_pct>=0?'rgba(38,201,122,0.75)':'rgba(240,64,64,0.75)'),
+      borderRadius:2,borderSkipped:false,barPercentage:0.85,categoryPercentage:1
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:260},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i.length?sorted[i[0].dataIndex].year+'':'',label:i=>(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'% · weight '+(sorted[i.dataIndex].weight||0).toFixed(2)}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:8},autoSkip:true,maxTicksLimit:14,maxRotation:0}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a93a8',font:{size:8},callback:v=>(v>=0?'+':'')+v+'%'}}}}});
+}
+
+function _labV2RenderTable(){
+  const wrap=document.getElementById('lab-v2-table-wrap');
+  if(!wrap)return;
+  const py=_labV2.perYearWindow||[], s=_labV2.windowStats;
+  if(!py.length||!s){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  const d=_labData;
+  const ws=(_labV2.window&&_labV2.window.ws)||0, we=(_labV2.window&&_labV2.window.we)||0;
+  const wsPhase=d.months?tdPhase(ws,d.months):'', wePhase=d.months?tdPhase(we,d.months):'';
+  document.getElementById('lab-v2-table-window').textContent=`${wsPhase} → ${wePhase}`;
+  document.getElementById('lab-v2-table-note').textContent=`${py.length} yrs`;
+  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  // Sort: most recent first
+  const rows=[...py].sort((a,b)=>b.year-a.year);
+  const tbody=document.querySelector('#lab-v2-table tbody');
+  tbody.innerHTML=rows.map(r=>{
+    const cyc=d.meta[r.year]?d.meta[r.year].cycle:'midterm';
+    const col=_LAB_CYC_COL[cyc]||'#8a93a8';
+    return `<tr><td><span class="cyc-dot" style="background:${col}"></span><span>${r.year}</span></td>`+
+      `<td class="${r.ret_pct>=0?'up':'dn'} heavy">${pc(r.ret_pct)}</td>`+
+      `<td class="up">${pc(r.max_rise)}</td>`+
+      `<td class="dn">${pc(r.max_drop)}</td>`+
+      `<td>${(r.weight||0).toFixed(2)}</td></tr>`;
+  }).join('');
+}
+
 // Redraw Climate Arc on resize
 let _arcResizeTimer=null;
 window.addEventListener('resize',()=>{
