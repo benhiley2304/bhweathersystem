@@ -42531,7 +42531,7 @@ function _labV2PlanRead(){
   const cands=[];
   const d=(typeof _labData!=='undefined')?_labData:null;
   if(d){
-    cands.push(d.plan,d.swing_plan,d.planner);
+    cands.push(d.planner,d.plan,d.swing_plan);   // contract §1: top-level `planner`
     if(d.window)cands.push(d.window.plan,d.window.swing_plan,d.window.window_stats&&d.window.window_stats.plan);
     if(d.score_detail)cands.push(d.score_detail.plan,d.score_detail);
   }
@@ -42540,7 +42540,7 @@ function _labV2PlanRead(){
     if(typeof DATA!=='undefined'&&DATA&&DATA.markets&&typeof _labV2!=='undefined'&&_labV2.marketId){
       const m=DATA.markets.find(x=>x.id===_labV2.marketId);
       const det=m&&m.scores&&m.scores.seasonal&&m.scores.seasonal.detail;
-      if(det){cands.push(det.plan,det.swing_plan,det);}
+      if(det){cands.push(det.planner,det.plan,det.swing_plan,det);}  // contract §1 flattened aliases
     }
   }catch(e){/* DATA is module-scoped and may not be built yet */}
   for(const c of cands){
@@ -42556,15 +42556,22 @@ const _LAB_FWD=30;  // default forward window (trading days) — 3-4wk swing cei
 const _LAB_FWD_MAX=45; // never default wider than this, whatever the planner says
 // Planner-adaptive default: prefer the recommended entry→exit leg once the backend
 // exposes it (`plan_action`/`entry_in_td`/`exit_in_td`), else fall back to +30 TD.
+const _LAB_FWD_PRESETS=[10,15,20,30];   // the swing-first window chips
+// Snap to a preset so the recommended leg always lights up a chip the trader can see.
+function _labFwdSnap(td){
+  for(const p of _LAB_FWD_PRESETS)if(td<=p)return p;
+  return Math.min(_LAB_FWD_MAX,_LAB_FWD_PRESETS[_LAB_FWD_PRESETS.length-1]);
+}
 function _labV2PlannerDefaultTd(){
   const p=_labV2PlanRead();
+  // exit_in_td is TD-from-today, so it already spans entry + hold; +2 TD of context after.
   if(p&&p.exit_in_td!=null&&isFinite(+p.exit_in_td)){
     const end=Math.round(+p.exit_in_td);
-    if(end>=5)return Math.min(_LAB_FWD_MAX,Math.max(10,end+2));  // +2 TD of context past the exit
+    if(end>=5)return _labFwdSnap(end+2);
   }
   if(p&&p.hold_td!=null&&isFinite(+p.hold_td)){
     const h=Math.round(+p.hold_td);
-    if(h>=5)return Math.min(_LAB_FWD_MAX,Math.max(10,h+2));
+    if(h>=5)return _labFwdSnap(h+2);
   }
   return _LAB_FWD;
 }
@@ -42763,7 +42770,7 @@ function _labRender(){
   // AUDIT-LAB-UI: callout & basket stats now follow the ACTIVE analysis window and the
   // Long/Short toggle instead of a hard-coded long-only +60TD read.
   const _shW=_labV2.window||{ws:td,we:fwdEnd};
-  _labV2.shape=_labV2ComputeShape(paths,_shW.ws,_shW.we,td);
+  _labV2.shape=_labV2ApplyHeadline(_labV2ComputeShape(paths,_shW.ws,_shW.we,td));
   _labV2RenderBasketStats();
   _labV2RenderCallout();
   // ── main chart ──
@@ -43010,6 +43017,32 @@ function _labV2ComputeShape(paths,ws,we,td){
   return out;
 }
 
+/* AUDIT-SEAS-R2-FRONTEND · window_stats.headline is the backend's canonical lens
+   (blend-weighted, compounded, ties excluded — see R2 BACKEND API CONTRACT §3). When the
+   client basket is the full server basket we adopt those numbers verbatim so the Lab and
+   the score cannot drift by even a rounding step; a user-narrowed basket keeps the
+   client computation, which is then the only honest answer for that subset. */
+function _labV2ApplyHeadline(out){
+  const ws=_labV2.windowStats, h=ws&&ws.headline;
+  if(!out||!h||!out.long||!out.short)return out;
+  if(h.n_years!=null&&out.n!==h.n_years)return out;   // narrowed basket — keep client stats
+  const L=out.long,S=out.short;
+  if(h.win_rate!=null)L.winRate=+h.win_rate;
+  if(h.short_win_rate!=null)S.winRate=+h.short_win_rate;
+  if(h.median_pct!=null){L.med=+h.median_pct;S.med=-(+h.median_pct);}
+  if(h.mean_pct!=null){L.mean=+h.mean_pct;S.mean=-(+h.mean_pct);}
+  if(h.n_up!=null){L.wins=h.n_up;S.losses=h.n_up;}
+  if(h.n_down!=null){L.losses=h.n_down;S.wins=h.n_down;}
+  if(h.n_ties!=null){L.nTie=h.n_ties;S.nTie=h.n_ties;}
+  if(ws.raw_win_rate!=null)L.rawWinRate=+ws.raw_win_rate;
+  if(ws.raw_short_win_rate!=null)S.rawWinRate=+ws.raw_short_win_rate;
+  else if(ws.raw_win_rate!=null&&ws.raw_n_ties!=null)S.rawWinRate=1-(+ws.raw_win_rate);
+  if(ws.raw_median!=null){L.rawMed=+ws.raw_median;S.rawMed=-(+ws.raw_median);}
+  if(ws.raw_mean!=null){L.rawMean=+ws.raw_mean;S.rawMean=-(+ws.raw_mean);}
+  out.lens='smart-blend weighted';
+  out.srvHeadline=true;
+  return out;
+}
 /* AUDIT-SEAS-R2-FRONTEND · shared lens stamp. Donut, callout, consensus grid and basket
    cards all print the SAME string, so a trader can never be unsure which basket a number
    came from. The raw equal-weight figure only ever appears as a secondary sub-label. */
@@ -43075,6 +43108,8 @@ function _labPlanExitLbl(plan){
   }
   return null;
 }
+// 8, 11, 18, 80-89 take "an"; everything else "a".
+function _labArt(n){const t=String(n);return (t[0]==='8'||/^1[18]$/.test(t))?'an':'a';}
 const _LAB_TURN_WORD={dip:'dip',trough:'dip',low:'dip',peak:'peak',high:'peak',top:'peak'};
 function _labPlanTurnWord(plan,isShort){
   const t=plan.next_turn_type?String(plan.next_turn_type).toLowerCase():null;
@@ -43153,7 +43188,7 @@ function _labV2RenderCallout(){
     tone='co-gold';ic='◷';pill=`${pEntryTd} TD`;
     kick=`Goldilocks in ${pEntryTd} TD — then ride to ${pExit||ph(sh.we)}`;
     txt=`Do nothing yet. Seasonal ${pTurn} lands in <b>${pEntryTd} TD</b>${pEntryTd>0?` (~${Math.max(1,Math.round(pEntryTd*_LAB_TD2CAL/7))} week${Math.round(pEntryTd*_LAB_TD2CAL/7)===1?'':'s'})`:''}; `+
-        `${isShort?'sell':'buy'} that ${pTurn}, then exit by <b>${pExit||ph(sh.we)}</b>${pHold!=null?` — a ${pHold} TD leg`:''}.`+
+        `${isShort?'sell':'buy'} that ${pTurn}, then exit by <b>${pExit||ph(sh.we)}</b>${pHold!=null?` — ${_labArt(pHold)} ${pHold} TD leg`:''}.`+
         `${pEdge} Median adverse ${C.adverseWord} before then <b>${pc(s.advMed)}</b>.${shapeTxt}${srcTxt}`;
   }else if(goldTd!=null&&goldTd<=2&&s.postMed>=1.5){
     tone='co-good';ic=isShort?'▼':'▲';pill='NOW';
@@ -43336,7 +43371,7 @@ function _labV2RecomputeShape(){
   if(!_labData)return;
   const td=_labData.current_td;
   const w=_labV2.window||{ws:td,we:Math.min(252,td+_LAB_FWD)};
-  _labV2.shape=_labV2ComputeShape(_labPaths(),w.ws,w.we,td);
+  _labV2.shape=_labV2ApplyHeadline(_labV2ComputeShape(_labPaths(),w.ws,w.we,td));
 }
 
 // Set the active analysis window (from presets, month picker, drag or dblclick)
