@@ -10732,8 +10732,161 @@ def _eng_setup_quality(grp: str, spec_idx, comm_idx, spec_chg, price_confirm, co
     return "confirmed", setup_dir, drv
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# AUDIT-COMPOSITE — GOLDILOCKS ENTRY-TIMING TILT ON THE SEASONAL FACTOR
+# ───────────────────────────────────────────────────────────────────────────
+# Ben's Read B: "if all other fundamentals are strong AND we're close to a good
+# seasonal entry, I still want a positive-leaning score, but with a clear caveat
+# saying almost ready seasonally."
+#
+# The engine only ever sees the SIGN of the seasonal score (|score-5| must clear
+# _ENG_DEADBAND = 0.5 or the factor abstains). So a market sitting at a flat 5.0
+# because its goldilocks entry is 8 trading days away contributes NOTHING to the
+# composite — the single most actionable seasonal state in Ben's workflow is the
+# one the composite is blind to. This tilt fixes that, and its mirror image:
+# a goldilocks entry we MISSED by 1-3 weeks is a decaying edge, so the seasonal
+# factor is pulled back toward neutral rather than left at full strength.
+#
+# Guard rails (all deliberate, all tested):
+#   * BOOST only fires when goldilocks_dir MATCHES the lean of the OTHER factors
+#     (regime + macro + COT + momentum + relval + PCR). It confirms, never leads.
+#   * The other-factor lean is computed BEFORE the tilt, so seasonality can never
+#     self-confirm.
+#   * Magnitude capped at _SEAS_TILT_BOOST_CAP (0.75) and scaled by proximity,
+#     goldilocks peak strength, and the market's own reliability dampen — a
+#     grade-D mirage barely moves.
+#   * NEVER INVERTS: the tilt can never carry the seasonal score across 5.0. If it
+#     would, the score is clamped AT 5.0 (i.e. the factor abstains) — honest, and
+#     it preserves Ben's "never invert the composite score" rule at the factor level.
+#   * Result is clipped to [0, 10].
+#
+# HOW THE TILT REACHES THE COMPOSITE — and why it is NOT a vote flip
+# ─────────────────────────────────────────────────────────────────────
+# The engine reads factors through _eng_signed(), which ABSTAINS below a 0.5
+# deadband and otherwise casts a full ±1 vote. Feeding the tilted score straight
+# back into that produces a STEP FUNCTION: a +0.45 tilt does literally nothing
+# (5.45 still abstains) while a +0.51 tilt buys a whole extra edge vote, worth
+# ~+0.8 on the headline. Neither is "a positive lean with a caveat" — one is
+# invisible, the other over-drives.
+#
+# So the tilt is transmitted as a small CONVICTION CREDIT in bias-aligned units
+# instead: continuous, capped, and it cannot manufacture or flip a direction
+# (conviction = bias x raw_conv x gate, so a zero bias stays zero). The tilted
+# score itself is still published as `seasonal_score_adj` for the UI/audit trail,
+# but the FACTOR VOTE stays anchored on the untilted score — timing informs
+# conviction, it never invents a directional view.
+# ═══════════════════════════════════════════════════════════════════════════
+_SEAS_TILT_BOOST_CAP = 0.75    # max points added toward goldilocks_dir
+_SEAS_TILT_DECAY_CAP = 0.60    # max points pulled back toward neutral when late
+_SEAS_TILT_MIN_TD    = 3       # inside 3 TD we are effectively AT the entry
+_SEAS_TILT_MAX_TD    = 10      # beyond 10 TD it is context, not a lean
+_SEAS_DECAY_MIN_TD   = 3       # missed by <3 TD = still fine, no decay
+_SEAS_DECAY_MAX_TD   = 15      # missed by >15 TD = fully decayed
+_SEAS_TILT_CONV_K    = 0.80    # tilt points → raw-conviction points
+#   → max boost credit 0.75 x 0.80 = +0.60 raw_conv (≤ +0.6 on the headline after
+#     the regime gate); max decay credit 0.60 x 0.80 = -0.48. Deliberately smaller
+#     than one edge vote (1.0) so a timing caveat can never outrank a real factor.
+
+
+def _eng_other_lean(regime_z, macro_z, cot_z, rv_z, pcr_z, mom_z,
+                    momentum_detail: dict = None) -> int:
+    """Directional lean of every factor EXCEPT seasonality, as -1 / 0 / +1.
+    Edge factors (regime, macro) carry full weight; the confirmation factors
+    (COT, momentum, relval, PCR) carry half — same hierarchy the conviction calc
+    uses, so the gate agrees with the engine's own view of what matters."""
+    momentum_detail = momentum_detail or {}
+    _mtf = momentum_detail.get("mtf_vote")
+    if _mtf is None:
+        _mtf = float(_eng_sign(mom_z))
+    net = (1.0 * _eng_sign(regime_z) + 1.0 * _eng_sign(macro_z)
+           + 0.5 * _eng_sign(cot_z) + 0.5 * float(_mtf)
+           + 0.5 * _eng_sign(rv_z) + 0.5 * _eng_sign(pcr_z))
+    # Require a real lean, not a 0.5 whisper, before we let it confirm anything.
+    if net >= 1.0:  return 1
+    if net <= -1.0: return -1
+    return 0
+
+
+def _seas_timing_tilt(seas_score, seas_detail: dict, other_dir: int):
+    """Apply the goldilocks entry-timing tilt to the seasonal factor score.
+    Returns (adjusted_score, hint_string, meta_dict). Never inverts; clips 0-10."""
+    meta = {"tilt": 0.0, "mode": None, "other_dir": int(other_dir or 0)}
+    if seas_score is None or not isinstance(seas_detail, dict) or not seas_detail:
+        return seas_score, None, meta
+    try:
+        base = float(seas_score)
+    except (TypeError, ValueError):
+        return seas_score, None, meta
+
+    timing = seas_detail.get("entry_timing")
+    dtg    = seas_detail.get("days_to_goldilocks")
+    gdir   = seas_detail.get("goldilocks_dir")
+    lean   = seas_detail.get("goldilocks_lean")
+    dampen = seas_detail.get("dampen_factor")
+    dampen = 1.0 if dampen is None else max(0.0, min(1.0, float(dampen)))
+    meta.update({"entry_timing": timing, "days_to_goldilocks": dtg, "goldilocks_dir": gdir})
+
+    if timing in (None, "none") or dtg is None:
+        return round(base, 2), None, meta
+
+    _dirword = "long" if (gdir or 0) > 0 else "short" if (gdir or 0) < 0 else "directionless"
+    tilt = 0.0
+    hint = None
+
+    # ── APPROACHING: goldilocks entry 1-10 TD out, other factors agree ─────
+    if gdir in (1, -1) and 0 <= dtg <= _SEAS_TILT_MAX_TD:
+        prox     = max(0.1, min(1.0, (_SEAS_TILT_MAX_TD + 1 - dtg) / float(_SEAS_TILT_MAX_TD)))
+        strength = min(1.0, abs(float(lean)) / 3.0) if lean else 0.5
+        strength = max(0.30, strength)
+        if other_dir != 0 and other_dir == gdir:
+            tilt = gdir * min(_SEAS_TILT_BOOST_CAP,
+                              _SEAS_TILT_BOOST_CAP * prox * strength * max(0.40, dampen))
+            meta["mode"] = "approaching_confirmed"
+            hint = (f"Seasonal goldilocks in {dtg} TD (~{dtg/5.0:.1f}wk) — "
+                    f"{_dirword} direction confirms other factors")
+        else:
+            meta["mode"] = "approaching_unconfirmed"
+            hint = (f"Seasonal goldilocks in {dtg} TD (~{dtg/5.0:.1f}wk), {_dirword} — "
+                    f"other factors not aligned, no composite tilt applied")
+
+    # ── PAST: entry missed by 3-15 TD — the edge is decaying ───────────────
+    elif dtg <= -_SEAS_DECAY_MIN_TD:
+        span  = float(_SEAS_DECAY_MAX_TD - _SEAS_DECAY_MIN_TD)
+        decay = max(0.0, min(1.0, (abs(dtg) - _SEAS_DECAY_MIN_TD) / span))
+        pull  = _SEAS_TILT_DECAY_CAP * decay
+        _sgn  = 1 if base > 5.0 else -1 if base < 5.0 else 0
+        if _sgn != 0 and pull > 0:
+            tilt = -_sgn * min(pull, abs(base - 5.0))
+            meta["mode"] = "past_decayed"
+        else:
+            meta["mode"] = "past_flat"
+        hint = (f"Past optimal seasonal entry — {abs(dtg)} TD ago "
+                f"(~{abs(dtg)/5.0:.1f}wk), {_dirword}; edge decaying")
+
+    # ── EARLY / NOW / JUST_PASSED: caveat only, no tilt ────────────────────
+    elif timing == "early" and gdir in (1, -1):
+        meta["mode"] = "early"
+        hint = (f"Seasonal goldilocks {dtg} TD out (~{dtg/5.0:.1f}wk), {_dirword} — "
+                f"too early to lean on")
+    elif timing == "now":
+        meta["mode"] = "now"
+        hint = f"Seasonal goldilocks {_dirword} entry is NOW"
+    elif timing == "just_passed":
+        meta["mode"] = "just_passed"
+        hint = f"Seasonal goldilocks {_dirword} entry {abs(dtg)} TD ago — still live"
+
+    adj = base + tilt
+    # NEVER INVERT: the tilt may not carry the factor across neutral.
+    if base > 5.0 and adj < 5.0:   adj = 5.0
+    elif base < 5.0 and adj > 5.0: adj = 5.0
+    adj = max(0.0, min(10.0, adj))
+    meta["tilt"] = round(adj - base, 2)
+    return round(adj, 2), hint, meta
+
+
 def compute_engine_bias(scores: dict, market_id: str = "",
-                        cot_detail: dict = None, momentum_detail: dict = None) -> dict:
+                        cot_detail: dict = None, momentum_detail: dict = None,
+                        seas_detail: dict = None) -> dict:
     """Validated trend-gated confluence engine. Drop-in replacement for
     compute_weighted_bias — returns a SUPERSET of its keys (weighted/bias/color)
     plus the engine state (direction/conviction/tier/regime/trend_state/
@@ -10767,6 +10920,21 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     er = momentum_detail.get("efficiency_ratio")
     if er is None:
         er = 0.20
+
+    # ── AUDIT-COMPOSITE: goldilocks entry-timing tilt on the seasonal factor ──
+    # other_dir is computed from the NON-seasonal factors only, and BEFORE the
+    # tilt is applied, so seasonality can never confirm itself. See the block
+    # comment above _seas_timing_tilt for the full rationale + guard rails.
+    _other_dir = _eng_other_lean(regime_z, macro_z, cot_z, rv_z, pcr_z, mom_z,
+                                 momentum_detail)
+    _seas_raw_score = scores.get("seasonal")
+    _seas_adj_score, seasonal_hint, _seas_tilt_meta = _seas_timing_tilt(
+        _seas_raw_score, seas_detail, _other_dir)
+    # NOTE: seas_z is deliberately NOT recomputed from the tilted score — see the
+    # "HOW THE TILT REACHES THE COMPOSITE" note above. The tilt lands as a capped
+    # conviction credit further down, so it can never flip a factor vote.
+    _seas_tilt_pts = float(_seas_tilt_meta.get("tilt") or 0.0)
+    _seas_tilt_dir = _eng_sign(_seas_tilt_pts)
 
     # ── 1) DIRECTIONAL BACKDROP — only edge-bearing factors, abstain-aware ──
     bd_vals = [v for v in (seas_z, regime_z, macro_z) if v is not None]
@@ -10823,6 +10991,23 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     conf_net = conf_net_non_mom + mom_conf
     raw_conv = edge_net + 0.5 * conf_net
 
+    # ── AUDIT-COMPOSITE: goldilocks timing credit (capped, cannot cross zero) ──
+    # Positive when the seasonal tilt points the same way as the composite bias
+    # ("almost ready seasonally, and it agrees"), negative when a goldilocks entry
+    # that USED to support the bias has decayed past its sweet spot. Clamped so it
+    # can never carry raw_conv across zero — i.e. a timing caveat can soften or
+    # firm up a lean, but it can NEVER invert the composite. Ben's rule holds.
+    seas_timing_conv = 0.0
+    if bias != 0 and _seas_tilt_dir != 0:
+        seas_timing_conv = (_SEAS_TILT_CONV_K * abs(_seas_tilt_pts)
+                            * (1.0 if _seas_tilt_dir == bias else -1.0))
+        _rc_before = raw_conv
+        if _rc_before >= 0:
+            raw_conv = max(0.0, _rc_before + seas_timing_conv)
+        else:
+            raw_conv = min(0.0, _rc_before + seas_timing_conv)
+        seas_timing_conv = round(raw_conv - _rc_before, 3)
+
     # ── 3) REGIME GATE — scale conviction by trend quality ─────────────────
     gate = _eng_regime_gate(er)
     conviction = round(bias * raw_conv * gate, 2)
@@ -10861,6 +11046,10 @@ def compute_engine_bias(scores: dict, market_id: str = "",
         if v > 0:   drivers.append(f"{_names[k]}: bullish")
         elif v < 0: drivers.append(f"{_names[k]}: bearish")
     drivers += setup_drivers
+    # AUDIT-COMPOSITE: surface the seasonal timing caveat in the driver list too,
+    # so it shows up in the existing UI driver rail without a frontend change.
+    if seasonal_hint:
+        drivers.append(seasonal_hint)
 
     # ── climate score (0-10) for the gauge — derived from bias x conviction ─
     weighted = round(max(0.2, min(9.8, 5.0 + conviction)), 2)
@@ -10899,6 +11088,27 @@ def compute_engine_bias(scores: dict, market_id: str = "",
         "disagree":          disagree,
         "factor_votes":      votes,
         "drivers":           drivers,
+        # ── AUDIT-COMPOSITE: seasonal goldilocks entry-timing exposure ────────
+        # seasonal_hint is the human-readable caveat Ben asked for ("almost ready
+        # seasonally"). The rest lets the UI render a chip and lets anyone audit
+        # exactly how much the tilt moved the seasonal factor.
+        "seasonal_hint":            seasonal_hint,
+        "seasonal_score_raw":       (round(float(_seas_raw_score), 2)
+                                     if _seas_raw_score is not None else None),
+        "seasonal_score_adj":       _seas_adj_score,
+        "seasonal_timing_tilt":     _seas_tilt_meta.get("tilt", 0.0),
+        "seasonal_timing_mode":     _seas_tilt_meta.get("mode"),
+        "seasonal_other_lean":      _other_dir,
+        # how many raw-conviction points the timing credit actually contributed
+        "seasonal_timing_conv":     seas_timing_conv,
+        "entry_timing":             (seas_detail or {}).get("entry_timing"),
+        "days_to_goldilocks":       (seas_detail or {}).get("days_to_goldilocks"),
+        "goldilocks_dir":           (seas_detail or {}).get("goldilocks_dir"),
+        "entry_note":               (seas_detail or {}).get("entry_note"),
+        # 10-TD "very near term" read. Deliberately NOT fed into the headline
+        # composite (the scoring agent anchors the headline on the 20-TD swing
+        # window) — published so the UI can show a very-near-term chip.
+        "immediate_score":          (seas_detail or {}).get("imm_score"),
     }
 
 
@@ -11026,22 +11236,47 @@ async def head_all_scores():
         print(f"[scores] HEAD warm trigger error (non-fatal): {_e}", flush=True)
     return _Resp(status_code=200)
 
+# AUDIT-COMPOSITE: `market=` returns the single-market DETAIL payload (same object
+# the market list carries, plus the global regime/weights context) instead of all
+# 60+ markets. The full payload is ~600KB; this is ~15KB. Purely additive — with
+# no `market` param the response is byte-for-byte what it always was, so the
+# existing frontend is untouched.
+def _scores_market_view(payload: dict, market: str) -> dict:
+    mid = (market or "").strip().upper()
+    mkts = (payload or {}).get("markets") or []
+    hit = next((m for m in mkts if str(m.get("id", "")).upper() == mid), None)
+    if hit is None:
+        return {"error": f"Unknown market '{market}'",
+                "available": [m.get("id") for m in mkts]}
+    return {
+        "updated_at": (payload or {}).get("updated_at"),
+        "market":     hit,
+        "regime":     (payload or {}).get("regime"),
+        "weights":    (payload or {}).get("weights"),
+    }
+
+
 @app.get("/api/scores")
-async def get_all_scores(force: bool = False):
+async def get_all_scores(force: bool = False, market: str = None):
     now = time.time()
     cache_age = now - ALL_DATA_CACHE["time"]
     cache_exists = bool(ALL_DATA_CACHE["data"])
 
+    # AUDIT-COMPOSITE: single exit point so the optional `market=` slice is applied
+    # on every return path (fresh cache, stale-while-revalidate, cold compute).
+    def _out(_payload):
+        return _SafeJSONResponse(_scores_market_view(_payload, market) if market else _payload)
+
     # Fast path: fresh cache — return immediately
     if not force and cache_exists and cache_age < ALL_DATA_TTL:
-        return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+        return _out(ALL_DATA_CACHE["data"])
 
     # Stale-while-revalidate: if we have ANY cached data (even expired), serve it
     # immediately and kick off a background refresh so the user never waits
     if not force and cache_exists:
         print(f"[scores] Cache stale ({cache_age:.0f}s old) — serving stale, refreshing in background", flush=True)
         asyncio.ensure_future(_refresh_scores_background())
-        return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+        return _out(ALL_DATA_CACHE["data"])
 
     # If cache is cold and still warming up, return 202 so frontend can poll
     if _WARMING["started"] and not _WARMING["done"] and not force:
@@ -11057,14 +11292,14 @@ async def get_all_scores(force: bool = False):
     except asyncio.TimeoutError:
         print("[scores] Lock acquisition timed out (deadlock?) — returning stale/empty", flush=True)
         if ALL_DATA_CACHE["data"]:
-            return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+            return _out(ALL_DATA_CACHE["data"])
         from fastapi.responses import JSONResponse as _JR
         return _JR({"error": "Server busy — retry in 30s"}, status_code=503)
     try:
         # Re-check cache inside lock: a previous waiter may have already recomputed
         now = time.time()
         if not force and ALL_DATA_CACHE["data"] and (now - ALL_DATA_CACHE["time"]) < ALL_DATA_TTL:
-            return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+            return _out(ALL_DATA_CACHE["data"])
         if force:
             ALL_DATA_CACHE["data"] = None
             FF_CACHE["data"] = None
@@ -11076,7 +11311,7 @@ async def get_all_scores(force: bool = False):
             print("[scores] _do_scores_refresh timed out after 600s — serving stale", flush=True)
     finally:
         _SCORES_LOCK.release()
-    return _SafeJSONResponse(ALL_DATA_CACHE["data"])
+    return _out(ALL_DATA_CACHE["data"])
 
 async def _do_scores_refresh(force: bool = False):
     """Core refresh logic — must be called with _SCORES_LOCK already held."""
@@ -11413,8 +11648,11 @@ async def _do_scores_refresh(force: bool = False):
         _cot_detail_inner  = cot_data.get("detail", {}) or {}
         _cot_v2_signals    = {k: cot_data[k] for k in _COT_V2_SIGNAL_KEYS if k in cot_data}
         _cot_detail_merged = {**_cot_detail_inner, **_cot_v2_signals, "score": cot_data.get("score", 5.0)}
+        # AUDIT-COMPOSITE: pass the seasonal detail so the engine can apply the
+        # goldilocks entry-timing tilt + publish seasonal_hint.
         bias = compute_engine_bias(scores, market_id=mid, cot_detail=_cot_detail_merged,
-                                   momentum_detail=momentum_data.get("detail", {}))
+                                   momentum_detail=momentum_data.get("detail", {}),
+                                   seas_detail=seasonal_data.get("detail", {}) or {})
     
         # Include v2 debug fields alongside the cot entry so they
         # are visible in /api/scores for client-side debugging.
@@ -11488,6 +11726,22 @@ async def _do_scores_refresh(force: bool = False):
             "disagree":          bias.get("disagree", 0),
             "factor_votes":      bias.get("factor_votes", {}),
             "drivers":           bias.get("drivers", []),
+            # ── AUDIT-COMPOSITE: seasonal goldilocks entry-timing on the SUMMARY ──
+            # These are duplicated at market top level (not just inside
+            # scores.seasonal.detail) so the market-list cards can render an
+            # "almost ready seasonally" chip without reaching into the detail blob.
+            "seasonal_hint":       bias.get("seasonal_hint"),
+            "seasonal_score_raw":  bias.get("seasonal_score_raw"),
+            "seasonal_score_adj":  bias.get("seasonal_score_adj"),
+            "seasonal_timing_tilt": bias.get("seasonal_timing_tilt", 0.0),
+            "seasonal_timing_mode": bias.get("seasonal_timing_mode"),
+            "seasonal_timing_conv": bias.get("seasonal_timing_conv", 0.0),
+            "seasonal_other_lean": bias.get("seasonal_other_lean", 0),
+            "entry_timing":        bias.get("entry_timing"),
+            "days_to_goldilocks":  bias.get("days_to_goldilocks"),
+            "goldilocks_dir":      bias.get("goldilocks_dir"),
+            "entry_note":          bias.get("entry_note"),
+            "immediate_score":     bias.get("immediate_score"),
             "scores":            scores_out,
             "weights":           active_weights,  # Per-market weight map (varies by data quality + PCR tier)
             "fade":              fade_data,        # consensus-fade / crowded-trade detector
@@ -11595,8 +11849,13 @@ async def _do_scores_refresh(force: bool = False):
             _dx_v2_sigs = {k: _dx_cot_raw[k] for k in _COT_V2_SIGNAL_KEYS if k in _dx_cot_raw}
             cot_detail_for_mid = {**_dx_cot_inner, **_dx_v2_sigs, "score": _dx_cot_raw.get("score", 5.0)}
             _dx_mom_detail = mkt["scores"].get("momentum", {}).get("detail", {}) or {}
+            # AUDIT-COMPOSITE: the DX feedback loop must re-flow the seasonal
+            # timing tilt too, otherwise the tilt (and seasonal_hint) silently
+            # vanished for every DX-correlated market — which is most of the book.
+            _dx_seas_detail = mkt["scores"].get("seasonal", {}).get("detail", {}) or {}
             new_bias = compute_engine_bias(factor_scores, market_id=mid, cot_detail=cot_detail_for_mid,
-                                           momentum_detail=_dx_mom_detail)
+                                           momentum_detail=_dx_mom_detail,
+                                           seas_detail=_dx_seas_detail)
     
             # Update the result in place — re-flow the FULL engine state after the tilt
             mkt["scores"]["regime"]["score"]  = new_regime_score
@@ -11608,7 +11867,14 @@ async def _do_scores_refresh(force: bool = False):
             mkt["confluence_bonus"]= new_bias.get("confluence_bonus", 0.0)
             for _k in ("direction","bias_sign","conviction","tier","regime","efficiency_ratio",
                        "regime_gate","trend_lt","trend_st","trend_state","setup_quality",
-                       "setup_direction","setup_vs_backdrop","agree","disagree","factor_votes","drivers"):
+                       "setup_direction","setup_vs_backdrop","agree","disagree","factor_votes","drivers",
+                       # AUDIT-COMPOSITE: keep the seasonal timing block in sync
+                       # after the DX regime tilt re-flows the engine.
+                       "seasonal_hint","seasonal_score_raw","seasonal_score_adj",
+                       "seasonal_timing_tilt","seasonal_timing_mode","seasonal_timing_conv",
+                       "seasonal_other_lean",
+                       "entry_timing","days_to_goldilocks","goldilocks_dir",
+                       "entry_note","immediate_score"):
                 mkt[_k] = new_bias.get(_k, mkt.get(_k))
     
     results.sort(key=lambda x: x["weighted_score"], reverse=True)
@@ -13780,6 +14046,13 @@ def score_seasonality(market_id: str) -> dict:
             "recent5_rets": stats.get("recent5_rets"),
             "recent_regime_signal": stats.get("recent_regime_signal"),
             "recent_regime_score": stats.get("recent_regime_score"),
+            # AUDIT-COMPOSITE: these three existed in _seas_window_stats but were
+            # dropped on the way out to the API — recent_regime_weight shows how
+            # hard the regime override hit, *_abs expose an un-clamped Nov/Dec wrap.
+            "recent_regime_weight": stats.get("recent_regime_weight"),
+            "td_end_abs": stats.get("td_end_abs"),
+            "td_far_end_abs": stats.get("td_far_end_abs"),
+            "raw_hit_rate": stats.get("raw_hit_rate"),
             # r15: far-window + shape
             "td_far_end": stats.get("td_far_end"),
             "far_score": stats.get("far_score"),
@@ -13790,6 +14063,10 @@ def score_seasonality(market_id: str) -> dict:
             "shape_rotated": stats.get("shape_rotated"),
             # AUDIT-SCORING: immediate (1-2wk) horizon shown alongside near (3-4wk)
             "imm_score": stats.get("imm_score"),
+            # AUDIT-COMPOSITE: explicit alias — the composite payload and the UI
+            # both refer to this as `immediate_score`; publish both names so
+            # neither side has to know the other's abbreviation.
+            "immediate_score": stats.get("imm_score"),
             "imm_median_pct": stats.get("imm_median_pct"),
             "imm_hit_rate": stats.get("imm_hit_rate"),
             "td_imm_end": stats.get("td_imm_end"),
