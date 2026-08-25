@@ -4433,7 +4433,39 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-stat{background:var(--surf3);border:1px solid var(--bdr2);border-radius:9px;padding:9px 11px}
 .lab-stat .lv{font-size:15px;font-weight:700;letter-spacing:-0.3px}
 .lab-stat .lk{font-size:7.5px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--dim);margin-top:3px;line-height:1.35}
-.lab-callout{padding:9px 12px;border-radius:9px;font-size:10px;line-height:1.55;margin-bottom:14px;border:1px solid}
+/* AUDIT-LAB-UI · trader callout — glass card, icon badge, countdown pill */
+.lab-callout{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;
+  padding:11px 13px;border-radius:13px;margin-bottom:12px;border:1px solid var(--bdr2);
+  background:linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.008));
+  backdrop-filter:blur(10px) saturate(120%);-webkit-backdrop-filter:blur(10px) saturate(120%);
+  box-shadow:0 10px 30px -22px rgba(0,0,0,0.85)}
+.lab-callout .co-ic{width:24px;height:24px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;line-height:1;flex-shrink:0;align-self:flex-start;margin-top:1px}
+.lab-callout .co-body{min-width:0}
+.lab-callout .co-kick{font-size:8.5px;font-weight:800;letter-spacing:0.85px;text-transform:uppercase;margin-bottom:3px;line-height:1.3}
+.lab-callout .co-txt{font-size:10px;line-height:1.6;color:var(--text-dim)}
+.lab-callout .co-txt b{color:var(--text);font-weight:700}
+.lab-callout .co-txt i{font-style:normal;color:var(--dim);font-size:9px}
+.lab-callout .co-pill{font-size:9.5px;font-weight:800;letter-spacing:0.5px;padding:6px 10px;border-radius:999px;
+  white-space:nowrap;border:1px solid transparent;font-variant-numeric:tabular-nums;flex-shrink:0}
+.lab-callout.co-risk{border-color:rgba(240,64,64,0.34);background:linear-gradient(180deg,rgba(240,64,64,0.105),rgba(240,64,64,0.035))}
+.lab-callout.co-risk .co-ic{background:rgba(240,64,64,0.16);color:#f04040}
+.lab-callout.co-risk .co-kick{color:#f47070}
+.lab-callout.co-risk .co-pill{color:#f47070;border-color:rgba(240,64,64,0.35);background:rgba(240,64,64,0.10)}
+.lab-callout.co-good{border-color:rgba(38,201,122,0.34);background:linear-gradient(180deg,rgba(38,201,122,0.105),rgba(38,201,122,0.032))}
+.lab-callout.co-good .co-ic{background:rgba(38,201,122,0.16);color:#26c97a}
+.lab-callout.co-good .co-kick{color:#3fd48c}
+.lab-callout.co-good .co-pill{color:#3fd48c;border-color:rgba(38,201,122,0.35);background:rgba(38,201,122,0.10)}
+.lab-callout.co-gold{border-color:rgba(200,169,110,0.46);background:linear-gradient(180deg,rgba(200,169,110,0.13),rgba(200,169,110,0.04));
+  box-shadow:0 12px 34px -24px rgba(200,169,110,0.85),inset 0 1px 0 rgba(255,255,255,0.05)}
+.lab-callout.co-gold .co-ic{background:rgba(200,169,110,0.18);color:#e3c789}
+.lab-callout.co-gold .co-kick{color:#e3c789}
+.lab-callout.co-gold .co-pill{color:#0a0b0d;background:linear-gradient(135deg,#e3c789,#c8a96e);border-color:transparent;
+  box-shadow:0 0 14px -4px rgba(200,169,110,0.75)}
+.lab-callout.co-flat{border-color:var(--bdr2)}
+.lab-callout.co-flat .co-ic{background:rgba(255,255,255,0.05);color:var(--dim)}
+.lab-callout.co-flat .co-kick{color:var(--text-dim)}
+.lab-callout.co-flat .co-pill{color:var(--dim);border-color:var(--bdr2)}
 .lab-month-wrap{position:relative;height:140px;margin-bottom:6px}
 .lab-month-wrap canvas{width:100%!important;height:100%!important}
 .lab-yrret{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
@@ -4458,7 +4490,9 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-slider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#c8a96e;border:2px solid #0a0b0d;box-shadow:0 0 8px -2px rgba(200,169,110,0.7);cursor:pointer;transition:all 120ms}
 .lab-v2-slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .lab-v2-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#c8a96e;border:2px solid #0a0b0d;box-shadow:0 0 8px -2px rgba(200,169,110,0.7);cursor:pointer}
-.lab-v2-select{background:var(--surf3);border:1px solid var(--bdr2);color:var(--text);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:600;font-family:inherit;cursor:pointer;outline:none;transition:border-color 130ms}
+.lab-v2-select{appearance:none;-webkit-appearance:none;background:var(--surf3);border:1px solid var(--bdr2);color:var(--text);border-radius:8px;padding:5px 26px 5px 10px;font-size:10px;font-weight:600;font-family:inherit;cursor:pointer;outline:none;transition:border-color 130ms,background-color 130ms;
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7' fill='none' stroke='%238a93a8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5L5 5.5L9 1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center}
 .lab-v2-select:hover{border-color:var(--bdr3)}
 .lab-v2-select:focus{border-color:rgba(200,169,110,0.5)}
 .lab-v2-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr2);font-size:8.5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text-dim);white-space:nowrap}
@@ -4467,10 +4501,12 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-tag.class-fx_cross .tag-dot{background:#c8a96e}
 .lab-v2-tag.class-all_years .tag-dot{background:#26c97a}
 .lab-v2-dir{display:inline-flex;align-items:center;gap:0;padding:2px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr2);border-radius:10px}
-.lab-v2-dir .dir-btn{background:transparent;border:0;color:var(--text-dim);font-family:inherit;font-size:9px;font-weight:700;letter-spacing:0.7px;padding:5px 10px;border-radius:8px;cursor:pointer;transition:background 0.16s ease, color 0.16s ease;text-transform:uppercase;line-height:1}
+.lab-v2-dir{position:relative}
+.lab-v2-dir .dir-btn{background:transparent;border:0;color:var(--text-dim);font-family:inherit;font-size:9.5px;font-weight:700;letter-spacing:0.7px;padding:7px 12px;min-height:28px;border-radius:8px;cursor:pointer;transition:background 0.18s cubic-bezier(0.22,1,0.36,1),color 0.18s ease,box-shadow 0.18s ease;text-transform:uppercase;line-height:1;-webkit-tap-highlight-color:transparent}
+.lab-v2-dir .dir-btn:focus-visible{outline:1px solid rgba(200,169,110,0.6);outline-offset:1px}
 .lab-v2-dir .dir-btn:hover{color:var(--text)}
-.lab-v2-dir .dir-btn.active.dir-long{background:rgba(38,201,122,0.16);color:#26c97a;box-shadow:inset 0 0 0 1px rgba(38,201,122,0.35)}
-.lab-v2-dir .dir-btn.active.dir-short{background:rgba(240,64,64,0.16);color:#f04040;box-shadow:inset 0 0 0 1px rgba(240,64,64,0.35)}
+.lab-v2-dir .dir-btn.active.dir-long{background:linear-gradient(180deg,rgba(38,201,122,0.22),rgba(38,201,122,0.12));color:#3fd48c;box-shadow:inset 0 0 0 1px rgba(38,201,122,0.38),0 4px 14px -10px rgba(38,201,122,0.9)}
+.lab-v2-dir .dir-btn.active.dir-short{background:linear-gradient(180deg,rgba(240,64,64,0.22),rgba(240,64,64,0.12));color:#f47070;box-shadow:inset 0 0 0 1px rgba(240,64,64,0.38),0 4px 14px -10px rgba(240,64,64,0.9)}
 .lab-v2-savebtn{padding:5px 11px;border-radius:8px;background:transparent;border:1px solid rgba(200,169,110,0.4);color:var(--accent);font-size:8.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;transition:all 130ms;font-family:inherit;white-space:nowrap}
 .lab-v2-savebtn:hover{background:rgba(200,169,110,0.09);border-color:rgba(200,169,110,0.6)}
 .lab-v2-savebtn.saved{color:var(--s1);border-color:rgba(38,201,122,0.4)}
@@ -4494,7 +4530,10 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-winrow .wchip{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.09);color:var(--dim);font:600 9.5px 'DM Sans',sans-serif;letter-spacing:0.6px;padding:4px 10px;border-radius:999px;cursor:pointer;transition:all .15s}
 .lab-v2-winrow .wchip:hover{border-color:rgba(200,169,110,0.45);color:var(--text)}
 .lab-v2-winrow .wchip.active{background:rgba(200,169,110,0.14);border-color:rgba(200,169,110,0.6);color:var(--accent)}
-.lab-v2-winrow .wmonth{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.09);color:var(--dim);font:600 9.5px 'DM Sans',sans-serif;padding:4px 8px;border-radius:999px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none}
+.lab-v2-winrow .wmonth{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.09);color:var(--dim);font:600 9.5px 'DM Sans',sans-serif;padding:4px 20px 4px 10px;border-radius:999px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='6' viewBox='0 0 10 7' fill='none' stroke='%238a93a8' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5L5 5.5L9 1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center}
+.lab-v2-winrow .wmonth:hover{border-color:rgba(200,169,110,0.45);color:var(--text)}
 .lab-v2-winrow .wmonth.active{background:rgba(200,169,110,0.14);border-color:rgba(200,169,110,0.6);color:var(--accent)}
 .lab-v2-winrow .whint{font-size:8.5px;color:var(--faint,#5a5957);letter-spacing:0.3px;margin-left:auto}
 @media(max-width:760px){.lab-v2-winrow .whint{display:none}}
@@ -4515,9 +4554,9 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 
 /* Consensus conviction card */
 .lab-v2-cons{background:linear-gradient(180deg,rgba(255,255,255,0.025),rgba(255,255,255,0.005));border:1px solid var(--bdr2);border-radius:12px;padding:12px 14px}
-.lab-v2-cons .cons-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
-.lab-v2-cons .cons-head .t{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
-.lab-v2-cons .cons-badge{font-size:8.5px;font-weight:800;letter-spacing:0.9px;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid transparent}
+.lab-v2-cons .cons-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.lab-v2-cons .cons-head .t{display:flex;align-items:center;gap:6px;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.lab-v2-cons .cons-badge{font-size:8.5px;font-weight:800;letter-spacing:0.9px;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
 .lab-v2-cons .cb-high{color:var(--s1);background:rgba(38,201,122,0.12);border-color:rgba(38,201,122,0.35)}
 .lab-v2-cons .cb-medium{color:var(--accent);background:rgba(200,169,110,0.12);border-color:rgba(200,169,110,0.35)}
 .lab-v2-cons .cb-low{color:var(--dim);background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12)}
@@ -4530,9 +4569,30 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-cons .cc-up{color:var(--s1);background:rgba(38,201,122,0.10);border-color:rgba(38,201,122,0.22)}
 .lab-v2-cons .cc-dn{color:var(--sm2);background:rgba(240,64,64,0.10);border-color:rgba(240,64,64,0.22)}
 .lab-v2-cons .cc-flat{color:var(--faint,#5a5957);background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.07)}
-.lab-v2-cons .cons-note{font-size:8.5px;color:var(--dim);line-height:1.5;margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
+.lab-v2-cons .cons-dir{font-size:7.5px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;padding:2px 6px;border-radius:6px;white-space:nowrap;flex:0 0 auto}
+.lab-v2-cons .cons-dir.d-long{color:#3fd48c;background:rgba(38,201,122,0.13);border:1px solid rgba(38,201,122,0.28)}
+.lab-v2-cons .cons-dir.d-short{color:#f47070;background:rgba(240,64,64,0.13);border:1px solid rgba(240,64,64,0.28)}
+.lab-v2-cons .cons-legend{font-size:8px;color:var(--faint,#5a5957);letter-spacing:0.2px;margin-top:7px;line-height:1.45}
+.lab-v2-cons .cons-note{font-size:8.5px;color:var(--dim);line-height:1.5;margin-top:7px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
 .lab-v2-cons .cons-note b{color:var(--text);font-weight:700}
 
+/* AUDIT-LAB-UI · days-to-goldilocks entry strip */
+.lab-v2-entry{background:linear-gradient(180deg,rgba(200,169,110,0.085),rgba(200,169,110,0.02));
+  border:1px solid rgba(200,169,110,0.28);border-radius:12px;padding:10px 12px 11px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.lab-v2-entry.live{border-color:rgba(38,201,122,0.34);background:linear-gradient(180deg,rgba(38,201,122,0.09),rgba(38,201,122,0.02))}
+.lab-v2-entry .entry-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lab-v2-entry .entry-lbl{font-size:7.5px;font-weight:800;letter-spacing:0.95px;text-transform:uppercase;color:var(--accent)}
+.lab-v2-entry.live .entry-lbl{color:#3fd48c}
+.lab-v2-entry .entry-cd{font-size:12.5px;font-weight:800;letter-spacing:-0.4px;color:#e3c789;font-variant-numeric:tabular-nums;line-height:1}
+.lab-v2-entry.live .entry-cd{color:#3fd48c}
+.lab-v2-entry .entry-track{position:relative;height:4px;border-radius:3px;margin:8px 0 7px;background:rgba(255,255,255,0.07);overflow:visible}
+.lab-v2-entry .tk-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px;background:linear-gradient(90deg,rgba(200,169,110,0.25),rgba(200,169,110,0.85))}
+.lab-v2-entry.live .tk-fill{background:linear-gradient(90deg,rgba(38,201,122,0.25),rgba(38,201,122,0.9))}
+.lab-v2-entry .tk-dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:#e3c789;border:2px solid #0a0b0d;transform:translate(-50%,-50%);box-shadow:0 0 10px -2px rgba(200,169,110,0.9)}
+.lab-v2-entry.live .tk-dot{background:#26c97a;box-shadow:0 0 10px -2px rgba(38,201,122,0.9)}
+.lab-v2-entry .entry-sub{font-size:8.5px;color:var(--dim);line-height:1.45}
+.lab-v2-entry .entry-sub b{color:var(--text);font-weight:700}
 .lab-v2-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .lab-v2-kpi{background:var(--surf3);border:1px solid var(--bdr2);border-radius:10px;padding:9px 11px}
 .lab-v2-kpi .kv{font-size:14px;font-weight:700;letter-spacing:-0.4px;line-height:1.1}
@@ -4585,7 +4645,17 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   .lab-v2-win .donut{width:74px;height:74px}
   .lab-v2-win .donut .center .pct{font-size:17px}
   .lab-v2-table{font-size:9.5px}
-  .lab-v2-table thead th,.lab-v2-table tbody td{padding:5px 8px}
+  .lab-v2-table thead th,.lab-v2-table tbody td{padding:5px 7px}
+  /* AUDIT-LAB-UI mobile: callout stacks, pill drops under the copy */
+  .lab-callout{grid-template-columns:auto 1fr;gap:9px;padding:10px 11px;border-radius:12px}
+  .lab-callout .co-txt{font-size:9.5px;line-height:1.55}
+  .lab-callout .co-pill{grid-column:2;justify-self:start;margin-top:6px;font-size:9px;padding:5px 9px}
+  .lab-v2-cons .cons-grid{grid-template-columns:minmax(52px,auto) 1fr 1fr 1fr;gap:3px}
+  .lab-v2-cons .cl{font-size:8px}
+  .lab-v2-cons .cc{font-size:9px;padding:5px 1px}
+  .lab-v2-entry .entry-cd{font-size:12px}
+  .lab-v2-dir{flex:0 0 auto}
+  .lab-v2-dir .dir-btn{padding:7px 11px}
 }
 /* Turn timeline strip */
 .modal-turns-wrap{margin-bottom:12px}
@@ -24591,8 +24661,8 @@ canvas.chartjs-render-monitor{
           </div>
           <div class="lab-v2-tag" id="lab-v2-tag"><span class="tag-dot"></span><span id="lab-v2-tag-label">—</span></div>
           <div class="lab-v2-dir" id="lab-v2-dir" role="group" aria-label="Trade direction">
-            <button type="button" class="dir-btn dir-long active" data-dir="long" onclick="_labV2SetDir('long')" title="Long-side stats — win = price rose">▲ Long</button>
-            <button type="button" class="dir-btn dir-short" data-dir="short" onclick="_labV2SetDir('short')" title="Short-side stats — win = price fell">▼ Short</button>
+            <button type="button" class="dir-btn dir-long active" aria-pressed="true" data-dir="long" onclick="_labV2SetDir('long')" title="Long-side stats — win = price rose">▲ Long</button>
+            <button type="button" class="dir-btn dir-short" aria-pressed="false" data-dir="short" onclick="_labV2SetDir('short')" title="Short-side stats — win = price fell">▼ Short</button>
           </div>
           <button class="lab-v2-savebtn" id="lab-v2-savebtn" onclick="_labV2SaveDefault()" style="display:none">Set as default</button>
         </div>
@@ -24642,7 +24712,7 @@ canvas.chartjs-render-monitor{
         <div class="lab-stats" id="lab-stats"></div>
         <div class="lab-sec-label">Average return by month — selected years</div>
         <div class="lab-month-wrap"><canvas id="lab-months"></canvas></div>
-        <div class="lab-sec-label" style="margin-top:10px">Forward 60 trading days — per selected year</div>
+        <div class="lab-sec-label" id="lab-yrret-label" style="margin-top:10px">Return by year — active window</div>
         <div class="lab-yrret" id="lab-yrret"></div>
       </div>
     </div>
@@ -37020,6 +37090,397 @@ async function initCotCharts(marketId){
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   SHARED SEASONALITY ENGINE  (AUDIT-SEAS-DETAIL)
+   Pure, DOM-free helpers consumed by BOTH surfaces:
+     • the per-market detail page Seasonal tab (the "Lab-mini" widget)
+     • the full Seasonality Lab (_labV2*)
+   Anything that both surfaces need lives here — never duplicate it.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Reliability grade → colour + plain-English explanation (no jargon). */
+const SEAS_GRADE_META={
+  A:{col:'#22c97a',bg:'rgba(34,201,122,0.14)',label:'Real edge',desc:'consistent, low dispersion',
+     plain:'The pattern actually repeats. Most years point the same way, no single freak year is carrying the average, and the hit rate survives a small-sample test. Safe to lean on by itself.'},
+  B:{col:'#9dd66a',bg:'rgba(157,214,106,0.12)',label:'Decent',desc:'signal present, some noise',
+     plain:'A real tendency, but with noise around it. Years mostly agree and the median is not outlier-driven. Trade it, but size normally and want one other factor onside.'},
+  C:{col:'#e8c66a',bg:'rgba(232,198,106,0.12)',label:'Mixed',desc:'dispersed, needs confirmation',
+     plain:'The years disagree a lot. There is a lean, but the spread between good and bad years is wide. Only act on it if price action or another factor confirms.'},
+  D:{col:'#e88a5a',bg:'rgba(232,138,90,0.12)',label:'Mirage',desc:'outlier-driven, unreliable',
+     plain:'Mostly noise. One or two extreme years are creating the average, or the recent half behaves nothing like the older half. Treat the number as decoration, not a signal.'}
+};
+function seasGradeMeta(g){return SEAS_GRADE_META[g]||SEAS_GRADE_META.C}
+
+/* Shape of the curve beyond the near window → trader-facing indicator. */
+function seasShapeMeta(shape,farScore){
+  const s=(shape||'').toLowerCase();
+  if(s.indexOf('confirmed')===0){
+    const building=s.indexOf('building')>=0;
+    return {key:'confirmed',label:building?'Confirmed · building':'Confirmed',
+      col:farScore==null?'#8a93a8':farScore>=6?'#22c97a':farScore<=4?'#e03a2a':'#8a93a8',
+      plain:'The 6–8 week window points the same way as the next 3–4 weeks. The seasonal leg has room to run past the swing horizon.'};
+  }
+  if(s==='fading') return {key:'fading',label:'Fading',col:'#e03a2a',
+    plain:'The near window is still favourable but the 6–8 week window reverses — a seasonal peak sits just ahead. Late entries get caught in the turn.'};
+  if(s==='rising') return {key:'rising',label:'Rising',col:'#22c97a',
+    plain:'The near window is soft but the 6–8 week window turns up — a seasonal trough sits just ahead. The setup is building, not gone.'};
+  if(s==='far-only') return {key:'far-only',label:'Far-only',col:'#c8a96e',
+    plain:'Nothing to trade in the next few weeks; the historical move sits 6–8 weeks out. Watch, do not chase.'};
+  if(s==='near-only') return {key:'near-only',label:'Near-only',col:'#c8a96e',
+    plain:'The edge is in the next 3–4 weeks only — the longer window is flat. Fine for a swing, not for a position hold.'};
+  return {key:'flat',label:'Flat',col:'#8a93a8',plain:'No meaningful shape either side of the near window.'};
+}
+
+/* Directional bias implied by the seasonal score (+1 bull / -1 bear / 0 none). */
+function seasBiasDir(sd){
+  if(!sd)return 0;
+  // Rotated shapes tell you what the NEXT leg is, which is what an entry is timed
+  // against: 'fading' = near bull / far bear -> the tradeable event is a peak, so
+  // the setup is a short. 'rising' = the mirror. This keeps the banner consistent
+  // with the FADING / RISING chip instead of arguing with it.
+  const sh=sd.seas_shape||'';
+  if(sh==='fading')return -1;
+  if(sh==='rising')return 1;
+  const s=+sd.score;
+  if(!isNaN(s)&&sd.score!=null){ if(s>=5.6)return 1; if(s<=4.4)return -1; }
+  const near=sd.median_pct??sd.slope_pct, far=sd.far_median_pct;
+  const blend=(near!=null?0.45*near:0)+(far!=null?0.55*far:0);
+  if(Math.abs(blend)<0.15)return 0;
+  return blend>0?1:-1;
+}
+
+/* ── GOLDILOCKS ENTRY ENGINE ───────────────────────────────────────────────
+   Answers the only two questions a swing trader has: am I in the zone now,
+   or how many trading days until I am? Direction-aware: a bullish bias wants
+   a seasonal trough, a bearish bias wants a seasonal peak.
+   Detected turns (with their year-consistency) are the primary source; a
+   rolling-median extremum search is the fallback. The rolling median is used
+   ONLY to locate the turn — every number reported comes off the raw curve.
+   Returns null when there is nothing actionable to say.                     */
+function seasGoldilocks(opts){
+  const o=opts||{}, sd=o.sd||{}, todayTD=o.todayTD, months=o.months;
+  const pts=(o.curve||[]).filter(p=>p&&p[1]!=null&&!isNaN(p[1]));
+  if(!pts.length||!todayTD)return null;
+  const tds=pts.map(p=>p[0]), vals=pts.map(p=>p[1]);
+  const vs=vals.slice().sort((a,b)=>a-b);
+  const rng=vs[vs.length-1]-vs[0];
+  const idxOf=td=>{let bi=0,bd=1e9;for(let i=0;i<tds.length;i++){const d=Math.abs(tds[i]-td);if(d<bd){bd=d;bi=i}}return bi};
+  const vAt=td=>vals[idxOf(td)];
+  // 5-TD rolling median — turn LOCATION only, never displayed
+  const sm=vals.map((v,i)=>{const a=vals.slice(Math.max(0,i-2),i+3).sort((x,y)=>x-y);return a[(a.length-1)>>1]});
+  const dir=seasBiasDir(sd);
+  const now=vAt(todayTD);
+  const wantType=dir>0?'trough':'peak';
+  const turns=Array.isArray(o.turns)?o.turns:[];
+
+  let tTd=null,cons=null,src='curve';
+  if(dir!==0){
+    const cands=turns.filter(t=>t.type===wantType&&t.td>=todayTD-12&&t.td<=todayTD+40&&(t.consistency??0)>=55)
+                     .sort((a,b)=>Math.abs(a.td-todayTD)-Math.abs(b.td-todayTD));
+    if(cands.length){tTd=cands[0].td;cons=cands[0].consistency??null;src='turn';}
+    else{
+      const i0=idxOf(todayTD-8), i1=idxOf(Math.min(252,todayTD+30));
+      let bi=i0;
+      for(let i=i0;i<=i1;i++){ if(dir>0?sm[i]<sm[bi]:sm[i]>sm[bi])bi=i; }
+      tTd=tds[bi];
+    }
+  }
+  if(tTd==null)return {dir:0,state:'none',rng};
+
+  // Favourable leg end: opposite turn after the entry, else curve extremum within 45 TD
+  let legEndTd=null;
+  { const iT=idxOf(tTd), i2=idxOf(Math.min(252,tTd+45));
+    let bi=iT;
+    for(let i=iT;i<=i2;i++){ if(dir>0?sm[i]>sm[bi]:sm[i]<sm[bi])bi=i; }
+    legEndTd=tds[bi];
+    const opp=turns.filter(t=>t.type!==wantType&&t.td>tTd+2).sort((a,b)=>a.td-b.td)[0];
+    if(opp&&opp.td<=tTd+50)legEndTd=opp.td;
+  }
+  const vT=vAt(tTd), vE=vAt(legEndTd);
+  const legMove=(vT!=null&&vE!=null)?(vE-vT)*dir:null;         // % available from the ideal entry
+  const remMove=(vE!=null&&now!=null)?(vE-now)*dir:null;       // % still available from today
+  const capture=(legMove!=null&&legMove>0.05)?Math.max(0,Math.min(1.6,remMove/legMove)):null;
+  const dTd=tTd-todayTD;
+  const minLeg=Math.max(0.5,0.12*rng);
+
+  let state;
+  if(legMove==null||legMove<minLeg) state='none';
+  else if(dTd>28) state='far';
+  else if(dTd>3) state='wait';
+  else if(dTd>=-3) state='now';
+  else if(capture!=null&&capture>=0.45) state='open';
+  else state='past';
+
+  // Next entry after the current leg (for the "past" read)
+  let nextTd=null;
+  if(state==='past'||state==='far'){
+    const nx=turns.filter(t=>t.type===wantType&&t.td>legEndTd-2).sort((a,b)=>a.td-b.td)[0];
+    if(nx)nextTd=nx.td;
+  }
+  return {
+    dir,state,src,consistency:cons,rng,
+    targetTd:tTd, targetLabel:months?tdPhase(tTd,months):'',
+    legEndTd, legEndLabel:months?tdPhase(legEndTd,months):'',
+    nextTd, nextLabel:(nextTd&&months)?tdPhase(nextTd,months):'',
+    tdsAway:dTd, weeks:Math.max(1,Math.round(Math.abs(dTd)/5)),
+    legMove, remMove, capture,
+    hitRate:sd.hit_rate??null, medianPct:sd.median_pct??sd.slope_pct??null
+  };
+}
+
+/* Goldilocks banner — the single most important read on the tab. */
+function seasGoldilocksHTML(g,sd){
+  if(!g)return '';
+  const dirWord=g.dir>0?'long':'short';
+  const accent=g.dir>0?'#22c97a':g.dir<0?'#e03a2a':'#8a93a8';
+  const rgb=g.dir>0?'34,201,122':g.dir<0?'224,58,42':'138,147,168';
+  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  const capPct=g.capture!=null?Math.round(g.capture*100):null;
+  const arrow=g.dir>0?'▲':'▼';
+  // g.legMove / g.remMove are stored as favourable-for-the-side magnitudes; print
+  // the actual PRICE move so a short leg never reads as "+3.4%".
+  const priceLeg=g.legMove!=null?g.legMove*(g.dir||1):null;
+  const priceRem=g.remMove!=null?g.remMove*(g.dir||1):null;
+  const runWord=g.dir>0?'rises':'falls';
+  // Fading / rising shapes need the near-window caveat spelled out, or the banner
+  // looks like it contradicts the score.
+  const sh=(sd&&sd.seas_shape)||'';
+  const nearMed=sd?(sd.median_pct??sd.slope_pct):null;
+  const caveat=(sh==='fading'||sh==='rising')&&nearMed!=null
+    ? ` Until then the near window still leans <strong>${nearMed>=0?'up':'down'}</strong> (${(nearMed>=0?'+':'')+nearMed.toFixed(2)}% median${sd.hit_rate!=null?', '+sd.hit_rate+'% hit':''}) — that is the move you are waiting out.`
+    : '';
+  let tag,tagCol,tagRgb,big,bigSub,head,body;
+  if(g.state==='none'){
+    tag='NO SETUP';tagCol='#8a93a8';tagRgb='138,147,168';big='—';bigSub='no entry';
+    head='No clear seasonal entry point';
+    body='The curve has no meaningful peak or trough inside the swing horizon, so there is no seasonal timing edge to wait for. Trade the other factors.';
+  } else if(g.state==='far'){
+    tag='OUT OF RANGE';tagCol='#8a93a8';tagRgb='138,147,168';
+    big=g.tdsAway+'d';bigSub='~'+g.weeks+' wk away';
+    head='No seasonal entry inside the swing horizon';
+    body=`The next goldilocks ${dirWord} entry sits around <strong>${g.targetLabel}</strong> — about <strong>${g.weeks} weeks</strong> out, beyond the 6-week window that matters for a swing. Park it and re-check closer.`;
+  } else if(g.state==='wait'){
+    tag='WAIT '+g.tdsAway+' D';tagCol='#c8a96e';tagRgb='200,169,110';
+    big=g.tdsAway+'d';bigSub='~'+g.weeks+' wk to entry';
+    head=`Almost ready seasonally — ${g.tdsAway} trading days to goldilocks entry`;
+    body=`History ${g.dir>0?'bottoms':'tops'} around <strong>${g.targetLabel}</strong>, then ${runWord} <strong style="color:${accent}">${pc(priceLeg)}</strong> (median) into <strong>${g.legEndLabel}</strong>${g.consistency!=null?` — the turn held in <strong>${g.consistency}%</strong> of years`:''}. If everything else is onside you can pre-position, but the clean seasonal ${dirWord} entry is <strong>~${g.weeks} week${g.weeks===1?'':'s'}</strong> away.${caveat}`;
+  } else if(g.state==='now'){
+    tag='ENTER NOW';tagCol=accent;tagRgb=rgb;
+    big='NOW';bigSub='zone open';
+    head='Goldilocks entry — zone open now';
+    body=`This is historically the ${g.dir>0?'trough':'peak'} (<strong>${g.targetLabel}</strong>): from here the curve ${runWord} <strong style="color:${accent}">${pc(priceLeg)}</strong> (median) into <strong>${g.legEndLabel}</strong>${g.consistency!=null?`, a turn that held in <strong>${g.consistency}%</strong> of years`:''}. Best seasonal ${dirWord} entry of the cycle is on the table today.`;
+  } else if(g.state==='open'){
+    tag='OPEN · '+(capPct!=null?capPct+'% LEFT':'RUNNING');tagCol=accent;tagRgb=rgb;
+    big=Math.abs(g.tdsAway)+'d';bigSub='into the move';
+    head='Entry window open — seasonal move already underway';
+    body=`The seasonal ${g.dir>0?'low':'high'} printed around <strong>${g.targetLabel}</strong> (<strong>${Math.abs(g.tdsAway)} trading days</strong> ago) and <strong style="color:${accent}">${pc(priceRem)}</strong> of the median leg${capPct!=null?` (<strong>${capPct}%</strong> of it)`:''} is still ahead into <strong>${g.legEndLabel}</strong>. Still a valid ${dirWord}, just not the perfect print.`;
+  } else {
+    tag='PAST'+(capPct!=null?' · '+capPct+'% LEFT':'');tagCol='#8a93a8';tagRgb='138,147,168';
+    big=capPct!=null?capPct+'%':'—';bigSub='of move left';
+    head='Goldilocks window largely past';
+    body=`The seasonal ${g.dir>0?'low':'high'} was around <strong>${g.targetLabel}</strong> and only <strong>${capPct!=null?capPct+'%':'a sliver'}</strong> of the median leg (<strong>${pc(priceRem)}</strong>) is left into <strong>${g.legEndLabel}</strong>. Chasing here is late${g.nextLabel?` — next clean ${dirWord} entry sets up around <strong>${g.nextLabel}</strong>`:''}.`;
+  }
+  return `<div class="sx-gold" style="--gx:${accent};--gx-rgb:${rgb};--gt:${tagCol};--gt-rgb:${tagRgb}">
+    <div class="sx-gold-dial">
+      <div class="sx-gold-big">${big}</div>
+      <div class="sx-gold-bigsub">${bigSub}</div>
+    </div>
+    <div class="sx-gold-body">
+      <div class="sx-gold-top">
+        <span class="sx-gold-kicker">Goldilocks entry</span>
+        <span class="sx-gold-tag">${tag}</span>
+        ${g.dir!==0?`<span class="sx-gold-dir">${arrow} ${dirWord.toUpperCase()} SETUP</span>`:''}
+      </div>
+      <div class="sx-gold-head">${head}</div>
+      <div class="sx-gold-text">${body}</div>
+      ${g.state==='none'?'':seasGoldTrackHTML(g)}
+    </div>
+  </div>`;
+}
+
+/* Small today → entry → target track under the goldilocks copy. */
+function seasGoldTrackHTML(g){
+  const todayTdRaw=g.targetTd-g.tdsAway;
+  const t0=Math.min(g.targetTd,todayTdRaw)-3;          // earliest of today / entry
+  const t1=Math.max(g.legEndTd,todayTdRaw)+3;
+  const pos=td=>Math.max(0,Math.min(100,((td-t0)/Math.max(1,t1-t0))*100));
+  const todayTd=g.targetTd-g.tdsAway;
+  const a=pos(g.targetTd), b=pos(g.legEndTd), t=pos(todayTd);
+  return `<div class="sx-track" title="Seasonal leg: entry → target, with today marked">
+    <div class="sx-track-line"></div>
+    <div class="sx-track-leg" style="left:${Math.min(a,b)}%;width:${Math.abs(b-a)}%"></div>
+    <div class="sx-track-pin sx-track-entry" style="left:${a}%"><span>ENTRY</span></div>
+    <div class="sx-track-pin sx-track-target" style="left:${b}%"><span>TARGET</span></div>
+    <div class="sx-track-now" style="left:${t}%"><span>TODAY</span></div>
+  </div>`;
+}
+
+/* Near vs far window strip — the two horizons Ben actually trades. */
+function seasWindowStripHTML(sd){
+  if(!sd)return '';
+  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(2)+'%';
+  const cell=(kicker,sub,med,hit,extra)=>{
+    const col=med==null?'#8a93a8':med>0?'#22c97a':med<0?'#e03a2a':'#8a93a8';
+    const arr=med==null?'':med>=0?'▲':'▼';
+    const hitCol=hit==null?'#8a93a8':hit>=60?'#22c97a':hit<=40?'#e03a2a':'#8a93a8';
+    return `<div class="sx-win" style="--wx:${col}">
+      <div class="sx-win-k">${kicker}<span>${sub}</span></div>
+      <div class="sx-win-v" style="color:${col}">${arr} ${pc(med)}</div>
+      <div class="sx-win-m">median · hit <strong style="color:${hitCol}">${hit!=null?hit+'%':'—'}</strong></div>
+      ${extra||''}
+    </div>`;
+  };
+  const sm=seasShapeMeta(sd.seas_shape,sd.far_score);
+  const shapeChip=`<div class="sx-win-shape" style="color:${sm.col};border-color:${sm.col}44;background:${sm.col}14"
+      onclick="sxTip(this,event)" data-tip="${_sxEsc(sm.plain)}" data-tip-title="Far window: ${_sxEsc(sm.label)}">
+      ${sm.key==='fading'?'▼':sm.key==='rising'?'▲':''} ${sm.label.toUpperCase()}${sd.far_score!=null?' · '+(+sd.far_score).toFixed(1):''}</div>`;
+  const nearLbl=(sd.horizon_td_start??sd.td_start)!=null?`TD ${sd.horizon_td_start??sd.td_start}→${sd.horizon_td_end??sd.td_end}`:'';
+  const farLbl=sd.td_far_end!=null?`TD ${sd.horizon_td_end??sd.td_end}→${sd.td_far_end}`:'';
+  return `<div class="sx-winrow">
+    ${cell('Near window','1–4 weeks · '+nearLbl,sd.median_pct??sd.slope_pct,sd.hit_rate,
+      sd.trimmed_median_pct!=null?`<div class="sx-win-m">trimmed ${pc(sd.trimmed_median_pct)} · ${sd.n_pos!=null?sd.n_pos+'/'+sd.n_years+' yrs up':''}</div>`:'')}
+    ${cell('Far window','6–8 weeks · '+farLbl,sd.far_median_pct,sd.far_hit_rate,shapeChip)}
+  </div>`;
+}
+
+/* Recent-5-year regime bars — is the pattern still working lately? */
+function seasRecent5HTML(sd){
+  const r=sd&&sd.recent5_rets;
+  if(!Array.isArray(r)||!r.length)return '';
+  const yr=new Date().getFullYear();
+  const years=r.map((v,i)=>yr-r.length+i);
+  const mx=Math.max(...r.map(v=>Math.abs(v)),0.5);
+  const pos=r.filter(v=>v>0).length;
+  const bars=r.map((v,i)=>{
+    const up=v>=0, h=Math.max(6,Math.round((Math.abs(v)/mx)*38));
+    return `<div class="sx-r5-col" title="${years[i]}: ${(v>=0?'+':'')+v.toFixed(2)}%">
+      <div class="sx-r5-slot">${up?`<div class="sx-r5-bar up" style="height:${h}px"></div>`:''}</div>
+      <div class="sx-r5-axis"></div>
+      <div class="sx-r5-slot dn">${!up?`<div class="sx-r5-bar dn" style="height:${h}px"></div>`:''}</div>
+      <div class="sx-r5-yr">'${String(years[i]).slice(2)}</div>
+    </div>`;
+  }).join('');
+  const tone=pos>=4?'#22c97a':pos<=1?'#e03a2a':'#c8a96e';
+  return `<div class="sx-panel">
+    <div class="sx-panel-head"><div class="t">Last 5 years — same window</div>
+      <span class="sx-pill" style="color:${tone};border-color:${tone}44;background:${tone}14">${pos}/${r.length} ${pos===1?'year':'years'} up</span></div>
+    <div class="sx-r5">${bars}</div>
+    <div class="sx-panel-note">Is the pattern still paying? These are the raw returns of the same forward window in each of the last ${r.length} years — no weighting, no trimming.</div>
+  </div>`;
+}
+
+/* Per-year distribution: bars (drawn) + a compact table, both direction-aware. */
+function seasPerYearHTML(sd,canvasId){
+  const py=sd&&sd.per_year_rets;
+  if(!Array.isArray(py)||!py.length)return '';
+  const dir=seasBiasDir(sd);
+  const good=py.filter(p=>dir<0?p.r<0:p.r>0).length;
+  return `<div class="sx-panel">
+    <div class="sx-panel-head"><div class="t">Every year in the window</div>
+      <span class="sx-panel-r">${py.length} yrs · ${good} ${dir<0?'down':'up'} · sorted worst → best${dir<0?' for a short':''}</span></div>
+    <div class="sx-py"><canvas id="${canvasId}"></canvas></div>
+    <div class="sx-panel-note">Bars are raw per-year returns of the current forward window, coloured green when the year went the way of the seasonal bias. Hover for the year and its recency/cycle weight.</div>
+  </div>`;
+}
+
+let _sxPyChart=null;
+function seasDrawPerYearBars(canvasId,sd){
+  const cvs=document.getElementById(canvasId);
+  if(!cvs||typeof Chart==='undefined')return;
+  const py=(sd&&sd.per_year_rets)||[];
+  if(!py.length)return;
+  if(_sxPyChart){try{_sxPyChart.destroy()}catch(e){} _sxPyChart=null;}
+  const dir=seasBiasDir(sd);
+  const sorted=[...py].sort((a,b)=>dir<0?(b.r-a.r):(a.r-b.r));
+  const goodCol='rgba(38,201,122,0.78)', badCol='rgba(240,64,64,0.78)';
+  _sxPyChart=new Chart(cvs.getContext('2d'),{
+    type:'bar',
+    data:{labels:sorted.map(p=>"'"+String(p.y).slice(2)),datasets:[{
+      data:sorted.map(p=>p.r),
+      backgroundColor:sorted.map(p=>(dir<0?p.r<0:p.r>0)?goodCol:badCol),
+      borderRadius:2,borderSkipped:false,barPercentage:0.86,categoryPercentage:1
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:280},
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        title:i=>i.length?String(sorted[i[0].dataIndex].y):'',
+        label:i=>(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'% · weight '+(sorted[i.dataIndex].w!=null?(+sorted[i.dataIndex].w).toFixed(2):'—')}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:8},autoSkip:true,maxTicksLimit:12,maxRotation:0}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a93a8',font:{size:8},callback:v=>(v>=0?'+':'')+v+'%'}}}}});
+}
+
+/* Cycle vs all-years consensus grid — shared verbatim with the Lab sidebar. */
+function seasConsensusHTML(c,dirOverride){
+  if(!c||!c.cells||!c.cells.length)return '';
+  const CYC={midterm:'Midterm',election:'Election',pre_election:'Pre-elec',post_election:'Post-elec'};
+  const rows=[['all','All years'],['cycle',(CYC[c.cycle_key]||'Cycle')+' yrs'],['blend','Smart blend']];
+  const cols=[['near','1-2W'],['mid','3W'],['far','4W']];
+  // The Lab drives this off its Long/Short toggle; the detail tab passes the
+  // direction the seasonal setup implies so the grid never argues with the banner.
+  const isShort=dirOverride?dirOverride==='short':(_labV2&&_labV2.dir==='short');
+  const sideTxt=isShort?'short':'long';
+  const badgeCls={high:'cb-high',medium:'cb-medium',low:'cb-low',conflict:'cb-conflict'}[c.conviction]||'cb-low';
+  const badgeTxt={high:'HIGH CONVICTION',medium:'MEDIUM',low:'LOW CONVICTION',conflict:'CONFLICT'}[c.conviction]||'LOW';
+  const agree=c.agreement_pct!=null?(' · '+c.agreement_pct+'%'):'';
+  let grid='<span class="ch"></span>'+cols.map(x=>'<span class="ch">'+x[1]+'</span>').join('');
+  for(const [lk,ll] of rows){
+    grid+='<span class="cl">'+ll+'</span>';
+    for(const [hk] of cols){
+      const cell=c.cells.find(x=>x.lens===lk&&x.h===hk);
+      if(!cell||cell.dir===0){
+        const fm=(cell&&cell.med!=null)?(isShort?-cell.med:cell.med):null;
+        grid+='<span class="cc cc-flat" title="'+(fm!=null?('median '+(fm>=0?'+':'')+fm.toFixed(1)+'% '+sideTxt+' · n='+cell.n):'insufficient sample')+'">–</span>';
+      }else{
+        const up=cell.dir>0;                       // price direction (glyph stays truthful)
+        const fav=isShort?!up:up;                  // favourable for the side being traded
+        const mv=isShort?-cell.med:cell.med;       // value in the side's P&L
+        const hitSide=isShort?(100-cell.hit):cell.hit;
+        grid+='<span class="cc '+(fav?'cc-up':'cc-dn')+'" title="price '+(up?'up':'down')+' · '+sideTxt+' hit '+hitSide+'% · n='+cell.n+'">'+(up?'▲':'▼')+'<span class="cm">'+(mv>=0?'+':'')+mv.toFixed(1)+'%</span></span>';
+      }
+    }
+  }
+  const lowRel=(c.cycle_relevance!=null&&c.cycle_relevance<0.5);
+  const highNote=(c.conflicts>0&&lowRel)
+    ?'<b>All-years & smart-blend lenses agree</b> — cycle dissent carries low weight for '+(c.profile||'this asset').toLowerCase()+' assets — score amplified ×'+(+c.mult).toFixed(2)
+    :'<b>Cycle & all-years lenses agree</b> across horizons — seasonal score amplified ×'+(+c.mult).toFixed(2);
+  const notes={
+    high:highNote,
+    medium:'Lenses broadly agree — seasonal score unchanged',
+    low:'Weak or mixed seasonal signals — score pulled toward neutral ×'+(+c.mult).toFixed(2),
+    conflict:'<b>Cycle years oppose all-years</b> on multiple horizons — score dampened ×'+(+c.mult).toFixed(2)
+  };
+  return `<div class="lab-v2-cons">
+    <div class="cons-head"><div class="t">Seasonal consensus<span class="cons-dir ${isShort?'d-short':'d-long'}">${isShort?'▼ short':'▲ long'}</span></div><span class="cons-badge ${badgeCls}">${badgeTxt}${agree}</span></div>
+    <div class="cons-grid">${grid}</div>
+    <div class="cons-legend">${isShort?'▼ price falls = edge for shorts (green) · values shown as short P&amp;L':'▲ price rises = edge for longs (green) · values shown as long P&amp;L'}</div>
+    <div class="cons-note">${notes[c.conviction]||''}</div>
+  </div>`;
+}
+
+/* ── Tap/hover explainer popover (mobile-safe replacement for title=) ── */
+function _sxEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function sxTip(el,ev){
+  if(ev){ev.stopPropagation();ev.preventDefault();}
+  const open=el.classList.contains('sx-tip-on');
+  document.querySelectorAll('.sx-tip-on').forEach(n=>n.classList.remove('sx-tip-on'));
+  if(open)return;
+  el.classList.add('sx-tip-on');
+  if(!el.querySelector('.sx-tip')){
+    const t=document.createElement('span');
+    t.className='sx-tip';
+    t.innerHTML=(el.dataset.tipTitle?`<b>${el.dataset.tipTitle}</b>`:'')+'<span>'+(el.dataset.tip||'')+'</span>';
+    el.appendChild(t);
+  }
+  // keep inside the viewport
+  requestAnimationFrame(()=>{
+    const t=el.querySelector('.sx-tip'); if(!t)return;
+    t.style.transform='';
+    const r=t.getBoundingClientRect();
+    if(r.right>window.innerWidth-8)t.style.transform=`translateX(${Math.round(window.innerWidth-8-r.right)}px)`;
+    else if(r.left<8)t.style.transform=`translateX(${Math.round(8-r.left)}px)`;
+  });
+}
+document.addEventListener('click',()=>{document.querySelectorAll('.sx-tip-on').forEach(n=>n.classList.remove('sx-tip-on'))});
+
 /* ════════════════════════════════════════════
    SEASONAL TAB
 ════════════════════════════════════════════ */
@@ -37049,14 +37510,8 @@ function seasTabStub(m){
   const regimeDelta = d.regime_delta_pts;
   const bestPct = d.best_pct, worstPct = d.worst_pct;
 
-  // Grade→colour/label for chip + verdict copy
-  const gradeMeta = {
-    'A':{col:'#22c97a',bg:'rgba(34,201,122,0.14)',label:'Real edge',desc:'consistent, low dispersion'},
-    'B':{col:'#9dd66a',bg:'rgba(157,214,106,0.12)',label:'Decent',desc:'signal present, some noise'},
-    'C':{col:'#e8c66a',bg:'rgba(232,198,106,0.12)',label:'Mixed',desc:'dispersed, tradeable only with confirmation'},
-    'D':{col:'#e88a5a',bg:'rgba(232,138,90,0.12)',label:'Mirage',desc:'outlier-driven, unreliable'}
-  };
-  const gm = gradeMeta[grade] || gradeMeta['C'];
+  // Grade→colour/label/plain-English copy — SHARED with the Lab (seasGradeMeta)
+  const gm = seasGradeMeta(grade);
 
   // ── Tab summary sentence — reliability-aware ──
   const _seasSummaryText = (()=>{
@@ -37066,8 +37521,16 @@ function seasTabStub(m){
       : sc>=4.5?`<strong style="color:var(--faint)">no reliable seasonal edge</strong> — other factors dominate`
       : sc>=2.5?`<strong style="color:${col}">seasonal headwind</strong>`
       : `<strong style="color:${col}">strong seasonal headwind</strong>`;
+    // A mid-band score on a rotating shape is NOT "no edge" — the two windows point
+    // different ways, so the edge is a timing question. Say that instead.
+    const _shp=d.seas_shape||'';
+    if(sc>4.2&&sc<6&&(_shp==='fading'||_shp==='rising')&&(grade==='A'||grade==='B')){
+      verdict = _shp==='rising'
+        ? `<strong style="color:#22c97a">edge is a timing call</strong> — soft now, turning up on the far window`
+        : `<strong style="color:#e03a2a">edge is a timing call</strong> — firm now, rolling over on the far window`;
+    }
     // Downgrade verdict when reliability is poor (D grade) despite decent score
-    if(grade==='D' && (sc>=6 || sc<=4)){
+    else if(grade==='D' && (sc>=6 || sc<=4)){
       verdict = `<strong style="color:${gm.col}">signal is outlier-driven</strong> — treat as unreliable`;
     }
     // Flag grade C as mixed even when the (dampened) score reads directional
@@ -37108,30 +37571,74 @@ function seasTabStub(m){
   })();
   const _seasPrefix = _tabSummary(_seasSummaryText, col);
 
-  return _seasPrefix + `<div class="seas-score-card">
+  // Which window actually drives the printed score? On fading/rising shapes the
+  // backend rotates weight onto the far window, so showing the near median next
+  // to a contradicting label reads like a bug. Show the driver, label the other.
+  const _shape = d.seas_shape||'';
+  const _rotated = (_shape==='fading'||_shape==='rising');
+  const drvMed = _rotated ? (d.far_median_pct??med) : med;
+  const drvLbl = _rotated ? 'far window (6–8w)' : 'near window (1–4w)';
+  const drvArrow = drvMed==null?'':drvMed>=0?'▲':'▼';
+  const drvStr = drvMed==null?'—':(drvMed>=0?'+':'')+drvMed.toFixed(2)+'%';
+  const drvAccent = drvMed==null?'rgba(255,255,255,0.15)':drvMed>=0?'rgba(34,201,122,0.18)':'rgba(224,58,42,0.18)';
+  const drvTxt = drvMed==null?'var(--dim)':drvMed>=0?'var(--s1)':'var(--sm1)';
+  const _shapeMeta = seasShapeMeta(_shape,d.far_score);
+
+  const chips = [];
+  if(grade) chips.push(`<span class="sx-chip sx-chip-tap" onclick="sxTip(this,event)"
+      data-tip-title="Reliability ${grade} — ${_sxEsc(gm.label)}"
+      data-tip="${_sxEsc(gm.plain)} (signal/noise ${sn??'—'}, ${nY||'—'} years, ${nPos!=null?nPos+' up':'—'}${d.hit_ci_low!=null?`, hit-rate range ${d.hit_ci_low}–${d.hit_ci_high}%`:''}.)"
+      style="color:${gm.col};background:${gm.bg};border-color:${gm.col}44"><b>${grade}</b> ${gm.label.toUpperCase()}<span class="sx-chip-i">i</span></span>`);
+  const _cv = d.consensus&&d.consensus.conviction;
+  if(_cv){
+    const M={high:['HIGH CONVICTION','#26c97a','rgba(38,201,122,0.12)'],medium:['MEDIUM','#c8a96e','rgba(200,169,110,0.12)'],low:['LOW CONVICTION','#8a93a8','rgba(255,255,255,0.05)'],conflict:['CYCLE CONFLICT','#f04040','rgba(240,64,64,0.12)']}[_cv];
+    if(M){
+      const ag=d.consensus.agreement_pct;
+      const plain={high:'All three lenses — this cycle\u2019s years, all years, and the smart blend — point the same way across the 1–4 week horizons. The score is amplified.',
+        medium:'The lenses broadly agree. The score is left as-is.',
+        low:'The lenses are weak or mixed, so the score is pulled back toward neutral.',
+        conflict:'This cycle\u2019s years disagree with the all-years read on multiple horizons, so the score is dampened. Only worry about it at extremes.'}[_cv];
+      chips.push(`<span class="sx-chip sx-chip-tap" onclick="sxTip(this,event)"
+        data-tip-title="Consensus — ${M[0]}${ag!=null?' · '+ag+'% agreement':''}"
+        data-tip="${_sxEsc(plain)} Score ×${(+d.consensus.mult).toFixed(2)}."
+        style="color:${M[1]};background:${M[2]};border-color:${M[1]}44">${M[0]}${ag!=null?' · '+ag+'%':''}<span class="sx-chip-i">i</span></span>`);
+    }
+  }
+  if(_shapeMeta.key!=='flat'||d.far_score!=null){
+    chips.push(`<span class="sx-chip sx-chip-tap" onclick="sxTip(this,event)"
+      data-tip-title="Far window: ${_sxEsc(_shapeMeta.label)}"
+      data-tip="${_sxEsc(_shapeMeta.plain)}${d.far_score!=null?` The 6–8 week window scores ${(+d.far_score).toFixed(1)}/10.`:''}"
+      style="color:${_shapeMeta.col};background:${_shapeMeta.col}14;border-color:${_shapeMeta.col}44">${_shapeMeta.key==='fading'?'▼ ':_shapeMeta.key==='rising'?'▲ ':''}${_shapeMeta.label.toUpperCase()}<span class="sx-chip-i">i</span></span>`);
+  }
+  if(cycleLabel) chips.push(`<span class="sx-chip sx-chip-mute">${cycleLabel.toUpperCase()} YEAR</span>`);
+
+  const _dataNote={'B':'Curve computed from Brent Crude (BZ=F) daily history — direct proxy for ICE Brent.','GO':'Curve computed from NYMEX Heating Oil (HO=F) — best available proxy for ICE Gas Oil (European diesel).','RC':'Curve computed from Arabica Coffee (KC=F) — Robusta shares the same harvest/weather seasonal drivers.','Z':'Curve computed from FTSE 100 index (^FTSE) daily history.','R':'Curve computed from iShares UK Gilt ETF (IGLT.L) — proxy for Long Gilt futures.'}[m.id];
+
+  return _seasPrefix + `<div class="sx-gold-slot" id="seas-gold"></div>
+  <div class="seas-score-card sx-card">
     <div class="ss-badge" style="background:${bg};">
       <div class="ss-badge-score" style="color:${col}">${sc.toFixed(1)}</div>
       <div class="ss-badge-label" style="color:${col}">/10</div>
     </div>
     <div class="ss-content">
       <div class="ss-signal" style="color:${col}">${scoreLbl}</div>
-      ${med!=null?`<div class="ss-slope-row">
-        <span class="ss-slope-arrow" style="background:${slopeAccent};color:${slopeTxt}">${arrowSym} ${medStr} median</span>
-        <span style="font-size:8px;color:rgba(255,255,255,0.52)">${hr!=null&&nY?nPos+'/'+nY+' yrs up · ':''}TD ${d.horizon_td_start}→${d.horizon_td_end}</span>
+      ${drvMed!=null?`<div class="ss-slope-row">
+        <span class="ss-slope-arrow" style="background:${drvAccent};color:${drvTxt}">${drvArrow} ${drvStr} median</span>
+        <span class="sx-driver">${drvLbl} drives the score${hr!=null&&nY?` · ${nPos}/${nY} yrs up near`:''}</span>
       </div>`:`<div style="font-size:8.5px;color:var(--dim);margin-bottom:4px">Window-based estimate</div>`}
-      <div class="ss-meta">Source: <strong>${nY?nY+' yrs ('+(d.years_span||'')+') · '+(d.weighting||'cycle + recency weighted'):'Seasonal window'}</strong>${cycleLabel?' · '+cycleLabel+' year':''}</div>
+      <div class="ss-meta">Source: <strong>${nY?nY+' yrs ('+(d.years_span||'')+') · '+(d.weighting||'cycle + recency weighted'):'Seasonal window'}</strong></div>
+      <div class="sx-chiprow">${chips.join('')}</div>
     </div>
     <div class="ss-actions">
-      <button class="ss-btn" style="border-color:rgba(200,169,110,0.4);color:var(--accent)" onclick="openSeasLab('${m.id}','${m.name}')">Seasonality Lab ↗</button>
-      ${grade?`<span class="ss-reliability" title="Reliability ${grade} — ${gm.desc}. Signal/Noise ${sn??'—'}, ${nY} yrs (${nPos} up)." style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:${gm.bg};color:${gm.col};font-size:9px;font-weight:700;letter-spacing:0.5px;border:1px solid ${gm.col}33"><span style="font-size:11px;line-height:1">${grade}</span>&nbsp;${gm.label.toUpperCase()}</span>`:''}
-      ${(()=>{const cv=d.consensus&&d.consensus.conviction;if(!cv)return '';const M={high:['HIGH CONVICTION','#26c97a','rgba(38,201,122,0.12)'],medium:['MEDIUM','#c8a96e','rgba(200,169,110,0.12)'],low:['LOW CONVICTION','#8a93a8','rgba(255,255,255,0.05)'],conflict:['CYCLE CONFLICT','#f04040','rgba(240,64,64,0.12)']}[cv];if(!M)return '';const ag=d.consensus.agreement_pct;return `<span title="Cross-lens seasonal consensus: cycle years vs all years across 1–3 month horizons${ag!=null?' — '+ag+'% agreement':''}. Score ×${(+d.consensus.mult).toFixed(2)}." style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;background:${M[2]};color:${M[1]};font-size:9px;font-weight:700;letter-spacing:0.5px;border:1px solid ${M[1]}33">${M[0]}${ag!=null?' · '+ag+'%':''}</span>`})()}
-      ${cycleLabel?`<span class="ss-cycle-tag">${cycleLabel.toUpperCase()}</span>`:''}
+      <button class="ss-btn sx-btn" onclick="openSeasLab('${m.id}','${m.name}')">Seasonality Lab ↗</button>
+      <button class="ss-btn sx-btn sx-btn-ghost" onclick="openModal('${m.id}','${(m.name||'').replace(/'/g,"\\'")}')">Full chart ↗</button>
     </div>
   </div>
+  ${seasWindowStripHTML(d)}
   <div class="seas-legend">
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2.5px solid #6b7cff"></span>Hist. Median (past)</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:1.5px dashed rgba(107,124,255,0.5)"></span>Projected</span>
-    <span class="seas-leg-item" title="Ensemble envelope: 15–85% range of median curves computed under ~14 alternative reasonable framings (window length, recency decay, cycle blend, parity splits). Wider = framings disagree (uncertain); narrower = framings agree (robust)."><span class="seas-leg-line" style="height:7px;background:rgba(107,124,255,0.16);border-top:none;border-radius:2px"></span>Plausible range</span>
+    <span class="seas-leg-item sx-chip-tap" onclick="sxTip(this,event)" data-tip-title="Plausible range" data-tip="The 15–85% envelope of median curves rebuilt under ~14 other reasonable framings (window length, recency decay, cycle blend, odd/even splits). Wide means the framings disagree and the curve is fragile; narrow means the shape is robust."><span class="seas-leg-line" style="height:7px;background:rgba(107,124,255,0.16);border-top:none;border-radius:2px"></span>Plausible range</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2px solid rgba(255,255,255,0.85)"></span>${new Date().getFullYear()}&nbsp;YTD Actual</span>
     <span class="seas-leg-item"><span class="seas-leg-dot" style="background:#e03a2a"></span>Today</span>
   </div>
@@ -37144,9 +37651,12 @@ function seasTabStub(m){
   </div>
   <div class="seas-insight-row" id="seas-insight-row"></div>
   <div class="seas-turn-callout" id="seas-turn-callout" style="display:none"></div>
-  ${{'B':'Curve computed from Brent Crude (BZ=F) daily history — direct proxy for ICE Brent.','GO':'Curve computed from NYMEX Heating Oil (HO=F) — best available proxy for ICE Gas Oil (European diesel).','RC':'Curve computed from Arabica Coffee (KC=F) — Robusta shares the same harvest/weather seasonal drivers.','Z':'Curve computed from FTSE 100 index (^FTSE) daily history.','R':'Curve computed from iShares UK Gilt ETF (IGLT.L) — proxy for Long Gilt futures.'}[m.id]?`<div style="margin-top:8px;padding:7px 10px;border-radius:6px;background:rgba(92,158,255,0.04);border:1px solid rgba(92,158,255,0.12);font-size:8.5px;color:var(--dim);line-height:1.5">
-    <strong style="color:#6ea8d6">Data note:</strong> ${{'B':'Curve computed from Brent Crude (BZ=F) daily history — direct proxy for ICE Brent.','GO':'Curve computed from NYMEX Heating Oil (HO=F) — best available proxy for ICE Gas Oil (European diesel).','RC':'Curve computed from Arabica Coffee (KC=F) — Robusta shares the same harvest/weather seasonal drivers.','Z':'Curve computed from FTSE 100 index (^FTSE) daily history.','R':'Curve computed from iShares UK Gilt ETF (IGLT.L) — proxy for Long Gilt futures.'}[m.id]}
-  </div>`:''}`;
+  <div class="sx-two">
+    <div class="sx-two-a" id="seas-cons-slot">${seasConsensusHTML(d.consensus,'long')}</div>
+    <div class="sx-two-b">${seasRecent5HTML(d)}</div>
+  </div>
+  ${seasPerYearHTML(d,'seas-py-canvas')}
+  ${_dataNote?`<div class="sx-note"><strong>Data note:</strong> ${_dataNote}</div>`:''}`;
 }
 
 async function loadSeasTab(marketId,marketName){
@@ -37171,6 +37681,20 @@ async function loadSeasTab(marketId,marketName){
     );
     renderSeasInsight(all,mt,td,sd,cya||[],'seas-insight-row');
     renderTurnCallout(miniSeasChart.$turnCall,'seas-turn-callout');
+    // Goldilocks entry read — needs the curve + detected turns, so it lands here
+    try{
+      const gEl=document.getElementById('seas-gold');
+      if(gEl){
+        const g=seasGoldilocks({curve:all,todayTD:td,sd,turns:data.turns||[],months});
+        gEl.innerHTML=seasGoldilocksHTML(g,sd);
+      }
+    }catch(e){console.warn('goldilocks render failed',e)}
+    try{ seasDrawPerYearBars('seas-py-canvas',sd); }catch(e){console.warn('per-year bars failed',e)}
+    // Consensus/recent-5 may only exist on the fetched window payload
+    try{
+      const cEl=document.getElementById('seas-cons-slot');
+      if(cEl&&!cEl.innerHTML.trim()&&sd.consensus)cEl.innerHTML=seasConsensusHTML(sd.consensus,'long');  // price-truthful: green = price up
+    }catch(e){}
   }catch(e){
     const load=document.getElementById('seas-mini-load');
     if(load)load.innerHTML='<span style="color:var(--sm2);font-size:10px">Failed: '+e.message+'</span>';
@@ -41908,6 +42432,8 @@ let _labV2={
   yearBars:null,
   dragging:false, dragStart:null,
   fetchInFlight:false,
+  reqSeq:0,          // AUDIT-LAB-UI: monotonic token — stale responses are discarded
+  shape:null,        // window+direction aware shape analysis (see _labV2ComputeShape)
   dir:'long'  // 'long' | 'short' — flips win-rate / avg gain / callout / bar colours
 };
 // Return the active-direction stats object, transparently swapping in short mirror when dir='short'.
@@ -41929,10 +42455,16 @@ function _labV2SetDir(d){
   // toggle button state
   const wrap=document.getElementById('lab-v2-dir');
   if(wrap){
-    wrap.querySelectorAll('.dir-btn').forEach(b=>b.classList.toggle('active', b.dataset.dir===d));
+    wrap.querySelectorAll('.dir-btn').forEach(b=>{
+      const on=b.dataset.dir===d;
+      b.classList.toggle('active',on);
+      b.setAttribute('aria-pressed',on?'true':'false');
+    });
   }
   // re-render everything direction-sensitive; no refetch needed — server ships both sides
-  _labV2RenderWindowSidebar();
+  _labV2RenderWindowSidebar();   // donut, consensus, KPIs, per-year bars, entry strip, table
+  _labV2RenderCallout();         // drawdown ⇄ rally risk / goldilocks countdown
+  _labV2RenderBasketStats();     // equal-weight stat cards + per-year chips
 }
 function _labV2LSKey(mkt){return 'seas_blend::'+mkt}
 
@@ -41967,6 +42499,9 @@ async function openSeasLab(marketId,marketName){
   document.getElementById('lab-content').style.display='none';
   _labV2.marketId=marketId;_labV2.marketName=marketName||marketId;
   _labV2.window=null;_labV2.windowStats=null;_labV2.perYearWindow=[];
+  _labV2.shape=null;_labV2.reqSeq++;clearTimeout(_labV2BlendDebounce);_labV2BlendDebounce=null;
+  _labV2.dragging=false;_labV2._pendingWs=null;_labV2._pendingWe=null;
+  const _dirWrap=document.getElementById('lab-v2-side');if(_dirWrap)_dirWrap.innerHTML='';
   try{
     // Initial fetch: default blend (server chooses based on asset class)
     // Use user-saved override if present
@@ -42076,59 +42611,13 @@ function _labRender(){
   const sm=a=>a.map((v,i)=>{const p=a[i-1],nx=a[i+1];return(v==null||p==null||nx==null)?v:0.25*p+0.5*v+0.25*nx;});
   const avgS=sm(sm(avg)),p25S=sm(p25),p75S=sm(p75);
   const labels=Array.from({length:252},(_,i)=>i+1);
-  // ── forward-window stats per year ──
-  const fwd=paths.map(p=>({y:p.y,r:(p.arr[fwdEnd-1]??0)-(p.arr[td-1]??0)})).sort((a,b)=>b.r-a.r);
-  const fwdVals=fwd.map(f=>f.r).sort((a,b)=>a-b);
-  const wins=fwd.filter(f=>f.r>0).length;
-  const fwdMed=_labQuantile(fwdVals,0.5),fwdMean=fwdVals.length?fwdVals.reduce((s,v)=>s+v,0)/fwdVals.length:null;
-  // ── per-year intra-window max drawdown / max rally (the stat pointwise medians hide) ──
-  const ddArr=[],rallyArr=[],ddTds=[];
-  for(const p of paths){
-    const base=p.arr[td-1]??0;let lo=0,hi=0,loTd=td;
-    for(let i=td-1;i<fwdEnd;i++){
-      const rel=(p.arr[i]??base)-base;
-      if(rel<lo){lo=rel;loTd=i+1;}
-      if(rel>hi)hi=rel;
-    }
-    ddArr.push(lo);rallyArr.push(hi);
-    if(lo<-2)ddTds.push(loTd);
-  }
-  const ddSorted=[...ddArr].sort((a,b)=>a-b),rallySorted=[...rallyArr].sort((a,b)=>a-b);
-  const medDD=_labQuantile(ddSorted,0.5),medRally=_labQuantile(rallySorted,0.5);
-  const ddTypTd=ddTds.length?Math.round(_labQuantile(ddTds.sort((a,b)=>a-b),0.5)):null;
-  const nDD=ddArr.filter(v=>v<-2).length;
-  // ── stats cards ──
-  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
-  const col=v=>v==null?'var(--dim)':v>=0?'var(--s1)':'var(--sm2)';
-  const fwdLbl='Today → +'+_LAB_FWD+' TD';
-  document.getElementById('lab-stats').innerHTML=
-    `<div class="lab-stat"><div class="lv">${n}</div><div class="lk">Years in basket</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${wins/Math.max(1,n)>=0.5?'var(--s1)':'var(--sm2)'}">${n?Math.round(100*wins/n):'—'}%</div><div class="lk">Win rate · ${fwdLbl} (${wins}/${n} up)</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${col(fwdMed)}">${pc(fwdMed)}</div><div class="lk">Median · ${fwdLbl}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${col(fwdMean)}">${pc(fwdMean)}</div><div class="lk">Mean · ${fwdLbl}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${fwd.length?pc(fwd[0].r):'—'}</div><div class="lk">Best · ${fwd.length?fwd[0].y:''}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:var(--sm2)">${fwd.length?pc(fwd[fwd.length-1].r):'—'}</div><div class="lk">Worst · ${fwd.length?fwd[fwd.length-1].y:''}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${col(medDD)}">${pc(medDD)}</div><div class="lk">Median max drawdown in window${ddTypTd?' · trough ~'+tdPhase(ddTypTd,d.months):''}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${col(medRally)}">${pc(medRally)}</div><div class="lk">Median max rally in window</div></div>`;
-  // ── weak/strong window callout — driven by per-year drawdowns, not the averaged path ──
-  const pc2=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
-  const co=document.getElementById('lab-callout');
-  if(n>=3&&medDD!=null&&medDD<=-3){
-    co.style.display='block';
-    co.style.borderColor='rgba(240,64,64,0.35)';co.style.background='rgba(240,64,64,0.07)';co.style.color='var(--text)';
-    co.innerHTML=`<strong style="color:var(--sm2)">▼ Drawdown risk ahead:</strong> in <strong>${nDD} of ${n}</strong> selected years price fell &gt;2% below today's level inside the next ${_LAB_FWD} trading days — median max drawdown <strong style="color:var(--sm2)">${medDD.toFixed(1)}%</strong>${ddTypTd?`, typical trough around <strong>${tdPhase(ddTypTd,d.months)}</strong>`:''}. Endpoint ${_labOpts.avg} by TD ${fwdEnd}: <strong style="color:${col(fwdMed)}">${pc(fwdMed)}</strong>${fwdMed!=null&&fwdMed>0?' — a dip-then-rally profile':''}.`;
-  }else if(n>=3&&fwdMed!=null&&fwdMed<0&&wins/Math.max(1,n)<=0.4){
-    co.style.display='block';
-    co.style.borderColor='rgba(240,64,64,0.35)';co.style.background='rgba(240,64,64,0.07)';co.style.color='var(--text)';
-    co.innerHTML=`<strong style="color:var(--sm2)">▼ Seasonal weakness ahead:</strong> only <strong>${wins} of ${n}</strong> selected years finished the next ${_LAB_FWD} trading days higher — median <strong style="color:var(--sm2)">${pc2(fwdMed)}</strong>, median max drawdown <strong style="color:var(--sm2)">${medDD!=null?medDD.toFixed(1)+'%':'—'}</strong>${ddTypTd?`, typical trough around <strong>${tdPhase(ddTypTd,d.months)}</strong>`:''}.`;
-  }else if(n>=3&&medRally!=null&&medRally>=3&&(medDD==null||medDD>-1.5)){
-    co.style.display='block';
-    co.style.borderColor='rgba(38,201,122,0.35)';co.style.background='rgba(38,201,122,0.07)';co.style.color='var(--text)';
-    co.innerHTML=`<strong style="color:var(--s1)">▲ Seasonal strength ahead:</strong> median max rally over the next ${_LAB_FWD} trading days is <strong style="color:var(--s1)">+${medRally.toFixed(1)}%</strong> across this ${n}-year basket, with limited downside (median max drawdown ${medDD!=null?medDD.toFixed(1):'—'}%).`;
-  }else co.style.display='none';
-  // ── per-year forward chips ──
-  document.getElementById('lab-yrret').innerHTML=fwd.map(f=>
-    `<span style="color:${f.r>=0?'var(--s1)':'var(--sm2)'}">${f.y}&nbsp;&nbsp;${pc(f.r)}</span>`).join('')||'<span style="color:var(--dim)">No years selected</span>';
+  // ── window-aware, direction-aware shape analysis (drives callout + basket stats) ──
+  // AUDIT-LAB-UI: callout & basket stats now follow the ACTIVE analysis window and the
+  // Long/Short toggle instead of a hard-coded long-only +60TD read.
+  const _shW=_labV2.window||{ws:td,we:fwdEnd};
+  _labV2.shape=_labV2ComputeShape(paths,_shW.ws,_shW.we,td);
+  _labV2RenderBasketStats();
+  _labV2RenderCallout();
   // ── main chart ──
   const dsets=[];
   if(_labOpts.band&&n>=4){
@@ -42174,11 +42663,22 @@ function _labRender(){
     // window edge handles (small gold notches at top)
     ctx.fillStyle='rgba(200,169,110,0.85)';
     ctx.fillRect(wx0-1.5,ca.top,3,9);ctx.fillRect(wx1-1.5,ca.top,3,9);
-    // window phase labels
-    if(d.months&&(wx1-wx0)>70){
-      ctx.fillStyle='rgba(200,169,110,0.75)';ctx.font='700 8px "DM Sans",sans-serif';
-      ctx.textAlign='left';ctx.fillText(tdPhase(w.ws,d.months).toUpperCase(),wx0+5,ca.top+8);
-      ctx.textAlign='right';ctx.fillText(tdPhase(w.we,d.months).toUpperCase(),wx1-5,ca.top+8);
+    // window phase labels — AUDIT-LAB-UI: only when there is room for BOTH labels plus the
+    // TODAY tag, otherwise they collided at 390px.
+    if(d.months){
+      ctx.font='700 8px "DM Sans",sans-serif';
+      const l0=tdPhase(w.ws,d.months).toUpperCase(), l1=tdPhase(w.we,d.months).toUpperCase();
+      const need=ctx.measureText(l0).width+ctx.measureText(l1).width+22;
+      const todayX=x.getPixelForValue(td);
+      const clearOfToday=Math.abs(wx0-todayX)>ctx.measureText(l0).width+8 || wx0>=todayX;
+      if((wx1-wx0)>need){
+        ctx.fillStyle='rgba(200,169,110,0.8)';
+        ctx.textAlign='left';ctx.fillText(l0,wx0+5,ca.top+8);
+        ctx.textAlign='right';ctx.fillText(l1,wx1-5,ca.top+8);
+      }else if((wx1-wx0)>ctx.measureText(l1).width+14 && clearOfToday){
+        ctx.fillStyle='rgba(200,169,110,0.8)';
+        ctx.textAlign='right';ctx.fillText(l1,wx1-5,ca.top+8);
+      }
     }
     // TODAY marker
     const x0=x.getPixelForValue(td);
@@ -42237,6 +42737,181 @@ function _labRender(){
 
 /* ════ SEASONALITY LAB V2 ════ */
 
+/* ════ AUDIT-LAB-UI · direction + window aware shape engine ════
+   One computation, two perspectives. `long` = price-up is a win, `short` = price-down
+   is a win. Every field on a side object is already expressed in that side's P&L, so
+   positive is ALWAYS good for the trader on that side. */
+function _labV2ComputeShape(paths,ws,we,td){
+  ws=Math.max(1,Math.min(251,Math.round(ws)));
+  we=Math.max(ws+1,Math.min(252,Math.round(we)));
+  const out={n:0,ws,we,td,tdWin:we-ws,long:null,short:null,perYear:[]};
+  if(!paths||!paths.length)return out;
+  const rows=[];
+  for(const p of paths){
+    const base=p.arr[ws-1],end=p.arr[we-1];
+    if(base==null||end==null)continue;
+    let lo=0,hi=0,loTd=ws,hiTd=ws;
+    for(let i=ws-1;i<we;i++){
+      const rel=(p.arr[i]??base)-base;
+      if(rel<lo){lo=rel;loTd=i+1;}
+      if(rel>hi){hi=rel;hiTd=i+1;}
+    }
+    rows.push({y:p.y,ret:end-base,lo,hi,loTd,hiTd,fromLo:(end-base)-lo,fromHi:(end-base)-hi});
+  }
+  out.perYear=rows;out.n=rows.length;
+  if(!rows.length)return out;
+  const q=(a,p)=>_labQuantile([...a].sort((x,y)=>x-y),p);
+  const side=sgn=>{
+    const rets=rows.map(r=>sgn*r.ret);
+    const adv=rows.map(r=>sgn>0?r.lo:-r.hi);        // adverse excursion (≤0 in side P&L)
+    const fav=rows.map(r=>sgn>0?r.hi:-r.lo);        // favourable excursion (≥0)
+    // Entry timing: the seasonal extreme the trader wants to buy/sell into
+    const extTds=rows.filter(r=>(sgn>0?r.lo<-1.0:r.hi>1.0)).map(r=>sgn>0?r.loTd:r.hiTd);
+    const aheadTds=extTds.filter(t=>t>=td);
+    const post=rows.map(r=>sgn>0?r.fromLo:-r.fromHi); // move from the extreme to window end
+    const mid=Math.round((ws+we)/2);
+    const halves=rows.map(r=>{
+      const p=paths.find(x=>x.y===r.y);
+      const a=p?p.arr[ws-1]:null,m=p?p.arr[mid-1]:null,z=p?p.arr[we-1]:null;
+      return (a==null||m==null||z==null)?null:{near:sgn*(m-a),far:sgn*(z-m)};
+    }).filter(Boolean);
+    const wins=rets.filter(v=>v>0).length;
+    const quorum=Math.max(2,Math.ceil(rows.length*0.34));
+    return {n:rows.length,wins,losses:rows.length-wins,
+      winRate:wins/rows.length,
+      med:q(rets,0.5),mean:rets.reduce((s,v)=>s+v,0)/rows.length,
+      advMed:q(adv,0.5),favMed:q(fav,0.5),
+      nAdv:adv.filter(v=>v<=-2).length,
+      entryTd:aheadTds.length>=quorum?Math.round(q(aheadTds,0.5)):null,
+      nEntry:aheadTds.length,postMed:q(post,0.5),
+      nearMed:halves.length?q(halves.map(h=>h.near),0.5):null,
+      farMed:halves.length?q(halves.map(h=>h.far),0.5):null,midTd:mid,
+      ranked:rows.map(r=>({y:r.y,v:sgn*r.ret})).sort((a,b)=>b.v-a.v)};
+  };
+  out.long=side(1);out.short=side(-1);
+  return out;
+}
+
+// Days-to-goldilocks straight from the scoring payload when the backend ships one.
+function _labV2PayloadGold(){
+  const d=_labData;if(!d)return null;
+  const cands=[d.days_to_goldilocks,d.td_to_goldilocks,
+    d.score_detail&&d.score_detail.days_to_goldilocks,
+    d.score_detail&&d.score_detail.td_to_goldilocks,
+    d.window&&d.window.days_to_goldilocks];
+  const dir=(d.score_detail&&d.score_detail.goldilocks_dir)||(d.goldilocks_dir)||null;
+  for(const v of cands){
+    if(typeof v==='number'&&isFinite(v)&&v>=0)return {td:Math.round(v),dir};
+  }
+  return null;
+}
+
+const _LAB_TD2CAL=365/252;
+function _labV2SideCopy(isShort){
+  return isShort
+    ? {word:'fall',wordPast:'fell',adverseWord:'rally',extreme:'peak',entryVerb:'sell into',
+       riskKick:'Rally risk ahead',shapeNote:'a pop-then-fade profile',
+       favWord:'fall',advDirWord:'above',oppose:'rose'}
+    : {word:'rise',wordPast:'rose',adverseWord:'drawdown',extreme:'trough',entryVerb:'buy into',
+       riskKick:'Drawdown risk ahead',shapeNote:'a dip-then-rally profile',
+       favWord:'rally',advDirWord:'below',oppose:'fell'};
+}
+
+/* Trader-language callout: goldilocks timing first, then risk, then edge. */
+function _labV2RenderCallout(){
+  const co=document.getElementById('lab-callout');if(!co)return;
+  const sh=_labV2.shape,d=_labData;
+  if(!sh||!sh.n||!d){co.style.display='none';return;}
+  const isShort=_labV2.dir==='short';
+  const s=isShort?sh.short:sh.long;
+  if(!s||s.n<3){co.style.display='none';return;}
+  const C=_labV2SideCopy(isShort);
+  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  const mag=v=>v==null?'—':Math.abs(v).toFixed(1)+'%';
+  const ph=t=>d.months?tdPhase(t,d.months):('TD '+t);
+  const winLbl=`${ph(sh.ws)} → ${ph(sh.we)}`;
+  // 1-2W vs 3-4W shape — the "am I early?" read
+  let shapeTxt='';
+  if(s.nearMed!=null&&s.farMed!=null&&Math.abs(s.nearMed-s.farMed)>=1.5){
+    const backLoaded=s.farMed>s.nearMed;
+    shapeTxt=` Shape: first half <b>${pc(s.nearMed)}</b> → second half <b>${pc(s.farMed)}</b> — ${backLoaded?'the move is back-loaded, so patience pays':'the move is front-loaded, so late entries chase'}.`;
+  }
+  const srcTxt=` <i>· equal-weight basket, ${s.n} yrs</i>`;
+  const wrPct=Math.round(s.winRate*100);
+  // goldilocks countdown — backend value wins when it exists and matches the side
+  let goldTd=s.entryTd!=null?(s.entryTd-sh.td):null;
+  let goldSrc='basket';
+  const pg=_labV2PayloadGold();
+  if(pg&&(!pg.dir||pg.dir===_labV2.dir)){goldTd=pg.td;goldSrc='score';}
+  const entryPhase=s.entryTd!=null?ph(s.entryTd):(goldTd!=null?ph(Math.min(252,sh.td+goldTd)):null);
+  const wks=goldTd!=null?Math.max(1,Math.round(goldTd*_LAB_TD2CAL/7)):null;
+  let tone='co-flat',ic='▬',kick='',txt='',pill='';
+
+  if(goldTd!=null&&goldTd<=2&&s.postMed>=1.5){
+    tone='co-good';ic=isShort?'▼':'▲';pill='NOW';
+    kick=`Goldilocks entry — live now`;
+    txt=`Seasonal ${C.extreme} sits around <b>${entryPhase}</b> — effectively here. From there the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b>; <b>${s.wins} of ${s.n}</b> years ${C.wordPast} across ${winLbl} (median <b>${pc(s.med)}</b>).${shapeTxt}${srcTxt}`;
+  }else if(goldTd!=null&&goldTd>2&&goldTd<=30&&s.postMed>=1.5){
+    tone='co-gold';ic='◷';pill=`${goldTd} TD`;
+    kick=`Almost ready seasonally — ${goldTd} trading days to goldilocks entry`;
+    txt=`Price typically ${isShort?'rallies':'dips'} first — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>, ${C.extreme} around <b>${entryPhase}</b> (~${wks} week${wks===1?'':'s'} out). From that ${C.extreme} the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b> — wait for it or scale in.${shapeTxt}${goldSrc==='score'?' <i>Timing from the seasonal score.</i>':''}${srcTxt}`;
+  }else if(s.advMed!=null&&s.advMed<=-3){
+    tone='co-risk';ic='▼';
+    kick=C.riskKick;
+    txt=`In <b>${s.nAdv} of ${s.n}</b> selected years price ${isShort?'rose':'fell'} &gt;2% ${C.advDirWord} the entry inside ${winLbl} — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>${s.entryTd?`, typical ${C.extreme} around <b>${entryPhase}</b>`:''}. Window ${_labOpts.avg}: <b>${pc(s.med)}</b>${s.med>0?` — ${C.shapeNote}`:''}.${shapeTxt}${srcTxt}`;
+    // pill is a countdown, so only inside the swing horizon Ben cares about (≤6 weeks)
+    if(s.entryTd&&goldTd!=null&&goldTd>2&&goldTd<=30)pill=`${goldTd} TD`;
+  }else if(s.med!=null&&s.med<0&&s.winRate<=0.45){
+    tone='co-risk';ic='▼';
+    kick=isShort?'Seasonal headwind for shorts':'Seasonal headwind ahead';
+    txt=`Only <b>${s.wins} of ${s.n}</b> years ${C.wordPast} across ${winLbl} (${wrPct}% hit rate) — median <b>${pc(s.med)}</b>, median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>. The other side of the book looks better here.${shapeTxt}${srcTxt}`;
+  }else if(s.favMed!=null&&s.favMed>=3&&(s.advMed==null||s.advMed>-1.5)){
+    tone='co-good';ic=isShort?'▼':'▲';
+    kick=isShort?'Seasonal weakness ahead — favours shorts':'Seasonal strength ahead';
+    txt=`Median max ${C.favWord} across ${winLbl} is <b>${mag(s.favMed)}</b> over this ${s.n}-year basket with limited adverse excursion (median <b>${pc(s.advMed)}</b>) — ${wrPct}% of years ${C.wordPast}.${shapeTxt}${srcTxt}`;
+  }else{
+    tone='co-flat';ic='▬';
+    kick='No clear seasonal edge in this window';
+    txt=`Median <b>${pc(s.med)}</b> across ${winLbl}, ${wrPct}% hit rate (<b>${s.wins}/${s.n}</b>) — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>, median max ${C.favWord} <b>${mag(s.favMed)}</b>.${shapeTxt||' Drag a different window or flip direction.'}${srcTxt}`;
+  }
+  co.style.display='grid';
+  co.className='lab-callout '+tone;
+  co.style.background='';co.style.borderColor='';co.style.color='';
+  co.innerHTML=`<span class="co-ic">${ic}</span><div class="co-body"><div class="co-kick">${kick}</div><div class="co-txt">${txt}</div></div>`+
+    (pill?`<span class="co-pill">${pill}</span>`:'');
+}
+
+/* Equal-weight basket stat cards + per-year chips — direction & window aware. */
+function _labV2RenderBasketStats(){
+  const el=document.getElementById('lab-stats');if(!el)return;
+  const sh=_labV2.shape,d=_labData;
+  if(!sh||!sh.n||!d){el.innerHTML='';return;}
+  const isShort=_labV2.dir==='short',s=isShort?sh.short:sh.long,C=_labV2SideCopy(isShort);
+  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  const col=v=>v==null?'var(--dim)':v>=0?'var(--s1)':'var(--sm2)';
+  const ph=t=>d.months?tdPhase(t,d.months):('TD '+t);
+  const winLbl=`${ph(sh.ws)} → ${ph(sh.we)}`;
+  const wr=Math.round(s.winRate*100);
+  const best=s.ranked[0],worst=s.ranked[s.ranked.length-1];
+  const pnl=isShort?'short P&L':'return';
+  el.innerHTML=
+    `<div class="lab-stat"><div class="lv">${sh.n}</div><div class="lk">Years in basket · ${sh.tdWin} TD</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${wr>=55?'var(--s1)':wr<=45?'var(--sm2)':'var(--accent)'}">${wr}%</div><div class="lk">${isShort?'Short hit rate':'Hit rate'} · ${s.wins}/${s.n} ${isShort?'down':'up'} · equal-wt</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${col(s.med)}">${pc(s.med)}</div><div class="lk">Median ${pnl} · ${winLbl}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${col(s.mean)}">${pc(s.mean)}</div><div class="lk">Mean ${pnl} · ${winLbl}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${pc(best.v)}</div><div class="lk">Best · ${best.y}${isShort?' (biggest fall)':''}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--sm2)">${pc(worst.v)}</div><div class="lk">Worst · ${worst.y}${isShort?' (biggest rally)':''}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${col(s.advMed)}">${pc(s.advMed)}</div><div class="lk">Median adverse ${C.adverseWord}${s.entryTd?' · '+C.extreme+' ~'+ph(s.entryTd):''}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${Math.abs(s.favMed).toFixed(1)}%</div><div class="lk">Median max ${C.favWord} in window</div></div>`+
+    (s.nearMed!=null&&s.farMed!=null?`<div class="lab-stat" style="grid-column:1/-1"><div class="lv"><span style="color:${col(s.nearMed)}">${pc(s.nearMed)}</span><span style="color:var(--dim);font-size:11px"> → </span><span style="color:${col(s.farMed)}">${pc(s.farMed)}</span></div><div class="lk">First half → second half of window</div></div>`:'');
+  const lab=document.getElementById('lab-yrret-label');
+  if(lab)lab.textContent=`${isShort?'Short P&L':'Return'} by year — ${winLbl}`;
+  const chips=document.getElementById('lab-yrret');
+  if(chips)chips.innerHTML=s.ranked.map(r=>
+    `<span style="color:${r.v>=0?'var(--s1)':'var(--sm2)'}">${r.y}&nbsp;&nbsp;${pc(r.v)}</span>`).join('')||'<span style="color:var(--dim)">No years selected</span>';
+}
+
+
 // Render head: reliability grade, asset class tag
 function _labV2RenderHead(){
   const d=_labData;
@@ -42284,33 +42959,45 @@ let _labV2BlendDebounce=null;
 function _labV2WireBlend(){
   const cw=document.getElementById('lab-v2-cw'), hl=document.getElementById('lab-v2-hl');
   const cwVal=document.getElementById('lab-v2-cw-val');
-  cw.oninput = ()=>{ cwVal.textContent=Number(cw.value).toFixed(1)+'×'; };
-  cw.onchange = ()=>{ _labV2.blend.cycle_w=+cw.value; _labV2ReFetch(); };
-  hl.onchange = ()=>{ _labV2.blend.halflife=+hl.value; _labV2ReFetch(); };
+  // AUDIT-LAB-UI: fast slider drags used to be dropped (fetchInFlight early-return) and
+  // could land out of order. Now: live label, 220ms trailing debounce, latest-wins via reqSeq.
+  const queue=()=>{
+    clearTimeout(_labV2BlendDebounce);
+    _labV2BlendDebounce=setTimeout(()=>{_labV2BlendDebounce=null;_labV2ReFetch();},220);
+  };
+  cw.oninput = ()=>{ cwVal.textContent=Number(cw.value).toFixed(1)+'×'; _labV2.blend.cycle_w=+cw.value; queue(); };
+  cw.onchange = ()=>{ _labV2.blend.cycle_w=+cw.value; queue(); };
+  hl.onchange = ()=>{ _labV2.blend.halflife=+hl.value; clearTimeout(_labV2BlendDebounce); _labV2ReFetch(); };
 }
 
 async function _labV2ReFetch(){
-  if(_labV2.fetchInFlight) return;
+  const my=++_labV2.reqSeq, mkt=_labV2.marketId;
   _labV2.fetchInFlight=true;
   try{
     const opts={cycle_w:_labV2.blend.cycle_w, halflife:_labV2.blend.halflife};
     if(_labV2.window){opts.window_start=_labV2.window.ws; opts.window_end=_labV2.window.we;}
-    const d=await fetchSeasLab(_labV2.marketId, opts);
+    const d=await fetchSeasLab(mkt, opts);
+    if(my!==_labV2.reqSeq || mkt!==_labV2.marketId) return;   // superseded — drop
     _labData=d;
     _labData._yearList=Object.keys(d.years).map(Number).filter(y=>y<d.current_year).sort((a,b)=>a-b);
     _labV2.blend={cycle_w:d.effective_blend.cycle_w, halflife:d.effective_blend.halflife};
     if(d.window){_labV2.windowStats=d.window.window_stats||null; _labV2.perYearWindow=d.window.per_year_windows||[];}
     _labV2RenderHead();
     _labRender();
+    _labV2RenderTable();
   }catch(e){console.warn('seas re-fetch failed',e);}
-  finally{_labV2.fetchInFlight=false;}
+  finally{if(my===_labV2.reqSeq)_labV2.fetchInFlight=false;}
 }
 
 async function _labV2FetchWindow(){
   if(!_labV2.window) return;
+  // AUDIT-LAB-UI: fast successive window changes (drag → chip → month) could resolve out of
+  // order and paint stale stats. Token guard keeps only the newest response.
+  const my=++_labV2.reqSeq, mkt=_labV2.marketId;
   try{
     const opts={cycle_w:_labV2.blend.cycle_w, halflife:_labV2.blend.halflife, window_start:_labV2.window.ws, window_end:_labV2.window.we};
-    const d=await fetchSeasLab(_labV2.marketId, opts);
+    const d=await fetchSeasLab(mkt, opts);
+    if(my!==_labV2.reqSeq || mkt!==_labV2.marketId) return;   // superseded — drop
     if(d.window){_labV2.windowStats=d.window.window_stats||null; _labV2.perYearWindow=d.window.per_year_windows||[];}
     _labV2RenderWindowSidebar();
     _labV2RenderTable();
@@ -42397,29 +43084,36 @@ function _labV2AttachDragSelect(){
     return Math.max(1, Math.min(252, Math.round(v)));
   };
 
-  cvs.addEventListener('mousedown', (ev)=>{
+  // AUDIT-LAB-UI: pointer events + pointer capture. Touch is excluded on purpose so
+  // vertical scrolling inside the modal stays native on mobile (use the window chips there).
+  cvs.addEventListener('pointerdown', (ev)=>{
+    if(ev.pointerType==='touch' || ev.button!==0) return;
     const td=tdFromEvent(ev); if(td==null)return;
     _labV2.dragging=true; _labV2.dragStart=td;
     _labV2._pendingWs=td; _labV2._pendingWe=td;
+    try{cvs.setPointerCapture(ev.pointerId)}catch(_){}
     _labV2DrawOverlay();
     ev.preventDefault();
   });
-  window.addEventListener('mousemove', (ev)=>{
+  cvs.addEventListener('pointermove', (ev)=>{
     if(!_labV2.dragging) return;
     const td=tdFromEvent(ev); if(td==null)return;
     const a=_labV2.dragStart, b=td;
     _labV2._pendingWs=Math.min(a,b); _labV2._pendingWe=Math.max(a,b);
     _labV2DrawOverlay();
   });
-  window.addEventListener('mouseup', ()=>{
+  const endDrag=(commit)=>{
     if(!_labV2.dragging) return;
     _labV2.dragging=false;
-    if(_labV2._pendingWs!=null && _labV2._pendingWe!=null && (_labV2._pendingWe-_labV2._pendingWs)>=3){
+    if(commit && _labV2._pendingWs!=null && _labV2._pendingWe!=null && (_labV2._pendingWe-_labV2._pendingWs)>=3){
       _labV2SetWindow(_labV2._pendingWs, _labV2._pendingWe);
-    }else{
-      _labV2DrawOverlay();
+    }else if(_labChart){
+      try{_labChart.update('none')}catch(_){}
     }
-  });
+  };
+  cvs.addEventListener('pointerup', ()=>endDrag(true));
+  cvs.addEventListener('pointercancel', ()=>endDrag(false));
+  window.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape') endDrag(false); });
   cvs.addEventListener('dblclick', ()=>{
     const td=_labData.current_td;
     _labV2SetWindow(td, Math.min(252, td+_LAB_FWD));
@@ -42450,42 +43144,9 @@ function _labV2DrawOverlay(){
 
 // Consensus conviction card: 3 lenses x 3 horizons voting matrix
 function _labV2ConsensusHTML(){
-  const c=_labData&&_labData.consensus;
-  if(!c||!c.cells||!c.cells.length)return '';
-  const CYC={midterm:'Midterm',election:'Election',pre_election:'Pre-elec',post_election:'Post-elec'};
-  const rows=[['all','All years'],['cycle',(CYC[c.cycle_key]||'Cycle')+' yrs'],['blend','Smart blend']];
-  const cols=[['near','1-2W'],['mid','3W'],['far','4W']];
-  const badgeCls={high:'cb-high',medium:'cb-medium',low:'cb-low',conflict:'cb-conflict'}[c.conviction]||'cb-low';
-  const badgeTxt={high:'HIGH CONVICTION',medium:'MEDIUM',low:'LOW CONVICTION',conflict:'CONFLICT'}[c.conviction]||'LOW';
-  const agree=c.agreement_pct!=null?(' · '+c.agreement_pct+'%'):'';
-  let grid='<span class="ch"></span>'+cols.map(x=>'<span class="ch">'+x[1]+'</span>').join('');
-  for(const [lk,ll] of rows){
-    grid+='<span class="cl">'+ll+'</span>';
-    for(const [hk] of cols){
-      const cell=c.cells.find(x=>x.lens===lk&&x.h===hk);
-      if(!cell||cell.dir===0){
-        grid+='<span class="cc cc-flat" title="'+(cell&&cell.med!=null?('median '+(cell.med>=0?'+':'')+cell.med+'% · hit '+cell.hit+'% · n='+cell.n):'insufficient sample')+'">–</span>';
-      }else{
-        const up=cell.dir>0;
-        grid+='<span class="cc '+(up?'cc-up':'cc-dn')+'" title="hit '+cell.hit+'% · n='+cell.n+'">'+(up?'▲':'▼')+'<span class="cm">'+(cell.med>=0?'+':'')+cell.med.toFixed(1)+'%</span></span>';
-      }
-    }
-  }
-  const lowRel=(c.cycle_relevance!=null&&c.cycle_relevance<0.5);
-  const highNote=(c.conflicts>0&&lowRel)
-    ?'<b>All-years & smart-blend lenses agree</b> — cycle dissent carries low weight for '+(c.profile||'this asset').toLowerCase()+' assets — score amplified ×'+(+c.mult).toFixed(2)
-    :'<b>Cycle & all-years lenses agree</b> across horizons — seasonal score amplified ×'+(+c.mult).toFixed(2);
-  const notes={
-    high:highNote,
-    medium:'Lenses broadly agree — seasonal score unchanged',
-    low:'Weak or mixed seasonal signals — score pulled toward neutral ×'+(+c.mult).toFixed(2),
-    conflict:'<b>Cycle years oppose all-years</b> on multiple horizons — score dampened ×'+(+c.mult).toFixed(2)
-  };
-  return `<div class="lab-v2-cons">
-    <div class="cons-head"><div class="t">Seasonal consensus</div><span class="cons-badge ${badgeCls}">${badgeTxt}${agree}</span></div>
-    <div class="cons-grid">${grid}</div>
-    <div class="cons-note">${notes[c.conviction]||''}</div>
-  </div>`;
+  // Shared with the detail-page Seasonal tab — see seasConsensusHTML() in the
+  // SHARED SEASONALITY ENGINE block. Do not fork this markup.
+  return seasConsensusHTML(_labData&&_labData.consensus);
 }
 
 // Right sidebar: win-rate donut, KPIs, per-year bars
@@ -42495,6 +43156,7 @@ function _labV2RenderWindowSidebar(){
   const raw=_labV2.windowStats, s=_labV2ActiveStats(), py=_labV2.perYearWindow||[];
   if(!s){
     side.innerHTML=`<div class="lab-v2-window-empty"><div class="icon">▬ ▬</div><div class="t">Window stats loading…</div><div class="sub">Drag on the chart to pick a custom window, or wait a moment for the default forward window.</div></div>`;
+    if(_labV2.yearBars){try{_labV2.yearBars.destroy()}catch(_){}}
     _labV2.yearBars=null;
     return;
   }
@@ -42518,8 +43180,8 @@ function _labV2RenderWindowSidebar(){
     const sorted=[...py].sort((a,b)=> isShort? (a.ret_pct-b.ret_pct) : (b.ret_pct-a.ret_pct));
     bestY=sorted[0].year; worstY=sorted[sorted.length-1].year;
   }
-  const upCount = isShort ? s.n_gains : s.n_gains;   // s already carries mirror n_gains when short
-  const dnCount = isShort ? s.n_losses : s.n_losses;
+  const upCount = s.n_gains;    // _labV2ActiveStats() already swaps in the short mirror counts
+  const dnCount = s.n_losses;
   const upLbl = isShort ? 'down' : 'up';
   const dnLbl = isShort ? 'up' : 'down';
   // KPI labels flip on direction
@@ -42549,6 +43211,7 @@ function _labV2RenderWindowSidebar(){
         <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${upCount} ${upLbl} · ${dnCount} ${dnLbl}${raw.td_window?' · '+raw.td_window+' TD':''}</div>
       </div>
     </div>
+    ${_labV2EntryStripHTML()}
     ${_labV2ConsensusHTML()}
     <div class="lab-v2-kpi-grid">
       <div class="lab-v2-kpi"><div class="kv ${cls(s.w_median)}" style="color:${s.w_median>=0?goodCol:badCol}">${pc(s.w_median)}</div><div class="kk">${kMedian}</div></div>
@@ -42565,6 +43228,34 @@ function _labV2RenderWindowSidebar(){
   // draw per-year bars mini chart — direction-aware
   _labV2DrawYearBars(py);
   _labV2RenderTable();
+}
+
+/* AUDIT-LAB-UI · days-to-goldilocks strip. Shows where the seasonal entry extreme
+   sits inside the active window, and how many trading days away it is. */
+function _labV2EntryStripHTML(){
+  const sh=_labV2.shape,d=_labData;
+  if(!sh||!sh.n||!d)return '';
+  const isShort=_labV2.dir==='short',s=isShort?sh.short:sh.long;
+  if(!s)return '';
+  const C=_labV2SideCopy(isShort);
+  const pg=_labV2PayloadGold();
+  let goldTd=s.entryTd!=null?(s.entryTd-sh.td):null,fromScore=false;
+  if(pg&&(!pg.dir||pg.dir===_labV2.dir)){goldTd=pg.td;fromScore=true;}
+  // ≤30 TD ≈ 6 weeks — beyond that the entry is not actionable for a 1-4 week swing
+  if(goldTd==null||goldTd<0||goldTd>30||s.postMed==null||s.postMed<1)return '';
+  const entryTd=s.entryTd!=null?s.entryTd:Math.min(252,sh.td+goldTd);
+  const ph=t=>d.months?tdPhase(t,d.months):('TD '+t);
+  const pos=Math.max(2,Math.min(98,100*(entryTd-sh.ws)/Math.max(1,sh.we-sh.ws)));
+  const live=goldTd<=2;
+  const pc=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
+  return `<div class="lab-v2-entry${live?' live':''}">
+    <div class="entry-top">
+      <div class="entry-lbl">${live?'Goldilocks entry live':'Days to goldilocks entry'}</div>
+      <div class="entry-cd">${live?'NOW':goldTd+' TD'}</div>
+    </div>
+    <div class="entry-track"><span class="tk-fill" style="width:${pos}%"></span><span class="tk-dot" style="left:${pos}%"></span></div>
+    <div class="entry-sub">Seasonal ${C.extreme} ≈ <b>${ph(entryTd)}</b> · median ${C.favWord} from there <b>${Math.abs(s.postMed).toFixed(1)}%</b>${fromScore?' · from score':''}</div>
+  </div>`;
 }
 
 function _labV2DrawYearBars(py){
@@ -42600,19 +43291,33 @@ function _labV2RenderTable(){
   const d=_labData;
   const ws=(_labV2.window&&_labV2.window.ws)||0, we=(_labV2.window&&_labV2.window.we)||0;
   const wsPhase=d.months?tdPhase(ws,d.months):'', wePhase=d.months?tdPhase(we,d.months):'';
-  document.getElementById('lab-v2-table-window').textContent=`${wsPhase} → ${wePhase}`;
+  const twEl=document.getElementById('lab-v2-table-window');
+  if(twEl)twEl.textContent=`${wsPhase} → ${wePhase}`;
   document.getElementById('lab-v2-table-note').textContent=`${py.length} yrs`;
   const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  // AUDIT-LAB-UI: table follows the Long/Short toggle — values in the side's P&L
+  const isShort=_labV2.dir==='short';
+  const th=document.querySelectorAll('#lab-v2-table thead th');
+  if(th.length>=4){
+    th[1].textContent=isShort?'Short P&L':'Return';
+    th[2].textContent=isShort?'Max favourable':'Max rise';
+    th[3].textContent=isShort?'Max adverse':'Max drop';
+  }
+  const hd=document.querySelector('#lab-v2-table-wrap .lab-v2-table-head .t');
+  if(hd)hd.innerHTML=`Per-year window ${isShort?'short P&amp;L':'returns'} — <span id="lab-v2-table-window">${wsPhase} → ${wePhase}</span>`;
   // Sort: most recent first
   const rows=[...py].sort((a,b)=>b.year-a.year);
   const tbody=document.querySelector('#lab-v2-table tbody');
   tbody.innerHTML=rows.map(r=>{
     const cyc=d.meta[r.year]?d.meta[r.year].cycle:'midterm';
     const col=_LAB_CYC_COL[cyc]||'#8a93a8';
+    const ret=isShort?-r.ret_pct:r.ret_pct;
+    const fav=isShort?-r.max_drop:r.max_rise;   // best excursion for the side
+    const adv=isShort?-r.max_rise:r.max_drop;   // worst excursion for the side
     return `<tr><td><span class="cyc-dot" style="background:${col}"></span><span>${r.year}</span></td>`+
-      `<td class="${r.ret_pct>=0?'up':'dn'} heavy">${pc(r.ret_pct)}</td>`+
-      `<td class="up">${pc(r.max_rise)}</td>`+
-      `<td class="dn">${pc(r.max_drop)}</td>`+
+      `<td class="${ret>=0?'up':'dn'} heavy">${pc(ret)}</td>`+
+      `<td class="up">${pc(fav)}</td>`+
+      `<td class="dn">${pc(adv)}</td>`+
       `<td>${(r.weight||0).toFixed(2)}</td></tr>`;
   }).join('');
 }
@@ -43728,5 +44433,218 @@ initNexusNoise();
   _updateAsb();
 })();
 </script>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   SEASONAL TAB — Lab-mini widget  (AUDIT-SEAS-DETAIL)
+   Loaded last on purpose: the seasonality tab is layered over several older
+   override sheets, so these rules need to win without !important soup.
+   ══════════════════════════════════════════════════════════════════════════ */
+#t-seasonal{ --sx-glass:rgba(10,11,13,0.55); --sx-bdr:rgba(255,255,255,0.07); }
+
+/* ── Goldilocks entry banner ─────────────────────────────────────────────── */
+.sx-gold-slot:empty{display:none}
+.sx-gold{
+  display:flex;gap:16px;align-items:stretch;
+  margin:0 0 12px;padding:14px 16px;border-radius:14px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(var(--gx-rgb),0.10) 0%, transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+  border:1px solid rgba(var(--gx-rgb),0.24);
+  border-left:2.5px solid var(--gx);
+  backdrop-filter:blur(16px) saturate(1.1);
+  -webkit-backdrop-filter:blur(16px) saturate(1.1);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.07), 0 10px 30px rgba(0,0,0,0.42);
+}
+.sx-gold-dial{
+  flex-shrink:0;width:86px;min-height:74px;border-radius:11px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:linear-gradient(160deg, rgba(var(--gt-rgb),0.16), rgba(var(--gt-rgb),0.05));
+  border:1px solid rgba(var(--gt-rgb),0.30);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.10);
+}
+.sx-gold-big{
+  font-family:var(--mono);font-size:23px;font-weight:800;letter-spacing:-0.045em;line-height:1;
+  color:var(--gt);
+}
+.sx-gold-bigsub{
+  font-size:7.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;
+  color:rgba(255,255,255,0.42);text-align:center;padding:0 4px;line-height:1.25;
+}
+.sx-gold-body{flex:1;min-width:0}
+.sx-gold-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px}
+.sx-gold-kicker{
+  font-size:8px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;
+  color:rgba(255,255,255,0.34);
+}
+.sx-gold-tag{
+  font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.08em;
+  padding:3px 8px;border-radius:999px;color:var(--gt);
+  background:rgba(var(--gt-rgb),0.14);border:1px solid rgba(var(--gt-rgb),0.38);
+}
+.sx-gold-dir{
+  font-size:8px;font-weight:800;letter-spacing:0.1em;color:var(--gx);
+  padding:3px 7px;border-radius:999px;background:rgba(var(--gx-rgb),0.10);
+  border:1px solid rgba(var(--gx-rgb),0.28);
+}
+.sx-gold-head{
+  font-family:var(--head,inherit);font-size:13.5px;font-weight:700;letter-spacing:-0.015em;
+  color:var(--text);line-height:1.3;margin-bottom:4px;
+}
+.sx-gold-text{font-size:10px;color:var(--dim);line-height:1.6}
+.sx-gold-text strong{color:var(--text);font-weight:650}
+
+/* entry → target track */
+.sx-track{position:relative;height:30px;margin-top:11px}
+.sx-track-line{position:absolute;left:0;right:0;top:11px;height:2px;border-radius:2px;background:rgba(255,255,255,0.08)}
+.sx-track-leg{position:absolute;top:11px;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(var(--gx-rgb),0.85),rgba(var(--gx-rgb),0.25))}
+.sx-track-pin,.sx-track-now{position:absolute;top:4px;transform:translateX(-50%);text-align:center}
+.sx-track-pin::before,.sx-track-now::before{
+  content:'';display:block;width:7px;height:7px;border-radius:50%;margin:0 auto 3px;
+}
+.sx-track-entry::before{background:var(--gx);box-shadow:0 0 8px rgba(var(--gx-rgb),0.7)}
+.sx-track-target::before{background:rgba(255,255,255,0.35)}
+.sx-track-now::before{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,0.12)}
+.sx-track-pin span,.sx-track-now span{
+  font-size:6.5px;font-weight:800;letter-spacing:0.1em;color:rgba(255,255,255,0.40);white-space:nowrap;
+}
+.sx-track-entry span{color:var(--gx)}
+.sx-track-now span{color:rgba(255,255,255,0.75)}
+
+/* ── Score card additions ────────────────────────────────────────────────── */
+.sx-driver{font-size:8px;color:rgba(255,255,255,0.46);letter-spacing:0.02em}
+.sx-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sx-chip{
+  position:relative;display:inline-flex;align-items:center;gap:5px;
+  padding:4px 9px;border-radius:999px;border:1px solid transparent;
+  font-size:8.5px;font-weight:800;letter-spacing:0.07em;white-space:nowrap;
+}
+.sx-chip b{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:-0.02em}
+.sx-chip-mute{color:var(--faint);background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.09)}
+.sx-chip-tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sx-chip-i{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:11px;height:11px;border-radius:50%;font-size:7px;font-weight:800;
+  font-family:var(--mono);border:1px solid currentColor;opacity:0.55;
+}
+.sx-chip-tap:hover .sx-chip-i{opacity:1}
+.ss-actions .sx-btn{padding:9px 14px;font-size:8.5px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+.sx-btn-ghost{border-color:rgba(255,255,255,0.12)!important;background:rgba(255,255,255,0.03)!important;color:var(--dim)!important}
+.sx-btn-ghost:hover{border-color:rgba(255,255,255,0.28)!important;color:var(--text)!important}
+
+/* ── Explainer popover (works on tap, not just hover) ───────────────────── */
+.sx-tip{
+  position:absolute;left:0;top:calc(100% + 8px);z-index:60;
+  display:none;width:min(280px,78vw);padding:10px 12px;border-radius:10px;
+  background:rgba(14,15,18,0.96);border:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 14px 40px rgba(0,0,0,0.6);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  font-size:9.5px;font-weight:400;letter-spacing:0;line-height:1.6;
+  color:var(--dim);text-transform:none;white-space:normal;text-align:left;
+}
+.sx-tip b{display:block;margin-bottom:4px;color:var(--text);font-size:9.5px;font-weight:700;letter-spacing:0.02em}
+.sx-tip-on .sx-tip{display:block;animation:sxTipIn 160ms cubic-bezier(0.22,1,0.36,1)}
+@keyframes sxTipIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.sx-tip-on{z-index:61}
+
+/* ── Near / far window strip ─────────────────────────────────────────────── */
+.sx-winrow{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.sx-win{
+  position:relative;overflow:hidden;padding:12px 14px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.008));
+  border:1px solid var(--sx-bdr);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 4px 16px rgba(0,0,0,0.3);
+}
+.sx-win::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2.5px;background:var(--wx);opacity:0.8}
+.sx-win-k{
+  font-size:8px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
+  color:rgba(255,255,255,0.36);display:flex;justify-content:space-between;gap:8px;margin-bottom:7px;
+}
+.sx-win-k span{font-weight:600;letter-spacing:0.05em;color:rgba(255,255,255,0.26);text-transform:none}
+.sx-win-v{font-family:var(--mono);font-size:19px;font-weight:800;letter-spacing:-0.04em;line-height:1;margin-bottom:5px}
+.sx-win-m{font-size:8.5px;color:rgba(255,255,255,0.48);line-height:1.55}
+.sx-win-m strong{font-weight:700}
+.sx-win-shape{
+  position:relative;display:inline-flex;align-items:center;gap:5px;margin-top:8px;
+  padding:5px 10px;border-radius:999px;border:1px solid transparent;cursor:pointer;
+  font-size:8.5px;font-weight:800;letter-spacing:0.08em;min-height:26px;
+}
+
+/* ── Panels: recent-5 bars, per-year bars, consensus pairing ────────────── */
+.sx-two{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px;align-items:start}
+.sx-two-a:empty,.sx-two-b:empty{display:none}
+.sx-two .lab-v2-cons{background:linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.008));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.sx-panel{
+  padding:12px 14px 13px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.008));
+  border:1px solid var(--sx-bdr);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 4px 16px rgba(0,0,0,0.3);
+  margin-top:12px;
+}
+.sx-two .sx-panel{margin-top:0}
+.sx-panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.sx-panel-head .t{font-size:8px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.42)}
+.sx-panel-r{font-size:8px;color:rgba(255,255,255,0.3);letter-spacing:0.04em;white-space:nowrap}
+.sx-panel-note{font-size:8.5px;color:rgba(255,255,255,0.34);line-height:1.55;margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
+.sx-pill{font-size:8px;font-weight:800;letter-spacing:0.08em;padding:3px 8px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+
+/* recent-5 mirrored bars */
+.sx-r5{display:flex;gap:8px;align-items:stretch;justify-content:space-between}
+.sx-r5-col{flex:1;display:flex;flex-direction:column;align-items:center}
+.sx-r5-slot{height:40px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.sx-r5-slot.dn{align-items:flex-start}
+.sx-r5-bar{width:70%;max-width:26px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,rgba(38,201,122,0.95),rgba(38,201,122,0.45))}
+.sx-r5-bar.dn{border-radius:0 0 3px 3px;background:linear-gradient(0deg,rgba(240,64,64,0.95),rgba(240,64,64,0.45))}
+.sx-r5-axis{width:100%;height:1px;background:rgba(255,255,255,0.14)}
+.sx-r5-yr{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.34);margin-top:5px}
+
+/* per-year bars */
+.sx-py{position:relative;height:132px}
+.sx-note{margin-top:10px;padding:8px 11px;border-radius:9px;background:rgba(92,158,255,0.04);border:1px solid rgba(92,158,255,0.12);font-size:8.5px;color:var(--dim);line-height:1.55}
+.sx-note strong{color:#6ea8d6}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .sx-gold{flex-direction:row;gap:12px;padding:13px 13px;border-radius:12px}
+  .sx-gold-dial{width:70px;min-height:64px}
+  .sx-gold-big{font-size:19px}
+  .sx-gold-head{font-size:12.5px}
+  .sx-gold-text{font-size:9.5px}
+  .sx-winrow{grid-template-columns:1fr;gap:8px}
+  .sx-two{grid-template-columns:1fr;gap:9px}
+  .sx-py{height:120px}
+  /* The old score card squashed badge/content/actions into one row on mobile —
+     stack it instead so nothing wraps into 4-line meta text. */
+  #t-seasonal .seas-score-card{
+    display:grid !important;
+    grid-template-columns:auto 1fr;
+    grid-template-areas:'badge content' 'actions actions';
+    gap:12px 13px !important;
+    align-items:start !important;
+    padding:14px !important;
+    border-radius:12px !important;
+  }
+  #t-seasonal .ss-badge{grid-area:badge}
+  #t-seasonal .ss-content{grid-area:content}
+  #t-seasonal .ss-actions{
+    grid-area:actions;flex-direction:row !important;align-items:stretch !important;
+    gap:8px !important;width:100%;
+  }
+  #t-seasonal .ss-actions .sx-btn{flex:1;min-height:44px}
+  #t-seasonal .ss-slope-row{flex-wrap:wrap;gap:6px}
+  #t-seasonal .sx-driver{font-size:8px}
+  .sx-win-shape{min-height:36px;padding:9px 12px}
+  .sx-tip{width:min(300px,86vw)}
+  /* Tappable explainers need a real finger target, without bloating the chips */
+  #t-seasonal .sx-chip{min-height:30px;padding:7px 11px}
+  #t-seasonal .sx-chip-i{width:13px;height:13px;font-size:7.5px}
+  #t-seasonal .seas-legend{gap:6px 10px}
+  #t-seasonal .seas-leg-item.sx-chip-tap{
+    min-height:30px;padding:6px 9px;border-radius:999px;
+    background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);
+  }
+}
+</style>
 </body>
 </html>
