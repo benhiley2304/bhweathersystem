@@ -4466,6 +4466,11 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-tag.class-cycle_heavy .tag-dot{background:#6b7cff}
 .lab-v2-tag.class-fx_cross .tag-dot{background:#c8a96e}
 .lab-v2-tag.class-all_years .tag-dot{background:#26c97a}
+.lab-v2-dir{display:inline-flex;align-items:center;gap:0;padding:2px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr2);border-radius:10px}
+.lab-v2-dir .dir-btn{background:transparent;border:0;color:var(--text-dim);font-family:inherit;font-size:9px;font-weight:700;letter-spacing:0.7px;padding:5px 10px;border-radius:8px;cursor:pointer;transition:background 0.16s ease, color 0.16s ease;text-transform:uppercase;line-height:1}
+.lab-v2-dir .dir-btn:hover{color:var(--text)}
+.lab-v2-dir .dir-btn.active.dir-long{background:rgba(38,201,122,0.16);color:#26c97a;box-shadow:inset 0 0 0 1px rgba(38,201,122,0.35)}
+.lab-v2-dir .dir-btn.active.dir-short{background:rgba(240,64,64,0.16);color:#f04040;box-shadow:inset 0 0 0 1px rgba(240,64,64,0.35)}
 .lab-v2-savebtn{padding:5px 11px;border-radius:8px;background:transparent;border:1px solid rgba(200,169,110,0.4);color:var(--accent);font-size:8.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;transition:all 130ms;font-family:inherit;white-space:nowrap}
 .lab-v2-savebtn:hover{background:rgba(200,169,110,0.09);border-color:rgba(200,169,110,0.6)}
 .lab-v2-savebtn.saved{color:var(--s1);border-color:rgba(38,201,122,0.4)}
@@ -24585,6 +24590,10 @@ canvas.chartjs-render-monitor{
             </div>
           </div>
           <div class="lab-v2-tag" id="lab-v2-tag"><span class="tag-dot"></span><span id="lab-v2-tag-label">—</span></div>
+          <div class="lab-v2-dir" id="lab-v2-dir" role="group" aria-label="Trade direction">
+            <button type="button" class="dir-btn dir-long active" data-dir="long" onclick="_labV2SetDir('long')" title="Long-side stats — win = price rose">▲ Long</button>
+            <button type="button" class="dir-btn dir-short" data-dir="short" onclick="_labV2SetDir('short')" title="Short-side stats — win = price fell">▼ Short</button>
+          </div>
           <button class="lab-v2-savebtn" id="lab-v2-savebtn" onclick="_labV2SaveDefault()" style="display:none">Set as default</button>
         </div>
 
@@ -41898,8 +41907,33 @@ let _labV2={
   windowStats:null, perYearWindow:[],
   yearBars:null,
   dragging:false, dragStart:null,
-  fetchInFlight:false
+  fetchInFlight:false,
+  dir:'long'  // 'long' | 'short' — flips win-rate / avg gain / callout / bar colours
 };
+// Return the active-direction stats object, transparently swapping in short mirror when dir='short'.
+function _labV2ActiveStats(){
+  const s=_labV2.windowStats; if(!s) return null;
+  if(_labV2.dir==='short' && s.short){
+    return Object.assign({}, s, s.short, {
+      // preserve fields that don't exist on the short block
+      n_years:s.n_years, td_window:s.td_window, cal_days:s.cal_days,
+      n_gains:s.short.n_wins, n_losses:s.short.n_losses
+    });
+  }
+  return s;
+}
+function _labV2SetDir(d){
+  if(d!=='long' && d!=='short') return;
+  if(_labV2.dir===d) return;
+  _labV2.dir=d;
+  // toggle button state
+  const wrap=document.getElementById('lab-v2-dir');
+  if(wrap){
+    wrap.querySelectorAll('.dir-btn').forEach(b=>b.classList.toggle('active', b.dataset.dir===d));
+  }
+  // re-render everything direction-sensitive; no refetch needed — server ships both sides
+  _labV2RenderWindowSidebar();
+}
 function _labV2LSKey(mkt){return 'seas_blend::'+mkt}
 
 async function fetchSeasLab(id, opts){
@@ -42458,24 +42492,43 @@ function _labV2ConsensusHTML(){
 function _labV2RenderWindowSidebar(){
   const side=document.getElementById('lab-v2-side');
   if(!side)return;
-  const s=_labV2.windowStats, py=_labV2.perYearWindow||[];
+  const raw=_labV2.windowStats, s=_labV2ActiveStats(), py=_labV2.perYearWindow||[];
   if(!s){
     side.innerHTML=`<div class="lab-v2-window-empty"><div class="icon">▬ ▬</div><div class="t">Window stats loading…</div><div class="sub">Drag on the chart to pick a custom window, or wait a moment for the default forward window.</div></div>`;
     _labV2.yearBars=null;
     return;
   }
+  const isShort=_labV2.dir==='short';
   const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  // For long, positive is good → green. For short, positive short-P&L is good → green, but the underlying price move is a fall.
+  // Since we swap in short mirror stats (already sign-flipped for w_median/w_mean/ann_return), positive still means "good for the trader".
+  const goodCol='var(--s1)', badCol='var(--sm2)';
   const cls=v=>v==null?'':v>=0?'up':'dn';
   const wr=s.win_rate!=null?Math.round(s.win_rate*100):null;
-  const wrCol=wr==null?'var(--dim)':wr>=55?'var(--s1)':wr<=45?'var(--sm2)':'var(--accent)';
+  const wrCol=wr==null?'var(--dim)':wr>=55?goodCol:wr<=45?badCol:'var(--accent)';
+  const wrLabel=isShort?'Short win rate':'Win rate';
   // window label — use _labV2.window (backend does not echo window_start/end in stats)
   const d=_labData;
   const ws=(_labV2.window&&_labV2.window.ws)||0, we=(_labV2.window&&_labV2.window.we)||0;
   const wsPhase=d.months?tdPhase(ws,d.months):'', wePhase=d.months?tdPhase(we,d.months):'';
-  const winLbl=`${wsPhase} → ${wePhase} · ${s.n_years} yrs`;
-  // best/worst year: derive from per-year (ret_pct) — reuse outer 'py'
+  const winLbl=`${wsPhase} → ${wePhase} · ${raw.n_years} yrs`;
+  // best/worst YEAR labels use per-year price returns; for short, we invert selection so "best" = biggest price fall
   let bestY=null,worstY=null;
-  if(py.length){const s2=[...py].sort((a,b)=>b.ret_pct-a.ret_pct); bestY=s2[0].year; worstY=s2[s2.length-1].year;}
+  if(py.length){
+    const sorted=[...py].sort((a,b)=> isShort? (a.ret_pct-b.ret_pct) : (b.ret_pct-a.ret_pct));
+    bestY=sorted[0].year; worstY=sorted[sorted.length-1].year;
+  }
+  const upCount = isShort ? s.n_gains : s.n_gains;   // s already carries mirror n_gains when short
+  const dnCount = isShort ? s.n_losses : s.n_losses;
+  const upLbl = isShort ? 'down' : 'up';
+  const dnLbl = isShort ? 'up' : 'down';
+  // KPI labels flip on direction
+  const kMedian = isShort?'Median return (short P&L)':'Median return (long)';
+  const kMean   = isShort?'Mean return (short P&L)':'Mean return (long)';
+  const kAvgG   = isShort?'Avg gain when price falls':'Avg gain (up years)';
+  const kAvgL   = isShort?'Avg loss when price rises':'Avg loss (down years)';
+  const kBest   = isShort?'Best year (biggest fall)':'Best year';
+  const kWorst  = isShort?'Worst year (biggest rally)':'Worst year';
 
   const R=38, C=2*Math.PI*R;
   const wrFrac=(wr==null?0:wr)/100;
@@ -42488,28 +42541,28 @@ function _labV2RenderWindowSidebar(){
           <circle cx="44" cy="44" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="7"/>
           <circle cx="44" cy="44" r="${R}" fill="none" stroke="${wrCol}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${wrDashOn} ${wrDashOff}"/>
         </svg>
-        <div class="center"><div class="pct" style="color:${wrCol}">${wr==null?'—':wr+'%'}</div><div class="cap">Win rate</div></div>
+        <div class="center"><div class="pct" style="color:${wrCol}">${wr==null?'—':wr+'%'}</div><div class="cap">${wrLabel}</div></div>
       </div>
       <div class="info">
         <div class="win-title">Window</div>
         <div class="win-sub"><b>${winLbl}</b></div>
-        <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${s.n_gains} up · ${s.n_losses} down${s.td_window?' · '+s.td_window+' TD':''}</div>
+        <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${upCount} ${upLbl} · ${dnCount} ${dnLbl}${raw.td_window?' · '+raw.td_window+' TD':''}</div>
       </div>
     </div>
     ${_labV2ConsensusHTML()}
     <div class="lab-v2-kpi-grid">
-      <div class="lab-v2-kpi"><div class="kv ${cls(s.w_median)}" style="color:${s.w_median>=0?'var(--s1)':'var(--sm2)'}">${pc(s.w_median)}</div><div class="kk">Median return (weighted)</div></div>
-      <div class="lab-v2-kpi"><div class="kv ${cls(s.w_mean)}" style="color:${s.w_mean>=0?'var(--s1)':'var(--sm2)'}">${pc(s.w_mean)}</div><div class="kk">Mean return (weighted)</div></div>
-      <div class="lab-v2-kpi"><div class="kv up" style="color:var(--s1)">${pc(s.avg_gain)}</div><div class="kk">Avg gain (up years)</div></div>
-      <div class="lab-v2-kpi"><div class="kv dn" style="color:var(--sm2)">${pc(s.avg_loss)}</div><div class="kk">Avg loss (down years)</div></div>
-      <div class="lab-v2-kpi"><div class="kv up" style="color:var(--s1)">${pc(s.max_gain)}</div><div class="kk">Best year${bestY?' • '+bestY:''}</div></div>
-      <div class="lab-v2-kpi"><div class="kv dn" style="color:var(--sm2)">${pc(s.max_loss)}</div><div class="kk">Worst year${worstY?' • '+worstY:''}</div></div>
+      <div class="lab-v2-kpi"><div class="kv ${cls(s.w_median)}" style="color:${s.w_median>=0?goodCol:badCol}">${pc(s.w_median)}</div><div class="kk">${kMedian}</div></div>
+      <div class="lab-v2-kpi"><div class="kv ${cls(s.w_mean)}" style="color:${s.w_mean>=0?goodCol:badCol}">${pc(s.w_mean)}</div><div class="kk">${kMean}</div></div>
+      <div class="lab-v2-kpi"><div class="kv up" style="color:${goodCol}">${pc(s.avg_gain)}</div><div class="kk">${kAvgG}</div></div>
+      <div class="lab-v2-kpi"><div class="kv dn" style="color:${badCol}">${pc(s.avg_loss)}</div><div class="kk">${kAvgL}</div></div>
+      <div class="lab-v2-kpi"><div class="kv up" style="color:${goodCol}">${pc(s.max_gain)}</div><div class="kk">${kBest}${bestY?' • '+bestY:''}</div></div>
+      <div class="lab-v2-kpi"><div class="kv dn" style="color:${badCol}">${pc(s.max_loss)}</div><div class="kk">${kWorst}${worstY?' • '+worstY:''}</div></div>
     </div>
     <div class="lab-v2-yearbars-wrap">
-      <div class="lab-v2-yearbars-head"><div class="t">Per-year returns</div><div class="r">${py.length} yrs · sorted worst → best</div></div>
+      <div class="lab-v2-yearbars-head"><div class="t">Per-year ${isShort?'short P&L':'returns'}</div><div class="r">${py.length} yrs · sorted worst → best</div></div>
       <div class="lab-v2-yearbars"><canvas id="lab-v2-yearbars-canvas"></canvas></div>
     </div>`;
-  // draw per-year bars mini chart
+  // draw per-year bars mini chart — direction-aware
   _labV2DrawYearBars(py);
   _labV2RenderTable();
 }
@@ -42518,16 +42571,22 @@ function _labV2DrawYearBars(py){
   const cvs=document.getElementById('lab-v2-yearbars-canvas');
   if(!cvs)return;
   if(_labV2.yearBars){try{_labV2.yearBars.destroy()}catch(e){}}
-  const sorted=[...py].sort((a,b)=>a.ret_pct-b.ret_pct);
+  const isShort=_labV2.dir==='short';
+  // For short view, plot short P&L (−price return) so green=good-for-short (price fell).
+  // Bars still sort worst→best from the trader's perspective.
+  const values = py.map(p => isShort ? -p.ret_pct : p.ret_pct);
+  const paired = py.map((p,i)=>({...p, _v:values[i]}));
+  const sorted = [...paired].sort((a,b)=>a._v - b._v);
+  const suffix = isShort ? ' (short P&L)' : '';
   _labV2.yearBars=new Chart(cvs.getContext('2d'),{
     type:'bar',
     data:{labels:sorted.map(p=>String(p.year).slice(2)),datasets:[{
-      data:sorted.map(p=>p.ret_pct),
-      backgroundColor:sorted.map(p=>p.ret_pct>=0?'rgba(38,201,122,0.75)':'rgba(240,64,64,0.75)'),
+      data:sorted.map(p=>p._v),
+      backgroundColor:sorted.map(p=>p._v>=0?'rgba(38,201,122,0.75)':'rgba(240,64,64,0.75)'),
       borderRadius:2,borderSkipped:false,barPercentage:0.85,categoryPercentage:1
     }]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:260},
-      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i.length?sorted[i[0].dataIndex].year+'':'',label:i=>(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'% · weight '+(sorted[i.dataIndex].weight||0).toFixed(2)}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i.length?sorted[i[0].dataIndex].year+'':'',label:i=>(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'%'+suffix+' · weight '+(sorted[i.dataIndex].weight||0).toFixed(2)}}},
       scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:8},autoSkip:true,maxTicksLimit:14,maxRotation:0}},
         y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a93a8',font:{size:8},callback:v=>(v>=0?'+':'')+v+'%'}}}}});
 }

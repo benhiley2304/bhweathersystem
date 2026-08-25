@@ -12051,6 +12051,37 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
         sortino = ann_ret / d_ann if d_ann > 1e-9 else 0.0
     else:
         sortino = 0.0
+    # ── SHORT MIRROR STATS ────────────────────────────────────────────────────
+    # A short trader's P&L = −(price return). Their "win" is a price fall, and
+    # their "drawdown" (max adverse excursion) is the max RISE from entry.
+    # Seasonax fixes the perspective to long-only — we surface both so the
+    # trader picks the side they're on.
+    short_rets = [-v for v in rets]
+    short_wr_num = sum(r["weight"] for r in rows if r["ret_pct"] < 0)  # short wins when price falls
+    short_win_rate = short_wr_num / sw if sw > 0 else 0.5
+    # Short "avg gain" = mean of |ret| when price fell; "avg loss" = |ret| when price rose
+    short_gains = [r for r in rows if r["ret_pct"] < 0]
+    short_losses = [r for r in rows if r["ret_pct"] >= 0]
+    sw_sg = sum(r["weight"] for r in short_gains)
+    sw_sl = sum(r["weight"] for r in short_losses)
+    short_avg_gain = (-sum(r["ret_pct"] * r["weight"] for r in short_gains) / max(sw_sg, 1e-9)) if short_gains else 0.0
+    short_avg_loss = (-sum(r["ret_pct"] * r["weight"] for r in short_losses) / max(sw_sl, 1e-9)) if short_losses else 0.0
+    short_max_gain = max(short_rets)  # biggest fall = biggest short win
+    short_max_loss = min(short_rets)  # biggest rally = biggest short loss
+    short_w_mean = -w_mean
+    short_w_med = -w_med
+    short_ann_ret = -ann_ret
+    # Volatility is symmetric; Sortino needs recomputing against short returns' downside
+    short_downside = [(v - short_w_mean) ** 2 * w for v, w in [(-v, w) for v, w in weighted_rets] if v < short_w_mean]
+    if short_downside and sw > 0:
+        sd_var = sum(short_downside) / sw
+        sd_std = sd_var ** 0.5
+        sd_ann = sd_std * (ann_factor ** 0.5)
+        short_sortino = short_ann_ret / sd_ann if sd_ann > 1e-9 else 0.0
+    else:
+        short_sortino = 0.0
+    short_sharpe = short_ann_ret / ann_vol if ann_vol > 1e-9 else 0.0
+
     return {
         "window_stats": {
             "win_rate": round(win_rate, 4),
@@ -12069,6 +12100,22 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
             "n_losses": len(losses),
             "td_window": td_window,
             "cal_days": round(td_window * 365.0 / 252.0),
+            # ── Short-side mirror (perspective flipped) ──────────────────────
+            "short": {
+                "win_rate": round(short_win_rate, 4),
+                "w_median": round(short_w_med, 3),
+                "w_mean": round(short_w_mean, 3),
+                "ann_return": round(short_ann_ret, 3),
+                "avg_gain": round(short_avg_gain, 3),
+                "avg_loss": round(short_avg_loss, 3),
+                "max_gain": round(short_max_gain, 3),
+                "max_loss": round(short_max_loss, 3),
+                "volatility": round(ann_vol, 3),
+                "sharpe": round(short_sharpe, 3),
+                "sortino": round(short_sortino, 3),
+                "n_wins": len(short_gains),
+                "n_losses": len(short_losses),
+            },
         },
         "per_year_windows": rows,
     }
@@ -13199,6 +13246,7 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     far_hit_rate = None
     seas_shape = 'confirmed'      # confirmed | fading | rising | undefined
     shape_dampen = 1.0            # 1.0 = no dampen; <1.0 = dampen toward 5
+    shape_rotated = False         # true when we rotated toward the far side
     if td_c > td_b + 5:
         far_rets = []
         for y in used:
@@ -13247,8 +13295,29 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
             elif not _near_meaningful and _far_meaningful:
                 seas_shape = 'far-only'       # near flat, far has a view — short-term neutral
 
-            # Apply shape dampener
-            if shape_dampen < 1.0:
+            # Apply shape adjustment.
+            # OLD behaviour: dampen toward 5.0 on fading/rising shapes. That's wrong
+            # for a swing horizon — if the seasonal curve peaks inside a 3-4wk hold
+            # (near bull, far bear), the position is EXPECTED to give back gains and
+            # end lower. That's an actively bearish setup for going long, not a neutral
+            # one. Same the other way for a rising trough.
+            #
+            # NEW behaviour: when shape is fading/rising AND the far signal is
+            # meaningfully directional, blend the current (near-dampened) score with
+            # the far score. The far side gets 55% weight because the second half of
+            # the hold is where P&L actually lands. When far is only mildly directional
+            # we fall back toward the old dampen-toward-5 behaviour.
+            if seas_shape in ('fading', 'rising') and far_score is not None:
+                _far_lean = far_score - 5.0
+                if abs(_far_lean) >= 0.5:
+                    # blend: 45% current (near-view, already reliability-dampened) + 55% far
+                    _blended = score * 0.45 + far_score * 0.55
+                    score = round(max(0.0, min(10.0, _blended)), 1)
+                    shape_rotated = True
+                else:
+                    # far isn't strong enough to flip the sign — just dampen as before
+                    score = round(5.0 + (score - 5.0) * shape_dampen, 1)
+            elif shape_dampen < 1.0:
                 score = round(5.0 + (score - 5.0) * shape_dampen, 1)
 
     # ── CROSS-LENS CONSENSUS CONVICTION (v2.1) ─────────────────────
@@ -13268,6 +13337,11 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         # Never boost a score that leans AGAINST the consensus direction
         if conviction_mult > 1.0 and consensus["dominant"] != 0 and lean * consensus["dominant"] < 0:
             conviction_mult = 1.0
+        # When the near/far shape rotation already resolved the horizon disagreement
+        # (fading/rising → tilt toward far), don't undo that resolution by applying
+        # a "conflict" dampen back to neutral. The shape signal IS the resolution.
+        if shape_rotated and conviction_mult < 1.0:
+            conviction_mult = max(conviction_mult, 0.85)
         score = round(max(0.0, min(10.0, 5.0 + (score - 5.0) * conviction_mult)), 1)
 
     return {
@@ -13306,6 +13380,7 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "far_hit_rate": far_hit_rate,
         "seas_shape": seas_shape,
         "shape_dampen": shape_dampen,
+        "shape_rotated": shape_rotated,
         "years_span": f"{min(used)}\u2013{max(used)}" if used else "",
         "cycle_key": _cycle_key_for_year(d.year),
         "weighting": f"cycle {_seas_default_blend(market_id).get('cycle_w', _SEAS_CYCLE_BOOST)}x + recency 0.93^age",
