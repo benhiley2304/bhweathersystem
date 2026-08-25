@@ -12012,14 +12012,19 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
     else:
         w_mean = sum(rets) / len(rets)
     # Weighted median
+    # AUDIT-SCORING: guard the divide. `sw` is only checked before w_mean; if all
+    # per-year weights came back zero (halflife/cycle_w combination, or a basket
+    # whose years all fell outside the weight dict) this loop raised
+    # ZeroDivisionError and took the whole /api/seasonality-lab request down.
     weighted_rets.sort(key=lambda x: x[0])
     cum = 0.0
     w_med = weighted_rets[len(weighted_rets)//2][0]
-    for v, w in weighted_rets:
-        cum += w
-        if cum / sw >= 0.5:
-            w_med = v
-            break
+    if sw > 0:
+        for v, w in weighted_rets:
+            cum += w
+            if cum / sw >= 0.5:
+                w_med = v
+                break
     gains = [r for r in rows if r["ret_pct"] > 0]
     losses = [r for r in rows if r["ret_pct"] <= 0]
     # Weighted win rate
@@ -12928,6 +12933,23 @@ _SEAS_YEARS_BACK = 22
 _SEAS_RECENCY = 0.93       # recency decay: age 10 -> 0.48, age 20 -> 0.23
 _SEAS_CYCLE_BOOST = 2.5    # boost for years matching current election-cycle position
 
+# AUDIT-SCORING — named swing horizons (were magic numbers scattered inline).
+# Ben: "1 to 2 weeks is important, 3 to 4 weeks is important for long-term
+# position context, anything beyond six weeks isn't really relevant."
+_SEAS_IMM_TD  = 10   # "immediate" 1-2 week read (exposed alongside the near read)
+_SEAS_NEAR_TD = 20   # headline 3-4 week swing window
+_SEAS_FAR_TD  = 15   # the 3 weeks AFTER the near window (shape / turn detection)
+# Goldilocks scan: how far back / forward (trading days) we hunt for the ideal
+# seasonal entry offset. ~4 weeks back, ~5 weeks forward — beyond that the
+# answer stops being actionable for a 1-4 week swing.
+_SEAS_GOLD_BACK = 20
+_SEAS_GOLD_FWD  = 25
+# How late we're willing to declare an entry. The scan still publishes the full
+# -20..+25 curve, but the argmax is capped at -10 so the answer can't pin to the
+# back edge of the scan -- 'ideal entry was 20 days ago' is neither actionable
+# nor trustworthy; it usually means the real peak is further back still.
+_SEAS_GOLD_LATE = 10
+
 
 def _seas_wq(vals, ws, q):
     """Weighted quantile of vals with weights ws (0<=q<=1)."""
@@ -12962,6 +12984,72 @@ def _seas_weights(years, asof_year, market_id=None):
                 * (_SEAS_RECENCY ** max(0, asof_year - 1 - y))) for y in years}
 
 
+# AUDIT-SCORING
+def _seas_fwd(years_dict, y: int, td_from: int, td_to: int, max_year: int):
+    """Forward % return along year `y`'s cumulative seasonal path, from trading
+    day `td_from` to `td_to` (both 1-based).
+
+    Handles td_to > 252 by CHAINING into year y+1's path — a window opened in
+    November/December legitimately spills into January, and clamping it at 252
+    silently shrinks the horizon (a Dec-20 "20-day" window became 8 days, and
+    the far window vanished entirely, disabling the whole shape engine for the
+    last ~6 weeks of every year).
+
+    `max_year` enforces zero look-ahead: we refuse to chain into year y+1 if
+    y+1 is not itself a fully-completed year strictly before the scoring year.
+    Returns None whenever the required data isn't available.
+    """
+    arr = years_dict.get(str(y))
+    if not arr or len(arr) < 252:
+        return None
+    if td_from < 1 or td_to <= td_from:
+        return None
+    a = arr[min(td_from, 252) - 1]
+    if a is None or (1 + a / 100) == 0:
+        return None
+    if td_to <= 252:
+        b = arr[td_to - 1]
+        if b is None:
+            return None
+        return ((1 + b / 100) / (1 + a / 100) - 1) * 100
+    # ── Year-wrap: ride year y to its close, then continue into year y+1 ──
+    spill = td_to - 252
+    if spill < 1 or spill > 252:
+        return None
+    if y + 1 >= max_year:          # look-ahead guard — y+1 must be complete & prior
+        return None
+    nxt = years_dict.get(str(y + 1))
+    if not nxt or len(nxt) < max(spill, 252):
+        return None
+    e_y = arr[251]
+    s_n = nxt[0]
+    e_n = nxt[spill - 1]
+    if e_y is None or s_n is None or e_n is None or (1 + s_n / 100) == 0:
+        return None
+    g1 = (1 + e_y / 100) / (1 + a / 100)
+    g2 = (1 + e_n / 100) / (1 + s_n / 100)
+    return (g1 * g2 - 1) * 100
+
+
+def _seas_win_score(rets, ws, min_n: int = 8):
+    """Shared 0-10 window score kernel: 5 + 2.5*direction + 2.5*magnitude.
+    Returns (score, weighted_hit, weighted_median, iqr_halfwidth) or Nones.
+    Single source of truth so the near / immediate / far / goldilocks-scan
+    windows can never drift apart."""
+    if not rets or len(rets) < min_n:
+        return None, None, None, None
+    tot_w = sum(ws)
+    if tot_w <= 0:
+        return None, None, None, None
+    hit = sum(w for r, w in zip(rets, ws) if r > 0) / tot_w
+    med = _seas_wq(rets, ws, 0.5)
+    iqr_half = max(0.5, (_seas_wq(rets, ws, 0.75) - _seas_wq(rets, ws, 0.25)) / 2)
+    dir_c = (hit - 0.5) * 2
+    mag_c = max(-1.0, min(1.0, med / iqr_half))
+    sc = max(0.0, min(10.0, 5 + 2.5 * dir_c + 2.5 * mag_c))
+    return sc, hit, med, iqr_half
+
+
 def _seas_consensus(years_dict, td_a, asof_year, market_id):
     """Cross-lens, multi-horizon seasonal CONSENSUS → conviction (v2.1).
 
@@ -12973,8 +13061,9 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
     Each of the 9 (lens, horizon) cells votes +1 / 0 / -1 via weighted median
     return AND weighted hit rate. Conviction comes from agreement:
       • cycle & all-years agree across horizons → HIGH (score amplified 1.15x)
-      • mixed → MEDIUM (no change) / LOW (0.65x toward neutral)
-      • cycle vs all-years directly opposed on 2+ horizons → CONFLICT (0.45x)
+      • mixed → MEDIUM (no change) / LOW (0.85x toward neutral)
+      • cycle vs all-years directly opposed on 2-3 horizons, and only on a
+        genuinely cycle-driven asset → CONFLICT (0.85x / 0.70x)
     """
     try:
         blend = _seas_default_blend(market_id)
@@ -12991,16 +13080,11 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
                  if int(y) < asof_year and int(y) >= asof_year - _SEAS_YEARS_BACK)
 
     def _fwd(y, h):
-        arr = years_dict.get(str(y))
-        if not arr or len(arr) < 252:
-            return None
-        b_i = min(252, td_a + h)
-        if b_i <= td_a:
-            return None
-        a = arr[td_a - 1]; b = arr[b_i - 1]
-        if a is None or b is None or (1 + a / 100) == 0:
-            return None
-        return ((1 + b / 100) / (1 + a / 100) - 1) * 100
+        # AUDIT-SCORING: was clamping b_i at 252, so from ~mid-November every
+        # horizon collapsed toward zero length and every cell voted 0 → every
+        # market silently dropped to 'low' conviction each December. Now wraps
+        # into the following (still completed, still prior) year.
+        return _seas_fwd(years_dict, y, td_a, td_a + h, asof_year)
 
     def _rw(y):
         return 0.5 ** (max(0, asof_year - 1 - y) / hl)
@@ -13051,16 +13135,30 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
     tw_active = sum(LW[c["lens"]] * HW[c["h"]] for c in active)
     agree = (round(100 * sum(LW[c["lens"]] * HW[c["h"]] for c in active if c["dir"] == dom)
                    / tw_active) if tw_active > 0 else None)
-    if conflicts >= 2 and cyc_w >= 1.5:
-        level, mult = "conflict", (0.45 if cyc_w >= 2.5 else 0.6)
+    # AUDIT-SCORING — conviction multiplier re-scoped to EXTREMES ONLY.
+    # Ben's rule ("only really relevant at extremes") applied to signal-vs-signal
+    # conflict. Two problems with the old ladder:
+    #   1) 0.45–0.65 dampens are large enough to erase a real edge, and they
+    #      COMPOUND with the reliability dampen (D=0.40) → 0.18x worst case,
+    #      i.e. total annihilation of a merely-mixed read.
+    #   2) The conflict gate keyed off cyc_w >= 1.5, so FX crosses took a full
+    #      cycle-conflict hit even though cycle_relevance says the cycle lens is
+    #      barely meaningful for them (0.53) — internally inconsistent.
+    # New ladder gates conflict on cycle_relevance (only genuinely cycle-driven
+    # assets can be conflicted BY the cycle lens) and requires all three
+    # horizons opposed for the hard dampen. Range is now 0.70–1.15.
+    if conflicts >= 3 and cyc_rel >= 0.9:
+        level, mult = "conflict", 0.70          # severe: every horizon opposed
+    elif conflicts >= 2 and cyc_rel >= 0.9:
+        level, mult = "conflict", 0.85
     elif dom == 0 or len(active) < 3:
-        level, mult = "low", 0.65
+        level, mult = "low", 0.85
     elif agree is not None and agree >= 85 and len(active) >= 6:
         level, mult = "high", 1.15
     elif agree is not None and agree >= 60:
         level, mult = "medium", 1.0
     else:
-        level, mult = "low", 0.65
+        level, mult = "low", 0.85
     return {"cells": cells, "dominant": dom, "agreement_pct": agree,
             "conviction": level, "mult": mult, "n_active": len(active),
             "conflicts": conflicts,
@@ -13069,6 +13167,15 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
             "halflife": hl, "profile": blend.get("tag")}
 
 
+# AUDIT-SCORING-COMPLETE
+# Scoring-logic audit finished. Composite-integration agent is clear to start.
+# New payload fields available for composite/UI consumption:
+#   imm_score / imm_median_pct / imm_hit_rate   — 1-2 week "immediate" horizon
+#   days_to_goldilocks (signed int TD) / entry_timing / entry_note
+#   goldilocks_lean / goldilocks_ratio / goldilocks_curve / anticipation_nudge
+#   n_eff, hit_ci_*_raw, td_end_abs, td_far_end_abs, window_wrapped,
+#   shape_rotated, recent_regime_weight
+# See /home/user/workspace/seas_audit_scoring.md for the full audit.
 def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     """
     Core seasonal statistic engine (v2).
@@ -13101,21 +13208,21 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
             return None
     doy = d.timetuple().tm_yday
     td_a = max(1, min(252, round((doy / 365) * 252)))
-    td_b = min(252, td_a + 20)
-    if td_b <= td_a:
-        td_a = max(1, 252 - 20); td_b = 252
+    # AUDIT-SCORING: window ends are no longer clamped to 252. Clamping made a
+    # Dec-20 "20 trading day" window only 8 days long, and killed the far window
+    # (and therefore the entire shape engine) for the last ~6 weeks of every
+    # year. _seas_fwd wraps into the next completed year instead.
+    td_b = td_a + _SEAS_NEAR_TD
+    td_imm = td_a + _SEAS_IMM_TD
     yrs = sorted(int(y) for y in years
                  if int(y) < d.year and int(y) >= d.year - _SEAS_YEARS_BACK)
     rets = []
     used = []
     for y in yrs:
-        arr = years.get(str(y))
-        if not arr or len(arr) < 252:
+        v = _seas_fwd(years, y, td_a, td_b, d.year)
+        if v is None:
             continue
-        a = arr[td_a - 1]; b = arr[td_b - 1]
-        if a is None or b is None or (1 + a / 100) == 0:
-            continue
-        rets.append(((1 + b / 100) / (1 + a / 100) - 1) * 100)
+        rets.append(v)
         used.append(y)
     n = len(rets)
     if n < 8:
@@ -13123,6 +13230,8 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     W = _seas_weights(used, d.year, market_id)
     ws = [W[y] for y in used]
     tot_w = sum(ws)
+    if tot_w <= 0:
+        return None
     whit = sum(w for r, w in zip(rets, ws) if r > 0) / tot_w
     wmed = _seas_wq(rets, ws, 0.5)
     iqr_half = max(0.5, (_seas_wq(rets, ws, 0.75) - _seas_wq(rets, ws, 0.25)) / 2)
@@ -13130,6 +13239,23 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     dir_c = (whit - 0.5) * 2
     mag_c = max(-1.0, min(1.0, wmed / iqr_half))
     score = round(max(0.0, min(10.0, 5 + 2.5 * dir_c + 2.5 * mag_c)), 1)
+
+    # ── IMMEDIATE HORIZON (AUDIT-SCORING) ──────────────────────────────────
+    # Ben: "1 to 2 weeks is important, 3 to 4 weeks is important for long-term
+    # position context". The 20-TD near window answers the 4-week question; a
+    # 10-TD window answers the 1-2 week question. Both are surfaced so the UI
+    # can show them side by side. This does NOT feed the headline score — the
+    # headline stays anchored on the 20-TD swing window.
+    _imm_rets, _imm_ws = [], []
+    for y, w in zip(used, ws):
+        v = _seas_fwd(years, y, td_a, td_imm, d.year)
+        if v is None:
+            continue
+        _imm_rets.append(v); _imm_ws.append(w)
+    imm_score, _imm_hit, _imm_med, _ = _seas_win_score(_imm_rets, _imm_ws)
+    imm_score = round(imm_score, 1) if imm_score is not None else None
+    imm_median = round(_imm_med, 2) if _imm_med is not None else None
+    imm_hit_rate = round(_imm_hit * 100) if _imm_hit is not None else None
     # ── Reliability metrics: separate real edge from outlier-driven mirage ──
     # 1) Winsorised median: drop the 2 most extreme years each side, recompute median
     #    (unweighted for interpretability). If the winsorised value collapses toward 0
@@ -13148,7 +13274,13 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     # 4) Median-absolute-deviation ratio: MAD / |median|. Low = consistent, high = noisy.
     _mad = sorted(abs(r-wmed) for r in rets)
     mad = _mad[n//2] if n % 2 else 0.5*(_mad[n//2-1]+_mad[n//2])
-    mad_ratio = (mad/abs(wmed)) if abs(wmed) > 0.5 else None  # undefined for tiny signals
+    # AUDIT-SCORING: "meaningful magnitude" must be relative to the market's own
+    # dispersion, not an absolute 0.5%. A flat 0.5% floor is vol-blind: it is
+    # noise for NG (sd ~12%) but a large, real move for ZT / 6C (sd ~1%), so
+    # low-vol markets were being denied reliability points for edges that are
+    # genuinely significant *for them*. Scale with sd, keep a small absolute floor.
+    _mag_floor = max(0.15, min(0.5, 0.18 * _sd))
+    mad_ratio = (mad/abs(wmed)) if abs(wmed) > _mag_floor else None  # undefined for tiny signals
     # 5) Regime-cluster flag: is hit-rate stable across halves of the sample?
     if n >= 12:
         mid = n // 2
@@ -13167,14 +13299,28 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     elif _sn_abs >= 0.35: _pts += 2
     elif _sn_abs >= 0.2: _pts += 1
     # Trimmed agrees with raw median (0-2 pts)
-    if abs(wmed) > 0.5 and (trimmed_med * wmed) > 0:  # same sign, meaningful magnitude
+    if abs(wmed) > _mag_floor and (trimmed_med * wmed) > 0:  # same sign, meaningful magnitude
         agree = abs(trimmed_med) / abs(wmed)
         if agree >= 0.7: _pts += 2
         elif agree >= 0.4: _pts += 1
-    # Hit-rate confidence (0-2 pts) — 90% binomial CI on n_pos/n away from 50%
-    _p = n_pos/n
-    _se = (_p*(1-_p)/n)**0.5
+    # Hit-rate confidence (0-2 pts) — 90% binomial CI away from 50%.
+    # AUDIT-SCORING: the CI was built on the RAW unweighted split (n_pos/n) while
+    # the SCORE is built on the weighted hit rate. A market whose recent and
+    # cycle-matched years are strongly one-directional but whose raw 22-year
+    # split is 12/10 scored strongly yet earned zero confidence points —
+    # inconsistent, and it pushed genuinely-graded edges down to C/D.
+    # We now test the weighted hit rate against Kish's effective sample size
+    # n_eff = (Σw)²/Σw², which is the statistically honest n for weighted data
+    # (it PENALISES concentrated weights rather than inventing precision).
+    # Raw values are still reported for transparency.
+    _n_eff = (tot_w ** 2) / sum(w * w for w in ws) if ws else float(n)
+    _n_eff = max(4.0, min(float(n), _n_eff))
+    _p_raw = n_pos/n
+    _p = whit
+    _se = (_p*(1-_p)/_n_eff)**0.5
     _ci_low = _p - 1.645*_se; _ci_high = _p + 1.645*_se
+    _se_raw = (_p_raw*(1-_p_raw)/n)**0.5
+    _ci_low_raw = _p_raw - 1.645*_se_raw; _ci_high_raw = _p_raw + 1.645*_se_raw
     if _ci_low > 0.55 or _ci_high < 0.45: _pts += 2
     elif abs(_p - 0.5) > 0.15: _pts += 1
     # Regime stability (0-1 pt)
@@ -13200,9 +13346,20 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     # is missing due to outlier drag (e.g. one huge +39% year from 2020 or
     # +19% from 2013 masking a run of -8/-8/-5/-1/-5 in recent years).
     # Blend a recent-regime score in so we don't miss regime shifts.
+    # AUDIT-SCORING — false-trigger hardening. Two additions:
+    #  a) a MAGNITUDE FLOOR relative to the market's own dispersion, so a run of
+    #     five ~0.1% drifts in a market that routinely moves 5% no longer
+    #     overrides a 22-year read. (The existing median/mean/sum guards catch
+    #     sign contradictions but not pure smallness.)
+    #  b) the override blend weight now SCALES WITH STRENGTH: a clean 5-of-5 keeps
+    #     the original 55%, but a 4-of-5 (one contradicting year) gets 42%. It was
+    #     previously flat 55% for both, which let the weaker pattern hit just as
+    #     hard as the unanimous one.
+    _rr_min_mag = max(0.20, 0.20 * _sd)
     recent5 = [r for r, y in zip(rets, used) if y >= d.year - 5][-5:]
     recent_regime_score = None
     recent_regime_signal = None
+    recent_regime_w = None
     if len(recent5) >= 5:
         r5_pos = sum(1 for r in recent5 if r > 0)
         r5_med = sorted(recent5)[len(recent5)//2] if len(recent5) % 2                  else 0.5 * (sorted(recent5)[len(recent5)//2 - 1] + sorted(recent5)[len(recent5)//2])
@@ -13217,19 +13374,22 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         # score is on the opposite side of neutral AND the magnitudes back it up.
         if r5_pos <= 1:  # 4 or 5 of last 5 down
             # Guard: median AND mean must be negative, and total down > total up
-            if r5_med < 0 and r5_mean < 0 and r5_neg_sum > r5_pos_sum:
+            if r5_med < 0 and r5_mean < 0 and r5_neg_sum > r5_pos_sum and abs(r5_med) >= _rr_min_mag:
                 recent_regime_signal = 'bear'
                 recent_regime_score = round(max(0.0, 5.0 - abs(r5_med) * 0.15 - 1.5), 1)
                 if score > 5.0:
-                    # Weighted blend: recent regime carries 55%, dampened long-run 45%
-                    score = round(recent_regime_score * 0.55 + score * 0.45, 1)
+                    recent_regime_w = 0.55 if r5_pos == 0 else 0.42
+                    score = round(recent_regime_score * recent_regime_w
+                                  + score * (1.0 - recent_regime_w), 1)
         elif r5_pos >= 4:  # 4 or 5 of last 5 up
             # Guard: median AND mean must be positive, and total up > total down
-            if r5_med > 0 and r5_mean > 0 and r5_pos_sum > r5_neg_sum:
+            if r5_med > 0 and r5_mean > 0 and r5_pos_sum > r5_neg_sum and abs(r5_med) >= _rr_min_mag:
                 recent_regime_signal = 'bull'
                 recent_regime_score = round(min(10.0, 5.0 + abs(r5_med) * 0.15 + 1.5), 1)
                 if score < 5.0:
-                    score = round(recent_regime_score * 0.55 + score * 0.45, 1)
+                    recent_regime_w = 0.55 if r5_pos == 5 else 0.42
+                    score = round(recent_regime_score * recent_regime_w
+                                  + score * (1.0 - recent_regime_w), 1)
 
     # ── FAR-WINDOW SEASONAL (r15) ──────────────────────────────────
     # The 20-TD near window answers "where does the curve end up in ~4 weeks?"
@@ -13240,32 +13400,31 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     # Far-window: 3 weeks (15 TD) beyond the primary 20-TD window.
     # This lets the shape dampener catch a seasonal peak inside a 5-7wk hold
     # without dragging in irrelevant 3-month drift.
-    td_c = min(252, td_b + 15)
+    td_c = td_b + _SEAS_FAR_TD
     far_score = None
     far_median = None
     far_hit_rate = None
     seas_shape = 'confirmed'      # confirmed | fading | rising | undefined
     shape_dampen = 1.0            # 1.0 = no dampen; <1.0 = dampen toward 5
     shape_rotated = False         # true when we rotated toward the far side
-    if td_c > td_b + 5:
-        far_rets = []
-        for y in used:
-            arr = years.get(str(y))
-            if not arr or len(arr) < 252:
+    if True:
+        # AUDIT-SCORING — two bugs fixed here:
+        #  1) far weights were taken as ws[:len(far_rets)], a POSITIONAL slice.
+        #     Whenever a year was skipped in the far loop but not the near loop
+        #     (missing path point, or now: no next-year path to wrap into) every
+        #     subsequent weight was silently attached to the wrong year. Weights
+        #     are now collected alongside the returns they belong to.
+        #  2) the whole block was gated on `td_c > td_b + 5`, which is false once
+        #     td_b hits the old 252 clamp → no far window at all from mid-Nov.
+        far_rets, _far_ws = [], []
+        for y, w in zip(used, ws):
+            v = _seas_fwd(years, y, td_b, td_c, d.year)
+            if v is None:
                 continue
-            _a = arr[td_b - 1]; _c = arr[td_c - 1]
-            if _a is None or _c is None or (1 + _a / 100) == 0:
-                continue
-            far_rets.append(((1 + _c / 100) / (1 + _a / 100) - 1) * 100)
-        if len(far_rets) >= 8:
-            _far_ws = ws[:len(far_rets)]
-            _far_tot_w = sum(_far_ws) if _far_ws else 1.0
-            _far_hit = sum(w for r, w in zip(far_rets, _far_ws) if r > 0) / _far_tot_w
-            _far_med = _seas_wq(far_rets, _far_ws, 0.5)
-            _far_iqr_half = max(0.5, (_seas_wq(far_rets, _far_ws, 0.75) - _seas_wq(far_rets, _far_ws, 0.25)) / 2)
-            _far_dir = (_far_hit - 0.5) * 2
-            _far_mag = max(-1.0, min(1.0, _far_med / _far_iqr_half))
-            far_score = round(max(0.0, min(10.0, 5 + 2.5 * _far_dir + 2.5 * _far_mag)), 1)
+            far_rets.append(v); _far_ws.append(w)
+        _fs, _far_hit, _far_med, _ = _seas_win_score(far_rets, _far_ws)
+        if _fs is not None:
+            far_score = round(_fs, 1)
             far_median = round(_far_med, 2)
             far_hit_rate = round(_far_hit * 100)
 
@@ -13344,6 +13503,143 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
             conviction_mult = max(conviction_mult, 0.85)
         score = round(max(0.0, min(10.0, 5.0 + (score - 5.0) * conviction_mult)), 1)
 
+    # ══ GOLDILOCKS ENTRY TIMING (AUDIT-SCORING) ═════════════════════════════
+    # Read A ("am I in the zone NOW?") was already served by the near window.
+    # Read B ("am I about to ARRIVE at a seasonal turn?") was not served at all:
+    # 21 of 57 markets currently classify as 'far-only' (near flat, far strongly
+    # directional) and that shape did literally nothing to the score or payload.
+    # 6E, for example, sits at a flat 4.9 while its far window is 1.6 — a hard
+    # bearish turn roughly four weeks out, completely invisible to the trader.
+    #
+    # So: slide the SAME 20-TD swing window across a range of entry offsets and
+    # find where its directional lean peaks. That offset is the goldilocks entry.
+    #   days_to_goldilocks < 0  → the ideal entry has passed (we're late)
+    #   days_to_goldilocks == 0 → ideal entry is NOW
+    #   days_to_goldilocks > 0  → ideal entry is that many trading days ahead
+    #
+    # Bear-side symmetry falls out for free: for a bearish setup we search for the
+    # offset whose forward window is most NEGATIVE, and the entry that maximises a
+    # coming decline is by definition the LOCAL PEAK before the fall. Same scan,
+    # sign flipped by the anchored direction.
+    days_to_goldilocks = None
+    entry_timing = None
+    entry_note = None
+    goldilocks_lean = None
+    goldilocks_ratio = None
+    goldilocks_dir = None
+    goldilocks_clipped = False
+    anticipation_nudge = 0.0
+    goldilocks_curve = []
+    try:
+        _gold = {}
+        for _off in range(-_SEAS_GOLD_BACK, _SEAS_GOLD_FWD + 1):
+            _s = td_a + _off
+            if _s < 1:
+                continue
+            _gr, _gw = [], []
+            for y, w in zip(used, ws):
+                v = _seas_fwd(years, y, _s, _s + _SEAS_NEAR_TD, d.year)
+                if v is None:
+                    continue
+                _gr.append(v); _gw.append(w)
+            _gs, _, _, _ = _seas_win_score(_gr, _gw)
+            if _gs is None:
+                continue
+            _gold[_off] = _gs - 5.0            # signed lean, -5 .. +5
+        if _gold:
+            goldilocks_curve = [{"off": k, "lean": round(v, 2)}
+                                for k, v in sorted(_gold.items())]
+            # ── Direction anchor ────────────────────────────────────────
+            # Follow the headline score when it holds a real view, so the timing
+            # read can never contradict the score the trader is staring at. Defer
+            # to the FORWARD picture when the score is neutral, or when the coming
+            # opportunity is decisively larger and points the other way — which is
+            # exactly the fading / rising / far-only case Read B exists to catch.
+            _fut = {k: v for k, v in _gold.items() if 0 <= k <= _SEAS_GOLD_FWD}
+            _best_fwd = max(_fut.items(), key=lambda kv: abs(kv[1])) if _fut else None
+            _lean_now = score - 5.0
+            _dir = 0
+            if abs(_lean_now) >= 1.0:
+                _dir = 1 if _lean_now > 0 else -1
+                if (_best_fwd and _best_fwd[1] * _dir < 0
+                        and abs(_best_fwd[1]) >= abs(_lean_now) + 1.0):
+                    _dir = 1 if _best_fwd[1] > 0 else -1
+            elif _best_fwd and abs(_best_fwd[1]) >= 0.5:
+                _dir = 1 if _best_fwd[1] > 0 else -1
+            if _dir != 0:
+                # Best offset in the anchored direction. The argmax is capped at
+                # -_SEAS_GOLD_LATE: an answer pinned to the back edge of the scan
+                # ('ideal entry was 20 days ago') is a scan artefact rather than a
+                # real peak/trough, and it isn't actionable either way. The full
+                # curve is still published for the UI. Ties resolve toward NOW — a
+                # trader shouldn't be told to wait for a marginally better entry
+                # when today is effectively as good.
+                _cands = [(k, v) for k, v in _gold.items()
+                          if v * _dir > 0 and k >= -_SEAS_GOLD_LATE]
+                if _cands:
+                    _best_val = max(v * _dir for _, v in _cands)
+                    _best_off = min((k for k, v in _cands
+                                     if v * _dir >= _best_val - 0.15), key=abs)
+                    days_to_goldilocks = int(_best_off)
+                    goldilocks_dir = _dir
+                    goldilocks_lean = round(_gold[_best_off], 2)
+                    goldilocks_clipped = bool(_best_off <= -_SEAS_GOLD_LATE
+                                              or _best_off >= _SEAS_GOLD_FWD)
+                    _cur = _gold.get(0)
+                    if _cur is not None and abs(_best_val) > 1e-9:
+                        # How much of the ideal seasonal entry we already have.
+                        # Negative = today leans the wrong way entirely.
+                        goldilocks_ratio = round(max(-1.0, min(1.0,
+                                                (_cur * _dir) / _best_val)), 2)
+                    _side = 'long' if _dir > 0 else 'short'
+                    _dt = days_to_goldilocks
+                    _wks = abs(_dt) / 5.0
+                    # Dead zone: ±2 trading days is inside the noise of a 20-day
+                    # window statistic. Don't manufacture false precision by
+                    # telling a trader they are '1 day late'.
+                    if abs(_dt) <= 2:
+                        entry_timing = 'now'
+                        entry_note = f'Seasonal goldilocks {_side} entry is NOW'
+                    elif _dt > 0:
+                        entry_timing = ('imminent' if _dt <= 3 else
+                                        ('approaching' if _dt <= 10 else 'early'))
+                        entry_note = (f'Almost ready seasonally — {_dt} trading days '
+                                      f'(~{_wks:.1f}wk) to goldilocks {_side} entry')
+                    else:
+                        entry_timing = 'just_passed' if _dt >= -5 else 'past'
+                        _ago = f'{abs(_dt)}+' if goldilocks_clipped else f'{abs(_dt)}'
+                        entry_note = (f'Past the seasonal sweet spot — ideal {_side} '
+                                      f'entry was {_ago} trading days ago '
+                                      f'(~{_wks:.1f}wk)')
+                    # A goldilocks peak that is itself weak isn't worth timing at all.
+                    if abs(goldilocks_lean) < 1.0:
+                        entry_timing = 'none'
+                        entry_note = ('No clear seasonal entry inside the '
+                                      '1-4 week swing horizon')
+                else:
+                    entry_timing = 'none'
+                    entry_note = 'No favourable seasonal entry inside the swing horizon'
+
+                # ── ANTICIPATION NUDGE ──────────────────────────────────────
+                # Ben's Read B: "if all other fundamentals are strong AND we're
+                # close to a good seasonal entry, he still wants a positive-leaning
+                # score, but with a clear caveat." So a near-neutral score with a
+                # strong turn imminent gets a modest, decaying push toward the
+                # coming direction — never enough to masquerade as a live signal,
+                # and scaled by reliability so a Grade D mirage barely moves.
+                # The caveat itself lives in entry_note / entry_timing.
+                if (days_to_goldilocks is not None and 2 < days_to_goldilocks <= 10
+                        and entry_timing not in (None, 'none')
+                        and goldilocks_lean is not None and abs(goldilocks_lean) >= 1.5
+                        and abs(score - 5.0) < 1.0):
+                    _prox = (11.0 - days_to_goldilocks) / 10.0     # 1.0 @1d → 0.1 @10d
+                    anticipation_nudge = max(-1.2, min(1.2,
+                        goldilocks_lean * 0.35 * _prox * _dampen_factor))
+                    score = round(max(0.0, min(10.0, score + anticipation_nudge)), 1)
+                    anticipation_nudge = round(anticipation_nudge, 2)
+    except Exception as _ge:
+        print(f"[seas goldilocks] {market_id}: {_ge}", flush=True)
+
     return {
         "score": score,
         "consensus": consensus,
@@ -13354,7 +13650,9 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "recent5_rets": [round(r, 2) for r in recent5] if recent5 else [],
         "recent_regime_signal": recent_regime_signal,
         "recent_regime_score": recent_regime_score,
+        "recent_regime_weight": recent_regime_w,
         "n_years": n, "n_pos": n_pos, "n_neg": n - n_pos,
+        "n_eff": round(_n_eff, 1),
         "hit_rate": round(whit * 100),
         "raw_hit_rate": round(100 * n_pos / n),
         "median_pct": round(wmed, 2),
@@ -13366,15 +13664,39 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "regime_delta_pts": regime_delta,
         "hit_ci_low": round(_ci_low*100),
         "hit_ci_high": round(_ci_high*100),
+        "hit_ci_low_raw": round(_ci_low_raw*100),
+        "hit_ci_high_raw": round(_ci_high_raw*100),
         "reliability_grade": grade,
         "reliability_pts": _pts,
         "per_year_rets": [{"y": y, "r": round(r, 2), "w": round(w, 3)}
                           for y, r, w in zip(used, rets, ws)],
         "best_pct": round(max(rets), 2),
         "worst_pct": round(min(rets), 2),
-        "td_start": td_a, "td_end": td_b,
+        # Display-clamped bounds (the chart axis is 252 wide); *_abs carry the
+        # true unclamped window ends so a Nov/Dec wrap is visible & debuggable.
+        "td_start": td_a, "td_end": min(252, td_b),
+        "td_end_abs": td_b,
+        "window_wrapped": td_b > 252,
+        # AUDIT-SCORING: immediate 1-2 week horizon, exposed alongside the near read
+        "td_imm_end": min(252, td_imm),
+        "imm_td": _SEAS_IMM_TD,
+        "near_td": _SEAS_NEAR_TD,
+        "imm_score": imm_score,
+        "imm_median_pct": imm_median,
+        "imm_hit_rate": imm_hit_rate,
+        # AUDIT-SCORING: goldilocks entry timing (Read B)
+        "days_to_goldilocks": days_to_goldilocks,
+        "entry_timing": entry_timing,
+        "entry_note": entry_note,
+        "goldilocks_lean": goldilocks_lean,
+        "goldilocks_ratio": goldilocks_ratio,
+        "goldilocks_dir": goldilocks_dir,
+        "goldilocks_clipped": goldilocks_clipped,
+        "anticipation_nudge": anticipation_nudge,
+        "goldilocks_curve": goldilocks_curve,
         # r15 far-window & shape
-        "td_far_end": td_c,
+        "td_far_end": min(252, td_c),
+        "td_far_end_abs": td_c,
         "far_score": far_score,
         "far_median_pct": far_median,
         "far_hit_rate": far_hit_rate,
@@ -13465,6 +13787,28 @@ def score_seasonality(market_id: str) -> dict:
             "far_hit_rate": stats.get("far_hit_rate"),
             "seas_shape": stats.get("seas_shape"),
             "shape_dampen": stats.get("shape_dampen"),
+            "shape_rotated": stats.get("shape_rotated"),
+            # AUDIT-SCORING: immediate (1-2wk) horizon shown alongside near (3-4wk)
+            "imm_score": stats.get("imm_score"),
+            "imm_median_pct": stats.get("imm_median_pct"),
+            "imm_hit_rate": stats.get("imm_hit_rate"),
+            "td_imm_end": stats.get("td_imm_end"),
+            "imm_td": stats.get("imm_td"),
+            "near_td": stats.get("near_td"),
+            # AUDIT-SCORING: goldilocks entry timing (Read B)
+            "days_to_goldilocks": stats.get("days_to_goldilocks"),
+            "entry_timing": stats.get("entry_timing"),
+            "entry_note": stats.get("entry_note"),
+            "goldilocks_lean": stats.get("goldilocks_lean"),
+            "goldilocks_ratio": stats.get("goldilocks_ratio"),
+            "goldilocks_dir": stats.get("goldilocks_dir"),
+            "goldilocks_clipped": stats.get("goldilocks_clipped"),
+            "anticipation_nudge": stats.get("anticipation_nudge"),
+            "goldilocks_curve": stats.get("goldilocks_curve"),
+            "n_eff": stats.get("n_eff"),
+            "hit_ci_low_raw": stats.get("hit_ci_low_raw"),
+            "hit_ci_high_raw": stats.get("hit_ci_high_raw"),
+            "window_wrapped": stats.get("window_wrapped"),
             # v2.1: cross-lens consensus conviction
             "consensus": stats.get("consensus"),
             "conviction_mult": stats.get("conviction_mult"),
