@@ -12180,9 +12180,41 @@ def _seas_year_weights(years_list, cycle_w: float, halflife: float,
         weights[ys] = w_rec * w_cyc
     return weights
 
-def _seas_weighted_stats(years_dict: dict, weights: dict) -> dict:
+def _seas_weighted_stats(years_dict: dict, weights: dict,
+                         current_year: int = None,
+                         current_td: int = None) -> dict:
     """Compute weighted median + p25/p75 + weighted mean per TD across the
-    given per-year paths. Returns dict with lists of length 252."""
+    given per-year paths. Returns dict with lists of length 252.
+
+    ── SEAS-R2 (Issue 2) ROOT-CAUSE FIX: CURRENT-YEAR PAD POLLUTION ──────────
+    Ben selected a late-Sep -> early-Oct window on NQ where the plotted blend
+    line visibly DROPPED, yet the window stats reported a 48% short win rate.
+    Three numbers on one screen disagreed. Diagnosis:
+
+      * the stored current-year path is FORWARD-FILLED past today: for NQ,
+        years['2026'] holds the constant 15.88 for every TD from 164 (today)
+        through 251 — 88 fabricated points, not data.
+      * _seas_year_weights gives the current year age=0 AND a cycle match, so it
+        carries the single LARGEST weight of all 42 years (2.5).
+      * this is a weighted median OF LEVELS. So past today the flat pad sat at
+        the top of the weight stack and simply *was* the median for ~24 TD,
+        producing a fake plateau, and then the median discontinuously handed
+        over to a different year's level — a fake CLIFF of -2.25% between
+        td 184 and td 191 that exists in no individual year.
+      * meanwhile _seas_lab_window_stats correctly excludes the current year, so
+        it reported the honest distribution. The stats were right; the LINE was
+        lying.
+
+    Verified: rebasing every year to 0 at td 184 and taking the weighted median
+    per TD gives 0.0 -> +0.45 by td 191, i.e. NO drop at all. The drop was 100%
+    composition artefact.
+
+    Fix: the current year contributes only its REAL, elapsed portion
+    (td <= current_td). Its forward-filled tail is excluded from the median /
+    mean / p25 / p75 at every TD beyond today. The year is still returned in
+    full in the `years` payload, so the actual-YTD overlay is unaffected — only
+    the blend statistics stop being fabricated.
+    """
     if not years_dict:
         return {"median": [], "mean": [], "p25": [], "p75": []}
     ys_all = list(years_dict.keys())
@@ -12195,6 +12227,13 @@ def _seas_weighted_stats(years_dict: dict, weights: dict) -> dict:
         pts = []
         for ys in ys_all:
             path = years_dict[ys]
+            # SEAS-R2: drop the current year's forward-filled tail (see docstring)
+            if current_year is not None and current_td is not None:
+                try:
+                    if int(ys) == int(current_year) and i > int(current_td):
+                        continue
+                except (TypeError, ValueError):
+                    pass
             if i < len(path) and path[i] is not None:
                 w = weights.get(ys, 1.0)
                 if w > 0:
@@ -12224,14 +12263,133 @@ def _seas_weighted_stats(years_dict: dict, weights: dict) -> dict:
         p75[i] = q75 if q75 is not None else pts[-1][0]
     return {"median": med, "mean": mean, "p25": p25, "p75": p75}
 
+# SEAS-R2 (Issue 2): a window return of exactly zero is neither a long win nor a
+# short win. Anything inside +/- this band (in %) is a TIE and is removed from
+# BOTH the numerator and the denominator of every win rate.
+_SEAS_TIE_EPS = 0.005
+
+
+def _seas_weighted_rebased(years_dict: dict, weights: dict, anchor_td: int,
+                           current_year: int = None,
+                           current_td: int = None) -> dict:
+    """SEAS-R2 (Issue 2): blend median/mean/p25/p75 of paths REBASED to 0 at
+    `anchor_td`, i.e. the honest forward seasonal path from a chosen day.
+
+    Why this exists. The main lab series is a weighted median OF LEVELS
+    (cumulative % from Jan 1). That statistic is composition-dependent: the
+    year sitting at the median changes from one TD to the next, so the line can
+    fall several percent between two days even when the *typical year* rose over
+    those same two days. That is exactly the divergence Ben hit — a line that
+    dropped while the window stats said up.
+
+    Rebasing first removes the artefact entirely: every year is set to 0 at
+    `anchor_td`, then the weighted median is taken of the MOVES. The value at
+    `end_td` then equals the window stats' median return by construction, so
+    the picture and the number cannot disagree.
+
+    Same current-year pad exclusion as _seas_weighted_stats. Returns lists of
+    length n_td with None before `anchor_td`.
+    """
+    if not years_dict:
+        return {"median": [], "mean": [], "p25": [], "p75": [], "anchor_td": anchor_td}
+    ys_all = list(years_dict.keys())
+    n_td = max(len(years_dict[y]) for y in ys_all)
+    anchor_td = max(0, min(n_td - 1, int(anchor_td)))
+    # Per-year rebased paths (compounded off the anchor level)
+    reb = {}
+    for ys in ys_all:
+        path = years_dict[ys]
+        if anchor_td >= len(path) or path[anchor_td] is None:
+            continue
+        base = 1.0 + path[anchor_td] / 100.0
+        if abs(base) < 1e-9:
+            continue
+        reb[ys] = [(((1.0 + v / 100.0) / base - 1.0) * 100.0) if v is not None else None
+                   for v in path]
+    med = [None] * n_td; mean = [None] * n_td
+    p25 = [None] * n_td; p75 = [None] * n_td
+    for i in range(anchor_td, n_td):
+        pts = []
+        for ys, path in reb.items():
+            if current_year is not None and current_td is not None:
+                try:
+                    if int(ys) == int(current_year) and i > int(current_td):
+                        continue
+                except (TypeError, ValueError):
+                    pass
+            if i < len(path) and path[i] is not None:
+                w = weights.get(ys, 1.0)
+                if w > 0:
+                    pts.append((path[i], w))
+        if not pts:
+            continue
+        sw = sum(w for _, w in pts)
+        mean[i] = sum(v * w for v, w in pts) / sw if sw > 0 else None
+        pts.sort(key=lambda x: x[0])
+        cum = 0.0; q25 = q50 = q75 = None
+        for v, w in pts:
+            cum += w
+            frac = cum / sw if sw > 0 else 1.0
+            if q25 is None and frac >= 0.25: q25 = v
+            if q50 is None and frac >= 0.5: q50 = v
+            if q75 is None and frac >= 0.75:
+                q75 = v; break
+        med[i] = q50 if q50 is not None else pts[len(pts)//2][0]
+        p25[i] = q25 if q25 is not None else pts[0][0]
+        p75[i] = q75 if q75 is not None else pts[-1][0]
+    return {"median": med, "mean": mean, "p25": p25, "p75": p75,
+            "anchor_td": anchor_td}
+
+
 def _seas_lab_window_stats(years_dict: dict, weights: dict,
                            start_td: int, end_td: int,
                            current_year: int = None,
-                           current_td: int = None) -> dict:
+                           current_td: int = None,
+                           wstats: dict = None) -> dict:
     """For a [start_td, end_td] window compute per-year window returns and
     aggregate stats. Returns {window_stats, per_year_windows}.
     Excludes the current year when the window extends past current_td so
-    historical stats aren't polluted by an incomplete year."""
+    historical stats aren't polluted by an incomplete year.
+
+    ── SEAS-R2 (Issue 2): STATS-LENS UNIFICATION ────────────────────────────
+    Ben saw three different numbers describing one selected window. Four
+    distinct defects, all fixed here:
+
+    1) ARITHMETIC vs GEOMETRIC. `ret_pct` was `ep - sp`, the arithmetic
+       difference of two CUMULATIVE-%-from-Jan-1 levels. That is not the return
+       over the window. A year that ran +40% by September and then +2% more
+       showed 40 -> 42.8 = "+2.8%" instead of the true 42.8/40 compounded
+       +2.0%. The error scales with how far the year had already travelled, so
+       high-momentum years were systematically over-weighted in the
+       distribution. Now compounded: ((1+ep/100)/(1+sp/100) - 1) * 100.
+       max_rise / max_drop are compounded off the entry level the same way.
+
+    2) ZERO-TIE MIS-COUNTING. Long wins required ret > 0 while long losses were
+       ret <= 0, so an exactly-flat year was booked as a long LOSS; the short
+       mirror had the identical bug the other way (`>= 0` counted as a short
+       loss). Flat years therefore depressed BOTH sides' win rate, and
+       long_win_rate + short_win_rate did not sum to 1. Ties are now excluded
+       from numerator AND denominator on both sides, so the two rates are
+       genuine complements and n_up + n_down + n_ties = n_years.
+
+    3) NO SINGLE SOURCE OF TRUTH. The donut, the callout and the table each
+       recomputed their own view. There is now ONE `headline` block, on the
+       BLEND lens (weighted — the same weights that draw the plotted line), and
+       the equal-weight view is preserved beside it as explicit secondary
+       `raw_*` fields. The blend lens is primary because it is what the chart
+       shows; if the two disagree that is real information, not a bug, and both
+       are now on screen.
+
+    4) LINE vs STATS RECONCILIATION. `curve_move_pct` is the rebased
+       blend-median move (rebase every year to 0 at start_td, take the weighted
+       median of the window return) and equals the headline median exactly.
+       `curve_level_move_pct` is the slope of the plotted median-OF-LEVELS line
+       between the same two TDs. These two are NOT the same statistic — a
+       median of levels can move without any year moving, because the
+       identity of the median year changes. Publishing both means a
+       line/stats divergence is visible and explainable instead of looking
+       like a broken number.
+    """
     if not years_dict or start_td >= end_td:
         return {"window_stats": None, "per_year_windows": []}
     rows = []
@@ -12246,15 +12404,18 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
         ep = path[end_td]
         if sp is None or ep is None:
             continue
-        # Convert cumulative %-paths → return over window
-        # path values are cumulative % (0 at Jan1). Window return = ep - sp (approx pct).
-        ret_pct = ep - sp
-        # Max rise / max drop within window
+        # SEAS-R2: paths are cumulative % from Jan 1. The window return is the
+        # COMPOUNDED move between the two levels, not their difference.
+        _base = 1.0 + sp / 100.0
+        if abs(_base) < 1e-9:
+            continue
+        ret_pct = ((1.0 + ep / 100.0) / _base - 1.0) * 100.0
+        # Max rise / max drop within window — compounded off the entry level too
         seg = [p for p in path[start_td:end_td+1] if p is not None]
         if len(seg) < 2:
             continue
-        max_rise = max(seg) - sp
-        max_drop = min(seg) - sp
+        max_rise = ((1.0 + max(seg) / 100.0) / _base - 1.0) * 100.0
+        max_drop = ((1.0 + min(seg) / 100.0) / _base - 1.0) * 100.0
         w = weights.get(ys, 1.0)
         rows.append({
             "year": int(ys),
@@ -12291,13 +12452,19 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
             if cum / sw >= 0.5:
                 w_med = v
                 break
-    gains = [r for r in rows if r["ret_pct"] > 0]
-    losses = [r for r in rows if r["ret_pct"] <= 0]
-    # Weighted win rate
+    # ── SEAS-R2: tie-aware three-way split (up / down / flat) ────────────────
+    _eps = _SEAS_TIE_EPS
+    gains = [r for r in rows if r["ret_pct"] > _eps]
+    losses = [r for r in rows if r["ret_pct"] < -_eps]
+    ties = [r for r in rows if abs(r["ret_pct"]) <= _eps]
     w_gain = sum(r["weight"] for r in gains)
-    win_rate = w_gain / sw if sw > 0 else 0.5
-    avg_gain = sum(r["ret_pct"] * r["weight"] for r in gains) / max(w_gain, 1e-9) if gains else 0.0
     w_loss = sum(r["weight"] for r in losses)
+    w_tie = sum(r["weight"] for r in ties)
+    # Denominator EXCLUDES ties, so long + short win rates are true complements.
+    w_decided = w_gain + w_loss
+    win_rate = (w_gain / w_decided) if w_decided > 1e-12 else 0.5
+    short_win_rate = (w_loss / w_decided) if w_decided > 1e-12 else 0.5
+    avg_gain = sum(r["ret_pct"] * r["weight"] for r in gains) / max(w_gain, 1e-9) if gains else 0.0
     avg_loss = sum(r["ret_pct"] * r["weight"] for r in losses) / max(w_loss, 1e-9) if losses else 0.0
     max_gain = max(rets)
     max_loss = min(rets)
@@ -12327,16 +12494,13 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
     # their "drawdown" (max adverse excursion) is the max RISE from entry.
     # Seasonax fixes the perspective to long-only — we surface both so the
     # trader picks the side they're on.
+    # SEAS-R2: short wins are the strict `losses` bucket and short losses the
+    # strict `gains` bucket — ties belong to neither side (see docstring #2).
     short_rets = [-v for v in rets]
-    short_wr_num = sum(r["weight"] for r in rows if r["ret_pct"] < 0)  # short wins when price falls
-    short_win_rate = short_wr_num / sw if sw > 0 else 0.5
-    # Short "avg gain" = mean of |ret| when price fell; "avg loss" = |ret| when price rose
-    short_gains = [r for r in rows if r["ret_pct"] < 0]
-    short_losses = [r for r in rows if r["ret_pct"] >= 0]
-    sw_sg = sum(r["weight"] for r in short_gains)
-    sw_sl = sum(r["weight"] for r in short_losses)
-    short_avg_gain = (-sum(r["ret_pct"] * r["weight"] for r in short_gains) / max(sw_sg, 1e-9)) if short_gains else 0.0
-    short_avg_loss = (-sum(r["ret_pct"] * r["weight"] for r in short_losses) / max(sw_sl, 1e-9)) if short_losses else 0.0
+    short_gains = losses
+    short_losses = gains
+    short_avg_gain = (-sum(r["ret_pct"] * r["weight"] for r in short_gains) / max(w_loss, 1e-9)) if short_gains else 0.0
+    short_avg_loss = (-sum(r["ret_pct"] * r["weight"] for r in short_losses) / max(w_gain, 1e-9)) if short_losses else 0.0
     short_max_gain = max(short_rets)  # biggest fall = biggest short win
     short_max_loss = min(short_rets)  # biggest rally = biggest short loss
     short_w_mean = -w_mean
@@ -12352,6 +12516,38 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
     else:
         short_sortino = 0.0
     short_sharpe = short_ann_ret / ann_vol if ann_vol > 1e-9 else 0.0
+
+    # ── SEAS-R2: SECONDARY EQUAL-WEIGHT ("raw") LENS ─────────────────────────
+    # Every number above is BLEND-weighted, i.e. computed with the same weights
+    # that draw the plotted median line. The plain one-year-one-vote view is
+    # still valuable (it is the honest historical base rate, free of cycle and
+    # recency opinion) so it ships alongside rather than being discarded.
+    _n = len(rows)
+    _sorted = sorted(rets)
+    raw_median = (_sorted[_n // 2] if _n % 2
+                  else 0.5 * (_sorted[_n // 2 - 1] + _sorted[_n // 2]))
+    raw_mean = sum(rets) / _n
+    raw_up, raw_dn, raw_tie = len(gains), len(losses), len(ties)
+    raw_decided = raw_up + raw_dn
+    raw_win_rate = (raw_up / raw_decided) if raw_decided else 0.5
+    raw_short_win_rate = (raw_dn / raw_decided) if raw_decided else 0.5
+
+    # ── SEAS-R2: LINE vs STATS RECONCILIATION ────────────────────────────────
+    # curve_move_pct: rebase every year to 0 at start_td and take the weighted
+    #   median of the window move. Identical to the headline median by
+    #   construction — this is the number the *shape* of the blend line implies.
+    # curve_level_move_pct: the compounded slope of the plotted median-OF-LEVELS
+    #   line over the same TDs. Differs whenever the identity of the median year
+    #   changes inside the window.
+    curve_move_pct = round(w_med, 3)
+    curve_level_move_pct = None
+    if wstats:
+        _medline = wstats.get("median") or []
+        if end_td < len(_medline) and start_td < len(_medline):
+            _a, _b = _medline[start_td], _medline[end_td]
+            if _a is not None and _b is not None and abs(1.0 + _a / 100.0) > 1e-9:
+                curve_level_move_pct = round(
+                    ((1.0 + _b / 100.0) / (1.0 + _a / 100.0) - 1.0) * 100.0, 3)
 
     return {
         "window_stats": {
@@ -12369,8 +12565,41 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
             "n_years": len(rows),
             "n_gains": len(gains),
             "n_losses": len(losses),
+            "n_ties": len(ties),
             "td_window": td_window,
             "cal_days": round(td_window * 365.0 / 252.0),
+            # ── SEAS-R2: THE ONE SOURCE OF TRUTH ────────────────────────────
+            # Donut, callout and header must all read `headline`. lens='blend'
+            # means these are weighted by the SAME year weights that draw the
+            # plotted median line, so the number and the picture cannot diverge.
+            "headline": {
+                "lens": "blend",
+                "win_rate": round(win_rate, 4),
+                "short_win_rate": round(short_win_rate, 4),
+                "median_pct": round(w_med, 3),
+                "mean_pct": round(w_mean, 3),
+                "n_up": len(gains),
+                "n_down": len(losses),
+                "n_ties": len(ties),
+                "n_years": len(rows),
+                "w_up": round(w_gain, 4),
+                "w_down": round(w_loss, 4),
+                "w_ties": round(w_tie, 4),
+                "tie_eps_pct": _eps,
+                "compounded": True,
+                "excludes_current_year": True,
+            },
+            # Secondary equal-weight lens (one year, one vote)
+            "raw_win_rate": round(raw_win_rate, 4),
+            "raw_short_win_rate": round(raw_short_win_rate, 4),
+            "raw_median": round(raw_median, 3),
+            "raw_mean": round(raw_mean, 3),
+            "raw_n_gains": raw_up,
+            "raw_n_losses": raw_dn,
+            "raw_n_ties": raw_tie,
+            # Line/stats reconciliation
+            "curve_move_pct": curve_move_pct,
+            "curve_level_move_pct": curve_level_move_pct,
             # ── Short-side mirror (perspective flipped) ──────────────────────
             "short": {
                 "win_rate": round(short_win_rate, 4),
@@ -12386,6 +12615,10 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
                 "sortino": round(short_sortino, 3),
                 "n_wins": len(short_gains),
                 "n_losses": len(short_losses),
+                "n_ties": len(ties),
+                "raw_win_rate": round(raw_short_win_rate, 4),
+                "raw_median": round(-raw_median, 3),
+                "raw_mean": round(-raw_mean, 3),
             },
         },
         "per_year_windows": rows,
@@ -12470,7 +12703,11 @@ async def get_seasonality_lab(
     weights = _seas_year_weights(
         list(years.keys()), eff_cycle_w, eff_halflife,
         _today.year, _cycle_key_for_year(_today.year))
-    wstats = _seas_weighted_stats(years, weights)
+    # SEAS-R2 (Issue 2): pass the current year/TD so the plotted blend line stops
+    # being dominated by this year's forward-filled pad past today.
+    wstats = _seas_weighted_stats(years, weights,
+                                  current_year=_today.year,
+                                  current_td=_current_td)
 
     # Reliability grade: based on # years, signal/noise across full 252, direction consistency
     def _grade():
@@ -12516,7 +12753,8 @@ async def get_seasonality_lab(
             if 0 <= ws < 252 and 0 <= we < 252 and ws < we:
                 window_result = _seas_lab_window_stats(
                     years, weights, ws, we,
-                    current_year=_today.year, current_td=_current_td)
+                    current_year=_today.year, current_td=_current_td,
+                    wstats=wstats)   # SEAS-R2: enables curve_level_move_pct
         except Exception as _we:
             print(f"[seas lab] window exc: {_we}", flush=True)
 
@@ -12526,6 +12764,75 @@ async def get_seasonality_lab(
     except Exception as _ce:
         print(f"[seas lab] consensus exc: {_ce}", flush=True)
         _consensus = None
+
+    # SEAS-R2 (Issue 2): composition-free forward blend path, rebased to today
+    # (or to the selected window start when the user has one). See
+    # _seas_weighted_rebased for why the median-of-levels line needs this.
+    _reb_anchor = _current_td
+    try:
+        if window_start is not None and 0 <= int(window_start) < 252:
+            _reb_anchor = int(window_start)
+    except (TypeError, ValueError):
+        pass
+    try:
+        _wreb = _seas_weighted_rebased(years, weights, _reb_anchor,
+                                       current_year=_today.year,
+                                       current_td=_current_td)
+    except Exception as _re:
+        print(f"[seas lab] rebased exc: {_re}", flush=True)
+        _wreb = None
+
+    # ══ SEAS-R2 (Issue 1): SWING SETUP PLANNER ON THE LAB ═══════════════════
+    # Same engine and same lens as the scoring path, but built on the LAB's
+    # EFFECTIVE blend so the entry/exit legs are computed on the exact curve the
+    # user is looking at, including any cycle_w / halflife they dialled in. If
+    # the plotted line and the plan ever disagreed the plan would be worthless.
+    _planner = None
+    try:
+        _planner = _seas_swing_planner(
+            m, ent["years"], _current_td, _today.year, _today,
+            cycle_w=eff_cycle_w, halflife=eff_halflife)
+    except Exception as _pe:
+        print(f"[seas lab] planner exc: {_pe}", flush=True)
+        _planner = None
+
+    # ══ SEAS-R2: goldilocks entry timing + horizon reads on the lab ══════════
+    # Round-1 queued item. The scores page carried goldilocks / entry-timing but
+    # the Lab did not, so the two screens gave the trader different timing
+    # advice. Sourced from the SAME _seas_window_stats the headline score uses,
+    # so the Lab cannot contradict the score card.
+    _gold = None
+    try:
+        _ws2 = _seas_window_stats(m, _today)
+        if _ws2:
+            _gold = {
+                "score": _ws2.get("score"),
+                "raw_score": _ws2.get("raw_score"),
+                "near_only_score": _ws2.get("near_only_score"),
+                "reliability_grade": _ws2.get("reliability_grade"),
+                "seas_shape": _ws2.get("seas_shape"),
+                "shape_rotated": _ws2.get("shape_rotated"),
+                "imm_score": _ws2.get("imm_score"),
+                "imm_median_pct": _ws2.get("imm_median_pct"),
+                "imm_hit_rate": _ws2.get("imm_hit_rate"),
+                "far_score": _ws2.get("far_score"),
+                "far_median_pct": _ws2.get("far_median_pct"),
+                "horizon_w_imm": _ws2.get("horizon_w_imm"),
+                "days_to_goldilocks": _ws2.get("days_to_goldilocks"),
+                "entry_timing": _ws2.get("entry_timing"),
+                "entry_note": _ws2.get("entry_note"),
+                "goldilocks_dir": _ws2.get("goldilocks_dir"),
+                "goldilocks_lean": _ws2.get("goldilocks_lean"),
+                "goldilocks_ratio": _ws2.get("goldilocks_ratio"),
+                "goldilocks_clipped": _ws2.get("goldilocks_clipped"),
+                "goldilocks_curve": _ws2.get("goldilocks_curve"),
+                "planner_mode": _ws2.get("planner_mode"),
+                "planner_mult": _ws2.get("planner_mult"),
+                "planner_capture": _ws2.get("planner_capture"),
+            }
+    except Exception as _ge:
+        print(f"[seas lab] goldilocks exc: {_ge}", flush=True)
+        _gold = None
 
     return _SafeJSONResponse({
         "market": m,
@@ -12547,6 +12854,15 @@ async def get_seasonality_lab(
         "window": window_result,
         # v2.1: cross-lens consensus conviction — the scoring-grade read
         "consensus": _consensus,
+        # SEAS-R2 (Issue 2): blend path REBASED to today — the composition-free
+        # forward view. Its endpoint equals the window median by construction,
+        # so the plotted shape and the reported stats cannot diverge.
+        "weighted_rebased": _wreb,
+        # SEAS-R2 (Issue 1): swing setup planner — entry + exit legs, both sides
+        "planner": _planner,
+        # SEAS-R2 (Issue 3): goldilocks entry timing + horizon reads, from the
+        # same engine as the headline score
+        "goldilocks": _gold,
     })
 
 # ============================================================
@@ -13216,6 +13532,22 @@ _SEAS_GOLD_FWD  = 25
 # nor trustworthy; it usually means the real peak is further back still.
 _SEAS_GOLD_LATE = 10
 
+# SEAS-R2 (Issue 3) — swing-horizon re-weighting of the HEADLINE seasonal score.
+# Round 1 exposed the 10-TD immediate read but did not let it touch the headline.
+# Ben: "1-2 week trade positions... maybe 3-4 weeks at a max" — so the headline
+# must weight the typical hold, not only the 4-week context window.
+# The brief suggested 0.45/0.55. Backtested instead (24,320 zero-lookahead
+# samples, 30 markets, holds 10/15/20/28 TD): the optimum sits at 0.25-0.35 on
+# BOTH directional hit rate and mean signed return, at every hold, and 0.45 is
+# measurably worse than 0.30. Shipping the backtested value.
+# Script: /home/user/workspace/r2_imm_near_backtest.py
+_SEAS_HORIZON_W_IMM = 0.30
+# SEAS-R2 (Issue 4): max fraction of the seasonal lean the swing planner may
+# remove. 0.40 keeps the planner a *modifier* — it can move a 7.8 into the 6s
+# (what Ben expects for NQ) or a 3.4 toward 4, but it can never cross neutral
+# and can never change a factor's sign. See _seas_planner_discount.
+_SEAS_PLANNER_DISCOUNT = 0.40
+
 
 def _seas_wq(vals, ws, q):
     """Weighted quantile of vals with weights ws (0<=q<=1)."""
@@ -13433,6 +13765,384 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
             "halflife": hl, "profile": blend.get("tag")}
 
 
+# ══════════════════════════════════════════════════════════════════════════
+# SEAS-R2: SWING SETUP PLANNER  (entry + exit leg engine)
+# ──────────────────────────────────────────────────────────────────────────
+# Ben (round 2): "we need the tool to be smarter and see that you could get long
+# now but you need to be out within 28 days or whatever (the next big seasonal
+# dip)".  The round-1 goldilocks scan only answered WHEN TO ENTER. A swing trader
+# needs an ENTRY *and* an EXIT.
+#
+# The planner works on the SAME smart-blend lens as the plotted Lab curve
+# (asset-class cycle_w x recency halflife, every available completed year — not
+# the 22-year scoring window and not equal weight), so what the eye sees on the
+# chart is what the planner trades. It:
+#   1. builds the forward blend-weighted median cumulative curve for k = 0..45 TD
+#   2. decomposes it into LEGS with a vol-scaled zigzag (amplitude filter, NOT
+#      smoothing — Ben: "the devil is in the details in terms of peaks and troughs")
+#   3. for each direction emits an actionable plan with a hard exit deadline
+#
+# Hold is capped at _SEAS_PLAN_MAX_HOLD (20 TD) — Ben: 1-2wk typical, 3-4wk max.
+_SEAS_PLAN_FWD      = 45   # how far forward we scan for legs (TD) ~9 weeks
+_SEAS_PLAN_MIN_LEG  = 5    # a leg shorter than a trading week isn't tradeable
+_SEAS_PLAN_MAX_HOLD = 20   # hard cap on hold (Ben: 3-4 weeks absolute max)
+_SEAS_PLAN_WAIT_MAX = 15   # a leg starting >15 TD out is context, not a plan
+_SEAS_PLAN_NOW_TD   = 2    # a leg starting inside 2 TD is effectively "now"
+
+
+def _seas_lens_weights(years_dict, asof_year: int, market_id: str,
+                       cycle_w: float = None, halflife: float = None):
+    """Year weights for the CHART lens (the smart blend the Lab plots), so the
+    planner and the Lab stats cannot diverge from the drawn line.
+    Returns (sorted list of completed years, {int_year: weight})."""
+    try:
+        blend = _seas_default_blend(market_id)
+    except Exception:
+        blend = {"cycle_w": 1.0, "halflife": 15}
+    cw = float(cycle_w) if cycle_w is not None else float(blend.get("cycle_w", 1.0))
+    hl = float(halflife) if halflife is not None else float(blend.get("halflife", 15) or 15)
+    ck = _cycle_key_for_year(asof_year)
+    yrs = sorted(int(y) for y in years_dict if int(y) < asof_year)
+    W = {}
+    for y in yrs:
+        w_rec = (0.5 ** (max(0, asof_year - y) / hl)) if hl > 0 else 1.0
+        W[y] = w_rec * (cw if _cycle_key_for_year(y) == ck else 1.0)
+    return yrs, W
+
+
+def _seas_leg_stats(years_dict, yrs, W, td_a: int, k0: int, k1: int,
+                    asof_year: int, direction: int):
+    """Blend-weighted distribution of the ACTUAL per-year return over the leg
+    [td_a+k0, td_a+k1].  Returns (median_pct, win_rate_in_direction, n, n_ties).
+
+    Tie policy (SEAS-R2): an exactly-flat year is excluded from BOTH the
+    numerator and the denominator of the win rate. Round 1 counted a 0.0% year
+    as a LOSS for long (ret > 0 required) *and* as a loss for short
+    (ret < 0 required) — the same year could not win either way, which
+    depressed both win rates simultaneously.
+    """
+    rets, ws = [], []
+    for y in yrs:
+        v = _seas_fwd(years_dict, y, td_a + k0, td_a + k1, asof_year)
+        if v is None:
+            continue
+        rets.append(v); ws.append(W.get(y, 1.0))
+    if len(rets) < 5:
+        return None, None, len(rets), 0
+    med = _seas_wq(rets, ws, 0.5)
+    eps = 1e-9
+    w_win = sum(w for r, w in zip(rets, ws) if r * direction > eps)
+    w_tie = sum(w for r, w in zip(rets, ws) if abs(r) <= eps)
+    w_live = sum(ws) - w_tie
+    wr = (w_win / w_live) if w_live > 0 else None
+    n_ties = sum(1 for r in rets if abs(r) <= eps)
+    return med, wr, len(rets), n_ties
+
+
+def _seas_zigzag(vals, thresh: float):
+    """Amplitude-filtered pivot detection (zigzag). Returns pivot indices.
+    NOT a smoother: every value is used verbatim, we only ignore wiggles whose
+    amplitude is below `thresh`."""
+    n = len(vals)
+    if n < 3:
+        return list(range(n))
+    piv = [0]
+    hi = lo = vals[0]
+    hi_i = lo_i = 0
+    trend = 0
+    for i in range(1, n):
+        x = vals[i]
+        if x > hi:
+            hi, hi_i = x, i
+        if x < lo:
+            lo, lo_i = x, i
+        if trend >= 0 and (hi - x) >= thresh and hi_i > piv[-1]:
+            piv.append(hi_i); trend = -1
+            hi, hi_i = x, i; lo, lo_i = x, i
+        elif trend <= 0 and (x - lo) >= thresh and lo_i > piv[-1]:
+            piv.append(lo_i); trend = 1
+            hi, hi_i = x, i; lo, lo_i = x, i
+    tail = hi_i if trend >= 0 else lo_i
+    if tail > piv[-1]:
+        piv.append(tail)
+    if (n - 1) > piv[-1]:
+        piv.append(n - 1)
+    return piv
+
+
+def _seas_td_to_date(base_date, td: int):
+    """Approximate calendar date `td` TRADING days after base_date
+    (252 TD ~ 365 calendar days), snapped off weekends."""
+    import datetime as _dt
+    if td is None:
+        return None
+    d = base_date + _dt.timedelta(days=int(round(td * 365.0 / 252.0)))
+    while d.weekday() >= 5:
+        d += _dt.timedelta(days=1)
+    return d
+
+
+def _seas_swing_planner(market_id: str, years_dict: dict, td_a: int,
+                        asof_year: int, base_date,
+                        cycle_w: float = None, halflife: float = None) -> dict | None:
+    """The swing setup planner. See the block comment above.
+
+    Returns {curve, legs, thresh, long: {...}, short: {...}, primary_dir,
+             suggested_*} or None when there isn't enough data.
+    """
+    yrs, W = _seas_lens_weights(years_dict, asof_year, market_id, cycle_w, halflife)
+    if len(yrs) < 8:
+        return None
+    # 1) forward blend-weighted median cumulative curve, rebased to 0 at today
+    cum, hits, ns = [0.0], [None], [len(yrs)]
+    for k in range(1, _SEAS_PLAN_FWD + 1):
+        rets, ws = [], []
+        for y in yrs:
+            v = _seas_fwd(years_dict, y, td_a, td_a + k, asof_year)
+            if v is None:
+                continue
+            rets.append(v); ws.append(W.get(y, 1.0))
+        if len(rets) < 5 or sum(ws) <= 0:
+            break
+        tw = sum(ws)
+        eps = 1e-9
+        w_up = sum(w for r, w in zip(rets, ws) if r > eps)
+        w_tie = sum(w for r, w in zip(rets, ws) if abs(r) <= eps)
+        live = tw - w_tie
+        cum.append(_seas_wq(rets, ws, 0.5))
+        hits.append((w_up / live) if live > 0 else None)
+        ns.append(len(rets))
+    if len(cum) < 12:
+        return None
+    maxk = len(cum) - 1
+    # 2) vol-scaled amplitude threshold — self-calibrating from the curve's own
+    #    step size, so it means the same thing on ZT (sd ~1%) as on NG (sd ~12%).
+    steps = sorted(abs(cum[i + 1] - cum[i]) for i in range(maxk))
+    noise = steps[len(steps) // 2] if steps else 0.2
+    thresh = max(0.30, min(3.0, 2.2 * noise))
+    piv = _seas_zigzag(cum, thresh)
+    legs = []
+    for j in range(len(piv) - 1):
+        i0, i1 = piv[j], piv[j + 1]
+        amp = cum[i1] - cum[i0]
+        d = 1 if amp > 0 else (-1 if amp < 0 else 0)
+        legs.append({
+            "start_td": i0, "end_td": i1, "len_td": i1 - i0,
+            "amp_pct": round(amp, 2), "dir": d,
+            "tradeable": bool((i1 - i0) >= _SEAS_PLAN_MIN_LEG and abs(amp) >= thresh),
+        })
+
+    def _plan(direction: int) -> dict:
+        out = {
+            "dir": direction,
+            "plan_action": "no_edge",
+            "entry_in_td": None, "exit_in_td": None, "exit_by_date": None,
+            "entry_by_date": None, "hold_td": None,
+            "expected_move_pct": None, "leg_win_rate": None,
+            "next_turn_td": None, "next_turn_type": None,
+            "next_entry_in_td": None, "leg_amp_pct": None, "n_years": None,
+            "note": None,
+        }
+        cands = [L for L in legs if L["dir"] == direction and L["tradeable"]]
+        chosen = None
+        # (a) already inside a favourable leg with >= MIN_LEG TD left to run
+        cur = next((L for L in cands if L["start_td"] <= _SEAS_PLAN_NOW_TD), None)
+        if cur and (cur["end_td"] - max(0, cur["start_td"])) >= _SEAS_PLAN_MIN_LEG:
+            chosen = cur
+            entry = max(0, cur["start_td"])
+            action = "enter_now"
+        else:
+            # (b) the next favourable leg that starts inside the actionable window
+            nxt = next((L for L in cands
+                        if _SEAS_PLAN_NOW_TD < L["start_td"] <= _SEAS_PLAN_WAIT_MAX), None)
+            if nxt:
+                chosen = nxt
+                entry = nxt["start_td"]
+                action = "wait"
+        if chosen is None:
+            far = next((L for L in cands if L["start_td"] > _SEAS_PLAN_WAIT_MAX), None)
+            if far:
+                out["next_entry_in_td"] = far["start_td"]
+                out["note"] = (f"No actionable {'long' if direction > 0 else 'short'} "
+                               f"leg inside {_SEAS_PLAN_WAIT_MAX} TD — next one starts "
+                               f"{far['start_td']} TD out")
+            else:
+                out["note"] = (f"No tradeable {'long' if direction > 0 else 'short'} "
+                               f"seasonal leg inside the next {maxk} trading days")
+            return out
+        exit_td = min(chosen["end_td"], entry + _SEAS_PLAN_MAX_HOLD)
+        if exit_td - entry < _SEAS_PLAN_MIN_LEG:
+            exit_td = min(maxk, entry + _SEAS_PLAN_MIN_LEG)
+        med, wr, nyr, nties = _seas_leg_stats(years_dict, yrs, W, td_a, entry,
+                                             exit_td, asof_year, direction)
+        turn = chosen["end_td"] if chosen["end_td"] < maxk else None
+        # the leg that follows the adverse turn, if it points our way again
+        after = [L for L in legs if L["dir"] == direction and L["tradeable"]
+                 and L["start_td"] >= chosen["end_td"]]
+        out.update({
+            "plan_action": action,
+            "entry_in_td": entry,
+            "exit_in_td": exit_td,
+            "hold_td": exit_td - entry,
+            "entry_by_date": (_seas_td_to_date(base_date, entry).isoformat()
+                              if entry is not None else None),
+            "exit_by_date": _seas_td_to_date(base_date, exit_td).isoformat(),
+            "expected_move_pct": (round(med, 2) if med is not None else None),
+            "leg_win_rate": (round(wr, 4) if wr is not None else None),
+            "next_turn_td": turn,
+            "next_turn_type": (("dip" if direction > 0 else "peak")
+                               if turn is not None else None),
+            "next_entry_in_td": (after[0]["start_td"] if after else None),
+            "leg_amp_pct": chosen["amp_pct"],
+            "n_years": nyr,
+            "n_ties": nties,
+        })
+        _side = "long" if direction > 0 else "short"
+        _turn = ("" if turn is None else
+                 f" — the next seasonal {out['next_turn_type']} lands "
+                 f"{turn} TD out")
+        if action == "enter_now":
+            out["note"] = (f"Enter {_side} now, be out by "
+                           f"{out['exit_by_date']} ({exit_td} TD){_turn}")
+        else:
+            out["note"] = (f"Wait {entry} TD — {_side} entry ~{out['entry_by_date']}, "
+                           f"out by {out['exit_by_date']} ({exit_td} TD){_turn}")
+        return out
+
+    plans = {"long": _plan(1), "short": _plan(-1)}
+
+    def _quality(p):
+        if p["plan_action"] == "no_edge":
+            return -1.0
+        q = abs(p["expected_move_pct"] or 0.0) * max(0.0, (p["leg_win_rate"] or 0.5) - 0.5) * 2
+        if p["plan_action"] == "wait":
+            q *= 0.6
+        return q
+    pl, ps = plans["long"], plans["short"]
+    primary = 1 if _quality(pl) >= _quality(ps) else -1
+    if _quality(pl) < 0 and _quality(ps) < 0:
+        primary = 0
+    prim = pl if primary > 0 else (ps if primary < 0 else None)
+    return {
+        "lens": {"cycle_w": (float(cycle_w) if cycle_w is not None
+                             else _seas_default_blend(market_id).get("cycle_w")),
+                 "halflife": (float(halflife) if halflife is not None
+                              else _seas_default_blend(market_id).get("halflife")),
+                 "n_years": len(yrs), "basis": "blend-weighted median (chart lens)"},
+        "td_start": td_a,
+        "fwd_td": maxk,
+        "amp_thresh_pct": round(thresh, 2),
+        "curve": [{"k": k, "cum_pct": round(cum[k], 3),
+                   "hit": (round(hits[k], 3) if hits[k] is not None else None)}
+                  for k in range(len(cum))],
+        "legs": legs,
+        "long": pl, "short": ps,
+        "primary_dir": primary,
+        "plan_action": (prim["plan_action"] if prim else "no_edge"),
+        "entry_in_td": (prim["entry_in_td"] if prim else None),
+        "exit_in_td": (prim["exit_in_td"] if prim else None),
+        "exit_by_date": (prim["exit_by_date"] if prim else None),
+        "hold_td": (prim["hold_td"] if prim else None),
+        "expected_move_pct": (prim["expected_move_pct"] if prim else None),
+        "leg_win_rate": (prim["leg_win_rate"] if prim else None),
+        "next_turn_td": (prim["next_turn_td"] if prim else None),
+        "next_turn_type": (prim["next_turn_type"] if prim else None),
+        "note": (prim["note"] if prim else "No tradeable seasonal leg either way"),
+        # adaptive default window for the Lab (replaces the hard 60d default)
+        "suggested_window": {
+            "start_td": (max(0, min(251, td_a + (prim["entry_in_td"] or 0)))
+                         if prim else max(0, min(251, td_a))),
+            "end_td": (max(1, min(251, td_a + (prim["exit_in_td"] or _SEAS_NEAR_TD)))
+                       if prim else max(1, min(251, td_a + _SEAS_NEAR_TD))),
+            "hold_td": (prim["hold_td"] if prim else _SEAS_NEAR_TD),
+            "dir": primary,
+        },
+    }
+
+
+def _seas_planner_discount(score: float, planner: dict, shape_rotated: bool = False):
+    """SEAS-R2 (Issue 4) — make the headline score consume the planner.
+
+    Ben: "im also still not convinced that the scoring system takes into account
+    all of the seasonality lab analysis since nasdaq seasonal score is still
+    reading 7.8 ... the front-loaded leg is mostly spent and there's a dip four
+    weeks out". The headline is a 20-TD (_SEAS_NEAR_TD) statistic: it only cares
+    where the curve ENDS UP, so a curve that rips for 9 days and then hands the
+    move back scores identically to one that grinds up for 20. That is exactly
+    the wrong shape for a 1-2 week swing.
+
+    PRINCIPLE — path capture, not window overlap.
+    Project the planner's blend-weighted forward curve onto the score's own
+    direction, over the score's own window (0 .. NEAR_TD), then ask:
+
+        peak     = best favourable point reached inside the window
+        end      = where we are at the END of the window
+        capture  = end / peak          (how much of the move SURVIVES)
+        off_frac = clip(1 - capture, 0, 1)
+        mult     = max(1 - COEF, 1 - COEF * off_frac)
+
+    Read plainly: *what fraction of the seasonal move inside your 4-week window
+    is still there when the window closes?*
+
+      - grinds up all window (capture 1.0)  -> off 0    -> 1.00x  ("enter_now
+        strong legs stay strong" — ZC, a genuine full-window bull, is untouched)
+      - front-loaded then rolls over        -> partial  -> softens (the NQ case)
+      - peaks early and gives it ALL back,
+        or never goes our way at all        -> off 1.0  -> floor mult
+    Purely multiplicative toward 5.0 and floored, so it can never invert the
+    factor's sign, and it is clipped downstream to 0-10.
+
+    Deliberately derived from the CURVE, not from the zigzag leg boundaries:
+    the leg detector needs an amplitude threshold, and threshold choices should
+    not move a headline score. The capture ratio is threshold-free.
+
+    SUPPRESSED when the near/far shape rotation already fired (`shape_rotated`).
+    A rotated score is an explicit statement that the P&L lands in the FAR
+    window (20-35 TD) and that the near window is the part being traded through
+    — re-penalising the near window would double-count and partially undo the
+    rotation, which flipped 6A's bear read toward neutral in testing. Same
+    precedent as the existing consensus-conflict floor.
+
+    Returns (mult, mode, off_frac, capture).
+    """
+    lean = score - 5.0
+    if abs(lean) < 0.5 or not planner:
+        return 1.0, "no_view", None, None
+    curve = planner.get("curve") or []
+    if not curve:
+        return 1.0, "no_curve", None, None
+    dirn = 1.0 if lean > 0 else -1.0
+    proj = [c["cum_pct"] * dirn for c in curve if c["k"] <= _SEAS_NEAR_TD]
+    if len(proj) < 3:
+        return 1.0, "no_curve", None, None
+    peak = max(proj)
+    end = proj[-1]
+    # Label the mode from the plan so the UI can explain the number in words.
+    p = planner.get("long") if lean > 0 else planner.get("short")
+    act = (p or {}).get("plan_action") or "no_edge"
+    if act == "no_edge":
+        mode = "plan_no_edge"
+    elif act == "wait":
+        mode = "plan_wait"
+    else:
+        mode = "plan_enter_now"
+    if peak <= 0.05:
+        # The curve never meaningfully goes our way anywhere in the window.
+        off, capture = 1.0, 0.0
+        mode = "window_hostile"
+    else:
+        capture = end / peak
+        off = max(0.0, min(1.0, 1.0 - capture))
+        if off > 0.001 and mode == "plan_enter_now":
+            mode = "plan_enter_now_late"
+        elif off <= 0.001 and mode == "plan_enter_now":
+            mode = "plan_enter_now_full"
+    if shape_rotated:
+        return 1.0, "skipped_shape_rotated", round(off, 3), round(capture, 3)
+    mult = max(1.0 - _SEAS_PLANNER_DISCOUNT, 1.0 - _SEAS_PLANNER_DISCOUNT * off)
+    return round(mult, 3), mode, round(off, 3), round(capture, 3)
+
+
 # AUDIT-SCORING-COMPLETE
 # Scoring-logic audit finished. Composite-integration agent is clear to start.
 # New payload fields available for composite/UI consumption:
@@ -13519,6 +14229,7 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
             continue
         _imm_rets.append(v); _imm_ws.append(w)
     imm_score, _imm_hit, _imm_med, _ = _seas_win_score(_imm_rets, _imm_ws)
+    _imm_raw = imm_score
     imm_score = round(imm_score, 1) if imm_score is not None else None
     imm_median = round(_imm_med, 2) if _imm_med is not None else None
     imm_hit_rate = round(_imm_hit * 100) if _imm_hit is not None else None
@@ -13745,6 +14456,38 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
             elif shape_dampen < 1.0:
                 score = round(5.0 + (score - 5.0) * shape_dampen, 1)
 
+    # ── SEAS-R2 (Issue 3): SWING-HORIZON RE-WEIGHTING OF THE HEADLINE ───────
+    # Round 1 published the 10-TD read but deliberately kept it OUT of the
+    # headline, so the number a swing trader stares at was a pure 20-TD (4-week)
+    # statistic even though Ben's typical hold is 1-2 weeks:
+    #     "typically looking for 1-2 week trade positions... maybe 3-4 weeks at a max"
+    # Blend them:  headline = w_imm * imm(10TD) + (1 - w_imm) * near(20TD)
+    #
+    # w_imm is BACKTESTED, not asserted. The brief suggested 0.45; a 24,320-sample
+    # zero-lookahead walk-forward over 30 markets at holds of 10/15/20/28 TD puts
+    # the optimum at 0.25-0.35 on BOTH directional hit rate and mean signed
+    # return, at every hold and on the horizons-disagree subset, with 0.45
+    # measurably worse than 0.30. See _SEAS_HORIZON_W_IMM.
+    #
+    # Placed AFTER the near/far shape resolution and BEFORE consensus, on purpose:
+    #  • the shape engine (fading/rising rotation) is a statement about the 20-40 TD
+    #    structure. Blending the 10-TD read in beforehand moved several markets
+    #    across the 0.5 "meaningful lean" boundary and silently disabled their
+    #    rotation (6A flipped fading → far-only and lost its bear read entirely).
+    #  • the immediate read is dampened by the SAME reliability factor before it is
+    #    blended, so a grade-D 10-TD mirage cannot out-shout a graded 20-TD edge.
+    # _score_seasonality_at routes through this same function, so the historical /
+    # backtest path stays automatically consistent with the live weighting.
+    near_only_score = score
+    horizon_w_imm = 0.0
+    imm_score_adj = None
+    if _imm_raw is not None:
+        imm_score_adj = round(5.0 + (_imm_raw - 5.0) * _dampen_factor, 2)
+        horizon_w_imm = _SEAS_HORIZON_W_IMM
+        score = round(max(0.0, min(10.0,
+                     horizon_w_imm * imm_score_adj
+                     + (1.0 - horizon_w_imm) * score)), 1)
+
     # ── CROSS-LENS CONSENSUS CONVICTION (v2.1) ─────────────────────
     # When cycle-years seasonality AND all-years seasonality point the same
     # way across multiple forward horizons → amplify (high conviction).
@@ -13768,6 +14511,28 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         if shape_rotated and conviction_mult < 1.0:
             conviction_mult = max(conviction_mult, 0.85)
         score = round(max(0.0, min(10.0, 5.0 + (score - 5.0) * conviction_mult)), 1)
+
+    # ══ SWING SETUP PLANNER + SCORE WIRING (SEAS-R2, Issues 1 & 4) ══════════
+    # Ben: "im also still not convinced that the scoring system takes into account
+    # all of the seasonality lab analysis since nasdaq seasonal score is still
+    # reading 7.8". It didn't — round 1's goldilocks/leg analysis was published
+    # but never consumed. The planner now feeds the headline via a single,
+    # explainable, never-inverting multiplicative discount.
+    planner = None
+    planner_mult = 1.0
+    planner_mode = None
+    planner_off_frac = None
+    try:
+        planner = _seas_swing_planner(market_id, years, td_a, d.year, d)
+    except Exception as _pe:
+        print(f"[seas planner] {market_id}: {_pe}", flush=True)
+        planner = None
+    planner_capture = None
+    if planner:
+        (planner_mult, planner_mode, planner_off_frac,
+         planner_capture) = _seas_planner_discount(score, planner, shape_rotated)
+        if planner_mult != 1.0:
+            score = round(max(0.0, min(10.0, 5.0 + (score - 5.0) * planner_mult)), 1)
 
     # ══ GOLDILOCKS ENTRY TIMING (AUDIT-SCORING) ═════════════════════════════
     # Read A ("am I in the zone NOW?") was already served by the near window.
@@ -13950,6 +14715,28 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "imm_score": imm_score,
         "imm_median_pct": imm_median,
         "imm_hit_rate": imm_hit_rate,
+        # SEAS-R2: swing-horizon re-weighting of the headline
+        "horizon_w_imm": horizon_w_imm,
+        "imm_score_adj": imm_score_adj,
+        "near_only_score": (round(near_only_score, 1)
+                            if near_only_score is not None else None),
+        # SEAS-R2: swing setup planner (entry + exit legs) and its score wiring
+        "planner": planner,
+        "planner_mult": planner_mult,
+        "planner_mode": planner_mode,
+        "planner_off_frac": planner_off_frac,
+        "planner_capture": planner_capture,
+        "plan_action": (planner or {}).get("plan_action"),
+        "plan_dir": (planner or {}).get("primary_dir"),
+        "entry_in_td": (planner or {}).get("entry_in_td"),
+        "exit_in_td": (planner or {}).get("exit_in_td"),
+        "exit_by_date": (planner or {}).get("exit_by_date"),
+        "hold_td": (planner or {}).get("hold_td"),
+        "expected_move_pct": (planner or {}).get("expected_move_pct"),
+        "leg_win_rate": (planner or {}).get("leg_win_rate"),
+        "next_turn_td": (planner or {}).get("next_turn_td"),
+        "next_turn_type": (planner or {}).get("next_turn_type"),
+        "plan_note": (planner or {}).get("note"),
         # AUDIT-SCORING: goldilocks entry timing (Read B)
         "days_to_goldilocks": days_to_goldilocks,
         "entry_timing": entry_timing,
@@ -14069,6 +14856,26 @@ def score_seasonality(market_id: str) -> dict:
             "immediate_score": stats.get("imm_score"),
             "imm_median_pct": stats.get("imm_median_pct"),
             "imm_hit_rate": stats.get("imm_hit_rate"),
+            # SEAS-R2: swing-horizon re-weighting + swing setup planner
+            "horizon_w_imm": stats.get("horizon_w_imm"),
+            "imm_score_adj": stats.get("imm_score_adj"),
+            "near_only_score": stats.get("near_only_score"),
+            "planner": stats.get("planner"),
+            "planner_mult": stats.get("planner_mult"),
+            "planner_mode": stats.get("planner_mode"),
+            "planner_off_frac": stats.get("planner_off_frac"),
+            "planner_capture": stats.get("planner_capture"),
+            "plan_action": stats.get("plan_action"),
+            "plan_dir": stats.get("plan_dir"),
+            "entry_in_td": stats.get("entry_in_td"),
+            "exit_in_td": stats.get("exit_in_td"),
+            "exit_by_date": stats.get("exit_by_date"),
+            "hold_td": stats.get("hold_td"),
+            "expected_move_pct": stats.get("expected_move_pct"),
+            "leg_win_rate": stats.get("leg_win_rate"),
+            "next_turn_td": stats.get("next_turn_td"),
+            "next_turn_type": stats.get("next_turn_type"),
+            "plan_note": stats.get("plan_note"),
             "td_imm_end": stats.get("td_imm_end"),
             "imm_td": stats.get("imm_td"),
             "near_td": stats.get("near_td"),
