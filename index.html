@@ -4414,6 +4414,36 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .mchip-line{width:14px;height:2px;border-radius:1px;flex-shrink:0}
 .mchip-band{width:14px;height:7px;border-radius:2px;background:rgba(107,124,255,0.28);flex-shrink:0}
 .mchip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+/* ── SEASONALITY LAB ── */
+.lab-modal{max-width:1100px}
+.lab-sec-label{font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
+.lab-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.lab-preset{font-size:8.5px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--dim);padding:4px 11px;border-radius:14px;border:1px solid var(--bdr2);background:transparent;cursor:pointer;transition:all 130ms;user-select:none}
+.lab-preset:hover{color:var(--text);border-color:var(--bdr3)}
+.lab-preset.on{color:var(--accent);border-color:rgba(200,169,110,0.5);background:rgba(200,169,110,0.09)}
+.lab-years{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.lab-year{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:600;color:var(--text);padding:4px 9px;border-radius:14px;border:1px solid var(--bdr2);background:var(--surf3);cursor:pointer;transition:all 130ms;user-select:none}
+.lab-year:hover{border-color:var(--bdr3)}
+.lab-year.off{opacity:0.32;background:transparent}
+.lab-year .cyc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.lab-opts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.lab-chart-wrap{position:relative;height:400px;margin-bottom:14px}
+.lab-chart-wrap canvas{width:100%!important;height:100%!important}
+.lab-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-bottom:14px}
+.lab-stat{background:var(--surf3);border:1px solid var(--bdr2);border-radius:9px;padding:9px 11px}
+.lab-stat .lv{font-size:15px;font-weight:700;letter-spacing:-0.3px}
+.lab-stat .lk{font-size:7.5px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--dim);margin-top:3px;line-height:1.35}
+.lab-callout{padding:9px 12px;border-radius:9px;font-size:10px;line-height:1.55;margin-bottom:14px;border:1px solid}
+.lab-month-wrap{position:relative;height:140px;margin-bottom:6px}
+.lab-month-wrap canvas{width:100%!important;height:100%!important}
+.lab-yrret{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.lab-yrret span{font-size:8.5px;font-weight:600;padding:3px 8px;border-radius:10px;border:1px solid var(--bdr2);background:var(--surf3)}
+@media(max-width:700px){
+  .lab-chart-wrap{height:290px}
+  .lab-year{font-size:8px;padding:3px 7px}
+  .lab-preset{font-size:7.5px;padding:3px 8px}
+  .lab-stats{grid-template-columns:repeat(2,1fr)}
+}
 /* Turn timeline strip */
 .modal-turns-wrap{margin-bottom:12px}
 .mt-strip-label{font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
@@ -24345,6 +24375,7 @@ canvas.chartjs-render-monitor{
         <h2 id="modal-title">Seasonal Pattern</h2>
         <p>Cycle 2.5x + recency-weighted median · hover chart for values · tap chips to toggle layers</p>
       </div>
+      <button class="ss-btn" id="modal-lab-btn" style="display:none;border-color:rgba(200,169,110,0.4);color:var(--accent);margin-right:8px;flex-shrink:0" onclick="if(window._modalMkt)openSeasLab(_modalMkt.id,_modalMkt.name)">Lab ↗</button>
       <button class="modal-close" onclick="closeModal()">
         <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M1 1l9 9M10 1L1 10"/>
@@ -24371,6 +24402,44 @@ canvas.chartjs-render-monitor{
           <div class="modal-turns" id="modal-turns"></div>
         </div>
         <div class="modal-stats" id="modal-stats"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEASONALITY LAB MODAL -->
+<div class="modal-back" id="lab-back" onclick="if(event.target.id==='lab-back')closeSeasLab()">
+  <div class="modal lab-modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="lab-title">Seasonality Lab</h2>
+        <p>Pick any basket of years · calendar-aligned average · forward-window stats from today</p>
+      </div>
+      <button class="modal-close" onclick="closeSeasLab()">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 1l9 9M10 1L1 10"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="lab-loading" class="ldots">
+        <div class="ldot"></div><div class="ldot"></div><div class="ldot"></div>
+        <span>Loading yearly paths…</span>
+      </div>
+      <div id="lab-content" style="display:none">
+        <div class="lab-sec-label">Presets</div>
+        <div class="lab-presets" id="lab-presets"></div>
+        <div class="lab-sec-label">Years <span id="lab-year-count" style="letter-spacing:0;color:var(--accent)"></span></div>
+        <div class="lab-years" id="lab-years"></div>
+        <div class="lab-sec-label">View</div>
+        <div class="lab-opts" id="lab-opts"></div>
+        <div class="lab-callout" id="lab-callout" style="display:none"></div>
+        <div class="lab-chart-wrap"><canvas id="lab-chart"></canvas></div>
+        <div class="lab-stats" id="lab-stats"></div>
+        <div class="lab-sec-label">Average return by month — selected years</div>
+        <div class="lab-month-wrap"><canvas id="lab-months"></canvas></div>
+        <div class="lab-sec-label" style="margin-top:10px">Forward 60 trading days — per selected year</div>
+        <div class="lab-yrret" id="lab-yrret"></div>
       </div>
     </div>
   </div>
@@ -36850,6 +36919,7 @@ function seasTabStub(m){
     </div>
     <div class="ss-actions">
       <button class="ss-btn" onclick="openModal('${m.id}','${m.name}')">Full Chart ↗</button>
+      <button class="ss-btn" style="border-color:rgba(200,169,110,0.4);color:var(--accent)" onclick="openSeasLab('${m.id}','${m.name}')">Lab ↗</button>
       ${grade?`<span class="ss-reliability" title="Reliability ${grade} — ${gm.desc}. Signal/Noise ${sn??'—'}, ${nY} yrs (${nPos} up)." style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:${gm.bg};color:${gm.col};font-size:9px;font-weight:700;letter-spacing:0.5px;border:1px solid ${gm.col}33"><span style="font-size:11px;line-height:1">${grade}</span>&nbsp;${gm.label.toUpperCase()}</span>`:''}
       ${cycleLabel?`<span class="ss-cycle-tag">${cycleLabel.toUpperCase()}</span>`:''}
     </div>
@@ -41576,6 +41646,9 @@ function renderModalTurns(turns,todayTD,months){
 }
 
 async function openModal(marketId,marketName){
+  window._modalMkt={id:marketId,name:marketName};
+  const _labBtn=document.getElementById('modal-lab-btn');
+  if(_labBtn)_labBtn.style.display='inline-flex';
   document.getElementById('modal-back').classList.add('open');
   document.getElementById('modal-title').textContent=marketName+' — Seasonal Pattern';
   document.getElementById('modal-loading').style.display='flex';
@@ -41610,7 +41683,253 @@ async function openModal(marketId,marketName){
 
 function closeModal(){document.getElementById('modal-back').classList.remove('open')}
 function onBackClick(e){if(e.target.id==='modal-back')closeModal()}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeSeasLab();}});
+
+/* ══════════════════════════════════════════
+   SEASONALITY LAB — arbitrary year-basket seasonal analysis
+══════════════════════════════════════════ */
+let _labChart=null,_labMonthChart=null,_labData=null,_labSel=new Set(),_labPresetOn=null;
+let _labOpts={avg:'median',band:true,spaghetti:false,detrend:false,actual:true};
+const _labCache={};
+const _LAB_FWD=60;  // forward window (trading days)
+const _LAB_CYC_COL={midterm:'#c8a96e',election:'#6b7cff',pre_election:'#26c97a',post_election:'#8a93a8'};
+const _LAB_CYC_LBL={midterm:'Midterm',election:'Election',pre_election:'Pre-Election',post_election:'Post-Election'};
+
+async function fetchSeasLab(id){
+  const c=_labCache[id];
+  if(c&&(Date.now()-c._ts)<SEAS_CACHE_TTL)return c;
+  const r=await fetch(API+'/api/seasonality-lab?market='+id);
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const d=await r.json();
+  if(d.error)throw new Error(d.error);
+  d._ts=Date.now();_labCache[id]=d;return d;
+}
+
+async function openSeasLab(marketId,marketName){
+  closeModal();
+  document.getElementById('lab-back').classList.add('open');
+  document.getElementById('lab-title').textContent=(marketName||marketId)+' — Seasonality Lab';
+  document.getElementById('lab-loading').style.display='flex';
+  document.getElementById('lab-content').style.display='none';
+  try{
+    const d=await fetchSeasLab(marketId);
+    _labData=d;
+    // Selectable years = completed historical years only
+    _labData._yearList=Object.keys(d.years).map(Number).filter(y=>y<d.current_year).sort((a,b)=>a-b);
+    // Default basket: current cycle years (e.g. 2026 → midterm) — the question you're usually asking
+    _labSel=new Set(_labData._yearList.filter(y=>d.meta[y].cycle===d.current_cycle));
+    if(_labSel.size<3)_labSel=new Set(_labData._yearList);
+    _labPresetOn=d.current_cycle;
+    document.getElementById('lab-loading').style.display='none';
+    document.getElementById('lab-content').style.display='block';
+    _labRenderControls();
+    _labRender();
+  }catch(e){
+    document.getElementById('lab-loading').innerHTML='<span style="color:var(--sm2);font-size:10px">Error: '+e.message+'</span>';
+  }
+}
+function closeSeasLab(){document.getElementById('lab-back').classList.remove('open')}
+
+function _labApplyPreset(p){
+  const d=_labData,yl=d._yearList;
+  _labPresetOn=p;
+  if(p==='all')_labSel=new Set(yl);
+  else if(p==='none')_labSel=new Set();
+  else if(p==='even')_labSel=new Set(yl.filter(y=>y%2===0));
+  else if(p==='odd')_labSel=new Set(yl.filter(y=>y%2===1));
+  else if(p==='recent10')_labSel=new Set(yl.slice(-10));
+  else if(p==='recent15')_labSel=new Set(yl.slice(-15));
+  else _labSel=new Set(yl.filter(y=>d.meta[y].cycle===p));
+  _labRenderControls();_labRender();
+}
+function _labToggleYear(y){
+  if(_labSel.has(y))_labSel.delete(y);else _labSel.add(y);
+  _labPresetOn=null;
+  _labRenderControls();_labRender();
+}
+function _labSetOpt(k,v){
+  if(k==='avg')_labOpts.avg=v;else _labOpts[k]=!_labOpts[k];
+  _labRenderControls();_labRender();
+}
+
+function _labRenderControls(){
+  const d=_labData;
+  const presets=[['all','All'],['none','None'],['midterm','Midterm'],['pre_election','Pre-Elec'],['post_election','Post-Elec'],['election','Election'],['even','Even'],['odd','Odd'],['recent10','Recent 10'],['recent15','Recent 15']];
+  document.getElementById('lab-presets').innerHTML=presets.map(([k,l])=>
+    `<div class="lab-preset${_labPresetOn===k?' on':''}" onclick="_labApplyPreset('${k}')">${l}${k===d.current_cycle?' •':''}</div>`).join('');
+  document.getElementById('lab-years').innerHTML=d._yearList.map(y=>{
+    const m=d.meta[y],on=_labSel.has(y);
+    return `<div class="lab-year${on?'':' off'}" onclick="_labToggleYear(${y})" title="${_LAB_CYC_LBL[m.cycle]} year · full-year ${m.ret!=null?(m.ret>=0?'+':'')+m.ret.toFixed(1)+'%':'—'}"><span class="cyc-dot" style="background:${_LAB_CYC_COL[m.cycle]}"></span>${y}</div>`;
+  }).join('');
+  document.getElementById('lab-year-count').textContent='— '+_labSel.size+' selected';
+  const o=_labOpts;
+  const opts=[
+    ['avg-median','Median',o.avg==='median',"_labSetOpt('avg','median')"],
+    ['avg-mean','Mean',o.avg==='mean',"_labSetOpt('avg','mean')"],
+    ['band','25–75% Band',o.band,"_labSetOpt('band')"],
+    ['spaghetti','Show Years',o.spaghetti,"_labSetOpt('spaghetti')"],
+    ['detrend','Detrend',o.detrend,"_labSetOpt('detrend')"],
+    ['actual',d.current_year+' Actual',o.actual,"_labSetOpt('actual')"]];
+  document.getElementById('lab-opts').innerHTML=opts.map(([k,l,on,fn])=>
+    `<div class="lab-preset${on?' on':''}" onclick="${fn}">${l}</div>`).join('');
+}
+
+// Selected year paths, optionally detrended (remove each year's linear drift → pure seasonal shape)
+function _labPaths(){
+  const d=_labData,out=[];
+  for(const y of [..._labSel].sort((a,b)=>a-b)){
+    let arr=d.years[y];if(!arr||arr.length<252)continue;
+    if(_labOpts.detrend){const fin=arr[251]??0;arr=arr.map((v,i)=>v-(i/251)*fin);}
+    out.push({y,arr});
+  }
+  return out;
+}
+function _labQuantile(sorted,q){
+  if(!sorted.length)return null;
+  const pos=(sorted.length-1)*q,lo=Math.floor(pos),hi=Math.ceil(pos);
+  return lo===hi?sorted[lo]:sorted[lo]+(sorted[hi]-sorted[lo])*(pos-lo);
+}
+
+function _labRender(){
+  const d=_labData,paths=_labPaths(),n=paths.length;
+  const td=d.current_td,fwdEnd=Math.min(252,td+_LAB_FWD);
+  // ── pointwise average + band ──
+  const avg=[],p25=[],p75=[];
+  for(let i=0;i<252;i++){
+    const vals=paths.map(p=>p.arr[i]).filter(v=>v!=null).sort((a,b)=>a-b);
+    if(!vals.length){avg.push(null);p25.push(null);p75.push(null);continue;}
+    avg.push(_labOpts.avg==='median'?_labQuantile(vals,0.5):vals.reduce((s,v)=>s+v,0)/vals.length);
+    p25.push(_labQuantile(vals,0.25));p75.push(_labQuantile(vals,0.75));
+  }
+  // light display smoothing (3-pt ×2), same as main chart
+  const sm=a=>a.map((v,i)=>{const p=a[i-1],nx=a[i+1];return(v==null||p==null||nx==null)?v:0.25*p+0.5*v+0.25*nx;});
+  const avgS=sm(sm(avg)),p25S=sm(p25),p75S=sm(p75);
+  const labels=Array.from({length:252},(_,i)=>i+1);
+  // ── forward-window stats per year ──
+  const fwd=paths.map(p=>({y:p.y,r:(p.arr[fwdEnd-1]??0)-(p.arr[td-1]??0)})).sort((a,b)=>b.r-a.r);
+  const fwdVals=fwd.map(f=>f.r).sort((a,b)=>a-b);
+  const wins=fwd.filter(f=>f.r>0).length;
+  const fwdMed=_labQuantile(fwdVals,0.5),fwdMean=fwdVals.length?fwdVals.reduce((s,v)=>s+v,0)/fwdVals.length:null;
+  // ── per-year intra-window max drawdown / max rally (the stat pointwise medians hide) ──
+  const ddArr=[],rallyArr=[],ddTds=[];
+  for(const p of paths){
+    const base=p.arr[td-1]??0;let lo=0,hi=0,loTd=td;
+    for(let i=td-1;i<fwdEnd;i++){
+      const rel=(p.arr[i]??base)-base;
+      if(rel<lo){lo=rel;loTd=i+1;}
+      if(rel>hi)hi=rel;
+    }
+    ddArr.push(lo);rallyArr.push(hi);
+    if(lo<-2)ddTds.push(loTd);
+  }
+  const ddSorted=[...ddArr].sort((a,b)=>a-b),rallySorted=[...rallyArr].sort((a,b)=>a-b);
+  const medDD=_labQuantile(ddSorted,0.5),medRally=_labQuantile(rallySorted,0.5);
+  const ddTypTd=ddTds.length?Math.round(_labQuantile(ddTds.sort((a,b)=>a-b),0.5)):null;
+  const nDD=ddArr.filter(v=>v<-2).length;
+  // ── stats cards ──
+  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  const col=v=>v==null?'var(--dim)':v>=0?'var(--s1)':'var(--sm2)';
+  const fwdLbl='Today → +'+_LAB_FWD+' TD';
+  document.getElementById('lab-stats').innerHTML=
+    `<div class="lab-stat"><div class="lv">${n}</div><div class="lk">Years in basket</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${wins/Math.max(1,n)>=0.5?'var(--s1)':'var(--sm2)'}">${n?Math.round(100*wins/n):'—'}%</div><div class="lk">Win rate · ${fwdLbl} (${wins}/${n} up)</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${col(fwdMed)}">${pc(fwdMed)}</div><div class="lk">Median · ${fwdLbl}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${col(fwdMean)}">${pc(fwdMean)}</div><div class="lk">Mean · ${fwdLbl}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${fwd.length?pc(fwd[0].r):'—'}</div><div class="lk">Best · ${fwd.length?fwd[0].y:''}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--sm2)">${fwd.length?pc(fwd[fwd.length-1].r):'—'}</div><div class="lk">Worst · ${fwd.length?fwd[fwd.length-1].y:''}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${col(medDD)}">${pc(medDD)}</div><div class="lk">Median max drawdown in window${ddTypTd?' · trough ~'+tdPhase(ddTypTd,d.months):''}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${col(medRally)}">${pc(medRally)}</div><div class="lk">Median max rally in window</div></div>`;
+  // ── weak/strong window callout — driven by per-year drawdowns, not the averaged path ──
+  const pc2=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+  const co=document.getElementById('lab-callout');
+  if(n>=3&&medDD!=null&&medDD<=-3){
+    co.style.display='block';
+    co.style.borderColor='rgba(240,64,64,0.35)';co.style.background='rgba(240,64,64,0.07)';co.style.color='var(--text)';
+    co.innerHTML=`<strong style="color:var(--sm2)">▼ Drawdown risk ahead:</strong> in <strong>${nDD} of ${n}</strong> selected years price fell &gt;2% below today's level inside the next ${_LAB_FWD} trading days — median max drawdown <strong style="color:var(--sm2)">${medDD.toFixed(1)}%</strong>${ddTypTd?`, typical trough around <strong>${tdPhase(ddTypTd,d.months)}</strong>`:''}. Endpoint ${_labOpts.avg} by TD ${fwdEnd}: <strong style="color:${col(fwdMed)}">${pc(fwdMed)}</strong>${fwdMed!=null&&fwdMed>0?' — a dip-then-rally profile':''}.`;
+  }else if(n>=3&&fwdMed!=null&&fwdMed<0&&wins/Math.max(1,n)<=0.4){
+    co.style.display='block';
+    co.style.borderColor='rgba(240,64,64,0.35)';co.style.background='rgba(240,64,64,0.07)';co.style.color='var(--text)';
+    co.innerHTML=`<strong style="color:var(--sm2)">▼ Seasonal weakness ahead:</strong> only <strong>${wins} of ${n}</strong> selected years finished the next ${_LAB_FWD} trading days higher — median <strong style="color:var(--sm2)">${pc2(fwdMed)}</strong>, median max drawdown <strong style="color:var(--sm2)">${medDD!=null?medDD.toFixed(1)+'%':'—'}</strong>${ddTypTd?`, typical trough around <strong>${tdPhase(ddTypTd,d.months)}</strong>`:''}.`;
+  }else if(n>=3&&medRally!=null&&medRally>=3&&(medDD==null||medDD>-1.5)){
+    co.style.display='block';
+    co.style.borderColor='rgba(38,201,122,0.35)';co.style.background='rgba(38,201,122,0.07)';co.style.color='var(--text)';
+    co.innerHTML=`<strong style="color:var(--s1)">▲ Seasonal strength ahead:</strong> median max rally over the next ${_LAB_FWD} trading days is <strong style="color:var(--s1)">+${medRally.toFixed(1)}%</strong> across this ${n}-year basket, with limited downside (median max drawdown ${medDD!=null?medDD.toFixed(1):'—'}%).`;
+  }else co.style.display='none';
+  // ── per-year forward chips ──
+  document.getElementById('lab-yrret').innerHTML=fwd.map(f=>
+    `<span style="color:${f.r>=0?'var(--s1)':'var(--sm2)'}">${f.y}&nbsp;&nbsp;${pc(f.r)}</span>`).join('')||'<span style="color:var(--dim)">No years selected</span>';
+  // ── main chart ──
+  const dsets=[];
+  if(_labOpts.band&&n>=4){
+    dsets.push({label:'_p75',data:p75S,borderWidth:0,pointRadius:0,fill:false,tension:0.3});
+    dsets.push({label:'_p25',data:p25S,borderWidth:0,pointRadius:0,fill:'-1',backgroundColor:'rgba(107,124,255,0.13)',tension:0.3});
+  }
+  if(_labOpts.spaghetti){
+    for(const p of paths){
+      const c=_LAB_CYC_COL[d.meta[p.y].cycle];
+      dsets.push({label:'_yr'+p.y,data:sm(p.arr.slice()),borderColor:c+'55',borderWidth:0.9,pointRadius:0,fill:false,tension:0.3});
+    }
+  }
+  dsets.push({label:'Basket '+_labOpts.avg,data:avgS,borderColor:'#c8a96e',borderWidth:2.6,pointRadius:0,fill:false,tension:0.3});
+  if(_labOpts.actual&&d.current_year_actual&&d.current_year_actual.length){
+    const cyMap=new Map(d.current_year_actual.map(p=>[p[0],p[1]]));
+    const cy=labels.map(l=>{
+      if(l>td)return null;
+      let best=null,bd=6;
+      for(const[t,v]of cyMap){const dd=Math.abs(t-l);if(dd<bd){bd=dd;best=v;}}
+      return best;
+    });
+    dsets.push({label:d.current_year+' Actual',data:cy,borderColor:'rgba(255,255,255,0.88)',borderWidth:1.8,pointRadius:0,fill:false,tension:0.25,spanGaps:true});
+  }
+  const monthTicks=new Map(d.months.map(m=>[m.td,m.label]));
+  const labPlugin={id:'labPlugin',beforeDatasetsDraw(ch){
+    const{ctx,chartArea:ca,scales:{x}}=ch;if(!ca)return;
+    const x0=x.getPixelForValue(td),x1=x.getPixelForValue(fwdEnd);
+    ctx.save();
+    ctx.fillStyle='rgba(200,169,110,0.055)';ctx.fillRect(x0,ca.top,x1-x0,ca.bottom-ca.top);
+    ctx.strokeStyle='#e03a2a';ctx.lineWidth=1.4;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(x0,ca.top);ctx.lineTo(x0,ca.bottom);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#e03a2a';ctx.font='700 9px "DM Sans",sans-serif';ctx.textAlign='left';
+    ctx.fillText('TODAY',x0+4,ca.top+10);
+    ctx.restore();
+  }};
+  if(_labChart){try{_labChart.destroy()}catch(e){}}
+  _labChart=new Chart(document.getElementById('lab-chart').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:dsets},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:280},
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        filter:i=>!i.dataset.label.startsWith('_'),
+        callbacks:{title:items=>items.length?('TD '+items[0].label+' · '+getMonth(+items[0].label,d.months)):'',
+          label:i=>i.dataset.label+': '+(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'%'}}},
+      scales:{
+        x:{type:'linear',min:1,max:252,grid:{color:'rgba(255,255,255,0.045)'},
+          ticks:{color:'#8a93a8',font:{size:9},autoSkip:false,maxRotation:0,
+            callback:v=>monthTicks.get(v)||null,stepSize:1},
+          afterBuildTicks:ax=>{ax.ticks=d.months.map(m=>({value:m.td}));}},
+        y:{grid:{color:'rgba(255,255,255,0.055)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>(v>=0?'+':'')+v+'%'}}
+      }},
+    plugins:[labPlugin]});
+  // ── monthly bars ──
+  const mRet=[];
+  for(let mi=0;mi<12;mi++){
+    const st=d.months[mi].td,en=mi<11?d.months[mi+1].td:252;
+    const rets=paths.map(p=>(p.arr[en-1]??0)-(p.arr[st-1]??0)).filter(v=>v!=null&&isFinite(v));
+    mRet.push(rets.length?( _labOpts.avg==='median'?_labQuantile(rets.sort((a,b)=>a-b),0.5):rets.reduce((s,v)=>s+v,0)/rets.length):0);
+  }
+  if(_labMonthChart){try{_labMonthChart.destroy()}catch(e){}}
+  _labMonthChart=new Chart(document.getElementById('lab-months').getContext('2d'),{
+    type:'bar',
+    data:{labels:d.months.map(m=>m.label),datasets:[{data:mRet,
+      backgroundColor:mRet.map(v=>v>=0?'rgba(38,201,122,0.72)':'rgba(240,64,64,0.72)'),
+      borderRadius:3,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:280},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'%'}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:9}}},
+        y:{grid:{color:'rgba(255,255,255,0.055)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>(v>=0?'+':'')+v+'%'}}}}});
+}
 // Redraw Climate Arc on resize
 let _arcResizeTimer=null;
 window.addEventListener('resize',()=>{

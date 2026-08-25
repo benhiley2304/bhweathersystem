@@ -11856,6 +11856,52 @@ async def get_seasonality(market: str = None):
         }
     return _SafeJSONResponse(data)
 
+@app.get("/api/seasonality-lab")
+async def get_seasonality_lab(market: str):
+    """Seasonality Lab: per-year calendar-aligned cumulative %-paths plus
+    year metadata so the frontend can build arbitrary year-basket averages
+    (Seasonax-style, but with median/mean, IQR band, spaghetti and
+    forward-window stats computed client-side)."""
+    m = market.upper()
+    try:
+        await asyncio.get_event_loop().run_in_executor(
+            _APP_EXECUTOR, _ensure_market_seas, m)
+    except Exception as _e:
+        print(f"[seas lab api] ensure {m}: {_e}", flush=True)
+    data = _load_seas_data()
+    ent = data.get(m)
+    if not ent or ent.get("v") != 2 or not ent.get("years"):
+        return {"error": f"Seasonality for '{m}' is still building or unavailable"}
+    import datetime as _sl_dt
+    _today = _sl_dt.date.today()
+    _doy = _today.timetuple().tm_yday
+    _current_td = max(1, min(252, round((_doy / 365) * 252)))
+    _months_axis = []
+    for _mo in range(1, 13):
+        _md = _sl_dt.date(_today.year, _mo, 1)
+        _mtd = max(1, min(252, round((_md.timetuple().tm_yday / 365) * 252)))
+        _months_axis.append({"td": _mtd, "label": _md.strftime("%b")})
+    years = ent["years"]
+    meta = {}
+    for ys in years.keys():
+        y = int(ys)
+        meta[ys] = {
+            "cycle": _cycle_key_for_year(y),
+            "even": y % 2 == 0,
+            "ret": years[ys][-1] if years[ys] else None,
+        }
+    return _SafeJSONResponse({
+        "market": m,
+        "years": years,
+        "meta": meta,
+        "months": _months_axis,
+        "current_td": _current_td,
+        "current_year_actual": _get_current_year_actual(m),
+        "current_year": _today.year,
+        "current_cycle": _cycle_key_for_year(_today.year),
+        "years_span": ent.get("years_span"),
+    })
+
 # ============================================================
 # RELVAL DETAIL ENDPOINT — returns full relval detail incl. chart lines on demand
 # ============================================================
