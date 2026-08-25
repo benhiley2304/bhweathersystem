@@ -37122,7 +37122,7 @@ function seasTabStub(m){
   <div class="seas-legend">
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2.5px solid #6b7cff"></span>Hist. Median (past)</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:1.5px dashed rgba(107,124,255,0.5)"></span>Projected</span>
-    <span class="seas-leg-item"><span class="seas-leg-line" style="height:7px;background:rgba(107,124,255,0.16);border-top:none;border-radius:2px"></span>25–75% range</span>
+    <span class="seas-leg-item" title="Ensemble envelope: 15–85% range of median curves computed under ~14 alternative reasonable framings (window length, recency decay, cycle blend, parity splits). Wider = framings disagree (uncertain); narrower = framings agree (robust)."><span class="seas-leg-line" style="height:7px;background:rgba(107,124,255,0.16);border-top:none;border-radius:2px"></span>Plausible range</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2px solid rgba(255,255,255,0.85)"></span>${new Date().getFullYear()}&nbsp;YTD Actual</span>
     <span class="seas-leg-item"><span class="seas-leg-dot" style="background:#e03a2a"></span>Today</span>
   </div>
@@ -41735,7 +41735,7 @@ function renderModalControls(){
   const yr=new Date().getFullYear();
   const chips=[
     {g:'median',lbl:'Hist. Median',sw:'<span class="mchip-line" style="background:#6b7cff"></span>'},
-    {g:'range',lbl:'25–75% Range',sw:'<span class="mchip-band"></span>'},
+    {g:'range',lbl:'Plausible range',sw:'<span class="mchip-band"></span>'},
     {g:'ytd',lbl:yr+' Actual',sw:'<span class="mchip-line" style="background:rgba(255,255,255,0.85)"></span>'},
     {g:'cycles',lbl:'Cycle Overlays',off:!_modalCyclesOn(),sw:'<span class="mchip-line" style="background:#f0c060"></span>'},
     {g:'turns',lbl:'Turns',sw:'<span class="mchip-dot" style="background:#22c97a"></span>'},
@@ -41798,7 +41798,7 @@ function _seasModalToggle(g,btn){
     const yr=new Date().getFullYear();
     const match={
       median:l=>l==='Hist. Median'||l==='Projected',
-      range:l=>l==='_band_upper'||l==='25–75% range',
+      range:l=>l==='_band_upper'||l==='Plausible range',
       ytd:l=>l===yr+' Actual YTD',
       cycles:l=>_CYCLE_LBLS.includes(l)
     }[g];
@@ -42003,7 +42003,7 @@ function _labRenderControls(){
   const opts=[
     ['avg-median','Median',o.avg==='median',"_labSetOpt('avg','median')"],
     ['avg-mean','Mean',o.avg==='mean',"_labSetOpt('avg','mean')"],
-    ['band','25–75% Band',o.band,"_labSetOpt('band')"],
+    ['band','Plausible range',o.band,"_labSetOpt('band')"],
     ['spaghetti','Show Years',o.spaghetti,"_labSetOpt('spaghetti')"],
     ['detrend','Detrend',o.detrend,"_labSetOpt('detrend')"],
     ['actual',d.current_year+' Actual',o.actual,"_labSetOpt('actual')"]];
@@ -42292,7 +42292,7 @@ function _labV2RenderLegend(){
     `<span class="lg"><i class="sw"></i><b>Smart blend</b>&nbsp;· cycle ${(+b.cycle_w).toFixed(1)}× · ${hl}</span>`+
     `<span class="lg"><i class="sw sw-basket"></i>Basket ${_labOpts.avg} (equal-weight)</span>`+
     (_labOpts.actual?`<span class="lg"><i class="sw sw-actual"></i>${d.current_year} actual</span>`:'')+
-    (_labOpts.band?`<span class="lg"><i class="sw sw-band"></i>25–75% band</span>`:'');
+    (_labOpts.band?`<span class="lg"><i class="sw sw-band"></i>Plausible range</span>`:'');
 }
 
 // Set the active analysis window (from presets, month picker, drag or dblclick)
@@ -43074,7 +43074,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
   // ── Datasets ─────────────────────────────────────────────
   const datasets=[];
 
-  // REAL interquartile band (25–75% of historical year paths, cycle+recency weighted)
+  // Ensemble stochastic band (15–85% envelope of median curves across ~14 alternative framings)
   // Served by the backend — honest dispersion, not a synthetic sigma.
   const bandMap=new Map(band.map(p=>[p[0],[p[1],p[2]]]));
   const bandUpper=labels.map(td=>bandMap.has(td)?bandMap.get(td)[1]:null);
@@ -43091,7 +43091,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
       order:20,
     });
     datasets.push({
-      label:'25–75% range',
+      label:'Plausible range',
       data:bandLower,
       borderColor:'transparent',
       borderWidth:0,
@@ -43103,7 +43103,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
   }
 
   // ── Y-axis clamps: dual-scale so seasonal SHAPE and YTD SHAPE both read clearly ──
-  // LEFT (y):  seasonal median + 25–75% band only  — the shape of the historical pattern
+  // LEFT (y):  seasonal median + plausible-range envelope  — the shape of the historical pattern
   // RIGHT (yActual): the current-year YTD path only — its own shape, own magnitude
   // The two share the same physical plot area but decouple their vertical scales.
   // Seasonal clamp: driven mainly by the median line, with the band trimmed by a soft cap
@@ -43224,7 +43224,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           callbacks:{
             title:items=>'TD '+items[0].label+' — '+getMonth(parseInt(items[0].label),months),
             label:item=>{
-              if(item.dataset.label==='Projected'||item.dataset.label==='_band_upper'||item.dataset.label==='25–75% range')return null;
+              if(item.dataset.label==='Projected'||item.dataset.label==='_band_upper'||item.dataset.label==='Plausible range')return null;
               const v=item.raw;if(v==null)return null;
               const lbl=item.dataset.label;
               const pref=lbl===new Date().getFullYear()+' Actual YTD'?'● ':'  ';
@@ -43236,7 +43236,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
               let bb=null,bd=1e9;
               bandMap.forEach((v,k)=>{const d=Math.abs(k-td);if(d<bd){bd=d;bb=v;}});
               if(!bb||bd>3)return'';
-              return'25–75% range: '+(bb[0]>=0?'+':'')+bb[0].toFixed(1)+'% … '+(bb[1]>=0?'+':'')+bb[1].toFixed(1)+'%';
+              return'Plausible range: '+(bb[0]>=0?'+':'')+bb[0].toFixed(1)+'% … '+(bb[1]>=0?'+':'')+bb[1].toFixed(1)+'%';
             }
           }
         }

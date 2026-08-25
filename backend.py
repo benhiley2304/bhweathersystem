@@ -13410,7 +13410,7 @@ _DYN_SEAS_PATH = os.path.join(DATA_DIR, "seasonality_dynamic.json")
 _DYN_SEAS_TTL  = 7 * 86400      # rebuild each market weekly
 _DYN_SEAS_BUILT: dict = {}      # market_id -> last build ts (in-memory)
 
-_SEAS_BUILDER_VERSION = 4   # v4: unsmoothed cycle curves + swing-horizon consensus (7/15/21 TD)
+_SEAS_BUILDER_VERSION = 5   # v5: ensemble stochastic band (14-framing envelope) replaces 25–75 percentile
 
 
 def _find_seas_turns(med: list, by_year: dict, prior: list, weights: dict = None) -> list:
@@ -13572,19 +13572,80 @@ def _build_seasonality_from_closes(closes, current_year: int,
 
     W = _seas_weights(prior, current_year, market_id)
     ws = [W[y] for y in prior]
-    med_raw, lo_raw, hi_raw = [], [], []
+    # Primary median curve (default blend, unsmoothed — the timing signal)
+    med_raw = []
     for i in range(252):
         vals = [by_year[y][i] for y in prior]
         med_raw.append(_seas_wq(vals, ws, 0.5))
-        lo_raw.append(_seas_wq(vals, ws, 0.25))
-        hi_raw.append(_seas_wq(vals, ws, 0.75))
-    # Median curve AND cycle curves: UNSMOOTHED (Seasonax-style) — raw day-level
-    # texture is precisely what makes short-term seasonal peaks/troughs tradeable.
-    # Any smoothing pushes the peak marker off by days and blunts entry/exit signal.
-    # Band (25–75%) keeps a gentle k=5 smooth — it's a calm-context envelope,
-    # not a timing signal, so the visual noise dampen helps chart readability
-    # without touching the scoring path (which uses raw per-year prints).
-    med_s = list(med_raw); lo_s = _smooth(lo_raw, k=5); hi_s = _smooth(hi_raw, k=5)
+    med_s = list(med_raw)
+
+    # ── ENSEMBLE BAND ─────────────────────────────────────────────────────
+    # Replace the naive 25–75 percentile band (which was just "middle half of
+    # this ONE year set" — gives false certainty of a narrow outcome) with a
+    # STOCHASTIC ENSEMBLE: compute the weighted median under ~14 alternative
+    # reasonable framings (window length, recency decay, cycle blend, parity
+    # splits) and take the 15–85% envelope of those medians per TD.
+    #
+    # Interpretation: "here's the range of plausible seasonal shapes given
+    # different reasonable historical framings." Wider where framings disagree
+    # (model uncertainty), tighter where they converge. This is honest
+    # uncertainty — protects against over-optimising to one specific slice.
+    def _cycle_boost(y, boost):
+        return boost if _cycle_key_for_year(y) == _cycle_key_for_year(current_year) else 1.0
+    def _recency(y, hl):
+        return 0.5 ** (max(0, current_year - 1 - y) / hl)
+    framings = []
+    # (label, year-filter, weight-fn)
+    def _make_wf(hl, cycle_boost):
+        return lambda y: _recency(y, hl) * _cycle_boost(y, cycle_boost)
+    # Vary window length
+    for wlen in (10, 15, 20, len(prior)):
+        sub = [y for y in prior if y >= current_year - wlen]
+        if len(sub) < 6:
+            continue
+        # Vary recency half-life
+        for hl in (10, 15, 25):
+            # Vary cycle blend
+            for cb in (1.0, 1.5, 2.5):
+                framings.append((sub, _make_wf(hl, cb)))
+    # Parity splits (US election modulo) — alternative rhythm framings
+    even = [y for y in prior if y % 2 == 0]
+    odd  = [y for y in prior if y % 2 == 1]
+    if len(even) >= 6:
+        framings.append((even, _make_wf(15, 1.0)))
+    if len(odd) >= 6:
+        framings.append((odd, _make_wf(15, 1.0)))
+    # Deduplicate identical (subset, weights) approximations by rounded weight tuple
+    ensemble_curves = []
+    for sub, wf in framings:
+        wsub = [wf(y) for y in sub]
+        tw = sum(wsub) or 1.0
+        wsub = [w / tw for w in wsub]  # normalise — equalises framing scale
+        curve_i = []
+        for i in range(252):
+            vals = [by_year[y][i] for y in sub]
+            curve_i.append(_seas_wq(vals, wsub, 0.5))
+        ensemble_curves.append(curve_i)
+    # Per-TD envelope: 15–85% percentile across ensemble medians
+    lo_env, hi_env = [], []
+    for i in range(252):
+        col = sorted(c[i] for c in ensemble_curves)
+        n = len(col)
+        if n == 0:
+            lo_env.append(med_raw[i]); hi_env.append(med_raw[i]); continue
+        # 15/85 percentile via linear interpolation
+        def _q(p):
+            k = p * (n - 1)
+            f = int(k); frac = k - f
+            if f + 1 < n:
+                return col[f] * (1 - frac) + col[f + 1] * frac
+            return col[f]
+        lo_env.append(_q(0.15))
+        hi_env.append(_q(0.85))
+    # Light smoothing (k=5) — envelope is context, not timing; small smooth keeps
+    # the band visually calm without hiding genuine disagreement zones.
+    lo_s = _smooth(lo_env, k=5)
+    hi_s = _smooth(hi_env, k=5)
 
     curve = [[i + 1, round(med_s[i], 3)] for i in range(252)]
     band = [[i + 1, round(lo_s[i], 3), round(hi_s[i], 3)] for i in range(252)]
