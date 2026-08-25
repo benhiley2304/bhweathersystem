@@ -12202,6 +12202,13 @@ async def get_seasonality_lab(
         except Exception as _we:
             print(f"[seas lab] window exc: {_we}", flush=True)
 
+    # v2.1 consensus — computed on the FULL year set (independent of basket filter)
+    try:
+        _consensus = _seas_consensus(ent["years"], _current_td, _today.year, m)
+    except Exception as _ce:
+        print(f"[seas lab] consensus exc: {_ce}", flush=True)
+        _consensus = None
+
     return _SafeJSONResponse({
         "market": m,
         "years": years,
@@ -12220,6 +12227,8 @@ async def get_seasonality_lab(
         "weighted": wstats,
         "reliability": reliability,
         "window": window_result,
+        # v2.1: cross-lens consensus conviction — the scoring-grade read
+        "consensus": _consensus,
     })
 
 # ============================================================
@@ -12889,13 +12898,124 @@ def _seas_wq(vals, ws, q):
     return prev_v
 
 
-def _seas_weights(years, asof_year):
-    """Per-year weights: election-cycle years matching asof_year's cycle get a
-    2.5x boost; recency decay 0.93^age keeps recent years dominant over old ones
-    (age 10 -> 0.48, age 20 -> 0.23)."""
+def _seas_weights(years, asof_year, market_id=None):
+    """Per-year weights: election-cycle years matching asof_year's cycle get an
+    ASSET-CLASS-SPECIFIC boost (equity indices / major FX / US rates 2.5x,
+    FX crosses 1.5x, commodities & crypto 1.0x = pure recency — supply cycles
+    dominate politics there); recency decay 0.93^age keeps recent years dominant
+    (age 10 -> 0.48, age 20 -> 0.23). Falls back to 2.5x when market unknown."""
     ck = _cycle_key_for_year(asof_year)
-    return {y: ((_SEAS_CYCLE_BOOST if _cycle_key_for_year(y) == ck else 1.0)
+    boost = _SEAS_CYCLE_BOOST
+    if market_id:
+        try:
+            boost = float(_seas_default_blend(market_id).get("cycle_w", _SEAS_CYCLE_BOOST))
+        except Exception:
+            boost = _SEAS_CYCLE_BOOST
+    return {y: ((boost if _cycle_key_for_year(y) == ck else 1.0)
                 * (_SEAS_RECENCY ** max(0, asof_year - 1 - y))) for y in years}
+
+
+def _seas_consensus(years_dict, td_a, asof_year, market_id):
+    """Cross-lens, multi-horizon seasonal CONSENSUS → conviction (v2.1).
+
+    Lenses: 'all' (every year, recency-weighted only), 'cycle' (only years in
+    the current election-cycle position, recency-weighted), 'blend' (asset-class
+    default: cycle_w x recency — the Lab's smart blend).
+    Horizons: ~1m / ~2m / ~3m forward trading-day windows from today.
+
+    Each of the 9 (lens, horizon) cells votes +1 / 0 / -1 via weighted median
+    return AND weighted hit rate. Conviction comes from agreement:
+      • cycle & all-years agree across horizons → HIGH (score amplified 1.15x)
+      • mixed → MEDIUM (no change) / LOW (0.65x toward neutral)
+      • cycle vs all-years directly opposed on 2+ horizons → CONFLICT (0.45x)
+    """
+    try:
+        blend = _seas_default_blend(market_id)
+    except Exception:
+        blend = {"cycle_w": 1.0, "halflife": 15, "tag": None}
+    cyc_w = float(blend.get("cycle_w", 1.0))
+    hl = float(blend.get("halflife", 15) or 15)
+    ck = _cycle_key_for_year(asof_year)
+    horizons = [("near", 21), ("mid", 42), ("far", 63)]
+    yrs = sorted(int(y) for y in years_dict
+                 if int(y) < asof_year and int(y) >= asof_year - _SEAS_YEARS_BACK)
+
+    def _fwd(y, h):
+        arr = years_dict.get(str(y))
+        if not arr or len(arr) < 252:
+            return None
+        b_i = min(252, td_a + h)
+        if b_i <= td_a:
+            return None
+        a = arr[td_a - 1]; b = arr[b_i - 1]
+        if a is None or b is None or (1 + a / 100) == 0:
+            return None
+        return ((1 + b / 100) / (1 + a / 100) - 1) * 100
+
+    def _rw(y):
+        return 0.5 ** (max(0, asof_year - 1 - y) / hl)
+
+    lenses = [
+        ("all",   {y: _rw(y) for y in yrs}),
+        ("cycle", {y: _rw(y) for y in yrs if _cycle_key_for_year(y) == ck}),
+        ("blend", {y: _rw(y) * (cyc_w if _cycle_key_for_year(y) == ck else 1.0) for y in yrs}),
+    ]
+    cells = []
+    for lname, Wl in lenses:
+        for hname, h in horizons:
+            pts = [(r, w) for r, w in ((_fwd(y, h), w) for y, w in Wl.items()) if r is not None]
+            min_n = 4 if lname == "cycle" else 8
+            if len(pts) < min_n:
+                cells.append({"lens": lname, "h": hname, "dir": 0,
+                              "med": None, "hit": None, "n": len(pts)})
+                continue
+            rs = [p[0] for p in pts]; wl = [p[1] for p in pts]; tw = sum(wl)
+            med = _seas_wq(rs, wl, 0.5)
+            hit = (sum(w for r, w in pts if r > 0) / tw) if tw > 0 else 0.5
+            dd = 0
+            if med > 0.25 and hit > 0.52:
+                dd = 1
+            elif med < -0.25 and hit < 0.48:
+                dd = -1
+            cells.append({"lens": lname, "h": hname, "dir": dd,
+                          "med": round(med, 2), "hit": round(hit * 100), "n": len(pts)})
+    # Cycle-lens relevance scales with the asset's political sensitivity:
+    # cycle-heavy (2.5x) → 1.0, mild/fx-cross (1.5x) → ~0.53, supply-cycle
+    # commodities (1.0x) → 0.3 (cycle read is context, not signal).
+    cyc_rel = max(0.3, min(1.0, 0.3 + (cyc_w - 1.0) / 1.5 * 0.7))
+    LW = {"all": 1.0, "cycle": cyc_rel, "blend": 1.25}
+    HW = {"near": 1.25, "mid": 1.0, "far": 0.8}
+    wsum = sum(c["dir"] * LW[c["lens"]] * HW[c["h"]] for c in cells)
+    active = [c for c in cells if c["dir"] != 0]
+    dom = 1 if wsum > 0 else (-1 if wsum < 0 else 0)
+    # Direct cycle-vs-all opposition per horizon — the strongest disagreement
+    # signal, but ONLY meaningful for cycle-sensitive assets
+    conflicts = 0
+    for hname, _h in horizons:
+        da = next((c["dir"] for c in cells if c["lens"] == "all" and c["h"] == hname), 0)
+        dc = next((c["dir"] for c in cells if c["lens"] == "cycle" and c["h"] == hname), 0)
+        if da != 0 and dc != 0 and da != dc:
+            conflicts += 1
+    # Weighted agreement: each active cell counts by its lens x horizon weight
+    tw_active = sum(LW[c["lens"]] * HW[c["h"]] for c in active)
+    agree = (round(100 * sum(LW[c["lens"]] * HW[c["h"]] for c in active if c["dir"] == dom)
+                   / tw_active) if tw_active > 0 else None)
+    if conflicts >= 2 and cyc_w >= 1.5:
+        level, mult = "conflict", (0.45 if cyc_w >= 2.5 else 0.6)
+    elif dom == 0 or len(active) < 3:
+        level, mult = "low", 0.65
+    elif agree is not None and agree >= 85 and len(active) >= 6:
+        level, mult = "high", 1.15
+    elif agree is not None and agree >= 60:
+        level, mult = "medium", 1.0
+    else:
+        level, mult = "low", 0.65
+    return {"cells": cells, "dominant": dom, "agreement_pct": agree,
+            "conviction": level, "mult": mult, "n_active": len(active),
+            "conflicts": conflicts,
+            "horizon_td": {h: n for h, n in horizons},
+            "cycle_key": ck, "cycle_w": cyc_w, "cycle_relevance": round(cyc_rel, 2),
+            "halflife": hl, "profile": blend.get("tag")}
 
 
 def _seas_window_stats(market_id: str, bar_date) -> dict | None:
@@ -12949,7 +13069,7 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     n = len(rets)
     if n < 8:
         return None
-    W = _seas_weights(used, d.year)
+    W = _seas_weights(used, d.year, market_id)
     ws = [W[y] for y in used]
     tot_w = sum(ws)
     whit = sum(w for r, w in zip(rets, ws) if r > 0) / tot_w
@@ -13124,8 +13244,29 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
             if shape_dampen < 1.0:
                 score = round(5.0 + (score - 5.0) * shape_dampen, 1)
 
+    # ── CROSS-LENS CONSENSUS CONVICTION (v2.1) ─────────────────────
+    # When cycle-years seasonality AND all-years seasonality point the same
+    # way across multiple forward horizons → amplify (high conviction).
+    # When lenses/horizons disagree → pull toward neutral. Direct cycle-vs-all
+    # opposition on 2+ horizons is the hardest dampen (conflict).
+    consensus = None
+    conviction_mult = None
+    try:
+        consensus = _seas_consensus(years, td_a, d.year, market_id)
+    except Exception:
+        consensus = None
+    if consensus:
+        conviction_mult = consensus["mult"]
+        lean = score - 5.0
+        # Never boost a score that leans AGAINST the consensus direction
+        if conviction_mult > 1.0 and consensus["dominant"] != 0 and lean * consensus["dominant"] < 0:
+            conviction_mult = 1.0
+        score = round(max(0.0, min(10.0, 5.0 + (score - 5.0) * conviction_mult)), 1)
+
     return {
         "score": score,
+        "consensus": consensus,
+        "conviction_mult": conviction_mult,
         "raw_score": raw_score,
         "dampen_factor": _dampen_factor,
         "recent5_pos": (sum(1 for r in recent5 if r > 0) if len(recent5) >= 5 else None),
@@ -13160,7 +13301,7 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "shape_dampen": shape_dampen,
         "years_span": f"{min(used)}\u2013{max(used)}" if used else "",
         "cycle_key": _cycle_key_for_year(d.year),
-        "weighting": "cycle 2.5x + recency 0.93^age",
+        "weighting": f"cycle {_seas_default_blend(market_id).get('cycle_w', _SEAS_CYCLE_BOOST)}x + recency 0.93^age",
     }
 
 
@@ -13242,6 +13383,9 @@ def score_seasonality(market_id: str) -> dict:
             "far_hit_rate": stats.get("far_hit_rate"),
             "seas_shape": stats.get("seas_shape"),
             "shape_dampen": stats.get("shape_dampen"),
+            # v2.1: cross-lens consensus conviction
+            "consensus": stats.get("consensus"),
+            "conviction_mult": stats.get("conviction_mult"),
         })
     return {"score": score, "label": label, "detail": detail}
 
@@ -13357,7 +13501,8 @@ def _find_seas_turns(med: list, by_year: dict, prior: list, weights: dict = None
 
 
 def _build_seasonality_from_closes(closes, current_year: int,
-                                   years_back: int = 22, snap_years: int = 11) -> dict:
+                                   years_back: int = 22, snap_years: int = 11,
+                                   market_id: str = None) -> dict:
     """
     Build seasonality v2 structure from a daily Close series.
 
@@ -13418,7 +13563,7 @@ def _build_seasonality_from_closes(closes, current_year: int,
     if len(prior) < 8:
         return {}
 
-    W = _seas_weights(prior, current_year)
+    W = _seas_weights(prior, current_year, market_id)
     ws = [W[y] for y in prior]
     med_raw, lo_raw, hi_raw = [], [], []
     for i in range(252):
@@ -13499,7 +13644,7 @@ def _ensure_market_seas(market_id: str) -> None:
                               auto_adjust=True, label=f"seas_{mid}")
         if df is None or df.empty or len(df) < 300:
             return
-        built = _build_seasonality_from_closes(df["Close"], _d.today().year)
+        built = _build_seasonality_from_closes(df["Close"], _d.today().year, market_id=mid)
         if built.get("curve"):
             built["_built"] = now
             data[mid] = built
