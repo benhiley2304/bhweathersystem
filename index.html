@@ -4430,6 +4430,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-chart-wrap{position:relative;height:400px;margin-bottom:14px}
 .lab-chart-wrap canvas{width:100%!important;height:100%!important}
 .lab-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-bottom:14px}
+.lab-stat.wide{grid-column:span 2}
+.lab-stat .lv{overflow-wrap:anywhere}
 .lab-stat{background:var(--surf3);border:1px solid var(--bdr2);border-radius:9px;padding:9px 11px}
 .lab-stat .lv{font-size:15px;font-weight:700;letter-spacing:-0.3px}
 .lab-stat .lk{font-size:7.5px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--dim);margin-top:3px;line-height:1.35}
@@ -42969,7 +42971,7 @@ function _labV2RenderBasketStats(){
     `<div class="lab-stat"><div class="lv" style="color:var(--sm2)">${pc(worst.v)}</div><div class="lk">Worst · ${worst.y}${isShort?' (biggest rally)':''}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:${col(s.advMed)}">${pc(s.advMed)}</div><div class="lk">Median adverse ${C.adverseWord}${s.entryTd?' · '+C.extreme+' ~'+ph(s.entryTd):''}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${Math.abs(s.favMed).toFixed(1)}%</div><div class="lk">Median max ${C.favWord} in window</div></div>`+
-    (s.nearMed!=null&&s.farMed!=null?`<div class="lab-stat"><div class="lv" style="font-size:15px;white-space:nowrap"><span style="color:${col(s.nearMed)}">${pc(s.nearMed)}</span><span style="color:var(--dim);font-size:11px"> → </span><span style="color:${col(s.farMed)}">${pc(s.farMed)}</span></div><div class="lk">First half → second half of window</div></div>`:'');
+    (s.nearMed!=null&&s.farMed!=null?`<div class="lab-stat wide"><div class="lv" style="font-size:14px"><span style="color:${col(s.nearMed)}">${pc(s.nearMed)}</span><span style="color:var(--dim);font-size:11px"> → </span><span style="color:${col(s.farMed)}">${pc(s.farMed)}</span></div><div class="lk">First half → second half of window</div></div>`:'');
   const lab=document.getElementById('lab-yrret-label');
   if(lab)lab.textContent=`${isShort?'Short P&L':'Return'} by year — ${winLbl}`;
   const chips=document.getElementById('lab-yrret');
