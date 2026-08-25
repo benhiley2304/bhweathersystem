@@ -37269,7 +37269,10 @@ function seasGoldilocksHTML(g,sd){
   const accent=g.dir>0?'#22c97a':g.dir<0?'#e03a2a':'#8a93a8';
   const rgb=g.dir>0?'34,201,122':g.dir<0?'224,58,42':'138,147,168';
   const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
-  const capPct=g.capture!=null?Math.round(g.capture*100):null;
+  // capture > 1 means price has moved AGAINST the seasonal leg since the ideal
+  // entry — i.e. today is a better level than the entry, not "160% left".
+  const better=g.capture!=null&&g.capture>1.05;
+  const capPct=g.capture!=null?Math.min(100,Math.round(g.capture*100)):null;
   const arrow=g.dir>0?'▲':'▼';
   // g.legMove / g.remMove are stored as favourable-for-the-side magnitudes; print
   // the actual PRICE move so a short leg never reads as "+3.4%".
@@ -37304,10 +37307,14 @@ function seasGoldilocksHTML(g,sd){
     head='Goldilocks entry — zone open now';
     body=`This is historically the ${g.dir>0?'trough':'peak'} (<strong>${g.targetLabel}</strong>): from here the curve ${runWord} <strong style="color:${accent}">${pc(priceLeg)}</strong> (median) into <strong>${g.legEndLabel}</strong>${g.consistency!=null?`, a turn that held in <strong>${g.consistency}%</strong> of years`:''}. Best seasonal ${dirWord} entry of the cycle is on the table today.`;
   } else if(g.state==='open'){
-    tag='OPEN · '+(capPct!=null?capPct+'% LEFT':'RUNNING');tagCol=accent;tagRgb=rgb;
-    big=Math.abs(g.tdsAway)+'d';bigSub='into the move';
-    head='Entry window open — seasonal move already underway';
-    body=`The seasonal ${g.dir>0?'low':'high'} printed around <strong>${g.targetLabel}</strong> (<strong>${Math.abs(g.tdsAway)} trading days</strong> ago) and <strong style="color:${accent}">${pc(priceRem)}</strong> of the median leg${capPct!=null?` (<strong>${capPct}%</strong> of it)`:''} is still ahead into <strong>${g.legEndLabel}</strong>. Still a valid ${dirWord}, just not the perfect print.`;
+    tag=better?'OPEN · BETTER LEVEL':('OPEN · '+(capPct!=null?capPct+'% LEFT':'RUNNING'));tagCol=accent;tagRgb=rgb;
+    big=better?'ALL':(capPct!=null?capPct+'%':Math.abs(g.tdsAway)+'d');bigSub=better?'of move ahead':'of move left';
+    head=better
+      ?'Entry window open — price has come back to you'
+      :'Entry window open — seasonal move already underway';
+    body=better
+      ? `The ideal seasonal ${g.dir>0?'low':'high'} was around <strong>${g.targetLabel}</strong> (<strong>${Math.abs(g.tdsAway)} trading days</strong> ago), but price has since moved <em>against</em> the seasonal leg — today is a <strong>better level than the entry itself</strong>, with the full median leg of <strong style="color:${accent}">${pc(priceRem)}</strong> into <strong>${g.legEndLabel}</strong> still ahead. Late by the calendar, early by the price.${caveat}`
+      : `The seasonal ${g.dir>0?'low':'high'} printed around <strong>${g.targetLabel}</strong> (<strong>${Math.abs(g.tdsAway)} trading days</strong> ago) and <strong style="color:${accent}">${pc(priceRem)}</strong> of the median leg${capPct!=null?` (<strong>${capPct}%</strong> of it)`:''} is still ahead into <strong>${g.legEndLabel}</strong>. Still a valid ${dirWord}, just not the perfect print.`;
   } else {
     tag='PAST'+(capPct!=null?' · '+capPct+'% LEFT':'');tagCol='#8a93a8';tagRgb='138,147,168';
     big=capPct!=null?capPct+'%':'—';bigSub='of move left';
