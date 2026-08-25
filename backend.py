@@ -11856,12 +11856,238 @@ async def get_seasonality(market: str = None):
         }
     return _SafeJSONResponse(data)
 
+# ============================================================
+# Seasonality Lab v2 — asset-class default blends
+# ============================================================
+# Election-cycle sensitivity varies by asset class:
+#  - Stock indices, major FX, US rates → cycle-sensitive (Fed/political calendar)
+#  - Commodities (metals, energy, ags, softs, livestock), crypto → all-years
+#    (supply-cycle driven, not politics)
+#  - FX crosses → mild cycle sensitivity (carry-dominated)
+_SEAS_BLEND_PROFILES = {
+    "cycle_heavy":  {"cycle_w": 2.5, "halflife": 15, "detrend": False, "tag": "Cycle-sensitive"},
+    "fx_cross":     {"cycle_w": 1.5, "halflife": 15, "detrend": False, "tag": "Mild cycle"},
+    "all_years":    {"cycle_w": 1.0, "halflife": 15, "detrend": False, "tag": "Supply-cycle"},
+}
+
+def _seas_asset_class(market_id: str) -> str:
+    """Return 'cycle_heavy' | 'fx_cross' | 'all_years' for the given market."""
+    m = market_id.upper()
+    # Cycle-heavy: equity indices + major FX legs + US rates
+    _CYCLE_HEAVY = {
+        "ES", "NQ", "YM", "RTY",                                 # equity indices
+        "6E", "6B", "6J", "6A", "6C", "6S", "6N", "6M", "DX",   # major FX + DX
+        "ZB", "ZN", "ZF", "ZT",                                 # US rates
+    }
+    if m in _CYCLE_HEAVY:
+        return "cycle_heavy"
+    # FX crosses (carry-dominated but some cycle imprint via legs)
+    mkt = next((x for x in MARKETS if x["id"] == m), None)
+    if mkt and mkt.get("category") == "fx_cross":
+        return "fx_cross"
+    # Everything else (commodities, crypto) → all-years
+    return "all_years"
+
+def _seas_default_blend(market_id: str) -> dict:
+    prof = _seas_asset_class(market_id)
+    d = dict(_SEAS_BLEND_PROFILES[prof])
+    d["profile"] = prof
+    return d
+
+def _seas_year_weights(years_list, cycle_w: float, halflife: float,
+                       asof_year: int, cycle_key: str) -> dict:
+    """Build per-year weight dict from cycle_w (cycle overweight) + halflife
+    (recency exponential decay). Returns {year_str: weight_float}.
+    halflife = 0 → flat recency; else weight = 0.5 ** ((asof - y) / halflife).
+    cycle_w applied to years matching current cycle_key."""
+    weights = {}
+    for ys in years_list:
+        y = int(ys)
+        # Recency
+        if halflife and halflife > 0:
+            age = max(0, asof_year - y)
+            w_rec = 0.5 ** (age / float(halflife))
+        else:
+            w_rec = 1.0
+        # Cycle overweight
+        w_cyc = cycle_w if _cycle_key_for_year(y) == cycle_key else 1.0
+        weights[ys] = w_rec * w_cyc
+    return weights
+
+def _seas_weighted_stats(years_dict: dict, weights: dict) -> dict:
+    """Compute weighted median + p25/p75 + weighted mean per TD across the
+    given per-year paths. Returns dict with lists of length 252."""
+    if not years_dict:
+        return {"median": [], "mean": [], "p25": [], "p75": []}
+    ys_all = list(years_dict.keys())
+    n_td = max(len(years_dict[y]) for y in ys_all)
+    med = [0.0] * n_td
+    mean = [0.0] * n_td
+    p25 = [0.0] * n_td
+    p75 = [0.0] * n_td
+    for i in range(n_td):
+        pts = []
+        for ys in ys_all:
+            path = years_dict[ys]
+            if i < len(path) and path[i] is not None:
+                w = weights.get(ys, 1.0)
+                if w > 0:
+                    pts.append((path[i], w))
+        if not pts:
+            med[i] = mean[i] = p25[i] = p75[i] = None
+            continue
+        # Weighted mean
+        sw = sum(w for _, w in pts)
+        mean[i] = sum(v * w for v, w in pts) / sw if sw > 0 else None
+        # Weighted quantiles: sort by v, accumulate weight, pick 25/50/75
+        pts.sort(key=lambda x: x[0])
+        cum = 0.0
+        q25 = q50 = q75 = None
+        for v, w in pts:
+            cum += w
+            frac = cum / sw
+            if q25 is None and frac >= 0.25:
+                q25 = v
+            if q50 is None and frac >= 0.5:
+                q50 = v
+            if q75 is None and frac >= 0.75:
+                q75 = v
+                break
+        med[i] = q50 if q50 is not None else pts[len(pts)//2][0]
+        p25[i] = q25 if q25 is not None else pts[0][0]
+        p75[i] = q75 if q75 is not None else pts[-1][0]
+    return {"median": med, "mean": mean, "p25": p25, "p75": p75}
+
+def _seas_lab_window_stats(years_dict: dict, weights: dict,
+                           start_td: int, end_td: int,
+                           current_year: int = None,
+                           current_td: int = None) -> dict:
+    """For a [start_td, end_td] window compute per-year window returns and
+    aggregate stats. Returns {window_stats, per_year_windows}.
+    Excludes the current year when the window extends past current_td so
+    historical stats aren't polluted by an incomplete year."""
+    if not years_dict or start_td >= end_td:
+        return {"window_stats": None, "per_year_windows": []}
+    rows = []
+    for ys, path in years_dict.items():
+        # Skip current year when window is not yet complete
+        if current_year is not None and int(ys) == current_year:
+            if current_td is None or end_td > current_td:
+                continue
+        if not path or start_td >= len(path) or end_td >= len(path):
+            continue
+        sp = path[start_td]
+        ep = path[end_td]
+        if sp is None or ep is None:
+            continue
+        # Convert cumulative %-paths → return over window
+        # path values are cumulative % (0 at Jan1). Window return = ep - sp (approx pct).
+        ret_pct = ep - sp
+        # Max rise / max drop within window
+        seg = [p for p in path[start_td:end_td+1] if p is not None]
+        if len(seg) < 2:
+            continue
+        max_rise = max(seg) - sp
+        max_drop = min(seg) - sp
+        w = weights.get(ys, 1.0)
+        rows.append({
+            "year": int(ys),
+            "start_pct": round(sp, 3),
+            "end_pct": round(ep, 3),
+            "ret_pct": round(ret_pct, 3),
+            "max_rise": round(max_rise, 3),
+            "max_drop": round(max_drop, 3),
+            "weight": round(w, 4),
+        })
+    if not rows:
+        return {"window_stats": None, "per_year_windows": []}
+    # Sort newest→oldest
+    rows.sort(key=lambda r: -r["year"])
+    # Aggregates (weighted)
+    sw = sum(r["weight"] for r in rows)
+    rets = [r["ret_pct"] for r in rows]
+    weighted_rets = [(r["ret_pct"], r["weight"]) for r in rows]
+    if sw > 0:
+        w_mean = sum(v * w for v, w in weighted_rets) / sw
+    else:
+        w_mean = sum(rets) / len(rets)
+    # Weighted median
+    weighted_rets.sort(key=lambda x: x[0])
+    cum = 0.0
+    w_med = weighted_rets[len(weighted_rets)//2][0]
+    for v, w in weighted_rets:
+        cum += w
+        if cum / sw >= 0.5:
+            w_med = v
+            break
+    gains = [r for r in rows if r["ret_pct"] > 0]
+    losses = [r for r in rows if r["ret_pct"] <= 0]
+    # Weighted win rate
+    w_gain = sum(r["weight"] for r in gains)
+    win_rate = w_gain / sw if sw > 0 else 0.5
+    avg_gain = sum(r["ret_pct"] * r["weight"] for r in gains) / max(w_gain, 1e-9) if gains else 0.0
+    w_loss = sum(r["weight"] for r in losses)
+    avg_loss = sum(r["ret_pct"] * r["weight"] for r in losses) / max(w_loss, 1e-9) if losses else 0.0
+    max_gain = max(rets)
+    max_loss = min(rets)
+    # Volatility (weighted std)
+    if sw > 0 and len(rets) > 1:
+        var = sum(w * (v - w_mean) ** 2 for v, w in weighted_rets) / sw
+        vol = var ** 0.5
+    else:
+        vol = 0.0
+    # Annualise (window is trading days; 252 = 1 yr)
+    td_window = max(1, end_td - start_td)
+    ann_factor = 252.0 / td_window
+    ann_ret = w_mean * ann_factor
+    ann_vol = vol * (ann_factor ** 0.5)
+    sharpe = ann_ret / ann_vol if ann_vol > 1e-9 else 0.0
+    # Sortino (downside deviation)
+    downside = [(v - w_mean) ** 2 * w for v, w in weighted_rets if v < w_mean]
+    if downside and sw > 0:
+        d_var = sum(downside) / sw
+        d_std = d_var ** 0.5
+        d_ann = d_std * (ann_factor ** 0.5)
+        sortino = ann_ret / d_ann if d_ann > 1e-9 else 0.0
+    else:
+        sortino = 0.0
+    return {
+        "window_stats": {
+            "win_rate": round(win_rate, 4),
+            "w_median": round(w_med, 3),
+            "w_mean": round(w_mean, 3),
+            "ann_return": round(ann_ret, 3),
+            "avg_gain": round(avg_gain, 3),
+            "avg_loss": round(avg_loss, 3),
+            "max_gain": round(max_gain, 3),
+            "max_loss": round(max_loss, 3),
+            "volatility": round(ann_vol, 3),
+            "sharpe": round(sharpe, 3),
+            "sortino": round(sortino, 3),
+            "n_years": len(rows),
+            "n_gains": len(gains),
+            "n_losses": len(losses),
+            "td_window": td_window,
+            "cal_days": round(td_window * 365.0 / 252.0),
+        },
+        "per_year_windows": rows,
+    }
+
 @app.get("/api/seasonality-lab")
-async def get_seasonality_lab(market: str):
-    """Seasonality Lab: per-year calendar-aligned cumulative %-paths plus
-    year metadata so the frontend can build arbitrary year-basket averages
-    (Seasonax-style, but with median/mean, IQR band, spaghetti and
-    forward-window stats computed client-side)."""
+async def get_seasonality_lab(
+    market: str,
+    cycle_w: float = None,
+    halflife: float = None,
+    detrend: bool = False,
+    basket: str = None,          # comma-sep year list, e.g. "2020,2016,2012"
+    window_start: int = None,    # trading day index (0-251)
+    window_end: int = None,
+):
+    """Seasonality Lab v2. Returns per-year raw paths + meta + months axis,
+    PLUS optional weighted average/median/quantiles when cycle_w/halflife given,
+    PLUS optional per-year window stats when window_start/window_end given.
+    Server-side blend guarantees the same math is used for scoring, charts,
+    and Sunday Setup regardless of caller."""
     m = market.upper()
     try:
         await asyncio.get_event_loop().run_in_executor(
@@ -11882,6 +12108,31 @@ async def get_seasonality_lab(market: str):
         _mtd = max(1, min(252, round((_md.timetuple().tm_yday / 365) * 252)))
         _months_axis.append({"td": _mtd, "label": _md.strftime("%b")})
     years = ent["years"]
+
+    # Optional basket filter (comma-separated year list)
+    if basket:
+        try:
+            bset = set(str(int(y.strip())) for y in basket.split(",") if y.strip())
+            if bset:
+                years = {ys: p for ys, p in years.items() if ys in bset}
+        except Exception:
+            pass
+
+    # Optional detrend: subtract per-year linear drift so paths start & end at 0
+    if detrend and years:
+        det = {}
+        for ys, path in years.items():
+            if not path:
+                det[ys] = path
+                continue
+            n = len(path)
+            end_v = path[-1] if path[-1] is not None else 0.0
+            det[ys] = [
+                (v - (end_v * i / max(1, n - 1))) if v is not None else None
+                for i, v in enumerate(path)
+            ]
+        years = det
+
     meta = {}
     for ys in years.keys():
         y = int(ys)
@@ -11890,6 +12141,67 @@ async def get_seasonality_lab(market: str):
             "even": y % 2 == 0,
             "ret": years[ys][-1] if years[ys] else None,
         }
+
+    # Default blend from asset class
+    default_blend = _seas_default_blend(m)
+    # Resolve effective blend (query params override default)
+    eff_cycle_w = float(cycle_w) if cycle_w is not None else default_blend["cycle_w"]
+    eff_halflife = float(halflife) if halflife is not None else default_blend["halflife"]
+
+    # Compute weighted paths + reliability grade
+    weights = _seas_year_weights(
+        list(years.keys()), eff_cycle_w, eff_halflife,
+        _today.year, _cycle_key_for_year(_today.year))
+    wstats = _seas_weighted_stats(years, weights)
+
+    # Reliability grade: based on # years, signal/noise across full 252, direction consistency
+    def _grade():
+        n = len(years)
+        med = [v for v in wstats["median"] if v is not None]
+        p25 = [v for v in wstats["p25"] if v is not None]
+        p75 = [v for v in wstats["p75"] if v is not None]
+        if n < 8 or not med:
+            return {"grade": "D", "score": 0.0, "n": n, "sn": 0.0, "consistency": 0.0}
+        # Signal = |median[-1]|; Noise = avg (p75-p25)
+        sig = abs(med[-1]) if med else 0.0
+        noise = sum((a - b) for a, b in zip(p75, p25) if a is not None and b is not None)
+        noise = noise / max(1, len(p25))
+        sn = sig / max(noise, 1e-6)
+        # Direction consistency at fwd_td+60 (~2 mo out from current_td)
+        target_td = min(251, _current_td + 60)
+        med_dir = 1 if (med[target_td] if target_td < len(med) else 0) > (med[_current_td] if _current_td < len(med) else 0) else -1
+        agree = 0
+        total = 0
+        for ys, path in years.items():
+            if target_td < len(path) and _current_td < len(path) and path[target_td] is not None and path[_current_td] is not None:
+                total += 1
+                if (path[target_td] > path[_current_td]) == (med_dir > 0):
+                    agree += 1
+        consistency = agree / max(1, total)
+        # Combined score 0-100
+        score = min(100.0, 30.0 * min(sn, 3.0) / 3.0 + 40.0 * consistency + 30.0 * min(n, 30) / 30.0)
+        # Grade thresholds
+        if score >= 75: g = "A"
+        elif score >= 60: g = "B"
+        elif score >= 45: g = "C"
+        else: g = "D"
+        return {"grade": g, "score": round(score, 1), "n": n,
+                "sn": round(sn, 3), "consistency": round(consistency, 3)}
+    reliability = _grade()
+
+    # Optional window stats (only when both bounds given)
+    window_result = {"window_stats": None, "per_year_windows": []}
+    if window_start is not None and window_end is not None:
+        try:
+            ws = int(window_start)
+            we = int(window_end)
+            if 0 <= ws < 252 and 0 <= we < 252 and ws < we:
+                window_result = _seas_lab_window_stats(
+                    years, weights, ws, we,
+                    current_year=_today.year, current_td=_current_td)
+        except Exception as _we:
+            print(f"[seas lab] window exc: {_we}", flush=True)
+
     return _SafeJSONResponse({
         "market": m,
         "years": years,
@@ -11900,6 +12212,14 @@ async def get_seasonality_lab(market: str):
         "current_year": _today.year,
         "current_cycle": _cycle_key_for_year(_today.year),
         "years_span": ent.get("years_span"),
+        # NEW v2 fields
+        "asset_class": _seas_asset_class(m),
+        "default_blend": default_blend,
+        "effective_blend": {"cycle_w": eff_cycle_w, "halflife": eff_halflife, "detrend": detrend},
+        "weights": weights,
+        "weighted": wstats,
+        "reliability": reliability,
+        "window": window_result,
     })
 
 # ============================================================
