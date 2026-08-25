@@ -42903,7 +42903,7 @@ function _labV2RenderBasketStats(){
     `<div class="lab-stat"><div class="lv" style="color:var(--sm2)">${pc(worst.v)}</div><div class="lk">Worst · ${worst.y}${isShort?' (biggest rally)':''}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:${col(s.advMed)}">${pc(s.advMed)}</div><div class="lk">Median adverse ${C.adverseWord}${s.entryTd?' · '+C.extreme+' ~'+ph(s.entryTd):''}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${Math.abs(s.favMed).toFixed(1)}%</div><div class="lk">Median max ${C.favWord} in window</div></div>`+
-    (s.nearMed!=null&&s.farMed!=null?`<div class="lab-stat" style="grid-column:1/-1"><div class="lv"><span style="color:${col(s.nearMed)}">${pc(s.nearMed)}</span><span style="color:var(--dim);font-size:11px"> → </span><span style="color:${col(s.farMed)}">${pc(s.farMed)}</span></div><div class="lk">First half → second half of window</div></div>`:'');
+    (s.nearMed!=null&&s.farMed!=null?`<div class="lab-stat"><div class="lv" style="font-size:15px;white-space:nowrap"><span style="color:${col(s.nearMed)}">${pc(s.nearMed)}</span><span style="color:var(--dim);font-size:11px"> → </span><span style="color:${col(s.farMed)}">${pc(s.farMed)}</span></div><div class="lk">First half → second half of window</div></div>`:'');
   const lab=document.getElementById('lab-yrret-label');
   if(lab)lab.textContent=`${isShort?'Short P&L':'Return'} by year — ${winLbl}`;
   const chips=document.getElementById('lab-yrret');
@@ -43168,7 +43168,7 @@ function _labV2RenderWindowSidebar(){
   const cls=v=>v==null?'':v>=0?'up':'dn';
   const wr=s.win_rate!=null?Math.round(s.win_rate*100):null;
   const wrCol=wr==null?'var(--dim)':wr>=55?goodCol:wr<=45?badCol:'var(--accent)';
-  const wrLabel=isShort?'Short win rate':'Win rate';
+  const wrLabel=isShort?'Short win rate · wtd':'Win rate · weighted';
   // window label — use _labV2.window (backend does not echo window_start/end in stats)
   const d=_labData;
   const ws=(_labV2.window&&_labV2.window.ws)||0, we=(_labV2.window&&_labV2.window.we)||0;
