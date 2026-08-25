@@ -4539,6 +4539,16 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-winrow .wmonth.active{background:rgba(200,169,110,0.14);border-color:rgba(200,169,110,0.6);color:var(--accent)}
 .lab-v2-winrow .whint{font-size:8.5px;color:var(--faint,#5a5957);letter-spacing:0.3px;margin-left:auto}
 @media(max-width:760px){.lab-v2-winrow .whint{display:none}}
+/* AUDIT-SEAS-R2-FRONTEND — swing-first window presets: the 1-4 week chips read as primary,
+   the 60 TD / year-end context chips sit behind a hairline divider at lower emphasis. */
+.lab-v2-winrow .wchip.wchip-swing{min-height:28px;padding:5px 11px;font-size:10px;color:var(--text);background:rgba(255,255,255,0.055);border-color:rgba(255,255,255,0.13)}
+.lab-v2-winrow .wchip.wchip-swing.active{background:linear-gradient(180deg,rgba(200,169,110,0.24),rgba(200,169,110,0.12));border-color:rgba(200,169,110,0.72);color:var(--accent);box-shadow:0 0 0 1px rgba(200,169,110,0.12),0 2px 10px rgba(200,169,110,0.14)}
+.lab-v2-winrow .wchip.wchip-ctx{opacity:0.62;font-size:9px;padding:4px 9px}
+.lab-v2-winrow .wchip.wchip-ctx:hover{opacity:1}
+.lab-v2-winrow .wchip.wchip-ctx.active{opacity:1}
+.lab-v2-winrow .wsep{width:1px;align-self:stretch;min-height:18px;background:rgba(255,255,255,0.10);margin:0 3px}
+.lab-v2-winrow .wchip.wchip-plan{background:linear-gradient(180deg,rgba(38,201,122,0.20),rgba(38,201,122,0.07));border-color:rgba(38,201,122,0.55);color:#7fe0ad;min-height:28px;padding:5px 11px;font-size:10px}
+.lab-v2-winrow .wchip.wchip-plan.active{border-color:rgba(38,201,122,0.9);color:#a6f0c8;box-shadow:0 0 0 1px rgba(38,201,122,0.14),0 2px 10px rgba(38,201,122,0.16)}
 
 /* Right sidebar cards */
 .lab-v2-win{background:linear-gradient(180deg,rgba(255,255,255,0.025),rgba(255,255,255,0.005));border:1px solid var(--bdr2);border-radius:12px;padding:14px;display:flex;align-items:center;gap:14px}
@@ -4575,6 +4585,12 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-cons .cons-dir.d-long{color:#3fd48c;background:rgba(38,201,122,0.13);border:1px solid rgba(38,201,122,0.28)}
 .lab-v2-cons .cons-dir.d-short{color:#f47070;background:rgba(240,64,64,0.13);border:1px solid rgba(240,64,64,0.28)}
 .lab-v2-cons .cons-legend{font-size:8px;color:var(--faint,#5a5957);letter-spacing:0.2px;margin-top:7px;line-height:1.45}
+/* AUDIT-SEAS-R2-FRONTEND · one-lens labelling. The weighted basket is the headline; the
+   raw equal-weight figure is a quiet secondary line so the two can never be confused. */
+.win-lens{margin-top:6px;font-size:8.5px;letter-spacing:0.4px;text-transform:uppercase;color:var(--accent);opacity:.85;font-weight:600}
+.win-raw{margin-top:2px;font-size:8px;color:var(--faint,#5a5957);letter-spacing:0.2px}
+.lab-v2-entry .tk-dot-exit{background:var(--accent);opacity:.6;box-shadow:none}
+.lab-callout .co-sub{margin-top:4px;font-size:8.5px;color:var(--faint,#5a5957);letter-spacing:0.2px;font-style:normal}
 .lab-v2-cons .cons-note{font-size:8.5px;color:var(--dim);line-height:1.5;margin-top:7px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
 .lab-v2-cons .cons-note b{color:var(--text);font-weight:700}
 
@@ -24681,10 +24697,15 @@ canvas.chartjs-render-monitor{
             <div class="lab-v2-legend" id="lab-v2-legend"></div>
             <div class="lab-v2-winrow" id="lab-v2-winrow">
               <span class="wlab">Window</span>
-              <button class="wchip" data-win="30">+30 TD</button>
-              <button class="wchip" data-win="60">+60 TD</button>
-              <button class="wchip" data-win="90">+90 TD</button>
-              <button class="wchip" data-win="ye">→ Year end</button>
+              <!-- AUDIT-SEAS-R2-FRONTEND: swing-first presets (Ben trades 1-2wk typical, 3-4wk max).
+                   10/15/20/30 TD are the primary chips; 60 TD / year-end are demoted to context. -->
+              <button class="wchip wchip-swing" data-win="10">+10 TD</button>
+              <button class="wchip wchip-swing" data-win="15">+15 TD</button>
+              <button class="wchip wchip-swing" data-win="20">+20 TD</button>
+              <button class="wchip wchip-swing" data-win="30">+30 TD</button>
+              <span class="wsep" aria-hidden="true"></span>
+              <button class="wchip wchip-ctx" data-win="60">+60 TD</button>
+              <button class="wchip wchip-ctx" data-win="ye">→ Year end</button>
               <select class="wmonth" id="lab-v2-wmonth"><option value="">Month…</option></select>
               <span class="whint">or drag on the chart · double-click resets</span>
             </div>
@@ -37476,6 +37497,8 @@ function seasConsensusHTML(c,dirOverride){
   const badgeCls={high:'cb-high',medium:'cb-medium',low:'cb-low',conflict:'cb-conflict'}[c.conviction]||'cb-low';
   const badgeTxt={high:'HIGH CONVICTION',medium:'MEDIUM',low:'LOW CONVICTION',conflict:'CONFLICT'}[c.conviction]||'LOW';
   const agree=c.agreement_pct!=null?(' · '+c.agreement_pct+'%'):'';
+  // AUDIT-SEAS-R2-FRONTEND: same lens stamp the donut and callout print.
+  const lensStamp=(typeof _labV2!=='undefined'&&_labV2&&_labV2.shape&&!dirOverride)?_labV2LensStamp(null):'';
   let grid='<span class="ch"></span>'+cols.map(x=>'<span class="ch">'+x[1]+'</span>').join('');
   for(const [lk,ll] of rows){
     grid+='<span class="cl">'+ll+'</span>';
@@ -37506,7 +37529,7 @@ function seasConsensusHTML(c,dirOverride){
   return `<div class="lab-v2-cons">
     <div class="cons-head"><div class="t">Seasonal consensus<span class="cons-dir ${isShort?'d-short':'d-long'}">${isShort?'▼ short':'▲ long'}</span></div><span class="cons-badge ${badgeCls}">${badgeTxt}${agree}</span></div>
     <div class="cons-grid">${grid}</div>
-    <div class="cons-legend">${isShort?'▼ price falls = edge for shorts (green) · values shown as short P&amp;L':'▲ price rises = edge for longs (green) · values shown as long P&amp;L'}</div>
+    <div class="cons-legend">${isShort?'▼ price falls = edge for shorts (green) · values shown as short P&amp;L':'▲ price rises = edge for longs (green) · values shown as long P&amp;L'}${lensStamp?' · '+lensStamp:''}</div>
     <div class="cons-note">${notes[c.conviction]||''}</div>
   </div>`;
 }
@@ -37685,8 +37708,10 @@ function seasTabStub(m){
       <div class="sx-chiprow">${chips.join('')}</div>
     </div>
     <div class="ss-actions">
-      <button class="ss-btn sx-btn" onclick="openSeasLab('${m.id}','${m.name}')">Seasonality Lab ↗</button>
-      <button class="ss-btn sx-btn sx-btn-ghost" onclick="openModal('${m.id}','${(m.name||'').replace(/'/g,"\\'")}')">Full chart ↗</button>
+      <!-- AUDIT-SEAS-R2-FRONTEND: the retired 'Full chart' modal is gone. This compact tab
+           IS the Lab-mini; the single affordance below opens the full Seasonality Lab, so
+           there is exactly ONE seasonal analysis system and no stat computed two ways. -->
+      <button class="ss-btn sx-btn" onclick="openSeasLab('${m.id}','${m.name}')">Open full analysis — Seasonality Lab ↗</button>
     </div>
   </div>
   ${seasWindowStripHTML(d)}
@@ -42428,7 +42453,15 @@ function renderModalTurns(turns,todayTD,months){
   if(nl)requestAnimationFrame(()=>{try{nl.scrollIntoView({block:'nearest',inline:'center'})}catch(e){}});
 }
 
+/* AUDIT-SEAS-R2-FRONTEND — 'Full chart' seasonality view is RETIRED (Ben item 4).
+   The Seasonality Lab is now the single seasonal analysis surface: same engine, same
+   weighted stats, same goldilocks/planner read as the factor-page Lab-mini tab. Every
+   former entry point routes here, so no seasonal stat can be computed two ways.
+   `_openSeasFullChartLegacy` is kept only so the code path is auditable — nothing calls it. */
 async function openModal(marketId,marketName){
+  return openSeasLab(marketId,marketName);
+}
+async function _openSeasFullChartLegacy(marketId,marketName){
   window._modalMkt={id:marketId,name:marketName};
   const _labBtn=document.getElementById('modal-lab-btn');
   if(_labBtn)_labBtn.style.display='inline-flex';
@@ -42474,7 +42507,67 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeS
 let _labChart=null,_labMonthChart=null,_labData=null,_labSel=new Set(),_labPresetOn=null;
 let _labOpts={avg:'median',band:true,spaghetti:false,detrend:false,actual:true};
 const _labCache={};
-const _LAB_FWD=60;  // forward window (trading days)
+/* AUDIT-SEAS-R2-FRONTEND — Ben item 1: the old 60 TD default was "way too long".
+   Default forward window is now +30 TD (the 3-4 week ceiling of his swing horizon), and
+   when the backend swing planner ships an entry→exit leg we adopt that hold instead. */
+/* AUDIT-SEAS-R2-FRONTEND · swing-planner reader.
+   The round-2 backend will expose an entry→exit leg on the seasonal payload
+   (plan_action, entry_in_td, exit_in_td, exit_by_date, hold_td, expected_move_pct,
+   leg_win_rate, next_turn_td, next_turn_type). Those fields do not exist yet, so this
+   reader is deliberately tolerant: it probes every plausible location, filters by the
+   active direction, and returns null when nothing is there — every caller falls back to
+   its pre-planner behaviour. When the backend lands, the UI lights up with no rewiring. */
+const _LAB_PLAN_KEYS=['plan_action','entry_in_td','exit_in_td','exit_by_date','entry_by_date',
+  'hold_td','expected_move_pct','leg_win_rate','next_turn_td','next_turn_type'];
+function _labPlanShape(o){
+  if(!o||typeof o!=='object')return null;
+  const hit=_LAB_PLAN_KEYS.some(k=>o[k]!=null);
+  if(!hit)return null;
+  const out={};_LAB_PLAN_KEYS.forEach(k=>{if(o[k]!=null)out[k]=o[k];});
+  return out;
+}
+function _labV2PlanRead(){
+  const dir=(typeof _labV2!=='undefined'&&_labV2&&_labV2.dir)||'long';
+  const cands=[];
+  const d=(typeof _labData!=='undefined')?_labData:null;
+  if(d){
+    cands.push(d.plan,d.swing_plan,d.planner);
+    if(d.window)cands.push(d.window.plan,d.window.swing_plan,d.window.window_stats&&d.window.window_stats.plan);
+    if(d.score_detail)cands.push(d.score_detail.plan,d.score_detail);
+  }
+  // The factor score payload carries the same planner block for the market tile.
+  try{
+    if(typeof DATA!=='undefined'&&DATA&&DATA.markets&&typeof _labV2!=='undefined'&&_labV2.marketId){
+      const m=DATA.markets.find(x=>x.id===_labV2.marketId);
+      const det=m&&m.scores&&m.scores.seasonal&&m.scores.seasonal.detail;
+      if(det){cands.push(det.plan,det.swing_plan,det);}
+    }
+  }catch(e){/* DATA is module-scoped and may not be built yet */}
+  for(const c of cands){
+    if(!c)continue;
+    // direction-scoped block wins over a flat one
+    const scoped=_labPlanShape(c[dir])||_labPlanShape(c[dir==='long'?'bull':'bear']);
+    const p=scoped||_labPlanShape(c);
+    if(p){if(scoped)p._dirScoped=true;return p;}
+  }
+  return null;
+}
+const _LAB_FWD=30;  // default forward window (trading days) — 3-4wk swing ceiling
+const _LAB_FWD_MAX=45; // never default wider than this, whatever the planner says
+// Planner-adaptive default: prefer the recommended entry→exit leg once the backend
+// exposes it (`plan_action`/`entry_in_td`/`exit_in_td`), else fall back to +30 TD.
+function _labV2PlannerDefaultTd(){
+  const p=_labV2PlanRead();
+  if(p&&p.exit_in_td!=null&&isFinite(+p.exit_in_td)){
+    const end=Math.round(+p.exit_in_td);
+    if(end>=5)return Math.min(_LAB_FWD_MAX,Math.max(10,end+2));  // +2 TD of context past the exit
+  }
+  if(p&&p.hold_td!=null&&isFinite(+p.hold_td)){
+    const h=Math.round(+p.hold_td);
+    if(h>=5)return Math.min(_LAB_FWD_MAX,Math.max(10,h+2));
+  }
+  return _LAB_FWD;
+}
 const _LAB_CYC_COL={midterm:'#c8a96e',election:'#6b7cff',pre_election:'#26c97a',post_election:'#8a93a8'};
 const _LAB_CYC_LBL={midterm:'Midterm',election:'Election',pre_election:'Pre-Election',post_election:'Post-Election'};
 // V2 state
@@ -42574,8 +42667,8 @@ async function openSeasLab(marketId,marketName){
     // (v1 used current-cycle-only, v2 shows richer signal by including all years with recency+cycle weighting)
     _labSel=new Set(_labData._yearList);
     _labPresetOn='all';
-    // Default window: today → +60TD
-    const td=d.current_td, we=Math.min(251, td+_LAB_FWD);
+    // AUDIT-SEAS-R2-FRONTEND: default window = planner leg when available, else today → +30 TD
+    const td=d.current_td, we=Math.min(251, td+_labV2PlannerDefaultTd());
     _labV2.window={ws:td, we:we};
     document.getElementById('lab-loading').style.display='none';
     document.getElementById('lab-content').style.display='block';
@@ -42795,56 +42888,142 @@ function _labRender(){
 /* ════ AUDIT-LAB-UI · direction + window aware shape engine ════
    One computation, two perspectives. `long` = price-up is a win, `short` = price-down
    is a win. Every field on a side object is already expressed in that side's P&L, so
-   positive is ALWAYS good for the trader on that side. */
+   positive is ALWAYS good for the trader on that side.
+
+   ══ AUDIT-SEAS-R2-FRONTEND · ONE LENS (Ben item 4 / screenshot A) ══
+   Screenshot A showed three different numbers for the same window (48% weighted donut,
+   49% callout hit rate, "19 down · 22 up"). Three causes, all fixed here:
+
+   1. OFF-BY-ONE. The backend measures the window as arr[ws] → arr[we] (0-based array
+      index == trading-day number). This engine used arr[ws-1] → arr[we-1], so on a 7 TD
+      window it classified different years as up/down than the server did. Now
+      index-aligned, and where the server ships `per_year_windows` for the active window
+      we adopt its ret_pct / max_rise / max_drop rows outright — same rows, same numbers.
+   2. LENS MISMATCH. The plotted hero line is the SMART BLEND (cycle boost + recency
+      half-life). The stats were equal-weight, so what Ben's eye picked off the chart was
+      not what got scored. Every headline stat is now WEIGHTED with the same per-year
+      weights the server used to build that line. `raw*` fields keep the equal-weight
+      figure available as a secondary sub-label only.
+   3. TIES. A 0.00% year used to count as a LOSS on BOTH sides. Ties are now EXCLUDED from
+      both numerator and denominator of the hit rate (`nTie` is reported), so the long and
+      short hit rates sum to 100% and neither side is quietly penalised. */
+function _labWQuantile(pairs,q){
+  // pairs: [{v,w}] — weighted quantile with mid-weight interpolation.
+  const a=pairs.filter(p=>p.v!=null&&isFinite(p.v)&&p.w>0).sort((x,y)=>x.v-y.v);
+  if(!a.length)return null;
+  const W=a.reduce((s,p)=>s+p.w,0);
+  if(W<=0)return null;
+  let cum=0;const pts=a.map(p=>{const c=(cum+0.5*p.w)/W;cum+=p.w;return{v:p.v,c};});
+  if(q<=pts[0].c)return pts[0].v;
+  if(q>=pts[pts.length-1].c)return pts[pts.length-1].v;
+  for(let i=1;i<pts.length;i++){
+    if(q<=pts[i].c){
+      const a0=pts[i-1],a1=pts[i],sp=a1.c-a0.c;
+      return sp<=0?a1.v:a0.v+(a1.v-a0.v)*((q-a0.c)/sp);
+    }
+  }
+  return pts[pts.length-1].v;
+}
 function _labV2ComputeShape(paths,ws,we,td){
   ws=Math.max(1,Math.min(251,Math.round(ws)));
   we=Math.max(ws+1,Math.min(252,Math.round(we)));
-  const out={n:0,ws,we,td,tdWin:we-ws,long:null,short:null,perYear:[]};
+  const out={n:0,ws,we,td,tdWin:we-ws,long:null,short:null,perYear:[],lens:'equal-weight'};
   if(!paths||!paths.length)return out;
+  // Server rows for this exact window, keyed by year — authoritative when present.
+  const srv=new Map();
+  for(const r of (_labV2.perYearWindow||[])){if(r&&r.year!=null)srv.set(+r.year,r);}
+  const gw=(_labData&&_labData.weights)||{};
+  let anySrv=false,anyW=false;
   const rows=[];
   for(const p of paths){
-    const base=p.arr[ws-1],end=p.arr[we-1];
+    // index-aligned with the backend: arr[ws] .. arr[we]
+    const base=p.arr[ws],end=p.arr[we];
     if(base==null||end==null)continue;
     let lo=0,hi=0,loTd=ws,hiTd=ws;
-    for(let i=ws-1;i<we;i++){
+    for(let i=ws;i<=we;i++){
       const rel=(p.arr[i]??base)-base;
-      if(rel<lo){lo=rel;loTd=i+1;}
-      if(rel>hi){hi=rel;hiTd=i+1;}
+      if(rel<lo){lo=rel;loTd=i;}
+      if(rel>hi){hi=rel;hiTd=i;}
     }
-    rows.push({y:p.y,ret:end-base,lo,hi,loTd,hiTd,fromLo:(end-base)-lo,fromHi:(end-base)-hi});
+    let ret=end-base;
+    const sr=srv.get(p.y);
+    if(sr&&sr.ret_pct!=null&&!_labOpts.detrend){
+      anySrv=true;ret=+sr.ret_pct;
+      if(sr.max_drop!=null)lo=Math.min(0,+sr.max_drop);
+      if(sr.max_rise!=null)hi=Math.max(0,+sr.max_rise);
+    }
+    let w=(sr&&sr.weight!=null)?+sr.weight:(gw[p.y]!=null?+gw[p.y]:(gw[String(p.y)]!=null?+gw[String(p.y)]:1));
+    if(!isFinite(w)||w<=0)w=1e-6; else if(Math.abs(w-1)>1e-9)anyW=true;
+    rows.push({y:p.y,ret,lo,hi,loTd,hiTd,w,fromLo:ret-lo,fromHi:ret-hi});
   }
   out.perYear=rows;out.n=rows.length;
+  out.lens=anyW?'smart-blend weighted':'equal-weight';
+  out.srvAligned=anySrv;
   if(!rows.length)return out;
-  const q=(a,p)=>_labQuantile([...a].sort((x,y)=>x-y),p);
+  const q=(a,p)=>_labQuantile([...a].sort((x,y)=>x-y),p);                    // raw equal-weight
+  const wq=(vals,p)=>_labWQuantile(rows.map((r,i)=>({v:vals[i],w:r.w})),p);  // smart-blend weighted
   const side=sgn=>{
     const rets=rows.map(r=>sgn*r.ret);
-    const adv=rows.map(r=>sgn>0?r.lo:-r.hi);        // adverse excursion (≤0 in side P&L)
-    const fav=rows.map(r=>sgn>0?r.hi:-r.lo);        // favourable excursion (≥0)
+    const adv=rows.map(r=>sgn>0?r.lo:-r.hi);        // adverse excursion (<=0 in side P&L)
+    const fav=rows.map(r=>sgn>0?r.hi:-r.lo);        // favourable excursion (>=0)
     // Entry timing: the seasonal extreme the trader wants to buy/sell into
     const extTds=rows.filter(r=>(sgn>0?r.lo<-1.0:r.hi>1.0)).map(r=>sgn>0?r.loTd:r.hiTd);
     const aheadTds=extTds.filter(t=>t>=td);
     const post=rows.map(r=>sgn>0?r.fromLo:-r.fromHi); // move from the extreme to window end
     const mid=Math.round((ws+we)/2);
-    const halves=rows.map(r=>{
+    const halves=[];
+    rows.forEach(r=>{
       const p=paths.find(x=>x.y===r.y);
-      const a=p?p.arr[ws-1]:null,m=p?p.arr[mid-1]:null,z=p?p.arr[we-1]:null;
-      return (a==null||m==null||z==null)?null:{near:sgn*(m-a),far:sgn*(z-m)};
-    }).filter(Boolean);
-    const wins=rets.filter(v=>v>0).length;
+      const a=p?p.arr[ws]:null,m=p?p.arr[mid]:null,z=p?p.arr[we]:null;
+      if(a!=null&&m!=null&&z!=null)halves.push({near:sgn*(m-a),far:sgn*(z-m),w:r.w});
+    });
+    // Hit rate — weighted, TIES EXCLUDED from numerator and denominator.
+    let wWin=0,wLoss=0,nWin=0,nLoss=0,nTie=0;
+    rets.forEach((v,i)=>{
+      const w=rows[i].w;
+      if(v>0){wWin+=w;nWin++;}
+      else if(v<0){wLoss+=w;nLoss++;}
+      else nTie++;
+    });
+    const wDen=wWin+wLoss, nDen=nWin+nLoss;
+    const totW=rows.reduce((s,r)=>s+r.w,0);
     const quorum=Math.max(2,Math.ceil(rows.length*0.34));
-    return {n:rows.length,wins,losses:rows.length-wins,
-      winRate:wins/rows.length,
-      med:q(rets,0.5),mean:rets.reduce((s,v)=>s+v,0)/rows.length,
-      advMed:q(adv,0.5),favMed:q(fav,0.5),
+    const wMean=totW>0?rets.reduce((s,v,i)=>s+v*rows[i].w,0)/totW:null;
+    return {n:rows.length,
+      // ── headline: smart-blend weighted, same lens as the plotted hero line ──
+      wins:nWin,losses:nLoss,nTie,
+      winRate:wDen>0?wWin/wDen:null,
+      med:wq(rets,0.5),mean:wMean,
+      advMed:wq(adv,0.5),favMed:wq(fav,0.5),postMed:wq(post,0.5),
+      nearMed:halves.length?_labWQuantile(halves.map(h=>({v:h.near,w:h.w})),0.5):null,
+      farMed:halves.length?_labWQuantile(halves.map(h=>({v:h.far,w:h.w})),0.5):null,
+      // ── secondary: raw equal-weight, sub-label only ──
+      rawWinRate:nDen>0?nWin/nDen:null,rawMed:q(rets,0.5),
+      rawMean:rets.reduce((s,v)=>s+v,0)/rows.length,
+      nEff:totW>0?(totW*totW)/rows.reduce((s,r)=>s+r.w*r.w,0):rows.length,
       nAdv:adv.filter(v=>v<=-2).length,
       entryTd:aheadTds.length>=quorum?Math.round(q(aheadTds,0.5)):null,
-      nEntry:aheadTds.length,postMed:q(post,0.5),
-      nearMed:halves.length?q(halves.map(h=>h.near),0.5):null,
-      farMed:halves.length?q(halves.map(h=>h.far),0.5):null,midTd:mid,
-      ranked:rows.map(r=>({y:r.y,v:sgn*r.ret})).sort((a,b)=>b.v-a.v)};
+      nEntry:aheadTds.length,midTd:mid,
+      ranked:rows.map(r=>({y:r.y,v:sgn*r.ret,w:r.w})).sort((a,b)=>b.v-a.v)};
   };
   out.long=side(1);out.short=side(-1);
   return out;
+}
+
+/* AUDIT-SEAS-R2-FRONTEND · shared lens stamp. Donut, callout, consensus grid and basket
+   cards all print the SAME string, so a trader can never be unsure which basket a number
+   came from. The raw equal-weight figure only ever appears as a secondary sub-label. */
+function _labV2LensStamp(s){
+  const sh=_labV2.shape;
+  const n=(s&&s.n)||(sh&&sh.n)||(_labV2.windowStats&&_labV2.windowStats.n_years)||0;
+  const lens=(sh&&sh.lens)||'smart-blend weighted';
+  return lens+' · '+n+' yrs';
+}
+function _labV2RawStamp(s){
+  if(!s)return '';
+  const rw=s.rawWinRate!=null?Math.round(s.rawWinRate*100)+'%':'—';
+  const rm=s.rawMed!=null?((s.rawMed>=0?'+':'')+s.rawMed.toFixed(1)+'%'):'—';
+  return 'raw equal-weight '+rw+' · median '+rm+(s.nTie?' · '+s.nTie+' tie'+(s.nTie>1?'s':'')+' excluded':'');
 }
 
 // Days-to-goldilocks straight from the scoring payload when one exists.
@@ -42878,6 +43057,29 @@ function _labV2PayloadGold(){
   return null;
 }
 
+/* AUDIT-SEAS-R2-FRONTEND · planner formatting helpers (item 3). */
+function _labPlanDate(v){
+  if(v==null)return null;
+  const d=(v instanceof Date)?v:new Date(String(v));
+  if(isNaN(d.getTime()))return String(v);
+  return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+}
+// Resolve the exit label: a real date if the backend gives one, else the seasonal phase.
+function _labPlanExitLbl(plan){
+  const dt=_labPlanDate(plan.exit_by_date);
+  if(dt)return dt;
+  const sh=_labV2.shape,d=_labData;
+  if(sh&&d&&plan.exit_in_td!=null){
+    const t=Math.min(252,Math.round(sh.td+ +plan.exit_in_td));
+    return d.months?tdPhase(t,d.months):('TD '+t);
+  }
+  return null;
+}
+const _LAB_TURN_WORD={dip:'dip',trough:'dip',low:'dip',peak:'peak',high:'peak',top:'peak'};
+function _labPlanTurnWord(plan,isShort){
+  const t=plan.next_turn_type?String(plan.next_turn_type).toLowerCase():null;
+  return (t&&_LAB_TURN_WORD[t])||(isShort?'peak':'dip');
+}
 const _LAB_TD2CAL=365/252;
 function _labV2SideCopy(isShort){
   return isShort
@@ -42908,7 +43110,9 @@ function _labV2RenderCallout(){
     const backLoaded=s.farMed>s.nearMed;
     shapeTxt=` Shape: first half <b>${pc(s.nearMed)}</b> → second half <b>${pc(s.farMed)}</b> — ${backLoaded?'the move is back-loaded, so patience pays':'the move is front-loaded, so late entries chase'}.`;
   }
-  const srcTxt=` <i>· equal-weight basket, ${s.n} yrs</i>`;
+  // AUDIT-SEAS-R2-FRONTEND: the callout is now on the SAME lens as the donut and the
+  // consensus grid, and says so. Raw equal-weight is demoted to the sub-label.
+  const srcTxt=` <i>· ${_labV2LensStamp(s)}</i>`;
   const wrPct=Math.round(s.winRate*100);
   // goldilocks countdown — backend value wins when it exists and matches the side
   let goldTd=s.entryTd!=null?(s.entryTd-sh.td):null;
@@ -42919,7 +43123,39 @@ function _labV2RenderCallout(){
   const wks=goldTd!=null?Math.max(1,Math.round(goldTd*_LAB_TD2CAL/7)):null;
   let tone='co-flat',ic='▬',kick='',txt='',pill='';
 
-  if(goldTd!=null&&goldTd<=2&&s.postMed>=1.5){
+  /* ══ AUDIT-SEAS-R2-FRONTEND · item 3: the swing planner is the PRIMARY callout ══
+     A seasonal edge is only tradeable if it tells you when to get in AND when to be out.
+     When the backend exposes an entry→exit leg we lead with it; `no_edge` (and the
+     pre-planner state, which is every deployment until the backend lands) falls through
+     to the round-1 goldilocks hierarchy below. */
+  const plan=_labV2PlanRead();
+  const pAct=plan&&plan.plan_action?String(plan.plan_action).toLowerCase():null;
+  const pMove=plan&&plan.expected_move_pct!=null?+plan.expected_move_pct:null;
+  const pWin=plan&&plan.leg_win_rate!=null?Math.round((+plan.leg_win_rate<=1?+plan.leg_win_rate*100:+plan.leg_win_rate)):null;
+  const pExit=plan?_labPlanExitLbl(plan):null;
+  const pExitTd=plan&&plan.exit_in_td!=null?Math.round(+plan.exit_in_td):null;
+  const pEntryTd=plan&&plan.entry_in_td!=null?Math.round(+plan.entry_in_td):null;
+  const pHold=plan&&plan.hold_td!=null?Math.round(+plan.hold_td):
+    (pExitTd!=null&&pEntryTd!=null?Math.max(1,pExitTd-pEntryTd):pExitTd);
+  const pTurn=plan?_labPlanTurnWord(plan,isShort):null;
+  const pLeg=[pMove!=null?`expected move <b>${pc(Math.abs(pMove)*(isShort?1:1))}</b>`:null,
+              pWin!=null?`leg win rate <b>${pWin}%</b>`:null].filter(Boolean).join(' · ');
+  const pEdge=pLeg?` ${pLeg[0].toUpperCase()+pLeg.slice(1)}.`:'';
+
+  if(pAct==='enter_now'&&pExit){
+    tone='co-good';ic=isShort?'▼':'▲';pill='ENTER NOW';
+    const left=plan.next_turn_td!=null?Math.round(+plan.next_turn_td):pExitTd;
+    kick=`Enter now — exit by ${pExit}`;
+    txt=`${left!=null?`<b>${left} TD</b> left before the seasonal ${pTurn}`:`Seasonal window is open`} — `+
+        `${isShort?'sell':'buy'} into it and be flat by <b>${pExit}</b>${pHold!=null?` (${pHold} TD hold)`:''}.`+
+        `${pEdge} Median ${C.favWord} across ${winLbl} <b>${mag(s.favMed)}</b>, median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>.${shapeTxt}${srcTxt}`;
+  }else if(pAct==='wait'&&pEntryTd!=null){
+    tone='co-gold';ic='◷';pill=`${pEntryTd} TD`;
+    kick=`Goldilocks in ${pEntryTd} TD — then ride to ${pExit||ph(sh.we)}`;
+    txt=`Do nothing yet. Seasonal ${pTurn} lands in <b>${pEntryTd} TD</b>${pEntryTd>0?` (~${Math.max(1,Math.round(pEntryTd*_LAB_TD2CAL/7))} week${Math.round(pEntryTd*_LAB_TD2CAL/7)===1?'':'s'})`:''}; `+
+        `${isShort?'sell':'buy'} that ${pTurn}, then exit by <b>${pExit||ph(sh.we)}</b>${pHold!=null?` — a ${pHold} TD leg`:''}.`+
+        `${pEdge} Median adverse ${C.adverseWord} before then <b>${pc(s.advMed)}</b>.${shapeTxt}${srcTxt}`;
+  }else if(goldTd!=null&&goldTd<=2&&s.postMed>=1.5){
     tone='co-good';ic=isShort?'▼':'▲';pill='NOW';
     kick=`Goldilocks entry — live now`;
     txt=`Seasonal ${C.extreme} sits around <b>${entryPhase}</b> — effectively here. From there the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b>; <b>${s.wins} of ${s.n}</b> years ${C.wordPast} across ${winLbl} (median <b>${pc(s.med)}</b>).${shapeTxt}${srcTxt}`;
@@ -42949,7 +43185,7 @@ function _labV2RenderCallout(){
   co.style.display='grid';
   co.className='lab-callout '+tone;
   co.style.background='';co.style.borderColor='';co.style.color='';
-  co.innerHTML=`<span class="co-ic">${ic}</span><div class="co-body"><div class="co-kick">${kick}</div><div class="co-txt">${txt}</div></div>`+
+  co.innerHTML=`<span class="co-ic">${ic}</span><div class="co-body"><div class="co-kick">${kick}</div><div class="co-txt">${txt}</div><div class="co-sub">${_labV2RawStamp(s)}</div></div>`+
     (pill?`<span class="co-pill">${pill}</span>`:'');
 }
 
@@ -42963,12 +43199,12 @@ function _labV2RenderBasketStats(){
   const col=v=>v==null?'var(--dim)':v>=0?'var(--s1)':'var(--sm2)';
   const ph=t=>d.months?tdPhase(t,d.months):('TD '+t);
   const winLbl=`${ph(sh.ws)} → ${ph(sh.we)}`;
-  const wr=Math.round(s.winRate*100);
+  const wr=s.winRate!=null?Math.round(s.winRate*100):0;
   const best=s.ranked[0],worst=s.ranked[s.ranked.length-1];
   const pnl=isShort?'short P&L':'return';
   el.innerHTML=
     `<div class="lab-stat"><div class="lv">${sh.n}</div><div class="lk">Years in basket · ${sh.tdWin} TD</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${wr>=55?'var(--s1)':wr<=45?'var(--sm2)':'var(--accent)'}">${wr}%</div><div class="lk">${isShort?'Short hit rate':'Hit rate'} · ${s.wins}/${s.n} ${isShort?'down':'up'} · equal-wt</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${wr>=55?'var(--s1)':wr<=45?'var(--sm2)':'var(--accent)'}">${wr}%</div><div class="lk">${isShort?'Short hit rate':'Hit rate'} · ${s.wins}/${s.wins+s.losses} ${isShort?'down':'up'} · ${_labV2LensStamp(s)}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:${col(s.med)}">${pc(s.med)}</div><div class="lk">Median ${pnl} · ${winLbl}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:${col(s.mean)}">${pc(s.mean)}</div><div class="lk">Mean ${pnl} · ${winLbl}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${pc(best.v)}</div><div class="lk">Best · ${best.y}${isShort?' (biggest fall)':''}</div></div>`+
@@ -43071,7 +43307,13 @@ async function _labV2FetchWindow(){
     const d=await fetchSeasLab(mkt, opts);
     if(my!==_labV2.reqSeq || mkt!==_labV2.marketId) return;   // superseded — drop
     if(d.window){_labV2.windowStats=d.window.window_stats||null; _labV2.perYearWindow=d.window.per_year_windows||[];}
+    // AUDIT-SEAS-R2-FRONTEND: the shape engine adopts the server's per-year rows for this
+    // window, so it MUST be recomputed once they land — otherwise the callout would keep
+    // quoting client-derived numbers while the donut quoted server ones (screenshot A).
+    _labV2RecomputeShape();
     _labV2RenderWindowSidebar();
+    _labV2RenderCallout();
+    _labV2RenderBasketStats();
     _labV2RenderTable();
   }catch(e){console.warn('seas window fetch failed',e);}
 }
@@ -43086,6 +43328,15 @@ function _labV2RenderLegend(){
     `<span class="lg"><i class="sw sw-basket"></i>Basket ${_labOpts.avg} (equal-weight)</span>`+
     (_labOpts.actual?`<span class="lg"><i class="sw sw-actual"></i>${d.current_year} actual</span>`:'')+
     (_labOpts.band?`<span class="lg"><i class="sw sw-band"></i>Plausible range</span>`:'');
+}
+
+/* AUDIT-SEAS-R2-FRONTEND: single place that rebuilds the shape/lens object from the
+   current basket, window and (when present) the server's per-year window rows. */
+function _labV2RecomputeShape(){
+  if(!_labData)return;
+  const td=_labData.current_td;
+  const w=_labV2.window||{ws:td,we:Math.min(252,td+_LAB_FWD)};
+  _labV2.shape=_labV2ComputeShape(_labPaths(),w.ws,w.we,td);
 }
 
 // Set the active analysis window (from presets, month picker, drag or dblclick)
@@ -43134,7 +43385,7 @@ function _labV2SyncWinChips(){
     if(w){
       if(v==='ye')on=(Math.abs(w.ws-td)<=1&&w.we>=250);
       else on=(Math.abs(w.ws-td)<=1&&Math.abs(w.we-Math.min(252,td+(+v)))<=1);
-    }else if(v==='60')on=true;
+    }else if(v===String(_LAB_FWD))on=true;   // AUDIT-SEAS-R2-FRONTEND: default is +30 TD, not +60
     ch.classList.toggle('active',on);
   });
   if(ms){ms.classList.toggle('active',matchedMonth>=0);ms.value=matchedMonth>=0?String(matchedMonth):'';}
@@ -43188,7 +43439,7 @@ function _labV2AttachDragSelect(){
   window.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape') endDrag(false); });
   cvs.addEventListener('dblclick', ()=>{
     const td=_labData.current_td;
-    _labV2SetWindow(td, Math.min(252, td+_LAB_FWD));
+    _labV2SetWindow(td, Math.min(252, td+_labV2PlannerDefaultTd()));
   });
 }
 
@@ -43238,22 +43489,32 @@ function _labV2RenderWindowSidebar(){
   // Since we swap in short mirror stats (already sign-flipped for w_median/w_mean/ann_return), positive still means "good for the trader".
   const goodCol='var(--s1)', badCol='var(--sm2)';
   const cls=v=>v==null?'':v>=0?'up':'dn';
-  const wr=s.win_rate!=null?Math.round(s.win_rate*100):null;
+  // AUDIT-SEAS-R2-FRONTEND: ONE lens. The donut now reads the unified shape engine
+  // (smart-blend weighted, index-aligned with the backend, ties excluded) — the exact
+  // same object the callout and the basket cards read. The server's own weighted rate is
+  // only a fallback for the split second before the window rows land.
+  const sh=_labV2.shape;
+  const us=sh?(isShort?sh.short:sh.long):null;   // unified side stats
+  const wrFracSrc=(us&&us.winRate!=null)?us.winRate:(s.win_rate!=null?s.win_rate:null);
+  const wr=wrFracSrc!=null?Math.round(wrFracSrc*100):null;
   const wrCol=wr==null?'var(--dim)':wr>=55?goodCol:wr<=45?badCol:'var(--accent)';
-  const wrLabel=isShort?'Short win rate · wtd':'Win rate · weighted';
+  const wrLabel=isShort?'Short win rate':'Win rate';
   // window label — use _labV2.window (backend does not echo window_start/end in stats)
   const d=_labData;
   const ws=(_labV2.window&&_labV2.window.ws)||0, we=(_labV2.window&&_labV2.window.we)||0;
   const wsPhase=d.months?tdPhase(ws,d.months):'', wePhase=d.months?tdPhase(we,d.months):'';
-  const winLbl=`${wsPhase} → ${wePhase} · ${raw.n_years} yrs`;
+  const winLbl=`${wsPhase} → ${wePhase} · ${(us&&us.n)||raw.n_years} yrs`;
   // best/worst YEAR labels use per-year price returns; for short, we invert selection so "best" = biggest price fall
   let bestY=null,worstY=null;
   if(py.length){
     const sorted=[...py].sort((a,b)=> isShort? (a.ret_pct-b.ret_pct) : (b.ret_pct-a.ret_pct));
     bestY=sorted[0].year; worstY=sorted[sorted.length-1].year;
   }
-  const upCount = s.n_gains;    // _labV2ActiveStats() already swaps in the short mirror counts
-  const dnCount = s.n_losses;
+  // AUDIT-SEAS-R2-FRONTEND: counts come from the unified engine so they can never
+  // disagree with the donut above them (Ben's "19 down · 22 up" next to 48%).
+  const upCount = (us&&us.wins!=null)?us.wins:s.n_gains;
+  const dnCount = (us&&us.losses!=null)?us.losses:s.n_losses;
+  const tieCount = (us&&us.nTie)||0;
   const upLbl = isShort ? 'down' : 'up';
   const dnLbl = isShort ? 'up' : 'down';
   // KPI labels flip on direction
@@ -43264,6 +43525,9 @@ function _labV2RenderWindowSidebar(){
   const kBest   = isShort?'Best year (biggest fall)':'Best year';
   const kWorst  = isShort?'Worst year (biggest rally)':'Worst year';
 
+  // AUDIT-SEAS-R2-FRONTEND: median/mean KPIs use the same weighted lens as the donut.
+  const uMed=(us&&us.med!=null)?us.med:s.w_median;
+  const uMean=(us&&us.mean!=null)?us.mean:s.w_mean;
   const R=38, C=2*Math.PI*R;
   const wrFrac=(wr==null?0:wr)/100;
   const wrDashOn=(C*wrFrac).toFixed(1), wrDashOff=(C-C*wrFrac).toFixed(1);
@@ -43280,14 +43544,16 @@ function _labV2RenderWindowSidebar(){
       <div class="info">
         <div class="win-title">Window</div>
         <div class="win-sub"><b>${winLbl}</b></div>
-        <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${upCount} ${upLbl} · ${dnCount} ${dnLbl}${raw.td_window?' · '+raw.td_window+' TD':''}</div>
+        <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${upCount} ${upLbl} · ${dnCount} ${dnLbl}${tieCount?' · '+tieCount+' flat (excl.)':''}${raw.td_window?' · '+raw.td_window+' TD':''}</div>
+        <div class="win-lens">${_labV2LensStamp(us)}</div>
+        ${us?`<div class="win-raw">${_labV2RawStamp(us)}</div>`:''}
       </div>
     </div>
     ${_labV2EntryStripHTML()}
     ${_labV2ConsensusHTML()}
     <div class="lab-v2-kpi-grid">
-      <div class="lab-v2-kpi"><div class="kv ${cls(s.w_median)}" style="color:${s.w_median>=0?goodCol:badCol}">${pc(s.w_median)}</div><div class="kk">${kMedian}</div></div>
-      <div class="lab-v2-kpi"><div class="kv ${cls(s.w_mean)}" style="color:${s.w_mean>=0?goodCol:badCol}">${pc(s.w_mean)}</div><div class="kk">${kMean}</div></div>
+      <div class="lab-v2-kpi"><div class="kv ${cls(uMed)}" style="color:${uMed>=0?goodCol:badCol}">${pc(uMed)}</div><div class="kk">${kMedian}</div></div>
+      <div class="lab-v2-kpi"><div class="kv ${cls(uMean)}" style="color:${uMean>=0?goodCol:badCol}">${pc(uMean)}</div><div class="kk">${kMean}</div></div>
       <div class="lab-v2-kpi"><div class="kv up" style="color:${goodCol}">${pc(s.avg_gain)}</div><div class="kk">${kAvgG}</div></div>
       <div class="lab-v2-kpi"><div class="kv dn" style="color:${badCol}">${pc(s.avg_loss)}</div><div class="kk">${kAvgL}</div></div>
       <div class="lab-v2-kpi"><div class="kv up" style="color:${goodCol}">${pc(s.max_gain)}</div><div class="kk">${kBest}${bestY?' • '+bestY:''}</div></div>
@@ -43313,6 +43579,30 @@ function _labV2EntryStripHTML(){
   const pg=_labV2PayloadGold();
   let goldTd=s.entryTd!=null?(s.entryTd-sh.td):null,fromScore=false;
   if(pg&&(!pg.dir||pg.dir===_labV2.dir)){goldTd=pg.td;fromScore=true;}
+  /* AUDIT-SEAS-R2-FRONTEND item 3: when the planner ships, this strip stops being a
+     countdown-to-entry and becomes the whole plan — entry TD, exit date, hold length. */
+  const _pl=_labV2PlanRead();
+  if(_pl&&(_pl.entry_in_td!=null||_pl.exit_in_td!=null)){
+    const ph0=t=>d.months?tdPhase(t,d.months):('TD '+t);
+    const eIn=_pl.entry_in_td!=null?Math.max(0,Math.round(+_pl.entry_in_td)):0;
+    const xIn=_pl.exit_in_td!=null?Math.round(+_pl.exit_in_td):null;
+    const xLbl=_labPlanExitLbl(_pl)||(xIn!=null?ph0(Math.min(252,sh.td+xIn)):'—');
+    const holdTd=_pl.hold_td!=null?Math.round(+_pl.hold_td):(xIn!=null?Math.max(1,xIn-eIn):null);
+    const liveNow=eIn<=1;
+    const span=Math.max(1,sh.we-sh.ws);
+    const p0=Math.max(2,Math.min(98,100*(sh.td+eIn-sh.ws)/span));
+    const p1=Math.max(p0,Math.min(98,100*(sh.td+(xIn!=null?xIn:eIn)-sh.ws)/span));
+    const mv=_pl.expected_move_pct!=null?Math.abs(+_pl.expected_move_pct).toFixed(1)+'%':null;
+    const lw=_pl.leg_win_rate!=null?Math.round((+_pl.leg_win_rate<=1?+_pl.leg_win_rate*100:+_pl.leg_win_rate))+'%':null;
+    return `<div class="lab-v2-entry${liveNow?' live':''}">
+      <div class="entry-top">
+        <div class="entry-lbl">${liveNow?'Enter now — exit by':'Enter in '+eIn+' TD — exit by'}</div>
+        <div class="entry-cd">${xLbl}</div>
+      </div>
+      <div class="entry-track"><span class="tk-fill" style="width:${p1}%"></span><span class="tk-dot" style="left:${p0}%"></span><span class="tk-dot tk-dot-exit" style="left:${p1}%"></span></div>
+      <div class="entry-sub">${holdTd!=null?`<b>${holdTd} TD</b> hold`:'Planned leg'}${mv?` · expected move <b>${mv}</b>`:''}${lw?` · leg win rate <b>${lw}</b>`:''} · ${_labV2LensStamp(s)}</div>
+    </div>`;
+  }
   // ≤30 TD ≈ 6 weeks — beyond that the entry is not actionable for a 1-4 week swing
   if(goldTd==null||goldTd<0||goldTd>30||s.postMed==null||s.postMed<1)return '';
   const entryTd=s.entryTd!=null?s.entryTd:Math.min(252,sh.td+goldTd);
