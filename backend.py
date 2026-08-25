@@ -12936,7 +12936,10 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
     cyc_w = float(blend.get("cycle_w", 1.0))
     hl = float(blend.get("halflife", 15) or 15)
     ck = _cycle_key_for_year(asof_year)
-    horizons = [("near", 21), ("mid", 42), ("far", 63)]
+    # Swing-trade horizons: 1-2wk (near), 3wk (mid), 4wk (far).
+    # Beyond ~4 weeks isn't relevant to the trading objective — anchor the
+    # consensus on the actual holding period, not multi-month drift.
+    horizons = [("near", 7), ("mid", 15), ("far", 21)]
     yrs = sorted(int(y) for y in years_dict
                  if int(y) < asof_year and int(y) >= asof_year - _SEAS_YEARS_BACK)
 
@@ -12984,7 +12987,8 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
     # commodities (1.0x) → 0.3 (cycle read is context, not signal).
     cyc_rel = max(0.3, min(1.0, 0.3 + (cyc_w - 1.0) / 1.5 * 0.7))
     LW = {"all": 1.0, "cycle": cyc_rel, "blend": 1.25}
-    HW = {"near": 1.25, "mid": 1.0, "far": 0.8}
+    # Front-load the 1-2wk lens — that's the actual trade timing decision.
+    HW = {"near": 1.4, "mid": 1.1, "far": 0.8}
     wsum = sum(c["dir"] * LW[c["lens"]] * HW[c["h"]] for c in cells)
     active = [c for c in cells if c["dir"] != 0]
     dom = 1 if wsum > 0 else (-1 if wsum < 0 else 0)
@@ -13186,7 +13190,10 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     # can post a positive net return but be a bad long entry. Add a far window
     # (TD_b → TD_b+40, i.e. the 8 weeks AFTER the near window) to detect
     # peak/trough proximity and dampen fading edges.
-    td_c = min(252, td_b + 40)
+    # Far-window: 3 weeks (15 TD) beyond the primary 20-TD window.
+    # This lets the shape dampener catch a seasonal peak inside a 5-7wk hold
+    # without dragging in irrelevant 3-month drift.
+    td_c = min(252, td_b + 15)
     far_score = None
     far_median = None
     far_hit_rate = None
@@ -13403,7 +13410,7 @@ _DYN_SEAS_PATH = os.path.join(DATA_DIR, "seasonality_dynamic.json")
 _DYN_SEAS_TTL  = 7 * 86400      # rebuild each market weekly
 _DYN_SEAS_BUILT: dict = {}      # market_id -> last build ts (in-memory)
 
-_SEAS_BUILDER_VERSION = 3   # bump to force rebuild of cached dynamic seasonality
+_SEAS_BUILDER_VERSION = 4   # v4: unsmoothed cycle curves + swing-horizon consensus (7/15/21 TD)
 
 
 def _find_seas_turns(med: list, by_year: dict, prior: list, weights: dict = None) -> list:
@@ -13571,9 +13578,13 @@ def _build_seasonality_from_closes(closes, current_year: int,
         med_raw.append(_seas_wq(vals, ws, 0.5))
         lo_raw.append(_seas_wq(vals, ws, 0.25))
         hi_raw.append(_seas_wq(vals, ws, 0.75))
-    # Median curve: UNSMOOTHED (Seasonax-style) — raw day-level texture makes
-    # genuine seasonal peaks/troughs precise. Band: k=7 smoothing, calm context.
-    med_s = list(med_raw); lo_s = _smooth(lo_raw, k=7); hi_s = _smooth(hi_raw, k=7)
+    # Median curve AND cycle curves: UNSMOOTHED (Seasonax-style) — raw day-level
+    # texture is precisely what makes short-term seasonal peaks/troughs tradeable.
+    # Any smoothing pushes the peak marker off by days and blunts entry/exit signal.
+    # Band (25–75%) keeps a gentle k=5 smooth — it's a calm-context envelope,
+    # not a timing signal, so the visual noise dampen helps chart readability
+    # without touching the scoring path (which uses raw per-year prints).
+    med_s = list(med_raw); lo_s = _smooth(lo_raw, k=5); hi_s = _smooth(hi_raw, k=5)
 
     curve = [[i + 1, round(med_s[i], 3)] for i in range(252)]
     band = [[i + 1, round(lo_s[i], 3), round(hi_s[i], 3)] for i in range(252)]
@@ -13589,7 +13600,8 @@ def _build_seasonality_from_closes(closes, current_year: int,
                 n = len(vals)
                 mid = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
                 cm.append(mid)
-            cm = _smooth(cm)
+            # UNSMOOTHED cycle curves — preserve genuine peak/trough dates that
+            # a swing trader keys off. Was k=5 smoothed; that shifted turns.
             cycles[cyc] = [[i + 1, round(cm[i], 3)] for i in range(252)]
 
     return {
