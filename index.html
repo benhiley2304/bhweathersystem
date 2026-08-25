@@ -37315,7 +37315,7 @@ function seasGoldilocksHTML(g,sd){
       ?'Entry window open — price has come back to you'
       :'Entry window open — seasonal move already underway';
     body=better
-      ? `The ideal seasonal ${g.dir>0?'low':'high'} was around <strong>${g.targetLabel}</strong> (<strong>${Math.abs(g.tdsAway)} trading days</strong> ago), but price has since moved <em>against</em> the seasonal leg — today is a <strong>better level than the entry itself</strong>, with the full median leg of <strong style="color:${accent}">${pc(priceRem)}</strong> into <strong>${g.legEndLabel}</strong> still ahead. Late by the calendar, early by the price.${caveat}`
+      ? `The ideal seasonal ${g.dir>0?'low':'high'} was around <strong>${g.targetLabel}</strong> (<strong>${Math.abs(g.tdsAway)} trading days</strong> ago), but price has since moved <em>against</em> the seasonal leg — today is a <strong>better level than the entry itself</strong>, with the full median leg of <strong style="color:${accent}">${pc(priceRem)}</strong> into <strong>${g.legEndLabel}</strong> still ahead. Late by the calendar, early by the price.`
       : `The seasonal ${g.dir>0?'low':'high'} printed around <strong>${g.targetLabel}</strong> (<strong>${Math.abs(g.tdsAway)} trading days</strong> ago) and <strong style="color:${accent}">${pc(priceRem)}</strong> of the median leg${capPct!=null?` (<strong>${capPct}%</strong> of it)`:''} is still ahead into <strong>${g.legEndLabel}</strong>. Still a valid ${dirWord}, just not the perfect print.`;
   } else {
     tag='PAST'+(capPct!=null?' · '+capPct+'% LEFT':'');tagCol='#8a93a8';tagRgb='138,147,168';
@@ -37430,7 +37430,7 @@ function seasPerYearHTML(sd,canvasId){
     <div class="sx-panel-head"><div class="t">Every year in the window</div>
       <span class="sx-panel-r">${py.length} yrs · ${good} ${dir<0?'down':'up'} · sorted worst → best${dir<0?' for a short':''}</span></div>
     <div class="sx-py"><canvas id="${canvasId}"></canvas></div>
-    <div class="sx-panel-note">Bars are raw per-year returns of the current forward window, coloured green when the year went the way of the seasonal bias. Hover for the year and its recency/cycle weight.</div>
+    <div class="sx-panel-note">Raw per-year returns of the current forward window — <strong>green = price rose, red = price fell</strong>. Solid bars went <strong>with</strong> the ${dir<0?'short':'long'} bias, faded bars went against it. Hover for the year and its recency/cycle weight.</div>
   </div>`;
 }
 
@@ -37443,18 +37443,22 @@ function seasDrawPerYearBars(canvasId,sd){
   if(_sxPyChart){try{_sxPyChart.destroy()}catch(e){} _sxPyChart=null;}
   const dir=seasBiasDir(sd);
   const sorted=[...py].sort((a,b)=>dir<0?(b.r-a.r):(a.r-b.r));
-  const goodCol='rgba(38,201,122,0.78)', badCol='rgba(240,64,64,0.78)';
+  // Colour is PRICE truth — green = price rose, red = price fell — never inverted
+  // for a short. "Went with the seasonal bias" is carried by opacity + sort order.
+  const upCol=a=>'rgba(38,201,122,'+a+')', dnCol=a=>'rgba(240,64,64,'+a+')';
+  const paint=r=>{const withBias=dir<0?r<0:r>0;const a=(dir===0||withBias)?0.85:0.32;return r>=0?upCol(a):dnCol(a);};
   _sxPyChart=new Chart(cvs.getContext('2d'),{
     type:'bar',
     data:{labels:sorted.map(p=>"'"+String(p.y).slice(2)),datasets:[{
       data:sorted.map(p=>p.r),
-      backgroundColor:sorted.map(p=>(dir<0?p.r<0:p.r>0)?goodCol:badCol),
+      backgroundColor:sorted.map(p=>paint(p.r)),
       borderRadius:2,borderSkipped:false,barPercentage:0.86,categoryPercentage:1
     }]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:280},
       plugins:{legend:{display:false},tooltip:{callbacks:{
         title:i=>i.length?String(sorted[i[0].dataIndex].y):'',
-        label:i=>(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'% · weight '+(sorted[i.dataIndex].w!=null?(+sorted[i.dataIndex].w).toFixed(2):'—')}}},
+        label:i=>{const p=sorted[i.dataIndex];const withBias=dir<0?p.r<0:p.r>0;
+          return (i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'% · weight '+(p.w!=null?(+p.w).toFixed(2):'—')+(dir!==0?(withBias?' · with the bias':' · against the bias'):'');}}}},
       scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:8},autoSkip:true,maxTicksLimit:12,maxRotation:0}},
         y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a93a8',font:{size:8},callback:v=>(v>=0?'+':'')+v+'%'}}}}});
 }
