@@ -8760,19 +8760,29 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
         # Duration-graduated risk sensitivity + rate-path adjustment
         # us_rate_adj > 0 (hiking) → headwind for bond prices (yields rising)
         # Risk component: risk-off (raw_score < 0) → bond bullish
+        #
+        # R4 (2026-08-26): Extremity gate on duration multiplier.
+        # Prior code applied full duration multiplier (up to 1.5× for ZB) to any raw
+        # climate reading, which turned mild leans (raw ±1.5) into extreme regime scores
+        # (≤10 or ≥0) despite regime having ~0 IC on bonds historically. The full
+        # multiplier only fires when climate is at genuine extreme (|raw| ≥ 2.0);
+        # inside the moderate band the multiplier is dampened 0.55× so "Lean Risk-On"
+        # yields a moderate 4-4.5 bearish tilt rather than a 2.5-3 extreme.
+        _abs_raw = abs(raw_score or 0.0)
+        _extremity_gate = 1.0 if _abs_raw >= 2.0 else 0.55
         if m == "ZT":
             # 2Y: dominated by rate path, weakest safe-haven characteristic
-            score_raw = -raw_score * 0.6 + us_rate_adj * (-1.00) + 5.0
+            score_raw = -raw_score * (0.6 * _extremity_gate) + us_rate_adj * (-1.00) + 5.0
             rate_label = "Rate-path dominant"
         elif m == "ZF":
-            score_raw = -raw_score * 0.9 + us_rate_adj * (-0.80) + 5.0
+            score_raw = -raw_score * (0.9 * _extremity_gate) + us_rate_adj * (-0.80) + 5.0
             rate_label = "Belly: rate + risk balanced"
         elif m == "ZN":
-            score_raw = -raw_score * 1.25 + us_rate_adj * (-0.60) + 5.0
+            score_raw = -raw_score * (1.25 * _extremity_gate) + us_rate_adj * (-0.60) + 5.0
             rate_label = "10Y benchmark"
         elif m == "ZB":
             # 30Y: highest duration, most regime-sensitive
-            score_raw = -raw_score * 1.50 + us_rate_adj * (-0.50) + 5.0
+            score_raw = -raw_score * (1.50 * _extremity_gate) + us_rate_adj * (-0.50) + 5.0
             rate_label = "Long duration: regime dominant"
         elif m == "R":
             # Long Gilt: BoE-driven; use BoE rate signal if available
@@ -8781,7 +8791,7 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
             _boe_t3 = boe.get("trend_3m") or 0.0
             _boe_b  = boe.get("bias") or 0
             _boe_adj = max(-2.0, min(2.0, ((_boe_t6 or 0.0) * 0.65 + (_boe_t3 or 0.0) * 0.35 + (_boe_b or 0) * 0.25) / 0.3))
-            score_raw = -raw_score * 1.25 + _boe_adj * (-0.55) + 5.0
+            score_raw = -raw_score * (1.25 * _extremity_gate) + _boe_adj * (-0.55) + 5.0
             rate_label = "BoE rate path"
             rate_score = round(_boe_adj, 2)
         normalized = _sc(score_raw)
@@ -10500,18 +10510,20 @@ WEIGHTS_LIVESTOCK = {
 }
 
 # ── BOND FUTURES (ZB 30yr, ZN 10yr, ZF 5yr, ZT 2yr) ────────────────────────────────────
-# COT 5.5/10 (FOMC policy announcements create large non-informational position
-#   changes; bank duration hedging overlaps with liability management). Trim 18%→13%.
-# MACRO 30%: macro explains the largest share of bond returns of any asset class
-#   (~40% of variance per literature). Boosted 25%→30%.
-# REGIME 30%: flight-to-safety is the primary non-macro bond driver. Boosted 25%→30%.
-# Seasonal 8%: trimmed — ZB seasonal well-documented but subordinate to macro/regime.
+# R4 rebalance (2026-08-26) — historical Spearman IC on 261-obs ZB score_history:
+#   comp -0.131 · cot -0.066 · SEAS +0.087 · mom -0.198 · macro +0.004 · REGIME -0.009
+# Regime IC essentially zero for bonds (2021-26 duration bear market decouples
+# risk-on/off from bond price direction — the current selloff is a fiscal supply +
+# term-premium story, not classic flight-from-safety). Regime trimmed 30%→22%.
+# Seasonal IC +0.087 makes it the highest-signal factor on the historical set;
+# boosted 8%→14%. Macro kept as primary driver — the actual macro composite reads
+# the fundamental backdrop cleanly (tame inflation, priced hikes, weak jobs).
 WEIGHTS_BONDS = {
     "cot":      0.13,  # FOMC non-informational distortion; bank duration mechanical
-    "seasonal": 0.08,  # ZB: 87% MRCI win-rate but subordinate to macro/regime
+    "seasonal": 0.14,  # R4: raised 8→14 — IC +0.087 is best-evidenced factor for ZB
     "momentum": 0.15,
-    "macro":    0.30,  # HIGHEST: ~40% of bond return variance is macro-driven
-    "regime":   0.30,  # HIGHEST: flight-to-safety is primary non-macro bond driver
+    "macro":    0.32,  # R4: raised 30→32 — highest IC when regime near-zero
+    "regime":   0.22,  # R4: trimmed 30→22 — IC -0.009 does not justify top weight
     "relval":   0.04,
     "pcr":      0.00,
 }
