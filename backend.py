@@ -5108,8 +5108,8 @@ def compute_all_ff_macro() -> dict:
 FRED_SERIES = {
     "GDP":      "A191RL1Q225SBEA",
     "INDPRO":   "INDPRO",
-    "CPI":      "CPIAUCSL",
-    "CORE_CPI": "CPILFESL",
+    "CPI":      "CPIAUCNS",   # NSA — matches the BLS headline YoY quoted in the press (AUDIT 2026-08-26: SA index gave 3.54% vs the reported 3.4%)
+    "CORE_CPI": "CPILFENS",   # NSA — same convention fix (SA gave 2.79% vs reported 2.5%)
     "PPI":      "PPIFIS",   # PPI: Final Demand (SA) — BLS headline figure. PPIACO (All Commodities) was incorrectly used before — it's a raw commodity spot index, not the market-reported PPI.
     "PCE":      "PCEPI",
     "CORE_PCE": "PCEPILFE",
@@ -5287,14 +5287,11 @@ def _compute_surprise_at_date(
         return 0
 
     if transform == "yoy":
-        # Build YoY series from available raw data
+        # Build YoY series from available raw data (date-matched — AUDIT 2026-08-26:
+        # positional i-12 spans 13 months across gaps like the Oct 2025 CPI hole)
         if len(avail) < 13:
             return 0
-        yoy = []
-        for i in range(12, len(avail)):
-            pct = (avail[i]["value"] / avail[i - 12]["value"] - 1) * 100 \
-                  if avail[i - 12]["value"] != 0 else 0.0
-            yoy.append({"date": avail[i]["date"], "value": round(pct, 3)})
+        yoy = _yoy_date_matched(avail)
         if len(yoy) < 4:
             return 0
         actual = yoy[-1]["value"]
@@ -5576,6 +5573,30 @@ def _surprise_label(surprise: float, scale: float) -> str:
     elif norm < -0.4: return "Miss"
     else:              return "In Line"
 
+def _yoy_date_matched(series_list: list):
+    """Date-matched YoY series (AUDIT 2026-08-26). FRED series can have gaps
+    (Oct 2025 CPI was never published during the shutdown), so positional
+    i-12 offsets silently span 13 months. Match on (year-1, month) instead.
+    Returns list of {date, value(yoy %)}."""
+    _by_ym = {}
+    for v in series_list:
+        try:
+            if v.get("value") is not None:
+                _by_ym[(int(v["date"][:4]), int(v["date"][5:7]))] = v["value"]
+        except Exception:
+            pass
+    out = []
+    for v in series_list:
+        try:
+            _y, _m = int(v["date"][:4]), int(v["date"][5:7])
+        except Exception:
+            continue
+        _base = _by_ym.get((_y - 1, _m))
+        if _base and v.get("value") is not None:
+            out.append({"date": v["date"], "value": round((v["value"] / _base - 1) * 100, 3)})
+    return out
+
+
 def compute_macro_surprise(series_list: list, higher_is_good: bool, transform: str = "level",
                             scale: float = 1.0) -> dict:
     """
@@ -5591,10 +5612,11 @@ def compute_macro_surprise(series_list: list, higher_is_good: bool, transform: s
     if transform == "yoy":
         if len(vals) < 13:
             return {"score": 0, "actual": None, "expected": None, "surprise": None, "label": "Insufficient data"}
-        yoy_series = []
-        for i in range(12, len(vals)):
-            yoy = (vals[i]["value"] / vals[i - 12]["value"] - 1) * 100
-            yoy_series.append({"date": vals[i]["date"], "value": round(yoy, 2)})
+        # AUDIT 2026-08-26: YoY must be DATE-matched, not positional. FRED
+        # series can have gaps (e.g. Oct 2025 CPI was never published during
+        # the shutdown), and a positional i-12 offset then silently spans 13
+        # months — CPI YoY printed 3.5% when the true 12m change was 3.4%.
+        yoy_series = _yoy_date_matched(vals)
         if len(yoy_series) < 4:
             return {"score": 0, "actual": None, "expected": None, "surprise": None, "label": "Insufficient data"}
         actual = yoy_series[-1]["value"]
@@ -7062,12 +7084,15 @@ def _compute_intl_rates() -> dict:
                 else:
                     _label = "Flat"
             else:
-                # Interbank proxy — use t6 + fallback confirmation
-                if (trend_6m > 0.5 and trend_3m > 0.05) or actively_hiking:
+                # Interbank proxy — use t6 + fallback confirmation.
+                # AUDIT 2026-08-26: 12m-based actively_cutting/hiking now needs
+                # 3m confirmation — a bank that cut earlier in the year but has
+                # been on hold for 3m+ reads "Paused", not "Cutting" (BoC case).
+                if (trend_6m > 0.5 and trend_3m > 0.05) or (actively_hiking and trend_3m > 0.02):
                     _label = "Hiking"
                 elif trend_6m > 0.1 and trend_3m > -0.05:
                     _label = "Tightening"
-                elif (trend_6m < -0.5 and trend_3m < -0.05) or actively_cutting:
+                elif (trend_6m < -0.5 and trend_3m < -0.05) or (actively_cutting and trend_3m < -0.02):
                     _label = "Cutting"
                 elif trend_6m < -0.1 and trend_3m < 0.05:
                     _label = "Easing"
@@ -7834,13 +7859,61 @@ def compute_risk_regime() -> dict:
     regime_score = round(max(-4.0, min(4.0, regime_score)), 1)
 
     # Normalise regime score -4..+4 to readable label (7-band scale for nuance)
-    if regime_score >= 3.0:     regime_name = "Strong Risk-On";  regime_label = "Unambiguous risk appetite — equities, credit, commodities all aligned"
-    elif regime_score >= 1.8:   regime_name = "Risk-On";         regime_label = "Broad risk appetite — equities, credit, commodities favoured"
-    elif regime_score >= 0.7:   regime_name = "Lean Risk-On";    regime_label = "Mild risk appetite — equities and carry performing with some mixed signals"
-    elif regime_score <= -3.0:  regime_name = "Strong Risk-Off"; regime_label = "Unambiguous de-risking — bonds, gold, USD, JPY all in demand"
-    elif regime_score <= -1.8:  regime_name = "Risk-Off";        regime_label = "Broad de-risking — bonds, gold, USD favoured"
-    elif regime_score <= -0.7:  regime_name = "Lean Risk-Off";   regime_label = "Mild risk aversion — defensive positioning building"
-    else:                        regime_name = "Neutral";         regime_label = "No clear risk trend — mixed signals across assets"
+    if regime_score >= 3.0:     regime_name = "Strong Risk-On"
+    elif regime_score >= 1.8:   regime_name = "Risk-On"
+    elif regime_score >= 0.7:   regime_name = "Lean Risk-On"
+    elif regime_score <= -3.0:  regime_name = "Strong Risk-Off"
+    elif regime_score <= -1.8:  regime_name = "Risk-Off"
+    elif regime_score <= -0.7:  regime_name = "Lean Risk-Off"
+    else:                        regime_name = "Neutral"
+
+    # ── Driver-aware descriptive label (AUDIT 2026-08-26) ───────────────────
+    # The old static bucket text could contradict the tape (e.g. "equities and
+    # carry performing" while 1m equities were red and the score was carried by
+    # low vol + tight credit + the 3m trend). Compose the description from the
+    # ACTUAL pillar contributions so it always matches the drivers.
+    _lbl_pos = {
+        "equity":     "equity trend constructive",
+        "volatility": "volatility subdued",
+        "credit":     "credit spreads tight",
+        "havens":     "haven demand fading",
+        "growth":     "growth commodities & crypto bid",
+        "geo":        "geopolitics calm",
+    }
+    _lbl_neg = {
+        "equity":     "equities under pressure",
+        "volatility": "volatility elevated",
+        "credit":     "credit spreads widening",
+        "havens":     "haven demand rising",
+        "growth":     "growth commodities & crypto soft",
+        "geo":        "geopolitical stress weighing",
+    }
+    try:
+        _drv = sorted(_comp.items(), key=lambda kv: kv[1], reverse=True)
+        _pos_keys = [k for k, v in _drv if v >= 0.15][:3]
+        _neg_keys = [k for k, v in reversed(_drv) if v <= -0.15][:2]
+        _pos_txt = ", ".join(_lbl_pos[k] for k in _pos_keys)
+        _neg_txt = ", ".join(_lbl_neg[k] for k in _neg_keys)
+        if regime_score >= 0.7:
+            _head = ("Unambiguous risk appetite" if regime_score >= 3.0 else
+                     "Broad risk appetite" if regime_score >= 1.8 else "Mild risk appetite")
+            regime_label = f"{_head} — {_pos_txt}" if _pos_txt else f"{_head} across pillars"
+            if _neg_txt:
+                regime_label += f"; offset by {_neg_txt}"
+        elif regime_score <= -0.7:
+            _head = ("Unambiguous de-risking" if regime_score <= -3.0 else
+                     "Broad de-risking" if regime_score <= -1.8 else "Mild risk aversion")
+            regime_label = f"{_head} — {_neg_txt}" if _neg_txt else f"{_head} across pillars"
+            if _pos_txt:
+                regime_label += f"; cushioned by {_pos_txt}"
+        else:
+            _parts = []
+            if _pos_txt: _parts.append(_pos_txt)
+            if _neg_txt: _parts.append(_neg_txt)
+            regime_label = ("No clear risk trend — " + " vs ".join(_parts)) if _parts else \
+                           "No clear risk trend — mixed signals across assets"
+    except Exception:
+        regime_label = f"{regime_name} — composite of equity, vol, credit, haven and growth pillars"
 
     vix_level   = levels.get("VIX",  None)
     vix3m_level = levels.get("VIX3M", None)
@@ -8058,10 +8131,9 @@ def compute_risk_regime() -> dict:
                 try:
                     _cpi_raw = fetch_fred_series("CPIAUCSL", 15)
                     if _cpi_raw and len(_cpi_raw) >= 13:
-                        _cpi_now = _cpi_raw[-1]["value"]
-                        _cpi_12m = _cpi_raw[-13]["value"]
-                        if _cpi_12m and _cpi_12m > 0:
-                            cpi_yoy = round((_cpi_now - _cpi_12m) / _cpi_12m * 100, 2)
+                        _yoy_ser = _yoy_date_matched(_cpi_raw)
+                        if _yoy_ser:
+                            cpi_yoy = round(_yoy_ser[-1]["value"], 2)
                 except Exception:
                     cpi_yoy = None
                 if t10_nominal is not None and cpi_yoy is not None:
@@ -8079,8 +8151,8 @@ def compute_risk_regime() -> dict:
         cpi_data = fetch_fred_series("CPI", 15)
         if cpi_data and len(cpi_data) >= 13:
             cpi_now  = cpi_data[-1]["value"]
-            cpi_prev = cpi_data[-13]["value"]
-            cpi_yoy  = round((cpi_now / cpi_prev - 1) * 100, 2)
+            _yoy_ser = _yoy_date_matched(cpi_data)
+            cpi_yoy  = round(_yoy_ser[-1]["value"], 2) if _yoy_ser else None
             cpi_mom  = round((cpi_now / cpi_data[-2]["value"] - 1) * 100, 3) if len(cpi_data) >= 2 else 0
             # trend: compare last 3m average vs prior 3m
             if len(cpi_data) >= 6:
@@ -8978,12 +9050,17 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
             raw_cb_b = bias * 0.5
             SENSITIVITY = 0.25
             _t3_flat = abs(t3) < 0.05
-            if _t3_flat:
+            # AUDIT 2026-08-26: stance text now comes straight from the central
+            # intl-rates label so the market page can never disagree with the
+            # homepage rates panel (6C previously said "BoC Flat" while the
+            # central panel said "Cutting" — two different lookbacks).
+            _central_stance = (cb_data.get("label") or "").strip()
+            if _central_stance:
+                rate_label = f"{cb_name} {_central_stance}"
+            elif _t3_flat:
                 rate_label = f"{cb_name} Paused" if abs(t6) > 0.3 else f"{cb_name} Flat"
-            elif t3 > 1.5:  rate_label = f"{cb_name} Tightening Cycle"
             elif t3 > 0.5:  rate_label = f"{cb_name} Hiking"
             elif t3 > 0.1:  rate_label = f"{cb_name} Tightening"
-            elif t3 < -1.5: rate_label = f"{cb_name} Easing Cycle"
             elif t3 < -0.5: rate_label = f"{cb_name} Cutting"
             elif t3 < -0.1: rate_label = f"{cb_name} Easing"
             else:           rate_label = f"{cb_name} Flat"
@@ -9189,7 +9266,7 @@ def get_regime_score_for_market(market_id: str, regime: dict, news_sentiment: fl
             # Both haven (e.g. CHFJPY): risk regime undefined — use flat 5.0
             # Rate differential is the actual driver but not modeled per-cross here
             normalized = 5.0
-            label = "Haven Cross (Regime Undefined — Rate Differential Driven)"
+            label = "Haven Cross — Rate-Differential Driven"
         elif base_is_haven:
             # e.g. JPYEUR: JPY base = risk-off → higher score when safe-haven bid
             # Score: risk-off (raw_score < 0) → positive for haven base
@@ -14615,6 +14692,12 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     if n >= 15: _pts += 1
     # Total: 0-9 pts -> A/B/C/D
     grade = 'A' if _pts >= 7 else ('B' if _pts >= 5 else ('C' if _pts >= 3 else 'D'))
+    # Small-sample cap (AUDIT 2026-08-26): with fewer than 10 usable years the
+    # binomial SE is degenerate at p=0/1 (0/9 → SE=0 → auto +2 pts), so a
+    # short-history market (e.g. ETH, 9 yrs) could earn Grade A conviction it
+    # hasn't statistically earned. Never award A below n=10.
+    if n < 10 and grade == 'A':
+        grade = 'B'
 
     # ── Reliability-aware score dampening ─────────────────────────
     # A weak/noisy signal (Grade C or D) should NOT be scored as if it's a
