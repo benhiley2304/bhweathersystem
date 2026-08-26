@@ -2647,6 +2647,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   box-shadow:inset 0 0 0 1px rgba(200,207,224,0.18);
 }
 .ov-fwm-tw-btn.disabled{opacity:0.28;cursor:not-allowed}
+.ov-fwm-tw--yc{gap:1px;padding:2px}
+.ov-fwm-tw--yc .ov-fwm-tw-btn{padding:3px 4.5px;font-size:7.5px;letter-spacing:0.03em}
 .ov-fwm-cell{position:relative}
 .ov-fwm-delta{
   position:absolute;top:1px;right:2px;
@@ -26708,7 +26710,8 @@ function renderOverview(){
           if (gi >= 1) {
             const gEnd = ghostRates[gi];
             const curEnd = pts[pts.length - 1].rate;
-            const gl = (xf(gi) * 100).toFixed(2), gt = (yf(gEnd) * 100).toFixed(2);
+            // Cap x at 80% so the ghost label never collides with the live endpoint labels
+            const gl = (Math.min(xf(gi), 0.80) * 100).toFixed(2), gt = (yf(gEnd) * 100).toFixed(2);
             // Place above if the ghost ends above the live path, else below
             const tf = gEnd >= curEnd ? 'translate(-100%,-135%)' : 'translate(-100%,35%)';
             ghostLblHtml = `<div class="ov-rp-eplbl-ghost" style="left:${gl}%;top:${gt}%;transform:${tf}">${(ghostLabel || '').toUpperCase()} AGO ${gEnd.toFixed(2)}%</div>`;
@@ -29309,7 +29312,7 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- CHART: 12M yield curve history — primary analytical visual -->
         <div style="flex:1;min-height:0;max-height:200px;display:flex;flex-direction:column">
-          <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0;display:flex;align-items:center;gap:8px"><div class="mc-sect-lbl">Curve Shape</div><div class="mc-sect-line" style="flex:1"></div><span class="ov-fwm-tw" data-yc-tw>
+          <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0;display:flex;align-items:center;gap:8px"><div class="mc-sect-lbl">Curve Shape</div><div class="mc-sect-line" style="flex:1"></div><span class="ov-fwm-tw ov-fwm-tw--yc" data-yc-tw>
             <button class="ov-fwm-tw-btn" data-yc-win="now" title="No comparison">NOW</button>
             <button class="ov-fwm-tw-btn" data-yc-win="1w" title="Compare vs 1W ago">1W</button>
             <button class="ov-fwm-tw-btn active" data-yc-win="1m" title="Compare vs 1M ago">1M</button>
@@ -30079,7 +30082,8 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   let containerH = elRect.height;
   const aspectH  = isMobile ? 0.72 : (W < 220 ? 0.80 : 0.65);
   const minH     = isMobile ? 140 : 130;
-  const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), minH);
+  // Reserve ~18px inside the container for the HTML legend below the SVG (it clips otherwise)
+  const H = Math.max(containerH > 60 ? Math.round(containerH) : Math.round(W * aspectH), minH) - (isMobile ? 0 : 18);
 
   // Padding: left leaves room for y-axis labels; bottom for x-axis
   const padL = isMini ? 8  : 38;
