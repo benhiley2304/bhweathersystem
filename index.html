@@ -2627,6 +2627,43 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
   .ov-fwm-wrap .ov-rp-chart-src{display:none}
   .ov-fwm-legend-note{margin-left:0;flex-basis:100%}
 }
+/* Historical baseline toggle + cell delta chip (Task 3) */
+.ov-fwm-tw{
+  display:inline-flex;align-items:center;gap:2px;
+  background:rgba(255,255,255,0.035);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;padding:2px;margin-left:auto;
+}
+.ov-fwm-tw-btn{
+  font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:0.06em;
+  padding:3px 8px;border-radius:5px;cursor:pointer;
+  color:rgba(173,184,208,0.55);background:transparent;border:none;
+  transition:color .15s ease, background .15s ease;
+}
+.ov-fwm-tw-btn:hover{color:rgba(255,255,255,0.85)}
+.ov-fwm-tw-btn.active{
+  color:rgba(255,255,255,0.98);
+  background:rgba(200,207,224,0.10);
+  box-shadow:inset 0 0 0 1px rgba(200,207,224,0.18);
+}
+.ov-fwm-tw-btn.disabled{opacity:0.28;cursor:not-allowed}
+.ov-fwm-cell{position:relative}
+.ov-fwm-delta{
+  position:absolute;top:1px;right:2px;
+  display:inline-flex;align-items:center;gap:1px;
+  font-family:var(--mono);font-size:7.5px;font-weight:800;
+  letter-spacing:-0.02em;line-height:1;
+  padding:1px 3px;border-radius:3px;
+  background:rgba(0,0,0,0.35);color:rgba(255,255,255,0.92);
+  pointer-events:none;
+}
+.ov-fwm-delta.up{color:#eab850}
+.ov-fwm-delta.dn{color:#5eb8f5}
+.ov-fwm-baseline-note{
+  font-family:var(--mono);font-size:8.5px;font-weight:600;
+  color:rgba(173,184,208,0.55);letter-spacing:0.02em;
+  padding:5px 0 0;text-align:right;
+}
 /* Chart: SVG geometry layer + HTML overlay for labels/dots */
 .ov-rp-chart{position:relative;width:100%;height:200px}
 @media(max-width:520px){
@@ -26376,9 +26413,12 @@ function renderOverview(){
     // Rows = FOMC meetings, columns = target ranges. Cell intensity ∝ probability.
     // Colour semantics: below current range = cut (ice-blue), current = silver,
     // above = hike (gold) — matches the card's existing accent language.
-    const _buildFedMatrix = (meetings, tLow, tHigh) => {
+    const _buildFedMatrix = (meetings, tLow, tHigh, baselineMeetings = null, baselineLabel = null, available = null) => {
       if (!meetings || meetings.length < 1 || tLow == null) return '';
       const curLoC = Math.round(tLow * 100);
+      // Baseline lookup by meeting date -> probs map, for delta chip calc
+      const bslByDate = {};
+      if (baselineMeetings) baselineMeetings.forEach(mt => { if (mt && mt.date) bslByDate[mt.date] = (mt.probs || {}); });
       // Collect ranges with any meaningful probability, sorted ascending
       const rngMax = {};
       meetings.forEach(mt => Object.entries(mt.probs || {}).forEach(([r, p]) => {
@@ -26413,7 +26453,20 @@ function renderOverview(){
           if (p < 0.05) return `<div class="ov-fwm-cell ov-fwm-nil">\u00b7</div>`;
           const bgA = Math.min(0.52, 0.05 + (p / 100) * 0.62);
           const txA = Math.min(1, 0.42 + (p / 100) * 1.4);
-          return `<div class="ov-fwm-cell${isModal ? ' ov-fwm-modal' : ''}" style="background:rgba(${hue},${bgA.toFixed(3)});color:rgba(255,255,255,${txA.toFixed(2)});${isModal ? `box-shadow:inset 0 0 0 1px rgba(${hue},0.85);` : ''}">${p >= 99.95 ? '100' : p.toFixed(1)}</div>`;
+          // Delta vs baseline (percentage-point shift). Show chip only when |d| >= 1.0
+          let chip = '';
+          if (baselineMeetings) {
+            const bp = (bslByDate[mt.date] || {})[r];
+            if (bp != null) {
+              const d = p - bp;
+              if (Math.abs(d) >= 1.0) {
+                const dCls = d > 0 ? 'up' : 'dn';
+                const arrow = d > 0 ? '\u25B2' : '\u25BC';
+                chip = `<span class="ov-fwm-delta ${dCls}">${arrow}${Math.abs(d).toFixed(1)}</span>`;
+              }
+            }
+          }
+          return `<div class="ov-fwm-cell${isModal ? ' ov-fwm-modal' : ''}" style="background:rgba(${hue},${bgA.toFixed(3)});color:rgba(255,255,255,${txA.toFixed(2)});${isModal ? `box-shadow:inset 0 0 0 1px rgba(${hue},0.85);` : ''}">${p >= 99.95 ? '100' : p.toFixed(1)}${chip}</div>`;
         }).join('');
         return `<div class="ov-fwm-row${ri === 0 ? ' ov-fwm-next' : ''}">
           <div class="ov-fwm-date">${fmtDate(mt.date)}${ri === 0 ? '<span class="ov-fwm-next-tag">NEXT</span>' : ''}</div>
@@ -26422,12 +26475,25 @@ function renderOverview(){
         </div>`;
       }).join('');
       const gridCols = `minmax(72px,84px) repeat(${ranges.length},minmax(46px,1fr)) minmax(44px,52px)`;
+      // Toggle segmented control — disabled buttons for windows with no baseline yet
+      const tw = (() => {
+        const winMap = {'now':'NOW','1w':'1W','1m':'1M','3m':'3M'};
+        const avail = available || {now:true};
+        return `<span class="ov-fwm-tw">${Object.keys(winMap).map(k =>
+          `<button class="ov-fwm-tw-btn ${baselineLabel === k ? 'active' : ''}${(k !== 'now' && !avail[k]) ? ' disabled' : ''}" data-win="${k}" title="${k==='now'?'No comparison':('Compare vs '+winMap[k]+' ago')}">${winMap[k]}</button>`
+        ).join('')}</span>`;
+      })();
+      const baselineNote = (baselineLabel && baselineLabel !== 'now' && bslByDate && Object.keys(bslByDate).length)
+        ? `<div class="ov-fwm-baseline-note">Chips show change in probability vs ${baselineLabel.toUpperCase()} ago \u00b7 minimum \u00b11.0pp</div>`
+        : (baselineLabel && baselineLabel !== 'now')
+          ? `<div class="ov-fwm-baseline-note">History collecting \u2014 ${baselineLabel.toUpperCase()} comparison not yet available</div>`
+          : '';
       return `
-      <div class="ov-fwm-wrap">
-        <div class="mc-sect" style="margin:6px 0 6px">
+      <div class="ov-fwm-wrap" data-fwm-root>
+        <div class="mc-sect" style="margin:6px 0 6px;align-items:center">
           <div class="mc-sect-lbl">FOMC Meeting Probabilities</div>
           <div class="mc-sect-line"></div>
-          <span class="ov-rp-chart-src">Conditional \u00b7 Fed Funds Futures</span>
+          ${tw}
         </div>
         <div class="ov-fwm-scroll">
           <div class="ov-fwm-grid" style="grid-template-columns:${gridCols}">
@@ -26445,8 +26511,71 @@ function renderOverview(){
           <span><i style="background:rgba(230,184,74,0.75)"></i>Hike territory</span>
           <span class="ov-fwm-legend-note">Cell = probability (%) of that target range \u00b7 outlined cell = most likely</span>
         </div>
+        ${baselineNote}
       </div>`;
     };
+
+    // ── Fetch baseline snapshots + wire up historical toggle ─────────────────
+    // Cached on the window so multiple renders of the home card don't re-fetch.
+    window._fwmHistCache = window._fwmHistCache || null;
+    const _fwmFetchHistory = async () => {
+      if (window._fwmHistCache) return window._fwmHistCache;
+      try {
+        const r = await fetch(API_BASE + '/api/fed-pricing-history');
+        if (!r.ok) return null;
+        const j = await r.json();
+        window._fwmHistCache = j;
+        return j;
+      } catch (e) { return null; }
+    };
+    // On card mount — prefetch history and update the toggle disabled states.
+    // Uses a mutation observer so we catch whichever render pass added [data-fwm-root].
+    if (!window._fwmMountedWired) {
+      window._fwmMountedWired = true;
+      const _fwmUpdateAvail = async () => {
+        const root = document.querySelector('[data-fwm-root]');
+        if (!root) return;
+        const hist = await _fwmFetchHistory();
+        if (!hist || !hist.snapshots) return;
+        const avail = {'1w': !!hist.snapshots['1w'], '1m': !!hist.snapshots['1m'], '3m': !!hist.snapshots['3m']};
+        root.querySelectorAll('.ov-fwm-tw-btn').forEach(btn => {
+          const w = btn.dataset.win;
+          if (w === 'now') return;
+          if (avail[w]) btn.classList.remove('disabled');
+          else btn.classList.add('disabled');
+        });
+      };
+      const mo = new MutationObserver(() => { if (document.querySelector('[data-fwm-root]')) _fwmUpdateAvail(); });
+      mo.observe(document.body, {childList: true, subtree: true});
+      // Also fire once immediately in case card is already mounted
+      setTimeout(_fwmUpdateAvail, 500);
+    }
+    // After the home overview is rendered, wire up the toggle to swap baselines
+    // in place without re-rendering the whole card. Delegated click handler.
+    if (!window._fwmToggleWired) {
+      window._fwmToggleWired = true;
+      document.addEventListener('click', async (ev) => {
+        const btn = ev.target.closest('.ov-fwm-tw-btn');
+        if (!btn || btn.classList.contains('disabled')) return;
+        const root = btn.closest('[data-fwm-root]');
+        if (!root) return;
+        const win = btn.dataset.win || 'now';
+        const hist = await _fwmFetchHistory();
+        if (!hist || !hist.snapshots) return;
+        const cur = hist.snapshots.now;
+        if (!cur) return;
+        const bsl = win === 'now' ? null : (hist.snapshots[win] || null);
+        const bslLabel = win === 'now' ? 'now' : (bsl ? win : win);
+        const avail = {now:true, '1w':!!hist.snapshots['1w'], '1m':!!hist.snapshots['1m'], '3m':!!hist.snapshots['3m']};
+        // Re-render just the FWM section HTML
+        const html = _buildFedMatrix(cur.meetings, cur.target_low, cur.target_high, bsl ? bsl.meetings : null, bslLabel, avail);
+        // Replace root outerHTML
+        const wrap = document.createElement('div');
+        wrap.innerHTML = html;
+        const newRoot = wrap.firstElementChild;
+        if (newRoot) root.replaceWith(newRoot);
+      });
+    }
 
     const _buildRatePathChart = (path, spotRate) => {
       if (!path || path.length < 2) return '';
@@ -26999,8 +27128,8 @@ function renderOverview(){
             <div class="ov-rp-mtg-lbl">FOMC</div>
           </div>` : ''}
         </div>
-        <!-- FedWatch-style FOMC meeting probability matrix -->
-        ${_buildFedMatrix(fwMeetings, fwTargetLow, fwTargetHigh)}
+        <!-- FedWatch-style FOMC meeting probability matrix (Task 3: baseline toggle 1W/1M/3M) -->
+        ${_buildFedMatrix(fwMeetings, fwTargetLow, fwTargetHigh, null, 'now', null)}
         <!-- Implied rate path chart -->
         ${pathMonthly.length > 1 ? `
         <div class="ov-rp-chart-wrap">

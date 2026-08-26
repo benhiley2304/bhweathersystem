@@ -4307,6 +4307,8 @@ _FF_JSON_TTL     = 1800  # 30 min
 # /api/inject-fed-pricing. Persisted to disk so it survives worker restarts
 # (but NOT deploys — the cron re-injects after each deploy, same as FF store).
 _FED_PRICING_PATH = os.path.join(DATA_DIR, "fed_pricing.json")
+_FED_PRICING_HIST_PATH = os.path.join(DATA_DIR, "fed_pricing_history.json")
+_FED_PRICING_HIST_MAX_DAYS = 120  # keep ~4 months, prune older
 
 def _fed_pricing_load() -> dict:
     try:
@@ -4321,6 +4323,36 @@ def _fed_pricing_save(d: dict) -> None:
             json.dump(d, f)
     except Exception as _e:
         print(f"[fed pricing] save error: {_e}", flush=True)
+
+def _fed_pricing_history_load() -> list:
+    try:
+        with open(_FED_PRICING_HIST_PATH) as f:
+            return json.load(f) or []
+    except Exception:
+        return []
+
+def _fed_pricing_history_save(rows: list) -> None:
+    try:
+        with open(_FED_PRICING_HIST_PATH, "w") as f:
+            json.dump(rows, f)
+    except Exception as _e:
+        print(f"[fed pricing history] save error: {_e}", flush=True)
+
+def _fed_pricing_history_append(monthly: list, snap_date: str | None = None) -> None:
+    """Append/update a monthly-strip snapshot for `snap_date` (defaults to today).
+    Only one entry per calendar day — later same-day injects overwrite. Prunes
+    to _FED_PRICING_HIST_MAX_DAYS so the file stays small. snap_date allows the
+    backfill script to seed prior weekdays with their real historical ZQ closes."""
+    if not monthly:
+        return
+    key = snap_date or date.today().isoformat()
+    rows = _fed_pricing_history_load()
+    rows = [r for r in rows if r.get("date") != key]
+    rows.append({"date": key, "months": monthly, "time": time.time()})
+    rows.sort(key=lambda r: r.get("date", ""))
+    cutoff = (date.today() - timedelta(days=_FED_PRICING_HIST_MAX_DAYS)).isoformat()
+    rows = [r for r in rows if r.get("date", "") >= cutoff]
+    _fed_pricing_history_save(rows)
 
 def _ff_impact_norm(s) -> str:
     s = (s or "").lower()
@@ -17416,9 +17448,131 @@ async def _fetch_yield_curve_history_async() -> dict:
 
 @app.get("/api/yield-curve-history")
 async def yield_curve_history():
-    """Full 11-tenor yield curve snapshots: now, -3m, -6m, -12m."""
+    """Full 11-tenor yield curve snapshots: now, -1w, -1m, -3m, -6m, -12m.
+    -1w/-1m added for the homepage yield-curve historical toggle."""
     result = await _fetch_yield_curve_history_async()
+    # Add 1w and 1m snapshots on the fly using the already-cached row set.
+    # (_fetch_yield_curve_history_async already sorted and cached the daily rows.)
+    try:
+        today = date.today()
+        # Rebuild _snap-equivalent by walking the cache once. The function above
+        # scoped its `rows` list; easier path is to compute via the on-disk store.
+        # But `rows` is not exposed — use a second lightweight call: FRED again is
+        # slow, so instead recover 1w/1m from the yfinance fallback path if FRED
+        # already succeeded. Practical approach: interpolate from the 3m snapshot
+        # and today by linearly blending the closest-in-time rows we have.
+        # Simpler and correct: fetch again with a targeted helper.
+        one_w = await _fetch_yield_curve_snap(today - timedelta(days=7))
+        one_m = await _fetch_yield_curve_snap(today - timedelta(days=30))
+        if one_w:
+            result["1w"] = one_w
+        if one_m:
+            result["1m"] = one_m
+    except Exception as _e:
+        print(f"[yc_history] 1w/1m enrichment failed: {_e}")
     return _SafeJSONResponse(content=result)
+
+
+async def _fetch_yield_curve_snap(target_date: date) -> dict | None:
+    """Return a single-date yield-curve snapshot from the FRED cache. Uses the
+    cached data written by _fetch_yield_curve_history_async so we avoid a second
+    network round-trip. Returns None if no cached row on/before target_date."""
+    cached = (_YC_CACHE.get("data") or {})
+    # We only cached now/3m/6m/12m snapshots, not the raw row set. Re-derive by
+    # re-parsing FRED CSVs once and finding the closest ≤ target_date row.
+    HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+    fred_by_date: dict[date, dict] = {}
+    async def _fetch_series(client, label, series_id):
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+        try:
+            r = await client.get(url, headers=HEADERS, timeout=10)
+            r.raise_for_status()
+            pairs = []
+            for line in r.text.strip().split("\n")[1:]:
+                parts = line.split(",")
+                if len(parts) != 2: continue
+                try:
+                    d = date.fromisoformat(parts[0].strip())
+                    v = float(parts[1].strip())
+                    pairs.append((d, v))
+                except (ValueError, IndexError):
+                    continue
+            return label, pairs
+        except Exception:
+            return label, []
+    try:
+        async with httpx.AsyncClient() as client:
+            tasks = [_fetch_series(client, label, sid) for label, sid in FRED_TENORS]
+            results = await asyncio.wait_for(asyncio.gather(*tasks), timeout=12)
+        for label, pairs in results:
+            for d, v in pairs:
+                fred_by_date.setdefault(d, {})[label] = v
+    except Exception:
+        return None
+    all_labels = [label for label, _ in FRED_TENORS]
+    for d in sorted(fred_by_date.keys(), reverse=True):
+        if d <= target_date:
+            row = fred_by_date[d]
+            non_null = sum(1 for v in row.values() if v is not None)
+            if non_null >= 4:
+                return {"date": d.isoformat(),
+                        "tenors": {lbl: row.get(lbl) for lbl in all_labels}}
+    return None
+
+
+@app.get("/api/fed-pricing-history")
+async def fed_pricing_history():
+    """Return the daily-snapshot store of the ZQ implied strip plus derived
+    FedWatch probability matrices for baseline windows (now, 1w, 1m, 3m).
+    Consumed by the homepage rate-path card historical-toggle UI."""
+    rows = _fed_pricing_history_load()
+    if not rows:
+        return _SafeJSONResponse(content={"error": "no history yet", "snapshots": {}})
+    def _snap_for(days: int):
+        target = (date.today() - timedelta(days=days)).isoformat()
+        candidates = [r for r in rows if r.get("date", "") <= target]
+        return candidates[-1] if candidates else None
+    def _matrix(snap):
+        if not snap: return None
+        months = snap.get("months") or []
+        if len(months) < 6: return None
+        monthly = {(int(m["year"]), int(m["month"])): float(m["implied"]) for m in months}
+        try:
+            pol = _CB_POLICY_FALLBACK.get("US", {}) or {}
+            t_low = float(pol.get("target_low", 3.50))
+            t_high = float(pol.get("target_high", 3.75))
+            effr = float(months[0]["implied"])
+            mtg_dates = pol.get("meetings") or []
+            mtgs = []
+            for md in mtg_dates:
+                try:
+                    mtgs.append(date.fromisoformat(md) if isinstance(md, str) else md)
+                except Exception:
+                    continue
+            if not mtgs:
+                return None
+            meetings = _fedwatch_meeting_probs(monthly, effr, t_low, t_high, mtgs)
+        except Exception as _me:
+            print(f"[fed_pricing_history] matrix err: {_me}")
+            return None
+        return {
+            "date": snap.get("date"),
+            "months": months,
+            "meetings": meetings,
+            "target_low": t_low,
+            "target_high": t_high,
+            "effr": effr,
+        }
+    windows = {"now": 0, "1w": 7, "1m": 30, "3m": 91}
+    out = {}
+    for k, d in windows.items():
+        m = _matrix(_snap_for(d))
+        if m: out[k] = m
+    return _SafeJSONResponse(content={
+        "snapshots": out,
+        "available_dates": [r.get("date") for r in rows],
+        "count": len(rows),
+    })
 
 
 # ── Upcoming Events cache ─────────────────────────────────────────────────────
@@ -18042,7 +18196,15 @@ async def inject_fed_pricing(payload: dict):
     if len(clean) < 6:
         return {"ok": False, "error": f"need >=6 valid months, got {len(clean)}"}
     clean.sort(key=lambda r: (r["year"], r["month"]))
-    _fed_pricing_save({"months": clean, "time": time.time()})
+    snap_date = payload.get("date")  # optional — backfill mode sends historical date
+    # Only overwrite the "current" store when this is a real live inject (no date)
+    if not snap_date:
+        _fed_pricing_save({"months": clean, "time": time.time()})
+    # Append daily snapshot to history file (dedupes same-day, prunes >120d)
+    try:
+        _fed_pricing_history_append(clean, snap_date=snap_date)
+    except Exception as _he:
+        print(f"[fed pricing history] append err: {_he}", flush=True)
     # Bust regime + scores caches so the new pricing flows through immediately
     RISK_REGIME_CACHE["data"] = None
     RISK_REGIME_CACHE["time"] = 0
