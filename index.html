@@ -30316,7 +30316,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   // ── Inline legend: horizontal, compact, below chart ──────────────────────
   // Only show curves that have data
   const activeCurves = CURVES.filter(c => ALL_TENORS.some(t => tenorData[c.key]?.[t] != null));
-  const legendHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:5px;padding-left:${isMini?4:padL}px;padding-right:2px">
+  const legendHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:5px;padding-left:${(isMini || W < 320) ? 4 : padL}px;padding-right:2px">
     ${activeCurves.map(c => {
       const isNow = c.key === 'now';
       const col   = c.color;
