@@ -28167,8 +28167,9 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- VERDICT ROW: survey-regime insight — never repeats the hero numbers -->
         ${(()=>{
-          const chipLabel = gdpBeat===true?'GDP BEAT':gdpBeat===false?'GDP MISS':groLabel;
-          const chipCol = gdpBeat===true?'#22c97a':gdpBeat===false?'#e03a2a':groCol;
+          const gdpChipInline = _ffInline(gdpSurp);
+          const chipLabel = gdpChipInline?'GDP IN LINE':gdpBeat===true?'GDP BEAT':gdpBeat===false?'GDP MISS':groLabel;
+          const chipCol = gdpChipInline?'#6e7d90':gdpBeat===true?'#22c97a':gdpBeat===false?'#e03a2a':groCol;
           let insight, insCol;
           if(mfgT&&svcT){
             if(mfgT.act>=50&&svcT.act>=50){ insight='Both ISM surveys in expansion'; insCol='#22c97a'; }
@@ -31212,7 +31213,7 @@ async function loadAiBrief(){
 
     const bodyEl = document.getElementById('ai-brief-body');
     if(bodyEl){
-      bodyEl.innerHTML = newsListHtml || '<div style="color:var(--faint);font-size:10px;padding:8px 0">No news available.</div>';
+      bodyEl.innerHTML = newsListHtml || '<div style="color:var(--faint);font-family:var(--mono);font-size:10px;padding:8px 0;letter-spacing:0.02em">Quiet tape \u2014 no high or medium-impact headlines right now. Feed refreshes automatically.</div>';
     }
     // Update sub-label with age
     const subEl = document.getElementById('ai-brief-sub');
