@@ -10641,6 +10641,24 @@ _ENG_GATE_FLOOR = 0.30                        # min conviction multiplier in cho
 _ENG_TIER_CUTS = {"Strong": 3.0, "Setup": 1.5, "Watch": 0.5}   # |conviction| cuts
 _ENG_DEADBAND = 0.5    # |score-5| below this ⇒ factor abstains (no directional view)
 
+# ── SEAS-R3 (Fix 3b): EXTREMES GET FULL WEIGHT ────────────────────────────
+# Ben, verbatim: "dont worry about cot contradicting - it's only really relevant
+# at extremes." That is a two-sided instruction and only one side was implemented.
+# COT sat permanently in the half-weight confirmation tier and outside the
+# directional backdrop, so on CT a 1.0 COT print (commercials heavily short, spec
+# turn confirmed — about as extreme as the factor gets) lost the composite to a
+# 5.5 risk-regime whisper, and the headline read 6.0 Lean Bullish.
+# At an extreme, COT is promoted to a full EDGE factor: it enters the directional
+# backdrop and counts at full weight in conviction. Below the extreme it keeps
+# exactly its current half-weight confirmation role — nothing changes.
+_ENG_COT_EXTREME = 3.0   # |cot-5|: score <= 2.0 or >= 8.0
+# Same logic for relative value. Outside metals/energy, relval only votes when it
+# agrees with the long-term trend ("don't fight price"). A genuinely STRETCHED
+# valuation is information regardless of trend — Ben on CT: "even relative
+# valuation is stretched i.e. bearish". At an extreme it votes at its natural
+# sign; it stays a half-weight confirmation factor either way.
+_ENG_RV_EXTREME = 2.0    # |relval-5|: score <= 3.0 or >= 7.0
+
 # Which factor families are trusted per market group (Rounds 7-9):
 #   commodity pairs (metal/energy) mean-revert on relval BOTH sides; everything
 #   else only counts relval when it is trend-aligned. PCR only for equities.
@@ -10793,13 +10811,16 @@ def _eng_other_lean(regime_z, macro_z, cot_z, rv_z, pcr_z, mom_z,
     """Directional lean of every factor EXCEPT seasonality, as -1 / 0 / +1.
     Edge factors (regime, macro) carry full weight; the confirmation factors
     (COT, momentum, relval, PCR) carry half — same hierarchy the conviction calc
-    uses, so the gate agrees with the engine's own view of what matters."""
+    uses, so the gate agrees with the engine's own view of what matters.
+    SEAS-R3: an EXTREME COT carries full weight here too, matching its promotion
+    to an edge factor in compute_engine_bias."""
     momentum_detail = momentum_detail or {}
     _mtf = momentum_detail.get("mtf_vote")
     if _mtf is None:
         _mtf = float(_eng_sign(mom_z))
+    _cot_w = 1.0 if (cot_z is not None and abs(cot_z) >= _ENG_COT_EXTREME) else 0.5
     net = (1.0 * _eng_sign(regime_z) + 1.0 * _eng_sign(macro_z)
-           + 0.5 * _eng_sign(cot_z) + 0.5 * float(_mtf)
+           + _cot_w * _eng_sign(cot_z) + 0.5 * float(_mtf)
            + 0.5 * _eng_sign(rv_z) + 0.5 * _eng_sign(pcr_z))
     # Require a real lean, not a 0.5 whisper, before we let it confirm anything.
     if net >= 1.0:  return 1
@@ -10833,8 +10854,43 @@ def _seas_timing_tilt(seas_score, seas_detail: dict, other_dir: int):
     tilt = 0.0
     hint = None
 
+    # ══ SEAS-R3 (Fix 3a): AN OPEN ENTRY TILTS UNCONDITIONALLY ═════════════
+    # Live bug (CT, 2026-08-26): entry_timing was `now`, goldilocks_dir -1,
+    # goldilocks_lean -2.98 — the single most actionable seasonal state in Ben's
+    # workflow — and seasonal_timing_tilt came back 0.0. The `now` / `just_passed`
+    # states only ever produced a hint: the boost branch below was gated on
+    # `0 <= dtg <= 10`, so dtg = -1 fell straight through to the caveat-only
+    # branches, and the tilt therefore depended on the (then buggy) neutral
+    # headline sign rather than on the timing evidence itself.
+    #
+    # Ben's Read A: "higher score if we're already in the goldilocks entry zone"
+    # — an OPEN entry with direction d must pull the score toward d. It is not
+    # anticipation, so unlike Read B it does NOT need the other factors to agree:
+    # a live seasonal edge is evidence in its own right. It still cannot invent a
+    # composite direction, because the credit reaches the engine as a capped
+    # CONVICTION term (bias x ...), never as a vote — see the block comment above.
+    # Guard rails unchanged: capped at _SEAS_TILT_BOOST_CAP (0.75), scaled by
+    # goldilocks strength and the market's own reliability dampen, and it can
+    # never carry the seasonal factor across 5.0.
+    _open_zone = (gdir in (1, -1) and lean is not None
+                  and abs(float(lean)) >= 1.0
+                  and -_SEAS_DECAY_MIN_TD < dtg <= _SEAS_TILT_MIN_TD)
+    if _open_zone:
+        strength = max(0.30, min(1.0, abs(float(lean)) / 3.0))
+        tilt = gdir * min(_SEAS_TILT_BOOST_CAP,
+                          _SEAS_TILT_BOOST_CAP * strength * max(0.40, dampen))
+        meta["mode"] = "now_open"
+        _agrees = (" and it confirms the other factors" if other_dir == gdir
+                   else (" — against the other factors" if other_dir not in (0, gdir)
+                         else ""))
+        if dtg >= 0:
+            hint = f"Seasonal goldilocks {_dirword} entry is NOW{_agrees}"
+        else:
+            hint = (f"Seasonal goldilocks {_dirword} entry {abs(dtg)} TD ago — "
+                    f"still live{_agrees}")
+
     # ── APPROACHING: goldilocks entry 1-10 TD out, other factors agree ─────
-    if gdir in (1, -1) and 0 <= dtg <= _SEAS_TILT_MAX_TD:
+    elif gdir in (1, -1) and 0 <= dtg <= _SEAS_TILT_MAX_TD:
         prox     = max(0.1, min(1.0, (_SEAS_TILT_MAX_TD + 1 - dtg) / float(_SEAS_TILT_MAX_TD)))
         strength = min(1.0, abs(float(lean)) / 3.0) if lean else 0.5
         strength = max(0.30, strength)
@@ -10905,6 +10961,11 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     rv_z     = _eng_signed(scores.get("relval"))
     pcr_z    = _eng_signed(scores.get("pcr")) if ("pcr" in scores) else None
 
+    # ── SEAS-R3 (Fix 3b): positioning / valuation extremes ─────────────────
+    # See the _ENG_COT_EXTREME block comment. General rule, no per-market cases.
+    cot_extreme = (cot_z is not None and abs(cot_z) >= _ENG_COT_EXTREME)
+    rv_extreme  = (rv_z is not None and abs(rv_z) >= _ENG_RV_EXTREME)
+
     # ── trend signs (multi-timeframe) from momentum detail ─────────────────
     # Prefer the true weekly horizons (roc_lt_pct ~26wk, roc_st_pct ~4wk); the daily
     # roc26w/roc4w are factor-calibrated misnomers, so fall back to them only if needed.
@@ -10937,7 +10998,11 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     _seas_tilt_dir = _eng_sign(_seas_tilt_pts)
 
     # ── 1) DIRECTIONAL BACKDROP — only edge-bearing factors, abstain-aware ──
+    # SEAS-R3: an EXTREME COT joins the backdrop (Ben: extremes are when COT is
+    # "really relevant"). A normal COT print stays out of it, as before.
     bd_vals = [v for v in (seas_z, regime_z, macro_z) if v is not None]
+    if cot_extreme:
+        bd_vals.append(cot_z)
     backdrop = (sum(bd_vals) / len(bd_vals)) if bd_vals else 0.0
     bias = _eng_sign(backdrop)
 
@@ -10947,7 +11012,10 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     # Sugar -0.29, Coffee -0.23, Copper -0.09..-0.18 at 4wk fwd). COT votes at
     # its natural sign now, period. User directive: "just listen to cot".
     cot_vote = _eng_sign(cot_z)
-    if grp in ("metal", "energy"):
+    # SEAS-R3: relval votes at its natural sign in the mean-reverting groups, OR
+    # whenever it is at an extreme (a stretched valuation is information even
+    # against the trend). Otherwise it still needs trend agreement.
+    if grp in ("metal", "energy") or rv_extreme:
         rv_vote = _eng_sign(rv_z)
     else:
         rv_vote = _eng_sign(rv_z) if (_eng_sign(rv_z) != 0 and _eng_sign(rv_z) == trend_lt) else 0
@@ -10978,8 +11046,13 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     # WHY: with all-equal votes the "Strong" tier was the WEAKEST cohort (+0.17% fwd,
     # because zero-IC factors inflated conviction); edge-weighted conviction makes Strong
     # the BEST cohort (+1.18% fwd, 57% hit) — i.e. the tiers now actually rank edge.
-    _EDGE_F = ("seasonal", "regime", "macro")
-    _CONF_F_NON_MOM = ("cot", "relval", "pcr")
+    # SEAS-R3: at an extreme, COT moves from the half-weight confirmation tier to
+    # the full-weight edge tier. Ben's rule, applied symmetrically to both the
+    # backdrop above and the conviction weighting here.
+    _EDGE_F = (("seasonal", "regime", "macro", "cot") if cot_extreme
+               else ("seasonal", "regime", "macro"))
+    _CONF_F_NON_MOM = (("relval", "pcr") if cot_extreme
+                       else ("cot", "relval", "pcr"))
     edge_net = (sum(1 for f in _EDGE_F if bias != 0 and votes[f] == bias)
                 - sum(1 for f in _EDGE_F if bias != 0 and votes[f] == -bias))
     conf_net_non_mom = (sum(1 for f in _CONF_F_NON_MOM if bias != 0 and votes[f] == bias)
@@ -11084,6 +11157,10 @@ def compute_engine_bias(scores: dict, market_id: str = "",
         "setup_quality":     setup_quality,
         "setup_direction":   setup_direction,
         "setup_vs_backdrop": setup_vs_backdrop,
+        # SEAS-R3 (Fix 3b): which factors got promoted to full weight, and why
+        "cot_extreme":       bool(cot_extreme),
+        "relval_extreme":    bool(rv_extreme),
+        "cot_tier":          ("edge" if cot_extreme else "confirmation"),
         "agree":             agree,
         "disagree":          disagree,
         "factor_votes":      votes,
@@ -11722,6 +11799,11 @@ async def _do_scores_refresh(force: bool = False):
             "setup_quality":     bias.get("setup_quality", "n/a"),
             "setup_direction":   bias.get("setup_direction", "Neutral"),
             "setup_vs_backdrop": bias.get("setup_vs_backdrop", "none"),
+            # SEAS-R3 (Fix 3b): extreme-positioning promotion audit trail — tells
+            # the UI (and the next audit) whether COT voted as a full edge factor.
+            "cot_extreme":       bias.get("cot_extreme", False),
+            "relval_extreme":    bias.get("relval_extreme", False),
+            "cot_tier":          bias.get("cot_tier", "confirmation"),
             "agree":             bias.get("agree", 0),
             "disagree":          bias.get("disagree", 0),
             "factor_votes":      bias.get("factor_votes", {}),
@@ -11868,6 +11950,8 @@ async def _do_scores_refresh(force: bool = False):
             for _k in ("direction","bias_sign","conviction","tier","regime","efficiency_ratio",
                        "regime_gate","trend_lt","trend_st","trend_state","setup_quality",
                        "setup_direction","setup_vs_backdrop","agree","disagree","factor_votes","drivers",
+                       # SEAS-R3: extreme-promotion flags re-flow with the engine too
+                       "cot_extreme","relval_extreme","cot_tier",
                        # AUDIT-COMPOSITE: keep the seasonal timing block in sync
                        # after the DX regime tilt re-flows the engine.
                        "seasonal_hint","seasonal_score_raw","seasonal_score_adj",
@@ -12812,6 +12896,14 @@ async def get_seasonality_lab(
                 "reliability_grade": _ws2.get("reliability_grade"),
                 "seas_shape": _ws2.get("seas_shape"),
                 "shape_rotated": _ws2.get("shape_rotated"),
+                # SEAS-R3: keep the Lab honest about rotation suppression and
+                # plan reconciliation too, so Lab and score card still agree.
+                "shape_rotation_suppressed": _ws2.get("shape_rotation_suppressed"),
+                "far_weight_applied": _ws2.get("far_weight_applied"),
+                "shape_note": _ws2.get("shape_note"),
+                "plan_reconciled": _ws2.get("plan_reconciled"),
+                "plan_entry_source": _ws2.get("plan_entry_source"),
+                "plan_reconcile_note": _ws2.get("plan_reconcile_note"),
                 "imm_score": _ws2.get("imm_score"),
                 "imm_median_pct": _ws2.get("imm_median_pct"),
                 "imm_hit_rate": _ws2.get("imm_hit_rate"),
@@ -13532,6 +13624,17 @@ _SEAS_GOLD_FWD  = 25
 # nor trustworthy; it usually means the real peak is further back still.
 _SEAS_GOLD_LATE = 10
 
+# ── SEAS-R3 (Fix 1 + Fix 2): live-near-edge detection and plan reconciliation ──
+# Ben (round 3, on CT): a 6-8 week far window must not neutralise a near-term
+# read while a goldilocks entry is OPEN TODAY ("anything beyond six weeks isn't
+# really relevant"). These two constants define "open today":
+_SEAS_R3_OPEN_ZONE_TD   = 2     # +/-2 TD is the noise floor of a 20-TD statistic
+_SEAS_R3_OPEN_MIN_LEAN  = 1.0   # signed-lean units; below this it isn't an edge
+# Fix 2: how far from today a goldilocks entry may sit and still re-anchor the
+# planner's entry leg. Beyond this it is context (Read B), not a plan, and the
+# planner keeps its own leg boundary (this is what leaves 6A, dtg=17, alone).
+_SEAS_R3_RECONCILE_MAX_TD = 10
+
 # SEAS-R2 (Issue 3) — swing-horizon re-weighting of the HEADLINE seasonal score.
 # Round 1 exposed the 10-TD immediate read but did not let it touch the headline.
 # Ben: "1-2 week trade positions... maybe 3-4 weeks at a max" — so the headline
@@ -14143,6 +14246,194 @@ def _seas_planner_discount(score: float, planner: dict, shape_rotated: bool = Fa
     return round(mult, 3), mode, round(off, 3), round(capture, 3)
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# SEAS-R3 (Fix 2) — ONE TRUTH FOR ENTRY TIMING: planner <-> goldilocks merge
+# ───────────────────────────────────────────────────────────────────────────
+# Ben (round 3, CT): the goldilocks scan said "peak TODAY, best seasonal short
+# entry of the cycle is on the table today"; the planner said "wait 15 TD, next
+# peak 20 TD out". Two surfaces, two answers, 15-20 TD apart.
+#
+# ROOT CAUSE (measured on CT, 2026-08-26). They are different statistics, not a
+# bug in either:
+#   * goldilocks slides the HEADLINE statistic — the weighted distribution of
+#     20-TD forward returns, on the SCORING lens (0.93^age recency, cycle 2.5x)
+#     — across entry offsets and takes the argmax. CT: lean -2.98 at offset -1,
+#     -2.40 at 0. The distribution of 20-TD outcomes from today is bearish.
+#   * the planner walks a CUMULATIVE MEDIAN PATH on the CHART lens
+#     (0.5^(age/halflife) x cycle_w) and cuts it into zigzag legs with a
+#     self-calibrating amplitude filter. CT's median path is choppy-positive for
+#     the first 15 TD (+0.73, +0.90, +0.32, +0.74, +0.63) and only breaks down
+#     at td 15, so the first tradeable short leg it can SEE is (15, 20).
+#   A median path is composition-dependent TD by TD (a different year is the
+#   median at each k), so it can drift sideways while the distribution of
+#   fixed-horizon outcomes is clearly one-sided. That is exactly CT.
+#
+# THE MERGE — a split of authority, not an average:
+#   ENTRY follows GOLDILOCKS. It is the same statistic as the headline score and
+#     the same statistic the score card and the UI callout quote, so the number
+#     Ben reads and the entry he is told to take can no longer disagree.
+#   EXIT / next turn follows the PLANNER. A leg boundary on the drawn curve is
+#     the honest "where does this move end" answer, and it is what the Lab plots.
+#   The entry may only be pulled EARLIER, never pushed later: if the authoritative
+#     statistic says the edge is live now, a planner that hasn't noticed yet does
+#     not get to delay the trade. (The reverse case — planner enter_now while
+#     goldilocks says wait — keeps the planner's enter_now, since entry 0 is
+#     already the earliest possible.)
+#   Only applies inside _SEAS_R3_RECONCILE_MAX_TD (10 TD) of today with a
+#     substantive goldilocks lean. Beyond that the goldilocks read is Read B
+#     context (a turn approaching), not a plan — 6A (dtg 17) is untouched.
+# Everything is stamped: `plan_reconciled`, `plan_entry_source`,
+# `plan_reconcile_note`, and the planner's own pre-merge values are preserved in
+# `plan_entry_in_td_planner` so the divergence stays auditable.
+# The headline score is NOT touched by this merge — `_seas_planner_discount` is
+# threshold-free and reads only the curve, so reconciliation moves plans and
+# text, never numbers.
+# ═══════════════════════════════════════════════════════════════════════════
+def _seas_reconcile_plan(planner: dict, gold: dict, base_date, years_dict,
+                         yrs=None, W=None, td_a: int = None, asof_year: int = None):
+    """Merge the goldilocks entry into the planner. Mutates and returns planner.
+
+    gold = {"dir": +-1, "dtg": int, "timing": str, "lean": float}
+    """
+    if not planner or not gold:
+        return planner
+    gdir = gold.get("dir")
+    dtg  = gold.get("dtg")
+    lean = gold.get("lean")
+    planner["plan_reconciled"] = False
+    planner["plan_entry_source"] = "planner"
+    planner["plan_reconcile_note"] = None
+    planner["plan_entry_in_td_planner"] = planner.get("entry_in_td")
+    planner["plan_action_planner"] = planner.get("plan_action")
+    planner["primary_dir_planner"] = planner.get("primary_dir")
+    if gdir not in (1, -1) or dtg is None or lean is None:
+        return planner
+    if abs(float(lean)) < _SEAS_R3_OPEN_MIN_LEAN:
+        return planner
+    if abs(int(dtg)) > _SEAS_R3_RECONCILE_MAX_TD:
+        return planner
+
+    side = "long" if gdir > 0 else "short"
+    p = dict(planner.get(side) or {})
+    gold_entry = max(0, int(dtg))          # "already passed" collapses to now
+    old_entry = p.get("entry_in_td")
+    old_action = p.get("plan_action")
+    curve = planner.get("curve") or []
+    maxk = (curve[-1]["k"] if curve else _SEAS_PLAN_FWD)
+    changed = False
+
+    if old_action in ("wait", "enter_now") and old_entry is not None:
+        if gold_entry < old_entry:
+            new_exit = p.get("exit_in_td")
+            # keep the planner's leg end, but respect the hold cap from the
+            # earlier entry
+            if new_exit is None:
+                new_exit = min(maxk, gold_entry + _SEAS_NEAR_TD)
+            new_exit = min(new_exit, gold_entry + _SEAS_PLAN_MAX_HOLD)
+            if new_exit - gold_entry < _SEAS_PLAN_MIN_LEG:
+                new_exit = min(maxk, gold_entry + _SEAS_PLAN_MIN_LEG)
+            p["entry_in_td"] = gold_entry
+            p["exit_in_td"] = new_exit
+            p["hold_td"] = new_exit - gold_entry
+            p["plan_action"] = "enter_now" if gold_entry <= _SEAS_PLAN_NOW_TD else "wait"
+            changed = True
+    elif old_action == "no_edge":
+        # No zigzag leg in the goldilocks direction at all (the amplitude filter
+        # never saw one). Build the plan from the curve: hold until the curve's
+        # favourable extreme inside the hold cap.
+        if curve:
+            proj = [(c["k"], c["cum_pct"] * gdir) for c in curve
+                    if gold_entry <= c["k"] <= gold_entry + _SEAS_PLAN_MAX_HOLD]
+            if len(proj) >= _SEAS_PLAN_MIN_LEG:
+                base = next((v for k, v in proj if k == gold_entry), proj[0][1])
+                best_k, best_v = max(proj, key=lambda kv: kv[1])
+                if best_v - base > 0 and best_k - gold_entry >= _SEAS_PLAN_MIN_LEG:
+                    p["entry_in_td"] = gold_entry
+                    p["exit_in_td"] = best_k
+                    p["hold_td"] = best_k - gold_entry
+                    p["plan_action"] = ("enter_now" if gold_entry <= _SEAS_PLAN_NOW_TD
+                                        else "wait")
+                    p["next_turn_td"] = best_k
+                    p["next_turn_type"] = "dip" if gdir > 0 else "peak"
+                    p["leg_amp_pct"] = round(best_v - base, 2)
+                    changed = True
+    if not changed:
+        # Directions may still disagree even when the entry doesn't move.
+        if planner.get("primary_dir") != gdir and old_action != "no_edge":
+            planner.update(_seas_promote_plan(planner, side, gdir))
+            planner["plan_reconciled"] = True
+            planner["plan_entry_source"] = "goldilocks-direction"
+            planner["plan_reconcile_note"] = (
+                f"Primary direction set to {side} by the goldilocks scan "
+                f"(lean {lean:+.2f} at {dtg:+d} TD); planner ranked "
+                f"{'long' if planner.get('primary_dir_planner', 0) > 0 else 'short'} higher")
+        return planner
+
+    # recompute the leg's own base rates over the reconciled window
+    if None not in (td_a, asof_year) and yrs and W:
+        try:
+            med, wr, nyr, nties = _seas_leg_stats(years_dict, yrs, W, td_a,
+                                                  p["entry_in_td"], p["exit_in_td"],
+                                                  asof_year, gdir)
+            p["expected_move_pct"] = (round(med, 2) if med is not None else None)
+            p["leg_win_rate"] = (round(wr, 4) if wr is not None else None)
+            p["n_years"] = nyr
+            p["n_ties"] = nties
+        except Exception as _e:
+            print(f"[seas reconcile] leg stats: {_e}", flush=True)
+    p["entry_by_date"] = (_seas_td_to_date(base_date, p["entry_in_td"]).isoformat()
+                          if p.get("entry_in_td") is not None else None)
+    p["exit_by_date"] = (_seas_td_to_date(base_date, p["exit_in_td"]).isoformat()
+                         if p.get("exit_in_td") is not None else None)
+    _turn = ("" if p.get("next_turn_td") is None else
+             f" — the next seasonal {p.get('next_turn_type')} lands "
+             f"{p['next_turn_td']} TD out")
+    if p["plan_action"] == "enter_now":
+        p["note"] = (f"Enter {side} now, be out by {p['exit_by_date']} "
+                     f"({p['exit_in_td']} TD){_turn}")
+    else:
+        p["note"] = (f"Wait {p['entry_in_td']} TD — {side} entry ~{p['entry_by_date']}, "
+                     f"out by {p['exit_by_date']} ({p['exit_in_td']} TD){_turn}")
+    planner[side] = p
+    planner.update(_seas_promote_plan(planner, side, gdir))
+    planner["plan_reconciled"] = True
+    planner["plan_entry_source"] = "goldilocks"
+    _was = ("no tradeable leg" if old_action == "no_edge"
+            else f"{old_action} at {old_entry} TD")
+    planner["plan_reconcile_note"] = (
+        f"Entry re-anchored to {p['entry_in_td']} TD from the goldilocks scan "
+        f"(lean {lean:+.2f} at {dtg:+d} TD, same statistic as the headline score); "
+        f"the zigzag leg detector on the chart-lens median path saw {_was}. "
+        f"Exit still follows the planner leg boundary ({p['exit_in_td']} TD).")
+    return planner
+
+
+def _seas_promote_plan(planner: dict, side: str, dirn: int) -> dict:
+    """Re-publish the top-level plan_* mirror fields from one side's plan."""
+    p = planner.get(side) or {}
+    return {
+        "primary_dir": dirn,
+        "plan_action": p.get("plan_action", "no_edge"),
+        "entry_in_td": p.get("entry_in_td"),
+        "exit_in_td": p.get("exit_in_td"),
+        "exit_by_date": p.get("exit_by_date"),
+        "hold_td": p.get("hold_td"),
+        "expected_move_pct": p.get("expected_move_pct"),
+        "leg_win_rate": p.get("leg_win_rate"),
+        "next_turn_td": p.get("next_turn_td"),
+        "next_turn_type": p.get("next_turn_type"),
+        "note": p.get("note"),
+        "suggested_window": {
+            "start_td": max(0, min(251, (planner.get("td_start") or 0)
+                                   + (p.get("entry_in_td") or 0))),
+            "end_td": max(1, min(251, (planner.get("td_start") or 0)
+                                 + (p.get("exit_in_td") or _SEAS_NEAR_TD))),
+            "hold_td": p.get("hold_td") or _SEAS_NEAR_TD,
+            "dir": dirn,
+        },
+    }
+
+
 # AUDIT-SCORING-COMPLETE
 # Scoring-logic audit finished. Composite-integration agent is clear to start.
 # New payload fields available for composite/UI consumption:
@@ -14368,6 +14659,80 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
                     score = round(recent_regime_score * recent_regime_w
                                   + score * (1.0 - recent_regime_w), 1)
 
+    # ══ SEAS-R3 (Fix 1): PRE-COMPUTE THE TIMING EVIDENCE BEFORE THE SHAPE BLOCK ══
+    # Ben (round 3): "How is this a 4.7 seasonal score — the seasonality graphic
+    # shows we're at the peak before a strong seasonal decline." On CT the
+    # rising/fading rotation put 55% of the headline on a 6-8 week window Ben has
+    # explicitly ruled out ("anything beyond six weeks isn't really relevant") and
+    # lifted a 2.6 bearish near read to 4.7 neutral WHILE a goldilocks short entry
+    # was open today. The rotation therefore needs to know, at the moment it fires,
+    # whether the near term has a LIVE contradictory edge.
+    #
+    # Both timing engines are pure statistics of `years` — neither depends on the
+    # headline score — so they are computed here and only INTERPRETED later:
+    #   * `_gold`   : the goldilocks scan (same 20-TD window statistic, same
+    #                 scoring lens as the headline, slid across entry offsets)
+    #   * `planner` : the swing planner (chart-lens blend curve + zigzag legs)
+    # The direction anchor / entry_timing / plan reconciliation still happen after
+    # the score is final, exactly as before — only the raw scans moved.
+    planner = None
+    try:
+        planner = _seas_swing_planner(market_id, years, td_a, d.year, d)
+    except Exception as _pe:
+        print(f"[seas planner] {market_id}: {_pe}", flush=True)
+        planner = None
+    _gold = {}
+    try:
+        for _off in range(-_SEAS_GOLD_BACK, _SEAS_GOLD_FWD + 1):
+            _s = td_a + _off
+            if _s < 1:
+                continue
+            _gr, _gw = [], []
+            for y, w in zip(used, ws):
+                v = _seas_fwd(years, y, _s, _s + _SEAS_NEAR_TD, d.year)
+                if v is None:
+                    continue
+                _gr.append(v); _gw.append(w)
+            _gs, _, _, _ = _seas_win_score(_gr, _gw)
+            if _gs is None:
+                continue
+            _gold[_off] = _gs - 5.0            # signed lean, -5 .. +5
+    except Exception as _ge:
+        print(f"[seas goldilocks scan] {market_id}: {_ge}", flush=True)
+        _gold = {}
+
+    # ── Is there an OPEN near-term edge right now, and how strong is it? ──────
+    # "Open" means: the near window itself holds a directional view d, AND the
+    # goldilocks argmax in direction d is at/behind today (best entry is now or
+    # already live) with a substantive lean, OR the planner is already inside a
+    # tradeable leg in direction d. Strength is measured in the same signed-lean
+    # units as the far window so the two can be compared honestly.
+    _near_lean_pre = round(score, 1) - 5.0
+    open_edge_dir = 0
+    open_edge_lean = 0.0
+    open_edge_src = None
+    if abs(_near_lean_pre) >= 0.5:
+        _d0 = 1 if _near_lean_pre > 0 else -1
+        _now_best = max((_gold[o] * _d0 for o in range(-_SEAS_R3_OPEN_ZONE_TD,
+                                                       _SEAS_R3_OPEN_ZONE_TD + 1)
+                         if o in _gold), default=0.0)
+        _cands0 = [(k, v) for k, v in _gold.items()
+                   if v * _d0 > 0 and k >= -_SEAS_GOLD_LATE]
+        _best_off0 = None
+        if _cands0:
+            _bv0 = max(v * _d0 for _, v in _cands0)
+            _best_off0 = min((k for k, v in _cands0 if v * _d0 >= _bv0 - 0.15), key=abs)
+        _gold_open = (_now_best >= _SEAS_R3_OPEN_MIN_LEAN
+                      and _best_off0 is not None
+                      and _best_off0 <= _SEAS_R3_OPEN_ZONE_TD)
+        _pd = ((planner or {}).get("long" if _d0 > 0 else "short") or {})
+        _plan_open = (_pd.get("plan_action") == "enter_now")
+        if _gold_open or _plan_open:
+            open_edge_dir = _d0
+            open_edge_lean = round(max(_now_best, abs(_near_lean_pre)), 2)
+            open_edge_src = ("goldilocks+planner" if (_gold_open and _plan_open)
+                             else ("goldilocks" if _gold_open else "planner"))
+
     # ── FAR-WINDOW SEASONAL (r15) ──────────────────────────────────
     # The 20-TD near window answers "where does the curve end up in ~4 weeks?"
     # But that misses shape: a seasonal peak inside the window (up then down)
@@ -14384,6 +14749,9 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     seas_shape = 'confirmed'      # confirmed | fading | rising | undefined
     shape_dampen = 1.0            # 1.0 = no dampen; <1.0 = dampen toward 5
     shape_rotated = False         # true when we rotated toward the far side
+    shape_rotation_suppressed = False   # SEAS-R3: rotation blocked by a live near edge
+    far_weight_applied = 0.0            # SEAS-R3: audit trail — far weight actually used
+    shape_note = None                   # SEAS-R3: narrative for the suppressed far read
     if True:
         # AUDIT-SCORING — two bugs fixed here:
         #  1) far weights were taken as ws[:len(far_rets)], a POSITIONAL slice.
@@ -14445,11 +14813,41 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
             # we fall back toward the old dampen-toward-5 behaviour.
             if seas_shape in ('fading', 'rising') and far_score is not None:
                 _far_lean = far_score - 5.0
-                if abs(_far_lean) >= 0.5:
+                # ── SEAS-R3 (Fix 1): a live near edge outranks the far window ──
+                # The rotation exists for a near window that is SPENT or has no
+                # edge (the 6A case Ben confirmed): there, the 6-8 week read is
+                # the only information available and it deserves the headline.
+                # It must NOT fire when the near term has an OPEN, contradictory
+                # edge — Ben's Read A: "higher score if we're already in the
+                # goldilocks entry zone", i.e. an open entry with direction d
+                # pulls the headline toward d, it does not get neutralised by a
+                # window he considers irrelevant.
+                # Three conditions, all required:
+                #   1) the open near edge points the same way as the near window
+                #   2) the far window points the OPPOSITE way
+                #   3) the near evidence is at least as strong as the far read
+                #      (so a whisper of a near edge can't veto a big far turn —
+                #      6A: near lean 0.5 / gold-now 1.18 vs far lean -3.8 → the
+                #      far window still wins and the rotation stays intact)
+                _near_lean_now = score - 5.0
+                if (open_edge_dir != 0
+                        and _near_lean_now * open_edge_dir > 0
+                        and _far_lean * open_edge_dir < 0
+                        and open_edge_lean >= abs(_far_lean)):
+                    shape_rotation_suppressed = True
+                    far_weight_applied = 0.0
+                    shape_dampen = 1.0     # near read stands as-is, no pull to neutral
+                    _fw = "turns up" if _far_lean > 0 else "turns down"
+                    shape_note = (
+                        f"Far window ({td_b}-{td_c} TD) {_fw} — setup building beyond "
+                        f"six weeks, held out of the headline while the "
+                        f"{'long' if open_edge_dir > 0 else 'short'} entry is live now")
+                elif abs(_far_lean) >= 0.5:
                     # blend: 45% current (near-view, already reliability-dampened) + 55% far
                     _blended = score * 0.45 + far_score * 0.55
                     score = round(max(0.0, min(10.0, _blended)), 1)
                     shape_rotated = True
+                    far_weight_applied = 0.55
                 else:
                     # far isn't strong enough to flip the sign — just dampen as before
                     score = round(5.0 + (score - 5.0) * shape_dampen, 1)
@@ -14518,15 +14916,12 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     # reading 7.8". It didn't — round 1's goldilocks/leg analysis was published
     # but never consumed. The planner now feeds the headline via a single,
     # explainable, never-inverting multiplicative discount.
-    planner = None
+    # SEAS-R3: `planner` itself is now computed BEFORE the shape block (it is a
+    # pure statistic of `years` and Fix 1 needs its legs). Only the discount,
+    # which depends on the resolved score, stays here.
     planner_mult = 1.0
     planner_mode = None
     planner_off_frac = None
-    try:
-        planner = _seas_swing_planner(market_id, years, td_a, d.year, d)
-    except Exception as _pe:
-        print(f"[seas planner] {market_id}: {_pe}", flush=True)
-        planner = None
     planner_capture = None
     if planner:
         (planner_mult, planner_mode, planner_off_frac,
@@ -14562,21 +14957,8 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     anticipation_nudge = 0.0
     goldilocks_curve = []
     try:
-        _gold = {}
-        for _off in range(-_SEAS_GOLD_BACK, _SEAS_GOLD_FWD + 1):
-            _s = td_a + _off
-            if _s < 1:
-                continue
-            _gr, _gw = [], []
-            for y, w in zip(used, ws):
-                v = _seas_fwd(years, y, _s, _s + _SEAS_NEAR_TD, d.year)
-                if v is None:
-                    continue
-                _gr.append(v); _gw.append(w)
-            _gs, _, _, _ = _seas_win_score(_gr, _gw)
-            if _gs is None:
-                continue
-            _gold[_off] = _gs - 5.0            # signed lean, -5 .. +5
+        # SEAS-R3: the scan itself now runs before the shape block (Fix 1 needs
+        # it). This block is purely the INTERPRETATION of `_gold`.
         if _gold:
             goldilocks_curve = [{"off": k, "lean": round(v, 2)}
                                 for k, v in sorted(_gold.items())]
@@ -14671,6 +15053,22 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     except Exception as _ge:
         print(f"[seas goldilocks] {market_id}: {_ge}", flush=True)
 
+    # ══ SEAS-R3 (Fix 2): ONE TRUTH — merge the goldilocks entry into the plan ══
+    # See the block comment above _seas_reconcile_plan. Entry follows goldilocks
+    # (same statistic as the headline), exit stays on the planner leg boundary.
+    # Score-neutral by construction: the planner discount above already ran and
+    # reads only the curve, which this does not touch.
+    if planner:
+        try:
+            _lens_yrs, _lens_W = _seas_lens_weights(years, d.year, market_id)
+            planner = _seas_reconcile_plan(
+                planner,
+                {"dir": goldilocks_dir, "dtg": days_to_goldilocks,
+                 "timing": entry_timing, "lean": goldilocks_lean},
+                d, years, _lens_yrs, _lens_W, td_a, d.year)
+        except Exception as _re:
+            print(f"[seas reconcile] {market_id}: {_re}", flush=True)
+
     return {
         "score": score,
         "consensus": consensus,
@@ -14737,6 +15135,12 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "next_turn_td": (planner or {}).get("next_turn_td"),
         "next_turn_type": (planner or {}).get("next_turn_type"),
         "plan_note": (planner or {}).get("note"),
+        # SEAS-R3 (Fix 2): planner <-> goldilocks merge audit trail
+        "plan_reconciled": (planner or {}).get("plan_reconciled", False),
+        "plan_entry_source": (planner or {}).get("plan_entry_source"),
+        "plan_reconcile_note": (planner or {}).get("plan_reconcile_note"),
+        "plan_entry_in_td_planner": (planner or {}).get("plan_entry_in_td_planner"),
+        "plan_action_planner": (planner or {}).get("plan_action_planner"),
         # AUDIT-SCORING: goldilocks entry timing (Read B)
         "days_to_goldilocks": days_to_goldilocks,
         "entry_timing": entry_timing,
@@ -14756,6 +15160,13 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "seas_shape": seas_shape,
         "shape_dampen": shape_dampen,
         "shape_rotated": shape_rotated,
+        # SEAS-R3 (Fix 1): far-window rotation vs a live near-term edge
+        "shape_rotation_suppressed": shape_rotation_suppressed,
+        "far_weight_applied": far_weight_applied,
+        "shape_note": shape_note,
+        "open_edge_dir": open_edge_dir,
+        "open_edge_lean": open_edge_lean,
+        "open_edge_src": open_edge_src,
         "years_span": f"{min(used)}\u2013{max(used)}" if used else "",
         "cycle_key": _cycle_key_for_year(d.year),
         "weighting": f"cycle {_seas_default_blend(market_id).get('cycle_w', _SEAS_CYCLE_BOOST)}x + recency 0.93^age",
@@ -14848,6 +15259,23 @@ def score_seasonality(market_id: str) -> dict:
             "seas_shape": stats.get("seas_shape"),
             "shape_dampen": stats.get("shape_dampen"),
             "shape_rotated": stats.get("shape_rotated"),
+            # SEAS-R3 (Fix 1): far-window rotation audit trail. When an OPEN
+            # near-term goldilocks/planner entry contradicts the 6-8wk window we
+            # suppress the rotation instead of blending 55% onto a window Ben has
+            # said is "not really relevant" — these fields say whether that fired.
+            "shape_rotation_suppressed": stats.get("shape_rotation_suppressed"),
+            "far_weight_applied": stats.get("far_weight_applied"),
+            "shape_note": stats.get("shape_note"),
+            "open_edge_dir": stats.get("open_edge_dir"),
+            "open_edge_lean": stats.get("open_edge_lean"),
+            "open_edge_src": stats.get("open_edge_src"),
+            # SEAS-R3 (Fix 2): planner/goldilocks reconciliation audit trail
+            "plan_reconciled": stats.get("plan_reconciled"),
+            "plan_entry_source": stats.get("plan_entry_source"),
+            "plan_reconcile_note": stats.get("plan_reconcile_note"),
+            "plan_entry_in_td_planner": stats.get("plan_entry_in_td_planner"),
+            "plan_action_planner": stats.get("plan_action_planner"),
+            "primary_dir_planner": stats.get("primary_dir_planner"),
             # AUDIT-SCORING: immediate (1-2wk) horizon shown alongside near (3-4wk)
             "imm_score": stats.get("imm_score"),
             # AUDIT-COMPOSITE: explicit alias — the composite payload and the UI
