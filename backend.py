@@ -5878,6 +5878,12 @@ def compute_macro_all() -> dict:
                 if _af_disp is not None:
                     _cc["actual"] = f"{_af_disp:.2f}%"
                     _cc["display"] = _cc["actual"]
+                    # HONEST TITLE (2026-08-26): when the displayed number is the FF m/m
+                    # print (y/y unavailable — PPI/PCE/CORE_PCE path), the card title must
+                    # say m/m, not YoY. Core PCE m/m 0.20% labelled "Core PCE YoY" reads
+                    # as if inflation collapsed to 0.2% y/y.
+                    if _af_yoy is None and isinstance(_cc.get("title"), str) and "YoY" in _cc["title"]:
+                        _cc["title"] = _cc["title"].replace("YoY", "m/m")
                 if _ff_disp is not None:
                     _cc["expected"] = _ff_disp
                     _cc["forecast"] = f"{_ff_disp:.2f}%"
