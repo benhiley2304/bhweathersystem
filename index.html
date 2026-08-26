@@ -2659,6 +2659,26 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 }
 .ov-fwm-delta.up{color:#eab850}
 .ov-fwm-delta.dn{color:#5eb8f5}
+/* Baseline modal ghost — where consensus sat N ago */
+.ov-fwm-cell.ov-fwm-bslmodal{
+  outline:1.5px dashed rgba(200,207,224,0.55);
+  outline-offset:-2px;
+}
+/* Implied-rate bp delta under the Impl. column value */
+.ov-fwm-exp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.ov-fwm-exp-d{
+  font-family:var(--mono);font-size:7px;font-weight:800;letter-spacing:-0.02em;line-height:1;
+}
+.ov-fwm-exp-d.up{color:#eab850}
+.ov-fwm-exp-d.dn{color:#5eb8f5}
+.ov-fwm-exp-d.fl{color:rgba(173,184,208,0.45)}
+/* Ghost path endpoint label on the rate path chart */
+.ov-rp-eplbl-ghost{
+  position:absolute;transform:translate(-100%,-130%);
+  font-family:var(--mono);font-size:8px;font-weight:700;
+  color:rgba(200,207,224,0.60);letter-spacing:0.03em;white-space:nowrap;
+  background:rgba(3,5,8,0.72);padding:1px 4px;border-radius:3px;
+}
 .ov-fwm-baseline-note{
   font-family:var(--mono);font-size:8.5px;font-weight:600;
   color:rgba(173,184,208,0.55);letter-spacing:0.02em;
@@ -26418,7 +26438,7 @@ function renderOverview(){
       const curLoC = Math.round(tLow * 100);
       // Baseline lookup by meeting date -> probs map, for delta chip calc
       const bslByDate = {};
-      if (baselineMeetings) baselineMeetings.forEach(mt => { if (mt && mt.date) bslByDate[mt.date] = (mt.probs || {}); });
+      if (baselineMeetings) baselineMeetings.forEach(mt => { if (mt && mt.date) bslByDate[mt.date] = mt; });
       // Collect ranges with any meaningful probability, sorted ascending
       const rngMax = {};
       meetings.forEach(mt => Object.entries(mt.probs || {}).forEach(([r, p]) => {
@@ -26446,32 +26466,31 @@ function renderOverview(){
       }).join('');
       // Body rows
       const rows = meetings.map((mt, ri) => {
+        const bslMt = baselineMeetings ? (bslByDate[mt.date] || null) : null;
+        const bslModal = bslMt ? bslMt.modal : null;
         const cells = ranges.map(r => {
           const p = (mt.probs || {})[r] || 0;
           const k = kOf(r), hue = hueOf(k);
           const isModal = mt.modal === r;
-          if (p < 0.05) return `<div class="ov-fwm-cell ov-fwm-nil">\u00b7</div>`;
+          // Dashed ghost outline = where consensus (modal range) sat at the baseline
+          const isBslModal = bslModal === r && !isModal;
+          if (p < 0.05) return `<div class="ov-fwm-cell ov-fwm-nil${isBslModal ? ' ov-fwm-bslmodal' : ''}">\u00b7</div>`;
           const bgA = Math.min(0.52, 0.05 + (p / 100) * 0.62);
           const txA = Math.min(1, 0.42 + (p / 100) * 1.4);
-          // Delta vs baseline (percentage-point shift). Show chip only when |d| >= 1.0
-          let chip = '';
-          if (baselineMeetings) {
-            const bp = (bslByDate[mt.date] || {})[r];
-            if (bp != null) {
-              const d = p - bp;
-              if (Math.abs(d) >= 1.0) {
-                const dCls = d > 0 ? 'up' : 'dn';
-                const arrow = d > 0 ? '\u25B2' : '\u25BC';
-                chip = `<span class="ov-fwm-delta ${dCls}">${arrow}${Math.abs(d).toFixed(1)}</span>`;
-              }
-            }
-          }
-          return `<div class="ov-fwm-cell${isModal ? ' ov-fwm-modal' : ''}" style="background:rgba(${hue},${bgA.toFixed(3)});color:rgba(255,255,255,${txA.toFixed(2)});${isModal ? `box-shadow:inset 0 0 0 1px rgba(${hue},0.85);` : ''}">${p >= 99.95 ? '100' : p.toFixed(1)}${chip}</div>`;
+          return `<div class="ov-fwm-cell${isModal ? ' ov-fwm-modal' : ''}${isBslModal ? ' ov-fwm-bslmodal' : ''}" style="background:rgba(${hue},${bgA.toFixed(3)});color:rgba(255,255,255,${txA.toFixed(2)});${isModal ? `box-shadow:inset 0 0 0 1px rgba(${hue},0.85);` : ''}">${p >= 99.95 ? '100' : p.toFixed(1)}</div>`;
         }).join('');
+        // Impl. column: current implied rate + bp shift vs baseline beneath
+        let expDelta = '';
+        if (bslMt && mt.exp_rate != null && bslMt.exp_rate != null) {
+          const dbp = Math.round((mt.exp_rate - bslMt.exp_rate) * 100);
+          const cls = dbp >= 2 ? 'up' : dbp <= -2 ? 'dn' : 'fl';
+          const arrow = dbp >= 2 ? '\u25B2' : dbp <= -2 ? '\u25BC' : '';
+          expDelta = `<span class="ov-fwm-exp-d ${cls}">${arrow}${dbp > 0 ? '+' : ''}${dbp}bp</span>`;
+        }
         return `<div class="ov-fwm-row${ri === 0 ? ' ov-fwm-next' : ''}">
           <div class="ov-fwm-date">${fmtDate(mt.date)}${ri === 0 ? '<span class="ov-fwm-next-tag">NEXT</span>' : ''}</div>
           ${cells}
-          <div class="ov-fwm-exp">${mt.exp_rate != null ? mt.exp_rate.toFixed(2) : '\u2013'}</div>
+          <div class="ov-fwm-exp"><span>${mt.exp_rate != null ? mt.exp_rate.toFixed(2) : '\u2013'}</span>${expDelta}</div>
         </div>`;
       }).join('');
       const gridCols = `minmax(72px,84px) repeat(${ranges.length},minmax(46px,1fr)) minmax(44px,52px)`;
@@ -26484,7 +26503,7 @@ function renderOverview(){
         ).join('')}</span>`;
       })();
       const baselineNote = (baselineLabel && baselineLabel !== 'now' && bslByDate && Object.keys(bslByDate).length)
-        ? `<div class="ov-fwm-baseline-note">Chips show change in probability vs ${baselineLabel.toUpperCase()} ago \u00b7 minimum \u00b11.0pp</div>`
+        ? `<div class="ov-fwm-baseline-note"><span style="display:inline-block;width:14px;height:8px;outline:1.5px dashed rgba(200,207,224,0.55);outline-offset:-2px;margin-right:5px;vertical-align:middle"></span>most likely ${baselineLabel.toUpperCase()} ago \u00b7 Impl. shows bp change vs ${baselineLabel.toUpperCase()} ago</div>`
         : (baselineLabel && baselineLabel !== 'now')
           ? `<div class="ov-fwm-baseline-note">History collecting \u2014 ${baselineLabel.toUpperCase()} comparison not yet available</div>`
           : '';
@@ -26574,14 +26593,38 @@ function renderOverview(){
         wrap.innerHTML = html;
         const newRoot = wrap.firstElementChild;
         if (newRoot) root.replaceWith(newRoot);
+        // Re-render the implied rate path chart with a dashed ghost of the baseline path
+        try {
+          const stage = document.querySelector('.ov-rp-chart-stage');
+          if (stage && cur.months && cur.months.length > 1) {
+            const nowPath = cur.months.map(m => ({rate: m.implied, month: m.month, year: m.year}));
+            const nowSpot = (cur.effr != null ? cur.effr : nowPath[0].rate);
+            let ghostArr = null;
+            if (bsl && bsl.months && bsl.months.length) {
+              const byYM = {};
+              bsl.months.forEach(m => { byYM[m.year + '-' + m.month] = m.implied; });
+              const ptsMonths = [nowPath[0], ...nowPath.slice(1, 13)];
+              ghostArr = ptsMonths.map(m => {
+                const v = byYM[m.year + '-' + m.month];
+                return v != null ? v : null;
+              });
+            }
+            stage.innerHTML = _buildRatePathChart(nowPath, nowSpot, ghostArr, win === 'now' ? null : win);
+            const src = document.querySelector('.ov-rp-chart-src');
+            if (src) src.textContent = win === 'now' ? 'FED FUNDS FUTURES \u00b7 12M' : ('FED FUNDS FUTURES \u00b7 DASHED = ' + win.toUpperCase() + ' AGO');
+          }
+        } catch (e) {}
       });
     }
 
-    const _buildRatePathChart = (path, spotRate) => {
+    const _buildRatePathChart = (path, spotRate, ghost = null, ghostLabel = null) => {
       if (!path || path.length < 2) return '';
       const pts = [{rate: spotRate, label:'Now'}, ...path.slice(1, 13).map(p => ({rate: p.rate, label: _MABBR[p.month] + "\u2019" + String(p.year).slice(2)})) ];
+      // ghost: rates aligned to pts indices (nulls allowed) — the path as priced at the baseline date
+      const ghostRates = (ghost && ghost.length === pts.length && ghost.some(v => v != null)) ? ghost : null;
       const rates = pts.map(p => p.rate);
-      const rawMin = Math.min(...rates), rawMax = Math.max(...rates);
+      const ghostVals = ghostRates ? ghostRates.filter(v => v != null) : [];
+      const rawMin = Math.min(...rates, ...ghostVals), rawMax = Math.max(...rates, ...ghostVals);
       // Tight padding — just enough to see curvature clearly
       const spread = rawMax - rawMin;
       const pad = spread < 0.10 ? 0.20 : Math.max(0.15, spread * 0.25);
@@ -26608,21 +26651,6 @@ function renderOverview(){
       // We model this as a smooth curve through the midpoints of each run,
       // giving a fluid S-curve between policy changes while keeping horizontal
       // segments where the rate is flat. Much more readable than hard steps.
-      const smooth = [];
-      let i = 0;
-      while (i < pts.length) {
-        let j = i;
-        while (j < pts.length - 1 && Math.abs(pts[j+1].rate - pts[i].rate) < 0.001) j++;
-        // Midpoint of the flat run
-        const mx = (xf(i) + xf(j)) / 2;
-        smooth.push({ x: mx, r: pts[i].rate, iStart: i, iEnd: j });
-        i = j + 1;
-      }
-      // Always include last point
-      if (smooth[smooth.length-1].iEnd < pts.length-1) {
-        smooth.push({ x: xf(pts.length-1), r: pts[pts.length-1].rate, iStart: pts.length-1, iEnd: pts.length-1 });
-      }
-
       // Catmull-Rom to cubic bezier conversion for smooth curve
       const crToCubic = (p0, p1, p2, p3, alpha) => {
         const tension = alpha || 0.5;
@@ -26633,16 +26661,59 @@ function renderOverview(){
           cp2x: p2.x - d2x/3, cp2y: p2.y - d2y/3,
         };
       };
-      const splinePts = smooth.map(s => ({ x: s.x * VBW, y: yf(s.r) * VBH }));
+      // Generic spline builder for an array of rates aligned to x indices (nulls skipped)
+      const mkSpline = (ratesArr) => {
+        const idx = [];
+        ratesArr.forEach((r, ii) => { if (r != null) idx.push(ii); });
+        if (idx.length < 2) return null;
+        const smooth = [];
+        let a = 0;
+        while (a < idx.length) {
+          let b = a;
+          while (b < idx.length - 1 && Math.abs(ratesArr[idx[b+1]] - ratesArr[idx[a]]) < 0.001) b++;
+          const mx = (xf(idx[a]) + xf(idx[b])) / 2;
+          smooth.push({ x: mx, r: ratesArr[idx[a]] });
+          a = b + 1;
+        }
+        const lastI = idx[idx.length - 1];
+        if (smooth[smooth.length-1].x < xf(lastI) - 1e-9) {
+          smooth.push({ x: xf(lastI), r: ratesArr[lastI] });
+        }
+        const sp = smooth.map(s => ({ x: s.x * VBW, y: yf(s.r) * VBH }));
+        let d = `M${sp[0].x.toFixed(3)},${sp[0].y.toFixed(3)}`;
+        for (let k = 0; k < sp.length - 1; k++) {
+          const p0 = sp[Math.max(0, k-1)];
+          const p1 = sp[k];
+          const p2 = sp[k+1];
+          const p3 = sp[Math.min(sp.length-1, k+2)];
+          const { cp1x, cp1y, cp2x, cp2y } = crToCubic(p0, p1, p2, p3, 0.42);
+          d += ` C${cp1x.toFixed(3)},${cp1y.toFixed(3)} ${cp2x.toFixed(3)},${cp2y.toFixed(3)} ${p2.x.toFixed(3)},${p2.y.toFixed(3)}`;
+        }
+        return { d, sp };
+      };
+      const _main = mkSpline(rates);
+      if (!_main) return '';
+      const dSmooth = _main.d;
+      const splinePts = _main.sp;
 
-      let dSmooth = `M${splinePts[0].x.toFixed(3)},${splinePts[0].y.toFixed(3)}`;
-      for (let k = 0; k < splinePts.length - 1; k++) {
-        const p0 = splinePts[Math.max(0, k-1)];
-        const p1 = splinePts[k];
-        const p2 = splinePts[k+1];
-        const p3 = splinePts[Math.min(splinePts.length-1, k+2)];
-        const { cp1x, cp1y, cp2x, cp2y } = crToCubic(p0, p1, p2, p3, 0.42);
-        dSmooth += ` C${cp1x.toFixed(3)},${cp1y.toFixed(3)} ${cp2x.toFixed(3)},${cp2y.toFixed(3)} ${p2.x.toFixed(3)},${p2.y.toFixed(3)}`;
+      // ── Ghost path — the strip as priced at the baseline date (dashed, muted) ──
+      let ghostSvg = '';
+      let ghostLblHtml = '';
+      if (ghostRates) {
+        const g = mkSpline(ghostRates);
+        if (g) {
+          ghostSvg = `<path d="${g.d}" fill="none" stroke="rgba(200,207,224,0.48)" stroke-width="1.4" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" stroke-linecap="round"/>`;
+          let gi = ghostRates.length - 1;
+          while (gi >= 0 && ghostRates[gi] == null) gi--;
+          if (gi >= 1) {
+            const gEnd = ghostRates[gi];
+            const curEnd = pts[pts.length - 1].rate;
+            const gl = (xf(gi) * 100).toFixed(2), gt = (yf(gEnd) * 100).toFixed(2);
+            // Place above if the ghost ends above the live path, else below
+            const tf = gEnd >= curEnd ? 'translate(-100%,-135%)' : 'translate(-100%,35%)';
+            ghostLblHtml = `<div class="ov-rp-eplbl-ghost" style="left:${gl}%;top:${gt}%;transform:${tf}">${(ghostLabel || '').toUpperCase()} AGO ${gEnd.toFixed(2)}%</div>`;
+          }
+        }
       }
 
       // Area fill under the smooth curve
@@ -26743,6 +26814,7 @@ function renderOverview(){
           ${gridSvg}
           ${crossline}
           <path d="${dArea}" fill="url(#${uid})"/>
+          ${ghostSvg}
           <!-- outer halo glow — very subtle -->
           <path d="${dSmooth}" fill="none" stroke="${accent}" stroke-width="6" opacity="0.07" vector-effect="non-scaling-stroke" filter="url(#${uidG})"/>
           <!-- vertical bloom — gentle depth -->
@@ -26757,6 +26829,7 @@ function renderOverview(){
           ${xLabelsHtml}
           ${dotsHtml}
           ${endpointHtml}
+          ${ghostLblHtml}
         </div>
       </div>`;
     };
@@ -29236,7 +29309,14 @@ function renderMacroDataPanels(reg){
         </div>
         <!-- CHART: 12M yield curve history — primary analytical visual -->
         <div style="flex:1;min-height:0;max-height:200px;display:flex;flex-direction:column">
-          <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0"><div class="mc-sect-lbl">Curve Shape (12M History)</div><div class="mc-sect-line"></div></div>
+          <div class="mc-sect" style="margin:0 0 4px;flex-shrink:0;display:flex;align-items:center;gap:8px"><div class="mc-sect-lbl">Curve Shape</div><div class="mc-sect-line" style="flex:1"></div><span class="ov-fwm-tw" data-yc-tw>
+            <button class="ov-fwm-tw-btn" data-yc-win="now" title="No comparison">NOW</button>
+            <button class="ov-fwm-tw-btn" data-yc-win="1w" title="Compare vs 1W ago">1W</button>
+            <button class="ov-fwm-tw-btn active" data-yc-win="1m" title="Compare vs 1M ago">1M</button>
+            <button class="ov-fwm-tw-btn" data-yc-win="3m" title="Compare vs 3M ago">3M</button>
+            <button class="ov-fwm-tw-btn" data-yc-win="6m" title="Compare vs 6M ago">6M</button>
+            <button class="ov-fwm-tw-btn" data-yc-win="12m" title="Compare vs 12M ago">12M</button>
+          </span></div>
           <div id="ov-yc-chart" style="position:relative;flex:1;min-height:90px;max-height:170px;overflow:hidden"></div>
         </div>
         <!-- POLICY CONTEXT: 3-box strip — Fed Funds / Real Yield / Mkt 12M Path -->
@@ -29882,9 +29962,18 @@ function renderMacroDataPanels(reg){
           };
           _ycData = {
             now: _mapTenors(_ych.now),
+            w1:  _mapTenorsHist(_ych['1w']),
+            m1:  _mapTenorsHist(_ych['1m']),
             m3:  _mapTenorsHist(_ych['3m']),
             m6:  _mapTenorsHist(_ych['6m']),
             m12: _mapTenorsHist(_ych['12m']),
+            dates: {
+              w1:  _ych['1w']  ? _ych['1w'].date  : null,
+              m1:  _ych['1m']  ? _ych['1m'].date  : null,
+              m3:  _ych['3m']  ? _ych['3m'].date  : null,
+              m6:  _ych['6m']  ? _ych['6m'].date  : null,
+              m12: _ych['12m'] ? _ych['12m'].date : null,
+            },
           };
         }
       } catch(e) {
@@ -29900,6 +29989,7 @@ function renderMacroDataPanels(reg){
           m12:  { 'EFFR': null, '3M': t3m_12m, '6M': null, '1Y': null, '2Y': t2_12m, '5Y': t5_12m, '10Y': t10_12m,'30Y': t30_12m },
         };
       }
+      window._ycDrawState = { nowCol: crCol, data: _ycData };
       const _drawYC = () => { try { _drawYieldCurveInline(crCol, _ycData); } catch(e){ console.error('YC draw error:', e); } };
       // Double-RAF: first RAF waits for DOM insertion, second for layout reflow
       requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -29926,14 +30016,35 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   const el = document.getElementById('ov-yc-chart');
   if (!el) return;
 
-  // ── Curve config: clear visual hierarchy oldest→newest ──────────────────
-  // Palette: 12M=slate-blue, 6M=teal, 3M=amber, Now=regime color
+  // ── Baseline window: Now + one selectable ghost curve ──────────────────
+  const WIN_KEY = { '1w': 'w1', '1m': 'm1', '3m': 'm3', '6m': 'm6', '12m': 'm12' };
+  const _hasData = k => !!(tenorData[k] && Object.values(tenorData[k]).some(v => v != null));
+  let win = window._ycBaselineWin || '1m';
+  let gKey = win === 'now' ? null : WIN_KEY[win];
+  // If the selected window has no snapshot yet, fall back to a clean single curve
+  if (gKey && !_hasData(gKey)) { win = 'now'; gKey = null; }
+  const ghost = gKey ? tenorData[gKey] : null;
+  const ghostDate = (gKey && tenorData.dates) ? tenorData.dates[gKey] : null;
+  let ghostLbl = win.toUpperCase() + ' ago';
+  if (ghostDate) {
+    try {
+      const gd = new Date(ghostDate + 'T00:00:00Z');
+      ghostLbl += ' \u00b7 ' + String(gd.getUTCDate()).padStart(2, '0') + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][gd.getUTCMonth()];
+    } catch (e) {}
+  }
   const CURVES = [
-    { key: 'm12', label: '12M ago', color: 'rgba(90,120,175,0.55)',   width: 1.3, dash: '6,4'  },
-    { key: 'm6',  label: '6M ago',  color: 'rgba(80,175,145,0.65)',   width: 1.5, dash: '5,3'  },
-    { key: 'm3',  label: '3M ago',  color: 'rgba(220,175,80,0.82)',   width: 1.9, dash: '4,3'  },
-    { key: 'now', label: 'Now',     color: nowCol,                    width: 2.8, dash: ''      },
+    ...(ghost ? [{ key: gKey, label: ghostLbl, color: 'rgba(148,163,196,0.72)', width: 1.6, dash: '5,4' }] : []),
+    { key: 'now', label: 'Now', color: nowCol, width: 2.8, dash: '' },
   ];
+  // Reflect availability + active state on the toggle buttons
+  try {
+    document.querySelectorAll('[data-yc-tw] [data-yc-win]').forEach(b => {
+      const k = b.dataset.ycWin;
+      const ok = k === 'now' || _hasData(WIN_KEY[k]);
+      b.classList.toggle('disabled', !ok);
+      b.classList.toggle('active', k === win);
+    });
+  } catch (e) {}
 
   const ALL_TENORS  = ['3M','6M','1Y','2Y','5Y','10Y','20Y','30Y'];
   const AXIS_TENORS = ['3M','1Y','2Y','5Y','10Y','30Y'];
@@ -29974,7 +30085,7 @@ function _drawYieldCurveInline(nowCol, tenorData) {
   const padL = isMini ? 8  : 38;
   const padR = isMini ? 6  : 10;
   const padT = 14;                // extra top so topmost label isn't clipped
-  const padB = isMini ? 22 : 34;  // extra bottom for x-labels
+  const padB = (isMini ? 22 : 34) + (ghost ? 11 : 0);  // extra bottom for x-labels (+delta strip)
   const gW = W - padL - padR;
   const gH = H - padT - padB;
 
@@ -30058,6 +30169,20 @@ function _drawYieldCurveInline(nowCol, tenorData) {
         fill="rgba(255,255,255,${isEdge?0.75:0.55})"
         font-family="var(--mono)" font-size="${fAxis}" font-weight="${isEdge?800:600}">${t}</text>`;
   });
+  // Per-tenor bp change vs the selected baseline — second line under tenor labels
+  if (ghost) {
+    const _nt = tenorData.now || {};
+    const fDelta = (8.0 * fScale).toFixed(1);
+    AXIS_TENORS.forEach(t => {
+      const nv = _nt[t], gv = ghost[t];
+      if (nv == null || gv == null) return;
+      const x = xPos(t); if (x == null) return;
+      const d = Math.round((nv - gv) * 100);
+      const col = d >= 2 ? '#eab850' : d <= -2 ? '#5eb8f5' : 'rgba(173,184,208,0.45)';
+      xAxis += `<text x="${x.toFixed(1)}" y="${(padT+gH+24).toFixed(1)}" text-anchor="middle" fill="${col}"
+        font-family="var(--mono)" font-size="${fDelta}" font-weight="800">${(d > 0 ? '+' : '') + d}</text>`;
+    });
+  }
 
   // ── SVG defs ─────────────────────────────────────────────────────────────
   let curveSvg = `<defs>
@@ -30200,11 +30325,34 @@ function _drawYieldCurveInline(nowCol, tenorData) {
         <span style="font-family:var(--mono);font-size:7.5px;font-weight:700;color:${isNow?col:'rgba(255,255,255,0.68)'};white-space:nowrap;letter-spacing:0.03em">${c.label}</span>
       </div>`;
     }).join('')}
+    ${(() => {
+      // 2s10s change summary chip vs baseline
+      if (!ghost) return '';
+      const _nt2 = tenorData.now || {};
+      const n2 = _nt2['2Y'], n10 = _nt2['10Y'], g2 = ghost['2Y'], g10 = ghost['10Y'];
+      if (n2 == null || n10 == null || g2 == null || g10 == null) return '';
+      const dd = Math.round(((n10 - n2) - (g10 - g2)) * 100);
+      const word = dd >= 2 ? 'steeper' : dd <= -2 ? 'flatter' : 'unch';
+      const col = dd >= 2 ? '#22c97a' : dd <= -2 ? '#e05252' : 'rgba(173,184,208,0.6)';
+      return `<span style="font-family:var(--mono);font-size:7.5px;font-weight:800;color:${col};white-space:nowrap;letter-spacing:0.03em">2s10s ${dd > 0 ? '+' : ''}${dd}bp ${word}</span>`;
+    })()}
   </div>`;
 
   el.style.height = 'auto';
   el.style.display = 'block';
   el.innerHTML = svg + legendHTML;
+}
+
+// Yield-curve baseline toggle — delegated click handler, wired once
+if (!window._ycToggleWired) {
+  window._ycToggleWired = true;
+  document.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-yc-win]');
+    if (!btn || btn.classList.contains('disabled')) return;
+    window._ycBaselineWin = btn.dataset.ycWin;
+    const st = window._ycDrawState;
+    if (st) { try { _drawYieldCurveInline(st.nowCol, st.data); } catch (e) {} }
+  });
 }
 
 
