@@ -17543,10 +17543,13 @@ async def fed_pricing_history():
             t_high = float(pol.get("target_high", 3.75))
             effr = float(months[0]["implied"])
             mtg_dates = pol.get("meetings") or []
+            _today = date.today()
             mtgs = []
             for md in mtg_dates:
                 try:
-                    mtgs.append(date.fromisoformat(md) if isinstance(md, str) else md)
+                    d_ = date.fromisoformat(md) if isinstance(md, str) else md
+                    if d_ >= _today:
+                        mtgs.append(d_)
                 except Exception:
                     continue
             if not mtgs:
