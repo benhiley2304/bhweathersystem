@@ -4301,6 +4301,27 @@ _FF_STORE_MAX_DAYS = 180
 _FF_JSON_CACHE   = {"data": None, "time": 0}
 _FF_JSON_TTL     = 1800  # 30 min
 
+# ── Fed funds futures pricing store (sandbox-injected) ──────────────────────
+# Yahoo/CME ZQ data is unreachable from Render (like ForexFactory), so the
+# sandbox cron fetches the ZQ strip and POSTs monthly implied average rates to
+# /api/inject-fed-pricing. Persisted to disk so it survives worker restarts
+# (but NOT deploys — the cron re-injects after each deploy, same as FF store).
+_FED_PRICING_PATH = os.path.join(DATA_DIR, "fed_pricing.json")
+
+def _fed_pricing_load() -> dict:
+    try:
+        with open(_FED_PRICING_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _fed_pricing_save(d: dict) -> None:
+    try:
+        with open(_FED_PRICING_PATH, "w") as f:
+            json.dump(d, f)
+    except Exception as _e:
+        print(f"[fed pricing] save error: {_e}", flush=True)
+
 def _ff_impact_norm(s) -> str:
     s = (s or "").lower()
     if "high" in s:   return "high"
@@ -6928,6 +6949,72 @@ _CB_POLICY_FALLBACK = {
               "prev_rate": 0.00, "cycle_peak": 1.75, "cycle_trough": -0.75},
 }
 
+
+def _fedwatch_meeting_probs(monthly: dict, effr_start: float,
+                            target_low: float, target_high: float,
+                            meetings: list) -> list:
+    """FedWatch-style conditional FOMC meeting probabilities from monthly
+    fed-funds-futures implied average rates (CME methodology).
+
+    monthly:    {(year, month): implied avg EFFR for that month}
+    effr_start: current effective rate (pre-first-meeting anchor)
+    meetings:   sorted future FOMC decision dates (datetime.date)
+
+    Per meeting: solve the post-meeting rate from the meeting month's futures
+    average (pre/post day-weighted split); for late-month meetings use the next
+    clean month's implied instead. Each meeting's expected move is expressed as
+    a two-point 25bp step distribution, convolved across meetings into a
+    cumulative distribution over target ranges.
+    """
+    import calendar as _cal
+    out = []
+    dist = {0: 1.0}          # {n × 25bp steps from current range: prob}
+    r_run = effr_start       # expected rate running into the next meeting
+    _rng = lambda k: f"{int(round((target_low + k*0.25)*100))}-{int(round((target_high + k*0.25)*100))}"
+    for mt in meetings:
+        y, m, d = mt.year, mt.month, mt.day
+        ndays = _cal.monthrange(y, m)[1]
+        d_pre, d_post = d, ndays - d
+        nxt = (y + (m == 12), m % 12 + 1)
+        nxt_has_mtg = any(x.year == nxt[0] and x.month == nxt[1] for x in meetings)
+        avg_m = monthly.get((y, m))
+        r_post = None
+        if d_post < 10 and nxt in monthly and not nxt_has_mtg:
+            # Late-month meeting: own-month avg is dominated by the pre-rate;
+            # the next month is meeting-free so its implied IS the post rate.
+            r_post = monthly[nxt]
+        elif avg_m is not None and d_post > 0:
+            r_post = (avg_m * ndays - d_pre * r_run) / d_post
+        elif nxt in monthly and not nxt_has_mtg:
+            r_post = monthly[nxt]
+        if r_post is None:
+            break
+        # Two-point 25bp step distribution for this meeting's expected move
+        mv = (r_post - r_run) / 0.25
+        lo = math.floor(mv)
+        f = mv - lo
+        ndist = {}
+        for k, p in dist.items():
+            ndist[k + lo]     = ndist.get(k + lo, 0.0)     + p * (1.0 - f)
+            ndist[k + lo + 1] = ndist.get(k + lo + 1, 0.0) + p * f
+        dist = {k: v for k, v in ndist.items() if v > 0.0005}
+        s = sum(dist.values()) or 1.0
+        dist = {k: v / s for k, v in dist.items()}
+        modal_k = max(dist, key=dist.get)
+        exp_rate = sum((effr_start + k * 0.25) * p for k, p in dist.items())
+        out.append({
+            "date":     mt.isoformat(),
+            "probs":    {_rng(k): round(p * 100, 1) for k, p in sorted(dist.items())},
+            "modal":    _rng(modal_k),
+            "exp_rate": round(exp_rate, 3),
+            "cum_bp":   round((r_post - effr_start) * 100, 1),
+            "p_hike_cum": round(sum(p for k, p in dist.items() if k > 0) * 100, 1),
+            "p_cut_cum":  round(sum(p for k, p in dist.items() if k < 0) * 100, 1),
+            "p_hold_cum": round(dist.get(0, 0.0) * 100, 1),
+        })
+        r_run = r_post
+    return out
+
 def _next_cb_meeting(fallback: dict):
     """First not-yet-past decision date from the CB's published calendar.
 
@@ -8596,16 +8683,32 @@ def compute_risk_regime() -> dict:
                             7:'N',8:'Q',9:'U',10:'V',11:'X',12:'Z'}
         _today_d = date.today()
         _fff_results = {}  # (year, month) -> implied_rate
-        for _i in range(0, 20):  # current month + 19 months out
-            _m = (_today_d.month - 1 + _i) % 12 + 1
-            _y = _today_d.year + ((_today_d.month - 1 + _i) // 12)
-            _tkr = f"ZQ{_fff_months_code[_m]}{str(_y)[-2:]}.CBT"
-            try:
-                _h = yf.Ticker(_tkr).history(period="5d")
-                if not _h.empty:
-                    _fff_results[(_y, _m)] = round(100.0 - float(_h["Close"].iloc[-1]), 4)
-            except Exception:
-                pass
+        _fff_via = None
+        # 0) PREFERRED: sandbox-injected ZQ strip (Yahoo is blocked on Render).
+        #    Injected by inject_fed_pricing.py (nightly cron + post-deploy).
+        try:
+            _inj = _fed_pricing_load()
+            _inj_months = _inj.get("months") or []
+            _inj_age_h = (time.time() - (_inj.get("time") or 0)) / 3600.0
+            if len(_inj_months) >= 6 and _inj_age_h < 50:
+                for _mrec in _inj_months:
+                    _fff_results[(int(_mrec["year"]), int(_mrec["month"]))] = float(_mrec["implied"])
+                _fff_via = "injected"
+                print(f"[rate_signal] using injected fed pricing: {len(_fff_results)} months, age={_inj_age_h:.1f}h")
+        except Exception as _e:
+            print(f"[rate_signal] injected fed pricing load error: {_e}")
+        # 1) Fallback: direct yfinance fetch (works locally, fails on Render)
+        if not _fff_results:
+            for _i in range(0, 20):  # current month + 19 months out
+                _m = (_today_d.month - 1 + _i) % 12 + 1
+                _y = _today_d.year + ((_today_d.month - 1 + _i) // 12)
+                _tkr = f"ZQ{_fff_months_code[_m]}{str(_y)[-2:]}.CBT"
+                try:
+                    _h = yf.Ticker(_tkr).history(period="5d")
+                    if not _h.empty:
+                        _fff_results[(_y, _m)] = round(100.0 - float(_h["Close"].iloc[-1]), 4)
+                except Exception:
+                    pass
 
         _fff_keys = sorted(_fff_results.keys())
         if len(_fff_keys) >= 2:
@@ -8678,6 +8781,34 @@ def compute_risk_regime() -> dict:
                 "cut_prob_next":  _cut_prob_next,
                 "total_bp_12m":   _total_bp_12m,
             }
+            if _fff_via == "injected":
+                rate_signal["via"] = "sandbox_inject"
+            # ── FedWatch-style conditional meeting probability matrix ─────────
+            try:
+                _us_cb  = _CB_POLICY_FALLBACK.get("US", {})
+                _t_lo   = _us_cb.get("target_low")
+                _t_hi   = _us_cb.get("target_high")
+                if _t_lo is None or _t_hi is None:
+                    _t_lo = round(math.floor(_effr_spot / 0.25) * 0.25, 2)
+                    _t_hi = round(_t_lo + 0.25, 2)
+                _mtgs = sorted(date.fromisoformat(x) for x in _us_cb.get("meetings", [])
+                               if date.fromisoformat(x) > _today_d)
+                _fw = _fedwatch_meeting_probs(_fff_results, _effr_spot, _t_lo, _t_hi, _mtgs)
+                if _fw:
+                    rate_signal["meetings"]       = _fw
+                    rate_signal["target_low"]     = _t_lo
+                    rate_signal["target_high"]    = _t_hi
+                    # Next-meeting probabilities from the matrix (replaces the
+                    # crude month-1-vs-month-2 fractional estimate)
+                    _m0 = _fw[0]
+                    rate_signal["hike_prob_next"] = _m0["p_hike_cum"]
+                    rate_signal["cut_prob_next"]  = _m0["p_cut_cum"]
+                    rate_signal["hold_prob_next"] = _m0["p_hold_cum"]
+                    print(f"[rate_signal] fedwatch matrix: {len(_fw)} meetings, "
+                          f"next mtg {_m0['date']}: hold={_m0['p_hold_cum']}% "
+                          f"hike={_m0['p_hike_cum']}% cut={_m0['p_cut_cum']}%")
+            except Exception as _e:
+                print(f"[rate_signal] fedwatch matrix error: {_e}")
             print(f"[rate_signal] FFF: spot={_effr_spot}% 12m={_effr_12m}% "
                   f"cuts_12m={cuts_12m} hike_prob={_hike_prob_next}% cut_prob={_cut_prob_next}% "
                   f"total_bp_12m={_total_bp_12m}bp label={rate_label}")
@@ -17885,6 +18016,42 @@ async def inject_ff_labour(payload: dict):
 
     print(f"[FF LABOUR INJECT] Merged {n_merged} events into store ({len(store)} total)")
     return {"ok": True, "n_merged": n_merged, "n_store_total": len(store)}
+
+
+@app.post("/api/inject-fed-pricing")
+async def inject_fed_pricing(payload: dict):
+    """
+    Accepts a sandbox-fetched CME fed funds futures (ZQ) strip as monthly
+    implied average EFFR rates. Yahoo/CME data is unreachable from Render, so
+    inject_fed_pricing.py fetches it in the sandbox and POSTs here (nightly
+    cron + after every deploy). Persisted to disk like the FF event store.
+
+    Payload schema:
+    { "months": [ {"year": 2026, "month": 8, "implied": 3.63}, ... ] }
+    """
+    global ALL_DATA_CACHE
+    months = payload.get("months") or []
+    clean = []
+    for m in months:
+        try:
+            _y, _mo, _imp = int(m["year"]), int(m["month"]), float(m["implied"])
+            if 1 <= _mo <= 12 and 0.0 < _imp < 12.0:
+                clean.append({"year": _y, "month": _mo, "implied": round(_imp, 4)})
+        except Exception:
+            continue
+    if len(clean) < 6:
+        return {"ok": False, "error": f"need >=6 valid months, got {len(clean)}"}
+    clean.sort(key=lambda r: (r["year"], r["month"]))
+    _fed_pricing_save({"months": clean, "time": time.time()})
+    # Bust regime + scores caches so the new pricing flows through immediately
+    RISK_REGIME_CACHE["data"] = None
+    RISK_REGIME_CACHE["time"] = 0
+    ALL_DATA_CACHE["data"] = None
+    ALL_DATA_CACHE["time"] = 0
+    print(f"[FED PRICING INJECT] {len(clean)} months, "
+          f"spot={clean[0]['implied']}%, end={clean[-1]['implied']}%", flush=True)
+    return {"ok": True, "n_months": len(clean),
+            "spot": clean[0]["implied"], "end": clean[-1]["implied"]}
 
 
 @app.get("/api/tunnel-url")
