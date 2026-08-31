@@ -10958,15 +10958,25 @@ _ENG_RV_EXTREME = 2.0    # |relval-5|: score <= 3.0 or >= 7.0
 #     Grains loved it (ZW IC 0.118→0.188, ZS 0.090→0.152), equities improved
 #     (RTY 0.024→0.083), metals wanted it small (GC/SI flat, PL best at 0.45
 #     within the linear family), cocoa degraded above 0.25.
+# ALIGNMENT-LADDER (2026-08-31): per-group COT IC study (248 priced wks/mkt) found
+# rates (ZN negative IC at every horizon), gold (commercials fought the secular
+# bull — negative IC all horizons) and BTC (negative everywhere) are the weakest
+# COT markets, so their lambdas were cut. Variant backtests REJECTED a trend gate
+# (global: agg IC 0.0586→0.0508, Strong cohort mu 0.94%→0.35%; softs-only:
+# SB/KC/CT all degraded) — the continuous multiplier below already damps a
+# trend-opposed COT vote via bias-relative u, so an explicit gate double-counts.
+# The cuts alone: agg IC 0.0586→0.0596 with ZB −0.013→−0.002, ZN +0.028→+0.038,
+# GC −0.008→−0.004, BTC −0.059→−0.054 and no cohort degradation.
 _ENG_COT_LAM = {
-    "equity": 0.75, "fx": 0.65, "rates": 0.65, "metal": 0.35, "energy": 0.45,
+    "equity": 0.75, "fx": 0.65, "rates": 0.45, "metal": 0.35, "energy": 0.45,
     "ag": 0.65, "soft": 0.65, "livestock": 0.40, "other": 0.60,
 }
 _ENG_COT_LAM_MKT = {   # market-level overrides from the per-market sweep
     "HG": 0.50,   # copper: more COT-responsive than precious (backtest IC −0.138→−0.078)
     "PL": 0.45,   # platinum: at lam=0 mu −0.43%, at 0.45 +0.82% — wants MORE than metal default
     "CC": 0.25,   # cocoa: degrades above 0.25 (mu 2.13% → −0.55% at 0.35)
-    "BTC": 0.35, "ETH": 0.35,   # thin/young COT history — keep modest
+    "GC": 0.25,   # gold: COT IC negative at all horizons 2021-26 (fought the bull) — keep minimal
+    "BTC": 0.25, "ETH": 0.25,   # thin/young COT history + negative IC — keep minimal
 }
 _ENG_COT_BD_W  = 0.4    # backdrop seat weight = this × lam
 _ENG_COT_ADD   = 0.6    # additive alignment term = this × lam × (u·bias)
@@ -11455,6 +11465,19 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     else:                   setup_vs_backdrop = "counter"      # COT fades backdrop → mean-reversion watch
     setup_direction = "Bullish" if setup_dir > 0 else "Bearish" if setup_dir < 0 else "Neutral"
 
+    # ── ALIGNMENT-LADDER: full-alignment flag (informational — no score change) ─
+    # Backtest (29 mkts, 2021-26 priced weeks): weeks where the COT vote, the
+    # 26w trend AND a genuine macro signal (|macro_z| ≥ 1.0) all point the same
+    # way averaged +1.68%/4w in the composite direction vs +0.94% for the Setup+
+    # cohort overall (n=81). A scoring boost was tested and rejected — it tipped
+    # almost no tiers and Ben wants the system simple — so this is surfaced as a
+    # visible flag instead. NOTE: one regime, overlapping windows, modest n.
+    cot_full_alignment = bool(
+        cot_z is not None and trend_lt != 0
+        and _eng_sign(cot_z) == trend_lt
+        and macro_z is not None and abs(macro_z) >= 1.0
+        and _eng_sign(macro_z) == _eng_sign(cot_z))
+
     # ── human-readable drivers ─────────────────────────────────────────────
     _names = {"seasonal":"Seasonality","regime":"Risk regime","macro":"Macro",
               "momentum":"Momentum","cot":"COT positioning","relval":"Relative value",
@@ -11468,6 +11491,10 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     # so it shows up in the existing UI driver rail without a frontend change.
     if seasonal_hint:
         drivers.append(seasonal_hint)
+    # ALIGNMENT-LADDER: surface the full-alignment cohort in the driver rail.
+    if cot_full_alignment:
+        _fa_dir = "bullish" if trend_lt > 0 else "bearish"
+        drivers.append(f"Full alignment ({_fa_dir}): COT, trend and macro all agree — historically the strongest positioning cohort")
 
     # ── climate score (0-10) for the gauge — derived from bias x conviction ─
     weighted = round(max(0.2, min(9.8, 5.0 + conviction)), 2)
@@ -11511,6 +11538,7 @@ def compute_engine_bias(scores: dict, market_id: str = "",
         "cot_lam":           round(_cot_lam, 2),
         "cot_mult":          round(cot_mult, 3),
         "cot_conv_delta":    cot_conv_delta,
+        "cot_full_alignment": cot_full_alignment,
         "agree":             agree,
         "disagree":          disagree,
         "factor_votes":      votes,
@@ -18011,7 +18039,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-31-shfix2"
+BUILD_ID = "2026-08-31-ladder1"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
