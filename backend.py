@@ -16740,10 +16740,27 @@ _SH_GLOBAL_ACTIVE = 0
 _SH_PREFETCH_CACHE: dict = {}
 _SH_PREFETCH_TTL = 3600 * 3   # FIX: 12h→3h — prevents pandas yfinance frames accumulating overnight
 
+@app.get("/api/debug-yf")
+async def debug_yf(ticker: str):
+    """Ground-truth probe: what does yfinance return from THIS host for a ticker?"""
+    out = {"ticker": ticker}
+    try:
+        _df = yf.Ticker(ticker).history(period='max', interval='1wk', auto_adjust=True)
+        out["rows"] = int(len(_df))
+        if len(_df):
+            out["first"] = str(_df.index[0].date())
+            out["last"] = str(_df.index[-1].date())
+    except Exception as e:
+        out["error"] = f"{type(e).__name__}: {e}"[:300]
+    return out
+
 @app.get("/api/score_history")
-async def get_score_history(market: str):
-    """Walk-forward composite score history (result-cached 1h)."""
+async def get_score_history(market: str, nocache: int = 0):
+    """Walk-forward composite score history (result-cached 1h; nocache=1 busts result+prefetch)."""
     m_upper = market.upper()
+    if nocache:
+        _SH_RESULT_CACHE.pop(m_upper, None)
+        _SH_PREFETCH_CACHE.pop(m_upper, None)
     mkt = next((x for x in MARKETS if x["id"] == m_upper), None)
     if not mkt:
         return {"error": f"Unknown market: {market}", "dates": [], "scores": [], "prices": []}
@@ -17986,7 +18003,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-13-r15l"
+BUILD_ID = "2026-08-31-shfix2"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
