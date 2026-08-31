@@ -16871,7 +16871,15 @@ async def get_score_history(market: str, nocache: int = 0):
                                     _dfw = yf.Ticker(_tk).history(period='max', interval='1wk', auto_adjust=True)
                                     if _dfw is not None and not _dfw.empty:
                                         _sw = _dfw['Close'].copy()
-                                        _sw.index = pd.to_datetime(_sw.index).tz_localize(None).normalize()
+                                        # Yahoo weekly bars are inconsistently anchored (^DJI = Wednesday,
+                                        # most others = Monday). Relabel every bar to the FRIDAY of its week
+                                        # so self/peer joins align; dedupe keeps the latest bar per week.
+                                        # Friday labels also kill a subtle lookahead: a Monday-labelled bar
+                                        # holds the week's close, visible to that week's Tuesday COT bar.
+                                        _idx = pd.to_datetime(_sw.index).tz_localize(None).normalize()
+                                        _idx = _idx + pd.to_timedelta(4 - _idx.weekday, unit='D')
+                                        _sw.index = _idx
+                                        _sw = _sw[~_sw.index.duplicated(keep='last')]
                                         _sw.index = _sw.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
                                         return _sw
                                     print(f'score_history[{m_upper}] relval fetch empty: {_tk} (attempt {_attempt})')
