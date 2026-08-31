@@ -10917,6 +10917,68 @@ _ENG_COT_EXTREME = 3.0   # |cot-5|: score <= 2.0 or >= 8.0
 # sign; it stays a half-weight confirmation factor either way.
 _ENG_RV_EXTREME = 2.0    # |relval-5|: score <= 3.0 or >= 7.0
 
+# ── COT-LINEAR (2026-08-31): CONTINUOUS LINEAR COT, PER-ASSET STRENGTH ──────
+# Ben, verbatim: "i dont want to see 'top setups' that have contradictory cot
+# positioning because i wont take them anyway - i dont want a gate or threshold,
+# i just want their scoring to reflect the positioning linearly".
+# Live failure this fixes (2026-08-31 snapshot): YM 6.8 Mildly Bullish / Setup
+# with COT 3.4; SB 5.57 with COT 2.2; ZW 5.49 with COT 2.7; ZB 4.11 Lean Bearish
+# with COT 7.8 — binary votes + the |z|>=3 extreme promotion discarded COT
+# magnitude, so a 3.4 print cost a bullish setup exactly as little as a 4.9.
+#
+# This supersedes BOTH prior COT treatments where they touch the composite:
+#   - r14 "COT ungated, just listen to cot" binary confirmation vote
+#   - SEAS-R3 extreme promotion to edge factor (_ENG_COT_EXTREME) — the extreme
+#     flag itself is still computed and exported for UI badges / setup_quality.
+# Three continuous mechanisms replace them (lam = per-asset strength below,
+# u = clamp(cot_z/3, ±4/3) = normalised positioning stretch):
+#   1. BACKDROP SEAT — COT always holds a weighted seat in the directional
+#      backdrop: num += (0.4·lam)·cot_z; den += 0.4·lam. Replaces the extreme-
+#      only append; a marginal backdrop can now be flipped by heavy positioning.
+#   2. CONVICTION MULTIPLIER — raw_conv is floored at 0 (a bias whose votes
+#      net-oppose it reads Neutral, never inverted), then scaled by
+#      clamp(1 + lam·u·bias, 0.05, 1.60): opposed COT drags conviction toward
+#      zero in proportion to its stretch, aligned COT boosts it.
+#   3. ADDITIVE ALIGNMENT — raw_conv += 0.6·lam·(u·bias), floored at 0 again,
+#      so an extreme aligned COT still registers when other factors are quiet.
+# COT can never flip the sign of conviction by itself ("never invert the
+# composite" holds); it CAN flip a knife-edge backdrop, which is the linear
+# analogue of the old extreme promotion.
+#
+# Per-asset strength (lam) — research + 5yr weekly backtest, 29 markets:
+#   - Hedging-pressure premia are strong in commodities and currencies
+#     (Basu & Miffre 2013 JBF, https://ideas.repec.org/a/eee/jbfina/v37y2013i7p2652-2664.html;
+#      De Roon/Nijman/Veld 2000, https://commitmentsoftraders.org/wp-content/uploads/Static/Perm/DeRoonJijmanVeld2000.pdf;
+#      Fernandez-Perez et al. 2018, https://acfr.aut.ac.nz/__data/assets/pdf_file/0007/188161/AFP-Hedging-pressure-everywhere_Adrian-Fernandez-Perez_2018-DMC.pdf)
+#     but ABSENT in fixed income (same Fernandez-Perez study) and unreliable in
+#     precious metals (SSRN 2382299, https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2382299).
+#   - Own backtest (261 priced weeks/market, 2021-26, engine replica): linear COT
+#     doubled aggregate IC4 (+0.018 → +0.037), setup-cohort 4wk fwd return
+#     0.92% → 0.96%, hit 54% → 55%, opposed-COT setup weeks −77% (611 → 139).
+#     Grains loved it (ZW IC 0.118→0.188, ZS 0.090→0.152), equities improved
+#     (RTY 0.024→0.083), metals wanted it small (GC/SI flat, PL best at 0.45
+#     within the linear family), cocoa degraded above 0.25.
+_ENG_COT_LAM = {
+    "equity": 0.75, "fx": 0.65, "rates": 0.65, "metal": 0.35, "energy": 0.45,
+    "ag": 0.65, "soft": 0.65, "livestock": 0.40, "other": 0.60,
+}
+_ENG_COT_LAM_MKT = {   # market-level overrides from the per-market sweep
+    "HG": 0.50,   # copper: more COT-responsive than precious (backtest IC −0.138→−0.078)
+    "PL": 0.45,   # platinum: at lam=0 mu −0.43%, at 0.45 +0.82% — wants MORE than metal default
+    "CC": 0.25,   # cocoa: degrades above 0.25 (mu 2.13% → −0.55% at 0.35)
+    "BTC": 0.35, "ETH": 0.35,   # thin/young COT history — keep modest
+}
+_ENG_COT_BD_W  = 0.4    # backdrop seat weight = this × lam
+_ENG_COT_ADD   = 0.6    # additive alignment term = this × lam × (u·bias)
+_ENG_COT_U_DIV = 3.0    # z → u normaliser (u = ±1 at the old extreme threshold)
+_ENG_COT_U_CAP = 4.0 / 3.0          # |u| cap (score 1.0 / 9.0)
+_ENG_COT_MULT_MIN, _ENG_COT_MULT_MAX = 0.05, 1.60   # multiplier clamp
+
+
+def _eng_cot_lam(mid: str, grp: str) -> float:
+    """Per-asset linear-COT strength."""
+    return _ENG_COT_LAM_MKT.get(mid, _ENG_COT_LAM.get(grp, 0.60))
+
 # Which factor families are trusted per market group (Rounds 7-9):
 #   commodity pairs (metal/energy) mean-revert on relval BOTH sides; everything
 #   else only counts relval when it is trend-aligned. PCR only for equities.
@@ -11255,20 +11317,25 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     _seas_tilt_pts = float(_seas_tilt_meta.get("tilt") or 0.0)
     _seas_tilt_dir = _eng_sign(_seas_tilt_pts)
 
-    # ── 1) DIRECTIONAL BACKDROP — only edge-bearing factors, abstain-aware ──
-    # SEAS-R3: an EXTREME COT joins the backdrop (Ben: extremes are when COT is
-    # "really relevant"). A normal COT print stays out of it, as before.
+    # ── 1) DIRECTIONAL BACKDROP — edge factors + continuous COT seat ───────
+    # COT-LINEAR: COT always holds a weighted seat (weight 0.4·lam) instead of
+    # the old extreme-only full-vote append — see the _ENG_COT_LAM block comment.
+    # A heavy print can flip a knife-edge backdrop; a mild one barely moves it.
+    _cot_lam = _eng_cot_lam(mid, grp)
     bd_vals = [v for v in (seas_z, regime_z, macro_z) if v is not None]
-    if cot_extreme:
-        bd_vals.append(cot_z)
-    backdrop = (sum(bd_vals) / len(bd_vals)) if bd_vals else 0.0
+    _bd_num, _bd_den = float(sum(bd_vals)), float(len(bd_vals))
+    if cot_z is not None:
+        _bd_w = _ENG_COT_BD_W * _cot_lam
+        _bd_num += _bd_w * cot_z
+        _bd_den += _bd_w
+    backdrop = (_bd_num / _bd_den) if _bd_den else 0.0
     bias = _eng_sign(backdrop)
 
     # ── 2) CONFLUENCE (COT ungated as of r14) ──────────────────────────────
-    # COT no longer gated by trend — walk-forward on 10yr showed the gate
-    # muted the loudest factor exactly when it mattered most (Cotton IC=-0.27,
-    # Sugar -0.29, Coffee -0.23, Copper -0.09..-0.18 at 4wk fwd). COT votes at
-    # its natural sign now, period. User directive: "just listen to cot".
+    # COT-LINEAR: cot_vote is kept ONLY for the UI agree/disagree counters and
+    # driver rail — it no longer enters conviction (r14's ungated binary vote
+    # and SEAS-R3's extreme promotion are both superseded by the continuous
+    # mechanism below; see the _ENG_COT_LAM block comment).
     cot_vote = _eng_sign(cot_z)
     # SEAS-R3: relval votes at its natural sign in the mean-reverting groups, OR
     # whenever it is at an extreme (a stretched valuation is information even
@@ -11304,13 +11371,12 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     # WHY: with all-equal votes the "Strong" tier was the WEAKEST cohort (+0.17% fwd,
     # because zero-IC factors inflated conviction); edge-weighted conviction makes Strong
     # the BEST cohort (+1.18% fwd, 57% hit) — i.e. the tiers now actually rank edge.
-    # SEAS-R3: at an extreme, COT moves from the half-weight confirmation tier to
-    # the full-weight edge tier. Ben's rule, applied symmetrically to both the
-    # backdrop above and the conviction weighting here.
-    _EDGE_F = (("seasonal", "regime", "macro", "cot") if cot_extreme
-               else ("seasonal", "regime", "macro"))
-    _CONF_F_NON_MOM = (("relval", "pcr") if cot_extreme
-                       else ("cot", "relval", "pcr"))
+    # COT-LINEAR: COT is removed from BOTH vote tiers — it acts on conviction
+    # continuously below (multiplier + additive), replacing the r14 binary vote
+    # and the SEAS-R3 extreme promotion. votes["cot"] is still exported for the
+    # UI agree/disagree counters.
+    _EDGE_F = ("seasonal", "regime", "macro")
+    _CONF_F_NON_MOM = ("relval", "pcr")
     edge_net = (sum(1 for f in _EDGE_F if bias != 0 and votes[f] == bias)
                 - sum(1 for f in _EDGE_F if bias != 0 and votes[f] == -bias))
     conf_net_non_mom = (sum(1 for f in _CONF_F_NON_MOM if bias != 0 and votes[f] == bias)
@@ -11321,6 +11387,27 @@ def compute_engine_bias(scores: dict, market_id: str = "",
     mom_conf = _mtf_vote_raw * bias if bias != 0 else 0.0
     conf_net = conf_net_non_mom + mom_conf
     raw_conv = edge_net + 0.5 * conf_net
+
+    # ── COT-LINEAR: continuous COT action on conviction ───────────────────
+    # raw_conv is bias-relative (positive = supports the bias). Floor it at 0
+    # first: a bias whose remaining votes net-oppose it is Neutral, never an
+    # inverted read (matters when the COT seat flips a marginal backdrop — e.g.
+    # SB 2026-08-31: bearish-flipped bias with bullish edge votes must read
+    # ~Neutral leaning bearish, not +1.1 bullish). Then scale multiplicatively
+    # by positioning alignment and add the small alignment term so an extreme
+    # aligned COT still registers when every other factor abstains.
+    cot_mult = 1.0
+    cot_conv_delta = 0.0
+    if bias != 0:
+        _rc_pre_cot = raw_conv
+        raw_conv = max(0.0, raw_conv)
+        if cot_z is not None:
+            _u = max(-_ENG_COT_U_CAP, min(_ENG_COT_U_CAP, cot_z / _ENG_COT_U_DIV))
+            cot_mult = max(_ENG_COT_MULT_MIN,
+                           min(_ENG_COT_MULT_MAX, 1.0 + _cot_lam * _u * bias))
+            raw_conv = raw_conv * cot_mult + _ENG_COT_ADD * _cot_lam * (_u * bias)
+            raw_conv = max(0.0, raw_conv)
+        cot_conv_delta = round(raw_conv - _rc_pre_cot, 3)
 
     # ── AUDIT-COMPOSITE: goldilocks timing credit (capped, cannot cross zero) ──
     # Positive when the seasonal tilt points the same way as the composite bias
@@ -11370,7 +11457,7 @@ def compute_engine_bias(scores: dict, market_id: str = "",
 
     # ── human-readable drivers ─────────────────────────────────────────────
     _names = {"seasonal":"Seasonality","regime":"Risk regime","macro":"Macro",
-              "momentum":"Momentum","cot":"COT (trend-aligned)","relval":"Relative value",
+              "momentum":"Momentum","cot":"COT positioning","relval":"Relative value",
               "pcr":"Sentiment"}
     drivers = []
     for k, v in votes.items():
@@ -11418,7 +11505,12 @@ def compute_engine_bias(scores: dict, market_id: str = "",
         # SEAS-R3 (Fix 3b): which factors got promoted to full weight, and why
         "cot_extreme":       bool(cot_extreme),
         "relval_extreme":    bool(rv_extreme),
-        "cot_tier":          ("edge" if cot_extreme else "confirmation"),
+        "cot_tier":          "linear",   # COT-LINEAR: continuous role, no promotion
+        # COT-LINEAR: full audit trail — per-asset strength, the conviction
+        # multiplier applied, and the net conviction points COT added/removed.
+        "cot_lam":           round(_cot_lam, 2),
+        "cot_mult":          round(cot_mult, 3),
+        "cot_conv_delta":    cot_conv_delta,
         "agree":             agree,
         "disagree":          disagree,
         "factor_votes":      votes,
@@ -12061,7 +12153,11 @@ async def _do_scores_refresh(force: bool = False):
             # the UI (and the next audit) whether COT voted as a full edge factor.
             "cot_extreme":       bias.get("cot_extreme", False),
             "relval_extreme":    bias.get("relval_extreme", False),
-            "cot_tier":          bias.get("cot_tier", "confirmation"),
+            "cot_tier":          bias.get("cot_tier", "linear"),
+            # COT-LINEAR audit trail — per-asset strength, multiplier, conviction delta
+            "cot_lam":           bias.get("cot_lam"),
+            "cot_mult":          bias.get("cot_mult"),
+            "cot_conv_delta":    bias.get("cot_conv_delta"),
             "agree":             bias.get("agree", 0),
             "disagree":          bias.get("disagree", 0),
             "factor_votes":      bias.get("factor_votes", {}),
@@ -12210,6 +12306,8 @@ async def _do_scores_refresh(force: bool = False):
                        "setup_direction","setup_vs_backdrop","agree","disagree","factor_votes","drivers",
                        # SEAS-R3: extreme-promotion flags re-flow with the engine too
                        "cot_extreme","relval_extreme","cot_tier",
+                       # COT-LINEAR: audit-trail fields re-flow with the engine too
+                       "cot_lam","cot_mult","cot_conv_delta",
                        # AUDIT-COMPOSITE: keep the seasonal timing block in sync
                        # after the DX regime tilt re-flows the engine.
                        "seasonal_hint","seasonal_score_raw","seasonal_score_adj",
