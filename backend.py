@@ -16117,16 +16117,20 @@ _MOM_NORM_DEFAULT = (3.0, 6.0, 8.0)  # equity-like default
 
 
 def _score_momentum_at(px_closes: np.ndarray, px_dates_norm, bar_date_norm,
-                       market_id: str = "") -> float:
+                       market_id: str = "", return_detail: bool = False):
     """
     Compute momentum score using only price data up to and including bar_date.
     Zero lookahead — only uses closes where date <= bar_date.
     market_id: optional, used to select asset-class normalizers.
+    return_detail: if True, returns (score, detail_dict) where detail_dict carries
+    the engine inputs (mtf_vote, efficiency_ratio, roc_lt_pct, roc_st_pct, sma200)
+    reconstructed walk-forward — needed so score_history can run the SAME
+    compute_engine_bias() engine as the live composite.
     """
     mask = px_dates_norm <= bar_date_norm
     closes = px_closes[mask]
     if len(closes) < 20:
-        return 5.0
+        return (5.0, {}) if return_detail else 5.0
 
     curr = closes[-1]
     n252 = min(252, len(closes))
@@ -16198,7 +16202,47 @@ def _score_momentum_at(px_closes: np.ndarray, px_dates_norm, bar_date_norm,
         else:
             mtf_score = sum(scores) / 3.0  # all neutral → use average
 
-    return round(max(0.0, min(10.0, mtf_score)), 1)
+    _mom_final = round(max(0.0, min(10.0, mtf_score)), 1)
+    if not return_detail:
+        return _mom_final
+
+    # ── ENGINE DETAIL (walk-forward, zero lookahead) ───────────────────────
+    # Mirrors the live score_momentum() engine inputs so compute_engine_bias()
+    # sees the same shape of momentum_detail in score_history as it does live.
+    _up_n   = sum(1 for sg in signs if sg > 0)
+    _down_n = sum(1 for sg in signs if sg < 0)
+    if _up_n == 3:                     _mtf_vote =  1.0
+    elif _down_n == 3:                 _mtf_vote = -1.0
+    elif _up_n == 2 and _down_n == 0:  _mtf_vote =  0.5
+    elif _down_n == 2 and _up_n == 0:  _mtf_vote = -0.5
+    else:                              _mtf_vote =  0.0
+    # Weekly series ending at bar_date (every 5th daily bar, last bar kept),
+    # winsorised to absorb front-month roll gaps — same recipe as live.
+    _wk = closes[::-1][::5][::-1].astype(float)
+    if len(_wk) >= 6:
+        _wr  = np.diff(_wk) / _wk[:-1]
+        _cap = np.nanpercentile(np.abs(_wr), 98) if len(_wr) >= 10 else np.inf
+        _wr  = np.clip(_wr, -_cap, _cap)
+        _wkc = _wk[0] * np.concatenate([[1.0], np.cumprod(1 + _wr)])
+    else:
+        _wkc = _wk
+    _ern  = 26 if len(_wkc) >= 27 else max(4, len(_wkc) - 1)
+    _seg  = _wkc[-(_ern + 1):]
+    _net  = abs(_seg[-1] - _seg[0])
+    _path = float(np.sum(np.abs(np.diff(_seg))))
+    _er   = round(_net / _path, 4) if _path > 0 else 0.0
+    _roc_lt = round((_wkc[-1] / _wkc[-27] - 1) * 100, 2) if len(_wkc) >= 27 else \
+              (round((_wkc[-1] / _wkc[0] - 1) * 100, 2) if len(_wkc) >= 2 else 0.0)
+    _roc_st = round((_wkc[-1] / _wkc[-5] - 1) * 100, 2) if len(_wkc) >= 5 else 0.0
+    _sma_ok = (not np.isnan(sma200)) and sma200 > 0
+    return _mom_final, {
+        "mtf_vote":         _mtf_vote,
+        "efficiency_ratio": float(_er),
+        "roc_lt_pct":       _roc_lt,
+        "roc_st_pct":       _roc_st,
+        "sma200_above":     bool(curr > sma200) if _sma_ok else None,
+        "sma200_pct_diff":  round((curr - sma200) / sma200 * 100, 2) if _sma_ok else 0.0,
+    }
 
 
 def _score_relval_at(market_id: str, bar_date_norm,
@@ -16895,6 +16939,8 @@ async def get_score_history(market: str):
             MAX_RETURN = 520   # 10yr history (gated by COT availability)
             COT_FULL_WEIGHT_BARS = 94  # 60% of 156w Briese window
             dates: list = []; scores: list = []; prices: list = []
+            blend_scores: list = []; conv_list: list = []; tier_list: list = []
+            _eng_err_n = 0
     
             for i in range(MIN_BARS, n_common):
                 sl_base  = df_base.iloc[:i + 1].copy()
@@ -16923,8 +16969,9 @@ async def get_score_history(market: str):
                 bar_ts = bar_date.timestamp()
     
                 seas_s   = _score_seasonality_at(m_upper, bar_date)
-                mom_s    = _score_momentum_at(px_closes_arr, px_dates_norm, bar_date_norm, m_upper) \
-                           if len(px_closes_arr) > 20 else 5.0
+                mom_s, mom_det = _score_momentum_at(px_closes_arr, px_dates_norm, bar_date_norm,
+                                                    m_upper, return_detail=True) \
+                           if len(px_closes_arr) > 20 else (5.0, {})
                 macro_s  = _score_macro_at_fred(m_upper, str(bar_date.date()),
                                                fred_us_full, fred_fx_full)
                 regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px, walcl_full)
@@ -16932,7 +16979,7 @@ async def get_score_history(market: str):
                 # Trend gate prevents false cheapness signals (e.g. cheap but in downtrend = neutral)
                 relval_s = 5.0  # Cross pairs don't have peer-ratio config — neutral by default
     
-                composite = round(max(0.0, min(10.0,
+                _blend = round(max(0.0, min(10.0,
                     cot_s    * w_map["cot"]      +
                     seas_s   * w_map["seasonal"] +
                     mom_s    * w_map["momentum"] +
@@ -16940,9 +16987,29 @@ async def get_score_history(market: str):
                     regime_s * w_map["regime"]   +
                     relval_s * w_map["relval"]
                 )), 1)
+                # ENGINE walk-forward — SAME compute_engine_bias() as the live score,
+                # so the history is directly backtestable against the live system.
+                try:
+                    _eng = compute_engine_bias(
+                        {"cot": cot_s, "seasonal": seas_s, "momentum": mom_s,
+                         "macro": macro_s, "regime": regime_s, "relval": relval_s},
+                        market_id=m_upper,
+                        cot_detail={"score": cot_s},
+                        momentum_detail=mom_det)
+                    composite = round(float(_eng.get("weighted", _blend)), 2)
+                    _conv     = round(float(_eng.get("conviction", 0.0)), 3)
+                    _tier     = _eng.get("tier", "")
+                except Exception as _ee:
+                    composite, _conv, _tier = _blend, 0.0, ""
+                    _eng_err_n += 1
+                    if _eng_err_n == 1:
+                        print(f"score_history[{m_upper}] engine error (falling back to blend): {type(_ee).__name__}: {_ee}")
     
                 dates.append(str(bar_date.date()))
                 scores.append(composite)
+                blend_scores.append(_blend)
+                conv_list.append(_conv)
+                tier_list.append(_tier)
     
                 price_date = bar_date.normalize()
                 close = price_lookup.get(price_date)
@@ -16957,14 +17024,21 @@ async def get_score_history(market: str):
             dates  = dates[-MAX_RETURN:]
             scores = scores[-MAX_RETURN:]
             prices = prices[-MAX_RETURN:]
+            blend_scores = blend_scores[-MAX_RETURN:]
+            conv_list    = conv_list[-MAX_RETURN:]
+            tier_list    = tier_list[-MAX_RETURN:]
     
             return {
                 "market": m_upper, "name": mkt["name"],
                 "dates": dates, "scores": scores, "prices": prices,
+                "blend_scores": blend_scores,
+                "convictions":  conv_list,
+                "tiers":        tier_list,
                 "note": (
-                    f"Full composite walk-forward: COT ({base_id}\u2212{quote_id}), seasonality, momentum, "
-                    f"macro, regime, rel-val \u2014 all reconstructed at each bar with zero lookahead. "
-                    f"PCR held at today\u2019s reading (no historical snapshots available)."
+                    f"Engine walk-forward: COT ({base_id}\u2212{quote_id}), seasonality, momentum, "
+                    f"macro, regime \u2014 reconstructed at each bar with zero lookahead, then scored "
+                    f"through the SAME confluence engine as the live composite. "
+                    f"PCR/seasonal-tilt/DX-feedback not reconstructed historically."
                 ),
             }
     
@@ -17032,6 +17106,10 @@ async def get_score_history(market: str):
         seas_scores:   list = []
         regime_scores: list = []
         relval_scores: list = []
+        blend_scores:  list = []
+        conv_list:     list = []
+        tier_list:     list = []
+        _eng_err_n = 0
     
         for i in range(MIN_BARS, n):
             slice_df = df_merged.iloc[:i + 1].copy()
@@ -17053,8 +17131,9 @@ async def get_score_history(market: str):
             bar_ts = bar_date.timestamp()
     
             seas_s   = _score_seasonality_at(m_upper, bar_date)
-            mom_s    = _score_momentum_at(px_closes_all, px_dates_norm_all, bar_date_norm, m_upper) \
-                       if len(px_closes_all) > 20 else 5.0
+            mom_s, mom_det = _score_momentum_at(px_closes_all, px_dates_norm_all, bar_date_norm,
+                                                m_upper, return_detail=True) \
+                       if len(px_closes_all) > 20 else (5.0, {})
             macro_s  = _score_macro_at_fred(m_upper, str(bar_date.date()),
                                        fred_us_full, fred_fx_full)
             regime_s = _score_regime_at(m_upper, bar_date_norm, regime_px, walcl_full)
@@ -17068,7 +17147,7 @@ async def get_score_history(market: str):
                        if relval_self_series is not None else 5.0
     
             pcr_s_wf = _score_pcr_at(m_upper, bar_date_norm, regime_px)
-            composite = round(max(0.0, min(10.0,
+            _blend = round(max(0.0, min(10.0,
                 cot_s    * w_map["cot"]      +
                 seas_s   * w_map["seasonal"] +
                 mom_s    * w_map["momentum"] +
@@ -17077,9 +17156,30 @@ async def get_score_history(market: str):
                 relval_s * w_map["relval"]   +
                 pcr_s_wf * w_map.get("pcr", 0.0)
             )), 1)
+            # ENGINE walk-forward — SAME compute_engine_bias() as the live score,
+            # so the history is directly backtestable against the live system.
+            try:
+                _eng = compute_engine_bias(
+                    {"cot": cot_s, "seasonal": seas_s, "momentum": mom_s,
+                     "macro": macro_s, "regime": regime_s, "relval": relval_s,
+                     "pcr": pcr_s_wf},
+                    market_id=m_upper,
+                    cot_detail={"score": cot_s},
+                    momentum_detail=mom_det)
+                composite = round(float(_eng.get("weighted", _blend)), 2)
+                _conv     = round(float(_eng.get("conviction", 0.0)), 3)
+                _tier     = _eng.get("tier", "")
+            except Exception as _ee:
+                composite, _conv, _tier = _blend, 0.0, ""
+                _eng_err_n += 1
+                if _eng_err_n == 1:
+                    print(f"score_history[{m_upper}] engine error (falling back to blend): {type(_ee).__name__}: {_ee}")
     
             dates.append(str(bar_date.date()))
             scores.append(composite)
+            blend_scores.append(_blend)
+            conv_list.append(_conv)
+            tier_list.append(_tier)
             cot_scores.append(cot_s)
             mom_scores.append(round(mom_s, 1))
             macro_scores.append(round(macro_s, 1))
@@ -17099,6 +17199,9 @@ async def get_score_history(market: str):
         seas_scores   = seas_scores[-MAX_RETURN:]
         regime_scores = regime_scores[-MAX_RETURN:]
         relval_scores = relval_scores[-MAX_RETURN:]
+        blend_scores  = blend_scores[-MAX_RETURN:]
+        conv_list     = conv_list[-MAX_RETURN:]
+        tier_list     = tier_list[-MAX_RETURN:]
     
         relval_note = (" Rel-val uses trend-gated scoring — valuation only signals when trend confirms."
                        if is_fx_mkt else " Rel-val uses trend-gated scoring — valuation only signals when trend confirms.")
@@ -17112,11 +17215,15 @@ async def get_score_history(market: str):
             "seas_scores":   seas_scores,
             "regime_scores": regime_scores,
             "relval_scores": relval_scores,
+            "blend_scores":  blend_scores,
+            "convictions":   conv_list,
+            "tiers":         tier_list,
             "note": (
-                "Full composite walk-forward: COT, seasonality, momentum, macro (FF calendar, 5yr), "
-                "regime (VIX/yields/credit/DXY, max history), rel-val (max history) \u2014 "
-                "all reconstructed at each bar with zero lookahead. "
-                "PCR held at today\u2019s reading (no historical snapshots available)."
+                "Engine walk-forward: COT, seasonality, momentum, macro (FRED), "
+                "regime (VIX/yields/credit/DXY), rel-val \u2014 all reconstructed at each bar "
+                "with zero lookahead, then scored through the SAME confluence engine "
+                "(compute_engine_bias, incl. linear COT weighting) as the live composite. "
+                "Seasonal-tilt/DX-feedback not reconstructed historically."
                 + relval_note
             ),
         }
