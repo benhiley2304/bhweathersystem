@@ -12186,6 +12186,7 @@ async def _do_scores_refresh(force: bool = False):
             "cot_lam":           bias.get("cot_lam"),
             "cot_mult":          bias.get("cot_mult"),
             "cot_conv_delta":    bias.get("cot_conv_delta"),
+            "cot_full_alignment": bias.get("cot_full_alignment", False),
             "agree":             bias.get("agree", 0),
             "disagree":          bias.get("disagree", 0),
             "factor_votes":      bias.get("factor_votes", {}),
@@ -12335,7 +12336,7 @@ async def _do_scores_refresh(force: bool = False):
                        # SEAS-R3: extreme-promotion flags re-flow with the engine too
                        "cot_extreme","relval_extreme","cot_tier",
                        # COT-LINEAR: audit-trail fields re-flow with the engine too
-                       "cot_lam","cot_mult","cot_conv_delta",
+                       "cot_lam","cot_mult","cot_conv_delta","cot_full_alignment",
                        # AUDIT-COMPOSITE: keep the seasonal timing block in sync
                        # after the DX regime tilt re-flows the engine.
                        "seasonal_hint","seasonal_score_raw","seasonal_score_adj",
@@ -18039,7 +18040,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-31-ladder1"
+BUILD_ID = "2026-08-31-ladder2"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
