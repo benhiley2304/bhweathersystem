@@ -16845,25 +16845,37 @@ async def get_score_history(market: str):
                 _rv_cfg = REL_VAL_CONFIG.get(m_upper)
                 if _rv_cfg:
                     _relval_periods = _rv_cfg.get('periods', [13, 26])
-                    try:
-                        _df_s = yf.Ticker(mkt['yf']).history(period='max', interval='1wk', auto_adjust=True)
-                        if not _df_s.empty:
-                            _ss = _df_s['Close'].copy()
-                            _ss.index = pd.to_datetime(_ss.index).tz_localize(None).normalize()
-                            _ss.index = _ss.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
-                            _relval_self = _ss
-                    except Exception:
-                        pass
+
+                    def _rv_fetch_weekly(_tickers):
+                        """Fetch max weekly closes; tries each ticker (with one retry) until one works."""
+                        for _tk in _tickers:
+                            for _attempt in (1, 2):
+                                try:
+                                    _dfw = yf.Ticker(_tk).history(period='max', interval='1wk', auto_adjust=True)
+                                    if _dfw is not None and not _dfw.empty:
+                                        _sw = _dfw['Close'].copy()
+                                        _sw.index = pd.to_datetime(_sw.index).tz_localize(None).normalize()
+                                        _sw.index = _sw.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
+                                        return _sw
+                                    print(f'score_history[{m_upper}] relval fetch empty: {_tk} (attempt {_attempt})')
+                                except Exception as _rve:
+                                    print(f'score_history[{m_upper}] relval fetch error {_tk} (attempt {_attempt}): {_rve}')
+                                time.sleep(2)
+                        return None
+
+                    _RV_YF_FALLBACK = {'^DJI': 'YM=F', '^GSPC': 'ES=F', '^NDX': 'NQ=F',
+                                       '^RUT': 'RTY=F', 'DX-Y.NYB': 'DX=F'}
+                    _self_tickers = [mkt['yf']] + ([_RV_YF_FALLBACK[mkt['yf']]] if mkt['yf'] in _RV_YF_FALLBACK else [])
+                    _relval_self = _rv_fetch_weekly(_self_tickers)
+                    if _relval_self is None:
+                        print(f'score_history[{m_upper}] relval SELF series unavailable ({_self_tickers}) — relval will be neutral')
                     for _peer in _rv_cfg.get('peers', []):
-                        try:
-                            _df_p = yf.Ticker(_peer['yf']).history(period='max', interval='1wk', auto_adjust=True)
-                            if not _df_p.empty:
-                                _sp = _df_p['Close'].copy()
-                                _sp.index = pd.to_datetime(_sp.index).tz_localize(None).normalize()
-                                _sp.index = _sp.index.map(lambda d: np.datetime64(d.date().isoformat(), 'D'))
-                                _relval_peer_map[_peer['yf']] = _sp
-                        except Exception:
-                            pass
+                        _peer_tickers = [_peer['yf']] + ([_RV_YF_FALLBACK[_peer['yf']]] if _peer['yf'] in _RV_YF_FALLBACK else [])
+                        _sp = _rv_fetch_weekly(_peer_tickers)
+                        if _sp is not None:
+                            _relval_peer_map[_peer['yf']] = _sp
+                        else:
+                            print(f'score_history[{m_upper}] relval peer unavailable: {_peer["yf"]}')
 
                 # 4. PCR — held constant (live value; walk-forward requires CBOE CSV history)
                 _live_pcr = score_pcr(m_upper)
