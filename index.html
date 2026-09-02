@@ -38125,7 +38125,22 @@ function seasTabStub(m){
       data-tip="${_sxEsc(_shapeMeta.plain)}${d.far_score!=null?` The 6–8 week window scores ${(+d.far_score).toFixed(1)}/10.`:''}"
       style="color:${_shapeMeta.col};background:${_shapeMeta.col}14;border-color:${_shapeMeta.col}44">${_shapeMeta.key==='fading'?'▼ ':_shapeMeta.key==='rising'?'▲ ':''}${_shapeMeta.label.toUpperCase()}<span class="sx-chip-i">i</span></span>`);
   }
-  if(cycleLabel) chips.push(`<span class="sx-chip sx-chip-mute">${cycleLabel.toUpperCase()} YEAR</span>`);
+  // SEAS-R4 (Fix 3): only show the political-cycle chip when the scoring
+  // engine actually overweighted that cycle (cycle_w > 1.0). For supply-cycle
+  // assets (CL, NG, HG, PL, GC, SI, PA, grains, softs, livestock, crypto)
+  // the engine runs an all-years blend (cycle_w = 1.0) so labelling the read
+  // as "MIDTERM YEAR" — as if it were a Fed/political-calendar bet — is
+  // misleading. Those assets get a "SUPPLY-CYCLE" chip instead, matching the
+  // Seasonality Lab's language.
+  const _cycW=(typeof d.cycle_w==='number')?d.cycle_w:null;
+  if(_cycW!=null && _cycW>1.0 && cycleLabel){
+    chips.push(`<span class="sx-chip sx-chip-mute">${cycleLabel.toUpperCase()} YEAR</span>`);
+  } else if(_cycW!=null && _cycW<=1.0){
+    chips.push(`<span class="sx-chip sx-chip-mute">SUPPLY-CYCLE</span>`);
+  } else if(cycleLabel){
+    // Backwards-compat fallback if cycle_w missing from an older payload.
+    chips.push(`<span class="sx-chip sx-chip-mute">${cycleLabel.toUpperCase()} YEAR</span>`);
+  }
 
   const _dataNote={'B':'Curve computed from Brent Crude (BZ=F) daily history — direct proxy for ICE Brent.','GO':'Curve computed from NYMEX Heating Oil (HO=F) — best available proxy for ICE Gas Oil (European diesel).','RC':'Curve computed from Arabica Coffee (KC=F) — Robusta shares the same harvest/weather seasonal drivers.','Z':'Curve computed from FTSE 100 index (^FTSE) daily history.','R':'Curve computed from iShares UK Gilt ETF (IGLT.L) — proxy for Long Gilt futures.'}[m.id];
 

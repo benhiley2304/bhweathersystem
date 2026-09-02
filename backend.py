@@ -12572,6 +12572,12 @@ async def get_seasonality(market: str = None):
             _months_axis.append({"td": _mtd, "label": _md.strftime("%b")})
         cycles = ent.get("cycles") or {}
         stats = _seas_window_stats(m, _today)
+        # SEAS-R4 (Fix 3): expose the asset-class blend so the tab chip can
+        # avoid mislabelling supply-cycle assets (CL/NG/HG/PL/GC/SI/PA/grains/
+        # softs/livestock/crypto) as "MIDTERM YEAR" — those markets score on the
+        # all-years profile (cycle_w=1.0) so the cycle label is not what drove
+        # the number.
+        _default_blend = _seas_default_blend(m)
         return {
             "market": m,
             "all":    ent.get("curve", []),
@@ -12588,6 +12594,8 @@ async def get_seasonality(market: str = None):
             "years_span": ent.get("years_span"),
             "turns": ent.get("turns", []),
             "window": stats,
+            "asset_class": _default_blend.get("profile"),
+            "default_blend": _default_blend,
         }
     return _SafeJSONResponse(data)
 
@@ -15142,6 +15150,7 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     shape_rotated = False         # true when we rotated toward the far side
     shape_rotation_suppressed = False   # SEAS-R3: rotation blocked by a live near edge
     far_weight_applied = 0.0            # SEAS-R3: audit trail — far weight actually used
+    far_rotation_capped = False         # SEAS-R4: rotation was capped because swing window is strongly opposite
     shape_note = None                   # SEAS-R3: narrative for the suppressed far read
     if True:
         # AUDIT-SCORING — two bugs fixed here:
@@ -15234,11 +15243,46 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
                         f"six weeks, held out of the headline while the "
                         f"{'long' if open_edge_dir > 0 else 'short'} entry is live now")
                 elif abs(_far_lean) >= 0.5:
-                    # blend: 45% current (near-view, already reliability-dampened) + 55% far
-                    _blended = score * 0.45 + far_score * 0.55
+                    # ── SEAS-R4 (Fix 2): SWING-HORIZON PRIORITY OVER FAR WINDOW ──
+                    # Ben's horizon rule: "1 to 2 weeks is important, 3 to 4
+                    # weeks is important for long-term position context, and
+                    # anything beyond six weeks isn't really relevant." The
+                    # far window (6-8 weeks) is borderline/beyond that horizon.
+                    #
+                    # The rotation exists so a spent near window doesn't leave
+                    # the trader blind to a setup building in weeks 6-8, and
+                    # that's a good service when the swing (3-4w) read is
+                    # weak. But when the swing window itself is STRONGLY
+                    # directional against the far window — Ben's flagged
+                    # CL case: swing -2.69% / 39% hit / raw 3.5 opposing a
+                    # far +1.05% / 65% hit — 55% on the far side is louder
+                    # than the primary horizon deserves. It drags a genuine
+                    # bearish 3-4w read to "Mild Bull" while the Seasonality
+                    # Lab (which reads the same 3-4w window) correctly shows
+                    # bearish.
+                    #
+                    # Fix: cap the far weight at 0.25 when the swing window
+                    # is strongly opposite (|raw_score-5| >= 1.5 AND
+                    # |wmed| >= 1.0%). The swing read then stays the
+                    # headline, and the far window still shows up in the
+                    # narrative and the shape chip so the trader isn't
+                    # blind to what comes next.
+                    _swing_strong_opposite = (
+                        abs(raw_score - 5.0) >= 1.5
+                        and abs(wmed) >= 1.0
+                        and (raw_score - 5.0) * _far_lean < 0
+                    )
+                    if _swing_strong_opposite:
+                        # 75% current (swing, already reliability-dampened) + 25% far
+                        _blended = score * 0.75 + far_score * 0.25
+                        far_weight_applied = 0.25
+                    else:
+                        # 45% current + 55% far — original rotation
+                        _blended = score * 0.45 + far_score * 0.55
+                        far_weight_applied = 0.55
                     score = round(max(0.0, min(10.0, _blended)), 1)
                     shape_rotated = True
-                    far_weight_applied = 0.55
+                    far_rotation_capped = _swing_strong_opposite
                 else:
                     # far isn't strong enough to flip the sign — just dampen as before
                     score = round(5.0 + (score - 5.0) * shape_dampen, 1)
@@ -15554,6 +15598,9 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         # SEAS-R3 (Fix 1): far-window rotation vs a live near-term edge
         "shape_rotation_suppressed": shape_rotation_suppressed,
         "far_weight_applied": far_weight_applied,
+        # SEAS-R4 (Fix 2): rotation weight capped because the swing window
+        # itself is strongly directional against the far window.
+        "far_rotation_capped": far_rotation_capped,
         "shape_note": shape_note,
         "open_edge_dir": open_edge_dir,
         "open_edge_lean": open_edge_lean,
@@ -15604,6 +15651,13 @@ def score_seasonality(market_id: str) -> dict:
         "date": today.isoformat(),
         "current_td": current_td,
         "cycle_key": cycle_key,
+        # SEAS-R4 (Fix 3): expose the asset-class blend + cycle weight so the
+        # tab chip can gate the "MIDTERM YEAR" label — supply-cycle assets
+        # (CL/NG/HG/PL/GC/SI/PA/grains/softs/livestock/crypto) score on
+        # cycle_w=1.0 so the political-cycle label is misleading there.
+        "asset_class": _seas_default_blend(market_id).get("profile"),
+        "cycle_w": _seas_default_blend(market_id).get("cycle_w"),
+        "blend_tag": _seas_default_blend(market_id).get("tag"),
         "horizon_td_start": current_td,
         "horizon_td_end": min(252, current_td + 20),
         "source": "stats" if stats is not None else "window",
@@ -15656,6 +15710,10 @@ def score_seasonality(market_id: str) -> dict:
             # said is "not really relevant" — these fields say whether that fired.
             "shape_rotation_suppressed": stats.get("shape_rotation_suppressed"),
             "far_weight_applied": stats.get("far_weight_applied"),
+            # SEAS-R4 (Fix 2): far-window rotation capped because swing window
+            # is strongly opposite — exposes to the tab that the rotation was
+            # intentionally limited so the horizon rule holds.
+            "far_rotation_capped": stats.get("far_rotation_capped"),
             "shape_note": stats.get("shape_note"),
             "open_edge_dir": stats.get("open_edge_dir"),
             "open_edge_lean": stats.get("open_edge_lean"),
