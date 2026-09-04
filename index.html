@@ -37839,7 +37839,7 @@ function seasGoldilocksHTML(g,sd){
       <div class="sx-gold-top">
         <span class="sx-gold-kicker">Goldilocks entry</span>
         <span class="sx-gold-tag">${tag}</span>
-        ${g.dir!==0?`<span class="sx-gold-dir">${arrow} ${dirWord.toUpperCase()} SETUP</span>`:''}
+        ${(g.dir!==0&&g.state!=='none')?`<span class="sx-gold-dir">${arrow} ${dirWord.toUpperCase()} SETUP</span>`:''}
       </div>
       <div class="sx-gold-head">${head}</div>
       <div class="sx-gold-text">${body}</div>
@@ -43810,7 +43810,7 @@ function _labV2RenderCallout(){
   }else if(goldTd!=null&&goldTd>2&&goldTd<=30&&s.postMed>=1.5){
     tone='co-gold';ic='◷';pill=`${goldTd} TD`;
     kick=`Almost ready seasonally — ${goldTd} trading days to goldilocks entry`;
-    txt=`Price typically ${isShort?'rallies':'dips'} first — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>, ${C.extreme} around <b>${entryPhase}</b> (~${wks} week${wks===1?'':'s'} out). From that ${C.extreme} the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b> — wait for it or scale in.${shapeTxt}${goldSrc==='score'?' <i>Timing from the seasonal score.</i>':''}${srcTxt}`;
+    txt=`Price typically ${isShort?'rallies':'dips'} first — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>, ${C.extreme} around <b>${entryPhase}</b> (~${wks} week${wks===1?'':'s'} out). From that ${C.extreme} the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b> — wait for it or scale in.${shapeTxt}${_planRej}${goldSrc==='score'?' <i>Timing from the seasonal score.</i>':''}${srcTxt}`;
   }else if(s.advMed!=null&&s.advMed<=-3){
     tone='co-risk';ic='▼';
     kick=C.riskKick;
