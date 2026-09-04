@@ -39163,7 +39163,7 @@ function macroTab(m){
       else if(_lnorm==='retail') label = 'Retail Sales';
       else if(_lnorm==='wages' || _lnorm==='wage') label = 'Wages';
       else if(_lnorm==='claims') label = 'Jobless Claims';
-      if(label && !isNaN(val) && Math.abs(val) >= 0.05) rows.push({label, val});
+      if(label && !isNaN(val)) rows.push({label, val});   // AUDIT 2026-09-04: show zero-contribution drivers too
     }
     // Special fallback for R (Long Gilt): reason string is a description, not label:value pairs
     // Parse key values from the Macro Drivers section data instead via ms (macro score object)
@@ -39253,7 +39253,7 @@ function macroTab(m){
     NQ: (sc) => sc>6?'Rate-sensitive tech stocks benefit: inflation is cooling and rate-cut expectations are building. Duration tailwind for high-multiple growth stocks.':sc<4?'Inflation risk is the dominant headwind for NASDAQ — hot CPI/PCE is compressing valuations via higher discount rates.':'Tech macro is mixed — inflation and rate path are the key variables to watch.',
     YM: (sc) => sc>6?'Manufacturing activity, consumer spending, and inflation data are all supportive of Dow names. Strong Mfg PMI benefits CAT, HON, and Boeing directly; retail strength lifts HD, MCD, and Nike. Cool CPI removes rate-hike risk that typically pressures YM\'s value/dividend names. The Dow is less rate-sensitive than NQ but the inflation signal is still its #1 single macro driver.':sc<4?'Hot CPI and/or industrial activity slowdown are the primary headwinds — inflation erodes Dow industrial margins and triggers rate-hike risk that pressures value names. Manufacturing PMI weakness directly impacts CAT, MMM, and Boeing earnings expectations.':'Dow macro is mixed. Inflation vs. growth trade-off is the key dynamic — manufacturing PMI and CPI are the two variables that move YM most reliably.',
     RTY: (sc) => sc>6?'Domestic jobs are strong, rate expectations are benign, and inflation is not re-accelerating — the ideal trifecta for small-cap floating-rate borrowers. The 2Y yield is the single most important variable for RTY: every 25bp rise in 2Y rates compresses RTY valuations more than any other equity index. Current environment: floating-rate debt service costs are manageable.':sc<4?'Rate headwinds and/or domestic economic weakness are the primary bearish drivers for small caps. RTY carries the highest floating-rate debt load of any US index — a 2Y yield spike is a direct balance sheet hit. Watch 2Y yield as the leading indicator.':'RTY macro is mixed. The 2Y yield direction is the single most important variable — small caps are most sensitive to rate path expectations of any US equity index.',
-    GC: (sc) => sc>6?'Cool CPI/PPI and/or softening jobs are compressing real yield expectations — bullish for non-yielding gold. Lower inflation = Fed stays dovish = nominal yields fall = real yields compress.':sc<4?'Hot CPI/PPI and/or strong NFP are pushing real yield expectations higher — headwind for gold. The real yield rise is the mechanism, not the inflation print itself.':'Gold macro is neutral — CPI/PPI and NFP signals are broadly in-line, keeping real yield expectations stable.',
+    GC: (sc) => sc>6?'US data is running soft against consensus — weaker jobs and/or growth prints and cool inflation pull the Fed path lower, compressing real yield expectations. That is the classic gold bid: every category is scored on its own beat/miss and weighted (inflation 30%, 2Y 25%, jobs 25%, growth 20%).':sc<4?'US data is running hot against consensus — strong jobs/growth and/or firm inflation push the Fed path and real yields higher. Headwind for non-yielding gold. Check the Macro Drivers bars to see which category is doing the damage.':'Gold macro is neutral — the four drivers are offsetting (e.g. soft jobs bullish but a firmer 2Y bearish). See Macro Drivers for the split; a one-sided run of misses or beats is what moves this score.',
     SI: (sc) => sc>6?'Silver benefits from both legs: industrial demand (GDP/Mfg PMI) is strong, AND cool inflation data is supportive of the precious metal component via real yield compression. Cool PPI is particularly potent (lower input costs + disinflation).':sc<4?'Silver headwinds: industrial demand signals are weak and/or real yields are rising (bearish precious leg). Strong NFP or hot CPI = dual bearish via hawkish expectations.':'Silver macro mixed — industrial demand (59%) and real yield signal (precious 41%) need to be assessed separately for full picture.',
     PL: (sc) => sc>6?'Auto production and industrial demand signals are positive — a tailwind for platinum catalytic converter demand. Note: this score is attenuated (0.80x) because platinum\'s primary demand driver — EU diesel auto catalysts (65% of PL demand) — is not directly scored here. US macro is a reasonable proxy for global growth sentiment, but EU-specific diesel demand trends should be monitored separately.':sc<4?'Industrial and auto demand signals are weak, and/or USD strength is a headwind for this USD-priced metal. Important caveat: EU diesel demand (65% of PL demand) is the dominant driver — EU economic data and EU auto production figures carry more weight than US macro alone for platinum.':'Platinum macro is neutral. Critical context: EU diesel demand (65% of demand) is the real driver — the macro score captures US macro signals only, attenuated to reflect this limitation. Monitor EU auto production and ECB policy separately.',
     PA: (sc) => sc>6?'Gasoline auto demand signals are positive — supporting palladium catalytic converter consumption. PA is 80-85% gasoline engine catalysts; strong consumer jobs (NFP) and manufacturing activity are the primary near-term demand signals. Note the structural long-term headwind: EV adoption is a secular bear for palladium (EVs use zero palladium in their drivetrains). The macro score captures cyclical demand; EV penetration rate is the structural override.':sc<4?'Consumer demand signals are weakening — fewer vehicle purchases = less gasoline catalytic converter demand = bearish PA. Also watch for EV adoption acceleration as a structural compounding headwind.':'Palladium macro is neutral. Watch NFP and retail spending as the cleanest auto purchasing power proxies. Structural note: EVs contain zero palladium — each percentage point of EV penetration is a structural headwind for palladium demand.',
@@ -39680,30 +39680,43 @@ function macroTab(m){
 
   if(compArr.length){
     html+=`<div class="sec-h" style="display:flex;align-items:center;gap:6px">US Macro Releases <span style="font-size:8px;font-weight:400;color:var(--dim);letter-spacing:0.02em">(incl. PMI, CPI, NFP, PCE, PPI)</span></div>`;
+    html+=`<div style="font-size:8px;color:var(--faint);margin:-2px 0 5px 1px">Colour = direction for ${m.name}: <span style="color:#22c97a">▲ bullish</span> · <span style="color:#e03a2a">▼ bearish</span> · tag describes the print itself</div>`;
     html+=`<div class="comp-list-hdr"><span>Indicator</span><span>Actual</span><span>Forecast</span><span>Result</span></div>`;
     html+=`<div class="comp-list">`;
+    // AUDIT 2026-09-04: colour = direction for THIS asset (green = bullish for the
+    // asset, red = bearish), using the same category signs as the Macro Drivers
+    // bars. The tag still describes the data itself (BEAT/MISS, HOT/COOL) so a
+    // red "MISS" on ES and a green "MISS" on Gold both read correctly.
+    const _catSign = (cat)=>{
+      if(cat==='rates')     return _amc.ratesSign  ?? -1;
+      if(cat==='inflation') return _amc.inflSign   ?? -1;
+      if(cat==='jobs')      return _amc.jobsSign   ??  1;
+      if(cat==='growth')    return _amc.growthSign ??  1;
+      return 1;
+    };
     for(const c of compArr){
       const sc=c.score??0;
-      // For inflation indicators, higher actual = hawkish pressure = bearish for most assets
-      // So we invert the colour and use directional labels instead of beat/miss
       const isInfl = c.category==='inflation';
-      // Invert signal colour for inflation (hot CPI = red = bad signal, even though sc is +ve from FRED)
-      const dispSc = isInfl ? -sc : sc;
-      const col=dispSc>=2?'#22c97a':dispSc>=1?'#22c97a':dispSc<=-2?'#e03a2a':dispSc<=-1?'#e06030':'#4a5268';
-      const bg=dispSc>0?'rgba(48,164,108,0.07)':dispSc<0?'rgba(184,92,82,0.06)':'rgba(71,85,105,0.09)';
+      const isRate = c.category==='rates';
+      const dirSc = sc * _catSign(c.category);
+      const col=dirSc>=1?'#22c97a':dirSc<=-2?'#e03a2a':dirSc<=-1?'#e06030':'#4a5268';
+      const bg=dirSc>0?'rgba(48,164,108,0.07)':dirSc<0?'rgba(184,92,82,0.06)':'rgba(71,85,105,0.09)';
       let tag;
       if(isInfl){
-        // Directional: describe what the data is doing, not whether it "beat"
         tag = sc>=2?'VERY HOT':sc>=1?'HOT':sc<=-2?'VERY COOL':sc<=-1?'COOL':'IN LINE';
+      } else if(isRate){
+        tag = sc>=2?'MUCH HIGHER':sc>=1?'HIGHER':sc<=-2?'MUCH LOWER':sc<=-1?'LOWER':'FLAT';
       } else {
         const tagMap={'2':'STRONG BEAT','1':'BEAT','0':'IN LINE','-1':'MISS','-2':'STRONG MISS'};
         tag = tagMap[sc]||'IN LINE';
       }
-      html+=`<div class="comp-row" style="background:${bg}">
-        <span class="comp-n">${c.title||''}</span>
+      const _dirGlyph = dirSc>0?'▲':dirSc<0?'▼':'■';
+      const _lvl = c.level_tag ? `<span style="font-size:7px;color:var(--faint);font-weight:400;margin-left:4px">${c.level_tag.toUpperCase()}</span>` : '';
+      html+=`<div class="comp-row" style="background:${bg}" title="${_dirGlyph} ${dirSc>0?'Bullish':dirSc<0?'Bearish':'Neutral'} for ${m.name}">
+        <span class="comp-n">${c.title||''}${_lvl}</span>
         <span class="comp-s" style="color:${col}">${c.actual||'—'}</span>
         <span class="comp-fc">${c.forecast||'—'}</span>
-        <span class="comp-tag" style="color:${col};font-size:8px;font-weight:700;letter-spacing:0.05em;text-align:right">${tag}</span>
+        <span class="comp-tag" style="color:${col};font-size:8px;font-weight:700;letter-spacing:0.05em;text-align:right">${_dirGlyph} ${tag}</span>
       </div>`;
     }
     html+=`</div>`;

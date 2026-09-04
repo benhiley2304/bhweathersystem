@@ -5650,17 +5650,32 @@ def _yoy_date_matched(series_list: list):
     return out
 
 
+def _score_from_surprise(surprise, scale: float, higher_is_good: bool = True) -> int:
+    """Sigma-bucket a surprise into -2..+2 (AUDIT 2026-09-04: single source of
+    truth so the score, the displayed expected value and the label are all
+    derived from the SAME surprise — previously surprise_score() used a
+    shifted history window, so DGS2 could show 'In Line' with score +1)."""
+    if surprise is None or not scale:
+        return 0
+    n = surprise / scale
+    raw = 2 if n > 1.5 else 1 if n > 0.4 else -2 if n < -1.5 else -1 if n < -0.4 else 0
+    return raw if higher_is_good else -raw
+
+
 def compute_macro_surprise(series_list: list, higher_is_good: bool, transform: str = "level",
-                            scale: float = 1.0) -> dict:
+                            scale: float = 1.0, window: int = 3) -> dict:
     """
     Compute a surprise score for a FRED series list.
     transform: 'level' | 'yoy' | 'mom'
+    window: number of prior observations averaged to form the expectation
+            (3 = FRED default; 21 ≈ one month of daily yields for rates).
     Returns {score, actual, expected, surprise, label}
     """
     if not series_list or len(series_list) < 4:
         return {"score": 0, "actual": None, "expected": None, "surprise": None, "label": "No Data"}
 
     vals = series_list
+    window = max(1, int(window or 3))
 
     if transform == "yoy":
         if len(vals) < 13:
@@ -5673,9 +5688,10 @@ def compute_macro_surprise(series_list: list, higher_is_good: bool, transform: s
         if len(yoy_series) < 4:
             return {"score": 0, "actual": None, "expected": None, "surprise": None, "label": "Insufficient data"}
         actual = yoy_series[-1]["value"]
-        expected = sum(v["value"] for v in yoy_series[-4:-1]) / 3
+        _prior = yoy_series[-(window + 1):-1]
+        expected = sum(v["value"] for v in _prior) / len(_prior)
         surprise = actual - expected
-        score = surprise_score(actual, yoy_series[:-1], higher_is_good, scale)
+        score = _score_from_surprise(surprise, scale, higher_is_good)
         return {"score": score, "actual": round(actual, 2), "expected": round(expected, 2),
                 "surprise": round(surprise, 2), "label": _surprise_label(surprise, scale)}
 
@@ -5689,17 +5705,19 @@ def compute_macro_surprise(series_list: list, higher_is_good: bool, transform: s
         if len(mom_series) < 4:
             return {"score": 0, "actual": None, "expected": None, "surprise": None, "label": "Insufficient data"}
         actual = mom_series[-1]["value"]
-        expected = sum(v["value"] for v in mom_series[-4:-1]) / 3
+        _prior = mom_series[-(window + 1):-1]
+        expected = sum(v["value"] for v in _prior) / len(_prior)
         surprise = actual - expected
-        score = surprise_score(actual, mom_series[:-1], higher_is_good, scale)
+        score = _score_from_surprise(surprise, scale, higher_is_good)
         return {"score": score, "actual": round(actual, 3), "expected": round(expected, 3),
                 "surprise": round(surprise, 3), "label": _surprise_label(surprise, scale)}
 
     else:  # level
         actual = vals[-1]["value"]
-        expected = sum(v["value"] for v in vals[-4:-1]) / 3
+        _prior = vals[-(window + 1):-1]
+        expected = sum(v["value"] for v in _prior) / len(_prior)
         surprise = actual - expected
-        score = surprise_score(actual, vals[:-1], higher_is_good, scale)
+        score = _score_from_surprise(surprise, scale, higher_is_good)
         return {"score": score, "actual": round(actual, 2), "expected": round(expected, 2),
                 "surprise": round(surprise, 2), "label": _surprise_label(surprise, scale)}
 
@@ -5856,6 +5874,14 @@ def compute_macro_all() -> dict:
                     components["CORE_CPI"]["beat_ff"]     = _ccpi_l.get("beat")
                     components["CORE_CPI"]["ff_score"]    = _ff_scores.get("core_cpi_mom")
                     components["CORE_CPI"]["ff_releases"] = _ff_rels.get("core_cpi_mom", [])
+                # AUDIT 2026-09-04: Core CPI y/y overlay so the YoY actual is paired
+                # with a YoY forecast (was showing FRED 2.48% vs FF m/m 0.20%).
+                _ccpi_yoy_l = _ff_latest.get("core_cpi_yoy", {})
+                if _ccpi_yoy_l:
+                    components["CORE_CPI"]["actual_ff_yoy"]   = _ccpi_yoy_l.get("actual")
+                    components["CORE_CPI"]["forecast_ff_yoy"] = _ccpi_yoy_l.get("forecast")
+                    components["CORE_CPI"]["surprise_ff_yoy"] = _ccpi_yoy_l.get("surprise")
+                    components["CORE_CPI"]["beat_ff_yoy"]     = _ccpi_yoy_l.get("beat")
 
             # PPI: FF PPI m/m + Core PPI m/m
             if "PPI" in components:
@@ -5922,6 +5948,10 @@ def compute_macro_all() -> dict:
                         _fred_yoy_actual = float(_av.replace('%','').strip())
                     except Exception:
                         _fred_yoy_actual = None
+                # FRED trailing-3m YoY expectation — used ONLY as the display pair
+                # for a FRED YoY actual when FF has no y/y forecast (AUDIT 2026-09-04:
+                # never pair a YoY actual with a m/m forecast).
+                _fred_yoy_expected = _cc.get("expected") if isinstance(_cc.get("expected"), (int, float)) else None
                 _surp_ff = _cc.get("surprise_ff")
                 if _surp_ff is None:
                     continue
@@ -5942,6 +5972,8 @@ def compute_macro_all() -> dict:
                     _af_yoy = _fred_yoy_actual
                     _cc["actual_ff_yoy"] = _fred_yoy_actual  # expose for frontend
                     _cc["yoy_source"] = "FRED"
+                    if _ff_yoy is None and _fred_yoy_expected is not None:
+                        _ff_yoy = round(_fred_yoy_expected, 2)   # like-for-like YoY pair
                 elif _af_yoy is not None:
                     _cc["yoy_source"] = "FF"
                 _af = _cc.get("actual_ff")
@@ -5959,6 +5991,10 @@ def compute_macro_all() -> dict:
                     # as if inflation collapsed to 0.2% y/y.
                     if _af_yoy is None and isinstance(_cc.get("title"), str) and "YoY" in _cc["title"]:
                         _cc["title"] = _cc["title"].replace("YoY", "m/m")
+                    if _af_yoy is None and _ikey == "PPI":
+                        _cc["title"] = "PPI m/m"   # displayed figure is the FF m/m print
+                # Surprise shown to the UI must be the one that was scored
+                _cc["surprise"] = _surp_ff
                 if _ff_disp is not None:
                     _cc["expected"] = _ff_disp
                     _cc["forecast"] = f"{_ff_disp:.2f}%"
@@ -6043,12 +6079,17 @@ def compute_macro_all() -> dict:
                 c["ff_releases"] = _fg_rels.get(_pmi_key, [])
                 c["title"]       = _title
                 _s = _surp_score(_p_lat.get("surprise"), 1.2)
-                if _s is not None and _p_act is not None:
-                    _lvl = 1 if _p_act > 52.5 else -1 if _p_act < 47.5 else 0
-                    _s = max(-2, min(2, _s + _lvl))
+                if _s is not None:
+                    # AUDIT 2026-09-04: category score is SURPRISE-ONLY, consistent
+                    # with every other release (a 54.6 print vs 55.2 consensus is a
+                    # miss for growth-sensitive assets even though it is expansion).
+                    # The absolute-level context is exposed separately as level_tag.
                     c["score"] = _s
-                    c["label"] = _score_label(_s) if _lvl == 0 else (
-                        "Expansion" if _lvl == 1 else "Contraction")
+                    c["label"] = _score_label(_s)
+                    c["surprise"] = _p_lat.get("surprise")
+                if _p_act is not None:
+                    c["level_tag"] = ("Expansion" if _p_act > 52.5 else
+                                      "Contraction" if _p_act < 47.5 else "Flat")
                 if _p_act is not None:
                     c["actual"]  = f"{_p_act:.1f}"
                     c["display"] = f"{_p_act:.1f}"
@@ -6217,93 +6258,160 @@ def compute_macro_all() -> dict:
             if _nfp_surp is not None:
                 components["JOBS"]["surprise"] = round(_nfp_surp) if isinstance(_nfp_surp, (int, float)) else _nfp_surp
 
-        # Unemployment Rate → UNEMP
+        # AUDIT 2026-09-04: every FF-backed labour release is scored from the
+        # consensus surprise with a sigma bucket (the same rule as NFP / CPI /
+        # PMI), and the actual / forecast / surprise shown in the UI are the FF
+        # values that were scored. Previously UNEMP and CLAIMS kept the FRED
+        # trailing-average score+label (UNEMP 4.1 vs 4.27 showed "Miss" with a
+        # +1 score) and ADP / WAGES scored ±1 off a bare beat flag with no label.
+        def _lab_bucket(surp, sigma, higher_is_good=True):
+            if surp is None or isinstance(surp, str) or not sigma:
+                return None
+            n = surp / sigma
+            s = (2 if n > 1.25 else 1 if n > 0.4 else
+                 -2 if n < -1.25 else -1 if n < -0.4 else 0)
+            return s if higher_is_good else -s
+        def _lab_lbl(s):
+            return ("Strong Beat" if s == 2 else "Beat" if s == 1 else
+                    "Strong Miss" if s == -2 else "Miss" if s == -1 else "In Line")
+
+        # Unemployment Rate → UNEMP  (sigma 0.1pp; lower = good)
         _un_lat = _ff_lab_latest.get("unrate")
         if _un_lat and "UNEMP" in components:
-            components["UNEMP"]["actual_ff"]   = _un_lat.get("actual")   # %
-            components["UNEMP"]["forecast_ff"] = _un_lat.get("forecast") # %
-            components["UNEMP"]["surprise_ff"] = _un_lat.get("surprise") # pp
-            components["UNEMP"]["beat_ff"]     = _un_lat.get("beat")     # beat = lower than expected
-            components["UNEMP"]["ff_releases"] = _ff_lab_releases.get("unrate", [])
-            components["UNEMP"]["ff_score"]    = _ff_lab_scores.get("unrate")
+            _c = components["UNEMP"]
+            _c["actual_ff"]   = _un_lat.get("actual")   # %
+            _c["forecast_ff"] = _un_lat.get("forecast") # %
+            _c["surprise_ff"] = _un_lat.get("surprise") # pp
+            _c["beat_ff"]     = _un_lat.get("beat")     # beat = lower than expected
+            _c["ff_releases"] = _ff_lab_releases.get("unrate", [])
+            _c["ff_score"]    = _ff_lab_scores.get("unrate")
+            _s = _lab_bucket(_un_lat.get("surprise"), 0.1, higher_is_good=False)
+            if _s is not None:
+                _c["score"] = _s
+                _c["label"] = _lab_lbl(_s)
+                _c["surprise"] = _un_lat.get("surprise")
+            if isinstance(_un_lat.get("actual"), (int, float)):
+                _c["actual"] = f"{_un_lat['actual']:.1f}%"
+                _c["display"] = _c["actual"]
+            if isinstance(_un_lat.get("forecast"), (int, float)):
+                _c["expected"] = _un_lat["forecast"]
 
-        # Initial Claims → CLAIMS
+        # Initial Claims → CLAIMS  (FF values in K; sigma 10K; lower = good)
         _cl_lat = _ff_lab_latest.get("claims")
         if _cl_lat and "CLAIMS" in components:
-            components["CLAIMS"]["actual_ff"]   = _cl_lat.get("actual")   # K
-            components["CLAIMS"]["forecast_ff"] = _cl_lat.get("forecast") # K
-            components["CLAIMS"]["surprise_ff"] = _cl_lat.get("surprise") # K
-            components["CLAIMS"]["beat_ff"]     = _cl_lat.get("beat")     # beat = lower than expected
-            components["CLAIMS"]["ff_releases"] = _ff_lab_releases.get("claims", [])
-            components["CLAIMS"]["ff_score"]    = _ff_lab_scores.get("claims")
+            _c = components["CLAIMS"]
+            _c["actual_ff"]   = _cl_lat.get("actual")   # K
+            _c["forecast_ff"] = _cl_lat.get("forecast") # K
+            _c["surprise_ff"] = _cl_lat.get("surprise") # K
+            _c["beat_ff"]     = _cl_lat.get("beat")     # beat = lower than expected
+            _c["ff_releases"] = _ff_lab_releases.get("claims", [])
+            _c["ff_score"]    = _ff_lab_scores.get("claims")
+            _s = _lab_bucket(_cl_lat.get("surprise"), 10.0, higher_is_good=False)
+            if _s is not None:
+                _c["score"] = _s
+                _c["label"] = _lab_lbl(_s)
+                _c["surprise"] = _cl_lat.get("surprise")
+            if isinstance(_cl_lat.get("actual"), (int, float)):
+                _c["actual"] = f"{int(round(_cl_lat['actual'] * 1000)):,}"
+                _c["display"] = _c["actual"]
+            if isinstance(_cl_lat.get("forecast"), (int, float)):
+                _c["expected"] = _cl_lat["forecast"] * 1000
 
-        # Average Hourly Earnings m/m → WAGES (new component)
+        # Average Hourly Earnings m/m → WAGES  (sigma 0.1pp; hot wages = hawkish = "beat")
         _wg_lat = _ff_lab_latest.get("wages")
         if _wg_lat:
-            _wg_surp = _wg_lat.get("surprise", 0)
-            _wg_beat = _wg_lat.get("beat", False)
-            # Score: beat=hot (wages rising above expectation) = potentially inflationary
-            # From a market perspective: wage beat = labour market tighter than expected = positive USD
-            _wg_score_raw = _ff_lab_scores.get("wages")
+            _wa, _wf = _wg_lat.get("actual"), _wg_lat.get("forecast")
+            _s = _lab_bucket(_wg_lat.get("surprise"), 0.1, higher_is_good=True)
             components["WAGES"] = {
                 **components.get("WAGES", {}),   # keep FRED fallback fields; FF overlays below
-                "actual":      f"{_wg_lat.get('actual')}%" if _wg_lat.get('actual') is not None else "—",
-                "forecast":    f"{_wg_lat.get('forecast')}%" if _wg_lat.get('forecast') is not None else "—",
-                "actual_ff":   _wg_lat.get("actual"),
-                "forecast_ff": _wg_lat.get("forecast"),
+                "actual":      f"{_wa:.1f}%" if isinstance(_wa, (int, float)) else "—",
+                "expected":    _wf if isinstance(_wf, (int, float)) else None,
+                "actual_ff":   _wa,
+                "forecast_ff": _wf,
                 "surprise_ff": _wg_lat.get("surprise"),
-                "beat_ff":     _wg_beat,
+                "surprise":    _wg_lat.get("surprise"),
+                "beat_ff":     _wg_lat.get("beat", False),
                 "ff_releases": _ff_lab_releases.get("wages", []),
-                "ff_score":    _wg_score_raw,
-                "score":       1 if _wg_beat else -1 if _wg_beat is False else 0,
+                "ff_score":    _ff_lab_scores.get("wages"),
+                "score":       _s if _s is not None else 0,
+                "label":       _lab_lbl(_s) if _s is not None else "No Data",
                 "title":       "Avg Hourly Earnings m/m",
                 "category":    "jobs",
-                "display":     f"{_wg_lat.get('actual')}%" if _wg_lat.get('actual') is not None else "—",
+                "display":     f"{_wa:.1f}%" if isinstance(_wa, (int, float)) else "—",
             }
 
-        # ADP Non-Farm → ADP (new component for extra context)
+        # ADP Non-Farm → ADP  (FF values in K; sigma 40K)
         _adp_lat = _ff_lab_latest.get("adp")
         if _adp_lat:
-            _adp_beat = _adp_lat.get("beat", False)
+            _aa, _af_ = _adp_lat.get("actual"), _adp_lat.get("forecast")
+            _s = _lab_bucket(_adp_lat.get("surprise"), 40.0, higher_is_good=True)
             components["ADP"] = {
                 **components.get("ADP", {}),   # keep FRED fallback fields; FF overlays below
-                "actual":      f"{_adp_lat.get('actual')}K" if _adp_lat.get('actual') is not None else "—",
-                "forecast":    f"{_adp_lat.get('forecast')}K" if _adp_lat.get('forecast') is not None else "—",
-                "actual_ff":   _adp_lat.get("actual"),
-                "forecast_ff": _adp_lat.get("forecast"),
+                "actual":      f"{_aa:+.0f}K" if isinstance(_aa, (int, float)) else "—",
+                "expected":    _af_ if isinstance(_af_, (int, float)) else None,
+                "actual_ff":   _aa,
+                "forecast_ff": _af_,
                 "surprise_ff": _adp_lat.get("surprise"),
-                "beat_ff":     _adp_beat,
+                "surprise":    _adp_lat.get("surprise"),
+                "beat_ff":     _adp_lat.get("beat", False),
                 "ff_releases": _ff_lab_releases.get("adp", []),
                 "ff_score":    _ff_lab_scores.get("adp"),
-                "score":       1 if _adp_beat else -1 if _adp_beat is False else 0,
+                "score":       _s if _s is not None else 0,
+                "label":       _lab_lbl(_s) if _s is not None else "No Data",
                 "title":       "ADP Non-Farm Employment",
                 "category":    "jobs",
-                "display":     f"{_adp_lat.get('actual')}K" if _adp_lat.get('actual') is not None else "—",
+                "display":     f"{_aa:+.0f}K" if isinstance(_aa, (int, float)) else "—",
+            }
+
+        # JOLTS Job Openings → JOLTS  (FF values in M; sigma 0.2M)  — new 2026-09-04
+        _jo_lat = _ff_lab_latest.get("jolts")
+        if _jo_lat:
+            _ja, _jf = _jo_lat.get("actual"), _jo_lat.get("forecast")
+            _s = _lab_bucket(_jo_lat.get("surprise"), 0.2, higher_is_good=True)
+            components["JOLTS"] = {
+                **components.get("JOLTS", {}),
+                "actual":      f"{_ja:.2f}M" if isinstance(_ja, (int, float)) else "—",
+                "expected":    _jf if isinstance(_jf, (int, float)) else None,
+                "actual_ff":   _ja,
+                "forecast_ff": _jf,
+                "surprise_ff": _jo_lat.get("surprise"),
+                "surprise":    _jo_lat.get("surprise"),
+                "beat_ff":     _jo_lat.get("beat", False),
+                "ff_releases": _ff_lab_releases.get("jolts", []),
+                "ff_score":    _ff_lab_scores.get("jolts"),
+                "score":       _s if _s is not None else 0,
+                "label":       _lab_lbl(_s) if _s is not None else "No Data",
+                "title":       "JOLTS Job Openings",
+                "category":    "jobs",
+                "display":     f"{_ja:.2f}M" if isinstance(_ja, (int, float)) else "—",
             }
 
         print(f"[FF Labour] Injected into components: NFP={'JOBS' in components and 'actual_ff' in components.get('JOBS',{})}, "
               f"UNEMP={'actual_ff' in components.get('UNEMP',{})}, CLAIMS={'actual_ff' in components.get('CLAIMS',{})}, "
-              f"WAGES={'WAGES' in components}, ADP={'ADP' in components}")
+              f"WAGES={'WAGES' in components}, ADP={'ADP' in components}, JOLTS={'JOLTS' in components}")
     except Exception as _ff_le:
         print(f"[FF Labour] Injection error (non-fatal): {_ff_le}")
 
     # ── RATES ─────────────────────────────────────────────────────────────────
     dgs2_data = fetch_fred_series("DGS2", 30)
     if dgs2_data:
-        r = compute_macro_surprise(dgs2_data, higher_is_good=True, transform="level", scale=0.2)
-        components["DGS2"] = {**r, "title": "2Y Treasury Yield", "category": "rates",
+        # AUDIT 2026-09-04: rates signal = current 2Y vs its 21-day average (≈1 month
+        # trend, sigma 15bp), not vs the last 3 days — the swing horizon is 1-4 weeks
+        # and the 3-day basis flipped ±1 on 8bp of noise.
+        r = compute_macro_surprise(dgs2_data, higher_is_good=True, transform="level", scale=0.15, window=21)
+        components["DGS2"] = {**r, "title": "2Y Treasury Yield (vs 21d avg)", "category": "rates",
                                "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
 
     yldcrv_data = fetch_fred_series("YLDCRV", 30)
     if yldcrv_data:
-        r = compute_macro_surprise(yldcrv_data, higher_is_good=True, transform="level", scale=0.15)
-        components["YLDCRV"] = {**r, "title": "Yield Curve (10Y-2Y)", "category": "rates",
+        r = compute_macro_surprise(yldcrv_data, higher_is_good=True, transform="level", scale=0.12, window=21)
+        components["YLDCRV"] = {**r, "title": "Yield Curve 10Y-2Y (vs 21d avg)", "category": "rates",
                                   "display": f"{r['actual']}%" if r['actual'] is not None else "—"}
 
     # ── Category aggregation ──────────────────────────────────────────────────
     growth_scores    = [components[k]["score"] for k in ["GDP", "MFG_PMI", "SVC_PMI", "RETAIL", "CONF"] if k in components]
     inflation_scores = [components[k]["score"] for k in ["CPI", "CORE_CPI", "PPI", "PCE", "CORE_PCE"] if k in components]
-    jobs_scores      = [components[k]["score"] for k in ["JOBS", "UNEMP", "CLAIMS", "ADP", "WAGES"] if k in components]
+    jobs_scores      = [components[k]["score"] for k in ["JOBS", "UNEMP", "CLAIMS", "ADP", "WAGES", "JOLTS"] if k in components]
     rates_scores     = [components[k]["score"] for k in ["DGS2", "YLDCRV"] if k in components]
 
     def avg_score(lst): return sum(lst) / len(lst) if lst else 0
@@ -6322,6 +6430,11 @@ def compute_macro_all() -> dict:
     for key, comp in components.items():
         disp = comp.get("display", "")
         exp_raw = comp.get("expected")
+        # AUDIT 2026-09-04: when a FF consensus surprise exists it is the one
+        # that was scored, so it is the one the UI must show (GDP / Retail /
+        # Confidence were leaking the FRED trailing-average surprise).
+        if comp.get("surprise_ff") is not None and not isinstance(comp.get("surprise_ff"), str):
+            comp["surprise"] = comp["surprise_ff"]
         # Use display as the formatted actual string
         if disp and disp != "—":
             comp["actual"] = disp
@@ -6334,7 +6447,7 @@ def compute_macro_all() -> dict:
             elif d.endswith("K"):
                 comp["forecast"] = f"{exp_raw:+.0f}K"
             elif d.endswith("M"):
-                comp["forecast"] = f"{exp_raw:+.0f}M"
+                comp["forecast"] = f"{exp_raw:.2f}M"
             elif "," in d:  # claims: 214,000
                 try:
                     comp["forecast"] = f"{int(exp_raw):,}"
@@ -6479,20 +6592,44 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
     pce_s    = comps.get("PCE",    {}).get("score", 0)
     gdp_s    = comps.get("GDP",    {}).get("score", 0)
     jobs_d   = comps.get("JOBS",   {}).get("score", jobs_s)
-    infl_avg = (cpi_s + pce_s) / 2 if (cpi_s != 0 or pce_s != 0) else inflation_s
+    # AUDIT 2026-09-04: inflation input is the CATEGORY average of the five
+    # FF-scored inflation prints (CPI, Core CPI, PPI, PCE, Core PCE). The old
+    # (CPI+PCE)/2 shortcut ignored Core CPI / PPI / Core PCE entirely.
+    infl_avg = inflation_s
 
-    pmi_avg    = (cat_scores.get("MFG_PMI", 0) + cat_scores.get("SVC_PMI", 0)) / 2
+    # PMI emphasis for industrial assets. BUG FIX 2026-09-04: this used to read
+    # cat_scores["MFG_PMI"] (which never exists) so pmi_avg was always 0 and
+    # growth_s2 silently collapsed to growth_s for every asset.
+    _mfg_pmi_s = comps.get("MFG_PMI", {}).get("score", 0) or 0
+    _svc_pmi_s = comps.get("SVC_PMI", {}).get("score", 0) or 0
+    pmi_avg    = (_mfg_pmi_s + _svc_pmi_s) / 2
     growth_s2  = (growth_s + pmi_avg) / 2 if pmi_avg else growth_s
 
     def score_to_010(raw, scale=2.0):
         return round(max(0.0, min(10.0, (raw / scale) * 2.5 + 5.0)), 1)
+
+    # Transparent driver list: each entry is (label, category input, weight, sign)
+    # → reason string "Label (w%): ±x.x" where the value is the asset-DIRECTIONAL
+    # input (sign already applied, so green = bullish for THIS asset), and a
+    # structured `drivers` payload for the UI.
+    _drivers = []
+    def _drv(label, val, weight, sign):
+        _dirv = round(sign * val, 2) or 0.0   # avoid "-0.0"
+        _drivers.append({"label": label, "input": round(val, 2) or 0.0, "weight": weight,
+                         "sign": sign, "directional": _dirv,
+                         "contribution": round(sign * val * weight, 3) or 0.0})
+    def _reason_from_drivers():
+        return ", ".join(f"{d['label']} ({int(round(d['weight']*100))}%): {d['directional']:+.1f}"
+                         for d in _drivers)
 
     m = market_id.upper()
 
     # ── Equity Indices ─────────────────────────────────────────────────────
     if m in ("ES", "NQ", "YM", "RTY", "RUT"):
         raw = growth_s2 * 0.40 + jobs_s * 0.35 - infl_avg * 0.15 - dgs2_s * 0.10
-        reason = f"Growth: {growth_s:+.1f}, Jobs: {jobs_s:+.1f}, CPI: {-infl_avg:+.1f}"
+        _drv("Growth", growth_s2, 0.40, +1); _drv("Jobs", jobs_s, 0.35, +1)
+        _drv("Inflation", infl_avg, 0.15, -1); _drv("Rates (2Y)", dgs2_s, 0.10, -1)
+        reason = _reason_from_drivers()
 
     # ── FTSE 100 (Z) — international equity, UK macro blend ─────────────────
     elif m == "Z":
@@ -6511,7 +6648,9 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
     # ── Dollar Index ────────────────────────────────────────────────────────
     elif m == "DX":
         raw = jobs_s * 0.30 + growth_s * 0.25 + infl_avg * 0.30 + dgs2_s * 0.15
-        reason = f"Jobs: {jobs_s:+.1f}, Growth: {growth_s:+.1f}, CPI: {infl_avg:+.1f}"
+        _drv("Jobs", jobs_s, 0.30, +1); _drv("Inflation", infl_avg, 0.30, +1)
+        _drv("Growth", growth_s, 0.25, +1); _drv("Rates (2Y)", dgs2_s, 0.15, +1)
+        reason = _reason_from_drivers()
 
     # ── FX Pairs (base currency vs USD) ────────────────────────────────────
     elif m in ("6E", "6B", "6A", "6C", "6N", "6S", "6M"):
@@ -6584,19 +6723,30 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
     # Hot CPI → Fed hikes → nominal yields rise faster than breakevens → real yields up → bearish gold
     # (inflation-hedge narrative is secondary; real-yield mechanism dominates in the short term)
     elif m == "GC":
-        raw = -infl_avg * 0.55 - dgs2_s * 0.30 - growth_s * 0.08 - jobs_s * 0.07
-        reason = f"CPI/PCE: {-infl_avg:+.1f}, 2Y yield: {-dgs2_s:+.1f}"
+        # REWEIGHT 2026-09-04 (EdgeFinder reconciliation): the old mix was
+        # 55% inflation / 30% 2Y / 8% growth / 7% jobs, so weak labour and
+        # growth prints (the classic gold bid via a lower Fed path) barely
+        # moved the score. Every category now carries real weight; the
+        # real-yield channel (inflation + 2Y) still dominates at 55%.
+        raw = -(infl_avg * 0.30 + dgs2_s * 0.25 + jobs_s * 0.25 + growth_s * 0.20)
+        _drv("Inflation", infl_avg, 0.30, -1); _drv("Rates (2Y)", dgs2_s, 0.25, -1)
+        _drv("Jobs", jobs_s, 0.25, -1); _drv("Growth", growth_s, 0.20, -1)
+        reason = _reason_from_drivers()
 
     # ── Silver ─────────────────────────────────────────────────────────────
     # Precious leg (41%): real-yield mechanism same as gold — hot CPI bearish via higher real yields
     elif m == "SI":
         raw = -infl_avg * 0.35 + growth_s2 * 0.22 - dgs2_s * 0.25 - jobs_s * 0.18
-        reason = f"CPI: {-infl_avg:+.1f}, Growth: {growth_s2:+.1f}"
+        _drv("Inflation", infl_avg, 0.35, -1); _drv("Rates (2Y)", dgs2_s, 0.25, -1)
+        _drv("Growth", growth_s2, 0.22, +1); _drv("Jobs", jobs_s, 0.18, -1)
+        reason = _reason_from_drivers()
 
     # ── Bonds (ZB, ZN, ZF, ZT) ────────────────────────────────────────────
     elif m in ("ZB", "ZN", "ZF", "ZT", "GBL", "R"):
         raw = -(infl_avg * 0.35) - (jobs_s * 0.30) - (growth_s * 0.20) - (dgs2_s * 0.15)
-        reason = f"Infl: {-infl_avg:+.1f}, Jobs: {-jobs_s:+.1f} (inverted)"
+        _drv("Inflation", infl_avg, 0.35, -1); _drv("Jobs", jobs_s, 0.30, -1)
+        _drv("Growth", growth_s, 0.20, -1); _drv("Rates (2Y)", dgs2_s, 0.15, -1)
+        reason = _reason_from_drivers()
         # UK bonds (R = Long Gilt): blend in UK macro if available
         if m == "R":
             _uk_data = ff_macro.get("GBP", {})
@@ -6612,26 +6762,35 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
         eia = compute_eia_inventory_signal()
         eia_s = eia.get("score", 0)
         raw = growth_s2 * 0.35 + infl_avg * 0.15 + jobs_s * 0.15 - dgs2_s * 0.15 + eia_s * 0.20
-        reason = f"Growth: {growth_s2:+.1f}, EIA: {eia_s:+.1f}"
+        _drv("Growth", growth_s2, 0.35, +1); _drv("EIA Inventories", eia_s, 0.20, +1)
+        _drv("Inflation", infl_avg, 0.15, +1); _drv("Jobs", jobs_s, 0.15, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.15, -1)
+        reason = _reason_from_drivers()
 
     # ── Natural Gas (NG) ───────────────────────────────────────────────────
     elif m == "NG":
         ng_sig = compute_ng_storage_signal()
         ng_s   = ng_sig.get("score", 0)
         raw = growth_s2 * 0.20 + infl_avg * 0.10 + ng_s * 0.50 - dgs2_s * 0.20
-        reason = f"Storage: {ng_s:+.1f}, Growth: {growth_s2:+.1f}"
+        _drv("Storage", ng_s, 0.50, +1); _drv("Growth", growth_s2, 0.20, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.20, -1); _drv("Inflation", infl_avg, 0.10, +1)
+        reason = _reason_from_drivers()
 
     # ── Copper (HG) ────────────────────────────────────────────────────────
     # Hot CPI → Fed hikes → USD stronger → copper (USD-priced) headwind.
     # Growth is the dominant driver (50%). Both inflation and rates are bearish via USD channel.
     elif m == "HG":
         raw = growth_s2 * 0.50 + jobs_s * 0.25 - infl_avg * 0.10 - dgs2_s * 0.15
-        reason = f"Growth: {growth_s2:+.1f}, CPI: {-infl_avg:+.1f}, 2Y: {-dgs2_s:+.1f}"
+        _drv("Growth", growth_s2, 0.50, +1); _drv("Jobs", jobs_s, 0.25, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.15, -1); _drv("Inflation", infl_avg, 0.10, -1)
+        reason = _reason_from_drivers()
 
     # ── Soft Commodities / Agri ───────────────────────────────────────────
     elif m in ("ZC", "ZS", "ZW", "KC", "SB", "CT", "CC", "RC"):
         raw = (infl_avg * 0.30 + growth_s * 0.20 - dgs2_s * 0.20 + jobs_s * 0.10) / 0.80
-        reason = f"Infl: {infl_avg:+.1f}, Growth: {growth_s:+.1f}"
+        _drv("Inflation", infl_avg, 0.30, +1); _drv("Growth", growth_s, 0.20, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.20, -1); _drv("Jobs", jobs_s, 0.10, +1)
+        reason = _reason_from_drivers()
 
     # ── Livestock ─────────────────────────────────────────────────────────
     # Hot CPI → consumer squeeze → reduced protein demand (demand destruction > supply squeeze
@@ -6639,14 +6798,18 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
     # Net: modest bearish for hot CPI. Growth + jobs are the primary bullish drivers.
     elif m in ("LE", "HE", "GF"):
         raw = growth_s * 0.35 + jobs_s * 0.30 - infl_avg * 0.10 - dgs2_s * 0.25
-        reason = f"Growth: {growth_s:+.1f}, Jobs: {jobs_s:+.1f}, CPI: {-infl_avg:+.1f}"
+        _drv("Growth", growth_s, 0.35, +1); _drv("Jobs", jobs_s, 0.30, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.25, -1); _drv("Inflation", infl_avg, 0.10, -1)
+        reason = _reason_from_drivers()
 
     # ── Platinum, Palladium ───────────────────────────────────────────────
     # Hot CPI → USD hawkish → commodity headwind (USD-priced industrial metals).
     # PL/PA have minor precious metal hedge component but industrial demand dominates.
     elif m in ("PL", "PA"):
         raw = growth_s2 * 0.40 - infl_avg * 0.15 + jobs_s * 0.25 - dgs2_s * 0.20
-        reason = f"Growth: {growth_s2:+.1f}, Jobs: {jobs_s:+.1f}, CPI: {-infl_avg:+.1f}, 2Y: {-dgs2_s:+.1f}"
+        _drv("Growth", growth_s2, 0.40, +1); _drv("Jobs", jobs_s, 0.25, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.20, -1); _drv("Inflation", infl_avg, 0.15, -1)
+        reason = _reason_from_drivers()
 
     # ── Crypto ────────────────────────────────────────────────────────────
     # Risk-on assets: growth + jobs bullish.
@@ -6654,7 +6817,9 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
     # Rising 2Y → tighter financial conditions → risk asset headwind.
     elif m in ("BTC", "ETH"):
         raw = (growth_s * 0.30 + jobs_s * 0.20 - dgs2_s * 0.15 - infl_avg * 0.10) / 0.75
-        reason = f"Growth: {growth_s:+.1f}, Rates: {-dgs2_s:+.1f}, CPI: {-infl_avg:+.1f}"
+        _drv("Growth", growth_s, 0.30, +1); _drv("Jobs", jobs_s, 0.20, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.15, -1); _drv("Inflation", infl_avg, 0.10, -1)
+        reason = _reason_from_drivers()
 
     # ── FX Cross Pairs — use ff_macro leg differential ──────────────────────
     elif m in ("EURJPY", "GBPJPY", "AUDJPY", "NZDJPY", "CADJPY", "CHFJPY",
@@ -6714,6 +6879,8 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
         "inflation_s": inflation_s,
         "jobs_s":     jobs_s,
         "rates_s":    rates_s,
+        "drivers":    _drivers,
+        "raw":        round(raw, 3),
     }
 
 
@@ -18098,13 +18265,17 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-08-31-ladder2"
+BUILD_ID = "2026-09-04-fundaudit"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 async def health():
+    _ff_latest_day = None
     try:
-        _n_store = len(_ff_store_load())
+        _st = _ff_store_load()
+        _n_store = len(_st)
+        _mx = max((v.get("dateline") or 0) for v in _st.values()) if _st else 0
+        _ff_latest_day = datetime.utcfromtimestamp(_mx).strftime("%Y-%m-%d") if _mx else None
     except Exception:
         _n_store = -1
     try:
@@ -18113,7 +18284,8 @@ async def health():
         _g_age = None
     return {"status": "ok", "time": datetime.utcnow().isoformat(),
             "build": BUILD_ID, "uptime_s": int(time.time() - _PROC_START),
-            "ff_store_n": _n_store, "ff_growth_cache_age_s": _g_age}
+            "ff_store_n": _n_store, "ff_store_latest": _ff_latest_day,
+            "ff_growth_cache_age_s": _g_age}
 
 
 
