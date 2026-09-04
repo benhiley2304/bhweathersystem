@@ -37733,6 +37733,9 @@ function seasGoldilocks(opts){
       : bkTiming==='just_passed' ? 'open'
       : bkTiming==='past' ? ((capture!=null&&capture>=0.45)?'open':'past')
       : 'none';
+    // SEAS-V3b: a timing read whose leg (curve read, not planner-backed) is
+    // inside the noise band is not a setup — say so instead of "WAIT n D".
+    if(legSrc!=='planner'&&(state==='wait'||state==='now'||state==='open')&&(legMove==null||legMove<minLeg))state='none';
   }
   else if(legMove==null||legMove<minLeg) state='none';
   else if(dTd>28) state='far';
@@ -37793,7 +37796,7 @@ function seasGoldilocksHTML(g,sd){
   if(g.state==='none'){
     tag='NO SETUP';tagCol='#8a93a8';tagRgb='138,147,168';big='—';bigSub='no entry';
     head='No clear seasonal entry point';
-    body='The curve has no meaningful peak or trough inside the swing horizon, so there is no seasonal timing edge to wait for. Trade the other factors.';
+    body=g.rejectReason?`The curve hints at a ${g.dir>0?'long':'short'} leg but the per-year returns don't back it — ${g.rejectReason}. No seasonal timing edge inside the swing horizon; trade the other factors.`:'The curve has no meaningful peak or trough inside the swing horizon, so there is no seasonal timing edge to wait for. Trade the other factors.';
   } else if(g.state==='far'){
     tag='OUT OF RANGE';tagCol='#8a93a8';tagRgb='138,147,168';
     big=g.tdsAway+'d';bigSub='~'+g.weeks+' wk away';
@@ -43125,7 +43128,7 @@ const _labCache={};
    active direction, and returns null when nothing is there — every caller falls back to
    its pre-planner behaviour. When the backend lands, the UI lights up with no rewiring. */
 const _LAB_PLAN_KEYS=['plan_action','entry_in_td','exit_in_td','exit_by_date','entry_by_date',
-  'hold_td','expected_move_pct','leg_win_rate','next_turn_td','next_turn_type'];
+  'hold_td','expected_move_pct','leg_win_rate','next_turn_td','next_turn_type','rejected_leg','note'];
 function _labPlanShape(o){
   if(!o||typeof o!=='object')return null;
   const hit=_LAB_PLAN_KEYS.some(k=>o[k]!=null);
