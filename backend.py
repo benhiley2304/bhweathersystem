@@ -6541,7 +6541,7 @@ def _fmt_supply_val(v: Optional[float], unit: str) -> str:
     if unit == "M bbl":
         return f"{v/1e6:+.1f}M"
     if unit == "Bcf":
-        return f"{v/1e9:+.0f}B"
+        return f"{v/1e9:+.0f} Bcf"
     if unit == "t":
         return f"{v:+,.0f}t"
     if unit == "%":
@@ -6587,7 +6587,16 @@ def compute_supply_signals() -> dict:
                     continue
                 sur = (a - fc) if fc is not None else None
                 sc = _score_from_surprise(sur, scale, True)   # data-space
-                if unit in ("M bbl", "Bcf"):
+                if unit == "Bcf":
+                    # storage change is an injection/withdrawal figure, so
+                    # describe it relative to consensus as looser/tighter
+                    if sur is None:           tag = "NO CONSENSUS"
+                    elif sc >= 2:             tag = "MUCH LOOSER vs FC"
+                    elif sc == 1:             tag = "LOOSER vs FC"
+                    elif sc <= -2:            tag = "MUCH TIGHTER vs FC"
+                    elif sc == -1:            tag = "TIGHTER vs FC"
+                    else:                     tag = "IN LINE"
+                elif unit == "M bbl":
                     # tag describes the print itself
                     if sur is None:           tag = "NO CONSENSUS"
                     elif sc >= 2:             tag = "BIG BUILD vs FC"
@@ -18442,7 +18451,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-04-supply"
+BUILD_ID = "2026-09-04-supply-b"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
