@@ -5191,20 +5191,29 @@ def _fx_pair_macro(base_ccy: str, quote_ccy: str, ff_macro: dict) -> dict:
         reason = (f"{base_ccy} surprise z {float(zb):+.2f} vs {quote_ccy} {float(zq):+.2f} "
                   f"(gap {gap:+.2f}; ±0.24 neutral, ±0.60 strong)")
         method = "zdecay_v2"; pair_gap = round(gap, 3)
+        # Symmetric label bands on the z-gap (matches the reason text). The generic
+        # _macro_label bands are asymmetric about 5 (bear <4.5, bull >=6.0), which
+        # would call a -0.21 gap "Mild Bear" but a +0.22 gap "Neutral".
+        ag = abs(gap)
+        if ag >= 0.60:   label = "Macro Bullish" if gap > 0 else "Macro Bearish"
+        elif ag >= 0.24: label = "Mild Macro Bull" if gap > 0 else "Mild Macro Bear"
+        else:            label = "Neutral"
     else:
         raw = (b_sc - q_sc) / 4.0
         reason = f"{base_ccy}: {b_sc:.1f}/10 vs {quote_ccy}: {q_sc:.1f}/10"
-        method = "legacy_diff4"; pair_gap = None
+        method = "legacy_diff4"; pair_gap = None; label = None
     scr = round(max(0.0, min(10.0, raw * 1.25 + 5.0)), 1)
+    if label is None:
+        label = _macro_label(scr)
     def _leg(cur, d, sc):
         return {"currency": cur, "score": round(sc - 5.0, 2), "z": d.get("z"),
                 "cats": d.get("cats", {}), "cat_details": d.get("cat_details", {}),
                 "n_releases": d.get("n_releases"), "context": d.get("context")}
     return {
-        "score": scr, "label": _macro_label(scr), "reason": reason, "raw": round(raw, 3),
+        "score": scr, "label": label, "reason": reason, "raw": round(raw, 3),
         "base_ff_score": b_sc, "quote_ff_score": q_sc,
         "fx_detail": {"foreign": _leg(base_ccy, b, b_sc), "usd": _leg(quote_ccy, q, q_sc),
-                      "method": method, "pair_gap_z": pair_gap, "pair_label": _macro_label(scr)},
+                      "method": method, "pair_gap_z": pair_gap, "pair_label": label},
     }
 
 
@@ -18458,7 +18467,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-04-fxmacro-v2"
+BUILD_ID = "2026-09-04-fxmacro-v2b"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
