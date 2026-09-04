@@ -37645,9 +37645,19 @@ function seasGoldilocks(opts){
   // (days_to_goldilocks / entry_timing / goldilocks_dir) and that same read feeds
   // the composite tilt. Where it exists it IS the answer — the client engine only
   // supplies the labels (turn phase, leg end, consistency) and the fallback.
-  const bkDtg=(sd.days_to_goldilocks==null||isNaN(+sd.days_to_goldilocks))?null:Math.round(+sd.days_to_goldilocks);
-  const bkTiming=sd.entry_timing||null;
-  const bkDir=(sd.goldilocks_dir==null||!+sd.goldilocks_dir)?null:(+sd.goldilocks_dir>0?1:-1);
+  let bkDtg=(sd.days_to_goldilocks==null||isNaN(+sd.days_to_goldilocks))?null:Math.round(+sd.days_to_goldilocks);
+  let bkTiming=sd.entry_timing||null;
+  let bkDir=(sd.goldilocks_dir==null||!+sd.goldilocks_dir)?null:(+sd.goldilocks_dir>0?1:-1);
+  // SEAS-V3b: when the goldilocks timing read was demoted (per-year returns did
+  // not back it) but the swing planner still holds a backed leg on the other
+  // side, the card follows the PLANNER — the same plan the narrative prints.
+  try{
+    const pa=String(sd.plan_action||'').toLowerCase();
+    if((pa==='wait'||pa==='enter_now')&&sd.plan_dir&&sd.entry_in_td!=null&&(bkDtg==null||!bkTiming||bkTiming==='none')){
+      bkDir=(+sd.plan_dir>0)?1:-1;bkDtg=Math.round(+sd.entry_in_td);
+      bkTiming=bkDtg<=2?'now':(bkDtg<=3?'imminent':'approaching');
+    }
+  }catch(e){}
   const dir=bkDir!=null?bkDir:seasBiasDir(sd);
   const now=vAt(todayTD);
   const wantType=dir>0?'trough':'peak';
@@ -37687,6 +37697,7 @@ function seasGoldilocks(opts){
   const vT=vAt(tTd), vE=vAt(legEndTd);
   let legMove=(vT!=null&&vE!=null)?(vE-vT)*dir:null;           // % available from the ideal entry
   let legSrc='curve';
+  let rejectReason=null;
   // SEAS-V3: when the backend swing planner has a leg for this side, the card
   // quotes THAT leg (exit day, per-year median move, per-year leg win rate) —
   // the same numbers the narrative and the Seasonality Lab print. The chart-
@@ -37695,11 +37706,13 @@ function seasGoldilocks(opts){
   try{
     const pl=sd.planner||sd.plan||null;
     const side=pl?(dir>0?(pl.long||pl.bull):(pl.short||pl.bear)):null;
-    if(src==='backend'&&side&&side.exit_in_td!=null&&side.expected_move_pct!=null){
+    if(src==='backend'&&side&&side.plan_action!=='no_edge'&&side.exit_in_td!=null&&side.expected_move_pct!=null){
       legEndTd=Math.max(1,Math.min(252,todayTD+Math.round(+side.exit_in_td)));
       legMove=Math.abs(+side.expected_move_pct);
       if(side.leg_win_rate!=null&&!isNaN(+side.leg_win_rate))cons=Math.round(+side.leg_win_rate*100);
       legSrc='planner';
+    } else if(src==='backend'&&side&&side.plan_action==='no_edge'&&side.rejected_leg&&side.rejected_leg.reason){
+      legSrc='rejected';rejectReason=String(side.rejected_leg.reason);
     }
   }catch(e){}
   const remMove=(vE!=null&&now!=null)?(vE-now)*dir:null;       // % still available from today
@@ -37712,6 +37725,7 @@ function seasGoldilocks(opts){
     // Map the backend's own timing verdict — do not second-guess it.
     state = bkTiming==='now' ? 'now'
       : bkTiming==='imminent' ? (dTd>3?'wait':'now')
+      : bkTiming==='far' ? 'far'
       : (bkTiming==='approaching'||bkTiming==='early') ? (dTd>28?'far':'wait')
       : bkTiming==='just_passed' ? 'open'
       : bkTiming==='past' ? ((capture!=null&&capture>=0.45)?'open':'past')
@@ -37731,12 +37745,12 @@ function seasGoldilocks(opts){
     if(nx)nextTd=nx.td;
   }
   return {
-    dir,state,src,consistency:cons,rng,
+    dir,state,src,consistency:cons,rng,legSrc,rejectReason,
     targetTd:tTd, targetLabel:months?tdPhase(tTd,months):'',
     legEndTd, legEndLabel:months?tdPhase(legEndTd,months):'',
     nextTd, nextLabel:(nextTd&&months)?tdPhase(nextTd,months):'',
     tdsAway:dTd, weeks:Math.max(1,Math.round(Math.abs(dTd)/5)),
-    legMove, remMove, capture, legSrc,
+    legMove, remMove, capture,
     hitRate:sd.hit_rate??null, medianPct:sd.median_pct??sd.slope_pct??null
   };
 }
@@ -37806,6 +37820,9 @@ function seasGoldilocksHTML(g,sd){
     big=capPct!=null?capPct+'%':'—';bigSub='of move left';
     head='Goldilocks window largely past';
     body=`The seasonal ${g.dir>0?'low':'high'} was around <strong>${g.targetLabel}</strong> and only <strong>${capPct!=null?capPct+'%':'a sliver'}</strong> of the median leg (<strong>${pc(priceRem)}</strong>) is left into <strong>${g.legEndLabel}</strong>. Chasing here is late${g.nextLabel?` — next clean ${dirWord} entry sets up around <strong>${g.nextLabel}</strong>`:''}.`;
+  }
+  if(g.legSrc==='rejected'&&g.rejectReason&&g.state!=='none'){
+    body+=` <span style="color:#8a93a8">Swing planner does not rate this as a trade yet — ${g.rejectReason}.</span>`;
   }
   return `<div class="sx-gold" style="--gx:${accent};--gx-rgb:${rgb};--gt:${tagCol};--gt-rgb:${tagRgb}">
     <div class="sx-gold-dial">
@@ -43736,6 +43753,7 @@ function _labV2RenderCallout(){
   // AUDIT-SEAS-R2-FRONTEND: the callout is now on the SAME lens as the donut and the
   // consensus grid, and says so. Raw equal-weight is demoted to the sub-label.
   const srcTxt=` <i>· ${_labV2LensStamp(s)}</i>`;
+  const _planRej=(function(){try{const pl=_labV2PlanRead();return (pl&&String(pl.plan_action).toLowerCase()==='no_edge'&&pl.rejected_leg&&pl.rejected_leg.reason)?` Swing planner: not a trade — ${pl.rejected_leg.reason}.`:'';}catch(e){return '';}})();
   const wrPct=Math.round(s.winRate*100);
   // goldilocks countdown — backend value wins when it exists and matches the side
   let goldTd=s.entryTd!=null?(s.entryTd-sh.td):null;
@@ -43782,7 +43800,7 @@ function _labV2RenderCallout(){
   }else if(goldTd!=null&&goldTd<=2&&s.postMed>=1.5){
     tone='co-good';ic=isShort?'▼':'▲';pill='NOW';
     kick=`Goldilocks entry — live now`;
-    txt=`Seasonal ${C.extreme} sits around <b>${entryPhase}</b> — effectively here. From there the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b>; <b>${s.wins} of ${s.n}</b> years ${C.wordPast} across ${winLbl} (median <b>${pc(s.med)}</b>).${shapeTxt}${srcTxt}`;
+    txt=`Seasonal ${C.extreme} sits around <b>${entryPhase}</b> — effectively here. From there the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b>; <b>${s.wins} of ${s.n}</b> years ${C.wordPast} across ${winLbl} (median <b>${pc(s.med)}</b>).${shapeTxt}${_planRej}${srcTxt}`;
   }else if(goldTd!=null&&goldTd>2&&goldTd<=30&&s.postMed>=1.5){
     tone='co-gold';ic='◷';pill=`${goldTd} TD`;
     kick=`Almost ready seasonally — ${goldTd} trading days to goldilocks entry`;
@@ -43790,7 +43808,7 @@ function _labV2RenderCallout(){
   }else if(s.advMed!=null&&s.advMed<=-3){
     tone='co-risk';ic='▼';
     kick=C.riskKick;
-    txt=`In <b>${s.nAdv} of ${s.n}</b> selected years price ${isShort?'rose':'fell'} &gt;2% ${C.advDirWord} the entry inside ${winLbl} — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>${s.entryTd?`, typical ${C.extreme} around <b>${entryPhase}</b>`:''}. Window ${_labOpts.avg}: <b>${pc(s.med)}</b>${s.med>0?` — ${C.shapeNote}`:''}.${shapeTxt}${srcTxt}`;
+    txt=`In <b>${s.nAdv} of ${s.n}</b> selected years price ${isShort?'rose':'fell'} &gt;2% ${C.advDirWord} the entry inside ${winLbl} — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>${s.entryTd?`, typical ${C.extreme} around <b>${entryPhase}</b>`:''}. Window ${_labOpts.avg}: <b>${pc(s.med)}</b>${s.med>0?` — ${C.shapeNote}`:''}.${shapeTxt}${_planRej}${srcTxt}`;
     // pill is a countdown, so only inside the swing horizon Ben cares about (≤6 weeks)
     if(s.entryTd&&goldTd!=null&&goldTd>2&&goldTd<=30)pill=`${goldTd} TD`;
   }else if(s.med!=null&&s.med<0&&s.winRate<=0.45){

@@ -14730,6 +14730,27 @@ _SEAS_PLAN_FWD      = 45   # how far forward we scan for legs (TD) ~9 weeks
 _SEAS_PLAN_MIN_LEG  = 5    # a leg shorter than a trading week isn't tradeable
 _SEAS_PLAN_MAX_HOLD = 20   # hard cap on hold (Ben: 3-4 weeks absolute max)
 _SEAS_PLAN_WAIT_MAX = 15   # a leg starting >15 TD out is context, not a plan
+_SEAS_PLAN_MIN_WR   = 0.55 # per-year leg win rate below this is a coin flip, not a plan
+_SEAS_PLAN_MIN_MOVE_FRAC = 0.40  # |median per-year move| must be >= this × curve amplitude threshold
+_SEAS_GOLD_SWING_FWD = 15  # goldilocks entries further out than 3 weeks are context, not a setup
+
+
+def _seas_leg_backed(direction: int, med, wr, thresh: float):
+    """SEAS-V3b: a zigzag leg on the median PATH is only a plan when the per-year
+    returns over that exact window back it. Returns (ok, reason). Ben's rule:
+    'the median path and the KPIs can differ in choppy windows — trade off the
+    KPIs'. So a 'long leg' whose per-year median is negative, or whose win rate
+    is a coin flip, or whose median move is trivial relative to the curve's own
+    noise threshold, is demoted to no_edge instead of being printed as a setup."""
+    if med is None or wr is None:
+        return False, "no per-year stats"
+    if med * direction <= 0:
+        return False, f"per-year median {med:+.2f}% runs against the leg"
+    if wr < _SEAS_PLAN_MIN_WR:
+        return False, f"leg win rate {wr*100:.0f}% is a coin flip"
+    if abs(med) < max(0.15, _SEAS_PLAN_MIN_MOVE_FRAC * float(thresh or 0.0)):
+        return False, f"median move {med:+.2f}% is inside the noise band"
+    return True, None
 _SEAS_PLAN_NOW_TD   = 2    # a leg starting inside 2 TD is effectively "now"
 
 
@@ -14918,6 +14939,18 @@ def _seas_swing_planner(market_id: str, years_dict: dict, td_a: int,
             exit_td = min(maxk, entry + _SEAS_PLAN_MIN_LEG)
         med, wr, nyr, nties = _seas_leg_stats(years_dict, yrs, W, td_a, entry,
                                              exit_td, asof_year, direction)
+        _ok, _why = _seas_leg_backed(direction, med, wr, thresh)
+        if not _ok:
+            out["expected_move_pct"] = (round(med, 2) if med is not None else None)
+            out["leg_win_rate"] = (round(wr, 4) if wr is not None else None)
+            out["n_years"] = nyr
+            out["leg_amp_pct"] = chosen["amp_pct"]
+            out["rejected_leg"] = {"entry_in_td": entry, "exit_in_td": exit_td,
+                                   "reason": _why}
+            out["note"] = (f"Curve shows a {'long' if direction > 0 else 'short'} leg "
+                           f"from +{entry} TD but the per-year returns don't back it "
+                           f"({_why}) — not a plan")
+            return out
         turn = chosen["end_td"] if chosen["end_td"] < maxk else None
         # the leg that follows the adverse turn, if it points our way again
         after = [L for L in legs if L["dir"] == direction and L["tradeable"]
@@ -15219,6 +15252,26 @@ def _seas_reconcile_plan(planner: dict, gold: dict, base_date, years_dict,
             p["leg_win_rate"] = (round(wr, 4) if wr is not None else None)
             p["n_years"] = nyr
             p["n_ties"] = nties
+            _ok, _why = _seas_leg_backed(gdir, med, wr, planner.get("amp_thresh_pct") or 0.0)
+            if not _ok:
+                # the goldilocks entry is real as a TIMING read, but the per-year
+                # returns over the re-anchored leg don't back a trade — keep the
+                # planner honest and leave it as no_edge with the reason attached
+                p["plan_action"] = "no_edge"
+                p["rejected_leg"] = {"entry_in_td": p.get("entry_in_td"),
+                                     "exit_in_td": p.get("exit_in_td"), "reason": _why}
+                p["note"] = (f"Goldilocks {side} entry at +{gold_entry} TD, but the "
+                             f"per-year returns over that leg don't back it ({_why}) — not a plan")
+                planner[side] = p
+                planner["plan_reconciled"] = True
+                planner["plan_entry_source"] = "goldilocks-rejected"
+                planner["plan_reconcile_note"] = p["note"]
+                if planner.get("primary_dir") == gdir:
+                    planner.update({"primary_dir": 0, "plan_action": "no_edge",
+                                    "plan_dir": 0, "plan_note": p["note"],
+                                    "entry_in_td": None, "exit_in_td": None,
+                                    "expected_move_pct": None, "leg_win_rate": None})
+                return planner
         except Exception as _e:
             print(f"[seas reconcile] leg stats: {_e}", flush=True)
     p["entry_by_date"] = (_seas_td_to_date(base_date, p["entry_in_td"]).isoformat()
@@ -15881,6 +15934,13 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
                 # when today is effectively as good.
                 _cands = [(k, v) for k, v in _gold.items()
                           if v * _dir > 0 and k >= -_SEAS_GOLD_LATE]
+                # SEAS-V3b: a swing trader plans 1-3 weeks ahead. Prefer the best
+                # candidate inside the swing horizon (<= _SEAS_GOLD_SWING_FWD TD)
+                # whenever one is meaningful; only fall back to the far scan when
+                # nothing actionable exists — and then label it 'far' (context).
+                _cands_in = [(k, v) for k, v in _cands if k <= _SEAS_GOLD_SWING_FWD]
+                if _cands_in and max(v * _dir for _, v in _cands_in) >= 1.0:
+                    _cands = _cands_in
                 if _cands:
                     _best_val = max(v * _dir for _, v in _cands)
                     _best_off = min((k for k, v in _cands
@@ -15916,6 +15976,11 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
                         entry_note = (f'Past the seasonal sweet spot — ideal {_side} '
                                       f'entry was {_ago} trading days ago '
                                       f'(~{_wks:.1f}wk)')
+                    if _dt > _SEAS_GOLD_SWING_FWD:
+                        entry_timing = 'far'
+                        entry_note = (f'No seasonal entry inside the 1-3 week swing window — '
+                                      f'the next goldilocks {_side} entry is ~{_dt} trading days '
+                                      f'(~{_wks:.1f}wk) out · context only')
                     # A goldilocks peak that is itself weak isn't worth timing at all.
                     if abs(goldilocks_lean) < 1.0:
                         entry_timing = 'none'
@@ -15960,6 +16025,17 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
                 d, years, _lens_yrs, _lens_W, td_a, d.year)
         except Exception as _re:
             print(f"[seas reconcile] {market_id}: {_re}", flush=True)
+        # SEAS-V3b: the goldilocks TIMING read pointed at a leg whose per-year
+        # returns don't back a trade. Demote the timing read too, so the card,
+        # narrative and Lab all say the same thing: no seasonal setup here.
+        if (planner or {}).get("plan_entry_source") == "goldilocks-rejected":
+            _rej = ((planner.get("long" if (goldilocks_dir or 0) > 0 else "short") or {})
+                    .get("rejected_leg") or {})
+            entry_timing = 'none'
+            entry_note = (f"Seasonal {'long' if (goldilocks_dir or 0) > 0 else 'short'} "
+                          f"timing read at {days_to_goldilocks:+d} TD is not backed by the "
+                          f"per-year returns ({_rej.get('reason', 'weak leg')}) — no setup")
+            anticipation_nudge = 0.0
 
     # ══ SEAS-V3: THE HEADLINE IS THE SWING WINDOWS, NOTHING ELSE ═════════════
     # Ben: "1 to 2 weeks is important, 3 to 4 weeks is important for long-term
