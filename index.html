@@ -43284,6 +43284,9 @@ async function openSeasLab(marketId,marketName){
     // (v1 used current-cycle-only, v2 shows richer signal by including all years with recency+cycle weighting)
     _labSel=new Set(_labData._yearList);
     _labPresetOn='all';
+    // SEAS-V3b: open the Lab on the swing planner's primary side (the side the
+    // score card and narrative are talking about), not always LONG.
+    try{const _pd=+((d.planner&&(d.planner.primary_dir!=null?d.planner.primary_dir:d.planner.plan_dir))||0);if(_pd){_labV2.dir=_pd<0?'short':'long';const w=document.getElementById('lab-v2-dir');if(w)w.querySelectorAll('.dir-btn').forEach(b=>{const on=b.dataset.dir===_labV2.dir;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');});}}catch(_){}
     // AUDIT-SEAS-R2-FRONTEND: default window = planner leg when available, else today → +30 TD
     const td=d.current_td, we=Math.min(251, td+_labV2PlannerDefaultTd());
     _labV2.window={ws:td, we:we};
