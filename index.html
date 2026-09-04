@@ -4504,8 +4504,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .ma-l{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
 .ma-s{font-size:13px;color:var(--text);font-weight:700;letter-spacing:-0.01em}
 .comp-list{display:flex;flex-direction:column;gap:3px}
-.comp-list-hdr{display:grid;grid-template-columns:1fr 60px 60px 80px;gap:6px;padding:3px 9px;font-size:9.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
-.comp-row{display:grid;grid-template-columns:1fr 60px 60px 80px;align-items:center;gap:6px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr2);border-radius:7px;transition:background 120ms}
+.comp-list-hdr{display:grid;grid-template-columns:1fr 64px 64px 104px;gap:6px;padding:3px 9px;font-size:9.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
+.comp-row{display:grid;grid-template-columns:1fr 64px 64px 104px;align-items:center;gap:6px;padding:7px 10px;background:var(--surf2);border:1px solid var(--bdr2);border-radius:7px;transition:background 120ms}
 .comp-row:hover{background:var(--surf3)}
 .comp-n{font-size:9.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .comp-tag{font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:0.06em}
@@ -39131,7 +39131,7 @@ function macroTab(m){
 
   // ── NON-FX: asset-specific score components + global context ───────────────
   const comps=macro.components||{};
-  const compArr=typeof comps==='object'&&!Array.isArray(comps)?Object.values(comps):comps;
+  const compArr=(typeof comps==='object'&&!Array.isArray(comps)?Object.values(comps):comps).filter(c=>c&&c.title);  // drop internal _ff_* helper entries
 
   // ── Score chip header ──
   html+=`<div class="macro-asset" style="margin-bottom:14px;border-color:${mcol}25;background:linear-gradient(135deg,${mcol}08 0%,var(--surf2) 70%)">
@@ -39655,8 +39655,7 @@ function macroTab(m){
       const _val = _signedVal(_cat);
       if(_val === null) continue; // skip if no data at all
       // For GC (Gold): show all assessed factors even if zero contribution
-      const _showZero = m.id === 'GC';
-      if(!_showZero && Math.abs(_val) < 0.05) continue; // skip near-zero — looks broken as "+0.00"
+      // AUDIT 2026-09-04: show every driver for every asset (a zero bar is information, not a bug)
       const _col = contribCol(_val);
       const _pct = Math.min(100, Math.abs(_val)/2*100);
       const _expl = _amc.explain[_cat] || cap(_cat);
@@ -39675,7 +39674,7 @@ function macroTab(m){
     }
     html+=`</div>`;
     // For GC: add note that zero-contribution factors are shown for completeness
-    if(m.id==='GC') html+=`<div style="padding:5px 9px;border-radius:5px;background:rgba(245,200,66,0.04);border:1px solid rgba(245,200,66,0.14);font-size:8px;color:rgba(245,200,66,0.65);line-height:1.4;margin-bottom:12px">Note: Gold\'s inflation sensitivity is captured entirely via the real yield mechanism (nominal 2Y yield − inflation expectations). Hot CPI triggers Fed hikes, which drives nominal yields above breakevens and spikes real yields — that is the bearish transmission channel. Direct CPI-to-gold beta is near-zero empirically; the real yield is what moves gold.</div>`;
+    if(m.id==='GC') html+=`<div style="padding:5px 9px;border-radius:5px;background:rgba(245,200,66,0.04);border:1px solid rgba(245,200,66,0.14);font-size:8px;color:rgba(245,200,66,0.65);line-height:1.4;margin-bottom:12px">Note: every US category is scored on its own actual-vs-consensus surprise and flipped for gold (a jobs or growth MISS is bullish gold because it pulls the Fed path and real yields lower). Weights: inflation 30% · 2Y yield vs 21-day average 25% · jobs 25% · growth 20%. The real yield is the transmission channel — the 2Y line is the one that moves the score fastest.</div>`;
   }
 
   if(compArr.length){
