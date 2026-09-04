@@ -37739,16 +37739,23 @@ function seasGoldilocksHTML(g,sd){
   const arrow=g.dir>0?'▲':'▼';
   // g.legMove / g.remMove are stored as favourable-for-the-side magnitudes; print
   // the actual PRICE move so a short leg never reads as "+3.4%".
-  const priceLeg=g.legMove!=null?g.legMove*(g.dir||1):null;
-  const priceRem=g.remMove!=null?g.remMove*(g.dir||1):null;
+  // SEAS-V3: force the sign from the leg direction — a short leg is ALWAYS printed
+  // negative regardless of how the magnitude was stored upstream.
+  const _sgn=(g.dir||1)>0?1:-1;
+  const priceLeg=g.legMove!=null?Math.abs(g.legMove)*_sgn:null;
+  const priceRem=g.remMove!=null?Math.abs(g.remMove)*_sgn:null;
   const runWord=g.dir>0?'rises':'falls';
   // Fading / rising shapes need the near-window caveat spelled out, or the banner
   // looks like it contradicts the score.
   const sh=(sd&&sd.seas_shape)||'';
   const nearMed=sd?(sd.median_pct??sd.slope_pct):null;
-  const caveat=(sh==='fading'||sh==='rising')&&nearMed!=null
+  const _immMed=sd?sd.imm_median_pct:null;
+  const _fmt2=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
+  const caveat=(sd&&sd.seas_version===3&&_immMed!=null&&nearMed!=null)
+    ? ` Until then the swing windows read <strong>1–2w ${_immMed>=0?'up':'down'} ${_fmt2(_immMed)}</strong> · <strong>3–4w ${nearMed>=0?'up':'down'} ${_fmt2(nearMed)}</strong>${sd.hit_rate!=null?' ('+sd.hit_rate+'% hit)':''} — that is the chop you are waiting out.`
+    : ((sh==='fading'||sh==='rising')&&nearMed!=null
     ? ` Until then the near window still leans <strong>${nearMed>=0?'up':'down'}</strong> (${(nearMed>=0?'+':'')+nearMed.toFixed(2)}% median${sd.hit_rate!=null?', '+sd.hit_rate+'% hit':''}) — that is the move you are waiting out.`
-    : '';
+    : '');
   let tag,tagCol,tagRgb,big,bigSub,head,body;
   if(g.state==='none'){
     tag='NO SETUP';tagCol='#8a93a8';tagRgb='138,147,168';big='—';bigSub='no entry';
@@ -37956,7 +37963,7 @@ function seasConsensusHTML(c,dirOverride){
       }else if(cell.dir===0){
         // Weak / mixed: still print the number so the grid has no blank holes,
         // just muted — the lens did not clear the directional bar.
-        grid+='<span class="cc cc-flat" title="weak read · price median '+fmt(cell.med)+' · hit '+cell.hit+'% · n='+cell.n+'">'+(cell.med>=0?'▲':'▼')+'<span class="cm">'+fmt(cell.med)+'</span></span>';
+        grid+='<span class="cc cc-flat" title="weak read · price median '+fmt(cell.med)+' · hit '+cell.hit+'% · n='+cell.n+'">◆<span class="cm">'+fmt(cell.med)+'</span></span>';
       }else{
         const up=cell.dir>0;
         grid+='<span class="cc '+(up?'cc-up':'cc-dn')+'" title="price '+(up?'up':'down')+' · median '+fmt(cell.med)+' · hit '+cell.hit+'% of years up · n='+cell.n+'">'+(up?'▲':'▼')+'<span class="cm">'+fmt(cell.med)+'</span></span>';
@@ -37977,7 +37984,7 @@ function seasConsensusHTML(c,dirOverride){
   return `<div class="lab-v2-cons">
     <div class="cons-head"><div class="t">Seasonal consensus<span class="cons-dir ${isShort?'d-short':'d-long'}">${isShort?'▼ short':'▲ long'}</span></div><span class="cons-badge ${badgeCls}">${badgeTxt}${agree}</span></div>
     <div class="cons-grid">${grid}</div>
-    <div class="cons-legend">${isShort?'cells = price move · <span style="color:#e03a2a">red ▼ price falls = favours shorts</span> · green ▲ works against a short':'cells = price move · <span style="color:#22c97a">green ▲ price rises = favours longs</span> · red ▼ works against a long'}${lensStamp?' · '+lensStamp:''}</div>
+    <div class="cons-legend">${isShort?'cells = price move · <span style="color:#e03a2a">red ▼ price falls = favours shorts</span> · green ▲ works against a short':'cells = price move · <span style="color:#22c97a">green ▲ price rises = favours longs</span> · red ▼ works against a long'} · grey ◆ too weak to call${lensStamp?' · '+lensStamp:''}</div>
     <div class="cons-note">${(notes[c.conviction]||'')+ctx}</div>
   </div>`;
 }
@@ -38117,7 +38124,7 @@ function seasTabStub(m){
   const _isV3 = d.seas_version===3;
   const drvMed = med;
   const _immMedD = d.imm_median_pct;
-  const drvLbl = _isV3 ? 'swing windows (1–4w) drive the score · far window is context' : 'near window (1–4w)';
+  const drvLbl = _isV3 ? 'swing windows (1–4w)' : 'near window (1–4w)';
   const drvArrow = drvMed==null?'':drvMed>=0?'▲':'▼';
   const _pcD=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
   const drvStr = drvMed==null?'—':(_isV3&&_immMedD!=null)?`1–2w ${_immMedD>=0?'▲':'▼'} ${_pcD(_immMedD)} · 3–4w ${drvArrow} ${_pcD(drvMed)}`:_pcD(drvMed);
@@ -38182,7 +38189,7 @@ function seasTabStub(m){
       <div class="ss-signal" style="color:${col}">${scoreLbl}</div>
       ${drvMed!=null?`<div class="ss-slope-row">
         <span class="ss-slope-arrow" style="background:${drvAccent};color:${drvTxt}">${_isV3&&_immMedD!=null?drvStr:drvArrow+' '+drvStr}${_isV3&&_immMedD!=null?'':' median'}</span>
-        <span class="sx-driver">${drvLbl} drives the score${hr!=null&&nY?` · ${nPos}/${nY} yrs up near`:''}</span>
+        <span class="sx-driver">${drvLbl} drive${_isV3?'':'s'} the score${_isV3?' · far window is context':''}${hr!=null&&nY?` · ${nPos}/${nY} yrs up 3–4w`:''}</span>
       </div>`:`<div style="font-size:8.5px;color:var(--dim);margin-bottom:4px">Window-based estimate</div>`}
       <div class="ss-meta">Source: <strong>${nY?nY+' yrs ('+(d.years_span||'')+') · '+(d.weighting||'cycle + recency weighted'):'Seasonal window'}</strong></div>
       <div class="sx-chiprow">${chips.join('')}</div>
@@ -43373,7 +43380,8 @@ function _labRender(){
     const{ctx,chartArea:ca,scales:{x}}=ch;if(!ca)return;
     // active window shading (follows drag-select / presets, defaults Today→+60TD)
     const w=_labV2.window||{ws:td,we:fwdEnd};
-    const wx0=x.getPixelForValue(w.ws),wx1=x.getPixelForValue(w.we);
+    // SEAS-V3: TDs are 1-based, category index is 0-based -> shift by one so the shading/TODAY line sit on the same session as the stats
+    const wx0=x.getPixelForValue(w.ws-1),wx1=x.getPixelForValue(w.we-1);
     ctx.save();
     ctx.fillStyle='rgba(200,169,110,0.07)';ctx.fillRect(wx0,ca.top,wx1-wx0,ca.bottom-ca.top);
     ctx.strokeStyle='rgba(200,169,110,0.5)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
@@ -43388,7 +43396,7 @@ function _labRender(){
       ctx.font='700 8px "DM Sans",sans-serif';
       const l0=tdPhase(w.ws,d.months).toUpperCase(), l1=tdPhase(w.we,d.months).toUpperCase();
       const need=ctx.measureText(l0).width+ctx.measureText(l1).width+22;
-      const todayX=x.getPixelForValue(td);
+      const todayX=x.getPixelForValue(td-1);
       const clearOfToday=Math.abs(wx0-todayX)>ctx.measureText(l0).width+8 || wx0>=todayX;
       if((wx1-wx0)>need){
         ctx.fillStyle='rgba(200,169,110,0.8)';
@@ -43400,7 +43408,7 @@ function _labRender(){
       }
     }
     // TODAY marker
-    const x0=x.getPixelForValue(td);
+    const x0=x.getPixelForValue(td-1);
     ctx.strokeStyle='#e03a2a';ctx.lineWidth=1.4;ctx.setLineDash([4,3]);
     ctx.beginPath();ctx.moveTo(x0,ca.top);ctx.lineTo(x0,ca.bottom);ctx.stroke();
     ctx.setLineDash([]);
@@ -44004,7 +44012,7 @@ function _labV2AttachDragSelect(){
     const sc=_labChart.scales.x;
     if(!sc) return null;
     const v=sc.getValueForPixel(x);
-    return Math.max(1, Math.min(252, Math.round(v)));
+    return Math.max(1, Math.min(252, Math.round(v)+1));
   };
 
   // AUDIT-LAB-UI: pointer events + pointer capture. Touch is excluded on purpose so
@@ -44048,7 +44056,7 @@ function _labV2DrawOverlay(){
   if(!_labChart||!_labV2.dragging)return;
   _labChart.update('none');
   const ctx=_labChart.ctx, sc=_labChart.scales.x, ca=_labChart.chartArea;
-  const x0=sc.getPixelForValue(_labV2._pendingWs), x1=sc.getPixelForValue(_labV2._pendingWe);
+  const x0=sc.getPixelForValue(_labV2._pendingWs-1), x1=sc.getPixelForValue(_labV2._pendingWe-1);
   ctx.save();
   const lx=Math.min(x0,x1), wpx=Math.abs(x1-x0);
   ctx.fillStyle='rgba(200,169,110,0.12)';

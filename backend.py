@@ -13238,16 +13238,23 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
     """
     if not years_dict or start_td >= end_td:
         return {"window_stats": None, "per_year_windows": []}
+    # SEAS-V3: trading days are 1-BASED everywhere else (current_td=171 means
+    # today's close is the 171st session -> path[170]; `_seas_fwd` reads
+    # arr[td-1]). This function used path[start_td]/path[end_td] directly, so
+    # every Lab window was silently shifted one session forward versus the
+    # Seasonal tab's identical window (6B 10-TD: Lab 62% hit vs tab 56%).
+    _si = max(0, int(start_td) - 1)
+    _ei = max(_si + 1, int(end_td) - 1)
     rows = []
     for ys, path in years_dict.items():
         # Skip current year when window is not yet complete
         if current_year is not None and int(ys) == current_year:
             if current_td is None or end_td > current_td:
                 continue
-        if not path or start_td >= len(path) or end_td >= len(path):
+        if not path or _si >= len(path) or _ei >= len(path):
             continue
-        sp = path[start_td]
-        ep = path[end_td]
+        sp = path[_si]
+        ep = path[_ei]
         if sp is None or ep is None:
             continue
         # SEAS-R2: paths are cumulative % from Jan 1. The window return is the
@@ -13257,7 +13264,7 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
             continue
         ret_pct = ((1.0 + ep / 100.0) / _base - 1.0) * 100.0
         # Max rise / max drop within window — compounded off the entry level too
-        seg = [p for p in path[start_td:end_td+1] if p is not None]
+        seg = [p for p in path[_si:_ei+1] if p is not None]
         if len(seg) < 2:
             continue
         max_rise = ((1.0 + max(seg) / 100.0) / _base - 1.0) * 100.0
@@ -13389,8 +13396,8 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
     curve_level_move_pct = None
     if wstats:
         _medline = wstats.get("median") or []
-        if end_td < len(_medline) and start_td < len(_medline):
-            _a, _b = _medline[start_td], _medline[end_td]
+        if _ei < len(_medline) and _si < len(_medline):
+            _a, _b = _medline[_si], _medline[_ei]
             if _a is not None and _b is not None and abs(1.0 + _a / 100.0) > 1e-9:
                 curve_level_move_pct = round(
                     ((1.0 + _b / 100.0) / (1.0 + _a / 100.0) - 1.0) * 100.0, 3)
@@ -15321,8 +15328,8 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     # Ben: "1 to 2 weeks is important, 3 to 4 weeks is important for long-term
     # position context". The 20-TD near window answers the 4-week question; a
     # 10-TD window answers the 1-2 week question. Both are surfaced so the UI
-    # can show them side by side. This does NOT feed the headline score — the
-    # headline stays anchored on the 20-TD swing window.
+    # can show them side by side. SEAS-V3: the headline is now
+    # 0.4 x lean(1-2w) + 0.6 x lean(3-4w); the far window is context only.
     _imm_rets, _imm_ws = [], []
     for y, w in zip(used, ws):
         v = _seas_fwd(years, y, td_a, td_imm, d.year)
