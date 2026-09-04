@@ -6985,8 +6985,8 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
             "title": "LME Stocks + China Demand",
             "scored": True,
             "rows": _supply_rows(_sup, ["lme_copper"], {"lme_copper": -1}) + _cn_rows,
-            "note": ("LME stocks (scored, 20%): net LME warehouse flow over the last 5 trading days vs its own "
-                     "3-year history (1σ ≈ 12kt) — a draw is bullish, a build is bearish. No consensus exists, so "
+            "note": ("LME stocks (scored, 20%): net LME warehouse flow over the last 5 trading days, z-scored against "
+                     "its own history (1σ shown in the forecast column; 3-year average ≈ 12kt) — a draw is bullish, a build is bearish. No consensus exists, so "
                      "this is a flow signal, not a surprise. Expectancy audit (2023–26): 5-day flow carries a "
                      "1–4 week edge (hit 59%); the previous 20-day window did not. China prints (context only, "
                      "not scored): latest NBS/RatingDog PMIs, IP, FAI and retail sales vs consensus — the audit "
@@ -18474,7 +18474,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-04-supply-c"
+BUILD_ID = "2026-09-04-supply-d"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
