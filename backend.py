@@ -6471,98 +6471,223 @@ def compute_macro_all() -> dict:
     US_MACRO_CACHE["data"] = result
     US_MACRO_CACHE["time"] = now
     return result
-def compute_eia_inventory_signal() -> dict:
+
+
+# ============================================================
+# COMMODITY SUPPLY / DEMAND (2026-09-04)
+# ------------------------------------------------------------
+# Replaces compute_eia_inventory_signal() / compute_ng_storage_signal(), which
+# were yfinance Wednesday/Thursday PRICE-REACTION proxies. yfinance is blocked
+# on Render, so both silently returned 0 -> CL "EIA Inventories" (20%) and NG
+# "Storage" (50%) were dead weight in the macro composite.
+#
+# Real data now comes from the energyexch.com / metalsmine.com calendars
+# (Fair Economy network, same feed family as ForexFactory). They are Cloudflare-
+# blocked on Render, so inject_supply.py fetches them in the sandbox and POSTs
+# to /api/inject-supply (nightly cron + release watcher). Persisted to disk.
+#
+# Principles (Ben, 2026-09-04): numeric actual-vs-consensus ONLY, small
+# explainable weights, sigma noise floors. No narrative reports, no rig counts
+# (forecast == previous placeholder, no 1-4 week expectancy), no USDA/softs
+# (no free consensus) -> those markets remain macro-only and say so in the UI.
+# ============================================================
+_SUPPLY_STORE_PATH    = os.path.join(DATA_DIR, "supply_event_store.json")
+_SUPPLY_STORE_MAX_DAYS = 300          # LME z-score needs ~26w of daily prints
+_SUPPLY_CACHE         = {"data": None, "time": 0}
+_SUPPLY_CACHE_TTL     = 1800
+
+# key -> (title, unit label, scale (1 sigma, robust from 30w of surprises),
+#          higher_is_bullish_for_the_commodity, kind)
+# kind: "surprise" (actual vs consensus) | "stock_change" (no consensus, daily change)
+_SUPPLY_SPECS = {
+    "crude":      ("EIA Crude Inventories",       "M bbl", 4.0e6,  False, "surprise"),
+    "gasoline":   ("EIA Gasoline Inventories",    "M bbl", 1.5e6,  False, "surprise"),
+    "distillate": ("EIA Distillate Inventories",  "M bbl", 2.0e6,  False, "surprise"),
+    "ng_storage": ("EIA Natural Gas Storage",     "Bcf",   5.0e9,  False, "surprise"),
+    "lme_copper": ("LME Copper Stocks (20-day change)", "t", 60000.0, False, "stock_change"),
+    # China demand-side growth prints (consensus available on metalsmine)
+    "cn_pmi_mfg":    ("China NBS Manufacturing PMI",   "",  0.4, True, "surprise"),
+    "cn_pmi_nonmfg": ("China Non-Manufacturing PMI",   "",  0.5, True, "surprise"),
+    "cn_pmi_rd_mfg": ("China RatingDog Mfg PMI",       "",  0.8, True, "surprise"),
+    "cn_ip":         ("China Industrial Production y/y","%", 0.8, True, "surprise"),
+    "cn_fai":        ("China Fixed Asset Inv. ytd/y",  "%",  1.5, True, "surprise"),
+    "cn_retail":     ("China Retail Sales y/y",        "%",  0.9, True, "surprise"),
+}
+_CN_GROWTH_KEYS = ("cn_pmi_mfg", "cn_pmi_nonmfg", "cn_pmi_rd_mfg", "cn_ip", "cn_fai", "cn_retail")
+# Weekly prints: recency-weighted blend of the last 4 releases (latest first).
+# 1-2 weeks matter most for the swing horizon; 3-4 weeks are position context.
+_SUPPLY_RECENCY_W = (0.40, 0.30, 0.20, 0.10)
+
+
+def _supply_store_load() -> dict:
+    try:
+        with open(_SUPPLY_STORE_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _supply_store_save(store: dict) -> None:
+    try:
+        with open(_SUPPLY_STORE_PATH, "w") as f:
+            json.dump(store, f)
+    except Exception as _e:
+        print(f"[SUPPLY store] save error: {_e}", flush=True)
+
+
+def _fmt_supply_val(v: Optional[float], unit: str) -> str:
+    if v is None:
+        return "—"
+    if unit == "M bbl":
+        return f"{v/1e6:+.1f}M"
+    if unit == "Bcf":
+        return f"{v/1e9:+.0f}B"
+    if unit == "t":
+        return f"{v:+,.0f}t"
+    if unit == "%":
+        return f"{v:.1f}%"
+    return f"{v:.1f}"
+
+
+def compute_supply_signals() -> dict:
     """
-    Derive EIA weekly crude inventory surprise proxy from WTI Wednesday price reactions.
-    Returns a score in [-2, +2] range suitable for macro sub-factor blending.
+    Score every supply/demand series in the store.
+
+    Returns {
+      "series": { key: {title, unit, kind, score(-2..+2, DATA-space: + = bigger
+                        build / more stock / stronger China print), n, latest,
+                        releases:[{title, dateline, actual, forecast, previous,
+                        surprise, score, tag}], ...} },
+      "cn_growth": float(-2..+2, + = China beating consensus) or None,
+      "n_store": int,
+    }
+    Data-space sign convention: a positive score always means "more supply /
+    bigger build" for inventories and "stronger" for China prints. The asset
+    branch in get_macro_score_for_market applies the directional sign.
     """
     now = time.time()
-    try:
-        import yfinance as _yf
-        cl_raw = _yf.Ticker("CL=F")
-        cl = cl_raw.history(period="3mo", interval="1d", auto_adjust=True)
-        if cl.empty or len(cl) < 10:
-            return {"score": 0, "label": "Neutral EIA signal"}
-        cl_df = cl.copy()
-        cl_df["daily_ret"] = cl_df["Close"].pct_change()
-        # Wednesdays (weekday=2)
-        wed = cl_df[cl_df.index.weekday == 2]["daily_ret"].dropna()
-        if len(wed) < 3:
-            return {"score": 0, "label": "Neutral EIA signal"}
-        # Use thresholds from pyc: p20=-0.0181, p80=0.0179
-        p20_thresh = -0.0181
-        p80_thresh = 0.0179
-        last_ret  = wed.iloc[-1]
-        prev_ret  = wed.iloc[-2] if len(wed) >= 2 else 0
+    if _SUPPLY_CACHE["data"] and now - _SUPPLY_CACHE["time"] < _SUPPLY_CACHE_TTL:
+        return _SUPPLY_CACHE["data"]
 
-        last_drop   = last_ret < p20_thresh
-        last_rally  = last_ret > p80_thresh
-        prev_drop   = prev_ret < p20_thresh
-        prev_rally  = prev_ret > p80_thresh
+    store = _supply_store_load()
+    by_key: dict = {}
+    for ev in store.values():
+        k = ev.get("key")
+        if k in _SUPPLY_SPECS:
+            by_key.setdefault(k, []).append(ev)
 
-        consecutive_drops   = last_drop and prev_drop
-        consecutive_rallies = last_rally and prev_rally
+    series = {}
+    for k, (title, unit, scale, hib, kind) in _SUPPLY_SPECS.items():
+        rows = sorted(by_key.get(k, []), key=lambda e: e.get("dateline") or 0)
+        rel = []
+        if kind == "surprise":
+            for e in rows:
+                a = _parse_ff_value(e.get("actual")); fc = _parse_ff_value(e.get("forecast"))
+                if a is None:
+                    continue
+                sur = (a - fc) if fc is not None else None
+                sc = _score_from_surprise(sur, scale, True)   # data-space
+                if unit in ("M bbl", "Bcf"):
+                    # tag describes the print itself
+                    if sur is None:           tag = "NO CONSENSUS"
+                    elif sc >= 2:             tag = "BIG BUILD vs FC"
+                    elif sc == 1:             tag = "BUILD vs FC"
+                    elif sc <= -2:            tag = "BIG DRAW vs FC"
+                    elif sc == -1:            tag = "DRAW vs FC"
+                    else:                     tag = "IN LINE"
+                else:
+                    tag = {2: "STRONG BEAT", 1: "BEAT", 0: "IN LINE", -1: "MISS", -2: "STRONG MISS"}.get(sc, "IN LINE") \
+                          if sur is not None else "NO CONSENSUS"
+                rel.append({"title": title, "dateline": e.get("dateline"),
+                            "actual": _fmt_supply_val(a, unit), "forecast": _fmt_supply_val(fc, unit),
+                            "previous": e.get("previous") or "—",
+                            "actual_v": a, "forecast_v": fc,
+                            "surprise": (round(sur / (1e6 if unit == "M bbl" else 1e9 if unit == "Bcf" else 1), 2)
+                                         if sur is not None else None),
+                            "score": sc, "tag": tag})
+            # recency-weighted blend of the last 4 prints that HAVE a consensus
+            scored = [r for r in rel if r["surprise"] is not None][-4:][::-1]
+            if scored:
+                wsum = sum(_SUPPLY_RECENCY_W[:len(scored)])
+                comb = sum(r["score"] * w for r, w in zip(scored, _SUPPLY_RECENCY_W)) / wsum
+            else:
+                comb = 0.0
+            series[k] = {"title": title, "unit": unit, "kind": kind, "score": round(comb, 2),
+                         "n": len(rel), "latest": rel[-1] if rel else None, "releases": rel[-8:]}
+        else:  # stock_change — LME copper: z-score the trailing 20-print cumulative change
+            ch = [(_parse_ff_value(e.get("actual")), e) for e in rows]
+            ch = [(v, e) for v, e in ch if v is not None]
+            vals = [v for v, _ in ch]
+            cum20 = [sum(vals[i - 20:i]) for i in range(20, len(vals) + 1)]
+            latest_cum = cum20[-1] if cum20 else None
+            # scale: use the empirical sd of trailing 20-day changes when we have
+            # enough history, else the calibrated default (60kt from 30w sample)
+            if len(cum20) >= 30:
+                _mu = sum(cum20) / len(cum20)
+                _sd = (sum((c - _mu) ** 2 for c in cum20) / len(cum20)) ** 0.5
+                scale_eff = max(scale * 0.5, _sd) if _sd else scale
+            else:
+                scale_eff = scale
+            sc = _score_from_surprise(latest_cum, scale_eff, True) if latest_cum is not None else 0
+            # continuous version (bounded) so the driver bar moves smoothly
+            cont = max(-2.0, min(2.0, latest_cum / scale_eff)) if latest_cum is not None else 0.0
+            for v, e in ch[-10:]:
+                rel.append({"title": "LME Copper Stocks (daily change)", "dateline": e.get("dateline"),
+                            "actual": _fmt_supply_val(v, "t"), "forecast": "—",
+                            "previous": e.get("previous") or "—", "actual_v": v, "forecast_v": None,
+                            "surprise": None, "score": 1 if v > 0 else -1 if v < 0 else 0,
+                            "tag": "INFLOW" if v > 0 else "OUTFLOW" if v < 0 else "FLAT"})
+            cum_tag = ("BIG STOCK BUILD" if sc >= 2 else "STOCK BUILD" if sc == 1 else
+                       "BIG STOCK DRAW" if sc <= -2 else "STOCK DRAW" if sc == -1 else "IN RANGE")
+            series[k] = {"title": title, "unit": unit, "kind": kind, "score": round(cont, 2),
+                         "bucket": sc, "n": len(vals), "cum20": latest_cum, "scale": round(scale_eff),
+                         "cum_tag": cum_tag,
+                         "latest": rel[-1] if rel else None, "releases": rel,
+                         "cum_row": ({"title": title, "dateline": ch[-1][1].get("dateline"),
+                                      "actual": _fmt_supply_val(latest_cum, "t"),
+                                      "forecast": f"±{scale_eff/1000:.0f}kt 1σ", "previous": "—",
+                                      "surprise": None, "score": sc, "tag": cum_tag}
+                                     if latest_cum is not None else None)}
 
-        if consecutive_drops:
-            raw_score = 1.5; label = "Consecutive bearish EIA days — contrarian bullish"
-        elif last_drop:
-            raw_score = 0.8; label = "Bearish EIA day — lean bullish"
-        elif consecutive_rallies:
-            raw_score = -1.2; label = "Consecutive bullish EIA days — continuation bearish"
-        elif last_rally:
-            raw_score = -0.5; label = "Bullish EIA day — lean bearish (continuation)"
+    # China growth composite: mean of the LATEST print of each series (<= 45 days old)
+    cn_scores = []
+    for k in _CN_GROWTH_KEYS:
+        s = series.get(k)
+        if s and s["latest"] and s["latest"]["surprise"] is not None:
+            if (s["latest"]["dateline"] or 0) >= now - 45 * 86400:
+                cn_scores.append(s["latest"]["score"])
+    cn_growth = round(sum(cn_scores) / len(cn_scores), 2) if cn_scores else None
+
+    out = {"series": series, "cn_growth": cn_growth, "cn_n": len(cn_scores), "n_store": len(store)}
+    _SUPPLY_CACHE["data"] = out
+    _SUPPLY_CACHE["time"] = now
+    return out
+
+
+def _supply_rows(sig: dict, keys, asset_sign_map: dict) -> list:
+    """Release-table rows for the UI. `directional` = score * sign for THIS asset
+    (+ = bullish for the asset) so the frontend can colour without knowing the
+    semantics. The `tag` still describes the print itself."""
+    rows = []
+    for k in keys:
+        s = sig["series"].get(k)
+        if not s:
+            continue
+        sign = asset_sign_map.get(k, -1)
+        if s["kind"] == "stock_change":
+            if s.get("cum_row"):
+                r = dict(s["cum_row"]); r["directional"] = r["score"] * sign; r["key"] = k
+                rows.append(r)
+            for x in s["releases"][-3:]:
+                r = dict(x); r["directional"] = r["score"] * sign; r["key"] = k; r["minor"] = True
+                rows.append(r)
         else:
-            raw_score = 0.0; label = "Neutral EIA signal"
+            for x in s["releases"][-4:][::-1]:
+                r = dict(x); r["directional"] = (r["score"] * sign) if r["surprise"] is not None else 0
+                r["key"] = k
+                rows.append(r)
+    return rows
 
-        return {"score": raw_score, "label": label}
-    except Exception as e:
-        return {"score": 0, "label": f"EIA signal error: {e}"}
-
-
-def compute_ng_storage_signal() -> dict:
-    """
-    Derive EIA Natural Gas Storage (Thursday) surprise proxy from NG Thursday price reactions.
-    """
-    now = time.time()
-    try:
-        import yfinance as _yf
-        ng_raw = _yf.Ticker("NG=F")
-        ng = ng_raw.history(period="3mo", interval="1d", auto_adjust=True)
-        if ng.empty or len(ng) < 10:
-            return {"score": 0, "label": "Neutral NG storage signal"}
-        ng_df = ng.copy()
-        ng_df["daily_ret"] = ng_df["Close"].pct_change()
-        # Thursdays (weekday=3)
-        thu = ng_df[ng_df.index.weekday == 3]["daily_ret"].dropna()
-        if len(thu) < 3:
-            return {"score": 0, "label": "Neutral NG storage signal"}
-        p20_thresh = -0.0181
-        p80_thresh = 0.0179
-        last_ret  = thu.iloc[-1]
-        prev_ret  = thu.iloc[-2] if len(thu) >= 2 else 0
-
-        last_drop   = last_ret < p20_thresh
-        last_rally  = last_ret > p80_thresh
-        prev_drop   = prev_ret < p20_thresh
-        prev_rally  = prev_ret > p80_thresh
-
-        consecutive_drops   = last_drop and prev_drop
-        consecutive_rallies = last_rally and prev_rally
-
-        if consecutive_drops:
-            raw_score = 1.5; label = "Consecutive bearish storage days — contrarian bullish NG"
-        elif last_drop:
-            raw_score = 0.8; label = "Bearish storage day — lean bullish NG"
-        elif consecutive_rallies:
-            raw_score = -1.2; label = "Consecutive bullish storage days — lean bearish NG"
-        elif last_rally:
-            raw_score = -0.5; label = "Bullish storage day — lean bearish NG"
-        else:
-            raw_score = 0.0; label = "Neutral NG storage signal"
-
-        return {"score": raw_score, "label": label}
-    except Exception as e:
-        return {"score": 0, "label": f"NG signal error: {e}"}
 
 
 def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = None) -> dict:
@@ -6613,6 +6738,7 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
     # input (sign already applied, so green = bullish for THIS asset), and a
     # structured `drivers` payload for the UI.
     _drivers = []
+    _supply_detail = None   # SUPPLY 2026-09-04: per-asset supply/demand release rows for the UI
     def _drv(label, val, weight, sign):
         _dirv = round(sign * val, 2) or 0.0   # avoid "-0.0"
         _drivers.append({"label": label, "input": round(val, 2) or 0.0, "weight": weight,
@@ -6759,31 +6885,81 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
 
     # ── Oil family (CL, B, GO, HO, RB) ─────────────────────────────────────
     elif m in ("CL", "B", "GO", "HO", "RB"):
-        eia = compute_eia_inventory_signal()
-        eia_s = eia.get("score", 0)
-        raw = growth_s2 * 0.35 + infl_avg * 0.15 + jobs_s * 0.15 - dgs2_s * 0.15 + eia_s * 0.20
-        _drv("Growth", growth_s2, 0.35, +1); _drv("EIA Inventories", eia_s, 0.20, +1)
+        # SUPPLY 2026-09-04: real EIA weekly inventory surprises (actual vs consensus,
+        # energyexch.com via inject_supply.py). Data-space score: + = bigger build
+        # than forecast -> BEARISH for the commodity, so sign = -1. Product blend
+        # tilts to the product each contract actually is.
+        _sup = compute_supply_signals()
+        _ss  = lambda k: (_sup["series"].get(k) or {}).get("score", 0.0) or 0.0
+        if m == "HO" or m == "GO":
+            _blend = {"crude": 0.40, "distillate": 0.60}
+        elif m == "RB":
+            _blend = {"crude": 0.40, "gasoline": 0.60}
+        else:
+            _blend = {"crude": 0.60, "gasoline": 0.20, "distillate": 0.20}
+        eia_s = sum(_ss(k) * w for k, w in _blend.items())
+        raw = growth_s2 * 0.30 - eia_s * 0.25 + infl_avg * 0.15 + jobs_s * 0.15 - dgs2_s * 0.15
+        _drv("Growth", growth_s2, 0.30, +1); _drv("EIA Inventories", eia_s, 0.25, -1)
         _drv("Inflation", infl_avg, 0.15, +1); _drv("Jobs", jobs_s, 0.15, +1)
         _drv("Rates (2Y)", dgs2_s, 0.15, -1)
         reason = _reason_from_drivers()
+        _supply_detail = {
+            "title": "EIA Weekly Inventories",
+            "blend": _blend,
+            "rows": _supply_rows(_sup, list(_blend.keys()), {k: -1 for k in _blend}),
+            "note": ("Weekly EIA prints scored on actual minus consensus (1σ: crude 4.0M, gasoline 1.5M, "
+                     "distillate 2.0M bbl; inside ±0.4σ = noise). Last 4 weeks blended 40/30/20/10 (latest first). "
+                     "A build bigger than forecast is bearish, a draw bigger than forecast is bullish."),
+        }
 
     # ── Natural Gas (NG) ───────────────────────────────────────────────────
     elif m == "NG":
-        ng_sig = compute_ng_storage_signal()
-        ng_s   = ng_sig.get("score", 0)
-        raw = growth_s2 * 0.20 + infl_avg * 0.10 + ng_s * 0.50 - dgs2_s * 0.20
-        _drv("Storage", ng_s, 0.50, +1); _drv("Growth", growth_s2, 0.20, +1)
-        _drv("Rates (2Y)", dgs2_s, 0.20, -1); _drv("Inflation", infl_avg, 0.10, +1)
+        # SUPPLY 2026-09-04: real EIA storage surprise (Bcf vs consensus). Injection
+        # larger than forecast = bearish (sign -1). Weight cut from a dead 50% to 45%.
+        _sup = compute_supply_signals()
+        ng_s = (_sup["series"].get("ng_storage") or {}).get("score", 0.0) or 0.0
+        raw = -ng_s * 0.45 + growth_s2 * 0.20 - dgs2_s * 0.20 + infl_avg * 0.15
+        _drv("EIA Storage", ng_s, 0.45, -1); _drv("Growth", growth_s2, 0.20, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.20, -1); _drv("Inflation", infl_avg, 0.15, +1)
         reason = _reason_from_drivers()
+        _supply_detail = {
+            "title": "EIA Weekly Storage",
+            "rows": _supply_rows(_sup, ["ng_storage"], {"ng_storage": -1}),
+            "note": ("Weekly EIA storage change scored on actual minus consensus (1σ = 5 Bcf; inside ±2 Bcf = noise, "
+                     "beyond ±7.5 Bcf = strong). Last 4 weeks blended 40/30/20/10. An injection larger than "
+                     "forecast (or a smaller withdrawal) is bearish; the reverse is bullish. Weather remains "
+                     "the dominant non-scored driver."),
+        }
 
     # ── Copper (HG) ────────────────────────────────────────────────────────
     # Hot CPI → Fed hikes → USD stronger → copper (USD-priced) headwind.
     # Growth is the dominant driver (50%). Both inflation and rates are bearish via USD channel.
     elif m == "HG":
-        raw = growth_s2 * 0.50 + jobs_s * 0.25 - infl_avg * 0.10 - dgs2_s * 0.15
-        _drv("Growth", growth_s2, 0.50, +1); _drv("Jobs", jobs_s, 0.25, +1)
-        _drv("Rates (2Y)", dgs2_s, 0.15, -1); _drv("Inflation", infl_avg, 0.10, -1)
+        # SUPPLY 2026-09-04: (a) China demand — consensus-scored NBS/RatingDog PMIs,
+        # IP, FAI, retail sales (China = ~55% of refined copper demand); (b) LME
+        # copper stocks — trailing 20-day cumulative change z-scored vs history
+        # (no consensus exists, so a level-change z-score replaces the surprise).
+        # US Growth trimmed 50 -> 30 to make room; weights stay small and explainable.
+        _sup = compute_supply_signals()
+        cn_s  = _sup.get("cn_growth")
+        cn_s  = cn_s if cn_s is not None else 0.0
+        lme_s = (_sup["series"].get("lme_copper") or {}).get("score", 0.0) or 0.0
+        raw = (growth_s2 * 0.30 + cn_s * 0.20 + jobs_s * 0.15 - lme_s * 0.15
+               - dgs2_s * 0.12 - infl_avg * 0.08)
+        _drv("Growth", growth_s2, 0.30, +1); _drv("China Demand", cn_s, 0.20, +1)
+        _drv("Jobs", jobs_s, 0.15, +1); _drv("LME Stocks", lme_s, 0.15, -1)
+        _drv("Rates (2Y)", dgs2_s, 0.12, -1); _drv("Inflation", infl_avg, 0.08, -1)
         reason = _reason_from_drivers()
+        _cn_sign = {k: +1 for k in _CN_GROWTH_KEYS}
+        _supply_detail = {
+            "title": "China Demand + LME Stocks",
+            "rows": _supply_rows(_sup, ["lme_copper"], {"lme_copper": -1})
+                    + [r for k in _CN_GROWTH_KEYS for r in _supply_rows(_sup, [k], _cn_sign)[:1]],
+            "note": ("China prints scored on actual minus consensus (1σ: NBS PMI 0.4, RatingDog PMI 0.8, IP 0.8pp, "
+                     "FAI 1.5pp, retail 0.9pp), latest print of each series within 45 days averaged. LME stocks: "
+                     "trailing 20-day cumulative change vs its own history (1σ ≈ 60kt) — a draw is bullish, "
+                     "a build is bearish. No consensus exists for LME stocks so this is a level signal, not a surprise."),
+        }
 
     # ── Soft Commodities / Agri ───────────────────────────────────────────
     elif m in ("ZC", "ZS", "ZW", "KC", "SB", "CT", "CC", "RC"):
@@ -6881,6 +7057,7 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
         "rates_s":    rates_s,
         "drivers":    _drivers,
         "raw":        round(raw, 3),
+        "supply":     _supply_detail,
     }
 
 
@@ -18265,7 +18442,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-04-fundaudit"
+BUILD_ID = "2026-09-04-supply"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
@@ -18285,7 +18462,8 @@ async def health():
     return {"status": "ok", "time": datetime.utcnow().isoformat(),
             "build": BUILD_ID, "uptime_s": int(time.time() - _PROC_START),
             "ff_store_n": _n_store, "ff_store_latest": _ff_latest_day,
-            "ff_growth_cache_age_s": _g_age}
+            "ff_growth_cache_age_s": _g_age,
+            "supply_store_n": len(_supply_store_load())}
 
 
 
@@ -18674,6 +18852,49 @@ async def inject_ff_labour(payload: dict):
 
     print(f"[FF LABOUR INJECT] Merged {n_merged} events into store ({len(store)} total)")
     return {"ok": True, "n_merged": n_merged, "n_store_total": len(store)}
+
+
+@app.post("/api/inject-supply")
+async def inject_supply(payload: dict):
+    """
+    SUPPLY 2026-09-04. Accepts sandbox-fetched energyexch.com / metalsmine.com
+    calendar prints (EIA crude/gasoline/distillate/NG storage, LME copper stock
+    changes, China growth prints) from inject_supply.py and merges them into the
+    on-disk supply_event_store.json. Payload:
+      {"events": [{"key": "crude", "name": "US Crude Oil Inventories", "currency": "USD",
+                   "actual": "-4.5M", "forecast": "-0.4M", "previous": "0.1M",
+                   "dateline": 1756910000, "source": "energyexch"}, ...]}
+    Only keys present in _SUPPLY_SPECS are accepted. Returns {ok, n_merged, n_store_total, by_key}.
+    """
+    global ALL_DATA_CACHE
+    events = payload.get("events", [])
+    if not events or not isinstance(events, list):
+        return {"ok": False, "error": "Missing or invalid events list"}
+    store = _supply_store_load()
+    n_merged = 0
+    by_key: dict = {}
+    for ev in events:
+        k = ev.get("key")
+        if k not in _SUPPLY_SPECS or not ev.get("actual"):
+            continue
+        ts = ev.get("dateline")
+        day = datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d") if ts else "na"
+        store[f"{k}|{day}"] = {"key": k, "name": ev.get("name"), "currency": ev.get("currency"),
+                               "actual": ev.get("actual"), "forecast": ev.get("forecast") or "",
+                               "previous": ev.get("previous") or "", "dateline": ts,
+                               "source": ev.get("source")}
+        n_merged += 1
+        by_key[k] = by_key.get(k, 0) + 1
+    cutoff = time.time() - _SUPPLY_STORE_MAX_DAYS * 86400
+    store = {k: v for k, v in store.items() if (v.get("dateline") or 0) >= cutoff}
+    _supply_store_save(store)
+    # bust supply + composite caches so the next /api/scores rebuild uses the new prints
+    _SUPPLY_CACHE["data"] = None; _SUPPLY_CACHE["time"] = 0
+    ALL_DATA_CACHE["data"] = None; ALL_DATA_CACHE["time"] = 0
+    US_MACRO_CACHE["data"] = None; US_MACRO_CACHE["time"] = 0
+    RISK_REGIME_CACHE["data"] = None; RISK_REGIME_CACHE["time"] = 0
+    print(f"[SUPPLY INJECT] Merged {n_merged} prints into store ({len(store)} total) {by_key}", flush=True)
+    return {"ok": True, "n_merged": n_merged, "n_store_total": len(store), "by_key": by_key}
 
 
 @app.post("/api/inject-fed-pricing")
