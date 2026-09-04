@@ -1,22 +1,40 @@
 #!/usr/bin/env python3
 """
-inject_ff_macro.py
-──────────────────
-Fetches ForexFactory actual-vs-forecast surprise data for non-USD currencies
-from the sandbox (where FF is accessible), computes EMS-style economy scores,
-and POSTs them to the BH Weather System backend via /api/inject-ff-macro.
+inject_ff_macro.py  —  v2 "surprise z-decay" (2026-09-04)
+────────────────────────────────────────────────────────────
+Fetches ForexFactory actual-vs-forecast data for the G8 currencies
+(USD, EUR, GBP, JPY, AUD, CAD, CHF, NZD) from the sandbox (FF is blocked on
+Render), converts every release into a standardised surprise z-score, decays
+it by age, aggregates into growth / jobs / inflation, and POSTs one payload per
+currency to /api/inject-ff-macro on the BH Weather System backend.
 
-This replaces the FRED trailing-average fallback with real consensus-based
-surprise scores for EUR, GBP, JPY, AUD, CAD, CHF, NZD.
+Method (chosen from a 2022-2026 backtest across 26 FX pairs, see
+bh_fx_macro_audit_report.md):
 
-Run from cron or daily backup script.
+  z_i     = clip((actual - forecast) * sign / sd_indicator, -3, +3)
+            sign = -1 for lower-is-better prints (unemployment, claims)
+            sd_indicator = historical sd of that indicator's raw surprise
+            (static table in ff_surprise_sd.json, built from 2022-2026 FF data)
+            NOTE: hot inflation surprise = currency-BULLISH (hawkish CB)
+  w_i     = 0.5 ** (age_days / 20)   over a 90-day window
+  cat_z   = sum(w_i z_i) / sum(w_i)  for growth (incl. PMIs, retail, GDP,
+            sentiment), jobs, inflation
+  ccy_z   = 0.40*growth + 0.35*jobs + 0.25*inflation (renormalised if a
+            category is missing). Central-bank decisions are NOT scored
+            (tested: no directional edge) — shown as context only.
+  display = 5 + clip(ccy_z / 0.30, -2, +2) * 1.25        (0-10)
+
+The backend maps a pair as raw = clip((z_base - z_quote)/0.30, -2, 2).
+
+Run from the nightly backup task and the FF release watcher.
 """
 
 import json
+import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 import requests
@@ -24,104 +42,34 @@ import requests
 BACKEND = "https://bhweathersystem-backend.onrender.com"
 INJECT_URL = f"{BACKEND}/api/inject-ff-macro"
 
-# ── ForexFactory indicator maps ──────────────────────────────────────────────
-# (key, higher_is_good) for each currency's major events
-FF_CURRENCY_INDICATOR_MAP = {
-    "EUR": {
-        "German Ifo Business Climate":    ("growth",    True),
-        "German ZEW Economic Sentiment":  ("growth",    True),
-        "Flash Manufacturing PMI":         ("mfg_pmi",  True),
-        "Flash Services PMI":              ("svc_pmi",  True),
-        "CPI y/y":                         ("inflation", False),
-        "Core CPI y/y":                    ("inflation", False),
-        "CPI Flash Estimate y/y":          ("inflation", False),
-        "Core CPI Flash Estimate y/y":     ("inflation", False),
-        "Unemployment Rate":               ("jobs",      False),
-        "GDP q/q":                         ("growth",    True),
-        "Retail Sales m/m":                ("growth",    True),
-    },
-    "GBP": {
-        "GDP m/m":                         ("growth",    True),
-        "GDP q/q":                         ("growth",    True),
-        "CPI y/y":                         ("inflation", False),
-        "Core CPI y/y":                    ("inflation", False),
-        "Claimant Count Change":           ("jobs",      False),
-        "Unemployment Rate":               ("jobs",      False),
-        "Manufacturing PMI":               ("mfg_pmi",  True),
-        "Services PMI":                    ("svc_pmi",  True),
-        "Retail Sales m/m":                ("growth",    True),
-        "Average Earnings Index 3m/y":     ("jobs",      True),
-        "BOE Credit Conditions Survey":    ("growth",    True),
-    },
-    "JPY": {
-        "Tankan Large Manufacturers Index":("growth",   True),
-        "GDP q/q":                         ("growth",   True),
-        "CPI y/y":                         ("inflation", False),
-        "Tokyo Core CPI y/y":              ("inflation", False),
-        "Unemployment Rate":               ("jobs",     False),
-        "Manufacturing PMI":               ("mfg_pmi", True),
-        "Services PMI":                    ("svc_pmi", True),
-        "Industrial Production m/m":       ("growth",  True),
-        "Retail Sales y/y":                ("growth",  True),
-    },
-    "AUD": {
-        "Employment Change":               ("jobs",     True),
-        "Unemployment Rate":               ("jobs",     False),
-        "CPI q/q":                         ("inflation", False),
-        "CPI y/y":                         ("inflation", False),
-        "Trimmed Mean CPI q/q":            ("inflation", False),
-        "GDP q/q":                         ("growth",   True),
-        "Manufacturing PMI":               ("mfg_pmi", True),
-        "Services PMI":                    ("svc_pmi", True),
-        "Retail Sales m/m":                ("growth",  True),
-        "Trade Balance":                   ("growth",  True),
-    },
-    "CAD": {
-        "Employment Change":               ("jobs",     True),
-        "Unemployment Rate":               ("jobs",     False),
-        "CPI m/m":                         ("inflation", False),
-        "CPI y/y":                         ("inflation", False),
-        "Median CPI y/y":                  ("inflation", False),
-        "GDP m/m":                         ("growth",   True),
-        "Manufacturing PMI":               ("mfg_pmi", True),
-        "Retail Sales m/m":                ("growth",  True),
-        "Trade Balance":                   ("growth",  True),
-    },
-    "CHF": {
-        "CPI m/m":                         ("inflation", False),
-        "CPI y/y":                         ("inflation", False),
-        "GDP q/q":                         ("growth",   True),
-        "Manufacturing PMI":               ("mfg_pmi", True),
-        "Unemployment Rate":               ("jobs",     False),
-        "Retail Sales y/y":                ("growth",  True),
-        "KOF Economic Barometer":          ("growth",  True),
-    },
-    "NZD": {
-        "GDP q/q":                         ("growth",   True),
-        "CPI q/q":                         ("inflation", False),
-        "Employment Change q/q":           ("jobs",     True),
-        "Unemployment Rate":               ("jobs",     False),
-        "Manufacturing PMI":               ("mfg_pmi", True),
-        "Retail Sales q/q":                ("growth",  True),
-        "Trade Balance":                   ("growth",  True),
-    },
-}
+CURRENCIES = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"]
 
-# Currency codes as they appear in the FF calendar
-FF_CURRENCY_CODE = {
-    "EUR": "EUR",
-    "GBP": "GBP",
-    "JPY": "JPY",
-    "AUD": "AUD",
-    "CAD": "CAD",
-    "CHF": "CHF",
-    "NZD": "NZD",
-}
+# ── Method parameters (keep in sync with the backend pair mapping) ─────────────
+HALF_LIFE_D = 20.0
+WINDOW_D    = 90
+Z_CLIP      = 3.0
+Z_SCALE     = 0.30          # 1 unit of display raw (= 1.25 score pts) per 0.30 z
+CAT_WEIGHTS = {"growth": 0.40, "jobs": 0.35, "inflation": 0.25}
+CAT_FOLD    = {"mfg_pmi": "growth", "svc_pmi": "growth"}
+MIN_RELEASES_FULL_CONF = 3   # fewer than this in-window -> damp toward 0
+
+# Central-bank decision event names (context only, weight 0)
+RATE_EVENT = {"EUR": "Main Refinancing Rate", "GBP": "Official Bank Rate",
+              "JPY": "BOJ Policy Rate", "AUD": "Cash Rate", "CAD": "Overnight Rate",
+              "CHF": "SNB Policy Rate", "NZD": "Official Cash Rate",
+              "USD": "Federal Funds Rate"}
+
+_SD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ff_surprise_sd.json")
+try:
+    SD_TABLE = json.load(open(_SD_PATH))
+except Exception as _e:  # pragma: no cover
+    SD_TABLE = {}
+    print(f"  ERROR: could not load {_SD_PATH}: {_e}")
 
 # ── FF fetch helpers ─────────────────────────────────────────────────────────
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-GB,en;q=0.9",
     "Referer": "https://www.forexfactory.com/",
@@ -144,10 +92,17 @@ def _get_week_strings(n_weeks: int = 16) -> list:
 def _fetch_ff_week(week_str: str) -> list:
     url = f"https://www.forexfactory.com/calendar?week={week_str}"
     try:
-        r = requests.get(url, timeout=20, headers=HEADERS)
-        if r.status_code != 200:
+        # Cloudflare TLS-fingerprints python-requests (403 challenge) — curl passes.
+        import subprocess as _sp
+        _cp = _sp.run(["curl", "-s", "--max-time", "20",
+                       "-A", HEADERS["User-Agent"],
+                       "-H", f"Accept: {HEADERS['Accept']}",
+                       "-H", f"Accept-Language: {HEADERS['Accept-Language']}",
+                       "-H", f"Referer: {HEADERS['Referer']}",
+                       url], capture_output=True, text=True)
+        if _cp.returncode != 0 or not _cp.stdout:
             return []
-        html = r.text
+        html = _cp.stdout
         pattern = r'\{"id":\d+,"ebaseId":\d+,"name":"[^"]+.*?\}(?=,\{"id"|\])'
         blobs = re.findall(pattern, html, re.DOTALL)
         events = []
@@ -201,209 +156,176 @@ def fetch_all_events(n_weeks: int = 16) -> list:
     return all_events
 
 
-# ── Surprise scoring ─────────────────────────────────────────────────────────
+# ── Surprise z-decay scoring ─────────────────────────────────────────────────
 
-def _ems_score_from_releases(releases: list) -> Optional[float]:
-    """Given a list of {beat: bool} releases (oldest→newest), compute 0-10 EMS score."""
-    recent = releases[-8:]
-    if not recent:
+def _release_date(dateline) -> Optional[date]:
+    """FF dateline (unix UTC) -> trading date. Prints after 21:00 UTC belong to
+    the next session (matches the backtest convention)."""
+    try:
+        ts = datetime.fromtimestamp(int(dateline), tz=timezone.utc)
+    except Exception:
         return None
-    hits = [1 if r["beat"] else -1 for r in recent]
-    weights = [1.0] * len(hits)
-    for i in range(max(0, len(hits) - 4), len(hits)):
-        weights[i] = 1.5
-    raw = sum(h * w for h, w in zip(hits, weights)) / sum(weights)
-    return round(max(0.0, min(10.0, raw * 3 + 5)), 1)
+    d = ts.date()
+    if ts.hour >= 21:
+        d = d + timedelta(days=1)
+    return d
 
 
-def compute_ff_economy_score(currency: str, all_events: list) -> dict:
-    """
-    From a flat list of all FF events, filter to this currency and compute
-    an economy score using actual-vs-forecast surprise method.
-    """
-    ff_code = FF_CURRENCY_CODE[currency]
-    indicator_map = FF_CURRENCY_INDICATOR_MAP[currency]
+def _fmt_z(z: float) -> str:
+    return f"{z:+.2f}"
 
-    # Collect releases per category
-    cat_releases: dict = {}
-    cat_details: dict  = {}
+
+def _ccy_label(currency: str, z: float) -> str:
+    if z >= 0.60:   return f"{currency} Macro Strong"
+    if z >= 0.24:   return f"{currency} Macro Improving"
+    if z <= -0.60:  return f"{currency} Macro Weak"
+    if z <= -0.24:  return f"{currency} Macro Deteriorating"
+    return f"{currency} Macro Neutral"
+
+
+def display_score_from_z(z: float) -> float:
+    raw = max(-2.0, min(2.0, z / Z_SCALE))
+    return round(5.0 + raw * 1.25, 2)
+
+
+def compute_ff_economy_score(currency: str, all_events: list, as_of: Optional[date] = None) -> dict:
+    """Surprise z-decay economy score for one currency from a flat FF event list."""
+    as_of = as_of or date.today()
+    table = SD_TABLE.get(currency, {})
+    seen: set = set()
+    releases: list = []      # scored releases
+    cb_context: Optional[dict] = None
 
     for ev in all_events:
-        if ev.get("currency") != ff_code:
+        if ev.get("currency") != currency:
             continue
-        name         = ev.get("name", "")
-        actual_str   = ev.get("actual", "")
-        forecast_str = ev.get("forecast", "")
-
-        # Skip if no actual/forecast
-        if not actual_str or not forecast_str or actual_str in ("", "—") or forecast_str in ("", "—"):
+        name = ev.get("name", "")
+        a_str, f_str, p_str = (ev.get("actual") or "").strip(), (ev.get("forecast") or "").strip(), (ev.get("previous") or "").strip()
+        d = _release_date(ev.get("dateline"))
+        if d is None or d > as_of:
             continue
 
-        for event_name, (category, higher_is_good) in indicator_map.items():
-            # Fuzzy match: event name starts with or equals indicator key
-            if name == event_name or name.startswith(event_name.split(" ")[0]):
-                # Stricter: must share first two words
-                ev_words = name.lower().split()
-                map_words = event_name.lower().split()
-                if not (len(ev_words) >= 1 and len(map_words) >= 1 and ev_words[0] == map_words[0]):
-                    continue
-                if len(map_words) >= 2 and len(ev_words) >= 2 and ev_words[1] != map_words[1]:
-                    continue
+        # Central-bank decision: context only
+        if name == RATE_EVENT.get(currency) and a_str:
+            if cb_context is None or d > date.fromisoformat(cb_context["date"]):
+                cb_context = {"name": name, "date": d.isoformat(), "actual": a_str,
+                              "forecast": f_str or "—", "previous": p_str or "—"}
+            continue
 
-                actual_raw   = _parse_ff_value(actual_str)
-                forecast_raw = _parse_ff_value(forecast_str)
-                if actual_raw is None or forecast_raw is None:
-                    break
+        info = table.get(name)
+        if not info or not a_str or not f_str:
+            continue
+        key = (name, ev.get("dateline"), a_str)
+        if key in seen:
+            continue
+        seen.add(key)
 
-                surprise_raw = actual_raw - forecast_raw
-                if higher_is_good is False:
-                    # Lower actual than forecast = positive surprise (e.g. lower unemployment)
-                    beat = actual_raw < forecast_raw
-                else:
-                    beat = actual_raw > forecast_raw
+        a, f = _parse_ff_value(a_str), _parse_ff_value(f_str)
+        if a is None or f is None:
+            continue
+        age = (as_of - d).days
+        if age < 0 or age >= WINDOW_D:
+            continue
+        sd = float(info["sd"])
+        if sd <= 0:
+            continue
+        z = max(-Z_CLIP, min(Z_CLIP, (a - f) * info["sign"] / sd))
+        w = 0.5 ** (age / HALF_LIFE_D)
+        cat = CAT_FOLD.get(info["cat"], info["cat"])
+        releases.append({
+            "name": name, "date": d.isoformat(), "age_d": age,
+            "actual": a_str, "forecast": f_str, "previous": p_str or "—",
+            "raw_surprise": round((a - f) * info["sign"], 4), "sd": sd,
+            "z": round(z, 3), "weight": round(w, 3), "cat": cat,
+            # legacy sign field kept for older UI code (BEAT / MISS / LINE)
+            "score": 1 if z > 0.05 else (-1 if z < -0.05 else 0),
+        })
 
-                # Format display
-                try:
-                    actual_disp   = actual_str.strip()
-                    forecast_disp = forecast_str.strip()
-                    surprise_disp = round(actual_raw - forecast_raw, 3)
-                except Exception:
-                    actual_disp = forecast_disp = ""
-                    surprise_disp = 0
+    if not releases:
+        return {"score": 5.0, "label": f"{currency} Macro Neutral", "currency": currency,
+                "z": 0.0, "cats": {}, "cat_details": {}, "source": "ff_injected",
+                "method": "zdecay_v2", "n_releases": 0, "as_of": as_of.isoformat(),
+                "context": {"cb": cb_context}}
 
-                if category not in cat_releases:
-                    cat_releases[category] = []
-                    cat_details[category]  = []
+    # Category aggregation: decay-weighted mean z
+    cat_z: dict = {}
+    cat_details: dict = {}
+    for cat in ("growth", "jobs", "inflation"):
+        items = [r for r in releases if r["cat"] == cat]
+        if not items:
+            continue
+        sw = sum(r["weight"] for r in items)
+        cat_z[cat] = round(sum(r["z"] * r["weight"] for r in items) / sw, 3)
+        cat_details[cat] = sorted(items, key=lambda r: r["date"], reverse=True)
 
-                cat_releases[category].append({
-                    "dateline": ev.get("dateline"),
-                    "beat":     beat,
-                })
-                cat_details[category].append({
-                    "name":     event_name,
-                    "actual":   actual_disp,
-                    "forecast": forecast_disp,
-                    "score":    1 if beat else -1,
-                })
-                break
-
-    if not cat_releases:
-        return {
-            "score":       5.0,
-            "label":       f"{currency} Macro Neutral",
-            "currency":    currency,
-            "cats":        {},
-            "cat_details": {},
-            "source":      "ff_injected",
-            "n_releases":  0,
-        }
-
-    # Sort each category's releases chronologically
-    for cat in cat_releases:
-        cat_releases[cat].sort(key=lambda x: x.get("dateline") or 0)
-
-    # Score each category
-    cat_scores = {}
-    for cat, releases in cat_releases.items():
-        ems = _ems_score_from_releases(releases)
-        if ems is not None:
-            cat_scores[cat] = ems
-
-    if not cat_scores:
-        return {
-            "score":       5.0,
-            "label":       f"{currency} Macro Neutral",
-            "currency":    currency,
-            "cats":        {},
-            "cat_details": {},
-            "source":      "ff_injected",
-            "n_releases":  0,
-        }
-
-    # Composite: average of category EMS scores (0-10)
-    composite = sum(cat_scores.values()) / len(cat_scores)
-    composite = round(max(0.0, min(10.0, composite)), 1)
-
-    # Confidence dampening: fewer categories → pull toward neutral (5.0)
-    n_cats = len(cat_scores)
-    confidence = min(1.0, n_cats / 4.0)  # full at 4+ categories
-    composite = round(5.0 + (composite - 5.0) * confidence, 1)
-
-    # Label
-    if composite >= 7.5:    label = f"{currency} Macro Strong"
-    elif composite >= 6.2:  label = f"{currency} Macro Improving"
-    elif composite <= 2.5:  label = f"{currency} Macro Weak"
-    elif composite <= 3.8:  label = f"{currency} Macro Deteriorating"
-    else:                   label = f"{currency} Macro Neutral"
-
-    # Convert 0-10 cat scores to -2..+2 for cats dict (matches FRED schema)
-    cats_normalised = {cat: round((s - 5.0) / 2.5, 3) for cat, s in cat_scores.items()}
-
-    total_releases = sum(len(v) for v in cat_releases.values())
+    wsum = sum(CAT_WEIGHTS[c] for c in cat_z)
+    ccy_z = sum(cat_z[c] * CAT_WEIGHTS[c] for c in cat_z) / wsum if wsum else 0.0
+    n = len(releases)
+    conf = min(1.0, n / MIN_RELEASES_FULL_CONF)
+    ccy_z = round(ccy_z * conf, 3)
 
     return {
-        "score":       composite,
-        "label":       label,
+        "score":       display_score_from_z(ccy_z),
+        "label":       _ccy_label(currency, ccy_z),
         "currency":    currency,
-        "cats":        cats_normalised,
+        "z":           ccy_z,
+        "cats":        cat_z,               # units: sd of typical surprise (decay-weighted)
         "cat_details": cat_details,
         "source":      "ff_injected",
-        "n_releases":  total_releases,
+        "method":      "zdecay_v2",
+        "params":      {"half_life_d": HALF_LIFE_D, "window_d": WINDOW_D,
+                        "weights": CAT_WEIGHTS, "z_scale": Z_SCALE, "z_clip": Z_CLIP},
+        "n_releases":  n,
+        "confidence":  round(conf, 2),
+        "as_of":       as_of.isoformat(),
+        "context":     {"cb": cb_context},
     }
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
-    print("[FF MACRO INJECT] Starting non-USD ForexFactory economy score injection")
-    print(f"  Backend: {BACKEND}")
+    print("[FF MACRO INJECT v2] Surprise z-decay economy scores (G8 incl. USD)")
+    print(f"  Backend: {BACKEND} | HL={HALF_LIFE_D:.0f}d window={WINDOW_D}d weights={CAT_WEIGHTS}")
+    if not SD_TABLE:
+        print("  ERROR: surprise sd table missing — aborting.")
+        raise SystemExit(2)
 
-    # Fetch all events once (shared across all currencies)
     all_events = fetch_all_events(n_weeks=16)
-
     if not all_events:
         print("  ERROR: No events fetched — FF may be down or blocked. Aborting.")
-        return
+        raise SystemExit(1)
 
-    currencies = ["EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"]
     results = {}
-
-    for ccy in currencies:
-        print(f"\n  Processing {ccy}...")
-        score_data = compute_ff_economy_score(ccy, all_events)
-        n = score_data.get("n_releases", 0)
-        cats_found = list(score_data.get("cats", {}).keys())
-        print(f"    Score: {score_data['score']:.1f} | Label: {score_data['label']}")
-        print(f"    Categories: {cats_found} | Releases found: {n}")
-
+    for ccy in CURRENCIES:
+        sd = compute_ff_economy_score(ccy, all_events)
+        n = sd.get("n_releases", 0)
+        print(f"\n  {ccy}: z={_fmt_z(sd['z'])} score={sd['score']:.2f} {sd['label']} | "
+              f"cats={ {k: round(v, 2) for k, v in sd['cats'].items()} } | n={n}")
         if n == 0:
-            print(f"    WARNING: 0 releases found for {ccy} — skipping inject (keeping FRED fallback)")
-            results[ccy] = {"ok": False, "reason": "0 releases", "score": score_data["score"]}
+            print(f"    WARNING: 0 scored releases for {ccy} — skipping inject (backend keeps fallback)")
+            results[ccy] = {"ok": False, "reason": "0 releases", "score": sd["score"]}
             continue
-
-        # POST to backend
         try:
-            r = requests.post(INJECT_URL, json=score_data, timeout=15)
+            r = requests.post(INJECT_URL, json=sd, timeout=20)
             resp = r.json()
             if resp.get("ok"):
-                print(f"    Injected OK → backend score={resp['score']:.1f}")
-                results[ccy] = {"ok": True, "score": resp["score"]}
+                print(f"    Injected OK -> backend score={float(resp['score']):.2f}")
+                results[ccy] = {"ok": True, "score": float(resp["score"])}
             else:
                 print(f"    Inject FAILED: {resp}")
                 results[ccy] = {"ok": False, "reason": str(resp)}
         except Exception as e:
             print(f"    Inject ERROR: {e}")
             results[ccy] = {"ok": False, "reason": str(e)}
+        time.sleep(0.5)
 
-    # Summary
-    print("\n[FF MACRO INJECT] Summary:")
+    print("\n[FF MACRO INJECT v2] Summary:")
     for ccy, res in results.items():
-        status = "OK" if res.get("ok") else f"SKIP ({res.get('reason','')})"
-        score_str = f" score={res['score']:.1f}" if res.get("score") is not None else ""
-        print(f"  {ccy}: {status}{score_str}")
-
+        status = "OK" if res.get("ok") else f"SKIP ({res.get('reason','')[:80]})"
+        print(f"  {ccy}: {status}" + (f" score={res['score']:.2f}" if res.get("score") is not None else ""))
     ok_count = sum(1 for r in results.values() if r.get("ok"))
-    print(f"\n  {ok_count}/{len(currencies)} currencies injected successfully.")
+    print(f"\n  {ok_count}/{len(CURRENCIES)} currencies injected successfully.")
 
 
 if __name__ == "__main__":

@@ -5149,9 +5149,63 @@ def compute_all_ff_macro() -> dict:
         "cat_details": us_macro.get("components", {}),
     }
 
+    # v2 (2026-09-04): if inject_ff_macro.py has POSTed a USD surprise z-decay
+    # payload (<24h old), use it as the USD leg so both sides of every FX pair
+    # are scored with the same method. The FRED/labour blend above is kept as
+    # `fred_blend` for reference and as the fallback when no injection exists.
+    _usd_inj = _FRED_CCY_CACHE.get("USD")
+    if _usd_inj and (_usd_inj.get("data") or {}).get("source") == "ff_injected" \
+            and (now - _usd_inj.get("time", 0)) < 86400 \
+            and (_usd_inj["data"].get("z") is not None):
+        _fred_usd = result["USD"]
+        result["USD"] = dict(_usd_inj["data"])
+        result["USD"]["fred_blend"] = {"score": _fred_usd["score"], "label": _fred_usd["label"],
+                                       "cats": _fred_usd["cats"]}
+
     FF_MACRO_CACHE["data"] = result
     FF_MACRO_CACHE["time"] = now
     return result
+
+
+def _fx_pair_macro(base_ccy: str, quote_ccy: str, ff_macro: dict) -> dict:
+    """
+    Macro score for an FX pair (base/quote) from the per-currency table.
+
+    v2 (2026-09-04, surprise z-decay): when both legs carry `z` (decay-weighted
+    standardised-surprise composite from inject_ff_macro.py), the pair raw is
+        raw = clip((z_base - z_quote) / 0.30, -2, +2)
+    so a 0.24 z-gap leaves Neutral, 0.35 is Mild, >=0.60 is Macro Bull/Bear.
+    Backtest 2022-2026 (26 pairs, Friday sampling): 52-53% hit pooled, 57-59%
+    when |gap| > 0.6, monotonic by bucket; the previous (score diff / 4) mapping
+    left 99% of pair-days in the Neutral band and was directionally inverted.
+
+    Legacy fallback (either leg lacks `z`): raw = (score_base - score_quote) / 4.
+    """
+    b = (ff_macro or {}).get(base_ccy, {}) or {}
+    q = (ff_macro or {}).get(quote_ccy, {}) or {}
+    b_sc = float(b.get("score", 5.0)); q_sc = float(q.get("score", 5.0))
+    zb, zq = b.get("z"), q.get("z")
+    if zb is not None and zq is not None:
+        gap = float(zb) - float(zq)
+        raw = max(-2.0, min(2.0, gap / 0.30))
+        reason = (f"{base_ccy} surprise z {float(zb):+.2f} vs {quote_ccy} {float(zq):+.2f} "
+                  f"(gap {gap:+.2f}; ±0.24 neutral, ±0.60 strong)")
+        method = "zdecay_v2"; pair_gap = round(gap, 3)
+    else:
+        raw = (b_sc - q_sc) / 4.0
+        reason = f"{base_ccy}: {b_sc:.1f}/10 vs {quote_ccy}: {q_sc:.1f}/10"
+        method = "legacy_diff4"; pair_gap = None
+    scr = round(max(0.0, min(10.0, raw * 1.25 + 5.0)), 1)
+    def _leg(cur, d, sc):
+        return {"currency": cur, "score": round(sc - 5.0, 2), "z": d.get("z"),
+                "cats": d.get("cats", {}), "cat_details": d.get("cat_details", {}),
+                "n_releases": d.get("n_releases"), "context": d.get("context")}
+    return {
+        "score": scr, "label": _macro_label(scr), "reason": reason, "raw": round(raw, 3),
+        "base_ff_score": b_sc, "quote_ff_score": q_sc,
+        "fx_detail": {"foreign": _leg(base_ccy, b, b_sc), "usd": _leg(quote_ccy, q, q_sc),
+                      "method": method, "pair_gap_z": pair_gap, "pair_label": _macro_label(scr)},
+    }
 
 
 # ============================================================
@@ -6803,70 +6857,22 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
 
     # ── FX Pairs (base currency vs USD) ────────────────────────────────────
     elif m in ("6E", "6B", "6A", "6C", "6N", "6S", "6M"):
-        # Determine base currency
         ccy_map = {"6E": "EUR", "6B": "GBP", "6A": "AUD", "6C": "CAD",
                    "6N": "NZD", "6S": "CHF", "6M": "MXN"}
         base_ccy = ccy_map.get(m, "EUR")
-        base_ff  = ff_macro.get(base_ccy, {})
-        usd_ff   = ff_macro.get("USD", {})
-        base_score_ff  = base_ff.get("score", 5.0)  # already 0-10
-        usd_score_ff   = usd_ff.get("score",  5.0)
-        # Differential: positive = base ccy stronger than USD = bullish pair
-        diff = base_score_ff - usd_score_ff  # range -10..+10
-        raw  = diff / 4.0  # normalise to ~-2..+2
-        reason = f"{base_ccy} macro: {base_score_ff:.1f}/10 vs USD: {usd_score_ff:.1f}/10"
-        scr = score_to_010(raw)
-        return {
-            "score": scr, "label": _macro_label(scr),
-            "reason": reason, "growth_s": growth_s, "inflation_s": inflation_s,
-            "jobs_s": jobs_s, "rates_s": rates_s,
-            "base_ff_score": base_score_ff, "usd_ff_score": usd_score_ff,
-            "fx_detail": {
-                "foreign": {
-                    "currency": base_ccy,
-                    "score": base_score_ff - 5.0,  # centre on 0 for differential bar
-                    "cats": base_ff.get("cats", {}),
-                    "cat_details": base_ff.get("cat_details", {}),
-                },
-                "usd": {
-                    "currency": "USD",
-                    "score": usd_score_ff - 5.0,  # centre on 0
-                    "cats": usd_ff.get("cats", {}),
-                    "cat_details": usd_ff.get("cat_details", {}),
-                },
-            },
-        }
+        _pr = _fx_pair_macro(base_ccy, "USD", ff_macro)
+        _pr.update({"growth_s": growth_s, "inflation_s": inflation_s,
+                    "jobs_s": jobs_s, "rates_s": rates_s,
+                    "usd_ff_score": _pr["quote_ff_score"]})
+        return _pr
 
     # ── Japanese Yen ────────────────────────────────────────────────────────
     elif m == "6J":
-        jpy_ff  = ff_macro.get("JPY", {})
-        usd_ff  = ff_macro.get("USD", {})
-        jpy_sc  = jpy_ff.get("score", 5.0)
-        usd_sc  = usd_ff.get("score", 5.0)
-        # 6J = JPY/USD futures: bullish when JPY strengthens (weak USD or strong JPY)
-        diff = jpy_sc - usd_sc
-        raw  = diff / 4.0
-        reason = f"JPY macro: {jpy_sc:.1f}/10 vs USD: {usd_sc:.1f}/10"
-        scr = score_to_010(raw)
-        return {
-            "score": scr, "label": _macro_label(scr),
-            "reason": reason, "growth_s": growth_s, "inflation_s": inflation_s,
-            "jobs_s": jobs_s, "rates_s": rates_s,
-            "fx_detail": {
-                "foreign": {
-                    "currency": "JPY",
-                    "score": jpy_sc - 5.0,
-                    "cats": jpy_ff.get("cats", {}),
-                    "cat_details": jpy_ff.get("cat_details", {}),
-                },
-                "usd": {
-                    "currency": "USD",
-                    "score": usd_sc - 5.0,
-                    "cats": usd_ff.get("cats", {}),
-                    "cat_details": usd_ff.get("cat_details", {}),
-                },
-            },
-        }
+        # 6J = JPY/USD futures: bullish when JPY strengthens vs USD
+        _pr = _fx_pair_macro("JPY", "USD", ff_macro)
+        _pr.update({"growth_s": growth_s, "inflation_s": inflation_s,
+                    "jobs_s": jobs_s, "rates_s": rates_s})
+        return _pr
 
     # ── Gold ────────────────────────────────────────────────────────────────
     # Hot CPI → Fed hikes → nominal yields rise faster than breakevens → real yields up → bearish gold
@@ -7048,32 +7054,10 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
             "NZDCAD": ("NZD", "CAD"),
         }
         base_ccy, quote_ccy = _cross_map.get(m, ("EUR", "USD"))
-        base_sc  = (ff_macro or {}).get(base_ccy,  {}).get("score", 5.0)
-        quote_sc = (ff_macro or {}).get(quote_ccy, {}).get("score", 5.0)
-        diff = base_sc - quote_sc   # positive = base stronger = pair bullish
-        raw  = diff / 4.0           # normalise to ~-2..+2
-        reason = f"{base_ccy}: {base_sc:.1f}/10 vs {quote_ccy}: {quote_sc:.1f}/10"
-        scr = score_to_010(raw)
-        return {
-            "score": scr, "label": _macro_label(scr),
-            "reason": reason, "growth_s": growth_s, "inflation_s": inflation_s,
-            "jobs_s": jobs_s, "rates_s": rates_s,
-            "base_ff_score": base_sc, "quote_ff_score": quote_sc,
-            "fx_detail": {
-                "foreign": {
-                    "currency": base_ccy,
-                    "score": base_sc - 5.0,
-                    "cats": (ff_macro or {}).get(base_ccy,  {}).get("cats", {}),
-                    "cat_details": (ff_macro or {}).get(base_ccy,  {}).get("cat_details", {}),
-                },
-                "usd": {
-                    "currency": quote_ccy,
-                    "score": quote_sc - 5.0,
-                    "cats": (ff_macro or {}).get(quote_ccy, {}).get("cats", {}),
-                    "cat_details": (ff_macro or {}).get(quote_ccy, {}).get("cat_details", {}),
-                },
-            },
-        }
+        _pr = _fx_pair_macro(base_ccy, quote_ccy, ff_macro)
+        _pr.update({"growth_s": growth_s, "inflation_s": inflation_s,
+                    "jobs_s": jobs_s, "rates_s": rates_s})
+        return _pr
 
     else:
         raw = growth_s * 0.40 + jobs_s * 0.35 - infl_avg * 0.15 + dgs2_s * 0.10
@@ -18474,7 +18458,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-04-supply-d"
+BUILD_ID = "2026-09-04-fxmacro-v2"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
@@ -18788,7 +18772,7 @@ async def inject_ff_macro(payload: dict):
     cats     = payload.get("cats", {})
     cat_details = payload.get("cat_details", {})
 
-    VALID_CURRENCIES = {"EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"}
+    VALID_CURRENCIES = {"USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD"}
     if currency not in VALID_CURRENCIES:
         return {"ok": False, "error": f"Unknown currency: {currency}"}
     if score is None:
@@ -18803,6 +18787,17 @@ async def inject_ff_macro(payload: dict):
         "cat_details": cat_details,
         "source":      "ff_injected",  # distinguishes from FRED fallback
     }
+    # v2 "surprise z-decay" fields (inject_ff_macro.py v2, 2026-09-04). `z` is the
+    # decay-weighted standardised-surprise composite; when BOTH legs of an FX pair
+    # carry `z`, get_macro_score_for_market maps the pair from the z differential.
+    for _k in ("z", "method", "params", "n_releases", "confidence", "as_of", "context"):
+        if _k in payload:
+            injected[_k] = payload[_k]
+    if injected.get("z") is not None:
+        try:
+            injected["z"] = float(injected["z"])
+        except Exception:
+            injected.pop("z", None)
     # Write into _FRED_CCY_CACHE with source=ff_injected so the TTL check uses 24h
     _FRED_CCY_CACHE[currency] = {"data": injected, "time": now}
 
@@ -18815,7 +18810,7 @@ async def inject_ff_macro(payload: dict):
     ALL_DATA_CACHE["data"] = None
     ALL_DATA_CACHE["time"] = 0
 
-    print(f"[FF MACRO INJECT] {currency}: score={score:.1f}, label={label}, cats={cats}")
+    print(f"[FF MACRO INJECT] {currency}: score={float(score):.2f} z={injected.get('z')} label={label} cats={cats}")
     return {"ok": True, "currency": currency, "score": score, "label": label}
 
 

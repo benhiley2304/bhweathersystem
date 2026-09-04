@@ -38580,6 +38580,23 @@ function macroTab(m){
   const mcol=sHex(msc);
   const mLabel=ms.label||'Neutral';
   const detail=ms.detail||{};
+  // ── FX macro v2 ("surprise z-decay", 2026-09-04) helpers ──
+  const _fxV2=(detail.fx_detail||{}).method==='zdecay_v2';
+  const _fxV2Label='ForexFactory surprise z-score · 90d window · 20d half-life';
+  const _fxV2Note=`<div style="margin-top:8px;padding:7px 9px;border-radius:6px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);font-size:9.5px;line-height:1.45;color:var(--dim)">
+    <b style="color:var(--text);font-weight:600">How this is scored.</b> Every release is compared with consensus and standardised against that indicator's own surprise history (&sigma;), then decayed with a 20-day half-life over a 90-day window. Growth 40% &middot; Jobs 35% &middot; Inflation 25%; hot inflation counts as currency-bullish (hawkish central bank). The pair score is the gap between the two currencies' composite z (&plusmn;0.24 neutral, &plusmn;0.60 strong). Central-bank decisions are shown for context only &mdash; they carried no directional edge in the 2022-26 backtest.
+  </div>`;
+  // Signal tag: BEAT/MISS with z magnitude when available
+  const _fxSigTag=(item)=>{
+    const sc=item.score??0; const z=item.z;
+    const zt=(z!=null&&isFinite(z))?` ${z>=0?'+':''}${Number(z).toFixed(1)}&sigma;`:'';
+    if(sc==null||sc===0)return `<span class="ind-tag ind-tag-n">LINE${zt}</span>`;
+    if(sc>0)return `<span class="ind-tag ind-tag-b">BEAT${zt}</span>`;
+    return `<span class="ind-tag ind-tag-m">MISS${zt}</span>`;
+  };
+  // Row opacity from decay weight (older prints fade)
+  const _fxRowStyle=(item)=>(item.weight!=null)?`opacity:${(0.45+0.55*Math.max(0,Math.min(1,item.weight))).toFixed(2)}`:'';
+  const _fxDate=(item)=>item.date?`<span style="font-size:8px;color:var(--faint);margin-left:5px;font-family:var(--mono)">${String(item.date).slice(5)}</span>`:'';
   const fxDetail=detail.fx_detail||null;
   const isFX=m.category==='fx';
   const isCross=m.category==='fx_cross';
@@ -38660,7 +38677,7 @@ function macroTab(m){
       // Determine data source for the foreign currency
       const _fgnSource=(_ffMacroOuter[fgn.currency]||{}).source||'fred';
       const _fgnIsFF=_fgnSource==='ff_injected';
-      const _fgnSrcLabel=_fgnIsFF?'ForexFactory — 16w actual vs forecast':'FRED / official data';
+      const _fgnSrcLabel=_fxV2?_fxV2Label:(_fgnIsFF?'ForexFactory — 16w actual vs forecast':'FRED / official data');
       const _fgnSrcBadge=_fgnIsFF
         ?`<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:3px;background:rgba(92,158,255,0.12);border:1px solid rgba(92,158,255,0.25);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:#5c9eff;text-transform:uppercase;margin-left:6px">FF</span>`
         :`<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:3px;background:rgba(200,169,110,0.10);border:1px solid rgba(200,169,110,0.20);font-size:7.5px;font-weight:700;letter-spacing:0.06em;color:rgba(200,169,110,0.75);text-transform:uppercase;margin-left:6px">FRED</span>`;
@@ -38688,8 +38705,9 @@ function macroTab(m){
         <div class="fx-diff-result">
           <span class="fx-diff-result-lbl">Net differential:</span>
           <span class="fx-diff-result-val" style="color:${diffCol}">${diff>=0?'+':''}${diff.toFixed(2)}</span>
-          <span class="fx-diff-result-dir" style="color:${diffCol}">${diff>0.3?'Bullish '+fgn.currency:diff<-0.3?'Bearish '+fgn.currency:'Neutral'}</span>
+          <span class="fx-diff-result-dir" style="color:${diffCol}">${_fxV2?((detail.fx_detail.pair_gap_z!=null?`z-gap ${detail.fx_detail.pair_gap_z>=0?'+':''}${Number(detail.fx_detail.pair_gap_z).toFixed(2)} · `:'')+(detail.fx_detail.pair_label||'Neutral')):(diff>0.3?'Bullish '+fgn.currency:diff<-0.3?'Bearish '+fgn.currency:'Neutral')}</span>
         </div>
+        ${_fxV2?_fxV2Note:''}
       </div>`;
 
       // Per-category breakdown for both currencies
@@ -38769,12 +38787,12 @@ function macroTab(m){
           for(const item of allItems){
             const sc=item.score??0;
             const nameCol=sc>0?'var(--text)':sc<0?'var(--dim)':'var(--dim)';
-            html+=`<div class="ind-row">
-              <span class="ind-name" style="color:${nameCol}">${item.name||'—'}</span>
+            html+=`<div class="ind-row" style="${_fxRowStyle(item)}">
+              <span class="ind-name" style="color:${nameCol}">${item.name||'—'}${_fxDate(item)}</span>
               <span class="ind-val" style="color:${sc>0?'#22c97a':sc<0?'#e03a2a':'var(--dim)'}">${item.actual||'—'}</span>
               <span class="ind-fc">${item.forecast||'—'}</span>
               <span class="ind-prev">${item.previous||'—'}</span>
-              ${scoreTag(sc)}
+              ${_fxSigTag(item)}
               <span class="ind-ccy" style="color:${item.side===fgnCur?fgnCol:'#5a6480'}">${item.side}</span>
             </div>`;
           }
@@ -38964,8 +38982,8 @@ function macroTab(m){
     const ffMacro=DATA.ff_macro||{};
     const baseFull=ffMacro[baseCur]||{};
     const quoteFull=ffMacro[quoteCur]||{};
-    const baseCats=baseFull.cat_avg||{};
-    const quoteCats=quoteFull.cat_avg||{};
+    const baseCats=baseFull.cats||baseFull.cat_avg||{};
+    const quoteCats=quoteFull.cats||quoteFull.cat_avg||{};
     const baseCatDet=baseFull.cat_details||{};
     const quoteCatDet=quoteFull.cat_details||{};
 
@@ -38988,7 +39006,7 @@ function macroTab(m){
     const _baseIsFF=_baseSource==='ff_injected';
     const _quoteIsFF=_quoteSource==='ff_injected';
     // Source label: show FF if both legs are FF, or call out individually
-    const _crossSrcLabel=(_baseIsFF&&_quoteIsFF)
+    const _crossSrcLabel=_fxV2?_fxV2Label:(_baseIsFF&&_quoteIsFF)
       ?'ForexFactory — 16w actual vs forecast'
       :(_baseIsFF||_quoteIsFF)
         ?`${_baseIsFF?baseCur:'FRED'} via FF / ${_quoteIsFF?quoteCur:'FRED'} via FF`
@@ -39027,9 +39045,10 @@ function macroTab(m){
       html+=`<div class="fx-diff-result">
         <span class="fx-diff-result-lbl">Net differential:</span>
         <span class="fx-diff-result-val" style="color:${diffCol}">${diff>=0?'+':''}${diff.toFixed(1)}</span>
-        <span class="fx-diff-result-dir" style="color:${diffCol}">${diff>0.3?'Bullish '+baseCur:diff<-0.3?'Bearish '+baseCur:'Neutral'}</span>
+        <span class="fx-diff-result-dir" style="color:${diffCol}">${_fxV2?((detail.fx_detail.pair_gap_z!=null?`z-gap ${detail.fx_detail.pair_gap_z>=0?'+':''}${Number(detail.fx_detail.pair_gap_z).toFixed(2)} · `:'')+(detail.fx_detail.pair_label||'Neutral')):(diff>0.3?'Bullish '+baseCur:diff<-0.3?'Bearish '+baseCur:'Neutral')}</span>
       </div>`;
     }
+    if(_fxV2)html+=_fxV2Note;
     html+=`</div>`;
 
     // ── COMPOSITE SCORE ──
@@ -39091,12 +39110,12 @@ function macroTab(m){
           <div class="ind-head"><span>Release</span><span>Actual</span><span>Forecast</span><span>Prev</span><span>Signal</span></div>`;
         for(const item of items){
           const sc=item.score??0;
-          out+=`<div class="ind-row">
-            <span class="ind-name" style="color:${sc>0?'var(--text)':'var(--dim)'}">${item.name||'&mdash;'}</span>
+          out+=`<div class="ind-row" style="${_fxRowStyle(item)}">
+            <span class="ind-name" style="color:${sc>0?'var(--text)':'var(--dim)'}">${item.name||'&mdash;'}${_fxDate(item)}</span>
             <span class="ind-val" style="color:${sc>0?'#22c97a':sc<0?'#e03a2a':'var(--dim)'}">${item.actual||'&mdash;'}</span>
             <span class="ind-fc">${item.forecast||'&mdash;'}</span>
             <span class="ind-prev">${item.previous||'&mdash;'}</span>
-            ${scoreTag(sc)}
+            ${_fxSigTag(item)}
           </div>`;
         }
         out+=`</div>`;
