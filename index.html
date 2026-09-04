@@ -38671,9 +38671,15 @@ function macroTab(m){
 
     // Header: differential bar
     if(fgn){
-      const fgnCol=diffHex(fgn.score||0);
-      const diff=(fgn.score||0)-(usd.score||0);
-      const diffCol=diffHex(diff);
+      // v2: display legs in surprise-z units (bar full scale ±0.6σ, colour at z/0.3); legacy: centred score ±2
+      const _fgnV=_fxV2?Number(fgn.z||0):(fgn.score||0);
+      const _usdV=_fxV2?Number(usd.z||0):(usd.score||0);
+      const _barMax=_fxV2?0.6:2, _colDiv=_fxV2?0.3:1;
+      const _fmtV=(v)=>`${v>=0?'+':''}${v.toFixed(2)}${_fxV2?'&sigma;':''}`;
+      const fgnCol=diffHex(_fgnV/_colDiv);
+      const _usdColV2=diffHex(_usdV/_colDiv);
+      const diff=_fgnV-_usdV;
+      const diffCol=diffHex(diff/_colDiv);
       // Determine data source for the foreign currency
       const _fgnSource=(_ffMacroOuter[fgn.currency]||{}).source||'fred';
       const _fgnIsFF=_fgnSource==='ff_injected';
@@ -38688,24 +38694,24 @@ function macroTab(m){
           <div class="fx-diff-bar-row">
             <span class="fx-diff-lbl">${fgn.currency}</span>
             <div class="fx-diff-bar-wrap">
-              ${diffBarFill(fgn.score||0)}
+              ${diffBarFill(_fgnV,_barMax)}
               <div class="fx-diff-center"></div>
             </div>
-            <span class="fx-diff-val" style="color:${fgnCol}">${(fgn.score||0)>=0?'+':''}${(fgn.score||0).toFixed(2)}</span>
+            <span class="fx-diff-val" style="color:${fgnCol}">${_fmtV(_fgnV)}</span>
           </div>
           <div class="fx-diff-bar-row">
             <span class="fx-diff-lbl">USD</span>
             <div class="fx-diff-bar-wrap">
-              ${diffBarFill(usd.score||0)}
+              ${diffBarFill(_usdV,_barMax)}
               <div class="fx-diff-center"></div>
             </div>
-            <span class="fx-diff-val" style="color:${usdCol}">${(usd.score||0)>=0?'+':''}${(usd.score||0).toFixed(2)}</span>
+            <span class="fx-diff-val" style="color:${_usdColV2}">${_fmtV(_usdV)}</span>
           </div>
         </div>
         <div class="fx-diff-result">
-          <span class="fx-diff-result-lbl">Net differential:</span>
-          <span class="fx-diff-result-val" style="color:${diffCol}">${diff>=0?'+':''}${diff.toFixed(2)}</span>
-          <span class="fx-diff-result-dir" style="color:${diffCol}">${_fxV2?((detail.fx_detail.pair_gap_z!=null?`z-gap ${detail.fx_detail.pair_gap_z>=0?'+':''}${Number(detail.fx_detail.pair_gap_z).toFixed(2)} · `:'')+(detail.fx_detail.pair_label||'Neutral')):(diff>0.3?'Bullish '+fgn.currency:diff<-0.3?'Bearish '+fgn.currency:'Neutral')}</span>
+          <span class="fx-diff-result-lbl">${_fxV2?'Surprise z-gap:':'Net differential:'}</span>
+          <span class="fx-diff-result-val" style="color:${diffCol}">${_fmtV(diff)}</span>
+          <span class="fx-diff-result-dir" style="color:${diffCol}">${_fxV2?(detail.fx_detail.pair_label||'Neutral'):(diff>0.3?'Bullish '+fgn.currency:diff<-0.3?'Bearish '+fgn.currency:'Neutral')}</span>
         </div>
         ${_fxV2?_fxV2Note:''}
       </div>`;
@@ -38993,12 +38999,17 @@ function macroTab(m){
     const baseScoreRaw =baseFull.score!=null?baseFull.score:(rp?parseFloat(rp[2]):null);   // 0-10 scale
     const quoteScoreRaw=quoteFull.score!=null?quoteFull.score:(rp?parseFloat(rp[4]):null); // 0-10 scale
     // Centre on 5 for bar/colour display (-5..+5 range)
-    const baseScore =baseScoreRaw!=null?baseScoreRaw-5:null;
-    const quoteScore=quoteScoreRaw!=null?quoteScoreRaw-5:null;
+    // v2: legs shown in surprise-z units (bar full scale ±0.6σ, colour at z/0.3); legacy: centred score /2.5
+    const _bz=(ffMacro[baseCur]||{}).z, _qz=(ffMacro[quoteCur]||{}).z;
+    const _v2x=_fxV2&&_bz!=null&&_qz!=null;
+    const baseScore =_v2x?Number(_bz):(baseScoreRaw!=null?baseScoreRaw-5:null);
+    const quoteScore=_v2x?Number(_qz):(quoteScoreRaw!=null?quoteScoreRaw-5:null);
     const diff=baseScore!=null&&quoteScore!=null?baseScore-quoteScore:null;
-    const baseCol =baseScore!=null?diffHex(baseScore/2.5):'#7a8ab0';   // /2.5 to map ±5→±2 for colour
-    const quoteCol=quoteScore!=null?diffHex(quoteScore/2.5):'#7a8ab0';
-    const diffCol =diff!=null?diffHex(diff/2.5):'#7a8ab0';
+    const _xDiv=_v2x?0.3:2.5, _xBarDiv=_v2x?0.3:2.5, _xBarMax=_v2x?2:2;   // z/0.3 → ±2 bar scale ≙ ±0.6σ
+    const _xFmt=(v)=>_v2x?`${v>=0?'+':''}${v.toFixed(2)}&sigma;`:v.toFixed(1);
+    const baseCol =baseScore!=null?diffHex(baseScore/_xDiv):'#7a8ab0';
+    const quoteCol=quoteScore!=null?diffHex(quoteScore/_xDiv):'#7a8ab0';
+    const diffCol =diff!=null?diffHex(diff/_xDiv):'#7a8ab0';
 
     // Determine sources for each cross leg
     const _baseSource=(ffMacro[baseCur]||{}).source||'fred';
@@ -39024,28 +39035,28 @@ function macroTab(m){
       html+=`<div class="fx-diff-bar-row">
         <span class="fx-diff-lbl">${baseCur}</span>
         <div class="fx-diff-bar-wrap">
-          ${diffBarFill(baseScore/2.5)}
+          ${diffBarFill(baseScore/_xBarDiv,_xBarMax)}
           <div class="fx-diff-center"></div>
         </div>
-        <span class="fx-diff-val" style="color:${baseCol}">${baseScoreRaw.toFixed(1)}</span>
+        <span class="fx-diff-val" style="color:${baseCol}">${_v2x?_xFmt(baseScore):baseScoreRaw.toFixed(1)}</span>
       </div>`;
     }
     if(quoteScore!=null){
       html+=`<div class="fx-diff-bar-row">
         <span class="fx-diff-lbl">${quoteCur}</span>
         <div class="fx-diff-bar-wrap">
-          ${diffBarFill(quoteScore/2.5)}
+          ${diffBarFill(quoteScore/_xBarDiv,_xBarMax)}
           <div class="fx-diff-center"></div>
         </div>
-        <span class="fx-diff-val" style="color:${quoteCol}">${quoteScoreRaw.toFixed(1)}</span>
+        <span class="fx-diff-val" style="color:${quoteCol}">${_v2x?_xFmt(quoteScore):quoteScoreRaw.toFixed(1)}</span>
       </div>`;
     }
     html+=`</div>`;
     if(diff!=null){
       html+=`<div class="fx-diff-result">
-        <span class="fx-diff-result-lbl">Net differential:</span>
-        <span class="fx-diff-result-val" style="color:${diffCol}">${diff>=0?'+':''}${diff.toFixed(1)}</span>
-        <span class="fx-diff-result-dir" style="color:${diffCol}">${_fxV2?((detail.fx_detail.pair_gap_z!=null?`z-gap ${detail.fx_detail.pair_gap_z>=0?'+':''}${Number(detail.fx_detail.pair_gap_z).toFixed(2)} · `:'')+(detail.fx_detail.pair_label||'Neutral')):(diff>0.3?'Bullish '+baseCur:diff<-0.3?'Bearish '+baseCur:'Neutral')}</span>
+        <span class="fx-diff-result-lbl">${_v2x?'Surprise z-gap:':'Net differential:'}</span>
+        <span class="fx-diff-result-val" style="color:${diffCol}">${_v2x?_xFmt(diff):(diff>=0?'+':'')+diff.toFixed(1)}</span>
+        <span class="fx-diff-result-dir" style="color:${diffCol}">${_fxV2?(detail.fx_detail.pair_label||'Neutral'):(diff>0.3?'Bullish '+baseCur:diff<-0.3?'Bearish '+baseCur:'Neutral')}</span>
       </div>`;
     }
     if(_fxV2)html+=_fxV2Note;
