@@ -13695,6 +13695,19 @@ async def get_seasonality_lab(
         print(f"[seas lab] goldilocks exc: {_ge}", flush=True)
         _gold = None
 
+    # SEAS-v3: the Lab head grade MUST be the same grade that dampens the
+    # headline score (the tab shows it as A/B/C/D). The legacy Lab-only grade
+    # (full-year S/N + 60-TD consistency) is kept under "legacy" for reference
+    # but is no longer surfaced as the headline reliability.
+    try:
+        if _gold and _gold.get("reliability_grade"):
+            reliability = dict(reliability)
+            reliability["legacy"] = {k: reliability.get(k) for k in ("grade", "score", "sn", "consistency")}
+            reliability["grade"] = _gold["reliability_grade"]
+            reliability["source"] = "scorer"
+    except Exception:
+        pass
+
     return _SafeJSONResponse({
         "market": m,
         "years": years,

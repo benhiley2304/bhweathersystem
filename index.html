@@ -43833,8 +43833,9 @@ function _labV2RenderHead(){
   const d=_labData;
   if(!d||!d.reliability)return;
   const g=d.reliability.grade||'D', gEl=document.getElementById('lab-v2-grade');
-  const label={A:'Very reliable',B:'Reliable',C:'Fair signal',D:'Weak signal'}[g]||'—';
+  const label=(seasGradeMeta(g).label||'—')+(d.reliability.source==='scorer'?' · same grade as the score card':'');
   gEl.innerHTML = `<div class="grade-badge g-${g}">${g}</div><div class="grade-txt"><b>Reliability</b><span>${label} · ${d.reliability.n} yrs</span></div>`;
+  gEl.title = seasGradeMeta(g).plain||'';
   const tag=document.getElementById('lab-v2-tag');
   tag.className='lab-v2-tag class-'+(_labV2.assetClass||'all_years');
   document.getElementById('lab-v2-tag-label').textContent=_labV2.assetTag||'—';
