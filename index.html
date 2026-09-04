@@ -39257,7 +39257,7 @@ function macroTab(m){
     SI: (sc) => sc>6?'Silver benefits from both legs: industrial demand (GDP/Mfg PMI) is strong, AND cool inflation data is supportive of the precious metal component via real yield compression. Cool PPI is particularly potent (lower input costs + disinflation).':sc<4?'Silver headwinds: industrial demand signals are weak and/or real yields are rising (bearish precious leg). Strong NFP or hot CPI = dual bearish via hawkish expectations.':'Silver macro mixed — industrial demand (59%) and real yield signal (precious 41%) need to be assessed separately for full picture.',
     PL: (sc) => sc>6?'Auto production and industrial demand signals are positive — a tailwind for platinum catalytic converter demand. Note: this score is attenuated (0.80x) because platinum\'s primary demand driver — EU diesel auto catalysts (65% of PL demand) — is not directly scored here. US macro is a reasonable proxy for global growth sentiment, but EU-specific diesel demand trends should be monitored separately.':sc<4?'Industrial and auto demand signals are weak, and/or USD strength is a headwind for this USD-priced metal. Important caveat: EU diesel demand (65% of PL demand) is the dominant driver — EU economic data and EU auto production figures carry more weight than US macro alone for platinum.':'Platinum macro is neutral. Critical context: EU diesel demand (65% of demand) is the real driver — the macro score captures US macro signals only, attenuated to reflect this limitation. Monitor EU auto production and ECB policy separately.',
     PA: (sc) => sc>6?'Gasoline auto demand signals are positive — supporting palladium catalytic converter consumption. PA is 80-85% gasoline engine catalysts; strong consumer jobs (NFP) and manufacturing activity are the primary near-term demand signals. Note the structural long-term headwind: EV adoption is a secular bear for palladium (EVs use zero palladium in their drivetrains). The macro score captures cyclical demand; EV penetration rate is the structural override.':sc<4?'Consumer demand signals are weakening — fewer vehicle purchases = less gasoline catalytic converter demand = bearish PA. Also watch for EV adoption acceleration as a structural compounding headwind.':'Palladium macro is neutral. Watch NFP and retail spending as the cleanest auto purchasing power proxies. Structural note: EVs contain zero palladium — each percentage point of EV penetration is a structural headwind for palladium demand.',
-    HG: (sc) => sc>6?'Manufacturing and growth signals are strongly supportive of copper demand. Key context: China consumes 50-55% of global copper supply, so US Mfg PMI acts as a reasonable proxy for global industrial activity, but watch Chinese PMI data separately for the purest copper signal. EV structural tailwind: each electric vehicle uses 4x more copper than a conventional vehicle. Dollar benign = no USD headwind.':sc<4?'Growth slowdown or dollar strength is the primary copper headwind. China slowdown risk is most impactful — US Mfg PMI weakness is often a leading indicator. Dollar strength (via rising 2Y yield) compounds the headwind as a USD-priced commodity. LME stocks building faster than usual confirms a loosening physical market.':'Copper fundamentals mixed. US growth (30%), China data vs consensus (20%) and LME stock changes (15%) are the three physical-demand inputs; DGS2 is the USD channel. Watch the China Demand and LME Stocks rows below for the purest copper-specific signal.',
+    HG: (sc) => sc>6?'Manufacturing and growth signals are strongly supportive of copper demand. Key context: China consumes 50-55% of global copper supply, so US Mfg PMI acts as a reasonable proxy for global industrial activity, but watch Chinese PMI data separately for the purest copper signal. EV structural tailwind: each electric vehicle uses 4x more copper than a conventional vehicle. Dollar benign = no USD headwind.':sc<4?'Growth slowdown or dollar strength is the primary copper headwind. China slowdown risk is most impactful — US Mfg PMI weakness is often a leading indicator. Dollar strength (via rising 2Y yield) compounds the headwind as a USD-priced commodity. LME stocks building faster than usual confirms a loosening physical market.':'Copper fundamentals mixed. US growth (35%) and the 5-day LME warehouse flow (20%) are the two physical-demand inputs; DGS2 is the USD channel. China prints vs consensus are shown below for context (the expectancy audit found no copper edge in them, so they are not scored).',
     CL: (sc) => sc>6?'Demand signals are positive and/or EIA weekly stock changes are printing tighter than consensus (draws vs expected builds), with the dollar benign — supportive fundamental backdrop for crude.':sc<4?'Dollar strength, growth slowdown and/or EIA inventories building faster than consensus are headwinds for crude.':'Oil fundamentals neutral — EIA weekly inventories vs consensus (25%) and USD direction are the key real-time inputs.',
     B:  (sc) => sc>6?'Demand-side signals and dollar backdrop are supportive for Brent. Geopolitical premium is an additional unscored support.':sc<4?'Dollar strength or demand concerns are weighing on Brent. OPEC+ supply decisions are the dominant non-macro factor.':'Brent macro neutral — USD direction and economic demand signals are balanced.',
     GO: (sc) => sc>6?'European industrial demand signals and a benign dollar backdrop are supportive for Gas Oil. Diesel crack spread positive.':sc<4?'Weak European demand signals or dollar strength are headwinds for Gas Oil.':'Gas Oil macro neutral — European economic data and USD are the primary macro inputs.',
@@ -39447,18 +39447,16 @@ function macroTab(m){
       rates:'Rising 2Y yield = BEARISH — USD stronger (commodity headwind) AND higher auto financing costs (dampens vehicle sales). Both channels bearish for PA simultaneously.'
     }},
     // ── Metals / Industrial ─────────────────────────────────────────────────
-    HG: {cats:['growth','china','jobs','supply','rates','inflation'], ratesSign:-1, inflSign:-1, explain:{
+    HG: {cats:['growth','supply','jobs','rates','inflation'], ratesSign:-1, inflSign:-1, explain:{
       growth:'GDP/Mfg PMI beat = BULLISH — copper demand (Dr. Copper is the purest leading economic indicator). US growth is scored here; China is scored separately below.',
-      china:'China data beat vs consensus = BULLISH — China consumes 50-55% of global copper. Scored on the latest NBS + RatingDog PMIs, industrial production, fixed-asset investment and retail sales, each actual-vs-forecast (20% weight).',
       jobs:'Strong NFP = BULLISH — US industrial/construction activity and consumer durables demand. Secondary demand confirmation.',
-      supply:'LME warehouse stocks rising = BEARISH — visible inventory building means the physical market is loosening. Scored on the 20-day cumulative change in LME copper stocks vs its own history (15% weight); single-day flows are shown but carry no weight.',
+      supply:'LME warehouse stocks rising = BEARISH — visible inventory building means the physical market is loosening. Scored on the net LME copper flow over the last 5 trading days vs its own 3-year history (20% weight). The 2023–26 expectancy audit found this is the one supply input with a measurable 1–4 week edge for copper (hit ~59%); China prints vs consensus did not and are shown as context only.',
       inflation:'Hot CPI = BEARISH — Fed hawkishness = USD strengthens = headwind for USD-priced copper. High inflation also squeezes manufacturer margins, reducing copper-intensive capex.',
       rates:'Rising 2Y yield = BEARISH — dollar strengthens, creating a currency translation headwind for this USD-denominated commodity. The 2Y yield direction is the primary macro driver after Mfg PMI.'
     }},
     // ── Energy ──────────────────────────────────────────────────────────────
-    CL: {cats:['growth','supply','rates','jobs','inflation'], ratesSign:-1, inflSign:1, explain:{
+    CL: {cats:['growth','rates','jobs','inflation'], ratesSign:-1, inflSign:1, explain:{
       growth:'GDP/PMI beat = BULLISH — global energy demand growth. The primary macro driver for crude.',
-      supply:'EIA weekly build bigger than consensus = BEARISH; draw bigger than consensus = BULLISH. Blend of crude (60%), gasoline (20%) and distillate (20%) stock changes, recency-weighted over the last 4 weeks (25% weight).',
       inflation:'Hot CPI = mildly BULLISH — energy is a direct inflation input; hot prints usually reflect (and reinforce) commodity price momentum.',
       rates:'Rising 2Y yield = BEARISH — USD strengthens, creating a headwind for this dollar-denominated commodity. Higher financing costs also reduce energy capex.',
       jobs:'Strong employment = BULLISH — commuting, industrial energy consumption, and economic activity all drive demand baseline.'
@@ -39473,22 +39471,19 @@ function macroTab(m){
       rates:'Rising 2Y yield = BEARISH — USD strengthens = dominant macro headwind for this dollar-priced refined product.',
       inflation:'Hot CPI = BEARISH (via USD) — more aggressive Fed/global CB response strengthens dollar, raising European import costs.'
     }},
-    NG: {cats:['supply','growth','rates','inflation'], ratesSign:-1, inflSign:1, explain:{
+    NG: {cats:['growth','rates','inflation'], ratesSign:-1, inflSign:1, explain:{
       growth:'Industrial/power demand = BULLISH — Mfg PMI beats = higher energy consumption. The macro demand backdrop is the secondary fundamental input behind storage.',
-      supply:'EIA weekly storage injection bigger than consensus = BEARISH; smaller injection / bigger withdrawal = BULLISH. The DOMINANT NG-specific signal (45% weight), recency-weighted over the last 4 weekly reports.',
       inflation:'Hot CPI = mildly BULLISH — energy is a direct inflation input. Weak channel for NG given its localised North American pricing.',
       rates:'Rising 2Y yield = BEARISH (mild) — USD strength creates a marginal headwind. Far weaker than crude\'s dollar sensitivity given NG\'s more localised North American pricing.'
     }},
-    RB: {cats:['growth','supply','rates','inflation','jobs'], ratesSign:-1, inflSign:1, explain:{
+    RB: {cats:['growth','rates','inflation','jobs'], ratesSign:-1, inflSign:1, explain:{
       growth:'Consumer driving demand = BULLISH — retail sales and GDP beat drive gasoline consumption.',
-      supply:'EIA weekly build bigger than consensus = BEARISH; draw bigger than consensus = BULLISH. Blend weighted to gasoline stocks (60%) with crude (40%), recency-weighted over 4 weeks (25% weight).',
       rates:'Rising 2Y yield = BEARISH — USD strengthens = dominant macro headwind for dollar-priced refined products.',
       inflation:'Hot CPI = BEARISH (via USD) — hawkish Fed strengthens dollar, pressuring USD-denominated refined products.',
       jobs:'Strong employment = BULLISH — commuting demand directly drives gasoline consumption.'
     }},
-    HO: {cats:['growth','supply','rates','inflation','jobs'], ratesSign:-1, inflSign:1, explain:{
+    HO: {cats:['growth','rates','inflation','jobs'], ratesSign:-1, inflSign:1, explain:{
       growth:'Industrial/heating demand = BULLISH — Mfg PMI and GDP beat drive heating oil consumption.',
-      supply:'EIA weekly build bigger than consensus = BEARISH; draw bigger than consensus = BULLISH. Blend weighted to distillate stocks (60%) with crude (40%), recency-weighted over 4 weeks (25% weight).',
       jobs:'Strong employment = BULLISH — industrial and freight activity drive distillate demand.',
       rates:'Rising 2Y yield = BEARISH — USD strengthens = headwind for this dollar-priced energy product.',
       inflation:'Hot CPI = BEARISH (via USD) — hawkish Fed response strengthens dollar, pressuring USD-denominated commodities.'
@@ -39650,7 +39645,7 @@ function macroTab(m){
     if(_cat === 'growth')    return _raw * (_amc.growthSign ??  1);
     return _raw; // supply / china — sign already correct in cats[]
   };
-  const _catName = (_cat) => _cat==='supply' ? (m.id==='HG' ? 'LME Stocks' : m.id==='NG' ? 'EIA Storage' : 'EIA Inventories') : _cat==='china' ? 'China Demand' : _cat==='rates' ? 'Rates (2Y)' : cap(_cat);
+  const _catName = (_cat) => _cat==='supply' ? (m.id==='HG' ? 'LME Flow (5d)' : m.id==='NG' ? 'EIA Storage' : 'EIA Inventories') : _cat==='china' ? 'China Demand' : _cat==='rates' ? 'Rates (2Y)' : cap(_cat);
 
   // Sort by absolute value descending (most impactful driver first)
   const _amcCats = (_amc.cats || []).slice().sort((_ca,_cb)=>{
@@ -39738,8 +39733,11 @@ function macroTab(m){
   // `tag` describing the print itself (BUILD vs FC / DRAW vs FC / BEAT / MISS...).
   const _sup = detail.supply;
   if(_sup && Array.isArray(_sup.rows) && _sup.rows.length){
-    html+=`<div class="sec-h" style="display:flex;align-items:center;gap:6px;margin-top:14px">${_sup.title||'Supply / Demand Releases'} <span style="font-size:8px;font-weight:400;color:var(--dim);letter-spacing:0.02em">(actual vs consensus)</span></div>`;
-    html+=`<div style="font-size:8px;color:var(--faint);margin:-2px 0 5px 1px">Colour = direction for ${m.name}: <span style="color:#22c97a">▲ bullish</span> · <span style="color:#e03a2a">▼ bearish</span> · tag describes the print itself</div>`;
+    // AUDIT 2026-09-04: scored=false -> the table is situational context only (EIA weekly
+    // surprises / China prints showed no 1-4 week expectancy) and says so up front.
+    const _supScored = _sup.scored !== false;
+    html+=`<div class="sec-h" style="display:flex;align-items:center;gap:6px;margin-top:14px">${_sup.title||'Supply / Demand Releases'} <span style="font-size:8px;font-weight:${_supScored?400:700};color:${_supScored?'var(--dim)':'#c9a227'};letter-spacing:0.02em">${_supScored?'(actual vs consensus)':'(context only — not scored)'}</span></div>`;
+    html+=`<div style="font-size:8px;color:var(--faint);margin:-2px 0 5px 1px">Colour = ${_supScored?'direction':'implied direction'} for ${m.name}: <span style="color:#22c97a">▲ bullish</span> · <span style="color:#e03a2a">▼ bearish</span> · tag describes the print itself${_supScored?'':' · no weight in the composite'}</div>`;
     html+=`<div class="comp-list-hdr"><span>Release</span><span>Actual</span><span>Forecast</span><span>Result</span></div>`;
     html+=`<div class="comp-list">`;
     for(const r of _sup.rows){

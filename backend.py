@@ -6490,9 +6490,22 @@ def compute_macro_all() -> dict:
 # explainable weights, sigma noise floors. No narrative reports, no rig counts
 # (forecast == previous placeholder, no 1-4 week expectancy), no USDA/softs
 # (no free consensus) -> those markets remain macro-only and say so in the UI.
+#
+# EXPECTANCY AUDIT (2026-09-04, 170 weeks of prints x CL/RB/HO/NG/HG closes):
+#   * EIA weekly inventory / storage SURPRISES move price on the release day
+#     (day-0 IC 0.08-0.34, correct sign) but carry NO 1-4 week expectancy:
+#     directional edge -1..+1bp/wk, hit 48-53%, t < 1, sign flips by year.
+#     -> weight set to 0. Tables stay in the UI as CONTEXT (scored=False).
+#   * China prints vs consensus: no HG expectancy (composite IC -0.05, hit
+#     0.37-0.48); IP surprise is even inverse. -> weight 0, context only.
+#   * LME copper flow: the 5-day net warehouse flow DOES carry HG expectancy
+#     (IC -0.12/-0.14/-0.15 at 1/2/4w, non-overlapping weekly n=158, hit 0.59,
+#     t 1.3/2.0/2.6; negative IC every year 2023-26). The old 20-day window
+#     was weaker and unstable. -> window 20 -> 5 days, weight 15% -> 20%.
 # ============================================================
 _SUPPLY_STORE_PATH    = os.path.join(DATA_DIR, "supply_event_store.json")
 _SUPPLY_STORE_MAX_DAYS = 300          # LME z-score needs ~26w of daily prints
+_LME_WINDOW           = 5            # trading days of net LME flow that are scored (audit: 5d > 20d)
 _SUPPLY_CACHE         = {"data": None, "time": 0}
 _SUPPLY_CACHE_TTL     = 1800
 
@@ -6504,7 +6517,7 @@ _SUPPLY_SPECS = {
     "gasoline":   ("EIA Gasoline Inventories",    "M bbl", 1.5e6,  False, "surprise"),
     "distillate": ("EIA Distillate Inventories",  "M bbl", 2.0e6,  False, "surprise"),
     "ng_storage": ("EIA Natural Gas Storage",     "Bcf",   5.0e9,  False, "surprise"),
-    "lme_copper": ("LME Copper Stocks (20-day change)", "t", 60000.0, False, "stock_change"),
+    "lme_copper": ("LME Copper Stocks (5-day net flow)", "t", 12000.0, False, "stock_change"),
     # China demand-side growth prints (consensus available on metalsmine)
     "cn_pmi_mfg":    ("China NBS Manufacturing PMI",   "",  0.4, True, "surprise"),
     "cn_pmi_nonmfg": ("China Non-Manufacturing PMI",   "",  0.5, True, "surprise"),
@@ -6623,15 +6636,16 @@ def compute_supply_signals() -> dict:
                 comb = 0.0
             series[k] = {"title": title, "unit": unit, "kind": kind, "score": round(comb, 2),
                          "n": len(rel), "latest": rel[-1] if rel else None, "releases": rel[-8:]}
-        else:  # stock_change — LME copper: z-score the trailing 20-print cumulative change
+        else:  # stock_change — LME copper: z-score the trailing 5-print net flow (AUDIT 2026-09-04)
             ch = [(_parse_ff_value(e.get("actual")), e) for e in rows]
             ch = [(v, e) for v, e in ch if v is not None]
             vals = [v for v, _ in ch]
-            cum20 = [sum(vals[i - 20:i]) for i in range(20, len(vals) + 1)]
+            W = _LME_WINDOW
+            cum20 = [sum(vals[i - W:i]) for i in range(W, len(vals) + 1)]
             latest_cum = cum20[-1] if cum20 else None
-            # scale: use the empirical sd of trailing 20-day changes when we have
-            # enough history, else the calibrated default (60kt from 30w sample)
-            if len(cum20) >= 30:
+            # scale: empirical sd of trailing 5-day flows when we have enough
+            # history, else the calibrated default (12kt = 3y sd, 2023-26)
+            if len(cum20) >= 60:
                 _mu = sum(cum20) / len(cum20)
                 _sd = (sum((c - _mu) ** 2 for c in cum20) / len(cum20)) ** 0.5
                 scale_eff = max(scale * 0.5, _sd) if _sd else scale
@@ -6646,15 +6660,15 @@ def compute_supply_signals() -> dict:
                             "previous": e.get("previous") or "—", "actual_v": v, "forecast_v": None,
                             "surprise": None, "score": 1 if v > 0 else -1 if v < 0 else 0,
                             "tag": "INFLOW" if v > 0 else "OUTFLOW" if v < 0 else "FLAT"})
-            cum_tag = ("BIG STOCK BUILD" if sc >= 2 else "STOCK BUILD" if sc == 1 else
-                       "BIG STOCK DRAW" if sc <= -2 else "STOCK DRAW" if sc == -1 else "IN RANGE")
+            cum_tag = ("BIG 5D BUILD" if sc >= 2 else "5D BUILD" if sc == 1 else
+                       "BIG 5D DRAW" if sc <= -2 else "5D DRAW" if sc == -1 else "5D IN RANGE")
             series[k] = {"title": title, "unit": unit, "kind": kind, "score": round(cont, 2),
-                         "bucket": sc, "n": len(vals), "cum20": latest_cum, "scale": round(scale_eff),
+                         "bucket": sc, "n": len(vals), "cum": latest_cum, "window": W, "scale": round(scale_eff),
                          "cum_tag": cum_tag,
                          "latest": rel[-1] if rel else None, "releases": rel,
                          "cum_row": ({"title": title, "dateline": ch[-1][1].get("dateline"),
                                       "actual": _fmt_supply_val(latest_cum, "t"),
-                                      "forecast": f"±{scale_eff/1000:.0f}kt 1σ", "previous": "—",
+                                      "forecast": f"±{scale_eff/1000:.0f}kt 1σ", "previous": "—", "scored": True,
                                       "surprise": None, "score": sc, "tag": cum_tag}
                                      if latest_cum is not None else None)}
 
@@ -6894,80 +6908,89 @@ def get_macro_score_for_market(market_id: str, macro: dict, ff_macro: dict = Non
 
     # ── Oil family (CL, B, GO, HO, RB) ─────────────────────────────────────
     elif m in ("CL", "B", "GO", "HO", "RB"):
-        # SUPPLY 2026-09-04: real EIA weekly inventory surprises (actual vs consensus,
-        # energyexch.com via inject_supply.py). Data-space score: + = bigger build
-        # than forecast -> BEARISH for the commodity, so sign = -1. Product blend
-        # tilts to the product each contract actually is.
+        # SUPPLY 2026-09-04 / EXPECTANCY AUDIT: real EIA weekly inventory surprises
+        # are fetched and SHOWN, but carry 0 weight — 170 weeks of prints show
+        # the surprise is fully absorbed on release day (day-0 IC 0.08-0.20)
+        # with no 1-4 week directional edge (hit 48-54%, |t| < 1, sign unstable
+        # by year; the blended driver was -IC on RB). Composite is macro-only.
         _sup = compute_supply_signals()
-        _ss  = lambda k: (_sup["series"].get(k) or {}).get("score", 0.0) or 0.0
         if m == "HO" or m == "GO":
             _blend = {"crude": 0.40, "distillate": 0.60}
         elif m == "RB":
             _blend = {"crude": 0.40, "gasoline": 0.60}
         else:
             _blend = {"crude": 0.60, "gasoline": 0.20, "distillate": 0.20}
-        eia_s = sum(_ss(k) * w for k, w in _blend.items())
-        raw = growth_s2 * 0.30 - eia_s * 0.25 + infl_avg * 0.15 + jobs_s * 0.15 - dgs2_s * 0.15
-        _drv("Growth", growth_s2, 0.30, +1); _drv("EIA Inventories", eia_s, 0.25, -1)
-        _drv("Inflation", infl_avg, 0.15, +1); _drv("Jobs", jobs_s, 0.15, +1)
-        _drv("Rates (2Y)", dgs2_s, 0.15, -1)
+        raw = growth_s2 * 0.35 + infl_avg * 0.20 + jobs_s * 0.20 - dgs2_s * 0.25
+        _drv("Growth", growth_s2, 0.35, +1); _drv("Inflation", infl_avg, 0.20, +1)
+        _drv("Jobs", jobs_s, 0.20, +1); _drv("Rates (2Y)", dgs2_s, 0.25, -1)
         reason = _reason_from_drivers()
         _supply_detail = {
             "title": "EIA Weekly Inventories",
+            "scored": False,
             "blend": _blend,
             "rows": _supply_rows(_sup, list(_blend.keys()), {k: -1 for k in _blend}),
-            "note": ("Weekly EIA prints scored on actual minus consensus (1σ: crude 4.0M, gasoline 1.5M, "
-                     "distillate 2.0M bbl; inside ±0.4σ = noise). Last 4 weeks blended 40/30/20/10 (latest first). "
-                     "A build bigger than forecast is bearish, a draw bigger than forecast is bullish."),
+            "note": ("Context only — not in the composite. Weekly EIA prints vs consensus (1σ: crude 4.0M, "
+                     "gasoline 1.5M, distillate 2.0M bbl; inside ±0.4σ = noise). Colour shows the direction the "
+                     "print implies for the commodity (build bigger than forecast = bearish). Expectancy audit "
+                     "(170 weekly prints, 2023–26): the surprise is priced on release day and carries no 1–4 week "
+                     "edge (hit 48–54%), so it is displayed for situational awareness rather than scored."),
         }
 
     # ── Natural Gas (NG) ───────────────────────────────────────────────────
     elif m == "NG":
-        # SUPPLY 2026-09-04: real EIA storage surprise (Bcf vs consensus). Injection
-        # larger than forecast = bearish (sign -1). Weight cut from a dead 50% to 45%.
+        # SUPPLY 2026-09-04 / EXPECTANCY AUDIT: EIA storage surprise is the
+        # cleanest release-day mover in the set (day-0 IC 0.34, ±2 buckets move
+        # NG ~±2% on the day) but has no 1-4 week expectancy (hit 48-53%,
+        # |t| < 1.0, sign flips by year) -> weight 45% -> 0, shown as context.
         _sup = compute_supply_signals()
-        ng_s = (_sup["series"].get("ng_storage") or {}).get("score", 0.0) or 0.0
-        raw = -ng_s * 0.45 + growth_s2 * 0.20 - dgs2_s * 0.20 + infl_avg * 0.15
-        _drv("EIA Storage", ng_s, 0.45, -1); _drv("Growth", growth_s2, 0.20, +1)
-        _drv("Rates (2Y)", dgs2_s, 0.20, -1); _drv("Inflation", infl_avg, 0.15, +1)
+        raw = growth_s2 * 0.40 - dgs2_s * 0.35 + infl_avg * 0.25
+        _drv("Growth", growth_s2, 0.40, +1); _drv("Rates (2Y)", dgs2_s, 0.35, -1)
+        _drv("Inflation", infl_avg, 0.25, +1)
         reason = _reason_from_drivers()
         _supply_detail = {
             "title": "EIA Weekly Storage",
+            "scored": False,
             "rows": _supply_rows(_sup, ["ng_storage"], {"ng_storage": -1}),
-            "note": ("Weekly EIA storage change scored on actual minus consensus (1σ = 5 Bcf; inside ±2 Bcf = noise, "
-                     "beyond ±7.5 Bcf = strong). Last 4 weeks blended 40/30/20/10. An injection larger than "
-                     "forecast (or a smaller withdrawal) is bearish; the reverse is bullish. Weather remains "
-                     "the dominant non-scored driver."),
+            "note": ("Context only — not in the composite. Weekly EIA storage change vs consensus (1σ = 5 Bcf; "
+                     "inside ±2 Bcf = noise, beyond ±7.5 Bcf = strong). An injection larger than forecast is "
+                     "bearish on the day, the reverse bullish. Expectancy audit (170 weekly prints, 2023–26): "
+                     "the reaction is complete by the close and there is no 1–4 week edge (hit 48–53%), so the "
+                     "print is displayed, not scored. Weather and the storage level vs the 5-year average remain "
+                     "the dominant non-scored drivers."),
         }
 
     # ── Copper (HG) ────────────────────────────────────────────────────────
     # Hot CPI → Fed hikes → USD stronger → copper (USD-priced) headwind.
-    # Growth is the dominant driver (50%). Both inflation and rates are bearish via USD channel.
     elif m == "HG":
-        # SUPPLY 2026-09-04: (a) China demand — consensus-scored NBS/RatingDog PMIs,
-        # IP, FAI, retail sales (China = ~55% of refined copper demand); (b) LME
-        # copper stocks — trailing 20-day cumulative change z-scored vs history
-        # (no consensus exists, so a level-change z-score replaces the surprise).
-        # US Growth trimmed 50 -> 30 to make room; weights stay small and explainable.
+        # SUPPLY 2026-09-04 / EXPECTANCY AUDIT: (a) LME copper stocks — the
+        # trailing 5-DAY net warehouse flow z-scored vs history is the one
+        # supply input with measurable 1-4 week HG expectancy (IC -0.12/-0.14/
+        # -0.15, hit 0.59, negative IC every year 2023-26) -> weight 20%.
+        # (b) China prints vs consensus showed no HG expectancy (composite
+        # IC -0.05, hit 0.37-0.48) -> weight 0, shown as context.
         _sup = compute_supply_signals()
-        cn_s  = _sup.get("cn_growth")
-        cn_s  = cn_s if cn_s is not None else 0.0
         lme_s = (_sup["series"].get("lme_copper") or {}).get("score", 0.0) or 0.0
-        raw = (growth_s2 * 0.30 + cn_s * 0.20 + jobs_s * 0.15 - lme_s * 0.15
-               - dgs2_s * 0.12 - infl_avg * 0.08)
-        _drv("Growth", growth_s2, 0.30, +1); _drv("China Demand", cn_s, 0.20, +1)
-        _drv("Jobs", jobs_s, 0.15, +1); _drv("LME Stocks", lme_s, 0.15, -1)
-        _drv("Rates (2Y)", dgs2_s, 0.12, -1); _drv("Inflation", infl_avg, 0.08, -1)
+        raw = (growth_s2 * 0.35 - lme_s * 0.20 + jobs_s * 0.15
+               - dgs2_s * 0.15 - infl_avg * 0.15)
+        _drv("Growth", growth_s2, 0.35, +1); _drv("LME Flow (5d)", lme_s, 0.20, -1)
+        _drv("Jobs", jobs_s, 0.15, +1)
+        _drv("Rates (2Y)", dgs2_s, 0.15, -1); _drv("Inflation", infl_avg, 0.15, -1)
         reason = _reason_from_drivers()
         _cn_sign = {k: +1 for k in _CN_GROWTH_KEYS}
+        _cn_rows = []
+        for k in _CN_GROWTH_KEYS:
+            for r in _supply_rows(_sup, [k], _cn_sign)[:1]:
+                r = dict(r); r["minor"] = True; _cn_rows.append(r)
         _supply_detail = {
-            "title": "China Demand + LME Stocks",
-            "rows": _supply_rows(_sup, ["lme_copper"], {"lme_copper": -1})
-                    + [r for k in _CN_GROWTH_KEYS for r in _supply_rows(_sup, [k], _cn_sign)[:1]],
-            "note": ("China prints scored on actual minus consensus (1σ: NBS PMI 0.4, RatingDog PMI 0.8, IP 0.8pp, "
-                     "FAI 1.5pp, retail 0.9pp), latest print of each series within 45 days averaged. LME stocks: "
-                     "trailing 20-day cumulative change vs its own history (1σ ≈ 60kt) — a draw is bullish, "
-                     "a build is bearish. No consensus exists for LME stocks so this is a level signal, not a surprise."),
+            "title": "LME Stocks + China Demand",
+            "scored": True,
+            "rows": _supply_rows(_sup, ["lme_copper"], {"lme_copper": -1}) + _cn_rows,
+            "note": ("LME stocks (scored, 20%): net LME warehouse flow over the last 5 trading days vs its own "
+                     "3-year history (1σ ≈ 12kt) — a draw is bullish, a build is bearish. No consensus exists, so "
+                     "this is a flow signal, not a surprise. Expectancy audit (2023–26): 5-day flow carries a "
+                     "1–4 week edge (hit 59%); the previous 20-day window did not. China prints (context only, "
+                     "not scored): latest NBS/RatingDog PMIs, IP, FAI and retail sales vs consensus — the audit "
+                     "found no copper expectancy from these surprises, so they are shown for awareness."),
         }
 
     # ── Soft Commodities / Agri ───────────────────────────────────────────
@@ -18451,7 +18474,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-04-supply-b"
+BUILD_ID = "2026-09-04-supply-c"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
