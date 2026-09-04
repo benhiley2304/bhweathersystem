@@ -38139,7 +38139,7 @@ function seasTabStub(m){
       const _immMed=d.imm_median_pct, _immHit=d.imm_hit_rate;
       const _immClause=(_immMed!=null)?`Next 1–2 weeks: median <strong style="color:${_immMed>=0?'var(--s1)':'var(--sm1)'}">${(_immMed>=0?'+':'')+_immMed.toFixed(2)}%</strong>${_immHit!=null?` (${_immHit}% hit)`:''}. `:'';
       const _planClause=(d.plan_action==='wait'&&d.plan_dir&&d.entry_in_td!=null&&d.expected_move_pct!=null)
-        ?` Planner: <strong style="color:${d.plan_dir>0?'var(--s1)':'var(--sm1)'}">${d.plan_dir>0?'long':'short'} setup building</strong> — entry in ~${d.entry_in_td} TD, ${(d.expected_move_pct>=0?'+':'')+(+d.expected_move_pct).toFixed(2)}% median leg.`
+        ?` Planner: <strong style="color:${d.plan_dir>0?'var(--s1)':'var(--sm1)'}">${d.plan_dir>0?'long':'short'} ${(+d.entry_in_td<=3)?'entry zone opening':'setup building'}</strong> — ${(+d.entry_in_td<=3)?`within ~${d.entry_in_td} TD`:`entry in ~${d.entry_in_td} TD`}, ${(d.expected_move_pct>=0?'+':'')+(+d.expected_move_pct).toFixed(2)}% median leg.`
         :(d.plan_action==='enter_now'&&d.plan_dir&&d.expected_move_pct!=null)
         ?` Planner: <strong style="color:${d.plan_dir>0?'var(--s1)':'var(--sm1)'}">${d.plan_dir>0?'long':'short'} window is open now</strong> — ${(d.expected_move_pct>=0?'+':'')+(+d.expected_move_pct).toFixed(2)}% median leg.`:'';
       return `${_immClause}Next 3–4 weeks: rose in <strong style="color:var(--text)">${nPos} of ${nY} years</strong> (${hr}% weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>${trimClause}. Verdict: ${verdict}.${_planClause}${_shapeTail}`;
