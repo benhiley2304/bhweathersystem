@@ -37687,12 +37687,15 @@ function seasGoldilocks(opts){
 
   // Favourable leg end: opposite turn after the entry, else curve extremum within 45 TD
   let legEndTd=null;
-  { const iT=idxOf(tTd), i2=idxOf(Math.min(252,tTd+45));
+  // SEAS-V3b: the curve-read leg may not run past the 6-week swing horizon
+  // (Ben: "anything beyond six weeks isn't really relevant").
+  { const _cap=Math.min(252,tTd+45,todayTD+30);
+    const iT=idxOf(tTd), i2=idxOf(Math.max(tTd,_cap));
     let bi=iT;
     for(let i=iT;i<=i2;i++){ if(dir>0?sm[i]>sm[bi]:sm[i]<sm[bi])bi=i; }
     legEndTd=tds[bi];
     const opp=turns.filter(t=>t.type!==wantType&&t.td>tTd+2).sort((a,b)=>a.td-b.td)[0];
-    if(opp&&opp.td<=tTd+50)legEndTd=opp.td;
+    if(opp&&opp.td<=_cap)legEndTd=opp.td;
   }
   const vT=vAt(tTd), vE=vAt(legEndTd);
   let legMove=(vT!=null&&vE!=null)?(vE-vT)*dir:null;           // % available from the ideal entry
