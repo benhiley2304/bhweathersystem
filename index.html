@@ -37685,7 +37685,23 @@ function seasGoldilocks(opts){
     if(opp&&opp.td<=tTd+50)legEndTd=opp.td;
   }
   const vT=vAt(tTd), vE=vAt(legEndTd);
-  const legMove=(vT!=null&&vE!=null)?(vE-vT)*dir:null;         // % available from the ideal entry
+  let legMove=(vT!=null&&vE!=null)?(vE-vT)*dir:null;           // % available from the ideal entry
+  let legSrc='curve';
+  // SEAS-V3: when the backend swing planner has a leg for this side, the card
+  // quotes THAT leg (exit day, per-year median move, per-year leg win rate) —
+  // the same numbers the narrative and the Seasonality Lab print. The chart-
+  // curve read above is only the fallback; reading a leg off the median PATH
+  // gives a different (usually smaller) move than the per-year window returns.
+  try{
+    const pl=sd.planner||sd.plan||null;
+    const side=pl?(dir>0?(pl.long||pl.bull):(pl.short||pl.bear)):null;
+    if(src==='backend'&&side&&side.exit_in_td!=null&&side.expected_move_pct!=null){
+      legEndTd=Math.max(1,Math.min(252,todayTD+Math.round(+side.exit_in_td)));
+      legMove=Math.abs(+side.expected_move_pct);
+      if(side.leg_win_rate!=null&&!isNaN(+side.leg_win_rate))cons=Math.round(+side.leg_win_rate*100);
+      legSrc='planner';
+    }
+  }catch(e){}
   const remMove=(vE!=null&&now!=null)?(vE-now)*dir:null;       // % still available from today
   const capture=(legMove!=null&&legMove>0.05)?Math.max(0,Math.min(1.6,remMove/legMove)):null;
   const dTd=tTd-todayTD;
@@ -37720,7 +37736,7 @@ function seasGoldilocks(opts){
     legEndTd, legEndLabel:months?tdPhase(legEndTd,months):'',
     nextTd, nextLabel:(nextTd&&months)?tdPhase(nextTd,months):'',
     tdsAway:dTd, weeks:Math.max(1,Math.round(Math.abs(dTd)/5)),
-    legMove, remMove, capture,
+    legMove, remMove, capture, legSrc,
     hitRate:sd.hit_rate??null, medianPct:sd.median_pct??sd.slope_pct??null
   };
 }
@@ -37770,7 +37786,7 @@ function seasGoldilocksHTML(g,sd){
     tag='WAIT '+g.tdsAway+' D';tagCol='#c8a96e';tagRgb='200,169,110';
     big=g.tdsAway+'d';bigSub='~'+g.weeks+' wk to entry';
     head=`Almost ready seasonally — ${g.tdsAway} trading days to goldilocks entry`;
-    body=`History ${g.dir>0?'bottoms':'tops'} around <strong>${g.targetLabel}</strong>, then ${runWord} <strong style="color:${accent}">${pc(priceLeg)}</strong> (median) into <strong>${g.legEndLabel}</strong>${g.consistency!=null?` — the turn held in <strong>${g.consistency}%</strong> of years`:''}. If everything else is onside you can pre-position, but the clean seasonal ${dirWord} entry is <strong>~${g.weeks} week${g.weeks===1?'':'s'}</strong> away.${caveat}`;
+    body=`History ${g.dir>0?'bottoms':'tops'} around <strong>${g.targetLabel}</strong>, then ${runWord} <strong style="color:${accent}">${pc(priceLeg)}</strong> (median) into <strong>${g.legEndLabel}</strong>${g.consistency!=null?` — ${g.legSrc==='planner'?'the leg paid in':'the turn held in'} <strong>${g.consistency}%</strong> of years`:''}. If everything else is onside you can pre-position, but the clean seasonal ${dirWord} entry is <strong>~${g.weeks} week${g.weeks===1?'':'s'}</strong> away.${caveat}`;
   } else if(g.state==='now'){
     tag='ENTER NOW';tagCol=accent;tagRgb=rgb;
     big='NOW';bigSub='zone open';

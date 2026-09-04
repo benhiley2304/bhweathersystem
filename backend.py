@@ -13655,6 +13655,7 @@ async def get_seasonality_lab(
     # advice. Sourced from the SAME _seas_window_stats the headline score uses,
     # so the Lab cannot contradict the score card.
     _gold = None
+    _ws2 = None
     try:
         _ws2 = _seas_window_stats(m, _today)
         if _ws2:
@@ -13694,6 +13695,25 @@ async def get_seasonality_lab(
     except Exception as _ge:
         print(f"[seas lab] goldilocks exc: {_ge}", flush=True)
         _gold = None
+
+    # SEAS-v3: when the Lab is on the DEFAULT blend (no user dial-in), its
+    # planner must be the score card's RECONCILED planner (entry re-anchored to
+    # the goldilocks scan), otherwise the Lab callout quotes a different entry
+    # day / expected move / leg win rate than the Seasonal tab for the same
+    # setup. Only when the user changes cycle_w / halflife does the Lab fall
+    # back to its own blend-specific planner.
+    try:
+        _is_default_blend = (abs(float(eff_cycle_w) - float(default_blend["cycle_w"])) < 1e-9
+                             and abs(float(eff_halflife) - float(default_blend["halflife"])) < 1e-9
+                             and not detrend)
+        if _is_default_blend and _ws2 and isinstance(_ws2.get("planner"), dict):
+            _planner = dict(_ws2["planner"])
+            _planner["source"] = "score_card_reconciled"
+        elif _planner is not None:
+            _planner = dict(_planner)
+            _planner["source"] = "lab_blend"
+    except Exception as _pse:
+        print(f"[seas lab] planner sync exc: {_pse}", flush=True)
 
     # SEAS-v3: the Lab head grade MUST be the same grade that dampens the
     # headline score (the tab shows it as A/B/C/D). The legacy Lab-only grade
