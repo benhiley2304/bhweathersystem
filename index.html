@@ -37588,16 +37588,16 @@ function seasShapeMeta(shape,farScore){
     const building=s.indexOf('building')>=0;
     return {key:'confirmed',label:building?'Confirmed · building':'Confirmed',
       col:farScore==null?'#8a93a8':farScore>=6?'#22c97a':farScore<=4?'#e03a2a':'#8a93a8',
-      plain:'The 6–8 week window points the same way as the next 3–4 weeks. The seasonal leg has room to run past the swing horizon.'};
+      plain:'The weeks 4–8 window points the same way as the swing windows. The seasonal leg has room to run past the swing horizon.'};
   }
   if(s==='fading') return {key:'fading',label:'Fading',col:'#e03a2a',
-    plain:'The near window is still favourable but the 6–8 week window reverses — a seasonal peak sits just ahead. Late entries get caught in the turn.'};
+    plain:'The swing windows are still favourable but weeks 4–8 reverse — a seasonal peak sits beyond the swing horizon. Late entries get caught in the turn.'};
   if(s==='rising') return {key:'rising',label:'Rising',col:'#22c97a',
-    plain:'The near window is soft but the 6–8 week window turns up — a seasonal trough sits just ahead. The setup is building, not gone.'};
+    plain:'The swing windows are soft but weeks 4–8 turn up — a seasonal trough sits beyond the swing horizon. Position context only; the planner tells you when the next leg starts.'};
   if(s==='far-only') return {key:'far-only',label:'Far-only',col:'#c8a96e',
-    plain:'Nothing to trade in the next few weeks; the historical move sits 6–8 weeks out. Watch, do not chase.'};
+    plain:'Nothing to trade in the swing windows; the historical move sits 4–8 weeks out. Watch, do not chase.'};
   if(s==='near-only') return {key:'near-only',label:'Near-only',col:'#c8a96e',
-    plain:'The edge is in the next 3–4 weeks only — the longer window is flat. Fine for a swing, not for a position hold.'};
+    plain:'The edge is in the swing windows only — weeks 4–8 are flat. Fine for a swing, not for a position hold.'};
   return {key:'flat',label:'Flat',col:'#8a93a8',plain:'No meaningful shape either side of the near window.'};
 }
 
@@ -37608,11 +37608,14 @@ function seasBiasDir(sd){
   // against: 'fading' = near bull / far bear -> the tradeable event is a peak, so
   // the setup is a short. 'rising' = the mirror. This keeps the banner consistent
   // with the FADING / RISING chip instead of arguing with it.
+  // SEAS-V3: the backend swing planner is the single authority on which leg
+  // is next (it is computed on the same lens as the score). Shape is fallback.
+  if(typeof sd.plan_dir==='number'&&sd.plan_dir!==0&&(sd.plan_action==='wait'||sd.plan_action==='enter_now'))return sd.plan_dir>0?1:-1;
+  const s=+sd.score;
+  if(!isNaN(s)&&sd.score!=null){ if(s>=5.6)return 1; if(s<=4.4)return -1; }
   const sh=sd.seas_shape||'';
   if(sh==='fading')return -1;
   if(sh==='rising')return 1;
-  const s=+sd.score;
-  if(!isNaN(s)&&sd.score!=null){ if(s>=5.6)return 1; if(s<=4.4)return -1; }
   const near=sd.median_pct??sd.slope_pct, far=sd.far_median_pct;
   const blend=(near!=null?0.45*near:0)+(far!=null?0.55*far:0);
   if(Math.abs(blend)<0.15)return 0;
@@ -37833,9 +37836,11 @@ function seasWindowStripHTML(sd){
   };
   const sm=seasShapeMeta(sd.seas_shape,sd.far_score);
   const shapeChip=`<div class="sx-win-shape" style="color:${sm.col};border-color:${sm.col}44;background:${sm.col}14"
-      onclick="sxTip(this,event)" data-tip="${_sxEsc(sm.plain)}" data-tip-title="Far window: ${_sxEsc(sm.label)}">
-      ${sm.key==='fading'?'▼':sm.key==='rising'?'▲':''} ${sm.label.toUpperCase()}${sd.far_score!=null?' · '+(+sd.far_score).toFixed(1):''}</div>`;
-  const t0=sd.horizon_td_start??sd.td_start, t1=sd.horizon_td_end??sd.td_end;
+      onclick="sxTip(this,event)" data-tip="${_sxEsc(sm.plain)} This is context for position management only — the far window never moves the headline score (v3)." data-tip-title="Far window context: ${_sxEsc(sm.label)}">
+      ${sm.key==='fading'?'▼':sm.key==='rising'?'▲':''} ${sm.label.toUpperCase()}${sd.far_score!=null?' · '+(+sd.far_score).toFixed(1):''} <span style="opacity:.6;font-weight:500">context</span></div>`;
+  // SEAS-V3: swing card = the real 20-TD window end (td_end, else horizon_td_end);
+  // the immediate card uses td_imm_end (10 TD); the far card runs from t1 to td_far_end.
+  const t0=sd.horizon_td_start??sd.td_start, t1=sd.td_end??sd.horizon_td_end;
   const nearLbl=t0!=null?`TD ${t0}→${t1}`:'';
   const farLbl=sd.td_far_end!=null?`TD ${t1}→${sd.td_far_end}`:'';
   // AUDIT-SEAS-DETAIL: the backend also publishes the immediate 1–2 week read
@@ -37848,7 +37853,7 @@ function seasWindowStripHTML(sd){
     ${immCell}
     ${cell(hasImm?'Swing window':'Near window','3–4 weeks · '+nearLbl,sd.median_pct??sd.slope_pct,sd.hit_rate,
       sd.trimmed_median_pct!=null?`<div class="sx-win-m">trimmed ${pc(sd.trimmed_median_pct)} · ${sd.n_pos!=null?sd.n_pos+'/'+sd.n_years+' yrs up':''}</div>`:'')}
-    ${cell('Far window','6–8 weeks · '+farLbl,sd.far_median_pct,sd.far_hit_rate,shapeChip)}
+    ${cell('Far window','weeks 4–8 · context · '+farLbl,sd.far_median_pct,sd.far_hit_rate,shapeChip)}
   </div>`;
 }
 
@@ -37926,48 +37931,54 @@ function seasConsensusHTML(c,dirOverride){
   if(!c||!c.cells||!c.cells.length)return '';
   const CYC={midterm:'Midterm',election:'Election',pre_election:'Pre-elec',post_election:'Post-elec'};
   const rows=[['all','All years'],['cycle',(CYC[c.cycle_key]||'Cycle')+' yrs'],['blend','Smart blend']];
-  const cols=[['near','1-2W'],['mid','3W'],['far','4W']];
+  // SEAS-V3: column labels come from the backend so the grid can never claim a
+  // horizon it did not compute (near=10 TD≈2W, mid=15≈3W, far=20≈4W).
+  const HL=c.horizon_labels||{};
+  const cols=[['near',HL.near||'2W'],['mid',HL.mid||'3W'],['far',HL.far||'4W']];
   // The Lab drives this off its Long/Short toggle; the detail tab passes the
-  // direction the seasonal setup implies so the grid never argues with the banner.
+  // direction the seasonal setup implies. The side only changes the LEGEND —
+  // every cell always shows the PRICE move with a truthful glyph and colour
+  // (green ▲ = price up, red ▼ = price down). No sign flipping, ever.
   const isShort=dirOverride?dirOverride==='short':(_labV2&&_labV2.dir==='short');
-  const sideTxt=isShort?'short':'long';
   const badgeCls={high:'cb-high',medium:'cb-medium',low:'cb-low',conflict:'cb-conflict'}[c.conviction]||'cb-low';
-  const badgeTxt={high:'HIGH CONVICTION',medium:'MEDIUM',low:'LOW CONVICTION',conflict:'CONFLICT'}[c.conviction]||'LOW';
+  const badgeTxt={high:'HIGH AGREEMENT',medium:'MEDIUM',low:'LOW AGREEMENT',conflict:'CONFLICT'}[c.conviction]||'LOW';
   const agree=c.agreement_pct!=null?(' · '+c.agreement_pct+'%'):'';
   // AUDIT-SEAS-R2-FRONTEND: same lens stamp the donut and callout print.
   const lensStamp=(typeof _labV2!=='undefined'&&_labV2&&_labV2.shape&&!dirOverride)?_labV2LensStamp(null):'';
+  const fmt=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
   let grid='<span class="ch"></span>'+cols.map(x=>'<span class="ch">'+x[1]+'</span>').join('');
   for(const [lk,ll] of rows){
     grid+='<span class="cl">'+ll+'</span>';
     for(const [hk] of cols){
       const cell=c.cells.find(x=>x.lens===lk&&x.h===hk);
-      if(!cell||cell.dir===0){
-        const fm=(cell&&cell.med!=null)?(isShort?-cell.med:cell.med):null;
-        grid+='<span class="cc cc-flat" title="'+(fm!=null?('median '+(fm>=0?'+':'')+fm.toFixed(1)+'% '+sideTxt+' · n='+cell.n):'insufficient sample')+'">–</span>';
+      if(!cell||cell.med==null){
+        grid+='<span class="cc cc-flat" title="insufficient sample">–</span>';
+      }else if(cell.dir===0){
+        // Weak / mixed: still print the number so the grid has no blank holes,
+        // just muted — the lens did not clear the directional bar.
+        grid+='<span class="cc cc-flat" title="weak read · price median '+fmt(cell.med)+' · hit '+cell.hit+'% · n='+cell.n+'">'+(cell.med>=0?'▲':'▼')+'<span class="cm">'+fmt(cell.med)+'</span></span>';
       }else{
-        const up=cell.dir>0;                       // price direction (glyph stays truthful)
-        const fav=isShort?!up:up;                  // favourable for the side being traded
-        const mv=isShort?-cell.med:cell.med;       // value in the side's P&L
-        const hitSide=isShort?(100-cell.hit):cell.hit;
-        grid+='<span class="cc '+(fav?'cc-up':'cc-dn')+'" title="price '+(up?'up':'down')+' · '+sideTxt+' hit '+hitSide+'% · n='+cell.n+'">'+(up?'▲':'▼')+'<span class="cm">'+(mv>=0?'+':'')+mv.toFixed(1)+'%</span></span>';
+        const up=cell.dir>0;
+        grid+='<span class="cc '+(up?'cc-up':'cc-dn')+'" title="price '+(up?'up':'down')+' · median '+fmt(cell.med)+' · hit '+cell.hit+'% of years up · n='+cell.n+'">'+(up?'▲':'▼')+'<span class="cm">'+fmt(cell.med)+'</span></span>';
       }
     }
   }
   const lowRel=(c.cycle_relevance!=null&&c.cycle_relevance<0.5);
   const highNote=(c.conflicts>0&&lowRel)
-    ?'<b>All-years & smart-blend lenses agree</b> — cycle dissent carries low weight for '+(c.profile||'this asset').toLowerCase()+' assets — score amplified ×'+(+c.mult).toFixed(2)
-    :'<b>Cycle & all-years lenses agree</b> across horizons — seasonal score amplified ×'+(+c.mult).toFixed(2);
+    ?'<b>All-years & smart-blend lenses agree</b> — cycle dissent carries low weight for '+(c.profile||'this asset').toLowerCase()+' assets'
+    :'<b>Cycle & all-years lenses agree</b> across the 2–4 week horizons';
   const notes={
     high:highNote,
-    medium:'Lenses broadly agree — seasonal score unchanged',
-    low:'Weak or mixed seasonal signals — score pulled toward neutral ×'+(+c.mult).toFixed(2),
-    conflict:'<b>Cycle years oppose all-years</b> on multiple horizons — score dampened ×'+(+c.mult).toFixed(2)
+    medium:'Lenses broadly agree',
+    low:'Weak or mixed seasonal signals across lenses — treat the read with caution',
+    conflict:'<b>Cycle years oppose all-years</b> on multiple horizons — the seasonal read is unreliable this year'
   };
+  const ctx=(+(c.mult??1)===1)?' · context only, does not change the score':' · score ×'+(+c.mult).toFixed(2);
   return `<div class="lab-v2-cons">
     <div class="cons-head"><div class="t">Seasonal consensus<span class="cons-dir ${isShort?'d-short':'d-long'}">${isShort?'▼ short':'▲ long'}</span></div><span class="cons-badge ${badgeCls}">${badgeTxt}${agree}</span></div>
     <div class="cons-grid">${grid}</div>
-    <div class="cons-legend">${isShort?'▼ price falls = edge for shorts (green) · values shown as short P&amp;L':'▲ price rises = edge for longs (green) · values shown as long P&amp;L'}${lensStamp?' · '+lensStamp:''}</div>
-    <div class="cons-note">${notes[c.conviction]||''}</div>
+    <div class="cons-legend">${isShort?'cells = price move · <span style="color:#e03a2a">red ▼ price falls = favours shorts</span> · green ▲ works against a short':'cells = price move · <span style="color:#22c97a">green ▲ price rises = favours longs</span> · red ▼ works against a long'}${lensStamp?' · '+lensStamp:''}</div>
+    <div class="cons-note">${(notes[c.conviction]||'')+ctx}</div>
   </div>`;
 }
 
@@ -38039,10 +38050,13 @@ function seasTabStub(m){
     // A mid-band score on a rotating shape is NOT "no edge" — the two windows point
     // different ways, so the edge is a timing question. Say that instead.
     const _shp=d.seas_shape||'';
-    if(sc>4.2&&sc<6&&(_shp==='fading'||_shp==='rising')&&(grade==='A'||grade==='B')){
-      verdict = _shp==='rising'
-        ? `<strong style="color:#22c97a">edge is a timing call</strong> — soft now, turning up on the far window`
-        : `<strong style="color:#e03a2a">edge is a timing call</strong> — firm now, rolling over on the far window`;
+    const _L10=(typeof d.lean_10==='number')?d.lean_10:null, _L20=(typeof d.lean_20==='number')?d.lean_20:null;
+    const _v3split=(_L10!=null&&_L20!=null&&_L10*_L20<0&&Math.abs(_L10-_L20)>=2);
+    if(_v3split&&sc>4&&sc<6){
+      // SEAS-V3: the two swing windows disagree — that is a timing question, not "no edge"
+      verdict = _L10>0
+        ? `<strong style="color:#c8a96e">edge is a timing call</strong> — 1–2w leans up, 3–4w leans down${d.plan_action==='wait'&&d.plan_dir<0&&d.entry_in_td!=null?` (short setup in ~${d.entry_in_td} TD)`:''}`
+        : `<strong style="color:#c8a96e">edge is a timing call</strong> — 1–2w leans down, 3–4w leans up${d.plan_action==='wait'&&d.plan_dir>0&&d.entry_in_td!=null?` (long setup in ~${d.entry_in_td} TD)`:''}`;
     }
     // Downgrade verdict when reliability is poor (D grade) despite decent score
     else if(grade==='D' && (sc>=6 || sc<=4)){
@@ -38067,16 +38081,22 @@ function seasTabStub(m){
         const _fCol = _farS>=6?'var(--s1)':_farS<=4?'var(--sm1)':'var(--faint)';
         const _fmedStr = _farMed==null?'':(_farMed>=0?'+':'')+_farMed.toFixed(2)+'%';
         if(_shape==='fading'){
-          _shapeTail = ` Longer window (next 6–8w) <strong style="color:${_fCol}">reverses to ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong> — <strong style="color:var(--sm1)">near-term peak, fading edge</strong>; score dampened.`;
+          _shapeTail = ` Context (weeks 4–8, not scored): <strong style="color:${_fCol}">reverses to ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong> — a seasonal peak sits beyond the swing window.`;
         } else if(_shape==='rising'){
-          _shapeTail = ` Longer window (next 6–8w) <strong style="color:${_fCol}">turns to ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong> — <strong style="color:var(--s1)">setup building</strong>; score dampened.`;
+          _shapeTail = ` Context (weeks 4–8, not scored): <strong style="color:${_fCol}">turns to ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong> — a seasonal trough sits beyond the swing window.`;
         } else if(_shape && _shape.indexOf('confirmed')===0){
-          _shapeTail = ` Longer window (next 6–8w) <strong style="color:${_fCol}">confirms at ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong>.`;
+          _shapeTail = ` Context (weeks 4–8, not scored): <strong style="color:${_fCol}">confirms at ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong>.`;
         } else if(_shape==='far-only'){
-          _shapeTail = ` Near window is flat; the historical signal sits <strong style="color:${_fCol}">6–8 weeks out at ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong>.`;
+          _shapeTail = ` Swing windows are flat; the only historical signal sits <strong style="color:${_fCol}">4–8 weeks out at ${_farS.toFixed(1)}/10${_fmedStr?' ('+_fmedStr+' median)':''}</strong> — not scored.`;
         }
       }
-      return `Over the next 3–4 weeks this market rose in <strong style="color:var(--text)">${nPos} of the last ${nY} years</strong> (${hr}% cycle-weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>${trimClause}. Verdict: ${verdict}.${_shapeTail}`;
+      const _immMed=d.imm_median_pct, _immHit=d.imm_hit_rate;
+      const _immClause=(_immMed!=null)?`Next 1–2 weeks: median <strong style="color:${_immMed>=0?'var(--s1)':'var(--sm1)'}">${(_immMed>=0?'+':'')+_immMed.toFixed(2)}%</strong>${_immHit!=null?` (${_immHit}% hit)`:''}. `:'';
+      const _planClause=(d.plan_action==='wait'&&d.plan_dir&&d.entry_in_td!=null&&d.expected_move_pct!=null)
+        ?` Planner: <strong style="color:${d.plan_dir>0?'var(--s1)':'var(--sm1)'}">${d.plan_dir>0?'long':'short'} setup building</strong> — entry in ~${d.entry_in_td} TD, ${(d.expected_move_pct>=0?'+':'')+(+d.expected_move_pct).toFixed(2)}% median leg.`
+        :(d.plan_action==='enter_now'&&d.plan_dir&&d.expected_move_pct!=null)
+        ?` Planner: <strong style="color:${d.plan_dir>0?'var(--s1)':'var(--sm1)'}">${d.plan_dir>0?'long':'short'} window is open now</strong> — ${(d.expected_move_pct>=0?'+':'')+(+d.expected_move_pct).toFixed(2)}% median leg.`:'';
+      return `${_immClause}Next 3–4 weeks: rose in <strong style="color:var(--text)">${nPos} of ${nY} years</strong> (${hr}% weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>${trimClause}. Verdict: ${verdict}.${_planClause}${_shapeTail}`;
     }
     if(sc>=7.5) return `Seasonal window is <strong style="color:${col}">strongly bullish</strong> — historical tendency shows consistent gains over the next 3–4 weeks.`;
     if(sc>=6)   return `Seasonal window is <strong style="color:${col}">bullish</strong> — historical patterns lean positive over the current window.`;
@@ -38089,14 +38109,21 @@ function seasTabStub(m){
   // Which window actually drives the printed score? On fading/rising shapes the
   // backend rotates weight onto the far window, so showing the near median next
   // to a contradicting label reads like a bug. Show the driver, label the other.
+  // SEAS-V3: the headline is ONLY the 1–2w + 3–4w swing windows (one lens,
+  // 0.4/0.6 blend × reliability). The far window is context and never rotates
+  // into the number, so the driver row shows both swing medians honestly.
   const _shape = d.seas_shape||'';
-  const _rotated = (_shape==='fading'||_shape==='rising');
-  const drvMed = _rotated ? (d.far_median_pct??med) : med;
-  const drvLbl = _rotated ? 'far window (6–8w)' : 'near window (1–4w)';
+  const _rotated = false;
+  const _isV3 = d.seas_version===3;
+  const drvMed = med;
+  const _immMedD = d.imm_median_pct;
+  const drvLbl = _isV3 ? 'swing windows (1–4w) drive the score · far window is context' : 'near window (1–4w)';
   const drvArrow = drvMed==null?'':drvMed>=0?'▲':'▼';
-  const drvStr = drvMed==null?'—':(drvMed>=0?'+':'')+drvMed.toFixed(2)+'%';
-  const drvAccent = drvMed==null?'rgba(255,255,255,0.15)':drvMed>=0?'rgba(34,201,122,0.18)':'rgba(224,58,42,0.18)';
-  const drvTxt = drvMed==null?'var(--dim)':drvMed>=0?'var(--s1)':'var(--sm1)';
+  const _pcD=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
+  const drvStr = drvMed==null?'—':(_isV3&&_immMedD!=null)?`1–2w ${_immMedD>=0?'▲':'▼'} ${_pcD(_immMedD)} · 3–4w ${drvArrow} ${_pcD(drvMed)}`:_pcD(drvMed);
+  const _blendLean=(typeof d.lean_10==='number'&&typeof d.lean_20==='number')?0.4*d.lean_10+0.6*d.lean_20:(drvMed??0);
+  const drvAccent = drvMed==null?'rgba(255,255,255,0.15)':Math.abs(_blendLean)<0.5?'rgba(255,255,255,0.10)':_blendLean>=0?'rgba(34,201,122,0.18)':'rgba(224,58,42,0.18)';
+  const drvTxt = drvMed==null?'var(--dim)':Math.abs(_blendLean)<0.5?'var(--text)':_blendLean>=0?'var(--s1)':'var(--sm1)';
   const _shapeMeta = seasShapeMeta(_shape,d.far_score);
 
   const chips = [];
@@ -38109,21 +38136,22 @@ function seasTabStub(m){
     const M={high:['HIGH CONVICTION','#26c97a','rgba(38,201,122,0.12)'],medium:['MEDIUM','#c8a96e','rgba(200,169,110,0.12)'],low:['LOW CONVICTION','#8a93a8','rgba(255,255,255,0.05)'],conflict:['CYCLE CONFLICT','#f04040','rgba(240,64,64,0.12)']}[_cv];
     if(M){
       const ag=d.consensus.agreement_pct;
-      const plain={high:'All three lenses — this cycle\u2019s years, all years, and the smart blend — point the same way across the 1–4 week horizons. The score is amplified.',
-        medium:'The lenses broadly agree. The score is left as-is.',
-        low:'The lenses are weak or mixed, so the score is pulled back toward neutral.',
-        conflict:'This cycle\u2019s years disagree with the all-years read on multiple horizons, so the score is dampened. Only worry about it at extremes.'}[_cv];
+      const _cmult=+(d.consensus.mult??1);
+      const plain={high:'All three lenses — this cycle\u2019s years, all years, and the smart blend — point the same way across the 2–4 week horizons.',
+        medium:'The lenses broadly agree.',
+        low:'The lenses are weak or mixed — treat the seasonal read with caution.',
+        conflict:'This cycle\u2019s years disagree with the all-years read on multiple horizons. Only worry about it at extremes.'}[_cv];
       chips.push(`<span class="sx-chip sx-chip-tap" onclick="sxTip(this,event)"
         data-tip-title="Consensus — ${M[0]}${ag!=null?' · '+ag+'% agreement':''}"
-        data-tip="${_sxEsc(plain)} Score ×${(+d.consensus.mult).toFixed(2)}."
+        data-tip="${_sxEsc(plain)} ${_cmult===1?'Context only — it does not change the score (v3).':'Score ×'+_cmult.toFixed(2)+'.'}"
         style="color:${M[1]};background:${M[2]};border-color:${M[1]}44">${M[0]}${ag!=null?' · '+ag+'%':''}<span class="sx-chip-i">i</span></span>`);
     }
   }
   if(_shapeMeta.key!=='flat'||d.far_score!=null){
     chips.push(`<span class="sx-chip sx-chip-tap" onclick="sxTip(this,event)"
-      data-tip-title="Far window: ${_sxEsc(_shapeMeta.label)}"
-      data-tip="${_sxEsc(_shapeMeta.plain)}${d.far_score!=null?` The 6–8 week window scores ${(+d.far_score).toFixed(1)}/10.`:''}"
-      style="color:${_shapeMeta.col};background:${_shapeMeta.col}14;border-color:${_shapeMeta.col}44">${_shapeMeta.key==='fading'?'▼ ':_shapeMeta.key==='rising'?'▲ ':''}${_shapeMeta.label.toUpperCase()}<span class="sx-chip-i">i</span></span>`);
+      data-tip-title="Weeks 4–8 context: ${_sxEsc(_shapeMeta.label)}"
+      data-tip="${_sxEsc(_shapeMeta.plain)}${d.far_score!=null?` The weeks 4–8 window scores ${(+d.far_score).toFixed(1)}/10.`:''} Context for position management only — it never moves the headline score (v3)."
+      style="color:${_shapeMeta.col};background:${_shapeMeta.col}14;border-color:${_shapeMeta.col}44">${_shapeMeta.key==='fading'?'▼ ':_shapeMeta.key==='rising'?'▲ ':''}${_shapeMeta.label.toUpperCase()} <span style="opacity:.6;font-weight:500">4–8W</span><span class="sx-chip-i">i</span></span>`);
   }
   // SEAS-R4 (Fix 3): only show the political-cycle chip when the scoring
   // engine actually overweighted that cycle (cycle_w > 1.0). For supply-cycle
@@ -38153,7 +38181,7 @@ function seasTabStub(m){
     <div class="ss-content">
       <div class="ss-signal" style="color:${col}">${scoreLbl}</div>
       ${drvMed!=null?`<div class="ss-slope-row">
-        <span class="ss-slope-arrow" style="background:${drvAccent};color:${drvTxt}">${drvArrow} ${drvStr} median</span>
+        <span class="ss-slope-arrow" style="background:${drvAccent};color:${drvTxt}">${_isV3&&_immMedD!=null?drvStr:drvArrow+' '+drvStr}${_isV3&&_immMedD!=null?'':' median'}</span>
         <span class="sx-driver">${drvLbl} drives the score${hr!=null&&nY?` · ${nPos}/${nY} yrs up near`:''}</span>
       </div>`:`<div style="font-size:8.5px;color:var(--dim);margin-bottom:4px">Window-based estimate</div>`}
       <div class="ss-meta">Source: <strong>${nY?nY+' yrs ('+(d.years_span||'')+') · '+(d.weighting||'cycle + recency weighted'):'Seasonal window'}</strong></div>
@@ -43709,7 +43737,8 @@ function _labV2RenderCallout(){
   const pHold=plan&&plan.hold_td!=null?Math.round(+plan.hold_td):
     (pExitTd!=null&&pEntryTd!=null?Math.max(1,pExitTd-pEntryTd):pExitTd);
   const pTurn=plan?_labPlanTurnWord(plan,isShort):null;
-  const pLeg=[pMove!=null?`expected move <b>${pc(Math.abs(pMove)*(isShort?1:1))}</b>`:null,
+  // SEAS-V3: expected_move_pct is a signed PRICE move (negative for a short leg) — print it as such, never as |x| with a price glyph.
+  const pLeg=[pMove!=null?`expected price move <b style="color:${pMove>=0?'#22c97a':'#e03a2a'}">${pMove>=0?'▲':'▼'} ${pc(pMove)}</b>`:null,
               pWin!=null?`leg win rate <b>${pWin}%</b>`:null].filter(Boolean).join(' · ');
   const pEdge=pLeg?` ${pLeg[0].toUpperCase()+pLeg.slice(1)}.`:'';
 
@@ -44089,8 +44118,8 @@ function _labV2RenderWindowSidebar(){
   const upLbl = isShort ? 'down' : 'up';
   const dnLbl = isShort ? 'up' : 'down';
   // KPI labels flip on direction
-  const kMedian = isShort?'Median return (short P&L)':'Median return (long)';
-  const kMean   = isShort?'Mean return (short P&L)':'Mean return (long)';
+  const kMedian = isShort?'Median short P&L (+ = price fell)':'Median return (long)';
+  const kMean   = isShort?'Mean short P&L (+ = price fell)':'Mean return (long)';
   const kAvgG   = isShort?'Avg gain when price falls':'Avg gain (up years)';
   const kAvgL   = isShort?'Avg loss when price rises':'Avg loss (down years)';
   const kBest   = isShort?'Best year (biggest fall)':'Best year';
@@ -44115,9 +44144,10 @@ function _labV2RenderWindowSidebar(){
       <div class="info">
         <div class="win-title">Window</div>
         <div class="win-sub"><b>${winLbl}</b></div>
-        <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${upCount} ${upLbl} · ${dnCount} ${dnLbl}${tieCount?' · '+tieCount+' flat (excl.)':''}${raw.td_window?' · '+raw.td_window+' TD':''}</div>
+        <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${upCount} yrs price ${upLbl} · ${dnCount} yrs price ${dnLbl}${tieCount?' · '+tieCount+' flat (excl.)':''}${raw.td_window?' · '+raw.td_window+' TD':''}</div>
         <div class="win-lens">${_labV2LensStamp(us)}</div>
         ${us?`<div class="win-raw">${_labV2RawStamp(us)}</div>`:''}
+        <div class="win-raw" style="margin-top:3px;opacity:.75">KPIs = per-year window returns · chart path = median of price levels each day — the two can differ in choppy windows; trade off the KPIs.</div>
       </div>
     </div>
     ${_labV2EntryStripHTML()}
@@ -44163,7 +44193,8 @@ function _labV2EntryStripHTML(){
     const span=Math.max(1,sh.we-sh.ws);
     const p0=Math.max(2,Math.min(98,100*(sh.td+eIn-sh.ws)/span));
     const p1=Math.max(p0,Math.min(98,100*(sh.td+(xIn!=null?xIn:eIn)-sh.ws)/span));
-    const mv=_pl.expected_move_pct!=null?Math.abs(+_pl.expected_move_pct).toFixed(1)+'%':null;
+    const _mvv=_pl.expected_move_pct!=null?+_pl.expected_move_pct:null;
+    const mv=_mvv!=null?`<span style="color:${_mvv>=0?'#22c97a':'#e03a2a'}">${_mvv>=0?'▲ +':'▼ '}${_mvv.toFixed(1)}%</span>`:null;
     const lw=_pl.leg_win_rate!=null?Math.round((+_pl.leg_win_rate<=1?+_pl.leg_win_rate*100:+_pl.leg_win_rate))+'%':null;
     return `<div class="lab-v2-entry${liveNow?' live':''}">
       <div class="entry-top">
@@ -44171,7 +44202,7 @@ function _labV2EntryStripHTML(){
         <div class="entry-cd">${xLbl}</div>
       </div>
       <div class="entry-track"><span class="tk-fill" style="width:${p1}%"></span><span class="tk-dot" style="left:${p0}%"></span><span class="tk-dot tk-dot-exit" style="left:${p1}%"></span></div>
-      <div class="entry-sub">${holdTd!=null?`<b>${holdTd} TD</b> hold`:'Planned leg'}${mv?` · expected move <b>${mv}</b>`:''}${lw?` · leg win rate <b>${lw}</b>`:''} · ${_labV2LensStamp(s)}</div>
+      <div class="entry-sub">${holdTd!=null?`<b>${holdTd} TD</b> hold`:'Planned leg'}${mv?` · expected price move <b>${mv}</b>`:''}${lw?` · leg win rate <b>${lw}</b>`:''} · ${_labV2LensStamp(s)}</div>
     </div>`;
   }
   // ≤30 TD ≈ 6 weeks — beyond that the entry is not actionable for a 1-4 week swing

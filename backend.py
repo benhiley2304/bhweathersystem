@@ -14374,7 +14374,36 @@ _SEAS_CYCLE_BOOST = 2.5    # boost for years matching current election-cycle pos
 # position context, anything beyond six weeks isn't really relevant."
 _SEAS_IMM_TD  = 10   # "immediate" 1-2 week read (exposed alongside the near read)
 _SEAS_NEAR_TD = 20   # headline 3-4 week swing window
-_SEAS_FAR_TD  = 15   # the 3 weeks AFTER the near window (shape / turn detection)
+_SEAS_FAR_TD  = 20   # SEAS-V3: the 4 weeks AFTER the swing window (weeks 4-8) — CONTEXT ONLY, never scores
+# ── SEAS-V3 headline constants ─────────────────────────────────────────────
+# 1-2w vs 3-4w blend weight on the headline lean. Backtested over {0.3,0.4,0.5,0.6}
+# (zero look-ahead, 47,267 samples, 55 markets): 0.4 maximised 20-TD edge while
+# keeping 10-TD edge within 0.01 of the 0.6 optimum. See seas_v3_eval.out.
+_SEAS_V3_W10 = 0.40
+# Honest out-of-sample context per asset class (directional calls |lean|>=1,
+# 20-TD hit rate / normalised edge, same backtest). Surfaced in the UI so a
+# swing trader knows seasonality is a real edge in equities/commodities and
+# close to a coin-flip in FX and rates.
+_SEAS_V3_CLASS_OOS = {
+    "equity":    {"hit20": 63, "hit10": 60, "n": 3207, "note": "strongest seasonal edge in the book"},
+    "commodity": {"hit20": 57, "hit10": 54, "n": 5451, "note": "meaningful edge, best when reliability is A/B"},
+    "fx":        {"hit20": 51, "hit10": 51, "n": 7190, "note": "seasonality alone is close to a coin-flip in FX — use as a tilt, not a thesis"},
+    "rates":     {"hit20": 50, "hit10": 51, "n": 1090, "note": "little standalone seasonal edge in Treasuries"},
+    "crypto":    {"hit20": None, "hit10": None, "n": 59, "note": "too few completed years to judge"},
+}
+_SEAS_V3_EQ = {"ES", "NQ", "YM", "RTY"}
+_SEAS_V3_RATES = {"ZB", "ZN", "ZF", "ZT"}
+_SEAS_V3_CRYPTO = {"BTC", "ETH"}
+_SEAS_V3_CMDTY = {"GC", "SI", "PL", "PA", "HG", "CL", "NG", "HO", "RB", "CC", "KC", "SB", "CT",
+                  "ZS", "ZC", "ZW", "ZL", "ZM", "LE", "HE"}
+
+def _seas_v3_oos_class(market_id: str) -> str:
+    m = (market_id or "").upper()
+    if m in _SEAS_V3_EQ: return "equity"
+    if m in _SEAS_V3_RATES: return "rates"
+    if m in _SEAS_V3_CRYPTO: return "crypto"
+    if m in _SEAS_V3_CMDTY: return "commodity"
+    return "fx"
 # Goldilocks scan: how far back / forward (trading days) we hunt for the ideal
 # seasonal entry offset. ~4 weeks back, ~5 weeks forward — beyond that the
 # answer stops being actionable for a 1-4 week swing.
@@ -14538,9 +14567,12 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
     # Swing-trade horizons: 1-2wk (near), 3wk (mid), 4wk (far).
     # Beyond ~4 weeks isn't relevant to the trading objective — anchor the
     # consensus on the actual holding period, not multi-month drift.
-    horizons = [("near", 7), ("mid", 15), ("far", 21)]
-    yrs = sorted(int(y) for y in years_dict
-                 if int(y) < asof_year and int(y) >= asof_year - _SEAS_YEARS_BACK)
+    # SEAS-V3: horizons now match the swing windows the headline and the Lab
+    # use (10 / 15 / 20 TD = 2W / 3W / 4W) and the year set matches the lens
+    # (all completed years) — the old 7/15/21-TD grid over a 22-year cap could
+    # disagree with every other number on the page.
+    horizons = [("near", 10), ("mid", 15), ("far", 20)]
+    yrs = sorted(int(y) for y in years_dict if int(y) < asof_year)
 
     def _fwd(y, h):
         # AUDIT-SCORING: was clamping b_i at 252, so from ~mid-November every
@@ -14622,8 +14654,14 @@ def _seas_consensus(years_dict, td_a, asof_year, market_id):
         level, mult = "medium", 1.0
     else:
         level, mult = "low", 0.85
+    # SEAS-V3: the consensus grid is CONTEXT. The multiplier was backtested
+    # (47k samples) and did not add edge, so it is published as `mult_legacy`
+    # and `mult` is fixed at 1.0 — the UI must never say "score amplified".
+    mult_legacy, mult = mult, 1.0
     return {"cells": cells, "dominant": dom, "agreement_pct": agree,
-            "conviction": level, "mult": mult, "n_active": len(active),
+            "conviction": level, "mult": mult, "mult_legacy": mult_legacy,
+            "horizon_labels": {"near": "2W", "mid": "3W", "far": "4W"},
+            "n_active": len(active),
             "conflicts": conflicts,
             "horizon_td": {h: n for h, n in horizons},
             "cycle_key": ck, "cycle_w": cyc_w, "cycle_relevance": round(cyc_rel, 2),
@@ -15243,8 +15281,19 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     # year. _seas_fwd wraps into the next completed year instead.
     td_b = td_a + _SEAS_NEAR_TD
     td_imm = td_a + _SEAS_IMM_TD
-    yrs = sorted(int(y) for y in years
-                 if int(y) < d.year and int(y) >= d.year - _SEAS_YEARS_BACK)
+    # ══ SEAS-V3: ONE LENS EVERYWHERE ══════════════════════════════════════
+    # Ben (v3): "a clearly negative seasonal downturn is getting a positive
+    # score (and weirdly a positive 'win rate' in seasonality lab)". Root cause
+    # was three different year-weighting lenses (scorer 0.93^age × cycle with a
+    # 22-yr cap, chart/Lab/planner 0.5^(age/15) × cycle over all completed
+    # years, and the consensus grid's own). The headline now uses the SAME lens
+    # as the Lab chart, the planner and the goldilocks scan, so the score, the
+    # window cards, the Lab win-rate and the plotted curve are all one
+    # statistic. Zero-look-ahead backtest (47k samples, 55 markets, see
+    # seas_v3_eval.out) — v3 matched/edged v2 on 10/20-TD hit rate and edge
+    # while cutting headline-vs-window contradictions from 2.3% to 0.1%.
+    _lens_yrs_all, W = _seas_lens_weights(years, d.year, market_id)
+    yrs = _lens_yrs_all
     rets = []
     used = []
     for y in yrs:
@@ -15256,7 +15305,6 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
     n = len(rets)
     if n < 8:
         return None
-    W = _seas_weights(used, d.year, market_id)
     ws = [W[y] for y in used]
     tot_w = sum(ws)
     if tot_w <= 0:
@@ -15873,8 +15921,79 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         except Exception as _re:
             print(f"[seas reconcile] {market_id}: {_re}", flush=True)
 
+    # ══ SEAS-V3: THE HEADLINE IS THE SWING WINDOWS, NOTHING ELSE ═════════════
+    # Ben: "1 to 2 weeks is important, 3 to 4 weeks is important for long-term
+    # position context and anything beyond six weeks isn't really relevant".
+    # Everything computed above is KEPT in the payload as context (far window,
+    # shape, consensus grid, recent-5 regime, goldilocks), but none of it moves
+    # the number any more. The headline is:
+    #     lean  = 0.40 * (score_10TD - 5) + 0.60 * (score_20TD - 5)     [one lens]
+    #     score = 5 + lean * reliability_dampen * planner_discount
+    # Backtest (zero look-ahead, 47,267 samples, 55 markets, 1938-2026;
+    # seas_v3_eval.out): directional calls (|lean|>=1) hit 53.8% @10TD /
+    # 54.9% @20TD vs v2 53.7% / 54.4%; mean normalised edge 0.062 / 0.105 vs
+    # 0.062 / 0.099; headline-vs-window contradictions 0.1% vs 2.3%. The far
+    # rotation, recent-5 regime override, consensus multiplier and goldilocks
+    # anticipation nudge were each tested and none added edge, so they are
+    # informational only. 0.40 was the best of {0.3,0.4,0.5,0.6} on 20-TD edge.
+    v3_lean10 = round((_imm_raw - 5.0), 2) if _imm_raw is not None else None
+    v3_lean20 = round((raw_score - 5.0), 2)
+    v3_lean = (_SEAS_V3_W10 * (v3_lean10 if v3_lean10 is not None else v3_lean20)
+               + (1.0 - _SEAS_V3_W10) * v3_lean20)
+    v3_score = 5.0 + v3_lean * _dampen_factor
+    v3_score = round(max(0.0, min(10.0, v3_score)), 1)
+    planner_mult, planner_mode, planner_off_frac, planner_capture = 1.0, None, None, None
+    if planner:
+        try:
+            (planner_mult, planner_mode, planner_off_frac,
+             planner_capture) = _seas_planner_discount(v3_score, planner, False)
+        except Exception:
+            planner_mult, planner_mode = 1.0, None
+        if planner_mult != 1.0:
+            v3_score = round(max(0.0, min(10.0, 5.0 + (v3_score - 5.0) * planner_mult)), 1)
+    score_v2_legacy = score
+    score = v3_score
+    # context-only flags so the UI never claims these moved the number
+    conviction_mult = 1.0
+    shape_rotated = False
+    far_weight_applied = 0.0
+    far_rotation_capped = False
+    shape_rotation_suppressed = False
+    horizon_w_imm = _SEAS_V3_W10
+    near_only_score = round(5.0 + v3_lean20 * _dampen_factor, 1)
+    imm_score_adj = (round(5.0 + v3_lean10 * _dampen_factor, 2)
+                     if v3_lean10 is not None else None)
+    if anticipation_nudge:
+        anticipation_nudge = 0.0
+    recent_regime_w = None
+    if shape_note and 'drives' in str(shape_note):
+        shape_note = None
+    _v3_cls = _seas_v3_oos_class(market_id)
+    _v3_oos = _SEAS_V3_CLASS_OOS.get(_v3_cls) if _v3_cls else None
+    _v3_dir_word = ('bullish' if v3_lean >= 0.5 else 'bearish' if v3_lean <= -0.5 else 'flat')
+    score_explain = {
+        "formula": "5 + (0.4·lean_1-2w + 0.6·lean_3-4w) × reliability × planner discount",
+        "lean_10": v3_lean10, "lean_20": v3_lean20,
+        "lean_blend": round(v3_lean, 2),
+        "reliability": grade, "dampen": _dampen_factor,
+        "planner_mult": planner_mult, "planner_mode": planner_mode,
+        "far_window_role": "context only (never moves the score)",
+        "class": _v3_cls, "class_oos": _v3_oos,
+        "summary": (
+            f"Swing windows read {_v3_dir_word}: 1–2w {v3_lean10:+.1f}, 3–4w {v3_lean20:+.1f} "
+            f"(lean {v3_lean:+.2f}) × reliability {grade} ({_dampen_factor:.2f})"
+            + (f" × planner {planner_mult:.2f}" if planner_mult != 1.0 else "")
+            + f" → {score}"
+        ) if v3_lean10 is not None else None,
+    }
+
     return {
         "score": score,
+        "seas_version": 3,
+        "score_v2_legacy": score_v2_legacy,
+        "lean_10": v3_lean10,
+        "lean_20": v3_lean20,
+        "score_explain": score_explain,
         "consensus": consensus,
         "conviction_mult": conviction_mult,
         "raw_score": raw_score,
@@ -15976,7 +16095,9 @@ def _seas_window_stats(market_id: str, bar_date) -> dict | None:
         "open_edge_src": open_edge_src,
         "years_span": f"{min(used)}\u2013{max(used)}" if used else "",
         "cycle_key": _cycle_key_for_year(d.year),
-        "weighting": f"cycle {_seas_default_blend(market_id).get('cycle_w', _SEAS_CYCLE_BOOST)}x + recency 0.93^age",
+        "weighting": (f"cycle {_seas_default_blend(market_id).get('cycle_w', 1.0)}x · "
+                      f"half-life {_seas_default_blend(market_id).get('halflife', 15)}y · all completed years "
+                      f"(same lens as Lab chart + planner)"),
     }
 
 
@@ -16142,6 +16263,12 @@ def score_seasonality(market_id: str) -> dict:
             # v2.1: cross-lens consensus conviction
             "consensus": stats.get("consensus"),
             "conviction_mult": stats.get("conviction_mult"),
+            # SEAS-V3: single-lens swing-window headline + explanation
+            "seas_version": stats.get("seas_version"),
+            "score_v2_legacy": stats.get("score_v2_legacy"),
+            "lean_10": stats.get("lean_10"),
+            "lean_20": stats.get("lean_20"),
+            "score_explain": stats.get("score_explain"),
         })
     return {"score": score, "label": label, "detail": detail}
 
