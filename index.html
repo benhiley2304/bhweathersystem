@@ -26389,7 +26389,7 @@ function renderOverview(){
     // ── Rate path section ──
     const rateSig = reg.rate_signal||{};
     const rateLabel = reg.rate_label||'';
-    const effr = rateSig.effr;                         // FFF month-0 implied (market pricing)
+    const effr = rateSig.effr_spot ?? rateSig.effr;    // FFF month-0 implied (market pricing) — effr itself is the ACTUAL EFFR anchor
     const effrActual = (reg.intl_rates||{}).US?.rate ?? rateSig.effr ?? 3.64;  // actual EFFR, falls back to live FFF-implied before static
     const cuts12m = rateSig.cuts_12m;
     const cuts18m = rateSig.cuts_18m;

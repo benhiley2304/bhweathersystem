@@ -5241,6 +5241,7 @@ FRED_SERIES = {
     "T10Y3M":   "T10Y3M",
     "DFII10":   "DFII10",
     "FEDFUNDS": "FEDFUNDS",
+    "DFF":      "DFF",            # Effective Fed Funds Rate, DAILY (FedWatch anchor)
     # CAPE not available via FRED — computed via yfinance fallback in compute_stock_climate
     "WALCL":    "WALCL",
     # Credit spreads (ICE BofA)
@@ -7351,6 +7352,27 @@ _CB_POLICY_FALLBACK = {
 }
 
 
+def _effr_daily_asof(asof=None):
+    """Actual effective fed funds rate (FRED DFF, daily) on or before `asof`
+    (default: latest print). Returns (rate, obs_date) or (None, None).
+
+    This is the anchor the CME FedWatch tool uses for the FIRST meeting: the
+    realised EFFR, NOT the front-month futures implied. The front-month
+    contract already embeds the meeting-month move, so anchoring on it makes
+    the first meeting look like a 100% hold (2026-09-08 bug).
+    """
+    try:
+        rows = fetch_fred_series("DFF", 400) or []
+        if asof is not None:
+            cutoff = asof.isoformat() if hasattr(asof, "isoformat") else str(asof)
+            rows = [r for r in rows if r.get("date", "") <= cutoff]
+        if rows:
+            return float(rows[-1]["value"]), rows[-1]["date"]
+    except Exception as _e:
+        print(f"[effr_daily] DFF fetch error: {_e}")
+    return None, None
+
+
 def _fedwatch_meeting_probs(monthly: dict, effr_start: float,
                             target_low: float, target_high: float,
                             meetings: list) -> list:
@@ -9137,7 +9159,19 @@ def compute_risk_regime() -> dict:
                     _effr_fred = _fred_ff[-1]["value"]
             except Exception:
                 pass
-            effr_val = _effr_fred if _effr_fred is not None else _effr_spot
+            # FedWatch anchor: realised daily EFFR (DFF) > monthly FEDFUNDS > front-month implied.
+            # The front-month contract is a MONTH AVERAGE that already contains the
+            # meeting-month move, so it must never be used as the pre-meeting anchor.
+            _effr_daily, _effr_daily_date = _effr_daily_asof(None)
+            if _effr_daily is not None:
+                effr_val = _effr_daily
+                _effr_anchor_src = f"DFF {_effr_daily_date}"
+            elif _effr_fred is not None:
+                effr_val = _effr_fred
+                _effr_anchor_src = "FEDFUNDS (monthly)"
+            else:
+                effr_val = _effr_spot
+                _effr_anchor_src = "front-month implied (fallback)"
             # Build full monthly path array for frontend step-chart
             _path_monthly = []
             for _pk in _fff_keys[:18]:
@@ -9194,18 +9228,24 @@ def compute_risk_regime() -> dict:
                     _t_hi = round(_t_lo + 0.25, 2)
                 _mtgs = sorted(date.fromisoformat(x) for x in _us_cb.get("meetings", [])
                                if date.fromisoformat(x) > _today_d)
-                _fw = _fedwatch_meeting_probs(_fff_results, _effr_spot, _t_lo, _t_hi, _mtgs)
+                if not (_t_lo - 0.05 <= effr_val <= _t_hi + 0.05):
+                    print(f"[rate_signal] WARNING: EFFR anchor {effr_val} outside configured "
+                          f"target range {_t_lo}-{_t_hi} — update _CB_POLICY_FALLBACK['US']")
+                # Anchor on the ACTUAL EFFR (CME methodology), not the front-month implied
+                _fw = _fedwatch_meeting_probs(_fff_results, effr_val, _t_lo, _t_hi, _mtgs)
                 if _fw:
                     rate_signal["meetings"]       = _fw
                     rate_signal["target_low"]     = _t_lo
                     rate_signal["target_high"]    = _t_hi
+                    rate_signal["effr_anchor"]    = round(effr_val, 4)
+                    rate_signal["effr_anchor_src"] = _effr_anchor_src
                     # Next-meeting probabilities from the matrix (replaces the
                     # crude month-1-vs-month-2 fractional estimate)
                     _m0 = _fw[0]
                     rate_signal["hike_prob_next"] = _m0["p_hike_cum"]
                     rate_signal["cut_prob_next"]  = _m0["p_cut_cum"]
                     rate_signal["hold_prob_next"] = _m0["p_hold_cum"]
-                    print(f"[rate_signal] fedwatch matrix: {len(_fw)} meetings, "
+                    print(f"[rate_signal] fedwatch matrix: {len(_fw)} meetings, anchor={effr_val} ({_effr_anchor_src}), "
                           f"next mtg {_m0['date']}: hold={_m0['p_hold_cum']}% "
                           f"hike={_m0['p_hike_cum']}% cut={_m0['p_cut_cum']}%")
             except Exception as _e:
@@ -18482,14 +18522,23 @@ async def fed_pricing_history():
             pol = _CB_POLICY_FALLBACK.get("US", {}) or {}
             t_low = float(pol.get("target_low", 3.50))
             t_high = float(pol.get("target_high", 3.75))
-            effr = float(months[0]["implied"])
+            # Anchor on the realised EFFR as of the SNAPSHOT date (CME methodology),
+            # never the front-month implied (which already embeds the meeting move).
+            try:
+                _snap_d = date.fromisoformat(snap.get("date"))
+            except Exception:
+                _snap_d = date.today()
+            effr, _ = _effr_daily_asof(_snap_d)
+            if effr is None:
+                effr = float(months[0]["implied"])
             mtg_dates = pol.get("meetings") or []
-            _today = date.today()
             mtgs = []
             for md in mtg_dates:
                 try:
                     d_ = date.fromisoformat(md) if isinstance(md, str) else md
-                    if d_ >= _today:
+                    # meetings still ahead AS OF THE SNAPSHOT, so a 1m/3m-ago
+                    # baseline is evaluated the way FedWatch showed it that day
+                    if d_ > _snap_d:
                         mtgs.append(d_)
                 except Exception:
                     continue
