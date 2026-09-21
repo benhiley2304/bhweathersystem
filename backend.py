@@ -7309,45 +7309,53 @@ _CB_RATE_SERIES = {
 # Format: { CB_KEY: { "rate": float, "date": "YYYY-MM-DD", "meetings": [...],
 #                     "prev_rate": float, "cycle_peak": float, "cycle_trough": float } }
 _CB_POLICY_FALLBACK = {
-    # US: target 3.50-3.75% (held 17 Jun 2026, first meeting under Warsh). EFFR ~3.63.
+    # US: target 3.75-4.00% (HIKED +25bp 16 Sep 2026, 12-0; held 29 Jul 9-3). EFFR 3.88.
+    # target_low/high are a SAFETY NET only — live code derives the band from the
+    # daily EFFR (FRED DFF) so future moves are picked up without a code change.
     # FOMC decision days: federalreserve.gov/monetarypolicy/fomccalendars.htm
-    "US":    {"rate": 3.63,  "date": "2026-06-17",
-              "meetings": ["2026-07-29", "2026-09-16", "2026-10-28", "2026-12-09",
+    "US":    {"rate": 3.88,  "date": "2026-09-16",
+              "meetings": ["2026-10-28", "2026-12-09",
                            "2027-01-27", "2027-03-17", "2027-04-28", "2027-06-09",
                            "2027-07-28", "2027-09-15", "2027-10-27", "2027-12-08"],
-              "prev_rate": 4.33, "cycle_peak": 5.33, "cycle_trough": 0.08,
-              "target_low": 3.50, "target_high": 3.75},
-    # BoE: Bank Rate 3.75% (held 18 Jun 2026, 7-2). bankofengland.co.uk MPC dates
-    "BOE":   {"rate": 3.75,  "date": "2026-06-18",
-              "meetings": ["2026-07-30", "2026-09-17", "2026-11-05", "2026-12-17",
+              "prev_rate": 4.08, "cycle_peak": 5.33, "cycle_trough": 0.08,
+              "target_low": 3.75, "target_high": 4.00},
+    # BoE: Bank Rate 3.75% (held 17 Sep 2026, 6-3 with three votes for 4.00%; held 30 Jul 6-3)
+    "BOE":   {"rate": 3.75,  "date": "2026-09-17",
+              "meetings": ["2026-11-05", "2026-12-17",
                            "2027-02-04", "2027-03-18", "2027-04-29", "2027-06-17",
                            "2027-07-29", "2027-09-16", "2027-11-04", "2027-12-16"],
-              "prev_rate": 4.25, "cycle_peak": 5.25, "cycle_trough": 0.10},
-    # ECB: Deposit facility rate 2.25% (HIKED +25bp 11 Jun 2026, effective 17 Jun)
-    "ECB":   {"rate": 2.25,  "date": "2026-06-11",
-              "meetings": ["2026-07-23", "2026-09-10", "2026-10-29", "2026-12-17",
+              "prev_rate": 4.00, "cycle_peak": 5.25, "cycle_trough": 0.10},
+    # ECB: Deposit facility rate 2.50% (HIKED +25bp 10 Sep 2026, effective 16 Sep; held 23 Jul)
+    "ECB":   {"rate": 2.50,  "date": "2026-09-10",
+              "meetings": ["2026-10-29", "2026-12-17",
                            "2027-02-04", "2027-03-18", "2027-04-29", "2027-06-10",
                            "2027-07-22", "2027-09-09", "2027-10-28", "2027-12-16"],
               "prev_rate": 2.00, "cycle_peak": 4.00, "cycle_trough": -0.50},
-    # BoJ: Policy rate 1.00% (HIKED +25bp 16 Jun 2026). 2027 dates not yet published.
-    "BOJ":   {"rate": 1.00,  "date": "2026-06-16",
-              "meetings": ["2026-07-31", "2026-09-18", "2026-10-30", "2026-12-18"],
-              "prev_rate": 0.50, "cycle_peak": 1.00, "cycle_trough": -0.10},
-    # RBA: Cash rate 4.35% (hiked 6 May 2026, held 17 Jun). Decision = day 2 of meeting.
+    # BoJ: Policy rate 1.25% (HIKED +25bp 18 Sep 2026, 7-2). Decision = day 2 of meeting.
+    "BOJ":   {"rate": 1.25,  "date": "2026-09-18",
+              "meetings": ["2026-10-30", "2026-12-18",
+                           "2027-01-22", "2027-03-18", "2027-04-28", "2027-06-11",
+                           "2027-07-22", "2027-09-22", "2027-10-29", "2027-12-17"],
+              "prev_rate": 0.50, "cycle_peak": 1.25, "cycle_trough": -0.10},
+    # RBA: Cash rate 4.35% (held 11 Aug 2026 unanimously, hike discussed). Decision = day 2.
     "RBA":   {"rate": 4.35,  "date": "2026-05-06",
-              "meetings": ["2026-08-11", "2026-09-29", "2026-11-03", "2026-12-08"],
-              "prev_rate": 3.85, "cycle_peak": 4.35, "cycle_trough": 0.10},
-    # BoC: Policy rate 2.25% (held 10 Jun 2026, 5th consecutive hold)
-    "BOC":   {"rate": 2.25,  "date": "2026-06-10",
-              "meetings": ["2026-07-15", "2026-09-02", "2026-10-28", "2026-12-09"],
-              "prev_rate": 2.75, "cycle_peak": 5.00, "cycle_trough": 0.25},
-    # RBNZ: OCR 2.50% (HIKED +25bp 8 Jul 2026, tightening bias)
-    "RBNZ":  {"rate": 2.50,  "date": "2026-07-08",
-              "meetings": ["2026-09-02", "2026-10-28", "2026-12-09", "2027-02-10"],
-              "prev_rate": 3.25, "cycle_peak": 5.50, "cycle_trough": 0.25},
+              "meetings": ["2026-09-29", "2026-11-03", "2026-12-08",
+                           "2027-02-09", "2027-03-23", "2027-05-04"],
+              "prev_rate": 3.60, "cycle_peak": 4.35, "cycle_trough": 0.10},
+    # BoC: Policy rate 2.25% (held 2 Sep 2026, 7th consecutive hold; Macklem: multiple hikes possible)
+    "BOC":   {"rate": 2.25,  "date": "2026-09-02",
+              "meetings": ["2026-10-28", "2026-12-09",
+                           "2027-01-27", "2027-03-03", "2027-04-28", "2027-06-02",
+                           "2027-07-21", "2027-09-08", "2027-12-08"],
+              "prev_rate": 2.50, "cycle_peak": 5.00, "cycle_trough": 0.25},
+    # RBNZ: OCR 2.75% (HIKED +25bp 2 Sep 2026, second consecutive hike)
+    "RBNZ":  {"rate": 2.75,  "date": "2026-09-02",
+              "meetings": ["2026-10-28", "2026-12-09", "2027-02-10", "2027-03-17"],
+              "prev_rate": 3.00, "cycle_peak": 5.50, "cycle_trough": 0.25},
     # SNB: Policy rate 0.00% (held 18 Jun 2026). Quarterly assessments.
     "SNB":   {"rate": 0.00,  "date": "2026-06-18",
-              "meetings": ["2026-09-24", "2026-12-17"],
+              "meetings": ["2026-09-24", "2026-12-17",
+                           "2027-03-18", "2027-06-24", "2027-09-23", "2027-12-16"],
               "prev_rate": 0.00, "cycle_peak": 1.75, "cycle_trough": -0.75},
 }
 
@@ -7531,6 +7539,17 @@ def _compute_intl_rates() -> dict:
                 if days_old > _stale_days and fallback_rate is not None:
                     actual_rate = fallback_rate
                     rate_source = "fallback"
+                if cb == "US":
+                    # FEDFUNDS is a monthly AVERAGE published with a lag, so it
+                    # misses an intra-month FOMC move for up to ~7 weeks. Prefer
+                    # the daily EFFR (FRED DFF) when it is newer than FEDFUNDS.
+                    try:
+                        _dff_rate, _dff_date = _effr_daily_asof()
+                        if _dff_rate is not None and _dff_date and _dff_date > dates[-1]:
+                            actual_rate = float(_dff_rate)
+                            rate_source = "fred_dff"
+                    except Exception as _de:
+                        print(f"[intl_rates] DFF override skipped: {_de}")
             elif fallback_rate is not None:
                 actual_rate = fallback_rate
                 rate_source = "fallback"
@@ -9223,14 +9242,23 @@ def compute_risk_regime() -> dict:
                 _us_cb  = _CB_POLICY_FALLBACK.get("US", {})
                 _t_lo   = _us_cb.get("target_low")
                 _t_hi   = _us_cb.get("target_high")
+                # Derive the CURRENT target band from the realised EFFR (DFF/FEDFUNDS)
+                # so a hike/cut is reflected the next day without a code change.
+                # EFFR prints ~12-13bp above the floor, so floor-to-25bp is exact.
+                if _effr_anchor_src in ("DFF", "FEDFUNDS"):
+                    _d_lo = round(math.floor(effr_val / 0.25 + 1e-9) * 0.25, 2)
+                    _d_hi = round(_d_lo + 0.25, 2)
+                    if _t_lo is None or abs(_d_lo - _t_lo) > 1e-6:
+                        if _t_lo is not None:
+                            print(f"[rate_signal] target band derived from EFFR {effr_val} "
+                                  f"({_effr_anchor_src}): {_d_lo}-{_d_hi} (config says {_t_lo}-{_t_hi} "
+                                  f"— update _CB_POLICY_FALLBACK['US'])")
+                        _t_lo, _t_hi = _d_lo, _d_hi
                 if _t_lo is None or _t_hi is None:
                     _t_lo = round(math.floor(_effr_spot / 0.25) * 0.25, 2)
                     _t_hi = round(_t_lo + 0.25, 2)
                 _mtgs = sorted(date.fromisoformat(x) for x in _us_cb.get("meetings", [])
                                if date.fromisoformat(x) > _today_d)
-                if not (_t_lo - 0.05 <= effr_val <= _t_hi + 0.05):
-                    print(f"[rate_signal] WARNING: EFFR anchor {effr_val} outside configured "
-                          f"target range {_t_lo}-{_t_hi} — update _CB_POLICY_FALLBACK['US']")
                 # Anchor on the ACTUAL EFFR (CME methodology), not the front-month implied
                 _fw = _fedwatch_meeting_probs(_fff_results, effr_val, _t_lo, _t_hi, _mtgs)
                 if _fw:
@@ -18531,6 +18559,11 @@ async def fed_pricing_history():
             effr, _ = _effr_daily_asof(_snap_d)
             if effr is None:
                 effr = float(months[0]["implied"])
+            else:
+                # Band AS OF THE SNAPSHOT — a 1w/1m baseline taken before a
+                # hike must be evaluated against the range in force that day.
+                t_low = round(math.floor(effr / 0.25 + 1e-9) * 0.25, 2)
+                t_high = round(t_low + 0.25, 2)
             mtg_dates = pol.get("meetings") or []
             mtgs = []
             for md in mtg_dates:
