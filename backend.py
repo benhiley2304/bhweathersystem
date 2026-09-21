@@ -7548,6 +7548,14 @@ def _compute_intl_rates() -> dict:
                         if _dff_rate is not None and _dff_date and _dff_date > dates[-1]:
                             actual_rate = float(_dff_rate)
                             rate_source = "fred_dff"
+                            # Re-base the trend on the live EFFR so a move made
+                            # since the last FEDFUNDS print drives the cycle label
+                            # (3.63 -> 3.88 reads "Tightening", not "Flat").
+                            fred_rate = actual_rate
+                            trend_3m  = round(fred_rate - v_3m,  3)
+                            trend_6m  = round(fred_rate - v_6m,  3)
+                            trend_12m = round(fred_rate - v_12m, 3)
+                            bias = 1 if trend_6m > 0.1 else -1 if trend_6m < -0.1 else 0
                     except Exception as _de:
                         print(f"[intl_rates] DFF override skipped: {_de}")
             elif fallback_rate is not None:
@@ -18792,7 +18800,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-04-fxmacro-v2b"
+BUILD_ID = "2026-09-21-rates-refresh"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
