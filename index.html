@@ -43892,7 +43892,7 @@ function _labV2RenderCallout(){
   }
   // AUDIT-SEAS-R2-FRONTEND: the callout is now on the SAME lens as the donut and the
   // consensus grid, and says so. Raw equal-weight is demoted to the sub-label.
-  const srcTxt=` <i>· ${_labV2LensStamp(s)}</i>`;
+  const srcTxt=` <i>· window medians: ${_labV2LensStamp(s)}${(_labV2.rows&&_labV2.rows.length)?' (your basket)':''}</i>`;
   const _planRej=(function(){try{const pl=_labV2PlanRead();return (pl&&String(pl.plan_action).toLowerCase()==='no_edge'&&pl.rejected_leg&&pl.rejected_leg.reason)?` Swing planner: not a trade — ${pl.rejected_leg.reason}.`:'';}catch(e){return '';}})();
   const wrPct=Math.round(s.winRate*100);
   // SEAS-V3b copy fix: s.winRate is the WEIGHTED hit rate but s.wins/s.n are RAW year
@@ -43925,7 +43925,9 @@ function _labV2RenderCallout(){
   // SEAS-V3: expected_move_pct is a signed PRICE move (negative for a short leg) — print it as such, never as |x| with a price glyph.
   const pLeg=[pMove!=null?`expected price move <b style="color:${pMove>=0?'#22c97a':'#e03a2a'}">${pMove>=0?'▲':'▼'} ${pc(pMove)}</b>`:null,
               pWin!=null?`leg win rate <b>${pWin}%</b>`:null].filter(Boolean).join(' · ');
-  const pEdge=pLeg?` ${pLeg[0].toUpperCase()+pLeg.slice(1)}.`:'';
+  // SEAS-V4: the planner leg is computed server-side on the FULL basket over its own hold (not the Lab window or year picker) — say so inline so it is never read as a basket stat.
+  const _pN=(plan&&plan.n_years)||(_labData&&_labData.planner&&_labData.planner.lens&&_labData.planner.lens.n_years)||null;
+  const pEdge=pLeg?` ${pLeg[0].toUpperCase()+pLeg.slice(1)} <i>(swing planner · server · full basket${_pN?` · ${_pN} yrs`:''}${pHold!=null?` · ${pHold} TD leg`:''})</i>.`:'';
 
   if(pAct==='enter_now'&&pExit){
     tone='co-good';ic=isShort?'▼':'▲';pill='ENTER NOW';
@@ -44401,7 +44403,7 @@ function _labV2EntryStripHTML(){
         <div class="entry-cd">${xLbl}</div>
       </div>
       <div class="entry-track"><span class="tk-fill" style="width:${p1}%"></span><span class="tk-dot" style="left:${p0}%"></span><span class="tk-dot tk-dot-exit" style="left:${p1}%"></span></div>
-      <div class="entry-sub">${holdTd!=null?`<b>${holdTd} TD</b> hold`:'Planned leg'}${mv?` · expected price move <b>${mv}</b>`:''}${lw?` · leg win rate <b>${lw}</b>`:''} · ${_labV2LensStamp(s)}</div>
+      <div class="entry-sub">${holdTd!=null?`<b>${holdTd} TD</b> hold`:'Planned leg'}${mv?` · expected price move <b>${mv}</b>`:''}${lw?` · leg win rate <b>${lw}</b>`:''} · swing planner · server · full basket${(_pl.n_years||(_labData&&_labData.planner&&_labData.planner.lens&&_labData.planner.lens.n_years))?` · ${_pl.n_years||_labData.planner.lens.n_years} yrs`:''}</div>
     </div>`;
   }
   // ≤30 TD ≈ 6 weeks — beyond that the entry is not actionable for a 1-4 week swing
