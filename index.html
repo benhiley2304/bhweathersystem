@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- SEAS-V5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -4671,6 +4672,8 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
    the 60 TD / year-end context chips sit behind a hairline divider at lower emphasis. */
 .lab-v2-winrow .wchip.wchip-swing{min-height:28px;padding:5px 11px;font-size:10px;color:var(--text);background:rgba(255,255,255,0.055);border-color:rgba(255,255,255,0.13)}
 .lab-v2-winrow .wchip.wchip-swing.active{background:linear-gradient(180deg,rgba(200,169,110,0.24),rgba(200,169,110,0.12));border-color:rgba(200,169,110,0.72);color:var(--accent);box-shadow:0 0 0 1px rgba(200,169,110,0.12),0 2px 10px rgba(200,169,110,0.14)}
+.lab-v2-winrow .wchip.wchip-plan{min-height:28px;padding:5px 11px;font-size:10px;color:#e3c789;background:rgba(200,169,110,0.10);border-color:rgba(200,169,110,0.45)}
+.lab-v2-winrow .wchip.wchip-plan.active{background:linear-gradient(135deg,rgba(227,199,137,0.95),rgba(200,169,110,0.95));color:#0a0b0d;border-color:transparent}
 .lab-v2-winrow .wchip.wchip-ctx{opacity:0.62;font-size:9px;padding:4px 9px}
 .lab-v2-winrow .wchip.wchip-ctx:hover{opacity:1}
 .lab-v2-winrow .wchip.wchip-ctx.active{opacity:1}
@@ -4711,6 +4714,7 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-cons .cc-flat{color:var(--faint,#5a5957);background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.07)}
 .lab-v2-cons .cons-dir{font-size:7.5px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;padding:2px 6px;border-radius:6px;white-space:nowrap;flex:0 0 auto}
 .lab-v2-cons .cons-dir.d-long{color:#3fd48c;background:rgba(38,201,122,0.13);border:1px solid rgba(38,201,122,0.28)}
+.lab-v2-cons .cons-dir.d-flat{color:var(--dim);background:rgba(255,255,255,0.05);border:1px solid var(--bdr2)}
 .lab-v2-cons .cons-dir.d-short{color:#f47070;background:rgba(240,64,64,0.13);border:1px solid rgba(240,64,64,0.28)}
 .lab-v2-cons .cons-legend{font-size:8px;color:var(--faint,#5a5957);letter-spacing:0.2px;margin-top:7px;line-height:1.45}
 /* AUDIT-SEAS-R2-FRONTEND · one-lens labelling. The weighted basket is the headline; the
@@ -4740,6 +4744,10 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .lab-v2-entry .entry-sub{font-size:8.5px;color:var(--dim);line-height:1.45}
 .lab-v2-entry .entry-sub b{color:var(--text);font-weight:700}
 .lab-v2-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lab-v2-below{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.lab-v2-below .lab-v2-kpi-grid{grid-template-columns:repeat(4,1fr)}
+.lab-v2-below .lab-v2-kpi.wide{grid-column:span 4}
+@media (max-width:900px){.lab-v2-below .lab-v2-kpi-grid{grid-template-columns:1fr 1fr}.lab-v2-below .lab-v2-kpi.wide{grid-column:span 2}}
 .lab-v2-kpi{background:var(--surf3);border:1px solid var(--bdr2);border-radius:10px;padding:9px 11px}
 .lab-v2-kpi .kv{font-size:14px;font-weight:700;letter-spacing:-0.4px;line-height:1.1}
 .lab-v2-kpi .kk{font-size:7px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--dim);margin-top:3px;line-height:1.3}
@@ -24813,7 +24821,7 @@ canvas.chartjs-render-monitor{
           <button class="lab-v2-savebtn" id="lab-v2-savebtn" onclick="_labV2SaveDefault()" style="display:none">Set as default</button>
         </div>
 
-        <div class="lab-sec-label">Basket — tap presets or individual years</div>
+        <div class="lab-sec-label">Basket — tap presets or individual years <span id="lab-year-count" style="color:var(--accent);font-weight:600"></span></div>
         <div class="lab-presets" id="lab-presets"></div>
         <div class="lab-years" id="lab-years"></div>
         <div class="lab-sec-label">View</div>
@@ -24827,6 +24835,7 @@ canvas.chartjs-render-monitor{
               <span class="wlab">Window</span>
               <!-- AUDIT-SEAS-R2-FRONTEND: swing-first presets (Ben trades 1-2wk typical, 3-4wk max).
                    10/15/20/30 TD are the primary chips; 60 TD / year-end are demoted to context. -->
+              <button class="wchip wchip-plan" data-win="plan" style="display:none">◆ Planner leg</button>
               <button class="wchip wchip-swing" data-win="10">+10 TD</button>
               <button class="wchip wchip-swing" data-win="15">+15 TD</button>
               <button class="wchip wchip-swing" data-win="20">+20 TD</button>
@@ -24839,6 +24848,7 @@ canvas.chartjs-render-monitor{
             </div>
             <div class="lab-callout" id="lab-callout" style="display:none"></div>
             <div class="lab-chart-wrap"><canvas id="lab-chart"></canvas></div>
+            <div class="lab-v2-below" id="lab-v2-below"></div>
           </div>
           <div class="col-side" id="lab-v2-side">
             <!-- Filled by _labV2RenderWindow() — win-rate donut, KPIs, per-year bars -->
@@ -37985,6 +37995,9 @@ function seasConsensusHTML(c,dirOverride){
   // direction the seasonal setup implies. The side only changes the LEGEND —
   // every cell always shows the PRICE move with a truthful glyph and colour
   // (green ▲ = price up, red ▼ = price down). No sign flipping, ever.
+  // SEAS-V5: the chip states what the CONSENSUS says (from c.dominant), never which side the
+  // user has toggled. dirOverride is kept for the detail tab's legend wording only.
+  const domDir=c.dominant>0?1:(c.dominant<0?-1:0);
   const isShort=dirOverride?dirOverride==='short':(_labV2&&_labV2.dir==='short');
   const badgeCls={high:'cb-high',medium:'cb-medium',low:'cb-low',conflict:'cb-conflict'}[c.conviction]||'cb-low';
   const badgeTxt={high:'HIGH AGREEMENT',medium:'MEDIUM',low:'LOW AGREEMENT',conflict:'CONFLICT'}[c.conviction]||'LOW';
@@ -37992,8 +38005,8 @@ function seasConsensusHTML(c,dirOverride){
   // AUDIT-SEAS-R2-FRONTEND: same lens stamp the donut and callout print.
   // SEAS-V4: this grid is computed server-side from the FULL basket and is independent of the Lab year picker, so stamp it with its own year count, never the picker's.
   const _bn=(c.cells||[]).filter(x=>x.lens==='blend').map(x=>x.n).filter(n=>n>0);
-  const lensStamp=(typeof _labV2!=='undefined'&&_labV2&&_labV2.shape&&!dirOverride)?('server, full basket'+(_bn.length?' · '+Math.max.apply(null,_bn)+' yrs':'')+' · not affected by the year picker'):'';
-  const fmt=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
+  const lensStamp=(typeof _labV2!=='undefined'&&_labV2&&_labV2.model&&!dirOverride)?('server, full basket'+(_bn.length?' · '+Math.max.apply(null,_bn)+' yrs':'')+' · not affected by the year picker'):'';
+  const fmt=v=>{if(v==null||!isFinite(v))return '—';const r=Math.round(v*10)/10;return r===0?'0.0%':(r>0?'+':'−')+Math.abs(r).toFixed(1)+'%';};
   let grid='<span class="ch"></span>'+cols.map(x=>'<span class="ch">'+x[1]+'</span>').join('');
   for(const [lk,ll] of rows){
     grid+='<span class="cl">'+ll+'</span>';
@@ -38023,7 +38036,7 @@ function seasConsensusHTML(c,dirOverride){
   };
   const ctx=(+(c.mult??1)===1)?' · context only, does not change the score':' · score ×'+(+c.mult).toFixed(2);
   return `<div class="lab-v2-cons">
-    <div class="cons-head"><div class="t">Seasonal consensus<span class="cons-dir ${isShort?'d-short':'d-long'}">${isShort?'▼ short':'▲ long'}</span></div><span class="cons-badge ${badgeCls}">${badgeTxt}${agree}</span></div>
+    <div class="cons-head"><div class="t">Seasonal consensus<span class="cons-dir ${domDir>0?'d-long':domDir<0?'d-short':'d-flat'}" title="Direction the lenses agree on (price)">${domDir>0?'▲ price up':domDir<0?'▼ price down':'◆ mixed'}</span></div><span class="cons-badge ${badgeCls}">${badgeTxt}${agree}</span></div>
     <div class="cons-grid">${grid}</div>
     <div class="cons-legend">${isShort?'cells = price move · <span style="color:#e03a2a">red ▼ price falls = favours shorts</span> · green ▲ works against a short':'cells = price move · <span style="color:#22c97a">green ▲ price rises = favours longs</span> · red ▼ works against a long'} · grey ◆ too weak to call${lensStamp?' · '+lensStamp:''}</div>
     <div class="cons-note">${(notes[c.conviction]||'')+ctx}</div>
@@ -43174,19 +43187,6 @@ function _labFwdSnap(td){
   for(const p of _LAB_FWD_PRESETS)if(td<=p)return p;
   return Math.min(_LAB_FWD_MAX,_LAB_FWD_PRESETS[_LAB_FWD_PRESETS.length-1]);
 }
-function _labV2PlannerDefaultTd(){
-  const p=_labV2PlanRead();
-  // exit_in_td is TD-from-today, so it already spans entry + hold; +2 TD of context after.
-  if(p&&p.exit_in_td!=null&&isFinite(+p.exit_in_td)){
-    const end=Math.round(+p.exit_in_td);
-    if(end>=5)return _labFwdSnap(end+2);
-  }
-  if(p&&p.hold_td!=null&&isFinite(+p.hold_td)){
-    const h=Math.round(+p.hold_td);
-    if(h>=5)return _labFwdSnap(h+2);
-  }
-  return _LAB_FWD;
-}
 const _LAB_CYC_COL={midterm:'#c8a96e',election:'#6b7cff',pre_election:'#26c97a',post_election:'#8a93a8'};
 const _LAB_CYC_LBL={midterm:'Midterm',election:'Election',pre_election:'Pre-Election',post_election:'Post-Election'};
 // V2 state
@@ -43200,22 +43200,10 @@ let _labV2={
   dragging:false, dragStart:null,
   fetchInFlight:false,
   reqSeq:0,          // AUDIT-LAB-UI: monotonic token — stale responses are discarded
-  shape:null,        // window+direction aware shape analysis (see _labV2ComputeShape)
+  model:null,        // SEAS-V5: the one Lab model (see _labCompute)
   dir:'long'  // 'long' | 'short' — flips win-rate / avg gain / callout / bar colours
 };
 // Return the active-direction stats object, transparently swapping in short mirror when dir='short'.
-function _labV2ActiveStats(){
-  // SEAS-V4: client engine first (it follows the basket, detrend and the drawn line); server only while loading
-  const s=_labV2.rows?_labV2.clientStats:_labV2.windowStats; if(!s) return null;
-  if(_labV2.dir==='short' && s.short){
-    return Object.assign({}, s, s.short, {
-      // preserve fields that don't exist on the short block
-      n_years:s.n_years, td_window:s.td_window, cal_days:s.cal_days,
-      n_gains:s.short.n_wins, n_losses:s.short.n_losses
-    });
-  }
-  return s;
-}
 function _labV2SetDir(d){
   if(d!=='long' && d!=='short') return;
   if(_labV2.dir===d) return;
@@ -43267,7 +43255,7 @@ async function openSeasLab(marketId,marketName){
   document.getElementById('lab-content').style.display='none';
   _labV2.marketId=marketId;_labV2.marketName=marketName||marketId;
   _labV2.window=null;_labV2.windowStats=null;_labV2.perYearWindow=[];
-  _labV2.shape=null;_labV2.reqSeq++;clearTimeout(_labV2BlendDebounce);_labV2BlendDebounce=null;
+  _labV2.model=null;_labV2.reqSeq++;clearTimeout(_labV2BlendDebounce);_labV2BlendDebounce=null;
   _labV2.dragging=false;_labV2._pendingWs=null;_labV2._pendingWe=null;
   const _dirWrap=document.getElementById('lab-v2-side');if(_dirWrap)_dirWrap.innerHTML='';
   try{
@@ -43291,8 +43279,7 @@ async function openSeasLab(marketId,marketName){
     // score card and narrative are talking about), not always LONG.
     try{const _pd=+((d.planner&&(d.planner.primary_dir!=null?d.planner.primary_dir:d.planner.plan_dir))||0);if(_pd){_labV2.dir=_pd<0?'short':'long';const w=document.getElementById('lab-v2-dir');if(w)w.querySelectorAll('.dir-btn').forEach(b=>{const on=b.dataset.dir===_labV2.dir;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');});}}catch(_){}
     // AUDIT-SEAS-R2-FRONTEND: default window = planner leg when available, else today → +30 TD
-    const td=d.current_td, we=Math.min(251, td+_labV2PlannerDefaultTd());
-    _labV2.window={ws:td, we:we};
+    _labV2.window=_labV2DefaultWindow(d);   // SEAS-V5: planner leg when the backend ships one
     document.getElementById('lab-loading').style.display='none';
     document.getElementById('lab-content').style.display='block';
     _labV2RenderHead();
@@ -43444,60 +43431,154 @@ function _labRebasedPath(rows,anchorTd,avg,endTd){
   return out;
 }
 // per-year window rows + aggregate stats, same schema as the backend window_stats / per_year_windows
-function _labWindowStatsClient(rows,ws,we){
-  const si=Math.max(0,Math.round(ws)-1), ei=Math.max(si+1,Math.round(we)-1);
-  const py=[];
-  for(const r of rows){
-    const sp=r.arr[si],ep=r.arr[ei]; if(sp==null||ep==null)continue;
-    const base=1+sp/100; if(Math.abs(base)<1e-9)continue;
-    const seg=r.arr.slice(si,ei+1).filter(v=>v!=null); if(seg.length<2)continue;
-    py.push({year:r.y,start_pct:sp,end_pct:ep,ret_pct:((1+ep/100)/base-1)*100,
-      max_rise:((1+Math.max(...seg)/100)/base-1)*100,max_drop:((1+Math.min(...seg)/100)/base-1)*100,weight:r.w});
-  }
-  if(!py.length)return {stats:null,py:[]};
-  py.sort((a,b)=>b.year-a.year);
-  const rets=py.map(r=>r.ret_pct),wts=py.map(r=>r.weight),sw=wts.reduce((s,w)=>s+w,0);
-  const wMean=_labWMean(rets,wts),wMed=_labWq(rets,wts,0.5);
-  const eps=0.005;
-  const gains=py.filter(r=>r.ret_pct>eps),losses=py.filter(r=>r.ret_pct<-eps),ties=py.filter(r=>Math.abs(r.ret_pct)<=eps);
-  const wG=gains.reduce((s,r)=>s+r.weight,0),wL=losses.reduce((s,r)=>s+r.weight,0),wT=ties.reduce((s,r)=>s+r.weight,0);
-  const dec=wG+wL, winRate=dec>1e-12?wG/dec:0.5, shortWin=dec>1e-12?wL/dec:0.5;
-  const avgGain=gains.length?gains.reduce((s,r)=>s+r.ret_pct*r.weight,0)/Math.max(wG,1e-9):0;
-  const avgLoss=losses.length?losses.reduce((s,r)=>s+r.ret_pct*r.weight,0)/Math.max(wL,1e-9):0;
-  const maxG=Math.max(...rets),maxL=Math.min(...rets);
-  const vol=(sw>0&&rets.length>1)?Math.sqrt(rets.reduce((s,v,i)=>s+wts[i]*(v-wMean)**2,0)/sw):0;
-  const tdWin=Math.max(1,Math.round(we)-Math.round(ws)),af=252/tdWin,annRet=wMean*af,annVol=vol*Math.sqrt(af);
-  const sharpe=annVol>1e-9?annRet/annVol:0;
-  const dsd=(()=>{const dn=rets.map((v,i)=>v<wMean?wts[i]*(v-wMean)**2:0);const d2=sw>0?dn.reduce((s,v)=>s+v,0)/sw:0;return Math.sqrt(d2)*Math.sqrt(af);})();
-  const sortino=dsd>1e-9?annRet/dsd:0;
-  const sRets=rets.map(v=>-v),sMean=-wMean;
-  const sdsd=(()=>{const dn=sRets.map((v,i)=>v<sMean?wts[i]*(v-sMean)**2:0);const d2=sw>0?dn.reduce((s,v)=>s+v,0)/sw:0;return Math.sqrt(d2)*Math.sqrt(af);})();
-  const n=py.length, sorted=[...rets].sort((a,b)=>a-b);
-  const rawMed=n%2?sorted[(n-1)/2]:0.5*(sorted[n/2-1]+sorted[n/2]);
-  const rawDec=gains.length+losses.length;
-  const stats={win_rate:winRate,w_median:wMed,w_mean:wMean,ann_return:annRet,avg_gain:avgGain,avg_loss:avgLoss,max_gain:maxG,max_loss:maxL,
-    volatility:vol,sharpe,sortino,n_years:n,n_gains:gains.length,n_losses:losses.length,n_ties:ties.length,td_window:tdWin,
-    headline:{lens:'blend',win_rate:winRate,short_win_rate:shortWin,median_pct:wMed,mean_pct:wMean,n_up:gains.length,n_down:losses.length,n_ties:ties.length,n_years:n,w_up:wG,w_down:wL,w_ties:wT,tie_eps_pct:eps,compounded:true,excludes_current_year:true},
-    raw_win_rate:rawDec?gains.length/rawDec:0.5,raw_short_win_rate:rawDec?losses.length/rawDec:0.5,raw_median:rawMed,raw_mean:rets.reduce((s,v)=>s+v,0)/n,
-    raw_n_gains:gains.length,raw_n_losses:losses.length,raw_n_ties:ties.length,
-    short:{win_rate:shortWin,w_median:-wMed,w_mean:sMean,ann_return:-annRet,
-      avg_gain:losses.length?-losses.reduce((s,r)=>s+r.ret_pct*r.weight,0)/Math.max(wL,1e-9):0,
-      avg_loss:gains.length?-gains.reduce((s,r)=>s+r.ret_pct*r.weight,0)/Math.max(wG,1e-9):0,
-      max_gain:Math.max(...sRets),max_loss:Math.min(...sRets),volatility:vol,sharpe:annVol>1e-9?-annRet/annVol:0,sortino:sdsd>1e-9?-annRet/sdsd:0,
-      n_wins:losses.length,n_losses:gains.length,n_ties:ties.length,raw_win_rate:rawDec?losses.length/rawDec:0.5,raw_median:-rawMed,raw_mean:-rets.reduce((s,v)=>s+v,0)/n},
-    client:true};
-  return {stats,py};
-}
 /* Rebuild everything window-dependent from the current basket + window. Sets
    _labV2.rows / clientStats / clientPy / shape and the cross-check against the server. */
 function _labV2ComputeAll(paths){
   const d=_labData; if(!d)return;
-  const td=d.current_td, w=_labV2.window||{ws:td,we:Math.min(252,td+_LAB_FWD)};
-  const rows=_labLensRows(paths||_labPaths());
-  _labV2.rows=rows;
-  const cs=_labWindowStatsClient(rows,w.ws,w.we);
-  _labV2.clientStats=cs.stats; _labV2.clientPy=cs.py;
-  _labV2.shape=_labV2CrossCheck(_labV2ComputeShape(paths||_labPaths(),w.ws,w.we,td));
+  paths=paths||_labPaths();
+  const td=d.current_td,w=_labV2.window||_labV2DefaultWindow(d);
+  _labV2.rows=_labLensRows(paths);
+  _labV2.model=_labServerCheck(_labCompute(paths,w.ws,w.we,td));
+}
+
+/* ════ SEAS-V5 · ONE LAB ENGINE ════ */
+const _LAB_TIE_EPS=0.005;   // same tie epsilon as backend _SEAS_TIE_EPS (0.005%)
+function _labFmtPct(v,dp){
+  if(v==null||!isFinite(v))return '—';
+  dp=dp==null?1:dp;
+  let s=Math.abs(v).toFixed(dp);
+  if(+s===0)return (0).toFixed(dp)+'%';           // never "-0.0%"
+  return (v>0?'+':'−')+s+'%';
+}
+function _labSignCls(v,eps){eps=eps==null?_LAB_TIE_EPS:eps;return v==null||!isFinite(v)?'flat':(v>eps?'up':(v<-eps?'dn':'flat'));}
+function _labSignCol(v,eps){const c=_labSignCls(v,eps);return c==='up'?'var(--s1)':c==='dn'?'var(--sm2)':'var(--dim)';}
+function _labTdDate(t){
+  const d=_labData; if(!d||t==null||!isFinite(t))return null;
+  const base=new Date(); base.setHours(12,0,0,0);
+  const off=Math.round((t-d.current_td)*365/252);
+  const x=new Date(base.getTime()+off*86400000);
+  while(x.getDay()===0||x.getDay()===6)x.setDate(x.getDate()+1);
+  return x;
+}
+function _labDateLbl(t,withYear){
+  const d=_labData; if(d&&Math.round(t)===d.current_td)return 'today';
+  const x=_labTdDate(t); if(!x)return 'TD '+t;
+  return x.toLocaleDateString('en-GB',withYear?{day:'numeric',month:'short',year:'numeric'}:{day:'numeric',month:'short'});
+}
+function _labWinLbl(ws,we){return _labDateLbl(ws)+' → '+_labDateLbl(we);}
+function _labWkLbl(tdWin){const w=tdWin/5;return w<1.5?'~1 wk':'~'+Math.round(w)+' wk';}
+function _labYrs(n){return n+' yr'+(n===1?'':'s');}
+function _labCompute(paths,ws,we,td){
+  ws=Math.max(1,Math.min(251,Math.round(ws)));
+  we=Math.max(ws+1,Math.min(252,Math.round(we)));
+  const si=ws-1,ei=we-1,mid=Math.round((ws+we)/2),mi=mid-1;
+  const rows=_labLensRows(paths);
+  const anyW=rows.some(r=>Math.abs(r.w-1)>1e-9);
+  const py=[];
+  for(const r of rows){
+    const sp=r.arr[si],ep=r.arr[ei]; if(sp==null||ep==null)continue;
+    const base=1+sp/100; if(Math.abs(base)<1e-9)continue;
+    const rel=i=>{const v=r.arr[i];return v==null?null:((1+v/100)/base-1)*100;};
+    let lo=0,hi=0,loTd=ws,hiTd=ws;
+    for(let i=si;i<=ei;i++){const x=rel(i);if(x==null)continue;if(x<lo){lo=x;loTd=i+1;}if(x>hi){hi=x;hiTd=i+1;}}
+    const ret=rel(ei),near=rel(mi);
+    const far=(near!=null&&Math.abs(1+near/100)>1e-9)?(((1+ret/100)/(1+near/100)-1)*100):null;
+    py.push({y:r.y,w:r.w,ret,lo,hi,loTd,hiTd,near,far,cls:_labSignCls(ret)});
+  }
+  const M={ws,we,td,mid,tdWin:we-ws,n:py.length,lens:anyW?'smart blend':'equal weight',perYear:py,price:null,long:null,short:null,verdict:null,segMove:null,srvCheck:null};
+  if(!py.length){M.verdict={dir:0,strength:'none',label:'No years selected',cls:'flat'};return M;}
+  const W=py.map(r=>r.w),V=k=>py.map(r=>r[k]);
+  const wq=(vals,q)=>_labWq(vals,W,q),wm=vals=>_labWMean(vals,W);
+  const rets=V('ret');
+  const up=py.filter(r=>r.cls==='up'),dn=py.filter(r=>r.cls==='dn'),tie=py.filter(r=>r.cls==='flat');
+  const sum=a=>a.reduce((s,r)=>s+r.w,0);
+  const wUp=sum(up),wDn=sum(dn),wDen=wUp+wDn,nDen=up.length+dn.length,totW=sum(py);
+  const best=py.reduce((a,r)=>r.ret>a.ret?r:a,py[0]),worst=py.reduce((a,r)=>r.ret<a.ret?r:a,py[0]);
+  const sorted=[...rets].sort((a,b)=>a-b);
+  M.price={
+    med:wq(rets,0.5),mean:wm(rets),p25:wq(rets,0.25),p75:wq(rets,0.75),
+    rawMed:_labQuantile(sorted,0.5),rawMean:rets.reduce((s,v)=>s+v,0)/rets.length,
+    nUp:up.length,nDown:dn.length,nTie:tie.length,
+    upRate:wDen>0?wUp/wDen:null,rawUpRate:nDen>0?up.length/nDen:null,
+    avgUp:up.length?_labWMean(up.map(r=>r.ret),up.map(r=>r.w)):null,
+    avgDown:dn.length?_labWMean(dn.map(r=>r.ret),dn.map(r=>r.w)):null,
+    best:{y:best.y,v:best.ret},worst:{y:worst.y,v:worst.ret},
+    medMaxRise:wq(V('hi'),0.5),medMaxDrop:wq(V('lo'),0.5),
+    medNear:wq(V('near'),0.5),medFar:wq(V('far'),0.5),
+    nEff:totW>0?(totW*totW)/py.reduce((s,r)=>s+r.w*r.w,0):py.length
+  };
+  // Where inside the window the years typically bottom / top (years with a ≥1% swing only)
+  const timing=(isLow)=>{
+    const sel=py.filter(r=>isLow?r.lo<=-1.0:r.hi>=1.0);
+    const quorum=Math.max(3,Math.ceil(py.length*0.34));
+    const t=sel.length>=quorum?Math.round(_labWq(sel.map(r=>isLow?r.loTd:r.hiTd),sel.map(r=>r.w),0.5)):null;
+    return {td:t,n:sel.length,quorum,post:wq(py.map(r=>isLow?(r.ret-r.lo):(r.ret-r.hi)),0.5)};
+  };
+  M.trough=timing(true); M.peak=timing(false);
+  // Side views: pure mirrors of the price stats. Nothing is recomputed per side.
+  const side=sgn=>{
+    const P=M.price;
+    return {sgn,pnlMed:sgn*P.med,pnlMean:sgn*P.mean,
+      winRate:P.upRate==null?null:(sgn>0?P.upRate:1-P.upRate),
+      rawWinRate:P.rawUpRate==null?null:(sgn>0?P.rawUpRate:1-P.rawUpRate),
+      wins:sgn>0?P.nUp:P.nDown,losses:sgn>0?P.nDown:P.nUp,ties:P.nTie,
+      favMed:sgn>0?P.medMaxRise:-P.medMaxDrop,advMed:sgn>0?P.medMaxDrop:-P.medMaxRise,
+      entry:sgn>0?M.trough:M.peak,post:sgn>0?M.trough.post:-M.peak.post,
+      ranked:py.map(r=>({y:r.y,v:sgn*r.ret,w:r.w})).sort((a,b)=>b.v-a.v)};
+  };
+  M.long=side(1); M.short=side(-1);
+  M.verdict=_labVerdict(M.price,py.length);
+  return M;
+}
+function _labVerdict(P,n){
+  if(!P||P.med==null||n<4)return {dir:0,strength:'none',lensSplit:false,label:n<4?'Too few years':'No clear edge',cls:'flat'};
+  const ur=P.upRate==null?0.5:P.upRate;
+  const dMed=P.med>_LAB_TIE_EPS?1:(P.med<-_LAB_TIE_EPS?-1:0);
+  const dRate=ur>=0.55?1:(ur<=0.45?-1:0);
+  const dRaw=P.rawMed>_LAB_TIE_EPS?1:(P.rawMed<-_LAB_TIE_EPS?-1:0);
+  let dir=0,strength='none';
+  if(dMed!==0&&dMed===dRate){
+    dir=dMed;const edge=Math.abs(ur-0.5),mag=Math.abs(P.med);
+    strength=(edge>=0.15&&mag>=1)?'strong':(edge>=0.08||mag>=1)?'moderate':'weak';
+  }else if(dMed!==0&&dRate===0){dir=dMed;strength='weak';}
+  const lensSplit=dir!==0&&dRaw!==0&&dRaw!==dir;
+  return {dir,strength,lensSplit,label:dir>0?'Favours longs':dir<0?'Favours shorts':'No clear edge',cls:dir>0?'up':dir<0?'dn':'flat'};
+}
+function _labServerCheck(M){
+  M.srvCheck=null;
+  const ws=_labV2.windowStats,h=ws&&ws.headline;
+  if(!M||!M.price||!h)return M;
+  if(_labOpts.detrend){M.srvCheck={state:'na',why:'detrend on'};return M;}
+  if(h.n_years!=null&&M.n!==h.n_years){M.srvCheck={state:'na',why:'basket narrowed'};return M;}
+  if(_labV2.windowStats.window_start!=null&&(+_labV2.windowStats.window_start!==M.ws||+_labV2.windowStats.window_end!==M.we)){M.srvCheck={state:'pending'};return M;}
+  const dMed=Math.abs((+h.median_pct)-M.price.med),dWr=Math.abs((+h.win_rate)-M.price.upRate);
+  const okCounts=(h.n_up==null||h.n_up===M.price.nUp)&&(h.n_down==null||h.n_down===M.price.nDown);
+  const ok=dMed<=0.011&&dWr<=0.0011&&okCounts;
+  M.srvCheck={state:ok?'ok':'diff',dMed,dWr,srvMed:+h.median_pct,srvWr:+h.win_rate};
+  if(!ok)console.warn('SEAS-V5 client/server window mismatch',M.srvCheck,{client:M.price,srv:h});
+  return M;
+}
+function _labV2DefaultWindow(d){
+  const td=d.current_td,p=d.planner,sw=p&&p.suggested_window;
+  if(sw&&sw.start_td!=null&&sw.end_td!=null&&(+sw.end_td-+sw.start_td)>=3&&+sw.start_td>=td-1&&+sw.end_td<=252){
+    return {ws:Math.max(1,Math.round(+sw.start_td)),we:Math.min(252,Math.round(+sw.end_td)),src:'planner'};
+  }
+  return {ws:td,we:Math.min(252,td+_LAB_FWD),src:'default'};
+}
+function _labV2ActiveSide(){const M=_labV2.model;return M?(_labV2.dir==='short'?M.short:M.long):null;}
+function _labV2SidePlan(dir){
+  const d=_labData,p=d&&d.planner; if(!p)return null;
+  const s=p[dir]; if(!s||typeof s!=='object')return null;
+  return {action:s.plan_action||'no_edge',entry:s.entry_in_td!=null?Math.round(+s.entry_in_td):null,
+    exit:s.exit_in_td!=null?Math.round(+s.exit_in_td):null,hold:s.hold_td!=null?Math.round(+s.hold_td):null,
+    move:s.expected_move_pct!=null?+s.expected_move_pct:null,win:s.leg_win_rate!=null?+s.leg_win_rate:null,
+    exitDate:s.exit_by_date||null,entryDate:s.entry_by_date||null,turnTd:s.next_turn_td!=null?Math.round(+s.next_turn_td):null,
+    turnType:s.next_turn_type||null,note:s.note||null,nYears:p.lens&&p.lens.n_years,fwd:p.fwd_td||45};
+}
+function _labPlanDateLbl(iso,fallbackTdFromToday){
+  if(iso){const x=new Date(String(iso));if(!isNaN(x.getTime()))return x.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});}
+  if(fallbackTdFromToday!=null&&_labData)return _labDateLbl(_labData.current_td+fallbackTdFromToday);
+  return '—';
 }
 
 function _labRender(){
@@ -43537,6 +43618,7 @@ function _labRender(){
   for(let i=wsI;i<=weI;i++){ if(winReb[i]!=null)winPath[i]=((1+hangLvl/100)*(1+winReb[i]/100)-1)*100; }
   const segMove=winReb[weI];                                   // == weighted window median/mean by construction
   _labV2.segment={ws:w.ws,we:w.we,move:segMove,start:winPath[wsI],end:winPath[weI]};
+  if(_labV2.model){_labV2.model.segMove=segMove;}   // SEAS-V5: one number for legend, stamp and KPI
   const segUp=segMove!=null?segMove>=0:true;
   const segCol=segUp?'#3ecf8e':'#e5484d';
   _labV2RenderBasketStats();
@@ -43589,7 +43671,7 @@ function _labRender(){
     // TODAY tag, otherwise they collided at 390px.
     if(d.months){
       ctx.font='700 8px "DM Sans",sans-serif';
-      const l0=tdPhase(w.ws,d.months).toUpperCase(), l1=tdPhase(w.we,d.months).toUpperCase();
+      const l0=_labDateLbl(w.ws).toUpperCase(), l1=_labDateLbl(w.we).toUpperCase();
       const need=ctx.measureText(l0).width+ctx.measureText(l1).width+22;
       const todayX=x.getPixelForValue(td-1);
       const clearOfToday=Math.abs(wx0-todayX)>ctx.measureText(l0).width+8 || wx0>=todayX;
@@ -43659,372 +43741,94 @@ function _labRender(){
 
 /* ════ SEASONALITY LAB V2 ════ */
 
-/* ════ AUDIT-LAB-UI · direction + window aware shape engine ════
-   One computation, two perspectives. `long` = price-up is a win, `short` = price-down
-   is a win. Every field on a side object is already expressed in that side's P&L, so
-   positive is ALWAYS good for the trader on that side.
-
-   ══ AUDIT-SEAS-R2-FRONTEND · ONE LENS (Ben item 4 / screenshot A) ══
-   Screenshot A showed three different numbers for the same window (48% weighted donut,
-   49% callout hit rate, "19 down · 22 up"). Three causes, all fixed here:
-
-   1. OFF-BY-ONE. The backend measures the window as arr[ws] → arr[we] (0-based array
-      index == trading-day number). This engine used arr[ws-1] → arr[we-1], so on a 7 TD
-      window it classified different years as up/down than the server did. Now
-      index-aligned, and where the server ships `per_year_windows` for the active window
-      we adopt its ret_pct / max_rise / max_drop rows outright — same rows, same numbers.
-   2. LENS MISMATCH. The plotted hero line is the SMART BLEND (cycle boost + recency
-      half-life). The stats were equal-weight, so what Ben's eye picked off the chart was
-      not what got scored. Every headline stat is now WEIGHTED with the same per-year
-      weights the server used to build that line. `raw*` fields keep the equal-weight
-      figure available as a secondary sub-label only.
-   3. TIES. A 0.00% year used to count as a LOSS on BOTH sides. Ties are now EXCLUDED from
-      both numerator and denominator of the hit rate (`nTie` is reported), so the long and
-      short hit rates sum to 100% and neither side is quietly penalised. */
-function _labWQuantile(pairs,q){
-  // pairs: [{v,w}] — SEAS-V4: same mid-weight, non-interpolating rule as backend _seas_wq
-  // (was linearly interpolated here, so a narrowed basket printed a median no year produced).
-  return _labWq(pairs.map(p=>p.v),pairs.map(p=>p.w),q);
-}
-function _labV2ComputeShape(paths,ws,we,td){
-  ws=Math.max(1,Math.min(251,Math.round(ws)));
-  we=Math.max(ws+1,Math.min(252,Math.round(we)));
-  const out={n:0,ws,we,td,tdWin:we-ws,long:null,short:null,perYear:[],lens:'equal-weight'};
-  if(!paths||!paths.length)return out;
-  // SEAS-V4: TDs are 1-based (backend _si = start_td-1). This used arr[ws]/arr[we] and an
-  // arithmetic difference of two cumulative levels — every client-side window was one
-  // session late and mis-measured. Now compounded off the entry level exactly like
-  // _seas_lab_window_stats, and weights come straight from the blend (d.weights).
-  const si=ws-1, ei=we-1;
-  const gw=(_labData&&_labData.weights)||{};
-  let anyW=false;
-  const rows=[];
-  for(const p of paths){
-    const sp=p.arr[si],ep=p.arr[ei];
-    if(sp==null||ep==null)continue;
-    const base=1+sp/100; if(Math.abs(base)<1e-9)continue;
-    const rel=i=>{const v=p.arr[i];return v==null?null:((1+v/100)/base-1)*100;};
-    let lo=0,hi=0,loTd=ws,hiTd=ws;
-    for(let i=si;i<=ei;i++){
-      const r=rel(i); if(r==null)continue;
-      if(r<lo){lo=r;loTd=i+1;}
-      if(r>hi){hi=r;hiTd=i+1;}
-    }
-    const ret=rel(ei);
-    let w=gw[p.y]!=null?+gw[p.y]:(gw[String(p.y)]!=null?+gw[String(p.y)]:1);
-    if(!isFinite(w)||w<=0)w=1e-6; else if(Math.abs(w-1)>1e-9)anyW=true;
-    rows.push({y:p.y,ret,lo,hi,loTd,hiTd,w,fromLo:ret-lo,fromHi:ret-hi,base});
-  }
-  out.perYear=rows;out.n=rows.length;
-  out.lens=anyW?'smart-blend weighted':'equal-weight';
-  if(!rows.length)return out;
-  const q=(a,p)=>_labQuantile([...a].sort((x,y)=>x-y),p);                    // raw equal-weight
-  const wq=(vals,p)=>_labWQuantile(rows.map((r,i)=>({v:vals[i],w:r.w})),p);  // smart-blend weighted
-  const side=sgn=>{
-    const rets=rows.map(r=>sgn*r.ret);
-    const adv=rows.map(r=>sgn>0?r.lo:-r.hi);        // adverse excursion (<=0 in side P&L)
-    const fav=rows.map(r=>sgn>0?r.hi:-r.lo);        // favourable excursion (>=0)
-    // Entry timing: the seasonal extreme the trader wants to buy/sell into
-    const extTds=rows.filter(r=>(sgn>0?r.lo<-1.0:r.hi>1.0)).map(r=>sgn>0?r.loTd:r.hiTd);
-    const aheadTds=extTds.filter(t=>t>=td);
-    const post=rows.map(r=>sgn>0?r.fromLo:-r.fromHi); // move from the extreme to window end
-    const mid=Math.round((ws+we)/2);
-    const halves=[];
-    rows.forEach(r=>{
-      const p=paths.find(x=>x.y===r.y);
-      const a=p?p.arr[ws-1]:null,m=p?p.arr[mid-1]:null,z=p?p.arr[we-1]:null;
-      if(a!=null&&m!=null&&z!=null){
-        const A=1+a/100,M=1+m/100,Z=1+z/100;
-        if(Math.abs(A)>1e-9&&Math.abs(M)>1e-9)halves.push({near:sgn*((M/A-1)*100),far:sgn*((Z/M-1)*100),w:r.w});
-      }
-    });
-    // Hit rate — weighted, TIES EXCLUDED from numerator and denominator.
-    let wWin=0,wLoss=0,nWin=0,nLoss=0,nTie=0;
-    rets.forEach((v,i)=>{
-      const w=rows[i].w;
-      if(v>0.005){wWin+=w;nWin++;}          // SEAS-V4: same tie epsilon as backend (_SEAS_TIE_EPS=0.005%)
-      else if(v<-0.005){wLoss+=w;nLoss++;}
-      else nTie++;
-    });
-    const wDen=wWin+wLoss, nDen=nWin+nLoss;
-    const totW=rows.reduce((s,r)=>s+r.w,0);
-    const quorum=Math.max(2,Math.ceil(rows.length*0.34));
-    const wMean=totW>0?rets.reduce((s,v,i)=>s+v*rows[i].w,0)/totW:null;
-    return {n:rows.length,
-      // ── headline: smart-blend weighted, same lens as the plotted hero line ──
-      wins:nWin,losses:nLoss,nTie,
-      winRate:wDen>0?wWin/wDen:null,
-      med:wq(rets,0.5),mean:wMean,
-      advMed:wq(adv,0.5),favMed:wq(fav,0.5),postMed:wq(post,0.5),
-      nearMed:halves.length?_labWQuantile(halves.map(h=>({v:h.near,w:h.w})),0.5):null,
-      farMed:halves.length?_labWQuantile(halves.map(h=>({v:h.far,w:h.w})),0.5):null,
-      // ── secondary: raw equal-weight, sub-label only ──
-      rawWinRate:nDen>0?nWin/nDen:null,rawMed:q(rets,0.5),
-      rawMean:rets.reduce((s,v)=>s+v,0)/rows.length,
-      nEff:totW>0?(totW*totW)/rows.reduce((s,r)=>s+r.w*r.w,0):rows.length,
-      nAdv:adv.filter(v=>v<=-2).length,
-      entryTd:aheadTds.length>=quorum?Math.round(q(aheadTds,0.5)):null,
-      nEntry:aheadTds.length,midTd:mid,
-      ranked:rows.map(r=>({y:r.y,v:sgn*r.ret,w:r.w})).sort((a,b)=>b.v-a.v)};
-  };
-  out.long=side(1);out.short=side(-1);
-  return out;
-}
-
-/* SEAS-V4 · the client engine is now the single source for what is drawn AND what is
-   printed. The backend's window_stats (same maths, same weights, same quantile rule) are
-   used purely as an independent cross-check: when the basket is the full server basket and
-   detrend is off, the two must agree to the rounding step. The result is stamped in the
-   sidebar so a divergence can never hide. */
-function _labV2CrossCheck(out){
-  const ws=_labV2.windowStats, h=ws&&ws.headline;
-  out.srvCheck=null;
-  if(!out||!h||!out.long)return out;
-  if(_labOpts.detrend)return out;                       // server rows are not detrended
-  if(h.n_years!=null&&out.n!==h.n_years)return out;     // narrowed basket — nothing to compare against
-  const dMed=Math.abs((+h.median_pct)-out.long.med), dWr=Math.abs((+h.win_rate)-out.long.winRate);
-  const okCounts=(h.n_up==null||h.n_up===out.long.wins)&&(h.n_down==null||h.n_down===out.long.losses);
-  out.srvCheck={ok:dMed<=0.011&&dWr<=0.0011&&okCounts,dMed,dWr,srvMed:+h.median_pct,srvWr:+h.win_rate};
-  if(!out.srvCheck.ok)console.warn('SEAS-V4 lens mismatch vs server',out.srvCheck,{clientMed:out.long.med,clientWr:out.long.winRate,wins:out.long.wins,losses:out.long.losses,srv:h});
-  return out;
-}
-/* AUDIT-SEAS-R2-FRONTEND · shared lens stamp. Donut, callout, consensus grid and basket
-   cards all print the SAME string, so a trader can never be unsure which basket a number
-   came from. The raw equal-weight figure only ever appears as a secondary sub-label. */
-function _labV2LensStamp(s){
-  const sh=_labV2.shape;
-  const n=(s&&s.n)||(sh&&sh.n)||(_labV2.windowStats&&_labV2.windowStats.n_years)||0;
-  const lens=(sh&&sh.lens)||'smart-blend weighted';
-  return lens+' · '+n+' yrs';
-}
-function _labV2RawStamp(s){
-  if(!s)return '';
-  const rw=s.rawWinRate!=null?Math.round(s.rawWinRate*100)+'%':'—';
-  const rm=s.rawMed!=null?((s.rawMed>=0?'+':'')+s.rawMed.toFixed(1)+'%'):'—';
-  return 'raw equal-weight '+rw+' · median '+rm+(s.nTie?' · '+s.nTie+' tie'+(s.nTie>1?'s':'')+' excluded':'');
-}
-
-// Days-to-goldilocks straight from the scoring payload when one exists.
-// AUDIT-LAB-UI: preference order is (1) the seasonal-score detail on /api/scores —
-// the same read that feeds the composite tilt and the detail-page goldilocks strip,
-// (2) any field the lab endpoint ships, (3) the client basket scan in
-// _labV2ComputeShape. Keeping (1) first means the Lab, the detail page and the
-// composite can never disagree about how far away the entry is.
-function _labV2PayloadGold(){
-  const d=_labData;if(!d)return null;
-  const norm=v=>{
-    if(v==null)return null;
-    if(typeof v==='number')return v>0?'long':(v<0?'short':null);
-    const t=String(v).toLowerCase();
-    return t==='long'||t==='bull'||t==='up'?'long':(t==='short'||t==='bear'||t==='down'?'short':null);
-  };
-  const sd=(typeof DATA!=='undefined'&&DATA&&DATA.markets)
-    ? (((DATA.markets.find(x=>x.id===_labV2.marketId)||{}).scores||{}).seasonal||{}).detail||null
-    : null;
-  if(sd&&sd.days_to_goldilocks!=null&&isFinite(+sd.days_to_goldilocks)
-     &&sd.entry_timing&&sd.entry_timing!=='none'){
-    const td=Math.round(+sd.days_to_goldilocks);
-    if(td>=0)return {td,dir:norm(sd.goldilocks_dir),src:'score'};
-  }
-  const cands=[[d.days_to_goldilocks,d.goldilocks_dir],[d.td_to_goldilocks,d.goldilocks_dir],
-    [d.score_detail&&d.score_detail.days_to_goldilocks,d.score_detail&&d.score_detail.goldilocks_dir],
-    [d.window&&d.window.days_to_goldilocks,d.window&&d.window.goldilocks_dir]];
-  for(const [v,dr] of cands){
-    if(typeof v==='number'&&isFinite(v)&&v>=0)return {td:Math.round(v),dir:norm(dr),src:'score'};
-  }
-  return null;
-}
-
-/* AUDIT-SEAS-R2-FRONTEND · planner formatting helpers (item 3). */
+/* SEAS-V5: the shape/side engine, goldilocks scan, side copy and their helpers were
+   removed. Everything the Lab prints now comes from _labCompute (one model, price terms,
+   side views as pure mirrors). Only the date helper and the lens stamp remain here. */
+function _labV2LensStamp(){const M=_labV2.model;return M?(M.lens+' · '+_labYrs(M.n)):'';}
+/* planner date formatting */
 function _labPlanDate(v){
   if(v==null)return null;
   const d=(v instanceof Date)?v:new Date(String(v));
   if(isNaN(d.getTime()))return String(v);
   return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
 }
-// Resolve the exit label: a real date if the backend gives one, else the seasonal phase.
-function _labPlanExitLbl(plan){
-  const dt=_labPlanDate(plan.exit_by_date);
-  if(dt)return dt;
-  const sh=_labV2.shape,d=_labData;
-  if(sh&&d&&plan.exit_in_td!=null){
-    const t=Math.min(252,Math.round(sh.td+ +plan.exit_in_td));
-    return d.months?tdPhase(t,d.months):('TD '+t);
-  }
-  return null;
-}
-// 8, 11, 18, 80-89 take "an"; everything else "a".
-function _labArt(n){const t=String(n);return (t[0]==='8'||/^1[18]$/.test(t))?'an':'a';}
-const _LAB_TURN_WORD={dip:'dip',trough:'dip',low:'dip',peak:'peak',high:'peak',top:'peak'};
-function _labPlanTurnWord(plan,isShort){
-  const t=plan.next_turn_type?String(plan.next_turn_type).toLowerCase():null;
-  return (t&&_LAB_TURN_WORD[t])||(isShort?'peak':'dip');
-}
-const _LAB_TD2CAL=365/252;
-function _labV2SideCopy(isShort){
-  return isShort
-    ? {word:'fall',wordPast:'fell',adverseWord:'rally',extreme:'peak',entryVerb:'sell into',
-       riskKick:'Rally risk ahead',shapeNote:'a pop-then-fade profile',
-       favWord:'fall',advDirWord:'above',oppose:'rose'}
-    : {word:'rise',wordPast:'rose',adverseWord:'drawdown',extreme:'trough',entryVerb:'buy into',
-       riskKick:'Drawdown risk ahead',shapeNote:'a dip-then-rally profile',
-       favWord:'rally',advDirWord:'below',oppose:'fell'};
-}
 
-/* Trader-language callout: goldilocks timing first, then risk, then edge. */
 function _labV2RenderCallout(){
-  const co=document.getElementById('lab-callout');if(!co)return;
-  const sh=_labV2.shape,d=_labData;
-  if(!sh||!sh.n||!d){co.style.display='none';return;}
-  const isShort=_labV2.dir==='short';
-  const s=isShort?sh.short:sh.long;
-  if(!s||s.n<3){co.style.display='none';return;}
-  const C=_labV2SideCopy(isShort);
-  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
-  const mag=v=>v==null?'—':Math.abs(v).toFixed(1)+'%';
-  const ph=t=>d.months?tdPhase(t,d.months):('TD '+t);
-  const winLbl=`${ph(sh.ws)} → ${ph(sh.we)}`;
-  // 1-2W vs 3-4W shape — the "am I early?" read
-  let shapeTxt='';
-  if(s.nearMed!=null&&s.farMed!=null&&Math.abs(s.nearMed-s.farMed)>=1.5){
-    const backLoaded=s.farMed>s.nearMed;
-    shapeTxt=` Shape: first half <b>${pc(s.nearMed)}</b> → second half <b>${pc(s.farMed)}</b> — ${backLoaded?'the move is back-loaded, so patience pays':'the move is front-loaded, so late entries chase'}.`;
-  }
-  // AUDIT-SEAS-R2-FRONTEND: the callout is now on the SAME lens as the donut and the
-  // consensus grid, and says so. Raw equal-weight is demoted to the sub-label.
-  const srcTxt=` <i>· window medians: ${_labV2LensStamp(s)}${(_labV2.rows&&_labV2.rows.length)?' (your basket)':''}</i>`;
-  const _planRej=(function(){try{const pl=_labV2PlanRead();return (pl&&String(pl.plan_action).toLowerCase()==='no_edge'&&pl.rejected_leg&&pl.rejected_leg.reason)?` Swing planner: not a trade — ${pl.rejected_leg.reason}.`:'';}catch(e){return '';}})();
-  const wrPct=Math.round(s.winRate*100);
-  // SEAS-V3b copy fix: s.winRate is the WEIGHTED hit rate but s.wins/s.n are RAW year
-  // counts. Printing "12 of 55 years (33%)" mixed the two lenses. Always state both.
-  const hrTxt=`<b>${wrPct}%</b> weighted hit rate (raw <b>${s.wins}/${s.n}</b> years ${C.wordPast})`;
-  // goldilocks countdown — backend value wins when it exists and matches the side
-  let goldTd=s.entryTd!=null?(s.entryTd-sh.td):null;
-  let goldSrc='basket';
-  const pg=_labV2PayloadGold();
-  if(pg&&(!pg.dir||pg.dir===_labV2.dir)){goldTd=pg.td;goldSrc='score';}
-  const entryPhase=s.entryTd!=null?ph(s.entryTd):(goldTd!=null?ph(Math.min(252,sh.td+goldTd)):null);
-  const wks=goldTd!=null?Math.max(1,Math.round(goldTd*_LAB_TD2CAL/7)):null;
-  let tone='co-flat',ic='▬',kick='',txt='',pill='';
-
-  /* ══ AUDIT-SEAS-R2-FRONTEND · item 3: the swing planner is the PRIMARY callout ══
-     A seasonal edge is only tradeable if it tells you when to get in AND when to be out.
-     When the backend exposes an entry→exit leg we lead with it; `no_edge` (and the
-     pre-planner state, which is every deployment until the backend lands) falls through
-     to the round-1 goldilocks hierarchy below. */
-  const plan=_labV2PlanRead();
-  const pAct=plan&&plan.plan_action?String(plan.plan_action).toLowerCase():null;
-  const pMove=plan&&plan.expected_move_pct!=null?+plan.expected_move_pct:null;
-  const pWin=plan&&plan.leg_win_rate!=null?Math.round((+plan.leg_win_rate<=1?+plan.leg_win_rate*100:+plan.leg_win_rate)):null;
-  const pExit=plan?_labPlanExitLbl(plan):null;
-  const pExitTd=plan&&plan.exit_in_td!=null?Math.round(+plan.exit_in_td):null;
-  const pEntryTd=plan&&plan.entry_in_td!=null?Math.round(+plan.entry_in_td):null;
-  const pHold=plan&&plan.hold_td!=null?Math.round(+plan.hold_td):
-    (pExitTd!=null&&pEntryTd!=null?Math.max(1,pExitTd-pEntryTd):pExitTd);
-  const pTurn=plan?_labPlanTurnWord(plan,isShort):null;
-  // SEAS-V3: expected_move_pct is a signed PRICE move (negative for a short leg) — print it as such, never as |x| with a price glyph.
-  const pLeg=[pMove!=null?`expected price move <b style="color:${pMove>=0?'#22c97a':'#e03a2a'}">${pMove>=0?'▲':'▼'} ${pc(pMove)}</b>`:null,
-              pWin!=null?`leg win rate <b>${pWin}%</b>`:null].filter(Boolean).join(' · ');
-  // SEAS-V4: the planner leg is computed server-side on the FULL basket over its own hold (not the Lab window or year picker) — say so inline so it is never read as a basket stat.
-  const _pN=(plan&&plan.n_years)||(_labData&&_labData.planner&&_labData.planner.lens&&_labData.planner.lens.n_years)||null;
-  const pEdge=pLeg?` ${pLeg[0].toUpperCase()+pLeg.slice(1)} <i>(swing planner · server · full basket${_pN?` · ${_pN} yrs`:''}${pHold!=null?` · ${pHold} TD leg`:''})</i>.`:'';
-
-  if(pAct==='enter_now'&&pExit){
-    tone='co-good';ic=isShort?'▼':'▲';pill='ENTER NOW';
-    const left=plan.next_turn_td!=null?Math.round(+plan.next_turn_td):pExitTd;
-    kick=`Enter now — exit by ${pExit}`;
-    txt=`${left!=null?`<b>${left} TD</b> left before the seasonal ${pTurn}`:`Seasonal window is open`} — `+
-        `${isShort?'sell':'buy'} into it and be flat by <b>${pExit}</b>${pHold!=null?` (${pHold} TD hold)`:''}.`+
-        `${pEdge} Median ${C.favWord} across ${winLbl} <b>${mag(s.favMed)}</b>, median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>.${shapeTxt}${srcTxt}`;
-  }else if(pAct==='wait'&&pEntryTd!=null){
-    tone='co-gold';ic='◷';pill=`${pEntryTd} TD`;
-    kick=`Goldilocks in ${pEntryTd} TD — then ride to ${pExit||ph(sh.we)}`;
-    txt=`Do nothing yet. Seasonal ${pTurn} lands in <b>${pEntryTd} TD</b>${pEntryTd>0?` (~${Math.max(1,Math.round(pEntryTd*_LAB_TD2CAL/7))} week${Math.round(pEntryTd*_LAB_TD2CAL/7)===1?'':'s'})`:''}; `+
-        `${isShort?'sell':'buy'} that ${pTurn}, then exit by <b>${pExit||ph(sh.we)}</b>${pHold!=null?` — ${_labArt(pHold)} ${pHold} TD leg`:''}.`+
-        `${pEdge} Median adverse ${C.adverseWord} before then <b>${pc(s.advMed)}</b>.${shapeTxt}${srcTxt}`;
-  }else if(goldTd!=null&&goldTd<=2&&s.postMed>=1.5){
-    tone='co-good';ic=isShort?'▼':'▲';pill='NOW';
-    kick=`Goldilocks entry — live now`;
-    txt=`Seasonal ${C.extreme} sits around <b>${entryPhase}</b> — effectively here. From there the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b>; ${hrTxt} across ${winLbl} (median <b>${pc(s.med)}</b>).${shapeTxt}${_planRej}${srcTxt}`;
-  }else if(goldTd!=null&&goldTd>2&&goldTd<=30&&s.postMed>=1.5){
-    tone='co-gold';ic='◷';pill=`${goldTd} TD`;
-    kick=`Almost ready seasonally — ${goldTd} trading days to goldilocks entry`;
-    txt=`Price typically ${isShort?'rallies':'dips'} first — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>, ${C.extreme} around <b>${entryPhase}</b> (~${wks} week${wks===1?'':'s'} out). From that ${C.extreme} the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b> — wait for it or scale in.${shapeTxt}${_planRej}${goldSrc==='score'?' <i>Timing from the seasonal score.</i>':''}${srcTxt}`;
-  }else if(s.advMed!=null&&s.advMed<=-3){
-    tone='co-risk';ic='▼';
-    kick=C.riskKick;
-    txt=`In <b>${s.nAdv} of ${s.n}</b> selected years price ${isShort?'rose':'fell'} &gt;2% ${C.advDirWord} the entry inside ${winLbl} — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>${s.entryTd?`, typical ${C.extreme} around <b>${entryPhase}</b>`:''}. Window ${_labOpts.avg}: <b>${pc(s.med)}</b>${s.med>0?` — ${C.shapeNote}`:''}.${shapeTxt}${_planRej}${srcTxt}`;
-    // pill is a countdown, so only inside the swing horizon Ben cares about (≤6 weeks)
-    if(s.entryTd&&goldTd!=null&&goldTd>2&&goldTd<=30)pill=`${goldTd} TD`;
-  }else if(s.med!=null&&s.med<0&&s.winRate<=0.45){
-    tone='co-risk';ic='▼';
-    kick=isShort?'Seasonal headwind for shorts':'Seasonal headwind ahead';
-    txt=`Only ${hrTxt} across ${winLbl} — median <b>${pc(s.med)}</b>, median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>. The other side of the book looks better here.${shapeTxt}${srcTxt}`;
-  }else if(s.favMed!=null&&s.favMed>=3&&(s.advMed==null||s.advMed>-1.5)){
-    tone='co-good';ic=isShort?'▼':'▲';
-    kick=isShort?'Seasonal weakness ahead — favours shorts':'Seasonal strength ahead';
-    txt=`Median max ${C.favWord} across ${winLbl} is <b>${mag(s.favMed)}</b> over this ${s.n}-year basket with limited adverse excursion (median <b>${pc(s.advMed)}</b>) — ${hrTxt}.${shapeTxt}${srcTxt}`;
+  const el=document.getElementById('lab-callout'); if(!el)return;
+  const M=_labV2.model,d=_labData;
+  if(!M||!M.price||!d){el.style.display='none';return;}
+  const isShort=_labV2.dir==='short',sideWord=isShort?'short':'long',S=_labV2ActiveSide(),P=M.price,V=M.verdict;
+  const plan=_labV2SidePlan(sideWord),other=_labV2SidePlan(isShort?'long':'short');
+  const with_=V.dir!==0&&((V.dir>0)!==isShort),against=V.dir!==0&&!with_;
+  const win=S.winRate!=null?Math.round(S.winRate*100)+'%':'—';
+  const dates=_labWinLbl(M.ws,M.we);
+  let cls,kick,pill,txt;
+  if(V.dir===0){
+    cls='co-flat';kick='No seasonal edge in this window';pill='◆ '+V.label;
+    txt=`Across <b>${_labYrs(M.n)}</b> the ${M.lens} median price move ${dates} is <b>${_labFmtPct(P.med)}</b> with <b>${P.nUp} up · ${P.nDown} down</b>${P.nTie?' · '+P.nTie+' flat':''}. Neither side clears the bar, so seasonality should not be a reason to hold a ${sideWord} here.`;
+  }else if(with_){
+    cls=V.strength==='weak'?'co-gold':'co-good';kick=`Seasonality ${V.strength==='weak'?'leans':'is'} with your ${sideWord}`;pill=(V.dir>0?'▲ ':'▼ ')+V.label+' · '+V.strength;
+    txt=`Price ${V.dir>0?'rose':'fell'} in <b>${win}</b> of ${_labYrs(M.n)} (${M.lens}) over ${dates}, median <b>${_labFmtPct(P.med)}</b>. Typical adverse excursion first: <b>${_labFmtPct(S.advMed)}</b> against a ${sideWord}, best case <b>${_labFmtPct(S.favMed)}</b> in your favour.`;
   }else{
-    tone='co-flat';ic='▬';
-    kick='No clear seasonal edge in this window';
-    txt=`Median <b>${pc(s.med)}</b> across ${winLbl}, ${hrTxt} — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>, median max ${C.favWord} <b>${mag(s.favMed)}</b>.${shapeTxt||' Drag a different window or flip direction.'}${srcTxt}`;
+    cls='co-risk';kick=`Seasonality is against your ${sideWord}`;pill=(V.dir>0?'▲ ':'▼ ')+V.label+' · '+V.strength;
+    txt=`Price ${V.dir>0?'rose':'fell'} in <b>${Math.round((1-S.winRate)*100)}%</b> of ${_labYrs(M.n)} over ${dates}, median <b>${_labFmtPct(P.med)}</b>. A ${sideWord} won only <b>${win}</b> of years here. Flip the side toggle to see the leg the basket actually supports.`;
   }
-  co.style.display='grid';
-  co.className='lab-callout '+tone;
-  co.style.background='';co.style.borderColor='';co.style.color='';
-  co.innerHTML=`<span class="co-ic">${ic}</span><div class="co-body"><div class="co-kick">${kick}</div><div class="co-txt">${txt}</div><div class="co-sub">${_labV2RawStamp(s)}</div></div>`+
-    (pill?`<span class="co-pill">${pill}</span>`:'');
+  // Planner sentence for the selected side (server, full basket, next 45 TD)
+  let planTxt='';
+  if(plan){
+    if(plan.action==='enter_now'||plan.action==='wait'){
+      const entryLbl=plan.action==='enter_now'?'<b>enter now</b>':`wait <b>${plan.entry} TD</b> (≈ ${_labPlanDateLbl(plan.entryDate,plan.entry)})`;
+      planTxt=` <i>Planner (${sideWord}, full basket${plan.nYears?' · '+_labYrs(plan.nYears):''}):</i> ${entryLbl}, out by <b>${_labPlanDateLbl(plan.exitDate,plan.exit)}</b> (${plan.exit} TD)${plan.move!=null?', expected '+_labFmtPct(isShort?-plan.move:plan.move)+' price move':''}${plan.win!=null?', leg hit rate '+Math.round(plan.win*100)+'%':''}.`;
+    }else{
+      planTxt=` <i>Planner:</i> no ${sideWord} leg in the next ${plan.fwd} TD`+
+        ((other&&(other.action==='enter_now'||other.action==='wait'))?` — it favours a <b>${isShort?'long':'short'}</b> (${other.action==='enter_now'?'enter now':'wait '+other.entry+' TD'}, out by ${_labPlanDateLbl(other.exitDate,other.exit)}).`:'.');
+    }
+  }
+  el.className='lab-callout '+cls;
+  el.style.display='grid';
+  el.innerHTML=`<div class="co-ic">${V.dir>0?'▲':V.dir<0?'▼':'◆'}</div><div class="co-body"><div class="co-kick">${kick}</div><div class="co-txt">${txt}${planTxt}</div></div><div class="co-pill">${pill}</div>`;
 }
 
 /* Equal-weight basket stat cards + per-year chips — direction & window aware. */
 function _labV2RenderBasketStats(){
-  const el=document.getElementById('lab-stats');if(!el)return;
-  const sh=_labV2.shape,d=_labData;
-  if(!sh||!sh.n||!d){el.innerHTML='';return;}
-  const isShort=_labV2.dir==='short',s=isShort?sh.short:sh.long,C=_labV2SideCopy(isShort);
-  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
-  const col=v=>v==null?'var(--dim)':v>=0?'var(--s1)':'var(--sm2)';
-  const ph=t=>d.months?tdPhase(t,d.months):('TD '+t);
-  const winLbl=`${ph(sh.ws)} → ${ph(sh.we)}`;
-  const wr=s.winRate!=null?Math.round(s.winRate*100):0;
-  const best=s.ranked[0],worst=s.ranked[s.ranked.length-1];
-  const pnl=isShort?'short P&L':'return';
+  const el=document.getElementById('lab-stats'); if(!el)return;
+  el.style.display='none'; /* SEAS-V5: strip duplicated the KPI grid under the chart; kept as a hidden mirror for the harness */
+  const M=_labV2.model,d=_labData;
+  if(!M||!M.price||!d){el.innerHTML='';const c=document.getElementById('lab-yrret');if(c)c.innerHTML='<span style="color:var(--dim)">No years selected</span>';return;}
+  const P=M.price,V=M.verdict,winLbl=_labWinLbl(M.ws,M.we);
+  const upPct=P.upRate!=null?Math.round(P.upRate*100):null;
   el.innerHTML=
-    `<div class="lab-stat"><div class="lv">${sh.n}</div><div class="lk">Years in basket · ${sh.tdWin} TD</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${wr>=55?'var(--s1)':wr<=45?'var(--sm2)':'var(--accent)'}">${wr}%</div><div class="lk">${isShort?'Short hit rate':'Hit rate'} (weighted) · raw ${s.wins}/${s.wins+s.losses} ${isShort?'down':'up'} · ${_labV2LensStamp(s)}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${col(s.med)}">${pc(s.med)}</div><div class="lk">Median ${pnl} · ${winLbl}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${col(s.mean)}">${pc(s.mean)}</div><div class="lk">Mean ${pnl} · ${winLbl}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${pc(best.v)}</div><div class="lk">Best · ${best.y}${isShort?' (biggest fall)':''}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:var(--sm2)">${pc(worst.v)}</div><div class="lk">Worst · ${worst.y}${isShort?' (biggest rally)':''}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${col(s.advMed)}">${pc(s.advMed)}</div><div class="lk">Median adverse ${C.adverseWord}${s.entryTd?' · '+C.extreme+' ~'+ph(s.entryTd):''}</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${Math.abs(s.favMed).toFixed(1)}%</div><div class="lk">Median max ${C.favWord} in window</div></div>`+
-    (s.nearMed!=null&&s.farMed!=null?`<div class="lab-stat wide"><div class="lv" style="font-size:14px"><span style="color:${col(s.nearMed)}">${pc(s.nearMed)}</span><span style="color:var(--dim);font-size:11px"> → </span><span style="color:${col(s.farMed)}">${pc(s.farMed)}</span></div><div class="lk">First half → second half of window</div></div>`:'');
+    `<div class="lab-stat"><div class="lv">${M.n}</div><div class="lk">Years in basket · ${M.tdWin} TD · ${M.lens}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${V.dir>0?'var(--s1)':V.dir<0?'var(--sm2)':'var(--accent)'}">${upPct!=null?upPct+'%':'—'}</div><div class="lk">Years up (weighted) · raw ${P.nUp}/${P.nUp+P.nDown}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${_labSignCol(P.med)}">${_labFmtPct(P.med)}</div><div class="lk">Median price move · ${winLbl}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${_labSignCol(P.mean)}">${_labFmtPct(P.mean)}</div><div class="lk">Mean price move · ${winLbl}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${_labFmtPct(P.best.v)}</div><div class="lk">Best year · ${P.best.y}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--sm2)">${_labFmtPct(P.worst.v)}</div><div class="lk">Worst year · ${P.worst.y}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${_labFmtPct(P.medMaxRise)}</div><div class="lk">Median max rise in window${M.peak.td!=null?' · peak ≈ '+_labDateLbl(M.peak.td):''}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:var(--sm2)">${_labFmtPct(P.medMaxDrop)}</div><div class="lk">Median max drop in window${M.trough.td!=null?' · trough ≈ '+_labDateLbl(M.trough.td):''}</div></div>`;
   const lab=document.getElementById('lab-yrret-label');
-  if(lab)lab.textContent=`${isShort?'Short P&L':'Return'} by year — ${winLbl}`;
+  if(lab)lab.textContent=`Price move by year — ${winLbl} · ranked`;
   const chips=document.getElementById('lab-yrret');
-  if(chips)chips.innerHTML=s.ranked.map(r=>
-    `<span style="color:${r.v>=0?'var(--s1)':'var(--sm2)'}">${r.y}&nbsp;&nbsp;${pc(r.v)}</span>`).join('')||'<span style="color:var(--dim)">No years selected</span>';
+  if(chips)chips.innerHTML=M.long.ranked.map(r=>`<span style="color:${_labSignCol(r.v)}">${r.y}&nbsp;&nbsp;${_labFmtPct(r.v)}</span>`).join('');
 }
 
 
 // Render head: reliability grade, asset class tag
 function _labV2RenderHead(){
-  const d=_labData;
-  if(!d||!d.reliability)return;
-  const g=d.reliability.grade||'D', gEl=document.getElementById('lab-v2-grade');
-  const label=(seasGradeMeta(g).label||'—')+(d.reliability.source==='scorer'?' · same grade as the score card':'');
-  gEl.innerHTML = `<div class="grade-badge g-${g}">${g}</div><div class="grade-txt"><b>Reliability</b><span>${label} · ${d.reliability.n} yrs</span></div>`;
-  gEl.title = seasGradeMeta(g).plain||'';
+  const d=_labData; if(!d||!d.reliability)return;
+  const g=d.reliability.grade||'D',gEl=document.getElementById('lab-v2-grade');
+  const nBasket=(d._yearList||[]).length;
+  const label=(seasGradeMeta(g).label||'—');
+  gEl.innerHTML=`<div class="grade-badge g-${g}">${g}</div><div class="grade-txt"><b>Reliability</b><span>${label} · ${_labYrs(nBasket)} in basket</span></div>`;
+  gEl.title=(seasGradeMeta(g).plain||'')+(d.reliability.n?` Graded by the scorer on ${d.reliability.n} seasons including the current year.`:'');
   const tag=document.getElementById('lab-v2-tag');
   tag.className='lab-v2-tag class-'+(_labV2.assetClass||'all_years');
   document.getElementById('lab-v2-tag-label').textContent=_labV2.assetTag||'—';
-  // Sync slider/select to effective blend
   document.getElementById('lab-v2-cw').value=_labV2.blend.cycle_w;
   document.getElementById('lab-v2-cw-val').textContent=Number(_labV2.blend.cycle_w).toFixed(1)+'×';
   const hlSel=document.getElementById('lab-v2-hl');
-  const hlVal=_labV2.blend.halflife>=999?'999':String(_labV2.blend.halflife);
-  hlSel.value=hlVal;
-  if(hlSel.selectedIndex<0){hlSel.value='15';}
+  hlSel.value=_labV2.blend.halflife>=999?'999':String(_labV2.blend.halflife);
+  if(hlSel.selectedIndex<0)hlSel.value='15';
   _labV2UpdateSaveBtn();
 }
 
@@ -44077,7 +43881,7 @@ async function _labV2ReFetch(){
     _labData=d;
     _labData._yearList=Object.keys(d.years).map(Number).filter(y=>y<d.current_year).sort((a,b)=>a-b);
     _labV2.blend={cycle_w:d.effective_blend.cycle_w, halflife:d.effective_blend.halflife};
-    if(d.window){_labV2.windowStats=d.window.window_stats||null; _labV2.perYearWindow=d.window.per_year_windows||[];}
+    if(d.window){_labV2.windowStats=Object.assign({window_start:opts.window_start,window_end:opts.window_end},d.window.window_stats||{}); _labV2.perYearWindow=d.window.per_year_windows||[];}
     _labV2RenderHead();
     _labRender();
     _labV2RenderTable();
@@ -44086,36 +43890,32 @@ async function _labV2ReFetch(){
 }
 
 async function _labV2FetchWindow(){
-  if(!_labV2.window) return;
-  // AUDIT-LAB-UI: fast successive window changes (drag → chip → month) could resolve out of
-  // order and paint stale stats. Token guard keeps only the newest response.
-  const my=++_labV2.reqSeq, mkt=_labV2.marketId;
+  if(!_labV2.window)return;
+  const my=++_labV2.reqSeq,mkt=_labV2.marketId;
   try{
-    const opts={cycle_w:_labV2.blend.cycle_w, halflife:_labV2.blend.halflife, window_start:_labV2.window.ws, window_end:_labV2.window.we};
-    const d=await fetchSeasLab(mkt, opts);
-    if(my!==_labV2.reqSeq || mkt!==_labV2.marketId) return;   // superseded — drop
-    if(d.window){_labV2.windowStats=d.window.window_stats||null; _labV2.perYearWindow=d.window.per_year_windows||[];}
-    // AUDIT-SEAS-R2-FRONTEND: the shape engine adopts the server's per-year rows for this
-    // window, so it MUST be recomputed once they land — otherwise the callout would keep
-    // quoting client-derived numbers while the donut quoted server ones (screenshot A).
+    const opts={cycle_w:_labV2.blend.cycle_w,halflife:_labV2.blend.halflife,window_start:_labV2.window.ws,window_end:_labV2.window.we};
+    const d=await fetchSeasLab(mkt,opts);
+    if(my!==_labV2.reqSeq||mkt!==_labV2.marketId)return;   // superseded — drop
+    if(d.window){_labV2.windowStats=Object.assign({window_start:opts.window_start,window_end:opts.window_end},d.window.window_stats||{});_labV2.perYearWindow=d.window.per_year_windows||[];}
+    // Server rows only feed the cross-check stamp; the model itself does not change.
     _labV2RecomputeShape();
     _labV2RenderWindowSidebar();
     _labV2RenderCallout();
     _labV2RenderBasketStats();
-    _labV2RenderTable();
+    _labV2RenderLegend();
   }catch(e){console.warn('seas window fetch failed',e);}
 }
 
 // Chart legend (custom HTML — richer than Chart.js legend)
 function _labV2RenderLegend(){
   const el=document.getElementById('lab-v2-legend'); if(!el||!_labData)return;
-  const d=_labData,b=_labV2.blend||{cycle_w:1,halflife:15};
+  const d=_labData,b=_labV2.blend||{cycle_w:1,halflife:15},M=_labV2.model;
   const hl=b.halflife>=999?'flat':(b.halflife+'y half-life');
-  const sg=_labV2.segment, segCol=(sg&&sg.move!=null&&sg.move<0)?'#e5484d':'#3ecf8e';
-  const segTxt=(sg&&sg.move!=null)?((sg.move>=0?'+':'')+sg.move.toFixed(2)+'%'):'';
+  const mv=M?M.segMove:null,segCol=_labSignCls(mv)==='dn'?'#e5484d':'#3ecf8e';
+  const segTxt=mv!=null?(' '+_labFmtPct(mv,2)):'';
   el.innerHTML=
     `<span class="lg"><i class="sw"></i><b>Smart blend</b>&nbsp;· cycle ${(+b.cycle_w).toFixed(1)}× · ${hl} · weighted ${_labOpts.avg} of levels to today, rebased path from today</span>`+
-    `<span class="lg" title="Every basket year set to 0 at the window start, weighted ${_labOpts.avg} of the move each day. Its end-to-end move is the window ${_labOpts.avg} in the KPIs."><i class="sw" style="border-top:3.4px solid ${segCol}"></i><b>Window path</b>&nbsp;· rebased at window start${segTxt?' · '+segTxt:''}</span>`+
+    `<span class="lg" title="Every basket year set to 0 at the window start, weighted ${_labOpts.avg} of the move each day. Its end-to-end move IS the window ${_labOpts.avg} in the sidebar."><i class="sw" style="background:${segCol}"></i><b style="color:${segCol}">Window path</b>&nbsp;${M?_labWinLbl(M.ws,M.we):''}${segTxt}</span>`+
     `<span class="lg"><i class="sw sw-basket"></i>Basket ${_labOpts.avg} (equal-weight)</span>`+
     (_labOpts.actual?`<span class="lg"><i class="sw sw-actual"></i>${d.current_year} actual</span>`:'')+
     (_labOpts.band?`<span class="lg"><i class="sw sw-band"></i>Plausible range</span>`:'');
@@ -44123,10 +43923,7 @@ function _labV2RenderLegend(){
 
 /* AUDIT-SEAS-R2-FRONTEND: single place that rebuilds the shape/lens object from the
    current basket, window and (when present) the server's per-year window rows. */
-function _labV2RecomputeShape(){
-  if(!_labData)return;
-  _labV2ComputeAll(_labPaths());
-}
+function _labV2RecomputeShape(){ if(_labData)_labV2ComputeAll(_labPaths()); }
 
 // Set the active analysis window (from presets, month picker, drag or dblclick)
 function _labV2SetWindow(ws,we){
@@ -44143,8 +43940,9 @@ function _labV2WireWinPresets(){
   row.querySelectorAll('.wchip').forEach(ch=>{
     ch.onclick=()=>{
       const d=_labData; if(!d)return;
-      const td=d.current_td, v=ch.dataset.win;
-      if(v==='ye')_labV2SetWindow(td,252);
+      const td=d.current_td,v=ch.dataset.win;
+      if(v==='plan'){const pw=_labV2DefaultWindow(d);_labV2SetWindow(pw.ws,pw.we);}
+      else if(v==='ye')_labV2SetWindow(td,252);
       else _labV2SetWindow(td,td+(+v));
     };
   });
@@ -44152,29 +43950,32 @@ function _labV2WireWinPresets(){
   if(ms)ms.onchange=()=>{
     if(ms.value===''||!_labData)return;
     const mi=+ms.value,d=_labData;
-    const st=d.months[mi].td, en=mi<11?d.months[mi+1].td:252;
+    const st=d.months[mi].td,en=mi<11?d.months[mi+1].td:252;
     _labV2SetWindow(st,en);
   };
 }
 
 function _labV2SyncWinChips(){
   const row=document.getElementById('lab-v2-winrow'); if(!row||!_labData)return;
-  const d=_labData,td=d.current_td,w=_labV2.window;
+  const d=_labData,td=d.current_td,w=_labV2.window||_labV2DefaultWindow(d);
   const ms=document.getElementById('lab-v2-wmonth');
   if(ms&&ms.options.length<=1&&d.months){
     d.months.forEach((m,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=m.label;ms.appendChild(o);});
   }
   let matchedMonth=-1;
-  if(w&&d.months){
+  if(d.months){
     for(let i=0;i<12;i++){const st=d.months[i].td,en=i<11?d.months[i+1].td:252;
-      if(Math.abs(w.ws-st)<=1&&Math.abs(w.we-en)<=1){matchedMonth=i;break;}}
+      if(w.ws===st&&w.we===en){matchedMonth=i;break;}}
   }
+  const pw=_labV2DefaultWindow(d),hasPlan=pw.src==='planner';
   row.querySelectorAll('.wchip').forEach(ch=>{
     const v=ch.dataset.win;let on=false;
-    if(w){
-      if(v==='ye')on=(Math.abs(w.ws-td)<=1&&w.we>=250);
-      else on=(Math.abs(w.ws-td)<=1&&Math.abs(w.we-Math.min(252,td+(+v)))<=1);
-    }else if(v===String(_LAB_FWD))on=true;   // AUDIT-SEAS-R2-FRONTEND: default is +30 TD, not +60
+    if(v==='plan'){
+      ch.style.display=hasPlan?'':'none';
+      if(hasPlan){ch.textContent='◆ Planner leg · '+_labWinLbl(pw.ws,pw.we);ch.title='The backend swing planner\'s recommended entry → exit for this market (full basket)';on=(w.ws===pw.ws&&w.we===pw.we);}
+    }
+    else if(v==='ye')on=(w.ws===td&&w.we===252);
+    else on=(w.ws===td&&w.we===Math.min(252,td+(+v)));
     ch.classList.toggle('active',on);
   });
   if(ms){ms.classList.toggle('active',matchedMonth>=0);ms.value=matchedMonth>=0?String(matchedMonth):'';}
@@ -44228,7 +44029,7 @@ function _labV2AttachDragSelect(){
   window.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape') endDrag(false); });
   cvs.addEventListener('dblclick', ()=>{
     const td=_labData.current_td;
-    _labV2SetWindow(td, Math.min(252, td+_labV2PlannerDefaultTd()));
+    const _pw=_labV2DefaultWindow(_labData); _labV2SetWindow(_pw.ws,_pw.we);
   });
 }
 
@@ -44248,242 +44049,122 @@ function _labV2DrawOverlay(){
   const d=_labData;
   if(d&&d.months&&wpx>50){
     ctx.fillStyle='rgba(200,169,110,0.95)';ctx.font='700 8.5px "DM Sans",sans-serif';
-    ctx.textAlign='left';ctx.fillText(tdPhase(_labV2._pendingWs,d.months).toUpperCase(),lx+4,ca.top+11);
-    ctx.textAlign='right';ctx.fillText(tdPhase(_labV2._pendingWe,d.months).toUpperCase(),lx+wpx-4,ca.top+11);
+    ctx.textAlign='left';ctx.fillText(_labDateLbl(_labV2._pendingWs).toUpperCase(),lx+4,ca.top+11);
+    ctx.textAlign='right';ctx.fillText((_labDateLbl(_labV2._pendingWe)+' · '+(_labV2._pendingWe-_labV2._pendingWs)+' TD').toUpperCase(),lx+wpx-4,ca.top+11);
   }
   ctx.restore();
 }
 
 // Consensus conviction card: 3 lenses x 3 horizons voting matrix
-function _labV2ConsensusHTML(){
-  // Shared with the detail-page Seasonal tab — see seasConsensusHTML() in the
-  // SHARED SEASONALITY ENGINE block. Do not fork this markup.
-  return seasConsensusHTML(_labData&&_labData.consensus);
-}
+function _labV2ConsensusHTML(){ return seasConsensusHTML(_labData&&_labData.consensus); }
 
 /* SEAS-V4: proves on screen that the highlighted chart segment and the KPI describe the
    same thing. `seg` is read back from the DRAWN dataset (not recomputed), so if the line
    and the median ever disagreed it would show here. */
 function _labV2SegmentStamp(){
-  const sg=_labV2.segment, sh=_labV2.shape, isShort=_labV2.dir==='short';
-  if(!sg||sg.move==null)return 'Highlighted segment = weighted '+_labOpts.avg+' path rebased at the window start.';
-  const mv=isShort?-sg.move:sg.move;
-  const pc=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
-  const chk=sh&&sh.srvCheck;
-  const srv=chk?(chk.ok?' · server cross-check ✓':' · <span style="color:var(--sm2)">server cross-check differs ('+pc(isShort?-chk.srvMed:chk.srvMed)+')</span>'):(sh&&sh.n&&_labV2.windowStats&&_labV2.windowStats.n_years!=null&&sh.n!==_labV2.windowStats.n_years?' · narrowed basket, client-computed':'');
-  return 'Highlighted segment: weighted '+_labOpts.avg+' path rebased at window start · end-to-end <b>'+pc(mv)+'</b> = '+(_labOpts.avg==='mean'?'mean':'median')+' KPI'+srv;
+  const M=_labV2.model; if(!M||M.segMove==null)return 'Highlighted segment = weighted '+_labOpts.avg+' path rebased at the window start.';
+  const stat=_labOpts.avg==='mean'?M.price.mean:M.price.med;
+  const same=stat!=null&&Math.abs(stat-M.segMove)<1e-6;
+  return 'Highlighted segment: weighted '+_labOpts.avg+' path rebased at window start · end-to-end <b>'+_labFmtPct(M.segMove,2)+'</b>'+(same?' = '+_labOpts.avg+' KPI':' <span style="color:var(--sm2)">≠ '+_labOpts.avg+' KPI '+_labFmtPct(stat,2)+'</span>');
 }
 // Right sidebar: win-rate donut, KPIs, per-year bars
 function _labV2RenderWindowSidebar(){
-  const side=document.getElementById('lab-v2-side');
-  if(!side)return;
-  const s=_labV2ActiveStats(), raw=s, py=(_labV2.clientPy&&_labV2.clientPy.length)?_labV2.clientPy:(_labV2.perYearWindow||[]);
-  if(!s){
-    side.innerHTML=`<div class="lab-v2-window-empty"><div class="icon">▬ ▬</div><div class="t">Window stats loading…</div><div class="sub">Drag on the chart to pick a custom window, or wait a moment for the default forward window.</div></div>`;
-    if(_labV2.yearBars){try{_labV2.yearBars.destroy()}catch(_){}}
-    _labV2.yearBars=null;
+  const side=document.getElementById('lab-v2-side'); if(!side)return;
+  const M=_labV2.model,d=_labData;
+  if(!M||!M.price||!d){
+    side.innerHTML=`<div class="lab-v2-window-empty"><div class="icon">◆</div><div class="t">No years in the basket</div><div class="sub">Pick a preset or tap years above.</div></div>`;
+    const below0=document.getElementById('lab-v2-below'); if(below0)below0.innerHTML='';
     return;
   }
-  const isShort=_labV2.dir==='short';
-  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
-  // For long, positive is good → green. For short, positive short-P&L is good → green, but the underlying price move is a fall.
-  // Since we swap in short mirror stats (already sign-flipped for w_median/w_mean/ann_return), positive still means "good for the trader".
-  const goodCol='var(--s1)', badCol='var(--sm2)';
-  const cls=v=>v==null?'':v>=0?'up':'dn';
-  // AUDIT-SEAS-R2-FRONTEND: ONE lens. The donut now reads the unified shape engine
-  // (smart-blend weighted, index-aligned with the backend, ties excluded) — the exact
-  // same object the callout and the basket cards read. The server's own weighted rate is
-  // only a fallback for the split second before the window rows land.
-  const sh=_labV2.shape;
-  const us=sh?(isShort?sh.short:sh.long):null;   // unified side stats
-  const wrFracSrc=(us&&us.winRate!=null)?us.winRate:(s.win_rate!=null?s.win_rate:null);
-  const wr=wrFracSrc!=null?Math.round(wrFracSrc*100):null;
-  const wrCol=wr==null?'var(--dim)':wr>=55?goodCol:wr<=45?badCol:'var(--accent)';
-  const wrLabel=isShort?'Short win rate':'Win rate';
-  // window label — use _labV2.window (backend does not echo window_start/end in stats)
-  const d=_labData;
-  const ws=(_labV2.window&&_labV2.window.ws)||0, we=(_labV2.window&&_labV2.window.we)||0;
-  const wsPhase=d.months?tdPhase(ws,d.months):'', wePhase=d.months?tdPhase(we,d.months):'';
-  const winLbl=`${wsPhase} → ${wePhase} · ${(us&&us.n)||raw.n_years} yrs`;
-  // best/worst YEAR labels use per-year price returns; for short, we invert selection so "best" = biggest price fall
-  let bestY=null,worstY=null;
-  if(py.length){
-    const sorted=[...py].sort((a,b)=> isShort? (a.ret_pct-b.ret_pct) : (b.ret_pct-a.ret_pct));
-    bestY=sorted[0].year; worstY=sorted[sorted.length-1].year;
-  }
-  // AUDIT-SEAS-R2-FRONTEND: counts come from the unified engine so they can never
-  // disagree with the donut above them (Ben's "19 down · 22 up" next to 48%).
-  const upCount = (us&&us.wins!=null)?us.wins:s.n_gains;
-  const dnCount = (us&&us.losses!=null)?us.losses:s.n_losses;
-  const tieCount = (us&&us.nTie)||0;
-  const upLbl = isShort ? 'down' : 'up';
-  const dnLbl = isShort ? 'up' : 'down';
-  // KPI labels flip on direction
-  const kMedian = isShort?'Median short P&L (+ = price fell)':'Median return (long)';
-  const kMean   = isShort?'Mean short P&L (+ = price fell)':'Mean return (long)';
-  const kAvgG   = isShort?'Avg gain when price falls':'Avg gain (up years)';
-  const kAvgL   = isShort?'Avg loss when price rises':'Avg loss (down years)';
-  const kBest   = isShort?'Best year (biggest fall)':'Best year';
-  const kWorst  = isShort?'Worst year (biggest rally)':'Worst year';
-
-  // AUDIT-SEAS-R2-FRONTEND: median/mean KPIs use the same weighted lens as the donut.
-  const uMed=(us&&us.med!=null)?us.med:s.w_median;
-  const uMean=(us&&us.mean!=null)?us.mean:s.w_mean;
-  const R=38, C=2*Math.PI*R;
-  const wrFrac=(wr==null?0:wr)/100;
-  const wrDashOn=(C*wrFrac).toFixed(1), wrDashOff=(C-C*wrFrac).toFixed(1);
-
-  side.innerHTML = `
-    <div class="lab-v2-win">
-      <div class="donut">
-        <svg viewBox="0 0 88 88" width="88" height="88">
-          <circle cx="44" cy="44" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="7"/>
-          <circle cx="44" cy="44" r="${R}" fill="none" stroke="${wrCol}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${wrDashOn} ${wrDashOff}"/>
-        </svg>
-        <div class="center"><div class="pct" style="color:${wrCol}">${wr==null?'—':wr+'%'}</div><div class="cap">${wrLabel}</div></div>
-      </div>
-      <div class="info">
-        <div class="win-title">Window</div>
-        <div class="win-sub"><b>${winLbl}</b></div>
-        <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${upCount} yrs price ${upLbl} · ${dnCount} yrs price ${dnLbl}${tieCount?' · '+tieCount+' flat (excl.)':''}${raw.td_window?' · '+raw.td_window+' TD':''}</div>
-        <div class="win-lens">${_labV2LensStamp(us)}</div>
-        ${us?`<div class="win-raw">${_labV2RawStamp(us)}</div>`:''}
-        <div class="win-raw" style="margin-top:3px;opacity:.85">${_labV2SegmentStamp()}</div>
-      </div>
-    </div>
-    ${_labV2EntryStripHTML()}
-    ${_labV2ConsensusHTML()}
-    <div class="lab-v2-kpi-grid">
-      <div class="lab-v2-kpi"><div class="kv ${cls(uMed)}" style="color:${uMed>=0?goodCol:badCol}">${pc(uMed)}</div><div class="kk">${kMedian}</div></div>
-      <div class="lab-v2-kpi"><div class="kv ${cls(uMean)}" style="color:${uMean>=0?goodCol:badCol}">${pc(uMean)}</div><div class="kk">${kMean}</div></div>
-      <div class="lab-v2-kpi"><div class="kv up" style="color:${goodCol}">${pc(s.avg_gain)}</div><div class="kk">${kAvgG}</div></div>
-      <div class="lab-v2-kpi"><div class="kv dn" style="color:${badCol}">${pc(s.avg_loss)}</div><div class="kk">${kAvgL}</div></div>
-      <div class="lab-v2-kpi"><div class="kv up" style="color:${goodCol}">${pc(s.max_gain)}</div><div class="kk">${kBest}${bestY?' • '+bestY:''}</div></div>
-      <div class="lab-v2-kpi"><div class="kv dn" style="color:${badCol}">${pc(s.max_loss)}</div><div class="kk">${kWorst}${worstY?' • '+worstY:''}</div></div>
-    </div>
-    <div class="lab-v2-yearbars-wrap">
-      <div class="lab-v2-yearbars-head"><div class="t">Per-year ${isShort?'short P&L':'returns'}</div><div class="r">${py.length} yrs · sorted worst → best</div></div>
-      <div class="lab-v2-yearbars"><canvas id="lab-v2-yearbars-canvas"></canvas></div>
-    </div>`;
-  // draw per-year bars mini chart — direction-aware
-  _labV2DrawYearBars(py);
+  const isShort=_labV2.dir==='short',S=_labV2ActiveSide(),P=M.price,V=M.verdict,sideWord=isShort?'short':'long';
+  const upPct=P.upRate!=null?Math.round(P.upRate*100):null;
+  const donutCol=V.dir>0?'#26c97a':V.dir<0?'#f04040':'#c8a96e';
+  const r=36,c=2*Math.PI*r,fill=upPct!=null?c*(upPct/100):0;
+  const donut=`<div class="donut" title="Weighted share of basket years in which price finished the window higher (ties excluded)"><svg width="88" height="88" viewBox="0 0 88 88"><circle cx="44" cy="44" r="${r}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/><circle cx="44" cy="44" r="${r}" fill="none" stroke="${donutCol}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${fill.toFixed(1)} ${(c-fill).toFixed(1)}"/></svg><div class="center"><div class="pct" style="color:${donutCol}">${upPct!=null?upPct+'%':'—'}</div><div class="cap">years up</div></div></div>`;
+  const chk=M.srvCheck;
+  const chkTxt=!chk?'':chk.state==='ok'?' · server check ✓':chk.state==='diff'?` · <span style="color:var(--sm2)">server differs (${_labFmtPct(chk.srvMed)})</span>`:chk.state==='na'?` · server check n/a (${chk.why})`:'';
+  const winCard=`<div class="lab-v2-win">${donut}<div class="info">
+      <div class="win-title">Window read · ${M.lens} · ${_labYrs(M.n)}</div>
+      <div class="win-sub"><b style="color:${donutCol}">${V.dir>0?'▲ ':V.dir<0?'▼ ':'◆ '}${V.label}</b>${V.dir!==0?' <span style="color:var(--dim);font-weight:600">· '+V.strength+'</span>':''}</div>
+      <div class="win-sub">${_labWinLbl(M.ws,M.we)} · ${M.tdWin} TD · ${_labWkLbl(M.tdWin)}</div>
+      <div class="win-sub">median price move <b class="${_labSignCls(P.med)}">${_labFmtPct(P.med)}</b> · ${upPct!=null?upPct+'% of weighted years up':'—'}</div>
+      <div class="win-raw" style="font-size:8.5px;color:var(--dim);margin-top:3px">raw equal-weight: ${P.rawUpRate!=null?Math.round(P.rawUpRate*100)+'% up':'—'} (<span class="up">${P.nUp} up</span> · <span class="dn">${P.nDown} down</span>${P.nTie?' · '+P.nTie+' flat':''}) · median ${_labFmtPct(P.rawMed)}${V.lensSplit?' · <span style="color:var(--accent)">lenses disagree on direction</span>':''}${chkTxt}</div>
+    </div></div>`;
+  // Side strip — the only place the toggle changes wording
+  const with_=V.dir!==0&&((V.dir>0)!==isShort);
+  const sideCol=V.dir===0?'var(--dim)':with_?'#e3c789':'var(--sm2)';
+  const sideNote=V.dir===0?'no seasonal edge either way':with_?'with the seasonal read':'against the seasonal read';
+  const sideCard=`<div class="lab-v2-kpi" style="border-color:${with_?'rgba(200,169,110,0.45)':'var(--bdr2)'}">
+      <div class="kv" style="font-size:12px;color:${sideCol}">${isShort?'▼ SHORT':'▲ LONG'} · won ${S.winRate!=null?Math.round(S.winRate*100)+'%':'—'} of years · median P&amp;L ${_labFmtPct(S.pnlMed)}</div>
+      <div class="kk">${sideNote} · raw ${S.rawWinRate!=null?Math.round(S.rawWinRate*100)+'%':'—'} · ${S.wins} won · ${S.losses} lost${S.ties?' · '+S.ties+' flat excluded':''}</div></div>`;
+  const kpi=(v,k,opts)=>{opts=opts||{};const col=opts.col||_labSignCol(v);return `<div class="lab-v2-kpi${opts.wide?' wide':''}"><div class="kv" style="color:${col}">${opts.txt!=null?opts.txt:_labFmtPct(v)}</div><div class="kk">${k}</div></div>`;};
+  const kpis=`<div class="lab-v2-kpi-grid">`+
+    kpi(P.med,`Median price move · ${M.lens}`)+kpi(P.mean,'Mean price move')+
+    kpi(P.avgUp,`Avg up year · ${P.nUp} yrs`,{col:'var(--s1)'})+kpi(P.avgDown,`Avg down year · ${P.nDown} yrs`,{col:'var(--sm2)'})+
+    kpi(P.medMaxRise,'Median max rise inside window',{col:'var(--s1)'})+kpi(P.medMaxDrop,'Median max drop inside window',{col:'var(--sm2)'})+
+    kpi(P.best.v,`Best year · ${P.best.y}`,{col:'var(--s1)'})+kpi(P.worst.v,`Worst year · ${P.worst.y}`,{col:'var(--sm2)'})+
+    kpi(null,`First half → second half · split ${_labDateLbl(M.mid)}`,{wide:true,txt:`<span style="color:${_labSignCol(P.medNear)}">${_labFmtPct(P.medNear)}</span><span style="color:var(--dim);font-size:11px"> → </span><span style="color:${_labSignCol(P.medFar)}">${_labFmtPct(P.medFar)}</span>`})+
+    `</div>`;
+  const bars=`<div class="lab-v2-yearbars-wrap"><div class="lab-v2-yearbars-head"><div class="t">Price move by year · ${_labYrs(M.n)}</div><div class="r">${_labWinLbl(M.ws,M.we)} · green up · red down</div></div><div class="lab-v2-yearbars"><canvas id="lab-v2-yearbars-canvas"></canvas></div></div>`;
+  side.innerHTML=winCard+sideCard+_labV2EntryStripHTML()+_labV2ConsensusHTML();
+  const below=document.getElementById('lab-v2-below'); if(below)below.innerHTML=kpis+bars; else side.insertAdjacentHTML('beforeend',kpis+bars);
+  _labV2DrawYearBars();
   _labV2RenderTable();
+  _labV2SyncWinChips();
 }
 
 /* AUDIT-LAB-UI · days-to-goldilocks strip. Shows where the seasonal entry extreme
    sits inside the active window, and how many trading days away it is. */
 function _labV2EntryStripHTML(){
-  const sh=_labV2.shape,d=_labData;
-  if(!sh||!sh.n||!d)return '';
-  const isShort=_labV2.dir==='short',s=isShort?sh.short:sh.long;
-  if(!s)return '';
-  const C=_labV2SideCopy(isShort);
-  const pg=_labV2PayloadGold();
-  let goldTd=s.entryTd!=null?(s.entryTd-sh.td):null,fromScore=false;
-  if(pg&&(!pg.dir||pg.dir===_labV2.dir)){goldTd=pg.td;fromScore=true;}
-  /* AUDIT-SEAS-R2-FRONTEND item 3: when the planner ships, this strip stops being a
-     countdown-to-entry and becomes the whole plan — entry TD, exit date, hold length. */
-  const _pl=_labV2PlanRead();
-  if(_pl&&(_pl.entry_in_td!=null||_pl.exit_in_td!=null)){
-    const ph0=t=>d.months?tdPhase(t,d.months):('TD '+t);
-    const eIn=_pl.entry_in_td!=null?Math.max(0,Math.round(+_pl.entry_in_td)):0;
-    const xIn=_pl.exit_in_td!=null?Math.round(+_pl.exit_in_td):null;
-    const xLbl=_labPlanExitLbl(_pl)||(xIn!=null?ph0(Math.min(252,sh.td+xIn)):'—');
-    const holdTd=_pl.hold_td!=null?Math.round(+_pl.hold_td):(xIn!=null?Math.max(1,xIn-eIn):null);
-    const liveNow=eIn<=1;
-    const span=Math.max(1,sh.we-sh.ws);
-    const p0=Math.max(2,Math.min(98,100*(sh.td+eIn-sh.ws)/span));
-    const p1=Math.max(p0,Math.min(98,100*(sh.td+(xIn!=null?xIn:eIn)-sh.ws)/span));
-    const _mvv=_pl.expected_move_pct!=null?+_pl.expected_move_pct:null;
-    const mv=_mvv!=null?`<span style="color:${_mvv>=0?'#22c97a':'#e03a2a'}">${_mvv>=0?'▲ +':'▼ '}${_mvv.toFixed(1)}%</span>`:null;
-    const lw=_pl.leg_win_rate!=null?Math.round((+_pl.leg_win_rate<=1?+_pl.leg_win_rate*100:+_pl.leg_win_rate))+'%':null;
-    return `<div class="lab-v2-entry${liveNow?' live':''}">
-      <div class="entry-top">
-        <div class="entry-lbl">${liveNow?'Enter now — exit by':'Enter in '+eIn+' TD — exit by'}</div>
-        <div class="entry-cd">${xLbl}</div>
-      </div>
-      <div class="entry-track"><span class="tk-fill" style="width:${p1}%"></span><span class="tk-dot" style="left:${p0}%"></span><span class="tk-dot tk-dot-exit" style="left:${p1}%"></span></div>
-      <div class="entry-sub">${holdTd!=null?`<b>${holdTd} TD</b> hold`:'Planned leg'}${mv?` · expected price move <b>${mv}</b>`:''}${lw?` · leg win rate <b>${lw}</b>`:''} · swing planner · server · full basket${(_pl.n_years||(_labData&&_labData.planner&&_labData.planner.lens&&_labData.planner.lens.n_years))?` · ${_pl.n_years||_labData.planner.lens.n_years} yrs`:''}</div>
-    </div>`;
+  const M=_labV2.model,d=_labData; if(!M||!M.price||!d)return '';
+  const isShort=_labV2.dir==='short',sideWord=isShort?'short':'long',S=_labV2ActiveSide();
+  const plan=_labV2SidePlan(sideWord),other=_labV2SidePlan(isShort?'long':'short');
+  const td=d.current_td;
+  if(plan&&(plan.action==='enter_now'||plan.action==='wait')){
+    const live=plan.action==='enter_now';
+    const total=Math.max(1,plan.exit||1),entryPct=Math.min(100,Math.max(0,((plan.entry||0)/total)*100));
+    return `<div class="lab-v2-entry${live?' live':''}"><div class="entry-top"><span class="entry-lbl">Planner · ${sideWord} leg · full basket${plan.nYears?' · '+_labYrs(plan.nYears):''}</span><span class="entry-cd">${live?'Enter now':'Enter in '+plan.entry+' TD'}</span></div>
+      <div class="entry-track"><div class="tk-fill" style="width:${entryPct.toFixed(0)}%"></div><div class="tk-dot" style="left:${entryPct.toFixed(0)}%"></div><div class="tk-dot tk-dot-exit" style="left:100%"></div></div>
+      <div class="entry-sub">${live?'<b>Entry window is open</b>':'<b>Entry ≈ '+_labPlanDateLbl(plan.entryDate,plan.entry)+'</b>'} · exit by <b>${_labPlanDateLbl(plan.exitDate,plan.exit)}</b> (${plan.exit} TD${plan.hold?' · hold '+plan.hold+' TD':''})${plan.move!=null?' · expected price move <b>'+_labFmtPct(isShort?-plan.move:plan.move)+'</b>':''}${plan.win!=null?' · leg hit rate <b>'+Math.round(plan.win*100)+'%</b>':''}${plan.turnTd!=null?' · next seasonal '+(plan.turnType||'turn')+' in '+plan.turnTd+' TD':''}</div></div>`;
   }
-  // ≤30 TD ≈ 6 weeks — beyond that the entry is not actionable for a 1-4 week swing
-  if(goldTd==null||goldTd<0||goldTd>30||s.postMed==null||s.postMed<1)return '';
-  const entryTd=s.entryTd!=null?s.entryTd:Math.min(252,sh.td+goldTd);
-  const ph=t=>d.months?tdPhase(t,d.months):('TD '+t);
-  const pos=Math.max(2,Math.min(98,100*(entryTd-sh.ws)/Math.max(1,sh.we-sh.ws)));
-  const live=goldTd<=2;
-  const pc=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
-  return `<div class="lab-v2-entry${live?' live':''}">
-    <div class="entry-top">
-      <div class="entry-lbl">${live?'Goldilocks entry live':'Days to goldilocks entry'}</div>
-      <div class="entry-cd">${live?'NOW':goldTd+' TD'}</div>
-    </div>
-    <div class="entry-track"><span class="tk-fill" style="width:${pos}%"></span><span class="tk-dot" style="left:${pos}%"></span></div>
-    <div class="entry-sub">Seasonal ${C.extreme} ≈ <b>${ph(entryTd)}</b> · median ${C.favWord} from there <b>${Math.abs(s.postMed).toFixed(1)}%</b>${fromScore?' · from score':''}</div>
-  </div>`;
+  // No planner leg for this side
+  const otherTxt=(other&&(other.action==='enter_now'||other.action==='wait'))?` · planner favours a <b>${isShort?'long':'short'}</b>: ${other.action==='enter_now'?'enter now':'enter in '+other.entry+' TD'}, out by ${_labPlanDateLbl(other.exitDate,other.exit)}`:'';
+  const E=S.entry;
+  const basketTxt=E&&E.td!=null?`Basket timing (this window, ${M.lens}): ${isShort?'peak':'trough'} typically ≈ <b>${_labDateLbl(E.td)}</b>${E.td>td?' ('+(E.td-td)+' TD ahead)':E.td<td?' (already passed)':' (today)'} · ${E.n} of ${M.n} yrs had a ≥1% ${isShort?'pop':'dip'} · median ${isShort?'fall from peak':'rally from trough'} to window end <b>${_labFmtPct(S.post)}</b>`
+    :`Basket timing: fewer than ${E?E.quorum:3} years show a ≥1% ${isShort?'pop':'dip'} in this window, so no reliable ${isShort?'peak':'trough'} date`;
+  return `<div class="lab-v2-entry" style="border-color:var(--bdr2);background:var(--surf3)"><div class="entry-top"><span class="entry-lbl" style="color:var(--dim)">Planner · ${sideWord} leg</span><span class="entry-cd" style="color:var(--dim)">No ${sideWord} leg${plan?' in next '+plan.fwd+' TD':''}</span></div>
+    <div class="entry-sub">${basketTxt}${otherTxt}</div></div>`;
 }
 
-function _labV2DrawYearBars(py){
-  const cvs=document.getElementById('lab-v2-yearbars-canvas');
-  if(!cvs)return;
-  if(_labV2.yearBars){try{_labV2.yearBars.destroy()}catch(e){}}
-  const isShort=_labV2.dir==='short';
-  // For short view, plot short P&L (−price return) so green=good-for-short (price fell).
-  // Bars still sort worst→best from the trader's perspective.
-  const values = py.map(p => isShort ? -p.ret_pct : p.ret_pct);
-  const paired = py.map((p,i)=>({...p, _v:values[i]}));
-  const sorted = [...paired].sort((a,b)=>a._v - b._v);
-  const suffix = isShort ? ' (short P&L)' : '';
-  _labV2.yearBars=new Chart(cvs.getContext('2d'),{
-    type:'bar',
-    data:{labels:sorted.map(p=>String(p.year).slice(2)),datasets:[{
-      data:sorted.map(p=>p._v),
-      backgroundColor:sorted.map(p=>p._v>=0?'rgba(38,201,122,0.75)':'rgba(240,64,64,0.75)'),
-      borderRadius:2,borderSkipped:false,barPercentage:0.85,categoryPercentage:1
-    }]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:260},
-      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i.length?sorted[i[0].dataIndex].year+'':'',label:i=>(i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'%'+suffix+' · weight '+(sorted[i.dataIndex].weight||0).toFixed(2)}}},
-      scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:8},autoSkip:true,maxTicksLimit:14,maxRotation:0}},
-        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a93a8',font:{size:8},callback:v=>(v>=0?'+':'')+v+'%'}}}}});
+function _labV2DrawYearBars(){
+  const cv=document.getElementById('lab-v2-yearbars-canvas'); if(!cv)return;
+  const M=_labV2.model; if(!M||!M.perYear.length)return;
+  if(_labV2.yearBars){try{_labV2.yearBars.destroy()}catch(_){}}
+  const rows=[...M.perYear].sort((a,b)=>a.y-b.y);
+  const paint=v=>_labSignCls(v)==='up'?'rgba(38,201,122,0.85)':_labSignCls(v)==='dn'?'rgba(240,64,64,0.85)':'rgba(138,147,168,0.6)';
+  _labV2.yearBars=new Chart(cv.getContext('2d'),{type:'bar',
+    data:{labels:rows.map(r=>"'"+String(r.y).slice(2)),datasets:[{data:rows.map(r=>r.ret),backgroundColor:rows.map(r=>paint(r.ret)),borderRadius:2,borderSkipped:false,barPercentage:0.86,categoryPercentage:1}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:220},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i.length?String(rows[i[0].dataIndex].y):'',
+        label:i=>{const r=rows[i.dataIndex];return _labFmtPct(r.ret,2)+' · max rise '+_labFmtPct(r.hi)+' · max drop '+_labFmtPct(r.lo)+' · weight '+r.w.toFixed(2);}}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:8},autoSkip:true,maxTicksLimit:12,maxRotation:0}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a93a8',font:{size:8},callback:v=>(v>0?'+':'')+v+'%'}}}}});
 }
 
 function _labV2RenderTable(){
-  const wrap=document.getElementById('lab-v2-table-wrap');
-  if(!wrap)return;
-  const py=(_labV2.clientPy&&_labV2.clientPy.length)?_labV2.clientPy:(_labV2.perYearWindow||[]), s=_labV2ActiveStats();
-  if(!py.length||!s){wrap.style.display='none';return;}
+  const wrap=document.getElementById('lab-v2-table-wrap'); if(!wrap)return;
+  const M=_labV2.model,d=_labData;
+  if(!M||!M.perYear.length||!d){wrap.style.display='none';return;}
   wrap.style.display='block';
-  const d=_labData;
-  const ws=(_labV2.window&&_labV2.window.ws)||0, we=(_labV2.window&&_labV2.window.we)||0;
-  const wsPhase=d.months?tdPhase(ws,d.months):'', wePhase=d.months?tdPhase(we,d.months):'';
-  const twEl=document.getElementById('lab-v2-table-window');
-  if(twEl)twEl.textContent=`${wsPhase} → ${wePhase}`;
-  document.getElementById('lab-v2-table-note').textContent=`${py.length} yrs`;
-  const pc=v=>v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
-  // AUDIT-LAB-UI: table follows the Long/Short toggle — values in the side's P&L
-  const isShort=_labV2.dir==='short';
-  const th=document.querySelectorAll('#lab-v2-table thead th');
-  if(th.length>=4){
-    th[1].textContent=isShort?'Short P&L':'Return';
-    th[2].textContent=isShort?'Max favourable':'Max rise';
-    th[3].textContent=isShort?'Max adverse':'Max drop';
-  }
   const hd=document.querySelector('#lab-v2-table-wrap .lab-v2-table-head .t');
-  if(hd)hd.innerHTML=`Per-year window ${isShort?'short P&amp;L':'returns'} — <span id="lab-v2-table-window">${wsPhase} → ${wePhase}</span>`;
-  // Sort: most recent first
-  const rows=[...py].sort((a,b)=>b.year-a.year);
-  const tbody=document.querySelector('#lab-v2-table tbody');
-  tbody.innerHTML=rows.map(r=>{
-    const cyc=d.meta[r.year]?d.meta[r.year].cycle:'midterm';
-    const col=_LAB_CYC_COL[cyc]||'#8a93a8';
-    const ret=isShort?-r.ret_pct:r.ret_pct;
-    const fav=isShort?-r.max_drop:r.max_rise;   // best excursion for the side
-    const adv=isShort?-r.max_rise:r.max_drop;   // worst excursion for the side
-    return `<tr><td><span class="cyc-dot" style="background:${col}"></span><span>${r.year}</span></td>`+
-      `<td class="${ret>=0?'up':'dn'} heavy">${pc(ret)}</td>`+
-      `<td class="up">${pc(fav)}</td>`+
-      `<td class="dn">${pc(adv)}</td>`+
-      `<td>${(r.weight||0).toFixed(2)}</td></tr>`;
+  if(hd)hd.innerHTML=`Per-year price move — <span id="lab-v2-table-window">${_labWinLbl(M.ws,M.we)} · ${M.tdWin} TD</span>`;
+  const note=document.getElementById('lab-v2-table-note'); if(note)note.textContent=`${_labYrs(M.n)} · ${M.lens} weights`;
+  const th=document.querySelectorAll('#lab-v2-table thead th');
+  if(th.length>=5){th[1].textContent='Price move';th[2].textContent='Max rise';th[3].textContent='Max drop';th[4].textContent='Weight';}
+  const rows=[...M.perYear].sort((a,b)=>b.y-a.y);
+  document.querySelector('#lab-v2-table tbody').innerHTML=rows.map(r=>{
+    const cyc=d.meta[r.y]?d.meta[r.y].cycle:'midterm',col=_LAB_CYC_COL[cyc]||'#8a93a8';
+    return `<tr><td><span class="cyc-dot" style="background:${col}"></span><span>${r.y}</span></td><td class="${r.cls} heavy">${_labFmtPct(r.ret)}</td><td class="up">${_labFmtPct(r.hi)}</td><td class="dn">${_labFmtPct(r.lo)}</td><td>${r.w.toFixed(2)}</td></tr>`;
   }).join('');
 }
 
