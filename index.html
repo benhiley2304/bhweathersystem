@@ -43388,14 +43388,21 @@ function _labQuantile(sorted,q){
                      ties |r| <= 0.005% excluded from both sides of the hit rate).
    The server's own window_stats are kept only as a cross-check stamp. */
 function _labWq(vals,ws,q){
+  // SEAS-V4: mid-weight weighted quantile with linear interpolation. Port of backend _seas_wq(); sign-symmetric so LONG/SHORT medians mirror exactly.
   const pairs=[];
   for(let i=0;i<vals.length;i++){const v=vals[i],w=ws[i];if(v==null||!isFinite(v)||!(w>0))continue;pairs.push([v,w]);}
   if(!pairs.length)return null;
   pairs.sort((a,b)=>a[0]-b[0]);
   const tot=pairs.reduce((s,p)=>s+p[1],0); if(tot<=0)return null;
-  let acc=0,prev=pairs[0][0];
-  for(const [v,w] of pairs){ if((acc+w/2)/tot>=q)return v; acc+=w; prev=v; }
-  return prev;
+  let acc=0; const mids=[];
+  for(const [v,w] of pairs){ mids.push([(acc+w/2)/tot,v]); acc+=w; }
+  if(q<=mids[0][0])return mids[0][1];
+  if(q>=mids[mids.length-1][0])return mids[mids.length-1][1];
+  for(let i=1;i<mids.length;i++){
+    const [p0,v0]=mids[i-1],[p1,v1]=mids[i];
+    if(q<=p1)return p1<=p0?v1:v0+(v1-v0)*(q-p0)/(p1-p0);
+  }
+  return mids[mids.length-1][1];
 }
 function _labWMean(vals,ws){
   let s=0,t=0;for(let i=0;i<vals.length;i++){const v=vals[i],w=ws[i];if(v==null||!isFinite(v)||!(w>0))continue;s+=v*w;t+=w;}

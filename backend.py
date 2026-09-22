@@ -14579,19 +14579,35 @@ _SEAS_PLANNER_DISCOUNT = 0.40
 
 
 def _seas_wq(vals, ws, q):
-    """Weighted quantile of vals with weights ws (0<=q<=1)."""
+    """Weighted quantile of vals with weights ws (0<=q<=1).
+
+    SEAS-V4: mid-weight rule with LINEAR INTERPOLATION between adjacent
+    sorted values. Each value sits at cumulative position (acc + w/2)/tot;
+    the quantile is interpolated between the two positions that straddle q.
+    This is sign-symmetric (wq(-x, 0.5) == -wq(x, 0.5)), so long and short
+    medians mirror exactly. The old step rule picked one of two adjacent
+    years depending on sort direction, which made the SHORT toggle disagree
+    with the LONG median by up to a full year's return.
+    The client _labWq() is a line-for-line port; keep them identical."""
     pairs = sorted(zip(vals, ws))
     tot = sum(w for _, w in pairs)
     if tot <= 0:
         return 0.0
     acc = 0.0
-    prev_v = pairs[0][0]
+    mids = []
     for v, w in pairs:
-        if (acc + w / 2) / tot >= q:
-            return v
+        mids.append(((acc + w / 2) / tot, v))
         acc += w
-        prev_v = v
-    return prev_v
+    if q <= mids[0][0]:
+        return mids[0][1]
+    if q >= mids[-1][0]:
+        return mids[-1][1]
+    for i in range(1, len(mids)):
+        p0, v0 = mids[i - 1]
+        p1, v1 = mids[i]
+        if q <= p1:
+            return v1 if p1 <= p0 else v0 + (v1 - v0) * (q - p0) / (p1 - p0)
+    return mids[-1][1]
 
 
 def _seas_weights(years, asof_year, market_id=None):
@@ -18869,7 +18885,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-22-seas-v4"
+BUILD_ID = "2026-09-22-seas-v4b"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
