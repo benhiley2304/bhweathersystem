@@ -37990,7 +37990,9 @@ function seasConsensusHTML(c,dirOverride){
   const badgeTxt={high:'HIGH AGREEMENT',medium:'MEDIUM',low:'LOW AGREEMENT',conflict:'CONFLICT'}[c.conviction]||'LOW';
   const agree=c.agreement_pct!=null?(' · '+c.agreement_pct+'%'):'';
   // AUDIT-SEAS-R2-FRONTEND: same lens stamp the donut and callout print.
-  const lensStamp=(typeof _labV2!=='undefined'&&_labV2&&_labV2.shape&&!dirOverride)?_labV2LensStamp(null):'';
+  // SEAS-V4: this grid is computed server-side from the FULL basket and is independent of the Lab year picker, so stamp it with its own year count, never the picker's.
+  const _bn=(c.cells||[]).filter(x=>x.lens==='blend').map(x=>x.n).filter(n=>n>0);
+  const lensStamp=(typeof _labV2!=='undefined'&&_labV2&&_labV2.shape&&!dirOverride)?('server, full basket'+(_bn.length?' · '+Math.max.apply(null,_bn)+' yrs':'')+' · not affected by the year picker'):'';
   const fmt=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
   let grid='<span class="ch"></span>'+cols.map(x=>'<span class="ch">'+x[1]+'</span>').join('');
   for(const [lk,ll] of rows){
