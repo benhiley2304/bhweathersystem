@@ -43745,6 +43745,8 @@ function _labRender(){
    removed. Everything the Lab prints now comes from _labCompute (one model, price terms,
    side views as pure mirrors). Only the date helper and the lens stamp remain here. */
 function _labV2LensStamp(){const M=_labV2.model;return M?(M.lens+' · '+_labYrs(M.n)):'';}
+/* SEAS-V5: re-place KPI block when the layout crosses the stacked breakpoint */
+if(window.matchMedia){try{window.matchMedia('(max-width:900px)').addEventListener('change',()=>{if(_labV2&&_labV2.model&&document.getElementById('lab-content')&&document.getElementById('lab-content').style.display!=='none')_labV2RenderWindowSidebar();});}catch(e){}}
 /* planner date formatting */
 function _labPlanDate(v){
   if(v==null)return null;
@@ -44106,8 +44108,10 @@ function _labV2RenderWindowSidebar(){
     kpi(null,`First half → second half · split ${_labDateLbl(M.mid)}`,{wide:true,txt:`<span style="color:${_labSignCol(P.medNear)}">${_labFmtPct(P.medNear)}</span><span style="color:var(--dim);font-size:11px"> → </span><span style="color:${_labSignCol(P.medFar)}">${_labFmtPct(P.medFar)}</span>`})+
     `</div>`;
   const bars=`<div class="lab-v2-yearbars-wrap"><div class="lab-v2-yearbars-head"><div class="t">Price move by year · ${_labYrs(M.n)}</div><div class="r">${_labWinLbl(M.ws,M.we)} · green up · red down</div></div><div class="lab-v2-yearbars"><canvas id="lab-v2-yearbars-canvas"></canvas></div></div>`;
-  side.innerHTML=winCard+sideCard+_labV2EntryStripHTML()+_labV2ConsensusHTML();
-  const below=document.getElementById('lab-v2-below'); if(below)below.innerHTML=kpis+bars; else side.insertAdjacentHTML('beforeend',kpis+bars);
+  const below=document.getElementById('lab-v2-below');
+  const stacked=window.matchMedia&&window.matchMedia('(max-width:900px)').matches; /* mobile: keep read → side → planner → consensus → KPIs in one column */
+  side.innerHTML=winCard+sideCard+_labV2EntryStripHTML()+_labV2ConsensusHTML()+((stacked||!below)?kpis+bars:'');
+  if(below)below.innerHTML=(stacked)?'':kpis+bars;
   _labV2DrawYearBars();
   _labV2RenderTable();
   _labV2SyncWinChips();
