@@ -18869,7 +18869,7 @@ async def upcoming_events(force: bool = False):
     _UPCOMING_EVENTS_CACHE["time"] = now
     return result
 
-BUILD_ID = "2026-09-21-rates-refresh"
+BUILD_ID = "2026-09-22-seas-v4"
 _PROC_START = time.time()
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
