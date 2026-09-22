@@ -38142,7 +38142,7 @@ function seasTabStub(m){
         ?` Planner: <strong style="color:${d.plan_dir>0?'var(--s1)':'var(--sm1)'}">${d.plan_dir>0?'long':'short'} ${(+d.entry_in_td<=3)?'entry zone opening':'setup building'}</strong> — ${(+d.entry_in_td<=3)?`within ~${d.entry_in_td} TD`:`entry in ~${d.entry_in_td} TD`}, ${(d.expected_move_pct>=0?'+':'')+(+d.expected_move_pct).toFixed(2)}% median leg.`
         :(d.plan_action==='enter_now'&&d.plan_dir&&d.expected_move_pct!=null)
         ?` Planner: <strong style="color:${d.plan_dir>0?'var(--s1)':'var(--sm1)'}">${d.plan_dir>0?'long':'short'} window is open now</strong> — ${(d.expected_move_pct>=0?'+':'')+(+d.expected_move_pct).toFixed(2)}% median leg.`:'';
-      return `${_immClause}Next 3–4 weeks: rose in <strong style="color:var(--text)">${nPos} of ${nY} years</strong> (${hr}% weighted hit rate), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>${trimClause}. Verdict: ${verdict}.${_planClause}${_shapeTail}`;
+      return `${_immClause}Next 3–4 weeks: <strong style="color:var(--text)">${hr}% weighted hit rate</strong> (raw ${nPos}/${nY} years up), median move <strong style="color:${med>=0?'var(--s1)':'var(--sm1)'}">${medStr}</strong>${trimClause}. Verdict: ${verdict}.${_planClause}${_shapeTail}`;
     }
     if(sc>=7.5) return `Seasonal window is <strong style="color:${col}">strongly bullish</strong> — historical tendency shows consistent gains over the next 3–4 weeks.`;
     if(sc>=6)   return `Seasonal window is <strong style="color:${col}">bullish</strong> — historical patterns lean positive over the current window.`;
@@ -38283,7 +38283,7 @@ async function loadSeasTab(marketId,marketName){
     miniSeasChart=buildSeasChart(
       canvas.getContext('2d'),
       all.map(p=>p[0]),all.map(p=>p[1]),
-      band||[],cya||[],months,td,'mini',sd,cycles,false,data.turns||[]
+      band||[],cya||[],months,td,'mini',sd,cycles,false,data.turns||[],data.fwd||null
     );
     renderSeasInsight(all,mt,td,sd,cya||[],'seas-insight-row');
     renderTurnCallout(miniSeasChart.$turnCall,'seas-turn-callout');
@@ -43020,7 +43020,7 @@ function _seasModalToggle(g,btn){
   else{
     const yr=new Date().getFullYear();
     const match={
-      median:l=>l==='Hist. Median'||l==='Projected',
+      median:l=>l==='Hist. Median'||l==='Projected'||l==='Hist. Median (levels)'||l==='Forward path (rebased to today)',
       range:l=>l==='_band_upper'||l==='Plausible range',
       ytd:l=>l===yr+' Actual YTD',
       cycles:l=>_CYCLE_LBLS.includes(l)
@@ -43094,7 +43094,7 @@ async function _openSeasFullChartLegacy(marketId,marketName){
     document.getElementById('modal-today-text').textContent='Trading day '+td+' of 252 — '+getMonth(td,months);
     const cycles={midterm,pre_election,post_election,election};
     const ctx=document.getElementById('modal-chart').getContext('2d');
-    modalChart=buildSeasChart(ctx,labels,allV,band||[],cya||[],months,td,'modal',sd,cycles,true,data.turns||[]);
+    modalChart=buildSeasChart(ctx,labels,allV,band||[],cya||[],months,td,'modal',sd,cycles,true,data.turns||[],data.fwd||null);
     // Cycle overlays start hidden in the modal for clarity (chip toggles them on)
     modalChart.data.datasets.forEach((ds,i)=>{if(_CYCLE_LBLS.includes(ds.label))modalChart.setDatasetVisibility(i,false);});
     modalChart.update();
@@ -43203,7 +43203,8 @@ let _labV2={
 };
 // Return the active-direction stats object, transparently swapping in short mirror when dir='short'.
 function _labV2ActiveStats(){
-  const s=_labV2.windowStats; if(!s) return null;
+  // SEAS-V4: client engine first (it follows the basket, detrend and the drawn line); server only while loading
+  const s=_labV2.rows?_labV2.clientStats:_labV2.windowStats; if(!s) return null;
   if(_labV2.dir==='short' && s.short){
     return Object.assign({}, s, s.short, {
       // preserve fields that don't exist on the short block
@@ -43364,26 +43365,171 @@ function _labQuantile(sorted,q){
   return lo===hi?sorted[lo]:sorted[lo]+(sorted[hi]-sorted[lo])*(pos-lo);
 }
 
+/* ── SEAS-V4 · ONE CLIENT LENS ENGINE ──────────────────────────────────────────
+   Ben (22 Sep 2026): "I'm not convinced the window / win rate is calculated off the
+   smart blend … make sure the slope of the yellow line corresponds to the window
+   performance." Root cause: the yellow line was a weighted median OF LEVELS (cum %
+   from Jan 1) computed server-side over the FULL basket, while the KPIs were weighted
+   per-year WINDOW returns (and, for a narrowed basket, computed client-side with a
+   different quantile rule and an off-by-one index). Three lenses, three answers.
+
+   Now every number and every line in the Lab comes from this one engine:
+     • rows        = basket years (completed years only — the current year is the
+                     white "actual" line, not part of the history it is compared to)
+                     with the smart-blend weights the backend ships in d.weights.
+     • _labWq      = exact port of backend _seas_wq (mid-weight, no interpolation).
+     • level curve = weighted median (or mean) of levels per TD  → gold line to today.
+     • rebased path(anchor) = every year set to 0 at the anchor TD, weighted median of
+                     the COMPOUNDED move per TD. Anchored at today it is the forward
+                     path; anchored at the window start it is the highlighted window
+                     segment. Its value at the window end IS the window median, so the
+                     segment's end-to-end move equals the KPI by construction.
+     • window stats = port of backend _seas_lab_window_stats (compounded, 1-based,
+                     ties |r| <= 0.005% excluded from both sides of the hit rate).
+   The server's own window_stats are kept only as a cross-check stamp. */
+function _labWq(vals,ws,q){
+  const pairs=[];
+  for(let i=0;i<vals.length;i++){const v=vals[i],w=ws[i];if(v==null||!isFinite(v)||!(w>0))continue;pairs.push([v,w]);}
+  if(!pairs.length)return null;
+  pairs.sort((a,b)=>a[0]-b[0]);
+  const tot=pairs.reduce((s,p)=>s+p[1],0); if(tot<=0)return null;
+  let acc=0,prev=pairs[0][0];
+  for(const [v,w] of pairs){ if((acc+w/2)/tot>=q)return v; acc+=w; prev=v; }
+  return prev;
+}
+function _labWMean(vals,ws){
+  let s=0,t=0;for(let i=0;i<vals.length;i++){const v=vals[i],w=ws[i];if(v==null||!isFinite(v)||!(w>0))continue;s+=v*w;t+=w;}
+  return t>0?s/t:null;
+}
+// basket rows with smart-blend weights (weights come from the server for the active cycle_w / half-life)
+function _labLensRows(paths){
+  const d=_labData, gw=(d&&d.weights)||{};
+  return (paths||[]).map(p=>{
+    let w=gw[p.y]!=null?+gw[p.y]:(gw[String(p.y)]!=null?+gw[String(p.y)]:1);
+    if(!isFinite(w)||w<=0)w=1e-6;
+    return {y:p.y,arr:p.arr,w};
+  });
+}
+// weighted level curve (median/mean/p25/p75 per TD, 252 long)
+function _labWeightedLevels(rows){
+  const med=[],mean=[],p25=[],p75=[];
+  for(let i=0;i<252;i++){
+    const vals=[],ws=[];
+    for(const r of rows){const v=r.arr[i];if(v==null)continue;vals.push(v);ws.push(r.w);}
+    if(!vals.length){med.push(null);mean.push(null);p25.push(null);p75.push(null);continue;}
+    med.push(_labWq(vals,ws,0.5));mean.push(_labWMean(vals,ws));p25.push(_labWq(vals,ws,0.25));p75.push(_labWq(vals,ws,0.75));
+  }
+  return {med,mean,p25,p75};
+}
+// rebased path: values are compounded % moves from the anchor TD (1-based); null before the anchor
+function _labRebasedPath(rows,anchorTd,avg,endTd){
+  const ai=Math.max(0,Math.round(anchorTd)-1), ei=Math.min(251,endTd?Math.round(endTd)-1:251);
+  const out=new Array(252).fill(null);
+  const base=rows.map(r=>{const b=r.arr[ai];return (b==null||Math.abs(1+b/100)<1e-9)?null:1+b/100;});
+  for(let i=ai;i<=ei;i++){
+    const vals=[],ws=[];
+    for(let k=0;k<rows.length;k++){const b=base[k],v=rows[k].arr[i];if(b==null||v==null)continue;vals.push(((1+v/100)/b-1)*100);ws.push(rows[k].w);}
+    if(!vals.length)continue;
+    out[i]=avg==='mean'?_labWMean(vals,ws):_labWq(vals,ws,0.5);
+  }
+  return out;
+}
+// per-year window rows + aggregate stats, same schema as the backend window_stats / per_year_windows
+function _labWindowStatsClient(rows,ws,we){
+  const si=Math.max(0,Math.round(ws)-1), ei=Math.max(si+1,Math.round(we)-1);
+  const py=[];
+  for(const r of rows){
+    const sp=r.arr[si],ep=r.arr[ei]; if(sp==null||ep==null)continue;
+    const base=1+sp/100; if(Math.abs(base)<1e-9)continue;
+    const seg=r.arr.slice(si,ei+1).filter(v=>v!=null); if(seg.length<2)continue;
+    py.push({year:r.y,start_pct:sp,end_pct:ep,ret_pct:((1+ep/100)/base-1)*100,
+      max_rise:((1+Math.max(...seg)/100)/base-1)*100,max_drop:((1+Math.min(...seg)/100)/base-1)*100,weight:r.w});
+  }
+  if(!py.length)return {stats:null,py:[]};
+  py.sort((a,b)=>b.year-a.year);
+  const rets=py.map(r=>r.ret_pct),wts=py.map(r=>r.weight),sw=wts.reduce((s,w)=>s+w,0);
+  const wMean=_labWMean(rets,wts),wMed=_labWq(rets,wts,0.5);
+  const eps=0.005;
+  const gains=py.filter(r=>r.ret_pct>eps),losses=py.filter(r=>r.ret_pct<-eps),ties=py.filter(r=>Math.abs(r.ret_pct)<=eps);
+  const wG=gains.reduce((s,r)=>s+r.weight,0),wL=losses.reduce((s,r)=>s+r.weight,0),wT=ties.reduce((s,r)=>s+r.weight,0);
+  const dec=wG+wL, winRate=dec>1e-12?wG/dec:0.5, shortWin=dec>1e-12?wL/dec:0.5;
+  const avgGain=gains.length?gains.reduce((s,r)=>s+r.ret_pct*r.weight,0)/Math.max(wG,1e-9):0;
+  const avgLoss=losses.length?losses.reduce((s,r)=>s+r.ret_pct*r.weight,0)/Math.max(wL,1e-9):0;
+  const maxG=Math.max(...rets),maxL=Math.min(...rets);
+  const vol=(sw>0&&rets.length>1)?Math.sqrt(rets.reduce((s,v,i)=>s+wts[i]*(v-wMean)**2,0)/sw):0;
+  const tdWin=Math.max(1,Math.round(we)-Math.round(ws)),af=252/tdWin,annRet=wMean*af,annVol=vol*Math.sqrt(af);
+  const sharpe=annVol>1e-9?annRet/annVol:0;
+  const dsd=(()=>{const dn=rets.map((v,i)=>v<wMean?wts[i]*(v-wMean)**2:0);const d2=sw>0?dn.reduce((s,v)=>s+v,0)/sw:0;return Math.sqrt(d2)*Math.sqrt(af);})();
+  const sortino=dsd>1e-9?annRet/dsd:0;
+  const sRets=rets.map(v=>-v),sMean=-wMean;
+  const sdsd=(()=>{const dn=sRets.map((v,i)=>v<sMean?wts[i]*(v-sMean)**2:0);const d2=sw>0?dn.reduce((s,v)=>s+v,0)/sw:0;return Math.sqrt(d2)*Math.sqrt(af);})();
+  const n=py.length, sorted=[...rets].sort((a,b)=>a-b);
+  const rawMed=n%2?sorted[(n-1)/2]:0.5*(sorted[n/2-1]+sorted[n/2]);
+  const rawDec=gains.length+losses.length;
+  const stats={win_rate:winRate,w_median:wMed,w_mean:wMean,ann_return:annRet,avg_gain:avgGain,avg_loss:avgLoss,max_gain:maxG,max_loss:maxL,
+    volatility:vol,sharpe,sortino,n_years:n,n_gains:gains.length,n_losses:losses.length,n_ties:ties.length,td_window:tdWin,
+    headline:{lens:'blend',win_rate:winRate,short_win_rate:shortWin,median_pct:wMed,mean_pct:wMean,n_up:gains.length,n_down:losses.length,n_ties:ties.length,n_years:n,w_up:wG,w_down:wL,w_ties:wT,tie_eps_pct:eps,compounded:true,excludes_current_year:true},
+    raw_win_rate:rawDec?gains.length/rawDec:0.5,raw_short_win_rate:rawDec?losses.length/rawDec:0.5,raw_median:rawMed,raw_mean:rets.reduce((s,v)=>s+v,0)/n,
+    raw_n_gains:gains.length,raw_n_losses:losses.length,raw_n_ties:ties.length,
+    short:{win_rate:shortWin,w_median:-wMed,w_mean:sMean,ann_return:-annRet,
+      avg_gain:losses.length?-losses.reduce((s,r)=>s+r.ret_pct*r.weight,0)/Math.max(wL,1e-9):0,
+      avg_loss:gains.length?-gains.reduce((s,r)=>s+r.ret_pct*r.weight,0)/Math.max(wG,1e-9):0,
+      max_gain:Math.max(...sRets),max_loss:Math.min(...sRets),volatility:vol,sharpe:annVol>1e-9?-annRet/annVol:0,sortino:sdsd>1e-9?-annRet/sdsd:0,
+      n_wins:losses.length,n_losses:gains.length,n_ties:ties.length,raw_win_rate:rawDec?losses.length/rawDec:0.5,raw_median:-rawMed,raw_mean:-rets.reduce((s,v)=>s+v,0)/n},
+    client:true};
+  return {stats,py};
+}
+/* Rebuild everything window-dependent from the current basket + window. Sets
+   _labV2.rows / clientStats / clientPy / shape and the cross-check against the server. */
+function _labV2ComputeAll(paths){
+  const d=_labData; if(!d)return;
+  const td=d.current_td, w=_labV2.window||{ws:td,we:Math.min(252,td+_LAB_FWD)};
+  const rows=_labLensRows(paths||_labPaths());
+  _labV2.rows=rows;
+  const cs=_labWindowStatsClient(rows,w.ws,w.we);
+  _labV2.clientStats=cs.stats; _labV2.clientPy=cs.py;
+  _labV2.shape=_labV2CrossCheck(_labV2ComputeShape(paths||_labPaths(),w.ws,w.we,td));
+}
+
 function _labRender(){
   const d=_labData,paths=_labPaths(),n=paths.length;
   const td=d.current_td,fwdEnd=Math.min(252,td+_LAB_FWD);
-  // ── pointwise average + band ──
-  const avg=[],p25=[],p75=[];
+  // ── SEAS-V4: everything below comes from the one client lens engine ──
+  _labV2ComputeAll(paths);
+  const rows=_labV2.rows||[];
+  // equal-weight basket average (honest one-year-one-vote comparator, dashed)
+  const avg=[];
   for(let i=0;i<252;i++){
     const vals=paths.map(p=>p.arr[i]).filter(v=>v!=null).sort((a,b)=>a-b);
-    if(!vals.length){avg.push(null);p25.push(null);p75.push(null);continue;}
-    avg.push(_labOpts.avg==='median'?_labQuantile(vals,0.5):vals.reduce((s,v)=>s+v,0)/vals.length);
-    p25.push(_labQuantile(vals,0.25));p75.push(_labQuantile(vals,0.75));
+    avg.push(!vals.length?null:(_labOpts.avg==='median'?_labQuantile(vals,0.5):vals.reduce((s,v)=>s+v,0)/vals.length));
   }
-  // light display smoothing (3-pt ×2), same as main chart
+  // smart-blend weighted levels + weighted plausible range
+  const lv=_labWeightedLevels(rows);
+  const blendRaw=_labOpts.avg==='mean'?lv.mean:lv.med, p25=lv.p25, p75=lv.p75;
+  // light display smoothing (3-pt ×2), same as main chart — levels only; rebased paths are NOT smoothed
   const sm=a=>a.map((v,i)=>{const p=a[i-1],nx=a[i+1];return(v==null||p==null||nx==null)?v:0.25*p+0.5*v+0.25*nx;});
-  const avgS=sm(sm(avg)),p25S=sm(p25),p75S=sm(p75);
+  const avgS=sm(sm(avg)),p25S=sm(p25),p75S=sm(p75),blendS=sm(sm(blendRaw));
   const labels=Array.from({length:252},(_,i)=>i+1);
-  // ── window-aware, direction-aware shape analysis (drives callout + basket stats) ──
-  // AUDIT-LAB-UI: callout & basket stats now follow the ACTIVE analysis window and the
-  // Long/Short toggle instead of a hard-coded long-only +60TD read.
-  const _shW=_labV2.window||{ws:td,we:fwdEnd};
-  _labV2.shape=_labV2ApplyHeadline(_labV2ComputeShape(paths,_shW.ws,_shW.we,td));
+  // hero line: levels to today, then the rebased-at-today path hung off today's level
+  const ai=Math.max(0,td-1);
+  const fwdReb=_labRebasedPath(rows,td,_labOpts.avg);
+  const hero=blendS.map((v,i)=>{
+    if(i<=ai)return v;
+    if(blendS[ai]==null||fwdReb[i]==null)return null;
+    return ((1+blendS[ai]/100)*(1+fwdReb[i]/100)-1)*100;
+  });
+  const past=hero.map((v,i)=>i<=ai?v:null), fwd=hero.map((v,i)=>i>=ai?v:null);
+  // window segment: rebased at the window start, hung off the hero level there
+  const w=_labV2.window||{ws:td,we:fwdEnd};
+  const wsI=Math.max(0,w.ws-1), weI=Math.min(251,w.we-1);
+  const winReb=_labRebasedPath(rows,w.ws,_labOpts.avg,w.we);
+  const hangLvl=hero[wsI]!=null?hero[wsI]:(blendS[wsI]!=null?blendS[wsI]:0);
+  const winPath=new Array(252).fill(null);
+  for(let i=wsI;i<=weI;i++){ if(winReb[i]!=null)winPath[i]=((1+hangLvl/100)*(1+winReb[i]/100)-1)*100; }
+  const segMove=winReb[weI];                                   // == weighted window median/mean by construction
+  _labV2.segment={ws:w.ws,we:w.we,move:segMove,start:winPath[wsI],end:winPath[weI]};
+  const segUp=segMove!=null?segMove>=0:true;
+  const segCol=segUp?'#3ecf8e':'#e5484d';
   _labV2RenderBasketStats();
   _labV2RenderCallout();
   // ── main chart ──
@@ -43400,13 +43546,11 @@ function _labRender(){
   }
   // Basket equal-weight average — dim dashed comparison line
   dsets.push({label:'Basket '+_labOpts.avg+' (equal-wt)',data:avgS,borderColor:'rgba(160,170,190,0.62)',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false,tension:0.3});
-  // Smart blend — server-side cycle+recency weighted curve (the hero line)
-  const _W=d.weighted||{};
-  const _blendRaw=(_labOpts.avg==='mean'?_W.mean:_W.median)||null;
-  if(_blendRaw&&_blendRaw.length===252){
-    const blendS=sm(sm(_blendRaw.slice()));
-    dsets.push({label:'Smart blend',data:blendS,borderColor:'#c8a96e',borderWidth:2.8,pointRadius:0,fill:false,tension:0.3});
-  }
+  // Smart blend: weighted levels to today (gold), rebased-at-today path beyond (gold, thinner)
+  dsets.push({label:'Smart blend',data:past,borderColor:'#c8a96e',borderWidth:2.8,pointRadius:0,fill:false,tension:0.3});
+  dsets.push({label:'Forward path (rebased at today)',data:fwd,borderColor:'rgba(200,169,110,0.9)',borderWidth:2.0,pointRadius:0,fill:false,tension:0.15});
+  // Window path: the segment the KPIs describe — green if the window median is up, red if down
+  dsets.push({label:'Window path (rebased at window start)',data:winPath,borderColor:segCol,borderWidth:3.4,pointRadius:0,fill:false,tension:0.15,order:-1});
   if(_labOpts.actual&&d.current_year_actual&&d.current_year_actual.length){
     const cyMap=new Map(d.current_year_actual.map(p=>[p[0],p[1]]));
     const cy=labels.map(l=>{
@@ -43529,57 +43673,41 @@ function _labRender(){
       both numerator and denominator of the hit rate (`nTie` is reported), so the long and
       short hit rates sum to 100% and neither side is quietly penalised. */
 function _labWQuantile(pairs,q){
-  // pairs: [{v,w}] — weighted quantile with mid-weight interpolation.
-  const a=pairs.filter(p=>p.v!=null&&isFinite(p.v)&&p.w>0).sort((x,y)=>x.v-y.v);
-  if(!a.length)return null;
-  const W=a.reduce((s,p)=>s+p.w,0);
-  if(W<=0)return null;
-  let cum=0;const pts=a.map(p=>{const c=(cum+0.5*p.w)/W;cum+=p.w;return{v:p.v,c};});
-  if(q<=pts[0].c)return pts[0].v;
-  if(q>=pts[pts.length-1].c)return pts[pts.length-1].v;
-  for(let i=1;i<pts.length;i++){
-    if(q<=pts[i].c){
-      const a0=pts[i-1],a1=pts[i],sp=a1.c-a0.c;
-      return sp<=0?a1.v:a0.v+(a1.v-a0.v)*((q-a0.c)/sp);
-    }
-  }
-  return pts[pts.length-1].v;
+  // pairs: [{v,w}] — SEAS-V4: same mid-weight, non-interpolating rule as backend _seas_wq
+  // (was linearly interpolated here, so a narrowed basket printed a median no year produced).
+  return _labWq(pairs.map(p=>p.v),pairs.map(p=>p.w),q);
 }
 function _labV2ComputeShape(paths,ws,we,td){
   ws=Math.max(1,Math.min(251,Math.round(ws)));
   we=Math.max(ws+1,Math.min(252,Math.round(we)));
   const out={n:0,ws,we,td,tdWin:we-ws,long:null,short:null,perYear:[],lens:'equal-weight'};
   if(!paths||!paths.length)return out;
-  // Server rows for this exact window, keyed by year — authoritative when present.
-  const srv=new Map();
-  for(const r of (_labV2.perYearWindow||[])){if(r&&r.year!=null)srv.set(+r.year,r);}
+  // SEAS-V4: TDs are 1-based (backend _si = start_td-1). This used arr[ws]/arr[we] and an
+  // arithmetic difference of two cumulative levels — every client-side window was one
+  // session late and mis-measured. Now compounded off the entry level exactly like
+  // _seas_lab_window_stats, and weights come straight from the blend (d.weights).
+  const si=ws-1, ei=we-1;
   const gw=(_labData&&_labData.weights)||{};
-  let anySrv=false,anyW=false;
+  let anyW=false;
   const rows=[];
   for(const p of paths){
-    // index-aligned with the backend: arr[ws] .. arr[we]
-    const base=p.arr[ws],end=p.arr[we];
-    if(base==null||end==null)continue;
+    const sp=p.arr[si],ep=p.arr[ei];
+    if(sp==null||ep==null)continue;
+    const base=1+sp/100; if(Math.abs(base)<1e-9)continue;
+    const rel=i=>{const v=p.arr[i];return v==null?null:((1+v/100)/base-1)*100;};
     let lo=0,hi=0,loTd=ws,hiTd=ws;
-    for(let i=ws;i<=we;i++){
-      const rel=(p.arr[i]??base)-base;
-      if(rel<lo){lo=rel;loTd=i;}
-      if(rel>hi){hi=rel;hiTd=i;}
+    for(let i=si;i<=ei;i++){
+      const r=rel(i); if(r==null)continue;
+      if(r<lo){lo=r;loTd=i+1;}
+      if(r>hi){hi=r;hiTd=i+1;}
     }
-    let ret=end-base;
-    const sr=srv.get(p.y);
-    if(sr&&sr.ret_pct!=null&&!_labOpts.detrend){
-      anySrv=true;ret=+sr.ret_pct;
-      if(sr.max_drop!=null)lo=Math.min(0,+sr.max_drop);
-      if(sr.max_rise!=null)hi=Math.max(0,+sr.max_rise);
-    }
-    let w=(sr&&sr.weight!=null)?+sr.weight:(gw[p.y]!=null?+gw[p.y]:(gw[String(p.y)]!=null?+gw[String(p.y)]:1));
+    const ret=rel(ei);
+    let w=gw[p.y]!=null?+gw[p.y]:(gw[String(p.y)]!=null?+gw[String(p.y)]:1);
     if(!isFinite(w)||w<=0)w=1e-6; else if(Math.abs(w-1)>1e-9)anyW=true;
-    rows.push({y:p.y,ret,lo,hi,loTd,hiTd,w,fromLo:ret-lo,fromHi:ret-hi});
+    rows.push({y:p.y,ret,lo,hi,loTd,hiTd,w,fromLo:ret-lo,fromHi:ret-hi,base});
   }
   out.perYear=rows;out.n=rows.length;
   out.lens=anyW?'smart-blend weighted':'equal-weight';
-  out.srvAligned=anySrv;
   if(!rows.length)return out;
   const q=(a,p)=>_labQuantile([...a].sort((x,y)=>x-y),p);                    // raw equal-weight
   const wq=(vals,p)=>_labWQuantile(rows.map((r,i)=>({v:vals[i],w:r.w})),p);  // smart-blend weighted
@@ -43595,15 +43723,18 @@ function _labV2ComputeShape(paths,ws,we,td){
     const halves=[];
     rows.forEach(r=>{
       const p=paths.find(x=>x.y===r.y);
-      const a=p?p.arr[ws]:null,m=p?p.arr[mid]:null,z=p?p.arr[we]:null;
-      if(a!=null&&m!=null&&z!=null)halves.push({near:sgn*(m-a),far:sgn*(z-m),w:r.w});
+      const a=p?p.arr[ws-1]:null,m=p?p.arr[mid-1]:null,z=p?p.arr[we-1]:null;
+      if(a!=null&&m!=null&&z!=null){
+        const A=1+a/100,M=1+m/100,Z=1+z/100;
+        if(Math.abs(A)>1e-9&&Math.abs(M)>1e-9)halves.push({near:sgn*((M/A-1)*100),far:sgn*((Z/M-1)*100),w:r.w});
+      }
     });
     // Hit rate — weighted, TIES EXCLUDED from numerator and denominator.
     let wWin=0,wLoss=0,nWin=0,nLoss=0,nTie=0;
     rets.forEach((v,i)=>{
       const w=rows[i].w;
-      if(v>0){wWin+=w;nWin++;}
-      else if(v<0){wLoss+=w;nLoss++;}
+      if(v>0.005){wWin+=w;nWin++;}          // SEAS-V4: same tie epsilon as backend (_SEAS_TIE_EPS=0.005%)
+      else if(v<-0.005){wLoss+=w;nLoss++;}
       else nTie++;
     });
     const wDen=wWin+wLoss, nDen=nWin+nLoss;
@@ -43631,30 +43762,21 @@ function _labV2ComputeShape(paths,ws,we,td){
   return out;
 }
 
-/* AUDIT-SEAS-R2-FRONTEND · window_stats.headline is the backend's canonical lens
-   (blend-weighted, compounded, ties excluded — see R2 BACKEND API CONTRACT §3). When the
-   client basket is the full server basket we adopt those numbers verbatim so the Lab and
-   the score cannot drift by even a rounding step; a user-narrowed basket keeps the
-   client computation, which is then the only honest answer for that subset. */
-function _labV2ApplyHeadline(out){
+/* SEAS-V4 · the client engine is now the single source for what is drawn AND what is
+   printed. The backend's window_stats (same maths, same weights, same quantile rule) are
+   used purely as an independent cross-check: when the basket is the full server basket and
+   detrend is off, the two must agree to the rounding step. The result is stamped in the
+   sidebar so a divergence can never hide. */
+function _labV2CrossCheck(out){
   const ws=_labV2.windowStats, h=ws&&ws.headline;
-  if(!out||!h||!out.long||!out.short)return out;
-  if(h.n_years!=null&&out.n!==h.n_years)return out;   // narrowed basket — keep client stats
-  const L=out.long,S=out.short;
-  if(h.win_rate!=null)L.winRate=+h.win_rate;
-  if(h.short_win_rate!=null)S.winRate=+h.short_win_rate;
-  if(h.median_pct!=null){L.med=+h.median_pct;S.med=-(+h.median_pct);}
-  if(h.mean_pct!=null){L.mean=+h.mean_pct;S.mean=-(+h.mean_pct);}
-  if(h.n_up!=null){L.wins=h.n_up;S.losses=h.n_up;}
-  if(h.n_down!=null){L.losses=h.n_down;S.wins=h.n_down;}
-  if(h.n_ties!=null){L.nTie=h.n_ties;S.nTie=h.n_ties;}
-  if(ws.raw_win_rate!=null)L.rawWinRate=+ws.raw_win_rate;
-  if(ws.raw_short_win_rate!=null)S.rawWinRate=+ws.raw_short_win_rate;
-  else if(ws.raw_win_rate!=null&&ws.raw_n_ties!=null)S.rawWinRate=1-(+ws.raw_win_rate);
-  if(ws.raw_median!=null){L.rawMed=+ws.raw_median;S.rawMed=-(+ws.raw_median);}
-  if(ws.raw_mean!=null){L.rawMean=+ws.raw_mean;S.rawMean=-(+ws.raw_mean);}
-  out.lens='smart-blend weighted';
-  out.srvHeadline=true;
+  out.srvCheck=null;
+  if(!out||!h||!out.long)return out;
+  if(_labOpts.detrend)return out;                       // server rows are not detrended
+  if(h.n_years!=null&&out.n!==h.n_years)return out;     // narrowed basket — nothing to compare against
+  const dMed=Math.abs((+h.median_pct)-out.long.med), dWr=Math.abs((+h.win_rate)-out.long.winRate);
+  const okCounts=(h.n_up==null||h.n_up===out.long.wins)&&(h.n_down==null||h.n_down===out.long.losses);
+  out.srvCheck={ok:dMed<=0.011&&dWr<=0.0011&&okCounts,dMed,dWr,srvMed:+h.median_pct,srvWr:+h.win_rate};
+  if(!out.srvCheck.ok)console.warn('SEAS-V4 lens mismatch vs server',out.srvCheck,{clientMed:out.long.med,clientWr:out.long.winRate,wins:out.long.wins,losses:out.long.losses,srv:h});
   return out;
 }
 /* AUDIT-SEAS-R2-FRONTEND · shared lens stamp. Donut, callout, consensus grid and basket
@@ -43764,6 +43886,9 @@ function _labV2RenderCallout(){
   const srcTxt=` <i>· ${_labV2LensStamp(s)}</i>`;
   const _planRej=(function(){try{const pl=_labV2PlanRead();return (pl&&String(pl.plan_action).toLowerCase()==='no_edge'&&pl.rejected_leg&&pl.rejected_leg.reason)?` Swing planner: not a trade — ${pl.rejected_leg.reason}.`:'';}catch(e){return '';}})();
   const wrPct=Math.round(s.winRate*100);
+  // SEAS-V3b copy fix: s.winRate is the WEIGHTED hit rate but s.wins/s.n are RAW year
+  // counts. Printing "12 of 55 years (33%)" mixed the two lenses. Always state both.
+  const hrTxt=`<b>${wrPct}%</b> weighted hit rate (raw <b>${s.wins}/${s.n}</b> years ${C.wordPast})`;
   // goldilocks countdown — backend value wins when it exists and matches the side
   let goldTd=s.entryTd!=null?(s.entryTd-sh.td):null;
   let goldSrc='basket';
@@ -43809,7 +43934,7 @@ function _labV2RenderCallout(){
   }else if(goldTd!=null&&goldTd<=2&&s.postMed>=1.5){
     tone='co-good';ic=isShort?'▼':'▲';pill='NOW';
     kick=`Goldilocks entry — live now`;
-    txt=`Seasonal ${C.extreme} sits around <b>${entryPhase}</b> — effectively here. From there the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b>; <b>${s.wins} of ${s.n}</b> years ${C.wordPast} across ${winLbl} (median <b>${pc(s.med)}</b>).${shapeTxt}${_planRej}${srcTxt}`;
+    txt=`Seasonal ${C.extreme} sits around <b>${entryPhase}</b> — effectively here. From there the median ${C.favWord} into ${ph(sh.we)} is <b>${mag(s.postMed)}</b>; ${hrTxt} across ${winLbl} (median <b>${pc(s.med)}</b>).${shapeTxt}${_planRej}${srcTxt}`;
   }else if(goldTd!=null&&goldTd>2&&goldTd<=30&&s.postMed>=1.5){
     tone='co-gold';ic='◷';pill=`${goldTd} TD`;
     kick=`Almost ready seasonally — ${goldTd} trading days to goldilocks entry`;
@@ -43823,15 +43948,15 @@ function _labV2RenderCallout(){
   }else if(s.med!=null&&s.med<0&&s.winRate<=0.45){
     tone='co-risk';ic='▼';
     kick=isShort?'Seasonal headwind for shorts':'Seasonal headwind ahead';
-    txt=`Only <b>${s.wins} of ${s.n}</b> years ${C.wordPast} across ${winLbl} (${wrPct}% hit rate) — median <b>${pc(s.med)}</b>, median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>. The other side of the book looks better here.${shapeTxt}${srcTxt}`;
+    txt=`Only ${hrTxt} across ${winLbl} — median <b>${pc(s.med)}</b>, median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>. The other side of the book looks better here.${shapeTxt}${srcTxt}`;
   }else if(s.favMed!=null&&s.favMed>=3&&(s.advMed==null||s.advMed>-1.5)){
     tone='co-good';ic=isShort?'▼':'▲';
     kick=isShort?'Seasonal weakness ahead — favours shorts':'Seasonal strength ahead';
-    txt=`Median max ${C.favWord} across ${winLbl} is <b>${mag(s.favMed)}</b> over this ${s.n}-year basket with limited adverse excursion (median <b>${pc(s.advMed)}</b>) — ${wrPct}% of years ${C.wordPast}.${shapeTxt}${srcTxt}`;
+    txt=`Median max ${C.favWord} across ${winLbl} is <b>${mag(s.favMed)}</b> over this ${s.n}-year basket with limited adverse excursion (median <b>${pc(s.advMed)}</b>) — ${hrTxt}.${shapeTxt}${srcTxt}`;
   }else{
     tone='co-flat';ic='▬';
     kick='No clear seasonal edge in this window';
-    txt=`Median <b>${pc(s.med)}</b> across ${winLbl}, ${wrPct}% hit rate (<b>${s.wins}/${s.n}</b>) — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>, median max ${C.favWord} <b>${mag(s.favMed)}</b>.${shapeTxt||' Drag a different window or flip direction.'}${srcTxt}`;
+    txt=`Median <b>${pc(s.med)}</b> across ${winLbl}, ${hrTxt} — median adverse ${C.adverseWord} <b>${pc(s.advMed)}</b>, median max ${C.favWord} <b>${mag(s.favMed)}</b>.${shapeTxt||' Drag a different window or flip direction.'}${srcTxt}`;
   }
   co.style.display='grid';
   co.className='lab-callout '+tone;
@@ -43855,7 +43980,7 @@ function _labV2RenderBasketStats(){
   const pnl=isShort?'short P&L':'return';
   el.innerHTML=
     `<div class="lab-stat"><div class="lv">${sh.n}</div><div class="lk">Years in basket · ${sh.tdWin} TD</div></div>`+
-    `<div class="lab-stat"><div class="lv" style="color:${wr>=55?'var(--s1)':wr<=45?'var(--sm2)':'var(--accent)'}">${wr}%</div><div class="lk">${isShort?'Short hit rate':'Hit rate'} · ${s.wins}/${s.wins+s.losses} ${isShort?'down':'up'} · ${_labV2LensStamp(s)}</div></div>`+
+    `<div class="lab-stat"><div class="lv" style="color:${wr>=55?'var(--s1)':wr<=45?'var(--sm2)':'var(--accent)'}">${wr}%</div><div class="lk">${isShort?'Short hit rate':'Hit rate'} (weighted) · raw ${s.wins}/${s.wins+s.losses} ${isShort?'down':'up'} · ${_labV2LensStamp(s)}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:${col(s.med)}">${pc(s.med)}</div><div class="lk">Median ${pnl} · ${winLbl}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:${col(s.mean)}">${pc(s.mean)}</div><div class="lk">Mean ${pnl} · ${winLbl}</div></div>`+
     `<div class="lab-stat"><div class="lv" style="color:var(--s1)">${pc(best.v)}</div><div class="lk">Best · ${best.y}${isShort?' (biggest fall)':''}</div></div>`+
@@ -43975,8 +44100,11 @@ function _labV2RenderLegend(){
   const el=document.getElementById('lab-v2-legend'); if(!el||!_labData)return;
   const d=_labData,b=_labV2.blend||{cycle_w:1,halflife:15};
   const hl=b.halflife>=999?'flat':(b.halflife+'y half-life');
+  const sg=_labV2.segment, segCol=(sg&&sg.move!=null&&sg.move<0)?'#e5484d':'#3ecf8e';
+  const segTxt=(sg&&sg.move!=null)?((sg.move>=0?'+':'')+sg.move.toFixed(2)+'%'):'';
   el.innerHTML=
-    `<span class="lg"><i class="sw"></i><b>Smart blend</b>&nbsp;· cycle ${(+b.cycle_w).toFixed(1)}× · ${hl}</span>`+
+    `<span class="lg"><i class="sw"></i><b>Smart blend</b>&nbsp;· cycle ${(+b.cycle_w).toFixed(1)}× · ${hl} · weighted ${_labOpts.avg} of levels to today, rebased path from today</span>`+
+    `<span class="lg" title="Every basket year set to 0 at the window start, weighted ${_labOpts.avg} of the move each day. Its end-to-end move is the window ${_labOpts.avg} in the KPIs."><i class="sw" style="border-top:3.4px solid ${segCol}"></i><b>Window path</b>&nbsp;· rebased at window start${segTxt?' · '+segTxt:''}</span>`+
     `<span class="lg"><i class="sw sw-basket"></i>Basket ${_labOpts.avg} (equal-weight)</span>`+
     (_labOpts.actual?`<span class="lg"><i class="sw sw-actual"></i>${d.current_year} actual</span>`:'')+
     (_labOpts.band?`<span class="lg"><i class="sw sw-band"></i>Plausible range</span>`:'');
@@ -43986,9 +44114,7 @@ function _labV2RenderLegend(){
    current basket, window and (when present) the server's per-year window rows. */
 function _labV2RecomputeShape(){
   if(!_labData)return;
-  const td=_labData.current_td;
-  const w=_labV2.window||{ws:td,we:Math.min(252,td+_LAB_FWD)};
-  _labV2.shape=_labV2ApplyHeadline(_labV2ComputeShape(_labPaths(),w.ws,w.we,td));
+  _labV2ComputeAll(_labPaths());
 }
 
 // Set the active analysis window (from presets, month picker, drag or dblclick)
@@ -44124,11 +44250,23 @@ function _labV2ConsensusHTML(){
   return seasConsensusHTML(_labData&&_labData.consensus);
 }
 
+/* SEAS-V4: proves on screen that the highlighted chart segment and the KPI describe the
+   same thing. `seg` is read back from the DRAWN dataset (not recomputed), so if the line
+   and the median ever disagreed it would show here. */
+function _labV2SegmentStamp(){
+  const sg=_labV2.segment, sh=_labV2.shape, isShort=_labV2.dir==='short';
+  if(!sg||sg.move==null)return 'Highlighted segment = weighted '+_labOpts.avg+' path rebased at the window start.';
+  const mv=isShort?-sg.move:sg.move;
+  const pc=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
+  const chk=sh&&sh.srvCheck;
+  const srv=chk?(chk.ok?' · server cross-check ✓':' · <span style="color:var(--sm2)">server cross-check differs ('+pc(isShort?-chk.srvMed:chk.srvMed)+')</span>'):(sh&&sh.n&&_labV2.windowStats&&_labV2.windowStats.n_years!=null&&sh.n!==_labV2.windowStats.n_years?' · narrowed basket, client-computed':'');
+  return 'Highlighted segment: weighted '+_labOpts.avg+' path rebased at window start · end-to-end <b>'+pc(mv)+'</b> = '+(_labOpts.avg==='mean'?'mean':'median')+' KPI'+srv;
+}
 // Right sidebar: win-rate donut, KPIs, per-year bars
 function _labV2RenderWindowSidebar(){
   const side=document.getElementById('lab-v2-side');
   if(!side)return;
-  const raw=_labV2.windowStats, s=_labV2ActiveStats(), py=_labV2.perYearWindow||[];
+  const s=_labV2ActiveStats(), raw=s, py=(_labV2.clientPy&&_labV2.clientPy.length)?_labV2.clientPy:(_labV2.perYearWindow||[]);
   if(!s){
     side.innerHTML=`<div class="lab-v2-window-empty"><div class="icon">▬ ▬</div><div class="t">Window stats loading…</div><div class="sub">Drag on the chart to pick a custom window, or wait a moment for the default forward window.</div></div>`;
     if(_labV2.yearBars){try{_labV2.yearBars.destroy()}catch(_){}}
@@ -44199,7 +44337,7 @@ function _labV2RenderWindowSidebar(){
         <div class="win-sub" style="margin-top:5px;font-size:9.5px;color:var(--dim)">${upCount} yrs price ${upLbl} · ${dnCount} yrs price ${dnLbl}${tieCount?' · '+tieCount+' flat (excl.)':''}${raw.td_window?' · '+raw.td_window+' TD':''}</div>
         <div class="win-lens">${_labV2LensStamp(us)}</div>
         ${us?`<div class="win-raw">${_labV2RawStamp(us)}</div>`:''}
-        <div class="win-raw" style="margin-top:3px;opacity:.75">KPIs = per-year window returns · chart path = median of price levels each day — the two can differ in choppy windows; trade off the KPIs.</div>
+        <div class="win-raw" style="margin-top:3px;opacity:.85">${_labV2SegmentStamp()}</div>
       </div>
     </div>
     ${_labV2EntryStripHTML()}
@@ -44301,7 +44439,7 @@ function _labV2DrawYearBars(py){
 function _labV2RenderTable(){
   const wrap=document.getElementById('lab-v2-table-wrap');
   if(!wrap)return;
-  const py=_labV2.perYearWindow||[], s=_labV2.windowStats;
+  const py=(_labV2.clientPy&&_labV2.clientPy.length)?_labV2.clientPy:(_labV2.perYearWindow||[]), s=_labV2ActiveStats();
   if(!py.length||!s){wrap.style.display='none';return;}
   wrap.style.display='block';
   const d=_labData;
@@ -44392,7 +44530,7 @@ function tdPhase(td,months){
 /* ════════════════════════════════════════════
    SEASONAL CHART BUILDER
 ════════════════════════════════════════════ */
-function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scoreDetail,cycles,isModal,turns){
+function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scoreDetail,cycles,isModal,turns,fwd){
   scoreDetail = scoreDetail||{};
   cycles = cycles||{};
   band = band||[];
@@ -44932,16 +45070,39 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
     order:2
   });
 
-  // Projected (future) — dashed, faded
+  // Projected (future) — dashed, faded. This is the median OF LEVELS continued past
+  // today; composition-dependent, kept as a faint reference only when a forward path exists.
+  const _hasFwd=!!(fwd&&Array.isArray(fwd.median)&&fwd.median.length>=252);
   datasets.push({
-    label:'Projected',
+    label:_hasFwd?'Hist. Median (levels)':'Projected',
     data:histFuture,
-    borderColor:isModal?'rgba(107,124,255,0.4)':'rgba(91,110,245,0.32)',
+    borderColor:isModal?(_hasFwd?'rgba(107,124,255,0.22)':'rgba(107,124,255,0.4)'):(_hasFwd?'rgba(91,110,245,0.18)':'rgba(91,110,245,0.32)'),
     borderWidth:isModal?1.6:1.3,
     borderDash:[6,4],
     pointRadius:0,tension:0,fill:false,
     order:3
   });
+  // SEAS-V3b: FORWARD PATH — every year rebased to 0 at today, weighted median of the
+  // moves (same lens + same quantile routine as the score / consensus / planner), hung
+  // off today's median level. Its value at +10/+15/+20 TD equals the consensus cells.
+  // Coloured by its 4-week direction: green = seasonal tailwind for longs, red = shorts.
+  if(_hasFwd){
+    const _ai=Math.max(0,(fwd.anchor_td||todayTD)-1);
+    const _anchorTD=_ai+1;
+    let _L0=null; for(let i=0;i<labels.length;i++){ if(labels[i]===_anchorTD&&allV[i]!=null){_L0=1+allV[i]/100;break;} }
+    if(_L0!=null){
+      const fwdV=labels.map(td=>{ const r=fwd.median[td-1]; return (td>=_anchorTD&&r!=null)?((_L0*(1+r/100))-1)*100:null; });
+      const _r20=fwd.median[Math.min(251,_ai+20)]; const _upF=(_r20==null)?true:_r20>=0;
+      datasets.push({
+        label:'Forward path (rebased to today)',
+        data:fwdV,
+        borderColor:_upF?(isModal?'rgba(62,207,142,0.95)':'rgba(62,207,142,0.9)'):(isModal?'rgba(229,72,77,0.95)':'rgba(229,72,77,0.9)'),
+        borderWidth:isModal?2.4:2,
+        pointRadius:0,tension:0.15,fill:false,
+        order:1
+      });
+    }
+  }
 
   // Ghost cycle curves — modal only, faint context
   if(isModal){
@@ -45004,7 +45165,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           callbacks:{
             title:items=>'TD '+items[0].label+' — '+getMonth(parseInt(items[0].label),months),
             label:item=>{
-              if(item.dataset.label==='Projected'||item.dataset.label==='_band_upper'||item.dataset.label==='Plausible range')return null;
+              if(item.dataset.label==='Projected'||item.dataset.label==='Hist. Median (levels)'||item.dataset.label==='_band_upper'||item.dataset.label==='Plausible range')return null;
               const v=item.raw;if(v==null)return null;
               const lbl=item.dataset.label;
               const pref=lbl===new Date().getFullYear()+' Actual YTD'?'● ':'  ';

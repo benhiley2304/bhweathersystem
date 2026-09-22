@@ -13023,8 +13023,33 @@ async def get_seasonality(market: str = None):
         # all-years profile (cycle_w=1.0) so the cycle label is not what drove
         # the number.
         _default_blend = _seas_default_blend(m)
+        # SEAS-V3b: composition-free FORWARD path from today, same lens as the
+        # score/consensus/planner (every completed year, 15y half-life, asset
+        # class cycle_w). The `all` curve is a median OF LEVELS whose local
+        # slope can point the wrong way (DX Sep-2026: line down, stats up); the
+        # tab draws this from TODAY so the picture equals the numbers.
+        _fwd = None
+        try:
+            _yrs_all = ent.get("years") or {}
+            _lens_yrs, _Wl = _seas_lens_weights(_yrs_all, _today.year, m)
+            _Wl_s = {str(y): w for y, w in _Wl.items()}
+            _fwd = _seas_weighted_rebased({str(y): _yrs_all[str(y)] for y in _lens_yrs
+                                           if str(y) in _yrs_all},
+                                          _Wl_s, _current_td,
+                                          current_year=_today.year,
+                                          current_td=_current_td)
+            _fwd = {"median": [None if v is None else round(v, 3) for v in _fwd["median"]],
+                    "p25":    [None if v is None else round(v, 3) for v in _fwd["p25"]],
+                    "p75":    [None if v is None else round(v, 3) for v in _fwd["p75"]],
+                    "anchor_td": _fwd["anchor_td"],
+                    "n_years": len(_lens_yrs)}
+        except Exception as _fe:
+            print(f"[seas api] fwd path {m}: {_fe}", flush=True)
+            _fwd = None
         return {
             "market": m,
+            "fwd":    _fwd,
+            "lens":   ent.get("lens"),
             "all":    ent.get("curve", []),
             "band":   ent.get("band", []),
             "mt":     cycles.get("midterm", []),
@@ -13166,23 +13191,15 @@ def _seas_weighted_stats(years_dict: dict, weights: dict,
         # Weighted mean
         sw = sum(w for _, w in pts)
         mean[i] = sum(v * w for v, w in pts) / sw if sw > 0 else None
-        # Weighted quantiles: sort by v, accumulate weight, pick 25/50/75
-        pts.sort(key=lambda x: x[0])
-        cum = 0.0
-        q25 = q50 = q75 = None
-        for v, w in pts:
-            cum += w
-            frac = cum / sw
-            if q25 is None and frac >= 0.25:
-                q25 = v
-            if q50 is None and frac >= 0.5:
-                q50 = v
-            if q75 is None and frac >= 0.75:
-                q75 = v
-                break
-        med[i] = q50 if q50 is not None else pts[len(pts)//2][0]
-        p25[i] = q25 if q25 is not None else pts[0][0]
-        p75[i] = q75 if q75 is not None else pts[-1][0]
+        # SEAS-V4: ONE weighted-quantile rule everywhere (_seas_wq: mid-weight, no
+        # interpolation). This loop used a cumulative >=q rule while the consensus /
+        # planner / window stats used _seas_wq, so the drawn line and the printed
+        # median could pick different neighbouring years in coin-flip windows.
+        _vs = [v for v, _ in pts]
+        _ws = [w for _, w in pts]
+        med[i] = _seas_wq(_vs, _ws, 0.5)
+        p25[i] = _seas_wq(_vs, _ws, 0.25)
+        p75[i] = _seas_wq(_vs, _ws, 0.75)
     return {"median": med, "mean": mean, "p25": p25, "p75": p75}
 
 # SEAS-R2 (Issue 2): a window return of exactly zero is neither a long win nor a
@@ -13216,26 +13233,32 @@ def _seas_weighted_rebased(years_dict: dict, weights: dict, anchor_td: int,
         return {"median": [], "mean": [], "p25": [], "p75": [], "anchor_td": anchor_td}
     ys_all = list(years_dict.keys())
     n_td = max(len(years_dict[y]) for y in ys_all)
-    anchor_td = max(0, min(n_td - 1, int(anchor_td)))
+    # SEAS-V3b: anchor_td is 1-BASED like every other TD in the system
+    # (current_td=182 -> today's close is path[181]). This function indexed
+    # path[anchor_td] directly, i.e. one session late. Harmless while nothing
+    # drew the series; fixed now that the Lab and Seasonal tab plot it.
+    anchor_td = max(1, min(n_td, int(anchor_td)))
+    _ai = anchor_td - 1
     # Per-year rebased paths (compounded off the anchor level)
     reb = {}
     for ys in ys_all:
         path = years_dict[ys]
-        if anchor_td >= len(path) or path[anchor_td] is None:
+        if _ai >= len(path) or path[_ai] is None:
             continue
-        base = 1.0 + path[anchor_td] / 100.0
+        base = 1.0 + path[_ai] / 100.0
         if abs(base) < 1e-9:
             continue
         reb[ys] = [(((1.0 + v / 100.0) / base - 1.0) * 100.0) if v is not None else None
                    for v in path]
     med = [None] * n_td; mean = [None] * n_td
     p25 = [None] * n_td; p75 = [None] * n_td
-    for i in range(anchor_td, n_td):
+    for i in range(_ai, n_td):
         pts = []
         for ys, path in reb.items():
             if current_year is not None and current_td is not None:
                 try:
-                    if int(ys) == int(current_year) and i > int(current_td):
+                    # forward-filled pad starts at index current_td (TD current_td+1)
+                    if int(ys) == int(current_year) and i >= int(current_td):
                         continue
                 except (TypeError, ValueError):
                     pass
@@ -13247,18 +13270,13 @@ def _seas_weighted_rebased(years_dict: dict, weights: dict, anchor_td: int,
             continue
         sw = sum(w for _, w in pts)
         mean[i] = sum(v * w for v, w in pts) / sw if sw > 0 else None
-        pts.sort(key=lambda x: x[0])
-        cum = 0.0; q25 = q50 = q75 = None
-        for v, w in pts:
-            cum += w
-            frac = cum / sw if sw > 0 else 1.0
-            if q25 is None and frac >= 0.25: q25 = v
-            if q50 is None and frac >= 0.5: q50 = v
-            if q75 is None and frac >= 0.75:
-                q75 = v; break
-        med[i] = q50 if q50 is not None else pts[len(pts)//2][0]
-        p25[i] = q25 if q25 is not None else pts[0][0]
-        p75[i] = q75 if q75 is not None else pts[-1][0]
+        # SEAS-V3b: same weighted-quantile routine as the consensus grid /
+        # planner (_seas_wq, mid-weight convention) so the forward path's value
+        # at the horizon TD is IDENTICAL to the consensus cell median.
+        _vals = [v for v, _ in pts]; _ws = [w for _, w in pts]
+        med[i] = _seas_wq(_vals, _ws, 0.5)
+        p25[i] = _seas_wq(_vals, _ws, 0.25)
+        p75[i] = _seas_wq(_vals, _ws, 0.75)
     return {"median": med, "mean": mean, "p25": p25, "p75": p75,
             "anchor_td": anchor_td}
 
@@ -13323,10 +13341,12 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
     _ei = max(_si + 1, int(end_td) - 1)
     rows = []
     for ys, path in years_dict.items():
-        # Skip current year when window is not yet complete
+        # SEAS-V4: the current year is never part of the history it is being compared
+        # to (it is the white "actual" line in the Lab), whatever the window. Previously
+        # a fully-elapsed window let this year vote on its own seasonality, which also
+        # made the Lab client (completed years only) and the server disagree by one row.
         if current_year is not None and int(ys) == current_year:
-            if current_td is None or end_td > current_td:
-                continue
+            continue
         if not path or _si >= len(path) or _ei >= len(path):
             continue
         sp = path[_si]
@@ -13372,15 +13392,14 @@ def _seas_lab_window_stats(years_dict: dict, weights: dict,
     # per-year weights came back zero (halflife/cycle_w combination, or a basket
     # whose years all fell outside the weight dict) this loop raised
     # ZeroDivisionError and took the whole /api/seasonality-lab request down.
-    weighted_rets.sort(key=lambda x: x[0])
-    cum = 0.0
-    w_med = weighted_rets[len(weighted_rets)//2][0]
+    # SEAS-V4: same rule as the drawn curve, the consensus cells and the Lab client
+    # (_seas_wq: mid-weight, no interpolation) so the window median IS the value the
+    # rebased weighted-median path reaches at the window end.
     if sw > 0:
-        for v, w in weighted_rets:
-            cum += w
-            if cum / sw >= 0.5:
-                w_med = v
-                break
+        w_med = _seas_wq([v for v, _ in weighted_rets], [w for _, w in weighted_rets], 0.5)
+    else:
+        weighted_rets.sort(key=lambda x: x[0])
+        w_med = weighted_rets[len(weighted_rets)//2][0]
     # ── SEAS-R2: tie-aware three-way split (up / down / flat) ────────────────
     _eps = _SEAS_TIE_EPS
     gains = [r for r in rows if r["ret_pct"] > _eps]
@@ -16478,7 +16497,7 @@ _DYN_SEAS_PATH = os.path.join(DATA_DIR, "seasonality_dynamic.json")
 _DYN_SEAS_TTL  = 7 * 86400      # rebuild each market weekly
 _DYN_SEAS_BUILT: dict = {}      # market_id -> last build ts (in-memory)
 
-_SEAS_BUILDER_VERSION = 5   # v5: ensemble stochastic band (14-framing envelope) replaces 25–75 percentile
+_SEAS_BUILDER_VERSION = 6   # v6: curve on the v3 unified lens (all completed years, 15y half-life); v5: ensemble band
 
 
 def _find_seas_turns(med: list, by_year: dict, prior: list, weights: dict = None) -> list:
@@ -16623,6 +16642,25 @@ def _build_seasonality_from_closes(closes, current_year: int,
                 last = arr[i]
         by_year[int(yr)] = [round(v, 2) for v in arr]
 
+    return _seas_struct_from_years(by_year, current_year, market_id=market_id)
+
+
+def _seas_struct_from_years(by_year: dict, current_year: int,
+                            market_id: str = None) -> dict:
+    """SEAS-V3b: build curve/band/turns/cycles from {int_year: [252 floats]}.
+
+    ONE LENS EVERYWHERE — the plotted curve now uses the SAME year basket and
+    weights as the scorer, consensus grid, planner and Lab (_seas_lens_weights:
+    every completed year, 0.5**(age/halflife) recency, asset-class cycle_w).
+    Previously the curve was the only surface still on the pre-v3 lens (22-yr
+    cap, 0.93**age), so the Seasonal tab could draw a falling line above a
+    bullish score built from a different basket (DX, Sep 2026). Cycle curves
+    are recency-weighted medians of the matching cycle years (was an
+    unweighted median of ~5 years inside the 22-yr cap).
+
+    Network-free: _ensure_market_seas calls this to re-derive curves from the
+    persisted `years` dict when the builder version changes, so Render (where
+    Yahoo is blocked) self-heals on deploy."""
     def _smooth(vals, k=5):
         n = len(vals)
         half = k // 2
@@ -16633,13 +16671,20 @@ def _build_seasonality_from_closes(closes, current_year: int,
             out.append(sum(seg) / len(seg))
         return out
 
-    prior = sorted(y for y in by_year
-                   if y < current_year and y >= current_year - years_back)
+    by_year = {int(y): v for y, v in (by_year or {}).items()
+               if isinstance(v, list) and len(v) == 252}
+    prior = sorted(y for y in by_year if y < current_year)
     if len(prior) < 8:
         return {}
 
-    W = _seas_weights(prior, current_year, market_id)
+    _lens_yrs, W = _seas_lens_weights({str(y): by_year[y] for y in prior},
+                                      current_year, market_id)
+    prior = [y for y in _lens_yrs if y in by_year]
     ws = [W[y] for y in prior]
+    try:
+        _hl = float(_seas_default_blend(market_id).get("halflife", 15) or 15)
+    except Exception:
+        _hl = 15.0
     # Primary median curve (default blend, unsmoothed — the timing signal)
     med_raw = []
     for i in range(252):
@@ -16667,7 +16712,7 @@ def _build_seasonality_from_closes(closes, current_year: int,
     def _make_wf(hl, cycle_boost):
         return lambda y: _recency(y, hl) * _cycle_boost(y, cycle_boost)
     # Vary window length
-    for wlen in (10, 15, 20, len(prior)):
+    for wlen in sorted({10, 15, 22, len(prior)}):
         sub = [y for y in prior if y >= current_year - wlen]
         if len(sub) < 6:
             continue
@@ -16723,12 +16768,14 @@ def _build_seasonality_from_closes(closes, current_year: int,
     for cyc in ("midterm", "pre_election", "post_election", "election"):
         yrs = [y for y in prior if _cycle_key_for_year(y) == cyc]
         if len(yrs) >= 3:
+            # Recency-weighted (same half-life as the lens, no cycle boost —
+            # every year here already IS the cycle) so 1974 does not get the
+            # same vote as 2022 now that the basket spans all completed years.
+            cws = [0.5 ** (max(0, current_year - y) / _hl) for y in yrs]
             cm = []
             for i in range(252):
-                vals = sorted(by_year[y][i] for y in yrs)
-                n = len(vals)
-                mid = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
-                cm.append(mid)
+                vals = [by_year[y][i] for y in yrs]
+                cm.append(_seas_wq(vals, cws, 0.5))
             # UNSMOOTHED cycle curves — preserve genuine peak/trough dates that
             # a swing trader keys off. Was k=5 smoothed; that shifted turns.
             cycles[cyc] = [[i + 1, round(cm[i], 3)] for i in range(252)]
@@ -16743,6 +16790,9 @@ def _build_seasonality_from_closes(closes, current_year: int,
         "cycles": cycles,
         "n_years": len(prior),
         "years_span": f"{min(prior)}\u2013{max(prior)}",
+        "lens": {"basis": "v3 unified (all completed years)",
+                 "halflife": _hl,
+                 "cycle_w": float(_seas_default_blend(market_id).get("cycle_w", 1.0)) if market_id else None},
     }
 
 def _load_dyn_seas_file() -> dict:
@@ -16772,15 +16822,34 @@ def _ensure_market_seas(market_id: str) -> None:
         _SEASONALITY_CACHE["data"] = _load_dyn_seas_file()
     data = _SEASONALITY_CACHE["data"]
     now = time.time()
-    if (mid in data and data[mid].get("v") == 2 and data[mid].get("curve")
-            and data[mid].get("bv") == _SEAS_BUILDER_VERSION
-            and (now - _DYN_SEAS_BUILT.get(mid, 0)) < _DYN_SEAS_TTL):
+    ent = data.get(mid) if isinstance(data.get(mid), dict) else None
+    fresh = ent is not None and (now - _DYN_SEAS_BUILT.get(mid, 0)) < _DYN_SEAS_TTL
+    if (ent and ent.get("v") == 2 and ent.get("curve")
+            and ent.get("bv") == _SEAS_BUILDER_VERSION and fresh):
         return
+    from datetime import date as _d
+    # SEAS-V3b: builder version changed (or curve missing) but we already hold
+    # the per-year paths → re-derive curve/band/turns/cycles locally, no Yahoo
+    # call needed. Render blocks Yahoo, so without this a version bump would
+    # leave every market serving the previous builder's curve forever.
+    if ent and ent.get("years") and (ent.get("bv") != _SEAS_BUILDER_VERSION
+                                     or not ent.get("curve")):
+        try:
+            rebuilt = _seas_struct_from_years(ent["years"], _d.today().year, market_id=mid)
+            if rebuilt.get("curve"):
+                rebuilt["_built"] = ent.get("_built") or now
+                data[mid] = rebuilt
+                ent = rebuilt
+                _save_dyn_seas_file(data)
+                print(f"[seas dyn] {mid}: curve re-derived on v{_SEAS_BUILDER_VERSION} lens from stored years", flush=True)
+        except Exception as _e:
+            print(f"[seas dyn] {mid}: re-derive failed: {_e}", flush=True)
+        if fresh:
+            return
     mkt = next((x for x in MARKETS if x["id"] == mid), None)
     if not mkt or not mkt.get("yf"):
         return
     try:
-        from datetime import date as _d
         df = _yf_with_timeout(yf.Ticker(mkt["yf"]).history, period="max", interval="1d",
                               auto_adjust=True, label=f"seas_{mid}")
         if df is None or df.empty or len(df) < 300:
