@@ -26406,9 +26406,15 @@ function renderOverview(){
     const hikeProbNext = rateSig.hike_prob_next ?? 0;
     const cutProbNext  = rateSig.cut_prob_next  ?? 0;
     const holdProb     = Math.max(0, 100 - hikeProbNext - cutProbNext);
-    const totalBp12m   = rateSig.total_bp_12m ?? 0;
-    const totalBp18m   = (cuts18m||0) * -25;
     const pathMonthly  = rateSig.path_monthly || [];
+    // RP-FIX 2026-10-05: the 12M/18M tiles must agree with the plotted path. The chart measures
+    // path end minus the ACTUAL EFFR; the backend's total_bp_12m measured from the month-0
+    // futures-implied rate instead (3.75 vs 3.88 on 27 Sep gave +102bp vs +88bp). Derive both tiles
+    // from the same points the chart draws, falling back to the backend figures only if the path is short.
+    const _rpEnd = (m) => (pathMonthly.length > m && pathMonthly[m] && pathMonthly[m].rate != null) ? pathMonthly[m].rate : null;
+    const _rp12 = _rpEnd(12), _rp18 = _rpEnd(18);
+    const totalBp12m   = (_rp12 != null && effrActual != null) ? Math.round((_rp12 - effrActual) * 100) : (rateSig.total_bp_12m ?? 0);
+    const totalBp18m   = (_rp18 != null && effrActual != null) ? Math.round((_rp18 - effrActual) * 100) : ((cuts18m||0) * -25);
     const fwMeetings   = rateSig.meetings || [];          // FedWatch-style matrix rows
     const fwTargetLow  = rateSig.target_low;
     const fwTargetHigh = rateSig.target_high;
