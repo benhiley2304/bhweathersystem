@@ -94,13 +94,20 @@ def trend_profile(engine: Dict[str, Any]) -> Dict[str, Any]:
         v = (engine.get("factor_votes") or {}).get("momentum")
         d = _sgn(v) if v is not None else 0
     pr = _num(md.get("pct_range"))
-    r4 = _num(md.get("roc4w_pct"))
-    r13 = _num(md.get("roc13w_pct"))
-    r26 = _num(md.get("roc26w_pct"))
+    # True weekly horizons (4, 13, 26 weekly closes). The engine's roc4w/13w/26w
+    # fields are 4, 13 and 26 daily bars despite the names, so they are only a
+    # fallback for an engine payload that predates roc_mt_pct, and are flagged.
+    if md.get("roc_mt_pct") is not None:
+        r4, r13, r26 = _num(md.get("roc_st_pct")), _num(md.get("roc_mt_pct")), _num(md.get("roc_lt_pct"))
+        basis = "weekly"
+    else:
+        r4, r13, r26 = _num(md.get("roc4w_pct")), _num(md.get("roc13w_pct")), _num(md.get("roc26w_pct"))
+        basis = "daily_bars"
     sma = _num(md.get("sma200_pct_diff"))
     er = _num(md.get("efficiency_ratio"))
     out = {"dir": d, "state_text": ts or None, "pct_52w": pr, "roc4w": r4, "roc13w": r13, "roc26w": r26,
-           "sma200_diff": sma, "efficiency": er, "stretched": False, "stalling": False, "state": "n/a"}
+           "sma200_diff": sma, "efficiency": er, "stretched": False, "stalling": False, "state": "n/a",
+           "horizon_basis": basis}
     if not md and not ts:
         return out
     if d == 0:

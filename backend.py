@@ -3800,6 +3800,7 @@ def score_momentum(yf_ticker: str) -> dict:
     roc_lt_pct = round((wk_clean[-1] / wk_clean[-27] - 1) * 100, 2) if len(wk_clean) >= 27 else \
                  (round((wk_clean[-1] / wk_clean[0] - 1) * 100, 2) if len(wk_clean) >= 2 else 0.0)
     roc_st_pct = round((wk_clean[-1] / wk_clean[-5] - 1) * 100, 2) if len(wk_clean) >= 5 else 0.0
+    roc_mt_pct = round((wk_clean[-1] / wk_clean[-14] - 1) * 100, 2) if len(wk_clean) >= 14 else roc_st_pct
 
     # Sub-scores: each −2 to +2
     # WEIGHT RATIONALE (v2 — evidence-led):
@@ -3929,6 +3930,7 @@ def score_momentum(yf_ticker: str) -> dict:
             "efficiency_ratio": float(efficiency_ratio),
             "roc_lt_pct": float(roc_lt_pct),   # true ~26-week trend (engine MTF)
             "roc_st_pct": float(roc_st_pct),   # true ~4-week trend  (engine MTF)
+            "roc_mt_pct": float(roc_mt_pct),   # true ~13-week trend (Desk trend profile)
             "sub_scores": sub_scores,
             # r15 multi-timeframe breakdown
             "mom_st_score": mom_st_score,

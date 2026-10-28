@@ -227,8 +227,12 @@ def _trend(row, eng) -> Dict[str, Any]:
         facts.append(f"Price {_f(abs(T['sma200_diff']))}% {'above' if T['sma200_diff'] >= 0 else 'below'} "
                      f"the 200-day; {_ord(T.get('pct_52w'))} percentile of its 52-week range.")
     if T.get("roc26w") is not None:
-        facts.append(f"Change over 4 weeks {_f(T.get('roc4w'), 1, True)}%, 13 weeks {_f(T.get('roc13w'), 1, True)}%, "
-                     f"26 weeks {_f(T.get('roc26w'), 1, True)}%.")
+        if T.get("horizon_basis") == "daily_bars":
+            facts.append(f"Change over 4 sessions {_f(T.get('roc4w'), 1, True)}%, 13 sessions {_f(T.get('roc13w'), 1, True)}%, "
+                         f"26 sessions {_f(T.get('roc26w'), 1, True)}% (weekly horizons unavailable).")
+        else:
+            facts.append(f"Change over 4 weeks {_f(T.get('roc4w'), 1, True)}%, 13 weeks {_f(T.get('roc13w'), 1, True)}%, "
+                         f"26 weeks {_f(T.get('roc26w'), 1, True)}%.")
     if T.get("state") == "extended":
         facts.append("Outer 15% of the 52-week range with the 13-week move stalled: the trend looks tired, "
                      "so it does not count against a fade.")

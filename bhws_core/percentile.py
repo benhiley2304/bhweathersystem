@@ -55,7 +55,26 @@ def midrank_series(values: Sequence, window: int = HOUSE_WINDOW,
                    min_reports: int = HOUSE_MIN_REPORTS) -> List[Optional[float]]:
     """Rolling house percentile, point-in-time (each value uses only its past)."""
     a = _clean(values)
-    return [midrank_percentile(a[: i + 1], window, min_reports) for i in range(len(a))]
+    n = len(a)
+    if n == 0:
+        return []
+    try:
+        import numpy as np
+    except Exception:          # pure-Python fallback, same answer
+        return [midrank_percentile(a[: i + 1], window, min_reports) for i in range(n)]
+    x = np.asarray(a, dtype=float)
+    out: List[Optional[float]] = []
+    for i in range(n):
+        w = x[max(0, i - window + 1): i + 1]
+        m = len(w)
+        if m < max(2, min_reports):
+            out.append(None)
+            continue
+        v = w[-1]
+        less = int(np.count_nonzero(w < v))
+        eq = int(np.count_nonzero(w == v))
+        out.append(100.0 * (less + 0.5 * (eq - 1)) / (m - 1))
+    return out
 
 
 def minmax_index(values: Sequence, window: int = 520) -> Optional[float]:

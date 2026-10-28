@@ -109,3 +109,17 @@ def test_cheap_into_a_running_downtrend_is_not_a_fade():
                 {"status": "No extreme", "direction": 0}, None, val, _fwd(-0.3, 3.3, 3.0), 0)
     assert a["rel"]["trend"] == "against"
     assert a["grade"]["key"] in ("developing", "none")
+
+
+def test_trend_profile_prefers_true_weekly_horizons():
+    from bhws_core.strategy import trend_profile
+    md = {"pct_range": 80, "sma200_pct_diff": 5, "efficiency_ratio": 0.3,
+          "roc4w_pct": 2.6, "roc13w_pct": -3.8, "roc26w_pct": -3.3,      # daily-bar misnomers
+          "roc_st_pct": -1.5, "roc_mt_pct": 4.0, "roc_lt_pct": 9.0}      # true weekly
+    tp = trend_profile({"trend_state": "Uptrend · short-term pullback",
+                        "scores": {"momentum": {"detail": md}}})
+    assert tp["horizon_basis"] == "weekly"
+    assert (tp["roc4w"], tp["roc13w"], tp["roc26w"]) == (-1.5, 4.0, 9.0)
+    md.pop("roc_mt_pct")
+    tp = trend_profile({"trend_state": "Uptrend", "scores": {"momentum": {"detail": md}}})
+    assert tp["horizon_basis"] == "daily_bars"

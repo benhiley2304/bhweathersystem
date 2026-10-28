@@ -95,11 +95,18 @@ async def _cached(store, key, fn, *args):
 
 def _align_closes(obs_dates, daily: pd.Series):
     """Weekly close known after each report's release: last close on/before release day."""
+    import numpy as np
+    if daily is None or not len(daily):
+        return [float("nan")] * len(obs_dates)
+    idx = daily.index.values
+    vals = daily.values.astype(float)
     out = []
     for d in obs_dates:
         rel = pd.Timestamp(cot_calendar.release_for(d).released)
-        s = daily[:rel]
-        out.append(float(s.iloc[-1]) if len(s) else float("nan"))
+        if rel.tzinfo is not None:
+            rel = rel.tz_localize(None)
+        k = int(np.searchsorted(idx, np.datetime64(rel), side="right"))
+        out.append(float(vals[k - 1]) if k > 0 else float("nan"))
     return out
 
 
