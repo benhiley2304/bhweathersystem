@@ -12098,6 +12098,13 @@ def _load_full_scores_snapshot() -> bool:
 # were inadvertently dropped during an earlier dead-code cleanup)
 # ------------------------------------------------------------------
 ALL_DATA_CACHE = {"data": None, "time": 0}
+# Inject generation: bumped by every inject endpoint that busts the score
+# caches. A refresh that started before an inject and finished after it would
+# otherwise write pre-inject numbers back (seen 28 Oct: the rate path fell back
+# to FRED after a post-deploy inject). _do_scores_refresh compares the value
+# at start and end and marks its own output stale if it moved.
+_INJECT_GEN = [0]
+_SCORES_RERUN = [False]
 ALL_DATA_TTL = 3600  # 60 min — data sources (COT, macro, prices) change at most hourly
 # Single async lock prevents cache stampede — when N concurrent requests all
 # find an expired cache simultaneously, only ONE recomputes; the rest wait and
@@ -12131,6 +12138,9 @@ async def _refresh_scores_background():
         print(f"[scores] Background refresh error: {_e}", flush=True)
     finally:
         _SCORES_BG_RUNNING = False
+        if _SCORES_RERUN[0]:
+            _SCORES_RERUN[0] = False
+            asyncio.ensure_future(_refresh_scores_background())
 
 @app.head("/api/scores")
 async def head_all_scores():
@@ -12168,6 +12178,8 @@ def _scores_market_view(payload: dict, market: str) -> dict:
     }
 
 
+_RATE_HEAL_LAST = [0.0]
+
 @app.get("/api/scores")
 async def get_all_scores(force: bool = False, market: str = None):
     now = time.time()
@@ -12178,6 +12190,24 @@ async def get_all_scores(force: bool = False, market: str = None):
     # on every return path (fresh cache, stale-while-revalidate, cold compute).
     def _out(_payload):
         return _SafeJSONResponse(_scores_market_view(_payload, market) if market else _payload)
+
+    # Self-heal: the served regime fell back to FRED although a fresh injected
+    # futures strip is on disk (a refresh raced an inject). Rebuild in the
+    # background, at most every 5 minutes; keep serving what we have.
+    try:
+        if cache_exists and not _SCORES_BG_RUNNING and now - _RATE_HEAL_LAST[0] > 300:
+            _rs = ((ALL_DATA_CACHE["data"] or {}).get("regime") or {}).get("rate_signal") or {}
+            if _rs.get("source") != "fff":
+                _inj = _fed_pricing_load()
+                if len(_inj.get("months") or []) >= 6 and (now - (_inj.get("time") or 0)) < 50 * 3600:
+                    _RATE_HEAL_LAST[0] = now
+                    RISK_REGIME_CACHE["data"] = None; RISK_REGIME_CACHE["time"] = 0
+                    ALL_DATA_CACHE["time"] = 0
+                    cache_age = now
+                    print("[scores] rate path on fallback with a fresh injected strip; rebuilding", flush=True)
+                    asyncio.ensure_future(_refresh_scores_background())
+    except Exception as _he:
+        print(f"[scores] rate heal check error (non-fatal): {_he}", flush=True)
 
     # Fast path: fresh cache — return immediately
     if not force and cache_exists and cache_age < ALL_DATA_TTL:
@@ -12223,13 +12253,17 @@ async def get_all_scores(force: bool = False, market: str = None):
             print("[scores] _do_scores_refresh timed out after 600s — serving stale", flush=True)
     finally:
         _SCORES_LOCK.release()
+    if _SCORES_RERUN[0] and not _SCORES_BG_RUNNING:
+        _SCORES_RERUN[0] = False
+        asyncio.ensure_future(_refresh_scores_background())
     return _out(ALL_DATA_CACHE["data"])
 
 async def _do_scores_refresh(force: bool = False):
     """Core refresh logic — must be called with _SCORES_LOCK already held."""
     _refresh_start = time.time()
+    _gen0 = _INJECT_GEN[0]
     now = time.time()
-    print(f"[scores] Cache refresh START", flush=True)
+    print(f"[scores] Cache refresh START (inject gen {_gen0})", flush=True)
 
     # ── Parallel price pre-warm ────────────────────────────────────────────────────────────────────────
     # On cold start, 62 markets × fetch_price_data (20s timeout each) = 1240s sequential.
@@ -12878,6 +12912,14 @@ async def _do_scores_refresh(force: bool = False):
     # Always store with full TTL — narratives have their own endpoint and cache
     ALL_DATA_CACHE["data"] = output
     ALL_DATA_CACHE["time"] = time.time()
+    if _INJECT_GEN[0] != _gen0:
+        # An inject landed while this refresh was running, so parts of
+        # `output` were computed from pre-inject stores. Serve it (better than
+        # nothing) but mark it stale and queue an immediate re-run.
+        ALL_DATA_CACHE["time"] = 0
+        RISK_REGIME_CACHE["data"] = None; RISK_REGIME_CACHE["time"] = 0
+        _SCORES_RERUN[0] = True
+        print(f"[scores] inject gen moved {_gen0} -> {_INJECT_GEN[0]} during refresh; re-run queued", flush=True)
     # Save daily snapshot for weekly score delta calculation (survives restarts)
     try:
         _snap_map = {m["id"]: m["weighted_score"] for m in results if "id" in m and "weighted_score" in m}
@@ -18991,7 +19033,7 @@ async def clear_narrative_cache():
     GLOBAL_NARR_CACHE["time"] = 0
     NEWS_CACHE["data"] = None
     NEWS_CACHE["time"] = 0
-    ALL_DATA_CACHE["data"] = None
+    ALL_DATA_CACHE["data"] = None; _INJECT_GEN[0] += 1
     ALL_DATA_CACHE["time"] = 0
     # Macro data caches — ensures new PCE/CPI/NFP figures are picked up immediately
     US_MACRO_CACHE["data"] = None
@@ -19243,7 +19285,7 @@ async def inject_ff_macro(payload: dict):
 
     # Also bust ALL_DATA_CACHE so next /api/scores response includes ff_injected data
     # Without this, stale cache would serve FRED data for up to 60min after injection
-    ALL_DATA_CACHE["data"] = None
+    ALL_DATA_CACHE["data"] = None; _INJECT_GEN[0] += 1
     ALL_DATA_CACHE["time"] = 0
 
     print(f"[FF MACRO INJECT] {currency}: score={float(score):.2f} z={injected.get('z')} label={label} cats={cats}")
@@ -19310,7 +19352,7 @@ async def inject_ff_labour(payload: dict):
     US_MACRO_CACHE["time"] = 0
     RISK_REGIME_CACHE["data"] = None
     RISK_REGIME_CACHE["time"] = 0
-    ALL_DATA_CACHE["data"] = None
+    ALL_DATA_CACHE["data"] = None; _INJECT_GEN[0] += 1
     ALL_DATA_CACHE["time"] = 0
 
     print(f"[FF LABOUR INJECT] Merged {n_merged} events into store ({len(store)} total)")
@@ -19353,7 +19395,7 @@ async def inject_supply(payload: dict):
     _supply_store_save(store)
     # bust supply + composite caches so the next /api/scores rebuild uses the new prints
     _SUPPLY_CACHE["data"] = None; _SUPPLY_CACHE["time"] = 0
-    ALL_DATA_CACHE["data"] = None; ALL_DATA_CACHE["time"] = 0
+    ALL_DATA_CACHE["data"] = None; _INJECT_GEN[0] += 1; ALL_DATA_CACHE["time"] = 0
     US_MACRO_CACHE["data"] = None; US_MACRO_CACHE["time"] = 0
     RISK_REGIME_CACHE["data"] = None; RISK_REGIME_CACHE["time"] = 0
     print(f"[SUPPLY INJECT] Merged {n_merged} prints into store ({len(store)} total) {by_key}", flush=True)
@@ -19396,7 +19438,7 @@ async def inject_fed_pricing(payload: dict):
     # Bust regime + scores caches so the new pricing flows through immediately
     RISK_REGIME_CACHE["data"] = None
     RISK_REGIME_CACHE["time"] = 0
-    ALL_DATA_CACHE["data"] = None
+    ALL_DATA_CACHE["data"] = None; _INJECT_GEN[0] += 1
     ALL_DATA_CACHE["time"] = 0
     print(f"[FED PRICING INJECT] {len(clean)} months, "
           f"spot={clean[0]['implied']}%, end={clean[-1]['implied']}%", flush=True)
@@ -19587,8 +19629,21 @@ except Exception as _ev_err:  # pragma: no cover
 # ── BHWS Desk (additive): GET /api/desk, the weekly read across the book ────
 try:
     from bhws_desk_api import register as _bhws_register_desk
+    def _desk_seasonal_years(mid):
+        """Per-year seasonal paths and the chart-lens year weights for one
+        market, from the dynamic seasonality cache. Never builds on demand."""
+        from datetime import date as _dd
+        ent = (_load_seas_data() or {}).get(str(mid).upper())
+        if not isinstance(ent, dict) or not ent.get("years"):
+            return None
+        _t = _dd.today()
+        _ctd = max(1, min(252, round((_t.timetuple().tm_yday / 365) * 252)))
+        _yrs, _W = _seas_lens_weights(ent["years"], _t.year, str(mid).upper())
+        return {"years": ent["years"], "weights": {str(y): w for y, w in _W.items()},
+                "current_td": _ctd, "year": _t.year}
     _bhws_register_desk(app, markets=MARKETS, scores_cache=ALL_DATA_CACHE, cot_cache=COT_CACHE,
-                        events_provider=upcoming_events, fed_provider=fed_pricing_history)
+                        events_provider=upcoming_events, fed_provider=fed_pricing_history,
+                        seasonal_provider=_desk_seasonal_years)
     print("[startup] desk registered (/api/desk)", flush=True)
 except Exception as _desk_err:  # pragma: no cover
     print(f"[startup] desk NOT registered: {_desk_err!r}", flush=True)

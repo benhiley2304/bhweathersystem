@@ -1,4 +1,4 @@
-"""Market read: deterministic prose from live fields (snapshot 28 Oct 2026)."""
+"""Market read: deterministic prose from live fields (snapshot 28 Oct 2026, strategy grades)."""
 import json
 import re
 from datetime import datetime
@@ -28,7 +28,7 @@ def _all_text(x):
 def test_every_market_builds_and_has_five_pillars():
     for r in FX["rows"]:
         out = marketread.build_read(r, FX["eng"].get(r["id"]), FX["fed"], NOW)
-        assert [p["key"] for p in out["pillars"]] == ["positioning", "macro", "trend", "seasonal", "valuation"]
+        assert [p["key"] for p in out["pillars"]] == ["positioning", "valuation", "trend", "seasonal", "macro"]
         assert out["headline"]
 
 
@@ -49,15 +49,33 @@ def test_pillar_signs_match_desk_row():
             assert p["sign"] == (r["pillars"][p["key"]]["sign"] or 0), (r["id"], p["key"])
 
 
-def test_es_marginal_macro_and_engine_disagreement_are_stated():
+def test_es_marginal_macro_and_dx_engine_disagreement_are_stated():
     row, out = _read("ES")
     mac = next(p for p in out["pillars"] if p["key"] == "macro")
-    assert mac["marginal"] is True          # regime 4.5 sits on the 0.5 deadband
+    assert mac["marginal"] is True
     assert any("marginal" in s for s in out["summary"])
-    assert out["engine"]["disagrees"] is True
-    assert "neither is adjusted" in out["engine"]["text"]
+    _, dx = _read("DX")
+    assert dx["engine"]["disagrees"] is True
+    assert "neither is adjusted" in dx["engine"]["text"]
     # composite is quoted, never inverted
-    assert f"{FX['eng']['ES']['weighted_score']:.1f}" in out["engine"]["text"]
+    assert f"{FX['eng']['DX']['weighted_score']:.1f}" in dx["engine"]["text"]
+
+
+def test_dx_reads_as_a_divergence_fade_and_nq_as_a_pullback():
+    _, dx = _read("DX")
+    assert dx["stance"]["key"] == "prime" and dx["stance"]["side"] == -1
+    assert dx["archetype"] == "Divergence fade"
+    assert dx["headline"].startswith("Short: divergence fade.")
+    tr = next(p for p in dx["pillars"] if p["key"] == "trend")
+    assert tr["rel"] == "exhausted"
+    pos = next(p for p in dx["pillars"] if p["key"] == "positioning")
+    assert any("lower high" in f for f in pos["facts"])
+    _, nq = _read("NQ")
+    assert nq["stance"]["key"] == "prime" and nq["stance"]["side"] == 1
+    assert nq["archetype"] == "Pullback in trend"
+    pos = next(p for p in nq["pillars"] if p["key"] == "positioning")
+    assert pos["rel"] == "against" and any("size warning" in f for f in pos["facts"])
+    assert any("size warning only for an index" in s for s in nq["summary"])
 
 
 def test_es_buy_point_surfaces_with_its_quoted_record():
@@ -84,10 +102,11 @@ def test_cross_has_no_house_cot_and_no_fed_line():
 
 
 def test_seasonal_sign_convention_is_stated():
-    _, out = _read("CL")
+    _, out = _read("NQ")
     sea = next(p for p in out["pillars"] if p["key"] == "seasonal")
     assert any("Positive means price tends to rise" in f for f in sea["facts"])
-    assert sea["sign"] == -1
+    assert any("60 TD +4.28%" in f for f in sea["facts"])
+    assert sea["sign"] == 1
 
 
 def test_missing_engine_payload_does_not_invent_numbers():

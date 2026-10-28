@@ -76,38 +76,6 @@ def test_seasonal_tilt_requires_grade_and_agreeing_hit_rate():
     assert desk.seasonal_tilt(None)["sign"] is None
 
 
-def test_classify_aligned_vs_macro_against():
-    seas0 = {"sign": 0}
-    a = desk.classify(pb=_pb("Not turned", 1), macro=1, trend=0, seas=seas0, val_sign=None, conf="High")
-    assert a["class"]["key"] == "aligned" and a["side"] == 1 and a["primary_edge"] == "Positioning"
-    b = desk.classify(pb=_pb("Not turned", 1), macro=-1, trend=0, seas=seas0, val_sign=None, conf="High")
-    assert b["class"]["key"] == "payoff_vs_macro"
-    c = desk.classify(pb=_pb("Not turned", 1), macro=1, trend=0, seas={"sign": -1}, val_sign=None, conf="High")
-    assert c["class"]["key"] == "payoff" and "seasonality against: no adds" in c["gates"]
-
-
-def test_classify_backdrop_lapsed_none():
-    d = desk.classify(pb={"status": "No extreme", "direction": 0}, macro=-1, trend=-1,
-                      seas={"sign": 0}, val_sign=None, conf="High")
-    assert d["class"]["key"] == "backdrop" and d["side"] == -1
-    e = desk.classify(pb={"status": "Extreme persisting", "direction": -1}, macro=0, trend=1,
-                      seas={"sign": 0}, val_sign=None, conf="High")
-    assert e["class"]["key"] == "lapsed"
-    f = desk.classify(pb={"status": "No extreme", "direction": 0}, macro=1, trend=-1,
-                      seas={"sign": 0}, val_sign=None, conf="High")
-    assert f["class"]["key"] == "none" and f["side"] == 0
-
-
-def test_order_prefers_aligned_then_triggered_and_penalises_bad_data():
-    s = {"sign": 0}
-    turned = desk.classify(pb=_pb("Turned", 1), macro=1, trend=1, seas=s, val_sign=None, conf="High")
-    waiting = desk.classify(pb=_pb("Not turned", 1), macro=1, trend=1, seas=s, val_sign=None, conf="High")
-    vs = desk.classify(pb=_pb("Turned", 1), macro=-1, trend=1, seas=s, val_sign=None, conf="High")
-    low = desk.classify(pb=_pb("Turned", 1), macro=1, trend=1, seas=s, val_sign=None, conf="Low")
-    assert turned["order"] < waiting["order"] < vs["order"]
-    assert low["order"] > turned["order"] and "data confidence low" in low["gates"]
-
-
 def test_positioning_changes_flags_new_extreme():
     mgr = [100 + (i * 37) % 200 for i in range(200)] + [150, 10000]
     out = desk.positioning_changes(mgr, mgr, mgr)
@@ -146,14 +114,15 @@ def test_clusters_find_one_bet():
 
 
 def test_brief_numbers_come_from_inputs():
-    rows = [{"id": "6E", "name": "Euro", "side": 1, "class": {"key": "aligned"},
-             "playbook": {"status": "Turned"}},
-            {"id": "SB", "name": "Sugar", "side": -1, "class": {"key": "payoff_vs_macro"},
-             "playbook": {"status": "Not turned"}}]
+    rows = [{"id": "6E", "name": "Euro", "side": 1, "class": {"key": "prime"}, "archetype": "Crowd fade",
+             "playbook": {"status": "Turned"}, "pillars": {"macro": {"rel": "with"}}},
+            {"id": "SB", "name": "Sugar", "side": -1, "class": {"key": "setup"}, "archetype": "Pullback in trend",
+             "playbook": {"status": "Not turned"}, "pillars": {"macro": {"rel": "against"}}}]
     fed = {"snapshots": {"now": {"meetings": [{"date": "2026-12-09", "cum_bp": 24.7, "p_hike_cum": 98.6}]}}}
     b = desk.brief(regime={"regime": "Neutral", "score_10": 5.2, "vix_level": 17.19}, fed=fed,
                    events=[], rows=rows, clusters=None, now=NOW)
     text = " ".join(b["paragraphs"])
     assert "+25bp by the 9 Dec FOMC" in text and "99% implied odds" in text
-    assert "Euro long" in text and "Sugar has macro against" in text
-    assert "not a probability" in text
+    assert "Euro long (crowd fade)" in text and "Sugar short (pullback in trend)" in text
+    assert "Sugar runs against the macro read" in text
+    assert "Not a probability" in text

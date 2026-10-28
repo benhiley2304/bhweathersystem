@@ -1,19 +1,19 @@
 """The Desk: one weekly read across the book, built the way the reports work.
 
-The composite 1-10 score is not the verdict (Issue 10/11). The Desk sorts
-markets by how the house evidence lines up, in this order of authority:
+The composite 1-10 score is not the verdict (Issue 10/11). Each market gets a
+grade from bhws_core.strategy (Prime, Setup, Developing, Backdrop, None) and
+a setup type (crowd fade, exhaustion fade, pullback in trend ...). Roles:
 
-    positioning   sets the payoff (Issue 10). House basis: CFTC futures-only,
-                  156-report mid-rank, same as the TradingView indicators.
-    macro context sets the direction you are allowed to take.
-    trend         price agreeing or not (engine momentum vote).
-    seasonality   a minor tilt, and a reason not to add when it is against
-                  (positive value means price tends to rise; the side flips it).
-    valuation     a tilt (BHWS Valuation Tool vs ZB and DXY), never a trigger.
+    positioning   payoff (house basis: CFTC futures-only, 156-report mid-rank,
+                  same as the TradingView indicators). Size warning only for
+                  equity indices.
+    valuation     payoff (Valuation Tool, daily lines, asset-specific refs).
+    trend         context and timing: healthy, pullback, or extended.
+    macro         hit rate.
+    seasonality   minor tilt, forward path at 30/60 TD (positive = tends up).
 
-Output per market is a setup class, not a score. The ordering is by
-alignment and is labelled "not a probability". Nothing here proposes levels.
-Every function is pure: callers pass data in, nothing is fetched here.
+Nothing here proposes levels. Every function is pure: callers pass data in,
+nothing is fetched here.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 import numpy as np
 
-from . import exposure, percentile
+from . import exposure, percentile, strategy
 
 FX_CCY = {"6E": "EUR", "6J": "JPY", "6B": "GBP", "6A": "AUD", "6C": "CAD",
           "6S": "CHF", "6N": "NZD", "6M": "MXN", "DX": "USD"}
@@ -30,21 +30,8 @@ FX_CCY = {"6E": "EUR", "6J": "JPY", "6B": "GBP", "6A": "AUD", "6C": "CAD",
 LIVE = ("Not turned", "One more week", "Turned", "Past test window", "Add eligible", "Hold; no add")
 LAPSED = ("Extreme persisting", "Expired")
 
-CLASSES = [
-    # key, label, rank, tone, note
-    ("aligned", "Aligned setup", 0, "good",
-     "Positioning extreme, macro on the same side, seasonality not against."),
-    ("payoff", "Positioning only", 1, "neutral",
-     "Positioning extreme; macro neutral or seasonality against. Payoff without a tailwind."),
-    ("payoff_vs_macro", "Positioning vs macro", 2, "warn",
-     "Positioning extreme but macro points the other way. Keep it small if taken."),
-    ("backdrop", "Backdrop only", 3, "neutral",
-     "Macro and trend agree but positioning is not stretched; no crowd to lean on."),
-    ("lapsed", "Extreme lapsed", 4, "muted",
-     "The crowd has stayed extreme past the playbook clock. That is a trend, not a fade."),
-    ("none", "Nothing to do", 5, "muted", "No positioning payoff and no aligned backdrop."),
-]
-CLASS = {k: dict(key=k, label=l, rank=r, tone=t, note=n) for k, l, r, t, n in CLASSES}
+CLASSES = strategy.GRADES
+CLASS = strategy.GRADE
 
 TRIGGER_RANK = {"Turned": 0, "Add eligible": 0, "One more week": 1, "Not turned": 2,
                 "Hold; no add": 2, "Past test window": 3}
@@ -187,107 +174,105 @@ def event_gate(ccys: Iterable[str], events: Sequence[Dict[str, Any]], now: datet
     return out
 
 
-def classify(*, pb: Dict[str, Any], macro: Optional[int], trend: Optional[int],
-             seas: Dict[str, Any], val_sign: Optional[int], conf: str) -> Dict[str, Any]:
-    status = (pb or {}).get("status")
-    fade = (pb or {}).get("direction") or 0
-    live = status in LIVE and fade != 0
-    lapsed = status in LAPSED
-    if live:
-        side, basis = fade, "positioning"
-    elif macro:
-        side, basis = macro, "macro"
-    else:
-        side, basis = 0, None
-    pillars = {
-        "positioning": {"rel": ("with" if live else ("lapsed" if lapsed else "none")),
-                        "sign": fade if (live or lapsed) else 0},
-        "macro": {"rel": _rel(macro, side), "sign": macro},
-        "trend": {"rel": _rel(trend, side), "sign": trend},
-        "seasonal": {"rel": _rel(seas.get("sign"), side), "sign": seas.get("sign")},
-        "valuation": {"rel": _rel(val_sign, side), "sign": val_sign},
-    }
-    if live:
-        if pillars["macro"]["rel"] == "against":
-            k = "payoff_vs_macro"
-        elif pillars["macro"]["rel"] == "with" and pillars["seasonal"]["rel"] != "against":
-            k = "aligned"
-        else:
-            k = "payoff"
-    elif lapsed:
-        k = "lapsed"
-    elif macro and trend == macro:
-        k = "backdrop"
-    else:
-        k = "none"
-    if k == "backdrop":
-        side = macro
-    if k in ("none", "lapsed"):
-        side = 0 if k == "none" else side
-    cls = dict(CLASS[k])
-    gates = []
-    if conf in ("Low", "Insufficient"):
-        gates.append(f"data confidence {conf.lower()}")
-    if side and pillars["seasonal"]["rel"] == "against":
-        gates.append("seasonality against: no adds")
-    if side and pillars["valuation"]["rel"] == "against":
-        gates.append("valuation against")
-    with_n = sum(1 for p in ("macro", "trend", "seasonal", "valuation") if pillars[p]["rel"] == "with")
-    against_n = sum(1 for p in ("macro", "trend", "seasonal", "valuation") if pillars[p]["rel"] == "against")
-    edge = ("Positioning" if live else ("Macro and trend" if k == "backdrop" else None))
-    trig = TRIGGER_TEXT.get(status) if live else None
-    order = cls["rank"] * 100 + (TRIGGER_RANK.get(status, 9) * 10 if live else 90) - with_n * 2 + against_n * 2
-    if conf in ("Low", "Insufficient"):
-        order += 50
-    return {"class": cls, "side": side, "side_basis": basis, "pillars": pillars,
-            "with": with_n, "against": against_n, "gates": gates,
-            "primary_edge": edge, "trigger": trig, "order": order}
+def _macro_marginal(engine: Dict[str, Any]) -> bool:
+    sc = engine.get("scores") or {}
+    out = False
+    for k in ("regime", "macro"):
+        v = (sc.get(k) or {}).get("score")
+        if v is None:
+            continue
+        d = abs(float(v) - 5.0)
+        if d >= 1.0:
+            return False
+        if d >= 0.5:
+            out = True
+    return out
 
 
 def build_row(*, market: Dict[str, Any], engine: Optional[Dict[str, Any]],
               evidence: Optional[Dict[str, Any]], macro: Optional[int],
               changes: Optional[Dict[str, Any]], valuation: Optional[Dict[str, Any]],
-              events: Sequence[Dict[str, Any]], now: datetime) -> Dict[str, Any]:
+              events: Sequence[Dict[str, Any]], now: datetime,
+              divergence: Optional[Dict[str, Any]] = None,
+              seas_fwd: Optional[Dict[int, Dict[str, Any]]] = None,
+              weekly: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     engine = engine or {}
     ev = evidence or {}
     pb = ev.get("playbook") or {}
     sd = ((engine.get("scores") or {}).get("seasonal") or {}).get("detail")
-    seas = seasonal_tilt(sd)
-    trend = trend_sign(engine)
-    vs = valuation_sign(valuation)
+    seas_window = seasonal_tilt(sd)
     conf = (ev.get("data_confidence") or {}).get("grade") or ("Unknown" if ev else "No house COT")
-    c = classify(pb=pb, macro=macro, trend=trend, seas=seas, val_sign=vs,
-                 conf=conf if ev else "Medium")
+    pos = ev.get("positioning") or {}
+    posd = None if not pos else {
+        "observed": pos.get("observed"), "released": pos.get("released"),
+        "freshness": pos.get("freshness"),
+        "managers": (pos.get("managers") or {}).get("percentile"),
+        "commercials": (pos.get("commercials") or {}).get("percentile"),
+        "retail": (pos.get("retail") or {}).get("percentile"),
+        "changes": changes,
+    }
+    A = strategy.assess(market=market, engine=engine, pos=posd, pb=pb, div=divergence, val=valuation,
+                        seas_fwd=seas_fwd, macro=macro, macro_marginal=_macro_marginal(engine),
+                        conf=conf if ev else "Medium", weekly=weekly)
+    side = A["side"]
+    rd = A["reads"]
+    rel = A["rel"]
+    pillars = {
+        "positioning": {"rel": rel["positioning"], "sign": rd["positioning"].get("sign") or 0,
+                        "strength": rd["positioning"].get("strength"), "role": "payoff" if not
+                        rd["positioning"].get("equity") else "size warning (index)"},
+        "valuation": {"rel": rel["valuation"], "sign": rd["valuation"].get("sign") or 0,
+                      "strength": rd["valuation"].get("strength"), "role": "payoff"},
+        "trend": {"rel": rel["trend"], "sign": rd["trend"].get("dir") or 0, "state": rd["trend"].get("state"),
+                  "role": "context and timing"},
+        "seasonal": {"rel": rel["seasonal"], "sign": rd["seasonal"].get("sign") or 0,
+                     "strength": rd["seasonal"].get("strength"), "role": "minor tilt"},
+        "macro": {"rel": rel["macro"], "sign": macro, "role": "hit rate"},
+    }
+    gates = list(A["sizing"])
+    if conf in ("Low", "Insufficient"):
+        gates.append(f"data confidence {conf.lower()}")
     ccys = currencies(market)
     gate_ev = event_gate(ccys, events, now)
-    # USD prints gate almost everything and are shown once at the top of the
-    # Desk; row gates carry the market-specific (non-USD) prints.
     local = [e for e in gate_ev if e["currency"] != "USD"]
-    if local and c["side"]:
-        c["gates"].append(f"{local[0]['currency']} {local[0]['name']} this week")
-    pos = ev.get("positioning") or {}
+    if local and side:
+        gates.append(f"{local[0]['currency']} {local[0]['name']} this week")
+    g = A["grade"]
+    trig = None
+    cf = A.get("confirm") or {}
+    if cf.get("kind") == "playbook":
+        trig = TRIGGER_TEXT.get(cf.get("state"))
+    elif cf.get("text"):
+        trig = cf["text"]
+    order = g["rank"] * 100 - int(round(A["total"] * 10))
+    if conf in ("Low", "Insufficient"):
+        order += 50
     row = {
         "id": market["id"], "name": market.get("name"), "category": market.get("category"),
         "currencies": ccys,
-        "class": c["class"], "side": c["side"], "side_basis": c["side_basis"],
-        "primary_edge": c["primary_edge"], "trigger": c["trigger"], "order": c["order"],
-        "pillars": c["pillars"], "with": c["with"], "against": c["against"], "gates": c["gates"],
-        "positioning": None if not pos else {
-            "observed": pos.get("observed"), "released": pos.get("released"),
-            "freshness": pos.get("freshness"),
-            "managers": (pos.get("managers") or {}).get("percentile"),
-            "commercials": (pos.get("commercials") or {}).get("percentile"),
-            "retail": (pos.get("retail") or {}).get("percentile"),
-            "changes": changes,
-        },
+        "class": g, "side": side, "lean": A["lean"], "archetype": A["archetype"],
+        "side_basis": ("+".join(A["anchors"]) if A["anchors"] else ("trend+macro" if g["key"] == "backdrop" else None)),
+        "primary_edge": ", ".join(A["anchors"]) or None,
+        "trigger": trig, "confirm": A.get("confirm"), "order": order,
+        "alignment": A["total"], "alignment_other_side": A["other_side_total"],
+        "pillars": pillars, "with": len(A["for"]), "against": len(A["against"]),
+        "for_list": A["for"], "against_list": A["against"], "downgrades": A["downgrades"],
+        "gates": gates,
+        "positioning": posd,
+        "positioning_read": rd["positioning"],
+        "divergence": A["divergence"],
         "playbook": {k: pb.get(k) for k in ("status", "direction", "fade_side", "managers_turning_reports",
                                              "close_through_10w", "sma10", "price", "reports_since_extreme",
                                              "macro_fit", "explain") if k in pb} if pb else None,
         "disagreements": ev.get("disagreements") or [],
-        "seasonal": seas,
+        "seasonal": seas_window,
+        "seasonal_fwd": rd["seasonal"],
         "valuation": valuation,
+        "valuation_read": rd["valuation"],
         "macro_sign": macro,
-        "trend": {"sign": trend, "state": engine.get("trend_state")},
+        "macro_marginal": rd["macro"].get("marginal"),
+        "trend": dict(rd["trend"], sign=rd["trend"].get("dir"), state_label=engine.get("trend_state")),
+        "weekly": weekly,
         "engine": {"direction": engine.get("direction"), "conviction": engine.get("conviction"),
                    "tier": ("Firm" if engine.get("tier") == "Setup" else engine.get("tier")),
                    "note": "engine composite shown for reference; it is not the verdict"},
@@ -298,7 +283,7 @@ def build_row(*, market: Dict[str, Any], engine: Optional[Dict[str, Any]],
     }
     if not ev:
         row["positioning_note"] = ("No single CFTC contract. Positioning is not on the house basis here; "
-                                   "the class uses macro and trend only.")
+                                   "the read uses valuation, trend, seasonality and macro.")
     return row
 
 
@@ -417,26 +402,30 @@ def brief(*, regime: Optional[Dict[str, Any]], fed: Optional[Dict[str, Any]],
                  f"({m0.get('p_hike_cum', 0):.0f}% implied odds of at least one hike) and "
                  f"{far.get('cum_bp', 0):+.0f}bp by {_d(far['date'])}.")
             paras.append(s)
-    live = [r for r in rows if r["class"]["key"] in ("aligned", "payoff", "payoff_vs_macro")]
-    aligned = [r for r in live if r["class"]["key"] == "aligned"]
-    vs_macro = [r for r in live if r["class"]["key"] == "payoff_vs_macro"]
-    turned = [r for r in live if (r.get("playbook") or {}).get("status") in ("Turned", "Add eligible")]
-    omw = [r for r in live if (r.get("playbook") or {}).get("status") == "One more week"]
-    facts["counts"] = {"live": len(live), "aligned": len(aligned), "vs_macro": len(vs_macro),
+    prime = [r for r in rows if r["class"]["key"] == "prime"]
+    setups = [r for r in rows if r["class"]["key"] == "setup"]
+    dev = [r for r in rows if r["class"]["key"] == "developing"]
+    live = prime + setups
+    turned = [r for r in rows if r.get("archetype") == "Crowd fade"
+              and (r.get("playbook") or {}).get("status") in ("Turned", "Add eligible")]
+    omw = [r for r in rows if r.get("archetype") == "Crowd fade"
+           and (r.get("playbook") or {}).get("status") == "One more week"]
+    facts["counts"] = {"prime": len(prime), "setup": len(setups), "developing": len(dev),
                        "turned": len(turned), "one_more_week": len(omw)}
-    fresh = [r for r in live if (r.get("playbook") or {}).get("status") != "Past test window"]
-    facts["counts"]["fresh"] = len(fresh)
-    if live:
-        s = (f"{len(live)} markets carry a positioning extreme on the house basis, {len(fresh)} of them "
-             "inside the six-report test window.")
-        if aligned:
-            s += f" {len(aligned)} line up with macro: " + ", ".join(
-                f"{r['name']} {_side_word(r['side'])}" for r in aligned[:6]) + "."
-        if vs_macro:
-            s += f" {_names(vs_macro)} {'has' if len(vs_macro) == 1 else 'have'} macro against the fade, so size small or leave."
-        paras.append(s)
-    else:
-        paras.append("No market carries a live positioning extreme on the house basis this week.")
+
+    def _lbl(r):
+        return f"{r['name']} {_side_word(r['side'])}" + (f" ({r['archetype'].lower()})" if r.get("archetype") else "")
+    if prime:
+        paras.append(f"Prime this week: " + ", ".join(_lbl(r) for r in prime[:6]) + ". "
+                     "Two payoff sources agree, or one plus a healthy trend and the seasonal, with no healthy trend against.")
+    if setups:
+        paras.append(f"Setups: " + ", ".join(_lbl(r) for r in setups[:8]) + ".")
+    if not live:
+        paras.append("Nothing grades as a setup this week. That is a result, not a gap.")
+    against_macro = [r for r in live if (r.get("pillars") or {}).get("macro", {}).get("rel") == "against"]
+    if against_macro:
+        paras.append(f"{_names(against_macro)} {'runs' if len(against_macro) == 1 else 'run'} against the macro read, "
+                     "which lowers the hit rate rather than the payoff: size down.")
     if turned or omw:
         bits = []
         if turned:
@@ -464,5 +453,5 @@ def brief(*, regime: Optional[Dict[str, Any]], fed: Optional[Dict[str, Any]],
         facts["events"] = [e for _, e in hi_up[:8]]
         txt = ", ".join(f"{e['currency']} {e['name']} {t.strftime('%a %H:%M')} UTC" for t, e in hi_up[:5])
         paras.append(f"Top-tier prints ahead: {txt}. No adds into them.")
-    paras.append("Ordering is by how the evidence lines up, not a probability. Seasonality and valuation are tilts.")
+    paras.append("Ordering is by grade, then by how the evidence lines up. Not a probability. Zones are yours.")
     return {"paragraphs": paras, "facts": facts}

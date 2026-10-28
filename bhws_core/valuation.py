@@ -120,6 +120,45 @@ def buy_points(v_zb: Sequence[Optional[float]], v_dxy: Sequence[Optional[float]]
     return {"current": cur, "trades": trades}
 
 
+def refs_for(market_id: str, category: Optional[str]) -> List[str]:
+    """References that carry information for this asset, as Ben reads them.
+
+    Equity indices, commodities and crypto: ZB and DXY (the Pine defaults).
+    Gold: ZB and DXY. The dollar index: ZB, gold and the euro. FX majors and
+    crosses: ZB and gold (DXY is mostly the pair itself). Bonds: DXY and gold.
+    """
+    if market_id == "DX":
+        return ["zb", "gc", "eur"]
+    if category in ("fx", "fx_cross"):
+        return ["zb", "gc"]
+    if category == "bond" or market_id in ("ZB", "ZN", "ZF", "ZT", "R"):
+        return ["dxy", "gc"]
+    return ["zb", "dxy"]
+
+
+def daily_lines(market_id: str, category: Optional[str], daily: Dict[str, Sequence[float]]) -> Optional[Dict]:
+    """Valuation Tool lines on daily bars (the timeframe Ben's chart uses)
+    against the asset's own references. `daily` is aligned {'sym': [...], ref: [...]}."""
+    sym = daily.get("sym")
+    if not sym or len(sym) < ROC_LEN + RESCALE_LEN + 5:
+        return None
+    lines = {}
+    for k in refs_for(market_id, category):
+        ref = daily.get(k)
+        if ref is None or len(ref) != len(sym):
+            continue
+        line = valuation_line(sym, ref)
+        cur = line[-1]
+        p5 = line[-6] if len(line) >= 6 else None
+        lines[k] = {"value": None if cur is None else round(cur, 1),
+                    "chg_5d": None if cur is None or p5 is None else round(cur - p5, 1),
+                    "state": state(cur)}
+    if not lines:
+        return None
+    return {"timeframe": "daily", "roc": ROC_LEN, "rescale": RESCALE_LEN, "lines": lines,
+            "refs": list(lines.keys())}
+
+
 def assess(market_id: str, weekly: Dict[str, Sequence[float]],
            daily: Optional[Dict[str, Sequence[float]]] = None) -> Optional[Dict]:
     """weekly/daily: {'sym': [...], 'zb': [...], 'dxy': [...], 'gc': [...]} aligned.

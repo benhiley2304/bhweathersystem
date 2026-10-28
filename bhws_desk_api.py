@@ -24,9 +24,9 @@ from typing import Any, Callable, Dict, Optional
 import pandas as pd
 
 import bhws_evidence_api as evapi
-from bhws_core import desk, marketread, valuation
+from bhws_core import desk, marketread, percentile, strategy, valuation
 
-REFS = {"zb": "ZB=F", "dxy": "DX-Y.NYB", "gc": "GC=F"}
+REFS = {"zb": "ZB=F", "dxy": "DX-Y.NYB", "gc": "GC=F", "eur": "6E=F"}
 DESK_TTL = 30 * 60
 _STATE: Dict[str, Any] = {"data": None, "built": 0.0, "key": None, "building": False,
                           "error": None, "started": None}
@@ -108,7 +108,7 @@ def _valuation_for(m: dict, px: Dict[str, pd.Series]) -> Optional[dict]:
     wk = {"sym": _weekly(sym)}
     frame = pd.DataFrame({"sym": wk["sym"]})
     for k, t in REFS.items():
-        if k in skip or px.get(t) is None:
+        if k == "eur" or k in skip or px.get(t) is None:
             continue
         frame[k] = _weekly(px[t])
     frame = frame.dropna()
@@ -120,8 +120,24 @@ def _valuation_for(m: dict, px: Dict[str, pd.Series]) -> Optional[dict]:
         d = pd.DataFrame({"sym": sym, "zb": px[REFS["zb"]], "dxy": px[REFS["dxy"]]}).dropna()
         daily = {c: d[c].tolist() for c in d.columns}
     res = valuation.assess(m["id"], weekly, daily)
+    try:
+        refs = valuation.refs_for(m["id"], m.get("category"))
+        cols = {"sym": sym}
+        for k in refs:
+            if px.get(REFS[k]) is not None:
+                cols[k] = px[REFS[k]]
+        dd = pd.DataFrame(cols).dropna()
+        dl = valuation.daily_lines(m["id"], m.get("category"), {c: dd[c].tolist() for c in dd.columns})
+        if dl is not None:
+            dl["last_bar"] = dd.index[-1].date().isoformat()
+            if res is None:
+                res = {"timeframe": "weekly", "lines": {}}
+            res["daily"] = dl
+    except Exception:
+        pass
     if res is not None:
         res["refs_used"] = [k for k in ("zb", "dxy", "gc") if k in weekly]
+        res["weekly_lines_note"] = "weekly lines use ZB, DXY and gold for every market (context)"
         res["skipped"] = sorted(skip)
         res["last_bar"] = frame.index[-1].date().isoformat()
     return res
@@ -141,8 +157,40 @@ def _body(x) -> Optional[dict]:
     return None
 
 
+def _weekly_state(daily: Optional[pd.Series]) -> Optional[dict]:
+    """Last COMPLETED weekly close and its 10-week average (W-FRI bars).
+    The week in progress is excluded so a midweek print is never called a
+    weekly close."""
+    if daily is None or len(daily) < 80:
+        return None
+    w = daily.resample("W-FRI").last().dropna()
+    last_day = daily.index[-1]
+    if len(w) and w.index[-1] > last_day.normalize() + pd.Timedelta(hours=23):
+        w = w.iloc[:-1]
+    if len(w) < 11:
+        return None
+    sma = float(w.iloc[-10:].mean())
+    c = float(w.iloc[-1])
+    return {"close": round(c, 6), "sma10": round(sma, 6), "week_ending": w.index[-1].date().isoformat(),
+            "above": c > sma, "basis": "last completed weekly close (W-FRI) vs 10-week simple average"}
+
+
+def _divergence_for(fo: Optional[pd.DataFrame], daily: Optional[pd.Series]) -> Optional[dict]:
+    if fo is None or daily is None or len(fo) < 60:
+        return None
+    pct = percentile.midrank_series(fo.mgr_net.tolist())
+    dates = pd.to_datetime(fo["date"])
+    px = daily.reindex(daily.index.union(dates)).ffill().reindex(dates)
+    prices = [None if pd.isna(x) else float(x) for x in px.tolist()]
+    out = strategy.manager_divergence(prices, pct)
+    out["basis"] = ("26 reports; managers peaked at or above the 80th (or trough at or below the 20th) "
+                    "3+ reports ago, now 10+ pts off it, while price sits within 2% of its 26-report extreme "
+                    "and beyond where it stood at that peak. Heuristic, not backtested.")
+    return out
+
+
 def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
-               now: Optional[datetime] = None) -> dict:
+               now: Optional[datetime] = None, seasonal_provider: Optional[Callable] = None) -> dict:
     now = now or datetime.now(timezone.utc)
     t0 = time.time()
     notes = []
@@ -200,14 +248,28 @@ def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
         except Exception as e:
             val = None
             notes.append(f"{mid}: valuation failed ({e.__class__.__name__})")
+        try:
+            div = _divergence_for(fo, daily)
+        except Exception as e:
+            div = None
+            notes.append(f"{mid}: divergence failed ({e.__class__.__name__})")
+        sf = None
+        if seasonal_provider is not None:
+            try:
+                sy = seasonal_provider(mid)
+                if sy and sy.get("years"):
+                    sf = strategy.seasonal_forward(sy["years"], sy["weights"], sy["current_td"], sy["year"])
+            except Exception as e:
+                notes.append(f"{mid}: seasonal path failed ({e.__class__.__name__})")
         row = desk.build_row(market=m, engine=eng, evidence=ev, macro=evapi._macro_sign(eng),
-                             changes=changes, valuation=val, events=events, now=now)
+                             changes=changes, valuation=val, events=events, now=now,
+                             divergence=div, seas_fwd=sf, weekly=_weekly_state(daily))
         rows.append(row)
     rows.sort(key=lambda r: (r["order"], r["name"] or ""))
 
     # Clusters among markets that currently have a side worth acting on
     acting = {r["id"]: r["side"] for r in rows
-              if r["side"] and r["class"]["key"] in ("aligned", "payoff", "payoff_vs_macro", "backdrop")}
+              if r["side"] and r["class"]["key"] in ("prime", "setup", "developing", "backdrop")}
     wr = {}
     for m in markets:
         if m["id"] in acting and px.get(m.get("yf")) is not None:
@@ -253,9 +315,19 @@ def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
         "build_seconds": round(time.time() - t0, 1),
         "method": {
             "positioning": evapi.METHOD_NOTE,
-            "ordering": "Sorted by setup class, then trigger state, then how many tilts agree. Not a probability.",
-            "seasonal": "Positive median means price tends to rise over the window; the Desk compares it with the side.",
-            "valuation": "BHWS Valuation Tool port: 11-bar ROC spread vs reference, rescaled to -100..+100 over 100 weekly bars.",
+            "ordering": ("Sorted by grade, then by an alignment number (role-weighted: positioning 3, "
+                         "valuation 2.5, trend 2, macro 1.5, seasonality 1; index positioning 1). "
+                         "A ranking aid, not a probability, and not backtested."),
+            "seasonal": ("Forward path from today: blend-weighted median of each completed year's move over "
+                         "the next 20/30/60/90 trading days (crosses the year end). Positive means price tends to "
+                         "rise. 60 TD is primary, 30 TD must not disagree."),
+            "valuation": ("BHWS Valuation Tool port: 11-bar ROC spread vs reference, rescaled to -100..+100 over "
+                          "100 bars. Daily lines drive the read (ZB+DXY for indices and commodities, ZB+gold+euro "
+                          "for the dollar, ZB+gold for FX, DXY+gold for bonds); weekly lines are context."),
+            "trend": ("Engine momentum detail: pullback = last 4 weeks against an intact trend; extended = outer "
+                      "15% of the 52-week range with the 13-week move stalled. An extended trend does not count "
+                      "against a fade."),
+            "divergence": "Fund managers lower high in net length against a higher high in price (and mirror). Heuristic.",
             "classes": [dict(key=k, label=l, tone=t, note=n) for k, l, r, t, n in desk.CLASSES],
         },
         "counts": classes,
@@ -270,7 +342,8 @@ def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
 
 
 def register(app, *, markets, scores_cache, cot_cache=None,
-             events_provider: Optional[Callable] = None, fed_provider: Optional[Callable] = None):
+             events_provider: Optional[Callable] = None, fed_provider: Optional[Callable] = None,
+             seasonal_provider: Optional[Callable] = None):
     from fastapi.responses import JSONResponse
 
     async def _call(fn):
@@ -294,7 +367,8 @@ def register(app, *, markets, scores_cache, cot_cache=None,
                     fedp = _body(await _call(fed_provider))
                 except Exception as e:
                     print(f"[desk] fed provider failed: {e!r}", flush=True)
-            data = await asyncio.to_thread(build_desk, markets, payload, cot_cache, evp, fedp)
+            data = await asyncio.to_thread(build_desk, markets, payload, cot_cache, evp, fedp, None,
+                                           seasonal_provider)
             with _LOCK:
                 _STATE.update(data=evapi._json_safe(data), built=time.time(),
                               key=payload.get("updated_at"), error=None)

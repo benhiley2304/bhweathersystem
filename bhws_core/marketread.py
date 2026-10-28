@@ -11,10 +11,10 @@ Inputs
   fed     {"next": meeting, "later": meeting} from the Desk brief facts, or None
 
 Output keys
-  headline   one line, the verdict in plain words
-  stance     class key/label, side, lean and what the lean is based on
-  summary    2-3 sentences
-  pillars    positioning, macro, trend, seasonal, valuation: sign, rel, facts[]
+  headline   one line: side, setup type and why
+  stance     grade key/label, side, lean, setup type, for/against lists
+  summary    2-4 sentences: what kind of trade, what is for and against, sizing
+  pillars    positioning, valuation, trend, seasonal, macro: sign, rel, role, facts[]
   watch      what would change the read
   risks      gates and events
   engine     how the 1-10 composite reads, and whether it disagrees
@@ -94,14 +94,19 @@ def _date(x) -> str:
 
 
 # ── pillars ──────────────────────────────────────────────────────────────
+def _pil(row, k) -> Dict[str, Any]:
+    return (row.get("pillars") or {}).get(k) or {}
+
+
 def _positioning(row) -> Dict[str, Any]:
     p = row.get("positioning")
     pb = row.get("playbook") or {}
-    pil = (row.get("pillars") or {}).get("positioning") or {}
+    pil = _pil(row, "positioning")
+    R = row.get("positioning_read") or {}
     facts: List[str] = []
     if not p:
         facts.append("No house COT for this market (crosses and some contracts have none).")
-        return {"key": "positioning", "title": "Positioning", "sign": 0, "rel": "na",
+        return {"key": "positioning", "title": "Positioning", "sign": 0, "rel": "na", "role": pil.get("role"),
                 "word": "n/a", "facts": facts, "tab": "cot"}
     facts.append(f"Commercials {_ord(p.get('commercials'))}, fund managers {_ord(p.get('managers'))}, "
                  f"retail {_ord(p.get('retail'))} percentile (futures-only, 156-report mid-rank, "
@@ -110,18 +115,16 @@ def _positioning(row) -> Dict[str, Any]:
     if ch.get("chg_1") is not None:
         facts.append(f"Fund managers {_f(ch.get('chg_1'), 1, True)} pts on the latest report, "
                      f"{_f(ch.get('chg_4'), 1, True)} over four.")
+    dv = row.get("divergence") or {}
+    if dv.get("dir"):
+        facts.append(dv.get("text"))
     if pb.get("explain"):
         facts.append(pb["explain"])
-    m = p.get("managers")
-    word = "no extreme"
-    if pil.get("rel") == "lapsed":
-        word = "extreme, clock run out"
-    elif m is not None and (m <= EXT_LO or m >= EXT_HI):
-        word = f"extreme, fade {pb.get('fade_side') or ''}".strip()
-    elif pil.get("sign"):
-        word = f"recent extreme, fade {pb.get('fade_side') or ''}".strip()
+    if R.get("equity"):
+        facts.append("Equity index: positioning is a size warning here, never the side.")
+    word = R.get("word") or "no extreme"
     return {"key": "positioning", "title": "Positioning", "sign": pil.get("sign") or 0,
-            "rel": pil.get("rel") or "none", "word": word, "facts": facts, "tab": "cot"}
+            "rel": pil.get("rel") or "none", "role": pil.get("role"), "word": word, "facts": facts, "tab": "cot"}
 
 
 _US_WORDS = {
@@ -212,77 +215,127 @@ def _macro(row, eng, fed) -> Dict[str, Any]:
             "word": word, "facts": facts, "tab": "macro", "marginal": bool(sign and marginal)}
 
 
+_TREND_WORD = {"running": "trending", "pullback": "pulling back inside the trend",
+               "extended": "extended and stalling", "range": "rangebound", "n/a": "n/a"}
+
+
 def _trend(row, eng) -> Dict[str, Any]:
-    pil = (row.get("pillars") or {}).get("trend") or {}
-    _, md = _score(eng, "momentum")
-    md = md or {}
+    pil = _pil(row, "trend")
+    T = row.get("trend") or {}
     facts = []
-    if md.get("sma200_pct_diff") is not None:
-        facts.append(f"Price {_f(abs(md['sma200_pct_diff']))}% {'above' if md['sma200_pct_diff'] >= 0 else 'below'} "
-                     f"the 200-day; {_ord(md.get('pct_range'))} percentile of its 52-week range.")
-    if md.get("roc_lt_pct") is not None:
-        facts.append(f"26-week change {_f(md.get('roc_lt_pct'), 1, True)}%, 4-week {_f(md.get('roc_st_pct'), 1, True)}%.")
-    st = (row.get("trend") or {}).get("state")
-    if st:
-        facts.append(f"Engine trend state: {st}.")
-    sign = pil.get("sign") or 0
-    return {"key": "trend", "title": "Trend", "sign": sign, "rel": pil.get("rel") or "neutral",
-            "word": ("up" if sign > 0 else "down" if sign < 0 else "flat"), "facts": facts, "tab": "momentum"}
+    if T.get("sma200_diff") is not None:
+        facts.append(f"Price {_f(abs(T['sma200_diff']))}% {'above' if T['sma200_diff'] >= 0 else 'below'} "
+                     f"the 200-day; {_ord(T.get('pct_52w'))} percentile of its 52-week range.")
+    if T.get("roc26w") is not None:
+        facts.append(f"Change over 4 weeks {_f(T.get('roc4w'), 1, True)}%, 13 weeks {_f(T.get('roc13w'), 1, True)}%, "
+                     f"26 weeks {_f(T.get('roc26w'), 1, True)}%.")
+    if T.get("state") == "extended":
+        facts.append("Outer 15% of the 52-week range with the 13-week move stalled: the trend looks tired, "
+                     "so it does not count against a fade.")
+    elif T.get("state") == "pullback":
+        facts.append("Last four weeks against an intact trend: a pullback, the entry window for trend trades.")
+    if T.get("state_text"):
+        facts.append(f"Engine trend state: {T['state_text']}.")
+    d = T.get("dir") or 0
+    dw = "up" if d > 0 else "down" if d < 0 else ""
+    st = T.get("state") or "n/a"
+    word = (f"{dw}, " if dw and st != "range" else "") + _TREND_WORD.get(st, st)
+    return {"key": "trend", "title": "Trend", "sign": pil.get("sign") or 0, "rel": pil.get("rel") or "neutral",
+            "role": pil.get("role"), "state": st, "word": word, "facts": facts, "tab": "momentum"}
 
 
 def _seasonal(row) -> Dict[str, Any]:
-    pil = (row.get("pillars") or {}).get("seasonal") or {}
-    s = row.get("seasonal") or {}
+    pil = _pil(row, "seasonal")
+    S = row.get("seasonal_fwd") or {}
+    fw = S.get("fwd") or {}
     facts = []
-    if s.get("median_pct") is None:
-        facts.append("No seasonal statistics for this window.")
-        return {"key": "seasonal", "title": "Seasonality", "sign": 0, "rel": "neutral", "word": "n/a",
-                "facts": facts, "tab": "seasonal"}
-    w = s.get("window_td") or []
-    facts.append(f"Median {_f(s['median_pct'], 2, True)}% over trading days {w[0] if w else '?'} to {w[-1] if w else '?'}, "
-                 f"up in {s.get('hit_rate')}% of {s.get('n_years')} years, grade {s.get('grade')}. "
-                 "Positive means price tends to rise.")
-    if s.get("plan_note"):
-        facts.append(s["plan_note"].rstrip(".") + ".")
-    if not s.get("usable"):
-        facts.append("Not used as a tilt" + (f": {s['why']}" if s.get("why") else "") + ".")
-    sign = pil.get("sign") or 0
-    return {"key": "seasonal", "title": "Seasonality", "sign": sign, "rel": pil.get("rel") or "neutral",
-            "word": ("tends up" if sign > 0 else "tends down" if sign < 0 else "no usable tilt"),
+    if not fw:
+        s = row.get("seasonal") or {}
+        if s.get("median_pct") is None:
+            facts.append("No seasonal path for this market.")
+            return {"key": "seasonal", "title": "Seasonality", "sign": 0, "rel": "neutral", "role": pil.get("role"),
+                    "word": "n/a", "facts": facts, "tab": "seasonal"}
+        w = s.get("window_td") or []
+        facts.append(f"Median {_f(s['median_pct'], 2, True)}% over trading days {w[0] if w else '?'} to "
+                     f"{w[-1] if w else '?'} (positive means price tends to rise).")
+        return {"key": "seasonal", "title": "Seasonality", "sign": 0, "rel": "neutral", "role": pil.get("role"),
+                "word": "window only", "facts": facts, "tab": "seasonal"}
+    bits = []
+    for h in ("30", "60", "90"):
+        x = fw.get(h) or fw.get(int(h)) if isinstance(fw, dict) else None
+        if x and x.get("median") is not None:
+            bits.append(f"{h} TD {_f(x['median'], 2, True)}% (up {_f(x.get('hit_up'), 0)}%)")
+    if bits:
+        n = (fw.get("60") or fw.get(60) or {}).get("n")
+        facts.append("Forward path from today, weighted median of past years: " + ", ".join(bits)
+                     + (f", {n} years" if n else "") + ". Positive means price tends to rise.")
+    facts.append("Read on 60 TD with 30 TD as the check; a minor tilt, never the reason for a trade.")
+    return {"key": "seasonal", "title": "Seasonality", "sign": pil.get("sign") or 0,
+            "rel": pil.get("rel") or "neutral", "role": pil.get("role"), "word": S.get("word") or "n/a",
             "facts": facts, "tab": "seasonal"}
 
 
 def _valuation(row) -> Dict[str, Any]:
-    pil = (row.get("pillars") or {}).get("valuation") or {}
+    pil = _pil(row, "valuation")
     v = row.get("valuation") or {}
+    R = row.get("valuation_read") or {}
     facts = []
-    L = v.get("lines") or {}
-    if not L:
+    if not R.get("refs"):
         facts.append("Valuation Tool lines unavailable for this market.")
     else:
-        facts.append("Weekly Valuation Tool: " + ", ".join(
-            f"vs {k.upper()} {_f(x.get('value'), 0, True)} ({x.get('state')})" for k, x in L.items()) + ".")
-        c = v.get("composite") or {}
-        if c.get("value") is not None:
-            facts.append(f"Composite {_f(c['value'], 0, True)}, {c.get('state', '').lower()}. "
-                         "Below \u221240 supports longs, above +40 supports shorts.")
-        if v.get("skipped"):
-            facts.append("Skipped " + ", ".join(x.upper() for x in v["skipped"]) + " (too close to the market itself).")
+        facts.append("Valuation Tool, daily (D) and weekly (W): " + R["refs"] + ". "
+                     "Below \u221240 is cheap, above +40 rich.")
+        if R.get("split"):
+            facts.append(_join([k.upper() for k in R["split"]]) + (" reads" if len(R["split"]) == 1 else " read")
+                         + " opposite ways on the two timeframes, so it counts for neither side.")
+        ctx = {k: x for k, x in (R.get("weekly_context") or {}).items() if x is not None}
+        if ctx:
+            facts.append("Weekly context only: " + ", ".join(f"{k.upper()} {_f(x, 0, True)}" for k, x in ctx.items()) + ".")
     bp = v.get("daily_buy_point") or {}
     if bp.get("active"):
         facts.append(f"Daily buy point is live (bar {bp.get('bars_held')} of 10): ZB {_f(bp.get('zb'), 0, True)}, "
                      f"DXY {_f(bp.get('dxy'), 0, True)}. {bp.get('record_note') or ''}".strip())
-    sign = pil.get("sign") or 0
-    word = "cheap" if sign > 0 else "rich" if sign < 0 else "fair"
+    word = R.get("word") or "n/a"
     if bp.get("active"):
         word += ", buy point live"
-    return {"key": "valuation", "title": "Valuation", "sign": sign, "rel": pil.get("rel") or "neutral",
-            "word": word, "facts": facts, "tab": "relval", "buy_point": bool(bp.get("active"))}
+    return {"key": "valuation", "title": "Valuation", "sign": pil.get("sign") or 0, "rel": pil.get("rel") or "neutral",
+            "role": pil.get("role"), "word": word, "facts": facts, "tab": "relval", "buy_point": bool(bp.get("active"))}
 
 
 # ── assembly ─────────────────────────────────────────────────────────────
 _NAMES = {"positioning": "positioning", "macro": "macro", "trend": "trend",
           "seasonal": "seasonality", "valuation": "valuation"}
+
+
+def _why(row, pillars) -> str:
+    P = {p["key"]: p for p in pillars}
+    bits = []
+    for k in ("positioning", "valuation", "trend", "seasonal"):
+        p = P.get(k) or {}
+        if p.get("rel") in ("with", "with_pullback", "exhausted") or (k == "trend" and p.get("rel") == "with_late"):
+            w = p.get("word") or ""
+            if k == "positioning":
+                dv = row.get("divergence") or {}
+                w = "fund managers diverging" if dv.get("dir") == row.get("side") else w.split(":")[0]
+            elif k == "seasonal":
+                w = "seasonal " + w
+            elif k == "trend":
+                up = "uptrend" if (row.get("trend") or {}).get("dir", 0) > 0 else "downtrend"
+                w = {"extended": "trend extended", "pullback": up + " intact"}.get(p.get("state"), up + " running")
+            bits.append(w)
+    return ", ".join(bits)
+
+
+_ARCH_NOTE = {
+    "Crowd fade": "Fading a positioning extreme with commercials on the other side.",
+    "Divergence fade": "Fading a trend that has run on while fund managers stopped adding.",
+    "Exhaustion fade": "Fading a stretched trend that has stalled.",
+    "Pullback in trend": "Buying the dip (or selling the bounce) inside a healthy trend.",
+    "Trend with value": "With the trend, and the valuation agrees.",
+    "With trend": "With the trend; the payoff case is thinner.",
+    "Counter-trend": "Against a trend that is still running: wait for it to turn.",
+    "Range": "No trend to lean on.",
+}
 
 
 def build_read(row: Dict[str, Any], eng: Optional[Dict[str, Any]], fed: Optional[Dict[str, Any]] = None,
@@ -291,96 +344,62 @@ def build_read(row: Dict[str, Any], eng: Optional[Dict[str, Any]], fed: Optional
     cls = row.get("class") or {}
     ck = cls.get("key")
     side = int(row.get("side") or 0)
-    pillars = [_positioning(row), _macro(row, eng, fed), _trend(row, eng), _seasonal(row), _valuation(row)]
+    lean = int(row.get("lean") or side or 0)
+    pillars = [_positioning(row), _valuation(row), _trend(row, eng), _seasonal(row), _macro(row, eng, fed)]
     P = {p["key"]: p for p in pillars}
+    arch = row.get("archetype")
+    sw = _SIDE.get(side or lean, "flat").capitalize()
+    why = _why(row, pillars)
+    names = lambda xs: _join([_NAMES.get(x, x) for x in xs or []])
 
-    longs = [_NAMES[p["key"]] for p in pillars if p["sign"] > 0]
-    shorts = [_NAMES[p["key"]] for p in pillars if p["sign"] < 0]
-    lean = 0
-    if side:
-        lean = side
-    elif P["macro"]["sign"]:
-        lean = P["macro"]["sign"]
-    elif len(longs) != len(shorts):
-        lean = 1 if len(longs) > len(shorts) else -1
-
-    name = row.get("name") or row.get("id")
-    sw = _SIDE[side].capitalize()
-    trig = row.get("trigger")
-    if ck == "aligned":
-        headline = f"{sw} setup: positioning and macro agree."
-    elif ck == "payoff":
-        headline = f"{sw} on positioning. Macro does not confirm yet."
-    elif ck == "payoff_vs_macro":
-        headline = f"{sw} positioning setup, against the macro backdrop."
-    elif ck == "backdrop":
-        headline = f"{sw} backdrop, but no crowd to fade."
-    elif ck == "lapsed":
-        headline = "Crowd extreme has outlasted the playbook clock."
+    if ck in ("prime", "setup", "developing") and side:
+        lead = {"prime": "", "setup": "", "developing": "Developing "}[ck]
+        headline = f"{lead}{sw.lower() if lead else sw}: {(arch or 'setup').lower()}." + (f" {why[0].upper() + why[1:]}." if why else "")
+    elif ck == "backdrop" and side:
+        headline = f"{sw} backdrop: trend and macro agree, no payoff case yet."
     else:
-        headline = None  # filled from the pillar split below
+        fl, al = row.get("for_list") or [], row.get("against_list") or []
+        headline = "No setup this week." + (f" {names(fl).capitalize()} lean {_SIDE.get(lean, '')}" if fl and lean else "")
+        if headline.endswith(("long", "short")):
+            headline += "."
 
-    pb = row.get("playbook") or {}
     summary: List[str] = []
-    split = []
-    if longs:
-        split.append(_join(longs) + (" lean" if len(longs) > 1 else " leans") + " long")
-    if shorts:
-        split.append(_join(shorts) + (" lean" if len(shorts) > 1 else " leans") + " short")
-    if ck in ("aligned", "payoff", "payoff_vs_macro"):
-        mg = (row.get("positioning") or {}).get("managers")
-        if mg is not None and (mg <= EXT_LO or mg >= EXT_HI):
-            s = f"Fund managers sit at the {_ord(mg)} percentile, so the fade is {_SIDE[side]}."
-        else:
-            n = pb.get("reports_since_extreme")
-            s = (f"Fund managers reached an extreme {n} reports ago and are now at the {_ord(mg)}, "
-                 f"so the fade is still {_SIDE[side]}.") if n is not None else f"The fade is {_SIDE[side]}."
-        if trig:
-            s += f" Trigger: {trig}."
-        summary.append(s)
-        ag = [_NAMES[p["key"]] for p in pillars[1:] if p["rel"] == "against"]
-        if ag:
-            summary.append(f"Against it: {_join(ag)}. Size for that.")
-    elif ck == "backdrop":
-        summary.append(f"Macro and trend point {_SIDE[side]} with no positioning extreme behind them. "
-                       "Trade it only off your own level.")
-    elif ck == "lapsed":
-        summary.append("The extreme is older than the six-report test window without a turn. Respect the trend until it breaks.")
-    else:
-        if split:
-            headline = "No setup: " + _join(split) + "."
-        else:
-            headline = "No setup and no lean this week."
-        if longs and shorts:
-            summary.append("The pieces disagree, which is a reason to wait rather than average them into a neutral score.")
-        if not row.get("positioning"):
-            summary.append("There is no house positioning read here, so a setup would have to come from the backdrop alone.")
-        elif not (P["positioning"]["word"].startswith("extreme")):
-            summary.append("Positioning is not at an extreme, so there is no crowd to lean on.")
+    if arch and ck != "none":
+        summary.append(_ARCH_NOTE.get(arch, ""))
+    if row.get("for_list"):
+        summary.append(f"For the {_SIDE.get(side or lean, '')}: {names(row['for_list'])}."
+                       + (f" Against: {names(row.get('against_list'))}." if row.get("against_list") else ""))
+    elif row.get("against_list"):
+        summary.append(f"Against: {names(row['against_list'])}.")
+    for d in row.get("downgrades") or []:
+        summary.append(f"Marked down a grade: {d}.")
+    sz = [g for g in (row.get("gates") or []) if "size" in g or "starter" in g or "adds" in g]
+    if sz:
+        summary.append("Sizing: " + "; ".join(sz) + ".")
     if P["macro"].get("marginal"):
         summary.append("The macro lean is marginal: the vote only just clears the engine's deadband.")
+    summary = [x for x in summary if x]
 
     watch: List[str] = []
+    cf = row.get("confirm") or {}
+    if cf.get("text"):
+        watch.append(f"{cf.get('state') or 'Confirmation'}: {cf['text']}")
+    elif row.get("trigger"):
+        watch.append(f"Playbook: {row['trigger']}.")
     pos = row.get("positioning")
-    if pos and pos.get("managers") is not None and EXT_LO < pos["managers"] < EXT_HI:
+    if pos and pos.get("managers") is not None and EXT_LO < pos["managers"] < EXT_HI and not (row.get("divergence") or {}).get("dir"):
         m = pos["managers"]
         near = EXT_LO if m < 50 else EXT_HI
         watch.append(f"Fund managers at the {_ord(m)}: a fresh extreme needs the {_ord(near)} or beyond "
                      f"({_f(abs(m - near), 0)} pts away).")
-    pb = row.get("playbook") or {}
-    if ck in ("aligned", "payoff", "payoff_vs_macro") and pb.get("status"):
-        watch.append(f"Playbook state: {pb['status']}"
-                     + (f", managers turning {pb['managers_turning_reports']} report(s)" if pb.get("managers_turning_reports") is not None else "")
-                     + (", price through the 10-week average" if pb.get("close_through_10w") else ", price not through the 10-week average") + ".")
-    vc = ((row.get("valuation") or {}).get("composite") or {}).get("value")
-    if vc is not None and 25 <= abs(vc) < 40:
-        thr = "\u221240" if vc < 0 else "+40"
-        watch.append(f"Valuation composite {_f(vc, 0, True)}: it becomes a {'long' if vc < 0 else 'short'} tilt past {thr}.")
-    s = row.get("seasonal") or {}
-    if s.get("usable") and s.get("plan_note"):
-        watch.append("Seasonal timing: " + s["plan_note"].rstrip(".") + ".")
+    T = row.get("trend") or {}
+    if T.get("state") == "extended" and side and side != T.get("dir"):
+        watch.append("The fade needs the trend to stay stalled: a fresh 13-week push in the trend direction undoes it.")
+    if T.get("state") == "pullback" and side == T.get("dir"):
+        watch.append("The pullback case breaks if price closes through the 200-day.")
     if P["macro"].get("marginal"):
         watch.append("A small move in the risk regime or macro score would remove the macro lean.")
+    watch.append("Zones and stops are yours; the Desk does not draw levels.")
 
     risks = list(row.get("gates") or [])
     evs = []
@@ -408,15 +427,16 @@ def build_read(row: Dict[str, Any], eng: Optional[Dict[str, Any]], fed: Optional
           f"{(edir or 'neutral').lower()} at conviction {_f(eg.get('conviction'), 2, True)}, tier {eg.get('tier') or 'n/a'}"
           + (f"; bullish votes: {_join(eb)}" if eb else "") + (f"; bearish votes: {_join(es)}" if es else "") + ".")
     if disagree:
-        et += (f" That differs from the read above, which takes direction from macro context "
-               f"rather than the full vote. Both are shown; neither is adjusted to match.")
+        et += (" That differs from the read above, which weighs positioning and valuation as the payoff and "
+               "treats an extended trend as tired rather than as a vote. Both are shown; neither is adjusted to match.")
     out = {
         "id": row.get("id"),
         "headline": headline,
+        "archetype": arch,
         "stance": {"key": ck, "label": cls.get("label"), "tone": cls.get("tone"), "side": side,
-                   "lean": lean, "lean_basis": ("side" if side else "macro" if P["macro"]["sign"] else
-                                                 "pillar count" if lean else None),
-                   "trigger": trig, "with": row.get("with"), "against": row.get("against")},
+                   "lean": lean, "lean_basis": "grade" if side else ("evidence" if lean else None),
+                   "trigger": row.get("trigger"), "with": row.get("with"), "against": row.get("against"),
+                   "archetype": arch, "for": row.get("for_list"), "against_list": row.get("against_list")},
         "summary": summary,
         "pillars": pillars,
         "watch": watch,

@@ -3403,6 +3403,10 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .sb2-dots i.u{background:#22C97A}.sb2-dots i.d{background:#E05252}.sb2-dots i.z{background:#3a4150}
 .sb2-dots i.na{background:transparent;box-shadow:inset 0 0 0 1px #3a4150}
 .sb2-dots i.ag{box-shadow:0 0 0 1.5px #050608,0 0 0 2.5px #EAB850}
+.sb2-dots i.ex{opacity:.38}
+.sb2-arch{font-size:10px;color:#8b93a5;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mr2-arch{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid rgba(241,227,190,.28);color:#F1E3BE;letter-spacing:.02em}
+.mr2-p.ex{opacity:.82}
 .sb2-trig{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:0.04em;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb2-trig.hot{color:#22C97A}.sb2-trig.warm{color:#EAB850}
 .sb2-row .mr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
@@ -25656,20 +25660,25 @@ function _dkSide(s,lean){
   if(lean<0) return '<span class="dk-side So" title="No setup; the backdrop leans short">LEANS SHORT</span>';
   return '<span class="dk-side N">FLAT</span>';
 }
-function _dkToneCol(t){ return t==='good'?'#22C97A':t==='warn'?'#EAB850':t==='neutral'?'#c8a96e':'#7d879c'; }
-const DK_CLASS_ORDER=['aligned','payoff','payoff_vs_macro','backdrop','lapsed','none'];
+function _dkToneCol(t){ return t==='prime'?'#F1E3BE':t==='good'?'#22C97A':t==='warn'?'#EAB850':t==='neutral'?'#c8a96e':'#7d879c'; }
+const DK_CLASS_ORDER=['prime','setup','developing','backdrop','none'];
 const DK_TRIG_SHORT={'Turned':['Triggered','hot'],'Add eligible':['Add eligible','hot'],'One more week':['1 more week','warm'],'Not turned':['Waiting',''],'Past test window':['Old extreme',''],'Extreme persisting':['Persisting','']};
+const DK_CONF_SHORT={'Confirmed':['Confirmed','hot'],'In zone':['In zone','warm'],'Waiting':['Waiting','']};
 function _dkTrigTag(r){
-  const st=(r.playbook||{}).status; const k=r.class&&r.class.key;
-  if(!['aligned','payoff','payoff_vs_macro','lapsed'].includes(k)) return k==='backdrop'?'<span class="sb2-trig">Own level</span>':'';
-  const t=DK_TRIG_SHORT[st]; return t?'<span class="sb2-trig '+t[1]+'">'+t[0]+'</span>':'';
+  const k=r.class&&r.class.key; const cf=r.confirm||{};
+  if(k==='backdrop') return '<span class="sb2-trig">Own level</span>';
+  if(!['prime','setup','developing'].includes(k)) return '';
+  const t=cf.kind==='playbook'?DK_TRIG_SHORT[cf.state]:DK_CONF_SHORT[cf.state];
+  return t?'<span class="sb2-trig '+t[1]+'" title="'+_esc(r.trigger||cf.text||'')+'">'+t[0]+'</span>':'';
 }
-const DK_PL=[['positioning','Positioning'],['macro','Macro'],['trend','Trend'],['seasonal','Seasonality'],['valuation','Valuation']];
+function _dkArch(r){ return r&&r.archetype&&r.class&&r.class.key!=='none'?'<span class="sb2-arch">'+_esc(r.archetype)+'</span>':''; }
+const DK_PL=[['positioning','Positioning'],['valuation','Valuation'],['trend','Trend'],['seasonal','Seasonality'],['macro','Macro']];
+const DK_REL_WORD={with:'with the side',with_pullback:'with the side, pulling back',with_late:'with the side, extended',exhausted:'tired, not counted against',against:'against the side'};
 function _dkDots(r){
   return '<span class="sb2-dots">'+DK_PL.map(([k,l])=>{
     const p=(r.pillars||{})[k]||{}; const s=p.sign||0;
     const na=(k==='positioning'&&!r.positioning);
-    return '<i class="'+(na?'na':s>0?'u':s<0?'d':'z')+(p.rel==='against'?' ag':'')+'" title="'+l+': '+(na?'no house COT':s>0?'up':s<0?'down':'no lean')+(p.rel&&p.rel!=='none'&&p.rel!=='neutral'?' ('+p.rel+')':'')+'"></i>';
+    return '<i class="'+(na?'na':s>0?'u':s<0?'d':'z')+(p.rel==='against'?' ag':'')+(p.rel==='exhausted'?' ex':'')+'" title="'+l+': '+(na?'no house COT':s>0?'up':s<0?'down':'no lean')+(DK_REL_WORD[p.rel]?' ('+DK_REL_WORD[p.rel]+')':'')+(p.role?' · '+_esc(p.role):'')+'"></i>';
   }).join('')+'</span>';
 }
 
@@ -25679,7 +25688,7 @@ function renderWeek(){
   const D=DESK, rows=D.rows||[], cnt=D.counts||{};
   const st=D.stamps||[]; const cotS=st.find(s=>/Positioning/.test(s.name))||{};
   const br=((D.brief&&D.brief.paragraphs)||[]).filter(p=>!/^Ordering is by/.test(p) && !/^Top-tier prints ahead/.test(p) && !/close to one bet/.test(p));
-  const live=rows.filter(r=>['aligned','payoff','payoff_vs_macro'].includes(r.class.key));
+  const live=rows.filter(r=>['prime','setup'].includes(r.class.key));
   const now=Date.now();
   const evs=(((D.brief&&D.brief.facts&&D.brief.facts.events)||[])).filter(e=>new Date(e.datetime_utc).getTime()>now-3*36e5).slice(0,7);
   let h='<div class="wk">';
@@ -25688,12 +25697,12 @@ function renderWeek(){
   h+='<div class="wk-grid">';
   h+='<div class="wk-c wk-brief"><div class="wk-sub">The read</div>'+br.map(p=>'<p>'+_esc(p)+'</p>').join('')+'</div>';
   // board
-  h+='<div class="wk-c"><div class="wk-sub">On the board <span>'+live.length+' live &middot; '+(cnt.backdrop||0)+' backdrop</span></div>';
+  h+='<div class="wk-c"><div class="wk-sub">On the board <span>'+(cnt.prime||0)+' prime &middot; '+(cnt.setup||0)+' setup &middot; '+(cnt.developing||0)+' developing</span></div>';
   if(live.length){
     h+='<ul class="wk-board">'+live.slice(0,9).map(r=>'<li tabindex="0" onclick="deskOpen(\''+r.id+'\')" onkeydown="if(event.key===\'Enter\')deskOpen(\''+r.id+'\')">'
-      +'<span class="nm"><b>'+_esc(r.name)+'</b><i>'+_esc(r.class.label)+'</i></span>'+_dkDots(r)+_dkTrigTag(r)+_dkSide(r.side)+'</li>').join('')+'</ul>';
+      +'<span class="nm"><b>'+_esc(r.name)+'</b><i>'+_esc(r.archetype?r.class.label.replace(/ setup$/i,''):r.class.label)+(r.archetype?' &middot; '+_esc(r.archetype):'')+'</i></span>'+_dkDots(r)+_dkTrigTag(r)+_dkSide(r.side)+'</li>').join('')+'</ul>';
     if(live.length>9) h+='<div class="wk-more">+'+(live.length-9)+' more in the market list</div>';
-  } else h+='<div class="wk-empty">No live positioning setups on the house basis this week.</div>';
+  } else h+='<div class="wk-empty">No prime or setup-grade markets this week.</div>';
   h+='</div>';
   // events
   h+='<div class="wk-c"><div class="wk-sub">Event gate <span>UK time</span></div>';
@@ -25735,7 +25744,7 @@ function marketReadInner(id){
   let h='<div class="mr2-hd" style="--tone:'+tone+'">';
   h+='<div class="mr2-k">Market read &middot; '+_esc(r.name)+'<span class="mr2-stamp">built '+_dkAgo(DESK.generated_at)+(r.positioning?' &middot; COT obs '+_dkT(r.positioning.observed):'')+'</span></div>';
   h+='<div class="mr2-hl">'+_esc(R.headline)+'</div>';
-  h+='<div class="mr2-meta"><span class="mr2-cls" style="--c:'+tone+'">'+_esc(S.label||'')+'</span>'+_dkSide(side,lean)
+  h+='<div class="mr2-meta"><span class="mr2-cls" style="--c:'+tone+'">'+_esc(S.label||'')+'</span>'+(R.archetype&&S.key!=='none'?'<span class="mr2-arch">'+_esc(R.archetype)+'</span>':'')+_dkSide(side,lean)
     +(S.trigger?'<span class="mr2-trig">'+_esc(S.trigger)+'</span>':'')+comp+'</div></div>';
   h+='<div class="mr2-body"><div class="mr2-txt">'+(prof?'<p class="mr2-prof">'+_esc(prof)+'</p>':'')+(R.summary||[]).map(t=>'<p>'+_esc(t)+'</p>').join('')+(R.engine&&R.engine.text?'<div class="mr2-eng'+(R.engine.disagrees?' dis':'')+'"><span>Composite engine</span>'+_esc(R.engine.text)+'</div>':'')+'</div>';
   const now=Date.now(); const evs=(R.events||[]).filter(e=>new Date(e.datetime_utc).getTime()>now-36e5);
@@ -25747,8 +25756,8 @@ function marketReadInner(id){
   h+='</aside></div>';
   h+='<div class="mr2-pills">'+(R.pillars||[]).map(p=>{
     const s=p.sign||0; const cls=s>0?'u':s<0?'d':'z';
-    const rel=p.rel==='with'?'with '+relWord:p.rel==='against'?'against '+relWord:'';
-    return '<div class="mr2-p '+cls+(p.rel==='against'?' ag':'')+'" role="button" tabindex="0" onclick="switchTab(\''+p.tab+'\')" onkeydown="if(event.key===\'Enter\')switchTab(\''+p.tab+'\')">'
+    const rel=(p.rel==='with'||p.rel==='with_pullback'||p.rel==='with_late')?'with '+relWord:p.rel==='against'?'against '+relWord:p.rel==='exhausted'?'tired, not against':'';
+    return '<div class="mr2-p '+cls+(p.rel==='against'?' ag':'')+(p.rel==='exhausted'?' ex':'')+'" role="button" tabindex="0" onclick="switchTab(\''+p.tab+'\')" onkeydown="if(event.key===\'Enter\')switchTab(\''+p.tab+'\')">'
       +'<div class="mr2-p-hd"><span class="t">'+_esc(p.title)+'</span>'+(rel?'<span class="rel">'+rel+'</span>':'')+'</div>'
       +'<div class="mr2-p-w">'+_dkArrow(s)+' '+_esc(p.word)+'</div>'
       +(p.key==='positioning'?'<div class="mr2-p-cot">'+_dkCot(r)+'</div>':'')
@@ -25794,13 +25803,14 @@ function _planForm(id,j){
 function _hrDeskLine(id){
   if(!DESK||!DESK.rows) return '';
   const r=DESK.rows.find(x=>x.id===id); if(!r) return '';
-  const v=r.valuation||{}, L=v.lines||{}, s=r.seasonal||{};
-  const vt=Object.keys(L).length?Object.keys(L).map(k=>'vs '+k.toUpperCase()+' '+(L[k].value>0?'+':'')+Math.round(L[k].value)).join(', ')+(v.composite?' ('+_esc(v.composite.state)+')':''):'n/a';
-  const st=s.median_pct!=null?((s.median_pct>0?'+':'')+s.median_pct+'% median, hit '+s.hit_rate+'%, grade '+_esc(s.grade)+(s.usable?'':' (not used: '+_esc(s.why||'')+')')):'n/a';
-  return '<div class="hr-desk">Desk: <b>'+_esc(r.class.label)+'</b>'+(r.side?' &middot; '+(r.side>0?'long':'short'):'')+' &middot; valuation '+vt+' &middot; seasonal '+st+'</div>';
+  const V=r.valuation_read||{}, S=r.seasonal_fwd||{}, fw=S.fwd||{};
+  const vt=V.refs?_esc(V.word)+' ('+_esc(V.refs)+')':'n/a';
+  const sp=['30','60'].filter(h=>fw[h]&&fw[h].median!=null).map(h=>h+' TD '+(fw[h].median>0?'+':'')+fw[h].median+'%').join(', ');
+  const st=sp?_esc(S.word||'')+' ('+sp+', positive = tends up)':'n/a';
+  return '<div class="hr-desk">Desk: <b>'+_esc(r.class.label)+'</b>'+(r.side?' &middot; '+(r.side>0?'long':'short'):'')+(r.archetype&&r.class.key!=='none'?' &middot; '+_esc(r.archetype):'')+' &middot; valuation '+vt+' &middot; seasonal '+st+'</div>';
 }
 
-const SB_GROUP_NOTE={aligned:'Crowd extreme, macro and trend agree',payoff:'Crowd extreme, macro neutral',payoff_vs_macro:'Crowd extreme against the macro',backdrop:'Macro and trend agree, no crowd to fade',lapsed:'Extreme without a turn for too long',none:'No positioning or backdrop setup'};
+const SB_GROUP_NOTE={prime:'Two payoff sources agree, or one with trend and seasonal',setup:'One payoff source with support',developing:'Payoff there, fighting the trend or unsupported',backdrop:'Trend and macro agree, no payoff edge',none:'No payoff source'};
 function renderSetupList(){
   const q=(document.getElementById('sb-search')?.value||'').trim().toLowerCase();
   const byId={}; DATA.markets.forEach(m=>byId[m.id]=m);
@@ -25826,11 +25836,11 @@ function _sbRow(m,r,dim){
   const catCol=m.category==='equity'?'var(--cat-equity)':m.category==='fx'?'var(--cat-fx)':m.category==='fx_cross'?'var(--cat-cross)':m.category==='bond'?'var(--cat-bond)':m.category==='crypto'?'var(--cat-crypto)':'var(--cat-commodity)';
   const tid=m.id.length>4?m.id.slice(0,3):m.id;
   const sc=r&&r.side?(r.side>0?'#22C97A':'#E05252'):col;
-  const lean=r&&r.read&&r.read.stance?r.read.stance.lean:0;
+  const lean=r?(r.lean||(r.read&&r.read.stance?r.read.stance.lean:0)):0;
   return '<div class="mkt-row sb2-row'+(dim?' dim':'')+(selMkt===m.id?' sel':'')+'" data-id="'+m.id+'" onclick="selectMkt(\''+m.id+'\')" style="--mob-row-col:'+sc+';--row-accent:'+sc+'">'
     +'<span class="mr-id" style="color:'+catCol+'">'+tid+'</span>'
     +'<div class="mr-body"><div class="mr-name-row"><div class="mr-name">'+_esc(m.name)+'</div></div>'
-    +(r?'<div class="sb2-sub">'+_dkDots(r)+_dkTrigTag(r)+'</div>':'')+'</div>'
+    +(r?'<div class="sb2-sub">'+_dkDots(r)+_dkTrigTag(r)+_dkArch(r)+'</div>':'')+'</div>'
     +(r?_dkSide(r.side,dim?0:lean):'')
     +'<div class="mr-right"><span class="sb2-score" style="color:'+col+'" title="Composite score, for reference">'+(ws!=null?ws.toFixed(1):'—')+'</span></div></div>';
 }
@@ -27745,7 +27755,16 @@ function renderOverview(){
     const stAccentRgb  = isHiking ? '230,184,74' : isCutting ? '94,184,245' : '200,207,224';
     const mktDeltaCol  = stAccent;
     const probTone     = domLabel === 'Hike' ? '#e6b84a' : domLabel === 'Cut' ? '#5eb8f5' : 'rgba(255,255,255,0.92)';
-    const rateCardHtml = (effr != null || cuts12m != null) ? `
+    const _fffOk = rateSig.source === 'fff' && fwMeetings.length > 0;
+    const rateCardHtml = !_fffOk ? `
+      <div class="ov-rp-card" style="--rp-accent:#adb8d0;--rp-accent-rgb:173,184,208">
+        <div class="ov-rp-glow"></div><div class="ov-rp-wash"></div>
+        <div class="ov-rp-hdr"><div class="ov-rp-hdr-left"><div class="ov-mc-eyebrow">Federal Reserve</div><div class="ov-mc-title">Rate Path</div></div>
+          <span class="ov-mc-badge" style="color:#adb8d0;background:rgba(173,184,208,0.10);border:1px solid rgba(173,184,208,0.30)">Futures pricing not loaded</span></div>
+        <div class="ov-rp-hero"><div class="ov-rp-hero-l"><div class="ov-rp-eyebrow">Effective rate</div>
+          <div class="ov-rp-target">${effrActual != null ? effrActual.toFixed(2) : '—'}<span class="ov-rp-pct">%</span></div></div></div>
+        <div style="font-size:12px;line-height:1.5;color:var(--dim);padding:4px 2px 2px">The meeting-by-meeting probabilities come from the fed funds futures strip, which has not loaded on this build yet. The FRED fallback only gives a rough path, so no hike or cut probabilities are shown until the strip is back. It reloads on the next refresh.</div>
+      </div>` : (effr != null || cuts12m != null) ? `
       <!-- ════ FEDERAL RESERVE — rate path card, matches ov-macro-card system ════ -->
       <div class="ov-rp-card" style="--rp-accent:${stAccent};--rp-accent-rgb:${stAccentRgb}">
         <div class="ov-rp-glow"></div>
