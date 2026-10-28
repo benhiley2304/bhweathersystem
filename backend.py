@@ -8707,6 +8707,8 @@ def compute_risk_regime() -> dict:
                 "cpi_yoy": cpi_yoy,
                 "cpi_mom": cpi_mom,
                 "trend":   cpi_trend,
+                "as_of":   cpi_data[-1].get("date"),   # month of the latest FRED CPI index (SA)
+                "source":  "FRED CPIAUCSL (seasonally adjusted index)",
             }
     except Exception: pass
 
@@ -9966,6 +9968,7 @@ def generate_asset_narratives(news_items: list) -> dict:
     """
     import json as _json
     if not news_items:
+        print("[narr] skipped: no FF news headlines in the last window", flush=True)
         return {}
 
     # Build compact headline digest
@@ -10092,6 +10095,7 @@ def generate_asset_narratives(news_items: list) -> dict:
     try:
         api_key = os.environ.get("PPLX_API_KEY", "")
         if not api_key:
+            print("[narr] skipped: PPLX_API_KEY is not set on this service", flush=True)
             return {}
         resp = httpx.post(
             "https://api.perplexity.ai/chat/completions",
@@ -10104,6 +10108,9 @@ def generate_asset_narratives(news_items: list) -> dict:
             },
             timeout=45.0,
         )
+        if resp.status_code != 200:
+            print(f"[narr] Sonar HTTP {resp.status_code}: {resp.text[:200]}", flush=True)
+            return {}
         raw = resp.json()["choices"][0]["message"]["content"].strip()
         # Strip markdown code fences if present (belt-and-braces)
         if raw.startswith("```"):

@@ -33,3 +33,27 @@ The House read has a plan form (side, starter date, zone, entry, stop, target, c
 ## Limitations
 
 Crosses have no house COT and are classed on macro and trend only. The weekly brief is assembled from the numbers on the page, with no model text. Hidden concentration uses return correlations of the live sides and reports effective bets.
+
+## Market read (per market)
+
+`bhws_core/marketread.py` turns one desk row plus the engine payload into the read shown at the top of each market's Overview tab. It is pure and deterministic: same inputs, same words. No model call.
+
+Output per market (`DESK.rows[].read`):
+
+- `headline`, one line. For "nothing to do" markets it names the split, e.g. "No setup: trend and seasonality lean long and macro leans short."
+- `stance`: desk class, side, lean (side if there is one, else macro sign, else pillar count), trigger.
+- `summary`: two to four plain sentences.
+- `pillars`: positioning, macro, trend, seasonal, valuation. Each has a sign (green up, red down), whether it is with or against the side or lean, short facts and the tab that holds the detail.
+- `watch`: what would change it (distance to a fresh extreme, valuation thresholds, seasonal timing, marginal macro votes).
+- `events`: upcoming top-tier prints for the market's currencies.
+- `engine`: the 1 to 10 composite and the engine's lean, quoted as is and never inverted. If it disagrees with the read, both are shown and neither is adjusted.
+
+A macro vote that clears the 0.5 deadband by less than 1.0 is flagged as marginal. The read is a description of the evidence, not a probability.
+
+## Where the desk shows up
+
+There is no separate Desk view any more. One `/api/desk` build (polled on load, 202 while warming) feeds:
+
+- the sidebar, ordered by setup class by default (toggle to Score for the composite ranking);
+- the "This week" band on the home page (brief, live setups, event gate, what changed, concentration);
+- the market read on each Overview tab.

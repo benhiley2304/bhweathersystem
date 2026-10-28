@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, Optional
 import pandas as pd
 
 import bhws_evidence_api as evapi
-from bhws_core import desk, valuation
+from bhws_core import desk, marketread, valuation
 
 REFS = {"zb": "ZB=F", "dxy": "DX-Y.NYB", "gc": "GC=F"}
 DESK_TTL = 30 * 60
@@ -224,6 +224,13 @@ def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
     regime = (scores_payload or {}).get("regime")
     br = desk.brief(regime=regime, fed=fed_payload, events=events, rows=rows, clusters=cl, now=now)
     changed = desk.what_changed(rows, now)
+    fed_facts = (br.get("facts") or {}).get("fed")
+    for r in rows:
+        try:
+            r["read"] = marketread.build_read(r, eng_by.get(r["id"]), fed_facts, now)
+        except Exception as e:
+            r["read"] = None
+            notes.append(f"{r['id']}: market read failed ({e.__class__.__name__})")
 
     cot_obs = sorted({(r.get("positioning") or {}).get("observed") for r in rows if r.get("positioning")} - {None})
     cot_rel = sorted({(r.get("positioning") or {}).get("released") for r in rows if r.get("positioning")} - {None})
