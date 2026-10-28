@@ -29,7 +29,7 @@ def test_extreme_short_crowd_not_turned_and_no_zone_means_no_level():
     r = evaluate(dates(len(net)), net, px)
     assert r["fade_side"] == "long"
     assert r["status"] == "Not turned"
-    assert r["starter"]["state"] == "Wait for the zone"
+    assert r["starter"]["state"] == "No zone entered"
     assert r["starter"]["stop"] is None
 
 

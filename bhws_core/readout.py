@@ -105,8 +105,12 @@ def build(market: Dict[str, Any], *, evidence: Optional[Dict[str, Any]] = None,
 
     # ── trade: never produced by BHWS on its own ─────────────────────────
     if trader_levels and all(k in trader_levels for k in ("entry", "stop")):
-        trade = {"state": "Trader levels supplied", "levels": trader_levels,
-                 "source": "trader (manual)"}
+        rr = trader_levels.get("reward_risk") or {}
+        trade = {"state": "Executable plan (your levels)" if rr.get("valid", True) else "Levels do not form a trade",
+                 "levels": trader_levels, "source": "trader (manual)",
+                 "note": rr.get("reason") or ("Reward:risk alone is not expectancy. Break-even hit rate "
+                                              f"{rr['breakeven_hit_rate']:.0%} after the frictions entered."
+                                              if rr.get("breakeven_hit_rate") is not None else None)}
     else:
         trade = {"state": "No executable trade from BHWS data",
                  "needs": "your weekly zone, entry and stop"}

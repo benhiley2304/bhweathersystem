@@ -11,7 +11,7 @@
 
 What this module does NOT do: it never draws a zone. Zones are hand-drawn and
 Issue 11 states they were not tested. If no zone is supplied the state stops
-at "Wait for the zone" and no stop is produced. That follows the brief:
+at "No zone entered" and no stop is produced. That follows the brief:
 do not manufacture exact levels the data cannot support.
 
 The statuses reuse the Issue 11 "Who is turning" vocabulary.
@@ -189,7 +189,7 @@ def evaluate(obs_dates: Sequence[date], manager_net: Sequence[float],
 
     # Starter eligibility needs a hand-drawn zone. Without one, no level.
     if zone is None:
-        out["starter"] = {"state": "Wait for the zone", "stop": None,
+        out["starter"] = {"state": "No zone entered", "stop": None,
                           "note": "No zone supplied. BHWS does not draw zones."}
     else:
         stop = zone.distal - fade * STOP_BUFFER_FRACTION * zone.depth

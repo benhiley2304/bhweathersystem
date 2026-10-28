@@ -19580,6 +19580,15 @@ try:
 except Exception as _ev_err:  # pragma: no cover
     print(f"[startup] evidence layer NOT registered: {_ev_err!r}", flush=True)
 
+# ── BHWS Desk (additive): GET /api/desk, the weekly read across the book ────
+try:
+    from bhws_desk_api import register as _bhws_register_desk
+    _bhws_register_desk(app, markets=MARKETS, scores_cache=ALL_DATA_CACHE, cot_cache=COT_CACHE,
+                        events_provider=upcoming_events, fed_provider=fed_pricing_history)
+    print("[startup] desk registered (/api/desk)", flush=True)
+except Exception as _desk_err:  # pragma: no cover
+    print(f"[startup] desk NOT registered: {_desk_err!r}", flush=True)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)

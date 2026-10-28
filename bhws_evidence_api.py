@@ -28,7 +28,7 @@ from typing import Any, Dict, Optional
 
 import pandas as pd
 
-from bhws_core import cot_calendar, percentile, playbook, readout
+from bhws_core import cot_calendar, percentile, playbook, readout, riskreward
 from bhws_core.provenance import InputStamp, data_confidence
 
 FUTURES_ONLY_API = "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
@@ -117,8 +117,12 @@ def _macro_sign(engine_payload: Optional[dict]) -> Optional[int]:
 def build_evidence(market: dict, fo: Optional[pd.DataFrame], fo_retrieved: Optional[str],
                    daily: Optional[pd.Series], px_retrieved: Optional[str],
                    engine_payload: Optional[dict], engine_updated: Optional[str],
-                   combined_df: Optional[pd.DataFrame], now: Optional[datetime] = None) -> dict:
+                   combined_df: Optional[pd.DataFrame], now: Optional[datetime] = None,
+                   plan: Optional[dict] = None) -> dict:
+    """plan (optional, trader-supplied, never generated): side (+1/-1), starter
+    (date), zone_proximal/zone_distal, entry/stop/target, spread."""
     now = now or datetime.now(timezone.utc)
+    plan = plan or {}
     mid = market["id"]
     stamps = []
     ev: Dict[str, Any] = {"market": mid, "name": market.get("name"),
@@ -197,10 +201,14 @@ def build_evidence(market: dict, fo: Optional[pd.DataFrame], fo_retrieved: Optio
     if fo is not None and len(fo) >= 20 and daily is not None and len(daily):
         closes = _align_closes(fo.date.tolist(), daily)
         keep = [i for i, c in enumerate(closes) if not math.isnan(c)]
+        zone = None
+        if plan.get("zone_proximal") is not None and plan.get("zone_distal") is not None:
+            zone = playbook.Zone(float(plan["zone_proximal"]), float(plan["zone_distal"]), source="trader")
         pb = playbook.evaluate([fo.date.iloc[i] for i in keep],
                                [float(fo.mgr_net.iloc[i]) for i in keep],
                                [closes[i] for i in keep],
-                               macro_bias=_macro_sign(engine_payload))
+                               macro_bias=_macro_sign(engine_payload), zone=zone,
+                               book_side=plan.get("side"), starter_date=plan.get("starter"))
         ev["playbook"] = pb
     else:
         ev["playbook"] = {"status": "Insufficient data"}
@@ -242,8 +250,19 @@ def build_evidence(market: dict, fo: Optional[pd.DataFrame], fo_retrieved: Optio
     obs_key = (ev.get("positioning") or {}).get("observed")
     if prev and prev.get("report") != obs_key:
         prev_read = prev.get("read")
-    ev["read"] = readout.build(engine_payload or {"id": mid}, evidence=ev, previous=prev_read)
-    if obs_key and (not prev or prev.get("report") != obs_key):
+    levels = None
+    if plan.get("side") in (1, -1) and all(plan.get(k) is not None for k in ("entry", "stop", "target")):
+        rr = riskreward.reward_risk(float(plan["entry"]), float(plan["stop"]), float(plan["target"]),
+                                    int(plan["side"]), spread=float(plan.get("spread") or 0.0))
+        levels = {"side": plan["side"], "entry": plan["entry"], "stop": plan["stop"],
+                  "target": plan["target"], "reward_risk": rr}
+        ev["plan"] = levels
+    elif plan:
+        ev["plan"] = {"side": plan.get("side"), "starter": plan.get("starter"),
+                      "note": "side, entry, stop and target are all needed for reward:risk"}
+    ev["read"] = readout.build(engine_payload or {"id": mid}, evidence=ev, previous=prev_read,
+                               trader_levels=levels)
+    if obs_key and not plan and (not prev or prev.get("report") != obs_key):
         _PREV_READ[mid] = {"report": obs_key, "read": ev["read"], "prev": prev_read}
     elif prev and prev.get("prev") is not None:
         ev["read"]["changes"] = readout.diff(prev["prev"], ev["read"])
@@ -269,7 +288,10 @@ def register(app, *, markets, scores_cache, cot_cache=None):
         return await call_next(request)
 
     @app.get("/api/evidence")
-    async def get_evidence(market: str):
+    async def get_evidence(market: str, side: Optional[str] = None, starter: Optional[str] = None,
+                           zone_proximal: Optional[float] = None, zone_distal: Optional[float] = None,
+                           entry: Optional[float] = None, stop: Optional[float] = None,
+                           target: Optional[float] = None, spread: Optional[float] = None):
         mid = (market or "").strip().upper()
         m = by_id.get(mid)
         if m is None:
@@ -292,7 +314,21 @@ def register(app, *, markets, scores_cache, cot_cache=None):
         if cot_cache is not None:
             hit = cot_cache.get(m["cftc_code"])
             comb = hit if isinstance(hit, pd.DataFrame) else None
-        ev = build_evidence(m, fo, fo_ret, daily, px_ret, eng, payload.get("updated_at"), comb)
+        plan = {}
+        sd = {"long": 1, "short": -1, "1": 1, "-1": -1}.get((side or "").strip().lower())
+        if sd:
+            plan["side"] = sd
+        if starter:
+            try:
+                plan["starter"] = date.fromisoformat(starter[:10])
+            except ValueError:
+                return JSONResponse({"error": "starter must be YYYY-MM-DD"}, status_code=422)
+        for k, v in (("zone_proximal", zone_proximal), ("zone_distal", zone_distal), ("entry", entry),
+                     ("stop", stop), ("target", target), ("spread", spread)):
+            if v is not None and math.isfinite(v):
+                plan[k] = v
+        ev = build_evidence(m, fo, fo_ret, daily, px_ret, eng, payload.get("updated_at"), comb,
+                            plan=plan or None)
         return JSONResponse(_json_safe(ev))
 
     return app
