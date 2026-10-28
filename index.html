@@ -25554,7 +25554,7 @@ function renderHouseRead(id){
   const setCol=/^Positioning setup|clock runs/.test(st.state||'')?'#EAB850':'var(--text)';
   html+='<div class="hr-rows">'
     +'<div class="hr-row"><div class="hr-row-k">Bias</div><div class="hr-row-v" style="color:'+bCol+'">'+_esc(b.state||'—')+'</div>'
-      +'<div class="hr-row-d">'+(b.note?_esc(b.note):'Engine says '+_esc(b.engine_direction||'—')+(b.engine_conviction!=null?' ('+(b.engine_conviction>=0?'+':'')+Number(b.engine_conviction).toFixed(1)+')':'')+'. Judged without positioning.')
+      +'<div class="hr-row-d">'+(b.note?_esc(b.note):'Engine says '+_esc(b.engine_direction||'—')+(b.engine_conviction!=null?' ('+(b.engine_conviction>=0?'+':'\u2212')+Math.abs(Number(b.engine_conviction)).toFixed(2)+')':'')+'. Judged without positioning.')
       +((rd.support||[]).length?'<br>For: '+rd.support.map(x=>_esc(x.family)).join(', '):'')
       +((rd.conflict||[]).length?'<br>Against: '+rd.conflict.map(x=>_esc(x.family)).join(', '):'')+'</div></div>'
     +'<div class="hr-row"><div class="hr-row-k">Setup</div><div class="hr-row-v" style="color:'+setCol+'">'+_esc(st.state||'—')+'</div>'
@@ -36567,23 +36567,23 @@ function cotCardDesc(groupType, netVal, brieseIdx, mktCategory, cotFormat) {
   if (groupType === 'lspec') {
     if (isLong) {
       return isCrowded
-        ? 'Large speculators at extreme long — crowded long, elevated reversal risk. Monitor commercial divergence.'
-        : 'Large speculators (CTAs, hedge funds) net long — trend-following momentum signal. Bullish confirmation.';
+        ? 'Fund managers at extreme long — crowded long, elevated reversal risk. Monitor commercial divergence.'
+        : 'Fund managers (CTAs, hedge funds) net long — trend-following momentum signal. Bullish confirmation.';
     } else {
       return isSqueeze
-        ? 'Large speculators at extreme short — powerful short-covering potential if price reverses. Contrarian watch.'
-        : 'Large speculators net short — speculative community leaning bearish. Trend confirmation.';
+        ? 'Fund managers at extreme short — powerful short-covering potential if price reverses. Contrarian watch.'
+        : 'Fund managers net short — speculative community leaning bearish. Trend confirmation.';
     }
   }
   if (groupType === 'sspec') {
     if (isLong) {
       return isCrowded
-        ? 'Small speculators (retail) at extreme long — often contrarian. Bullish crowding in retail = caution signal.'
-        : 'Small speculators net long — mild contrarian bearish signal; retail tends to be wrong at extremes.';
+        ? 'Retail traders at extreme long — often contrarian. Bullish crowding in retail = caution signal.'
+        : 'Retail traders net long — mild contrarian bearish signal; retail tends to be wrong at extremes.';
     } else {
       return isSqueeze
-        ? 'Small speculators at extreme short — contrarian bullish setup. Retail at max bearishness often precedes reversals.'
-        : 'Small speculators net short — mild contrarian bullish lean; retail crowd leaning bearish.';
+        ? 'Retail traders at extreme short — contrarian bullish setup. Retail at max bearishness often precedes reversals.'
+        : 'Retail traders net short — mild contrarian bullish lean; retail crowd leaning bearish.';
     }
   }
   return '';
@@ -36652,14 +36652,8 @@ function cotTab(m){
   const _cotSc = m.scores.cot?.score??5;
   const _cotCol = sHex(_cotSc);
   const _cotLbl = m.scores.cot?.label||'';
-  const _cotSummaryText = (()=>{
-    const sc=_cotSc;
-    if(sc>=7) return `Positioning is <strong style="color:${_cotCol}">${_cotLbl||'bullish'}</strong> — large speculators are net long and approaching extremes. COT historically leads price by 2–3 weeks.`;
-    if(sc>=5.5) return `Positioning shows a <strong style="color:${_cotCol}">${_cotLbl||'mild bullish'}</strong> lean — specs incrementally building longs. Watch for continuation or a fade near resistance.`;
-    if(sc>=4.5) return `Positioning is <strong style="color:var(--faint)">neutral</strong> — no clear speculator conviction from either side. Price action and other factors carry more weight here.`;
-    if(sc>=3) return `Positioning has a <strong style="color:${_cotCol}">${_cotLbl||'mild bearish'}</strong> lean — specs are trimming longs or building shorts incrementally.`;
-    return `Positioning is <strong style="color:${_cotCol}">${_cotLbl||'bearish'}</strong> — speculative shorts at elevated levels. Extreme readings often precede mean-reversion; look for confirming signals.`;
-  })();
+  // Engine COT score in one line; the house read below is the basis the desk uses.
+  const _cotSummaryText = `Engine COT score <strong style="color:${_cotCol}">${_cotSc.toFixed(1)}/10${_cotLbl?' \u00b7 '+_esc(_cotLbl):''}</strong> on the engine\u2019s combined 10-year scale. The house read below (futures-only, 156-report mid-rank) is what the desk and the market read use, and the two can differ.`;
   const _cotPrefix = _tabSummary(_cotSummaryText, _cotCol);
 
   // ── CROSS PAIRS now render through the STANDARD 3-category branch below.
