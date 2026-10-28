@@ -27719,8 +27719,10 @@ function renderOverview(){
     // ── US Rate Block ─────────────────────────────────────────────────────────
     // Hero layout: left=target+effective, centre=probability gauge, right=next meeting
     const usData    = (reg.intl_rates || {}).US || {};
-    const usNextMtg = _fmtMtg(usData.next_meeting);
-    const usDaysTo  = _daysTo(usData.next_meeting);
+    // The probability shown is the first meeting in the futures matrix, so date it the same way.
+    const _usMtgDate = (rateSig.source === 'fff' && fwMeetings.length && fwMeetings[0].date) || usData.next_meeting;
+    const usNextMtg = _fmtMtg(_usMtgDate);
+    const usDaysTo  = _daysTo(_usMtgDate);
     const targetLow  = usData.target_low;
     const targetHigh = usData.target_high;
     const targetStr  = (targetLow != null && targetHigh != null)
