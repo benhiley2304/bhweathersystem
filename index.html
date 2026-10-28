@@ -3326,6 +3326,29 @@ canvas[id*="spx"],canvas[id*="chart"]{border-radius:4px}
 .se-chip.neu{color:var(--faint);border-color:rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)}
 .se-note{font-size:8.5px;color:var(--faint);opacity:0.7;margin-top:8px;line-height:1.55}
 .hc-mini-stats{color:var(--accent2)}
+/* ── HOUSE READ PANEL (Positioning tab, /api/evidence) ── */
+.hr-wrap{margin:12px 0 6px;padding:12px 14px;border-radius:8px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07)}
+.hr-pcts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px}
+.hr-pct{padding:7px 9px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-top:2px solid var(--hr-c)}
+.hr-pct-k{font-size:8.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--hr-c);font-family:var(--mono)}
+.hr-pct-v{font-size:17px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1.3}
+.hr-pct-v sup{font-size:9px;color:var(--faint);font-weight:600;margin-left:1px}
+.hr-pct-s{font-size:9px;color:var(--faint);font-family:var(--mono)}
+.hr-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.hr-row{padding:8px 10px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);min-width:0}
+.hr-row-k{font-size:8.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--faint);font-family:var(--mono);margin-bottom:3px}
+.hr-row-v{font-size:12px;font-weight:700;line-height:1.35;margin-bottom:3px}
+.hr-row-d{font-size:10px;color:var(--faint);line-height:1.5}
+.hr-list{margin:8px 0 0;padding:0;list-style:none;font-size:10px;color:var(--faint);line-height:1.55;font-family:var(--mono)}
+.hr-list li::before{content:'\25B8  ';color:var(--accent)}
+.hr-list b{color:var(--text);font-weight:600}
+.hr-meta{font-size:9.5px;color:var(--faint);font-family:var(--mono);line-height:1.5;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.hr-conf{font-size:8.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:4px;border:1px solid}
+.hr-conf.High{color:#22C97A;border-color:rgba(34,201,122,0.3);background:rgba(34,201,122,0.07)}
+.hr-conf.Medium{color:#EAB850;border-color:rgba(234,184,80,0.35);background:rgba(234,184,80,0.07)}
+.hr-conf.Low,.hr-conf.Insufficient{color:#E05252;border-color:rgba(224,82,82,0.35);background:rgba(224,82,82,0.07)}
+.hr-warn{margin-top:8px;padding:6px 9px;border-radius:5px;background:rgba(234,184,80,0.06);border:1px solid rgba(234,184,80,0.22);font-size:10px;color:#EAB850;line-height:1.5}
+@media (max-width:700px){.hr-rows{grid-template-columns:1fr}.hr-pct-v{font-size:15px}}
 /* Safety: the HC module may never swallow the rankings list */
 #hc-module{max-height:48vh;overflow-y:auto;flex-shrink:0}
 #hc-module::-webkit-scrollbar{width:3px}
@@ -25275,6 +25298,105 @@ function renderSetupEvidence(id){
     +'</div>';
 }
 
+/* ── HOUSE READ (/api/evidence) ─────────────────────────────────────────
+   House basis = CFTC legacy futures-only, trailing 156 reports, mid-rank,
+   the same as the BHWS TradingView COT indicators. Bias, setup and trade are
+   shown apart. The engine's combined-basis numbers are a cross-check and
+   disagreements are listed, never reconciled. Nothing here is filled in when
+   an input is missing. */
+const HOUSE_READ = {};
+const HOUSE_READ_TTL = 15*60*1000;
+async function loadHouseRead(id){
+  const slot=()=>document.querySelector('[data-house-read="'+id+'"]');
+  const hit=HOUSE_READ[id];
+  if(hit && Date.now()-hit.t<HOUSE_READ_TTL){ renderHouseRead(id); return; }
+  if(slot()) slot().innerHTML='<div class="hr-wrap"><div class="se-head">House read</div><div class="hr-meta">Loading the futures-only positioning and playbook state&hellip;</div></div>';
+  let j=null, err=null;
+  try{
+    const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),45000);
+    const r=await fetch(API+'/api/evidence?market='+encodeURIComponent(id),{signal:ctl.signal});
+    clearTimeout(to);
+    j=await r.json().catch(()=>null);
+    if(!r.ok) err=(j&&j.error)||('HTTP '+r.status);
+  }catch(e){ err=e&&e.name==='AbortError'?'timed out':'unreachable'; }
+  HOUSE_READ[id]={t:err?0:Date.now(), j, err};
+  renderHouseRead(id);
+}
+function _hrDate(iso){
+  if(!iso) return '—';
+  const d=new Date(iso+(iso.length===10?'T12:00:00Z':''));
+  if(isNaN(d)) return _esc(iso);
+  return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+}
+function _hrOrd(n){ const t=n%100; if(t>=11&&t<=13) return 'th'; return ({1:'st',2:'nd',3:'rd'})[n%10]||'th'; }
+function _hrDirCol(state){
+  return state==='Bullish'?'#22C97A':state==='Bearish'?'#E05252':state==='Unsupported'||state==='Mixed'?'#EAB850':'var(--faint)';
+}
+function renderHouseRead(id){
+  const el=document.querySelector('[data-house-read="'+id+'"]');
+  if(!el) return;
+  const h=HOUSE_READ[id]; if(!h) return;
+  const head='<div class="se-head">House read &middot; futures-only, 156-report mid-rank</div>';
+  if(h.err){
+    const why=_esc(h.err);
+    const isCross=/no CFTC code/i.test(h.err);
+    el.innerHTML='<div class="hr-wrap">'+head+'<div class="hr-meta">'
+      +(isCross?'Not available for this market. It has no single CFTC contract (cross, ICE or crypto), so there is no futures-only house number to show.'
+               :'House read unavailable ('+why+'). Nothing has been filled in; the engine view above is unchanged.')
+      +'</div></div>';
+    return;
+  }
+  const j=h.j||{}, pos=j.positioning, rd=j.read||{}, pb=j.playbook||{}, dc=j.data_confidence||{};
+  const grade=dc.grade||'Unknown';
+  let html='<div class="hr-wrap">'+head;
+  if(pos){
+    const g=[['Commercials','#3D7BD6',pos.commercials],['Fund managers','#EAB850',pos.managers],['Retail','#E05252',pos.retail]];
+    html+='<div class="hr-pcts">'+g.map(([k,c,v])=>{
+      const p=v&&v.percentile!=null?v.percentile:null;
+      return '<div class="hr-pct" style="--hr-c:'+c+'"><div class="hr-pct-k">'+k+'</div>'
+        +'<div class="hr-pct-v">'+(p!=null?Math.round(p)+'<sup>'+_hrOrd(Math.round(p))+'</sup>':'—')+'</div>'
+        +'<div class="hr-pct-s">'+(v&&v.label?_esc(v.label):'')+(v&&v.net!=null?' &middot; net '+fmtK(v.net):'')+'</div></div>';
+    }).join('')+'</div>';
+    const fr=pos.freshness==='fresh'?'current report':pos.freshness==='stale'?'<span style="color:#E05252">stale, '+(pos.reports_behind||'?')+' report(s) behind</span>':_esc(pos.freshness||'');
+    html+='<div class="hr-meta"><span>Observed '+_hrDate(pos.observed)+'</span><span>Released '+_hrDate(pos.released)+'</span><span>'+fr+'</span><span class="hr-conf '+_esc(grade)+'">Data '+_esc(grade)+'</span></div>';
+  }else{
+    html+='<div class="hr-warn">Futures-only positioning could not be fetched. No house percentiles are shown rather than substituting the engine figures.</div>';
+  }
+  const b=rd.bias||{}, st=rd.setup||{}, tr=rd.trade||{};
+  const bCol=_hrDirCol(b.state);
+  const fade=st.fade_side?(' &middot; fade '+_esc(st.fade_side)):'';
+  const setCol=/^Positioning setup|clock runs/.test(st.state||'')?'#EAB850':'var(--text)';
+  html+='<div class="hr-rows">'
+    +'<div class="hr-row"><div class="hr-row-k">Bias</div><div class="hr-row-v" style="color:'+bCol+'">'+_esc(b.state||'—')+'</div>'
+      +'<div class="hr-row-d">'+(b.note?_esc(b.note):'Engine says '+_esc(b.engine_direction||'—')+(b.engine_conviction!=null?' ('+(b.engine_conviction>=0?'+':'')+Number(b.engine_conviction).toFixed(1)+')':'')+'. Judged without positioning.')
+      +((rd.support||[]).length?'<br>For: '+rd.support.map(x=>_esc(x.family)).join(', '):'')
+      +((rd.conflict||[]).length?'<br>Against: '+rd.conflict.map(x=>_esc(x.family)).join(', '):'')+'</div></div>'
+    +'<div class="hr-row"><div class="hr-row-k">Setup</div><div class="hr-row-v" style="color:'+setCol+'">'+_esc(st.state||'—')+'</div>'
+      +'<div class="hr-row-d">'+(st.playbook_status?'Playbook: '+_esc(st.playbook_status)+fade:'')
+      +(pb.macro_fit&&pb.macro_fit!=='not assessed'?' &middot; macro '+_esc(pb.macro_fit):'')
+      +(st.explain?'<br>'+_esc(st.explain):'')+'</div></div>'
+    +'<div class="hr-row"><div class="hr-row-k">Trade</div><div class="hr-row-v" style="color:var(--faint)">'+_esc(tr.state||'—')+'</div>'
+      +'<div class="hr-row-d">'+(tr.needs?'Needs '+_esc(tr.needs)+'. BHWS does not draw zones or set levels.':'')+'</div></div>'
+    +'</div>';
+  const items=[];
+  (rd.confirm_if||[]).forEach(x=>items.push('<li><b>Confirms if</b> '+_esc(x)+'</li>'));
+  (rd.wrong_if||[]).forEach(x=>items.push('<li><b>Wrong if</b> '+_esc(x)+'</li>'));
+  (rd.changes||[]).forEach(x=>items.push('<li><b>Changed since last report</b> '+_esc(x)+'</li>'));
+  if(items.length) html+='<ul class="hr-list">'+items.join('')+'</ul>';
+  const dis=j.disagreements||[];
+  if(dis.length){
+    html+='<div class="hr-warn"><b>Basis check.</b> '+dis.map(d=>{
+      if(d.field==='managers turning (reports)') return 'Managers turning: '+d.house_futures_only+' report(s) futures-only (house) vs '+d.combined_futures_options+' combined with options.';
+      if(d.field==='managers percentile') return 'Managers: '+Math.round(d.house_futures_only_midrank156)+_hrOrd(Math.round(d.house_futures_only_midrank156))+' house vs '+d.combined_minmax520+' on the engine\u2019s combined 10-year index.';
+      return _esc(d.field);
+    }).join(' ')+' Both shown; not reconciled.</div>';
+  }
+  if((dc.reasons||[]).length) html+='<div class="hr-warn">'+dc.reasons.map(_esc).join(' ')+'</div>';
+  html+='<div class="se-note">Same method as the BHWS TradingView COT indicators. The cards above use the engine\u2019s futures-and-options data on a different scale, so the numbers can differ. Positioning sets the payoff; it is not counted towards the bias. The Issue 11 rule tested flat after costs across 26 markets since 2006, so the playbook state is a checklist, not a signal.</div>';
+  html+='</div>';
+  el.innerHTML=html;
+}
+
 function renderList(){
   if(!DATA)return;
   const _srchQ = (document.getElementById('sb-search')?.value||'').trim().toLowerCase();
@@ -25315,7 +25437,7 @@ function renderList(){
     // Setup = gold, Watch = faint dir-tint, Neutral = placeholder.
     const _tier = m.tier; const _ds = m.bias_sign||0;
     const _cfDot = _tier==='Strong' ? `<div class="mr-conf-dot${_ds<0?' bear':''}" title="Strong conviction"></div>`
-      : _tier==='Setup' ? `<div class="mr-conf-dot setup" title="Setup tier"></div>`
+      : _tier==='Setup' ? `<div class="mr-conf-dot setup" title="Firm conviction tier"></div>`
       : _tier==='Watch' ? `<div class="mr-conf-dot watch${_ds<0?' bear':''}" title="Watch"></div>`
       : `<div class="mr-conf-ph"></div>`;
     // COT positioning-setup glyph (only when an actionable R/R setup exists)
@@ -35459,7 +35581,7 @@ function engineReadPanel(m){
     <div class="ov-eng-head"><span class="ov-eng-accent"></span>ENGINE READ</div>
     <div class="ov-eng-top">
       <span class="ov-eng-dir" style="color:${dCol}">${dir}</span>
-      <span class="ov-eng-tier" style="${tierStyle}">${tier}</span>
+      <span class="ov-eng-tier" style="${tierStyle}">${tier==='Setup'?'Firm':tier}</span>
       <span class="ov-eng-conv">conviction <b style="color:${dCol}">${convStr}</b></span>
     </div>
     <div class="ov-eng-meter"><div class="ov-eng-meter-mid"></div><div class="ov-eng-meter-dot" style="left:${convPct}%;background:${dCol};box-shadow:0 0 8px ${dCol}aa"></div></div>
@@ -35509,7 +35631,7 @@ function buildOverview(m){
         txt = `Edge factors (regime, macro, seasonality) show no clear lean, so the engine reads ${dirHtml} and abstains rather than forcing a call.`;
       } else {
         const tierWord = m.tier==='Strong'?'a high-conviction':m.tier==='Setup'?'a':'an early';
-        txt = `${dirHtml} — ${tierWord} ${m.tier.toLowerCase()} read (conviction ${conv}) from ${m.agree||0} aligned factor${(m.agree||0)===1?'':'s'}`+
+        txt = `${dirHtml} — ${tierWord} ${m.tier==='Setup'?'firm':m.tier.toLowerCase()} read (conviction ${conv}) from ${m.agree||0} aligned factor${(m.agree||0)===1?'':'s'}`+
               (drv.length?` (${drv.slice(0,3).join(', ')})`:'')+
               `, gated by the ${(m.regime||'mixed').toLowerCase()} regime.`;
       }
@@ -35662,7 +35784,7 @@ function buildOverview(m){
       confText = 'The edge factors (regime, macro, seasonality) have no clear lean here, so the engine abstains rather than forcing a call.';
     } else {
       confTitle = _tier==='Strong'?`Strong ${dirWord} confluence`
-                : _tier==='Setup'?`${dirWord[0].toUpperCase()+dirWord.slice(1)} setup`
+                : _tier==='Setup'?`Firm ${dirWord} lean`
                 : `${dirWord[0].toUpperCase()+dirWord.slice(1)} watch`;
       confText = `<strong>${_agree} factor${_agree===1?'':'s'} agree, ${_dis} disagree</strong> on a ${dirWord} read`+
                  (drv.length?` — ${drv.slice(0,4).join(', ')}.`:'.')+
@@ -37067,6 +37189,7 @@ function cotTab(m){
     </div>`;
   }
   html+=`</div>`;
+  html+=`<div data-house-read="${m.id}"></div>`;
 
   // ── COT Phase indicator badge ─────────────────────────────────────
   // Phase 4 = normalise_signal ride; Phase 3 = spec reversal confirmed;
@@ -37339,6 +37462,7 @@ function setCotMode(mode){
 
 async function initCotCharts(marketId){
   try{ _loadSetupStats([marketId]); }catch(e){}
+  try{ loadHouseRead(marketId); }catch(e){}
   // Destroy existing
   cotCharts.forEach(c=>{try{c.destroy()}catch(e){}});
   cotCharts=[];

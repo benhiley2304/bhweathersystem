@@ -75,6 +75,30 @@ HEADERS = {
     "Referer": "https://www.forexfactory.com/",
 }
 
+def _bhws_token():
+    """Admin token for the backend write routes: env first, then the local
+    token file (kept outside the repo, chmod 600). None = send no header."""
+    import os
+    t = os.environ.get("BHWS_ADMIN_TOKEN")
+    if t:
+        return t.strip()
+    for p in (os.path.join(os.path.dirname(os.path.abspath(__file__)), ".bhws_admin_token"),
+              "/home/user/workspace/.bhws_admin_token"):
+        try:
+            with open(p) as f:
+                t = f.read().strip()
+            if t:
+                return t
+        except OSError:
+            pass
+    return None
+
+
+def _bhws_headers():
+    t = _bhws_token()
+    return {"X-BHWS-Admin-Token": t} if t else None
+
+
 def _get_week_strings(n_weeks: int = 16) -> list:
     today = date.today()
     day_of_week = today.weekday()
@@ -307,7 +331,7 @@ def main():
             results[ccy] = {"ok": False, "reason": "0 releases", "score": sd["score"]}
             continue
         try:
-            r = requests.post(INJECT_URL, json=sd, timeout=20)
+            r = requests.post(INJECT_URL, headers=_bhws_headers(), json=sd, timeout=20)
             resp = r.json()
             if resp.get("ok"):
                 print(f"    Injected OK -> backend score={float(resp['score']):.2f}")

@@ -961,6 +961,11 @@ def compute_rel_val_score(market_id: str) -> dict:
     CHEAP_THR  = cfg.get("cheap_thr", 20)
     EXP_THR    = cfg.get("exp_thr",   80)
     SIGNAL_NOTES = cfg.get("signal_notes", "")
+    # Upgrade (evidence layer): these hit rates are hardcoded from an old
+    # in-sample backtest that cannot be reproduced from the repo. Keep the
+    # text but label it so it is not read as verified evidence.
+    if SIGNAL_NOTES:
+        SIGNAL_NOTES = "Unverified in-sample note, small samples: " + SIGNAL_NOTES
     HIST_LEN = 104  # weeks of history to return for charting
 
     all_current_stochs: list[float] = []  # one value per peer×period for scoring
@@ -19563,6 +19568,17 @@ class _NoHealthFilter(_logging.Filter):
         # Suppress healthy keepalive pings only — still log errors (non-200)
         return not ("/api/health" in msg and "200" in msg)
 _logging.getLogger("uvicorn.access").addFilter(_NoHealthFilter())
+
+# ── BHWS evidence layer (additive; see docs/upgrade/) ───────────────────────
+# Registers GET /api/evidence and the opt-in admin guard for inject/clear
+# routes (enforced only when BHWS_ADMIN_TOKEN is set). Failure to import must
+# never take the main service down, so it is wrapped.
+try:
+    from bhws_evidence_api import register as _bhws_register_evidence
+    _bhws_register_evidence(app, markets=MARKETS, scores_cache=ALL_DATA_CACHE, cot_cache=COT_CACHE)
+    print("[startup] evidence layer registered (/api/evidence)", flush=True)
+except Exception as _ev_err:  # pragma: no cover
+    print(f"[startup] evidence layer NOT registered: {_ev_err!r}", flush=True)
 
 if __name__ == "__main__":
     import uvicorn
