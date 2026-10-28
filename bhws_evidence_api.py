@@ -58,7 +58,7 @@ def _fetch_futures_only(code: str) -> pd.DataFrame:
            "noncomm_positions_long_all,noncomm_positions_short_all,"
            "nonrept_positions_long_all,nonrept_positions_short_all,open_interest_all")
     params = {"$select": sel,
-              "$where": f"cftc_contract_market_code='{code}' AND report_date_as_yyyy_mm_dd >= '2019-01-01'",
+              "$where": f"cftc_contract_market_code='{code}' AND report_date_as_yyyy_mm_dd >= '2013-01-01'",
               "$order": "report_date_as_yyyy_mm_dd ASC", "$limit": "2000"}
     r = httpx.get(FUTURES_ONLY_API, params=params, timeout=30)
     r.raise_for_status()
@@ -77,7 +77,7 @@ def _fetch_futures_only(code: str) -> pd.DataFrame:
 
 def _fetch_weekly_close(yf_ticker: str) -> pd.Series:
     import yfinance as yf
-    h = yf.Ticker(yf_ticker).history(period="5y", interval="1d", auto_adjust=False)
+    h = yf.Ticker(yf_ticker).history(period="10y", interval="1d", auto_adjust=False)
     s = h["Close"].dropna()
     s.index = pd.to_datetime(s.index).tz_localize(None)
     return s
@@ -338,7 +338,64 @@ def register(app, *, markets, scores_cache, cot_cache=None):
                             plan=plan or None)
         return JSONResponse(_json_safe(ev))
 
+    @app.get("/api/cot-fo-series")
+    async def get_cot_fo_series(market: str):
+        """Futures-only legacy net series, the same data the TradingView COT indicators plot.
+
+        Each group carries its net, the trailing-156 mid-rank percentile (current report
+        included, point in time) and the trailing-156 net level at p10 and p90, so the
+        chart can show where the extreme zone sat on each date. Missing weeks stay missing.
+        """
+        mid = (market or "").strip().upper()
+        m = by_id.get(mid)
+        if m is None:
+            return JSONResponse({"error": f"Unknown market '{market}'"}, status_code=404)
+        if not m.get("cftc_code"):
+            return JSONResponse({"error": f"{mid} has no single CFTC code", "market": mid}, status_code=422)
+        try:
+            fo, fo_ret = await _cached(_FO_CACHE, m["cftc_code"], _fetch_futures_only, m["cftc_code"])
+        except Exception as e:
+            return JSONResponse({"error": f"futures-only fetch failed: {e!r}"[:300]}, status_code=502)
+        if fo is None or fo.empty:
+            return JSONResponse({"error": "no futures-only rows", "market": mid}, status_code=404)
+        daily = None
+        try:
+            daily, _ = await _cached(_PX_CACHE, m.get("yf"), _fetch_weekly_close, m.get("yf"))
+        except Exception as e:
+            print(f"[cot-fo-series] price fetch failed for {mid}: {e!r}", flush=True)
+        out = {"market": mid, "name": m.get("name"), "basis": "futures_only_legacy",
+               "method": percentile.HOUSE_METHOD, "window": percentile.HOUSE_WINDOW,
+               "extreme_hi": percentile.EXTREME_HI, "extreme_lo": percentile.EXTREME_LO,
+               "fetched_at": fo_ret, "dates": [d.isoformat() for d in fo["date"]],
+               "oi": [None if pd.isna(v) else float(v) for v in fo["open_interest_all"]]}
+        out["release"] = [cot_calendar.release_for(d).released.isoformat()[:10] for d in fo["date"]]
+        out["close"] = _align_closes(list(fo["date"]), daily)
+        out.update(_fo_group_series(fo))
+        return JSONResponse(_json_safe(out))
+
     return app
+
+
+def _fo_group_series(fo: pd.DataFrame) -> Dict[str, Any]:
+    import numpy as np
+    W = percentile.HOUSE_WINDOW
+    res: Dict[str, Any] = {}
+    for key, col in (("comm", "comm_net"), ("mgr", "mgr_net"), ("retail", "retail_net")):
+        x = fo[col].to_numpy(dtype=float)
+        ok = np.where(~np.isnan(x))[0]
+        pct = [None] * len(x); p10 = [None] * len(x); p90 = [None] * len(x)
+        v = x[ok]
+        for j, i in enumerate(ok):
+            w = v[max(0, j - W + 1): j + 1]
+            n = len(w)
+            if n < max(2, percentile.HOUSE_MIN_REPORTS):
+                continue
+            cur = w[-1]
+            less = int(np.count_nonzero(w < cur)); eq = int(np.count_nonzero(w == cur))
+            pct[i] = 100.0 * (less + 0.5 * (eq - 1)) / (n - 1)
+            p10[i] = float(np.quantile(w, 0.10)); p90[i] = float(np.quantile(w, 0.90))
+        res[key] = {"net": [None if np.isnan(t) else float(t) for t in x], "pct": pct, "p10": p10, "p90": p90}
+    return res
 
 
 def _json_safe(o):

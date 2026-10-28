@@ -2975,9 +2975,9 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
 
         # Labels based on final score
         if final_score >= 7.5:
-            label = "Strong bullish COT — commercials heavily loaded, spec turn confirmed"
+            label = "Strong bullish COT score — commercials near the top of their engine range"
         elif final_score >= 6.5:
-            label = "Moderately bullish COT — commercials accumulating, specs starting to confirm"
+            label = "Moderately bullish COT score — commercials leaning long"
         elif final_score >= 5.5:
             label = "Mildly bullish COT — commercial lean, level elevated"
         elif final_score >= 4.5:
@@ -2985,9 +2985,9 @@ def compute_cot_score_v2(df: Optional[pd.DataFrame], market_id: str = "") -> dic
         elif final_score >= 3.5:
             label = "Mildly bearish COT — commercial lean, level depressed"
         elif final_score >= 2.5:
-            label = "Moderately bearish COT — commercials distributing, specs starting to confirm"
+            label = "Moderately bearish COT score — commercials leaning short"
         else:
-            label = "Strong bearish COT — commercials heavily short, spec turn confirmed"
+            label = "Strong bearish COT score — commercials near the bottom of their engine range"
 
     # ── Level floor/cap — safety rails only (level_base already anchors) ───────
     # With level-dominant scoring, floor/cap are narrow safety rails.

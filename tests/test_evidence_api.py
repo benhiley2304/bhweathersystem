@@ -124,3 +124,37 @@ def test_macro_fit_uses_macro_family_not_engine_direction():
     assert ev._macro_sign({"factor_votes": {"cot": -1}}) is None
     assert ev._macro_sign(None) is None
     assert ev._macro_sign({"factor_votes": {"macro": 1, "regime": -1}}) == 0
+
+
+def test_cot_fo_series_shape(client):
+    r = client.get("/api/cot-fo-series?market=6E")
+    assert r.status_code == 200
+    j = r.json()
+    n = len(j["dates"])
+    assert j["basis"] == "futures_only_legacy" and j["window"] == 156
+    for k in ("comm", "mgr", "retail"):
+        assert set(j[k]) == {"net", "pct", "p10", "p90"}
+        assert len(j[k]["net"]) == n and len(j[k]["pct"]) == n
+    assert len(j["close"]) == n and len(j["release"]) == n
+    # early reports have too little history for a percentile: left empty, not filled
+    assert j["mgr"]["pct"][0] is None
+    last = j["mgr"]["pct"][-1]
+    assert last is not None and 0 <= last <= 100
+    assert j["mgr"]["p10"][-1] <= j["mgr"]["p90"][-1]
+
+
+def test_cot_fo_series_midrank_matches_house_percentile():
+    import numpy as np
+    fo = _fo("099741")
+    got = ev._fo_group_series(fo)["mgr"]["pct"][-1]
+    w = fo["mgr_net"].to_numpy(float)[-156:]
+    cur = w[-1]
+    want = 100 * ((w < cur).sum() + 0.5 * ((w == cur).sum() - 1)) / (len(w) - 1)
+    assert abs(got - want) < 1e-9
+
+
+def test_cot_fo_series_no_code_is_422(client):
+    m = next((x for x in backend.MARKETS if not x.get("cftc_code")), None)
+    if m is None:
+        pytest.skip("every market has a CFTC code")
+    assert client.get(f"/api/cot-fo-series?market={m['id']}").status_code == 422
