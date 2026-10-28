@@ -26108,6 +26108,7 @@ function renderSetupEvidence(id){
     +'<div class="se-line">Median move <strong>'+fmtPct(cs.med_ret)+'</strong> · favorable run <strong>+'+cs.med_mfe.toFixed(1)+'%</strong> vs adverse <strong>−'+cs.med_mae.toFixed(1)+'%</strong>'+(cs.rr!=null?' → <strong>'+cs.rr.toFixed(1)+':1 R/R</strong>':'')+'</div>'
     +'<div class="se-line">'+st.horizon_short+'-week: '+cs.wr4.toFixed(0)+'% win · median '+fmtPct(cs.med_ret4)+'</div>'
     +thinNote
+    +(()=>{ const lv=m.scores?.cot?.detail?.cot_phase_label; return (lv&&cur.label&&lv.trim().toLowerCase()!==String(cur.label).trim().toLowerCase())?'<div class="se-line" style="color:#EAB850">Phase mismatch: this study classifies the latest completed week as <strong>'+cur.label+'</strong>, while the live phase badge above reads <strong>'+lv+'</strong>. They use different inputs, so the stats describe '+cur.label+', not the badge.</div>':''; })()
     +chipsHtml
     +'<div class="se-note">Each week since '+(st.since||2008)+' is classified into its COT phase using only data available at the time (no lookahead), then forward returns are measured in the trade direction of the setup. Weekly closes; excursions from weekly highs/lows.</div>'
     +'</div>';
