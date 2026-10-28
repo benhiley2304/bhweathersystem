@@ -13887,6 +13887,20 @@ async def get_relval_detail(market: str):
 _COT_HIST_RESULT_CACHE: dict = {}
 _COT_HIST_RESULT_TTL = 3600  # 1 hour
 
+
+def _rolling_briese_fast(arr, window=520):
+    """Vectorised rolling min-max index (0-100) over `window` reports.
+    Same output as the old per-row Python loop but O(n), so it no longer
+    holds the event loop for a second or more on long histories."""
+    s_ = pd.Series(arr, dtype="float64")
+    lo = s_.rolling(window, min_periods=1).min()
+    hi = s_.rolling(window, min_periods=1).max()
+    rng = hi - lo
+    out = ((s_ - lo) / rng.where(rng != 0) * 100).round(1)
+    out = out.where(rng != 0, 50.0)
+    return [None if pd.isna(v) else float(v) for v in out.tolist()]
+
+
 @app.get("/api/cot-history")
 async def get_cot_history(market: str):
     """Returns weekly COT positions (result-cached 1h)."""
@@ -13918,14 +13932,7 @@ async def get_cot_history(market: str):
                     "comm_net": [], "lspec_net": [], "sspec_net": [],
                     "base_id": base_id, "quote_id": quote_id}
 
-        def rolling_briese_arr(arr, window=520):
-            result = []
-            for i in range(len(arr)):
-                sl = arr[max(0, i - window + 1): i + 1]
-                lo, hi = min(sl), max(sl)
-                if hi == lo: result.append(50.0)
-                else: result.append(round((arr[i] - lo) / (hi - lo) * 100, 1))
-            return result
+        rolling_briese_arr = _rolling_briese_fast
 
         # Align the two legs by date (nearest weekly), then build the 3-category spread.
         b = df_base[["date", "comm_net", "lspec_net", "sspec_net", "open_interest_all"]].copy()
@@ -13989,17 +13996,7 @@ async def get_cot_history(market: str):
     sspec_net = [int(v) if not pd.isna(v) else None for v in df_out["sspec_net"].tolist()]
     oi        = [int(v) if not pd.isna(v) else None for v in df_out["open_interest_all"].tolist()]
     # Also return Briese index series
-    def rolling_briese(arr, window=520):
-        result = []
-        for i in range(len(arr)):
-            sl = arr[max(0,i-window+1):i+1]
-            lo, hi = min(sl), max(sl)
-            v = arr[i]
-            if hi == lo:
-                result.append(50.0)
-            else:
-                result.append(round((v - lo) / (hi - lo) * 100, 1))
-        return result
+    rolling_briese = _rolling_briese_fast
     comm_vals  = [v for v in df_out["comm_net"].tolist()]
     lspec_vals = [v for v in df_out["lspec_net"].tolist()]
     sspec_vals = [v for v in df_out["sspec_net"].tolist()]
@@ -14325,7 +14322,7 @@ def _build_etf_pcr_series(market_upper: str, refresh: bool = True):
 
 
 @app.get("/api/pcr-history")
-async def get_pcr_history(lookback: int = 252, market: str = ""):
+def get_pcr_history(lookback: int = 252, market: str = ""):
     """
     Returns PCR history for charting.
     - Equity markets (ES/NQ/YM/RTY, or market=""): CBOE equity P/C history
@@ -17606,7 +17603,7 @@ _SH_PREFETCH_CACHE: dict = {}
 _SH_PREFETCH_TTL = 3600 * 3   # FIX: 12h→3h — prevents pandas yfinance frames accumulating overnight
 
 @app.get("/api/debug-yf")
-async def debug_yf(ticker: str):
+def debug_yf(ticker: str):
     """Ground-truth probe: what does yfinance return from THIS host for a ticker?"""
     out = {"ticker": ticker}
     try:
@@ -18279,7 +18276,7 @@ _CANDLE_CACHE: dict = {}
 _CANDLE_TTL = 3600  # 1h
 
 @app.get("/api/candles")
-async def get_candles(market: str, period: str = "6mo", ema_period: int = 50):
+def get_candles(market: str, period: str = "6mo", ema_period: int = 50):
     """Return daily OHLC candle data + 20 EMA, 50 EMA, 200 SMA overlays."""
     cache_key = f"{market}:{period}:multi"
     now = time.time()
@@ -18628,7 +18625,7 @@ async def _fetch_yield_curve_snap(target_date: date) -> dict | None:
 
 
 @app.get("/api/fed-pricing-history")
-async def fed_pricing_history():
+def fed_pricing_history():
     """Return the daily-snapshot store of the ZQ implied strip plus derived
     FedWatch probability matrices for baseline windows (now, 1w, 1m, 3m).
     Consumed by the homepage rate-path card historical-toggle UI."""
@@ -18761,7 +18758,7 @@ def _parse_ff_datetime(dateline) -> str | None:
         return dateline
 
 @app.get("/api/upcoming-events")
-async def upcoming_events(force: bool = False):
+def upcoming_events(force: bool = False):
     """
     Return high-impact economic events for the next 10 days.
 
@@ -18928,7 +18925,7 @@ async def health_ready():
     return _JR({"status": "cold", "message": "Startup not yet begun"}, status_code=503)
 
 @app.get("/api/debug-yc")
-async def debug_yc():
+def debug_yc():
     """Debug: test FRED yield curve fetch and show raw response."""
     import traceback
     results = {}
@@ -19015,7 +19012,7 @@ async def clear_narrative_cache():
     }
 
 @app.get("/api/debug-ice")
-async def debug_ice(market: str = "B"):
+def debug_ice(market: str = "B"):
     """Diagnose ICE COT fetch: tests connectivity and returns row counts per year."""
     import csv as _csv, io as _io, concurrent.futures as _cff
     _headers = {

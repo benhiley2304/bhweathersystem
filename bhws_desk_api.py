@@ -266,18 +266,25 @@ def register(app, *, markets, scores_cache, cot_cache=None,
              events_provider: Optional[Callable] = None, fed_provider: Optional[Callable] = None):
     from fastapi.responses import JSONResponse
 
+    async def _call(fn):
+        # Providers may be sync (run off the event loop) or async.
+        if asyncio.iscoroutinefunction(fn):
+            return await fn()
+        r = await asyncio.to_thread(fn)
+        return (await r) if asyncio.iscoroutine(r) else r
+
     async def _rebuild():
         try:
             payload = (scores_cache or {}).get("data") or {}
             evp = fedp = None
             if events_provider:
                 try:
-                    evp = _body(await events_provider())
+                    evp = _body(await _call(events_provider))
                 except Exception as e:
                     print(f"[desk] events provider failed: {e!r}", flush=True)
             if fed_provider:
                 try:
-                    fedp = _body(await fed_provider())
+                    fedp = _body(await _call(fed_provider))
                 except Exception as e:
                     print(f"[desk] fed provider failed: {e!r}", flush=True)
             data = await asyncio.to_thread(build_desk, markets, payload, cot_cache, evp, fedp)
