@@ -532,7 +532,11 @@ def grade(ev: Dict[str, Any], *, P, V, S, M, T, pb_live: bool, conf: str,
         # Replay vetoes (research/replay/REPORT.md). Each caps at developing;
         # the setup is still shown, with the reason, so nothing disappears.
         if seas_against:
-            caps.append("seasonal against: replay -0.120 R on prime and setup, negative in both halves")
+            m60 = ((S.get("fwd") or {}).get(60) or {}).get("median")
+            m60 = ((S.get("fwd") or {}).get("60") or {}).get("median") if m60 is None else m60
+            fig = f" (60 TD median {m60:+.1f}%)" if isinstance(m60, (int, float)) else ""
+            caps.append(f"seasonal against: the 60 TD seasonal path runs against the {'long' if side > 0 else 'short'}{fig}; "
+                        "replay -0.120 R on prime and setup, negative in both halves")
         if arch == "Divergence fade" and side < 0:
             caps.append("divergence-fade short: replay -0.269 R, adverse run 0.75 vs favourable 0.47")
         if arch == "Crowd fade" and (pb or {}).get("status") in TURNED:

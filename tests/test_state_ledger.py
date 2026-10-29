@@ -24,12 +24,23 @@ def test_state_store_export_import_newer_only(tmp_path):
     sa, sb = StateStore(str(a), env={}), StateStore(str(b), env={})
     sa.save("fed_pricing", {"months": [1]})
     sb.save("fed_pricing", {"months": [0]})
-    os.utime(sb.path("fed_pricing"), (time.time() - 3600, time.time() - 3600))
+    sb._stamp("fed_pricing", time.time() - 3600)   # b's copy is an hour older
     out = sb.import_bundle(sa.export())
     assert out["fed_pricing"] == "imported" and sb.load("fed_pricing") == {"months": [1]}
-    # the other way round, b's copy is now the newer one and is kept
+    # the other way round, b's copy now carries a's stamp, so a keeps its own
     out2 = sa.import_bundle(sb.export())
-    assert out2["fed_pricing"] in ("local newer", "imported")
+    assert out2["fed_pricing"] == "local newer"
+    # a seed file (came with the checkout, never written by the store) has no
+    # stamp, so an imported copy always wins over it however fresh its mtime
+    c = tmp_path / "c"; c.mkdir()
+    (c / "fed_pricing.json").write_text('{"months": ["seed"]}')
+    sc = StateStore(str(c), env={})
+    assert sc.status()["files"]["fed_pricing"]["seed"] is True
+    assert sc.import_bundle(sa.export())["fed_pricing"] == "imported" and sc.load("fed_pricing") == {"months": [1]}
+    # and a seed exported (mtime 0) never overwrites a stamped local copy
+    d = tmp_path / "d"; d.mkdir()
+    (d / "fed_pricing.json").write_text('{"months": ["seed"]}')
+    assert sa.import_bundle(StateStore(str(d), env={}).export())["fed_pricing"] == "local newer"
     # unknown names are skipped, never written
     out3 = sb.import_bundle({"items": {"evil": {"body": {}, "mtime": time.time()}}})
     assert out3 == {"evil": "skipped"} and not os.path.exists(b / "evil.json")
@@ -140,7 +151,7 @@ def test_state_api_routes(tmp_path):
 
 def test_cap_short_labels():
     from bhws_desk_api import _cap_short
-    assert _cap_short("seasonal against: replay -0.120 R on prime and setup") == "seasonal path against"
+    assert _cap_short("seasonal against: replay -0.120 R on prime and setup") == "60 TD seasonal path against"
     assert _cap_short("divergence-fade short: replay -0.269 R") == "divergence short"
     assert _cap_short("managers have turned: crowd fade window closed") == "managers turned"
     assert _cap_short("something new: detail") == "something new"

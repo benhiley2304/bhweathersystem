@@ -27,6 +27,7 @@ import time
 import traceback
 from typing import Any, Callable, Dict, List, Optional
 
+STAMP_FILE = ".bhws_state_stamps.json"
 NAMES = (
     "ff_event_store", "supply_event_store", "fed_pricing", "fed_pricing_history",
     "ff_macro_injected", "ledger", "ledger_grades",
@@ -159,7 +160,35 @@ class StateStore:
         except Exception:
             return default
 
+    # Age of the local copy. Only files this store wrote carry a stamp; a file
+    # that came with the repository checkout (a seed) has a fresh filesystem
+    # mtime on every deploy but no stamp, so it reports age 0 and any remote or
+    # imported copy wins over it. Filesystem mtime is never trusted for this.
+    def _stamps(self) -> Dict[str, float]:
+        try:
+            with open(os.path.join(self.data_dir, STAMP_FILE)) as f:
+                d = json.load(f)
+            return {k: float(v) for k, v in d.items()} if isinstance(d, dict) else {}
+        except Exception:
+            return {}
+
+    def _stamp(self, name: str, ts: float) -> None:
+        d = self._stamps()
+        d[name] = float(ts)
+        tmp = os.path.join(self.data_dir, STAMP_FILE + ".tmp")
+        try:
+            with open(tmp, "w") as f:
+                json.dump(d, f)
+            os.replace(tmp, os.path.join(self.data_dir, STAMP_FILE))
+        except Exception as e:
+            self._err(f"stamp {name}: {e!r}")
+
     def local_mtime(self, name: str) -> float:
+        if not os.path.exists(self.path(name)):
+            return 0.0
+        return self._stamps().get(name, 0.0)
+
+    def local_fs_mtime(self, name: str) -> float:
         try:
             return os.path.getmtime(self.path(name))
         except Exception:
@@ -175,8 +204,10 @@ class StateStore:
         except Exception as e:
             self._err(f"local save {name}: {e!r}")
             return
+        now = time.time()
+        self._stamp(name, now)
         if mirror and self.remote is not None:
-            self._mirror_async(name, body, time.time())
+            self._mirror_async(name, body, now)
 
     # ── remote tier ──────────────────────────────────────────────────────
     def _mirror_async(self, name: str, body: Any, ts: float) -> None:
@@ -236,10 +267,7 @@ class StateStore:
             return "local only"
         if rem["updated_at"] > self.local_mtime(name) + 1:
             self.save(name, rem["body"], mirror=False)
-            try:
-                os.utime(self.path(name), (rem["updated_at"], rem["updated_at"]))
-            except Exception:
-                pass
+            self._stamp(name, rem["updated_at"])
             return "restored"
         return "local newer"
 
@@ -256,9 +284,11 @@ class StateStore:
             errs = list(self._errors)
         files = {}
         for n in NAMES:
+            present = os.path.exists(self.path(n))
             mt = self.local_mtime(n)
-            files[n] = {"present": mt > 0, "mtime": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(mt)) if mt else None,
-                        "bytes": os.path.getsize(self.path(n)) if mt else 0}
+            files[n] = {"present": present, "mtime": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(mt)) if mt else None,
+                        "seed": present and not mt,   # came with the checkout, not written by this store
+                        "bytes": os.path.getsize(self.path(n)) if present else 0}
         return {"remote": self.remote_kind, "durable": self.remote is not None,
                 "pending_mirrors": len(pend), "errors": errs[-5:], "last_restore": self.last_restore,
                 "files": files}
@@ -266,7 +296,7 @@ class StateStore:
     def export(self) -> Dict[str, Any]:
         return {"exported_at": time.time(),
                 "items": {n: {"body": self.load(n), "mtime": self.local_mtime(n)} for n in NAMES
-                          if self.local_mtime(n) > 0}}
+                          if os.path.exists(self.path(n))}}
 
     def import_bundle(self, bundle: Dict[str, Any], *, only_newer: bool = True) -> Dict[str, str]:
         out: Dict[str, str] = {}
@@ -275,15 +305,13 @@ class StateStore:
                 out[n] = "skipped"
                 continue
             mt = float(item.get("mtime") or 0)
-            if only_newer and mt and mt <= self.local_mtime(n) + 1:
+            lm = self.local_mtime(n)   # 0 for a seed file or nothing on disk
+            if only_newer and lm > 0 and mt <= lm + 1:
                 out[n] = "local newer"
                 continue
             self.save(n, item["body"])
             if mt:
-                try:
-                    os.utime(self.path(n), (mt, mt))
-                except Exception:
-                    pass
+                self._stamp(n, mt)
             fn = self._on_restore.get(n)
             if fn is not None:
                 try:

@@ -33,7 +33,7 @@ _STATE: Dict[str, Any] = {"data": None, "built": 0.0, "key": None, "building": F
 _STATE_STORE = None   # set by backend.py via set_state_store(); optional
 
 
-_CAP_SHORT = (("seasonal against", "seasonal path against"), ("divergence-fade short", "divergence short"),
+_CAP_SHORT = (("seasonal against", "60 TD seasonal path against"), ("divergence-fade short", "divergence short"),
               ("managers have turned", "managers turned"))
 
 
