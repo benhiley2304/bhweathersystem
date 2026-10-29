@@ -39045,8 +39045,11 @@ function seasGoldTrackHTML(g){
   return `<div class="sx-track" title="Seasonal leg: entry → target, with today marked">
     <div class="sx-track-line"></div>
     <div class="sx-track-leg" style="left:${Math.min(a,b)}%;width:${Math.abs(b-a)}%"></div>
-    ${Math.abs(a-t)<9?'':`<div class="sx-track-pin sx-track-entry" style="left:${a}%"><span>ENTRY${g.targetLabel?' · '+g.targetLabel:''}</span></div>`}
-    <div class="sx-track-pin sx-track-target" style="left:${b}%"><span>${g.legMove!=null&&isFinite(g.legMove)?((g.dir<0?-1:1)*Math.abs(g.legMove)>=0?'+':'−')+Math.abs(g.legMove).toFixed(1)+'% · ':''}${g.legEndLabel||'TARGET'}</span></div>
+    ${(()=>{const mv=g.legMove!=null&&isFinite(g.legMove)&&Math.abs(g.legMove)>=0.05?((g.dir<0?'−':'+')+Math.abs(g.legMove).toFixed(1)+'%'):'';
+      const close=Math.abs(b-a)<14;
+      const ent=Math.abs(a-t)<9?'':`<div class="sx-track-pin sx-track-entry" style="left:${a}%"><span>ENTRY${g.targetLabel?' · '+g.targetLabel:''}${close&&mv?' · '+mv:''}</span></div>`;
+      const tgt=close&&ent?'':`<div class="sx-track-pin sx-track-target" style="left:${b}%"><span>${mv?mv+' · ':''}${g.legEndLabel||'TARGET'}</span></div>`;
+      return ent+tgt;})()}
     ${g.altTd&&g.tdsAway===0?`<div class="sx-track-alt" style="left:${pos(g.altTd)}%" title="Timing-scan alternative low"><span>ALT · ${g.altLabel||''}</span></div>`:''}
     <div class="sx-track-now" style="left:${t}%"><span>${Math.abs(a-t)<9?'TODAY · ENTRY':'TODAY'}</span></div>
   </div>`;
