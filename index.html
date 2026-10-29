@@ -25973,6 +25973,9 @@ let API = (function() {
   return 'https://bhweathersystem-backend.onrender.com';
 })();
 
+/* v8: start the climate-history request with the first data calls instead of after the desk renders */
+try { window._arcPrefetch = fetch(API + '/api/regime_history').then(r => r.ok ? r.json() : null).catch(() => null); } catch (e) { window._arcPrefetch = null; }
+
 async function resolveAPI() {
   // No-op: API is hardcoded to Render backend for all public deployments
 }
@@ -33853,23 +33856,35 @@ let _arcTickAngle = 0;     // slow rotating tick ring angle
 async function loadClimateArc(live={}) {
   const canvas = document.getElementById('ov-arc-canvas');
   if (!canvas) return;
-
-  // Draw shimmer skeleton while loading
-  _drawArcSkeleton(canvas);
+  /* v8: paint the last known arc straight away so the hero arrives in one piece, then swap in fresh data */
+  const LS = 'bh_arc_v1';
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { cached = null; }
+  if (!(cached && cached.scores && cached.scores.length)) cached = null;
+  _arcLive = live || {};
+  if (cached) { _arcData = cached; _renderClimateArc(canvas, cached, 1, live); }
+  else _drawArcSkeleton(canvas);
 
   try {
-    const res = await fetch(API + '/api/regime_history');
-    const data = await res.json();
+    let data = window._arcPrefetch ? await window._arcPrefetch : null;
+    window._arcPrefetch = null;
+    if (!data || data.error || !data.scores) { const res = await fetch(API + '/api/regime_history'); data = await res.json(); }
     if (data.error || !data.scores || !data.scores.length) {
+      if (cached) { _setupArcTooltip(canvas, cached, live); return; }
       document.getElementById('ov-arc-foot-note').textContent = 'Climate history unavailable';
       return;
     }
+    const same = cached && cached.scores.length === data.scores.length &&
+      cached.scores.every((v, i) => v === data.scores[i]) &&
+      JSON.stringify((cached.dates || []).slice(-1)) === JSON.stringify((data.dates || []).slice(-1));
     _arcData = data;
-    _arcLive = live || {};
-    _renderClimateArcAnimated(canvas, data, 1, live);
+    if (!cached) _renderClimateArcAnimated(canvas, data, 1, live);
+    else if (!same) _renderClimateArc(canvas, data, 1, live);
     _setupArcTooltip(canvas, data, live);
+    try { localStorage.setItem(LS, JSON.stringify(data)); } catch (e) {}
   } catch (e) {
     console.warn('Climate arc load failed:', e);
+    if (cached) { _setupArcTooltip(canvas, cached, live); return; }
     document.getElementById('ov-arc-foot-note').textContent = 'Climate history unavailable';
   }
 }
@@ -33880,7 +33895,9 @@ window._initHeroField = function() {};
 
 function _drawArcSkeleton(canvas) {
   const W = canvas.offsetWidth || 800;
-  const H = window.innerWidth <= 700 ? 200 : Math.max(320, Math.min(680, Math.round(W * 0.38)));
+  const wrapH = canvas.parentElement ? canvas.parentElement.clientHeight : 0;
+  const compact = window.innerWidth > 700 && wrapH >= 160 && wrapH < 380;
+  const H = window.innerWidth <= 700 ? 200 : compact ? wrapH : Math.max(320, Math.min(680, Math.round(W * 0.38)));
   const DPR = Math.max(2, window.devicePixelRatio || 2);
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
@@ -33888,22 +33905,19 @@ function _drawArcSkeleton(canvas) {
   canvas.style.height = H + 'px';
   const ctx = canvas.getContext('2d');
   ctx.scale(DPR, DPR);
-  ctx.fillStyle = 'rgba(0,0,0,0)';
-  ctx.fillRect(0, 0, W, H);
-  // Jarvis init line
-  ctx.strokeStyle = 'rgba(200,169,110,0.12)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 8]);
-  ctx.beginPath();
-  ctx.moveTo(20, H * 0.5);
-  ctx.lineTo(W - 20, H * 0.5);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  // Init label
-  ctx.font = '700 7px monospace';
-  ctx.fillStyle = 'rgba(200,169,110,0.18)';
-  ctx.textAlign = 'left';
-  ctx.fillText('RISK CLIMATE SYSTEM  //  INITIALIZING…', 20, 15);
+  /* ghost of the arc in its final position, so nothing jumps when the data lands */
+  const g = window._arcGeo || { cx: compact ? 0.40 : 0.50, cy: compact ? 0.41 : 0.54, or: compact ? 0.46 : 0.64 };
+  const cx = W * g.cx, cy = H * g.cy, ro = H * g.or, ri = ro * 0.30;
+  const SW = 210 * Math.PI / 180, a0 = Math.PI * 0.5 + (Math.PI * 2 - SW) * 0.5 + SW, a1 = a0 + SW;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 52; i++) {
+    const a = a0 + (i + 0.5) * (a1 - a0) / 52, len = (ro - ri) * (0.38 + 0.22 * Math.sin(i * 0.37));
+    ctx.strokeStyle = 'rgba(151,161,181,0.07)'; ctx.lineWidth = Math.max(2, ro * 0.035);
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * ri, cy + Math.sin(a) * ri);
+    ctx.lineTo(cx + Math.cos(a) * (ri + len), cy + Math.sin(a) * (ri + len)); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1; ctx.setLineDash([3, 5]);
+  ctx.beginPath(); ctx.arc(cx, cy, ro, a0, a1); ctx.stroke(); ctx.setLineDash([]);
 }
 
 // Animated draw-on: reveal the chart left-to-right over ~900ms
