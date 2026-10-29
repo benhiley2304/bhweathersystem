@@ -25438,6 +25438,131 @@ canvas.fx-field{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:
 @media (max-width:1180px){.eg-g{grid-template-columns:1fr}.mr3-low{grid-template-columns:1fr 1fr !important}.mr3-low>.eg-box{grid-column:1 / -1}}
 @media (max-width:700px){.eg-fd{grid-template-columns:1fr}.mr3-low{grid-template-columns:1fr !important}.eg-lab{padding:14px 12px}.eg-mx{grid-template-columns:78px repeat(4,minmax(0,1fr));gap:2px}.eg-ma{font-size:9.5px}.eg-mh{font-size:7px;letter-spacing:.04em}.eg-mc{min-height:40px;padding:4px 2px}.eg-mc .r{font-size:11px}.eg-mc .n{font-size:7px}.eg-lede{font-size:15px}}
 @media (prefers-reduced-motion:reduce){.eg-dot,.eg-asvg .eg-b,.eg-asvg .eg-halo{animation:none}}
+
+/* ── LAB-V6 · workspace sheet, desk context bar, lens drawer ── */
+#lab-back{background:rgba(4,6,10,0.78);backdrop-filter:blur(10px);padding:14px}
+.lab-modal{max-width:1400px;width:100%;height:calc(100dvh - 28px);max-height:none}
+.lab-modal .modal-head{padding:12px 18px 10px}
+.lab-modal .modal-head p{font-size:10px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
+.lab-keys{display:inline-flex;gap:3px;align-items:center;color:var(--dim);opacity:.85}
+.lab-keys kbd{font-family:var(--mono);font-size:8.5px;padding:1px 5px;border:1px solid var(--bdr2);border-bottom-width:2px;border-radius:4px;background:var(--surf3);color:var(--text);margin-left:4px}
+.lab-keys kbd+kbd{margin-left:1px}
+.lab-modal .modal-body{padding:0 18px 20px}
+.lab-ctx{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:0 -18px 12px;padding:9px 18px;background:rgba(14,17,24,0.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--bdr2)}
+.lc-nav{display:flex;align-items:center;gap:4px;padding-right:14px;margin-right:4px;border-right:1px solid var(--bdr2)}
+.lc-arrow{width:26px;height:28px;border-radius:7px;border:1px solid var(--bdr2);background:var(--surf3);color:var(--text);font-size:15px;line-height:1;cursor:pointer}
+.lc-arrow:hover{border-color:var(--bdr3);background:var(--surf4)}
+.lc-sel{height:28px;max-width:170px;border-radius:7px;border:1px solid var(--bdr2);background:var(--surf3);color:var(--text);font:600 11px var(--sans,inherit);padding:0 8px;cursor:pointer}
+.lc-cell{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:0 14px;border-right:1px solid rgba(255,255,255,0.05);min-width:0}
+.lc-cell em{font-style:normal;font-size:8px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--dim)}
+.lc-cell b{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;text-transform:none}
+.lc-cell i{font-style:normal;font-size:9.5px;color:var(--dim)}
+.lc-g{font-family:var(--mono)}
+.lc-g.g-A{color:#22c97a!important}.lc-g.g-B{color:#9dd66a!important}.lc-g.g-C{color:#e8c66a!important}.lc-g.g-D{color:#e88a5a!important}
+.lc-acts{display:flex;align-items:center;gap:6px;margin-left:auto;padding-left:10px}
+.lc-btn{height:28px;padding:0 11px;border-radius:7px;border:1px solid var(--bdr2);background:transparent;color:var(--text);font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.lc-btn:hover{background:var(--surf3);border-color:var(--bdr3)}
+.lc-side{border-color:rgba(234,184,80,0.45);color:#EAB850}
+.lab-lens-sum{display:flex;align-items:center;gap:8px;flex:1 1 360px;min-width:0;height:34px;padding:0 6px 0 12px;border-radius:9px;border:1px solid var(--bdr2);background:rgba(255,255,255,0.02);color:var(--text);cursor:pointer;text-align:left}
+.lab-lens-sum:hover,.lab-lens-sum.on{border-color:rgba(200,169,110,0.45);background:rgba(200,169,110,0.05)}
+.lab-lens-sum .ll-k{font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim)}
+.lab-lens-sum .ll-v{flex:1;min-width:0;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.lab-lens-sum .ll-v b{color:var(--accent)}
+.lab-lens-sum .ll-sep{color:var(--dim);margin:0 6px}
+.lab-lens-sum .ll-mod{margin-left:8px;font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#EAB850}
+.lab-lens-sum .ll-cta{font-size:10px;font-weight:700;padding:5px 10px;border-radius:6px;background:var(--surf3);border:1px solid var(--bdr2)}
+.lab-lens{margin:-4px 0 14px;padding:14px;border:1px solid rgba(200,169,110,0.16);border-radius:12px;background:rgba(255,255,255,0.015);animation:up 180ms var(--ease)}
+.lab-lens[hidden]{display:none}
+.lab-lens-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;margin-bottom:12px}
+.lab-lens .lab-v2-blend{gap:14px}
+.lab-lens .lab-opts{margin-bottom:0}
+.lab-callout .co-caveat{display:block;margin-top:6px;color:#e88a5a;font-size:.95em}
+body.lab-on{overflow:hidden}
+body.lab-on #app-status-bar{display:none}
+@media (max-width:900px){
+  #lab-back{padding:0}
+  .lab-modal{height:100dvh;border-radius:0}
+  .lab-modal .modal-body{padding:0 12px 18px}
+  .lab-ctx{position:relative;margin:0 -12px 10px;padding:8px 12px;gap:8px 0}
+  .lab-v2-legend .lg{white-space:normal}
+  .lc-nav{width:100%;border-right:0;padding-right:0;margin-right:0}
+  .lc-sel{flex:1;max-width:none}
+  .lc-cell{padding:0 10px 0 0;border-right:0;flex:1 1 45%}
+  .lc-cell b{white-space:normal}
+  .lc-acts{width:100%;margin-left:0;padding-left:0}
+  .lc-btn{flex:1}
+  .lab-keys{display:none}
+  .lab-lens-grid{grid-template-columns:1fr}
+  .lab-lens-sum{flex-basis:100%;order:5}
+}
+.sx-labbar{display:flex;align-items:center;gap:12px;width:100%;margin:-4px 0 14px;padding:9px 12px;border-radius:10px;border:1px solid rgba(200,169,110,.22);background:linear-gradient(90deg,rgba(200,169,110,.07),rgba(200,169,110,.015));color:var(--text);cursor:pointer;text-align:left;transition:border-color .15s,background .15s}
+.sx-labbar:hover{border-color:rgba(200,169,110,.5);background:linear-gradient(90deg,rgba(200,169,110,.12),rgba(200,169,110,.03))}
+.sx-lb-k{font:700 9.5px var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+.sx-lb-t{flex:1;font-size:11px;color:rgba(230,232,240,.7);min-width:0}
+.sx-lb-go{font-size:11px;font-weight:700;color:var(--accent);white-space:nowrap;display:flex;gap:6px;align-items:center}
+.sx-lb-go kbd,.cmdk kbd,.kb-hint kbd{font:600 9px var(--mono);padding:1px 5px;border:1px solid var(--bdr2);border-bottom-width:2px;border-radius:4px;background:var(--surf3);color:var(--text)}
+@media(max-width:700px){.sx-lb-go kbd{display:none}.sx-labbar{flex-wrap:wrap;gap:4px 10px}.sx-lb-t{flex-basis:100%;order:3}}
+.d-desk-slot{display:inline-flex;align-items:center;gap:8px}
+.d-desk{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:20px;font-size:clamp(9px,0.7vw,11px);font-weight:750;letter-spacing:.04em;color:var(--dk,#c8a96e);background:color-mix(in srgb,var(--dk,#c8a96e) 12%,transparent);border:1px solid color-mix(in srgb,var(--dk,#c8a96e) 45%,transparent);cursor:pointer;white-space:nowrap}
+.d-desk i{font-style:normal;font-weight:600;color:rgba(230,232,240,.72);letter-spacing:0;padding-left:7px;border-left:1px solid rgba(255,255,255,.14)}
+.d-desk.k-prime{box-shadow:0 0 14px rgba(241,227,190,.18)}
+.d-desk.none,.d-desk.wait{color:#8a93a8;background:rgba(138,147,168,.08);border:1px solid rgba(138,147,168,.25);cursor:default}
+.d-eng-pill{opacity:.72;font-weight:600!important;background:transparent!important}
+@media(max-width:900px){.d-head .d-head-l>div.d-bias-row{display:flex!important;flex-wrap:wrap;gap:6px;margin-top:6px;position:relative;z-index:2}.d-head .d-eng-pill{display:none!important}.d-head .d-desk-slot{gap:6px}}
+@media(max-width:700px){.d-desk{font-size:9.5px;padding:3px 10px}.d-desk i{display:none}}
+.ov-eng-ref{margin:14px 0 0;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:rgba(255,255,255,.015)}
+.ov-eng-ref>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;font-size:11px;color:rgba(230,232,240,.75)}
+.ov-eng-ref>summary::-webkit-details-marker{display:none}
+.ov-eng-ref>summary:hover{background:rgba(255,255,255,.02)}
+.oer-k{font:700 9.5px var(--mono);letter-spacing:.09em;text-transform:uppercase;color:rgba(241,227,190,.62);white-space:nowrap}
+.oer-v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.oer-mini{display:inline-flex;gap:3px;margin-left:auto}
+.oer-mini i{width:16px;height:5px;border-radius:2px;display:block;opacity:.85}
+.oer-cta{font-size:10px;color:var(--dim);white-space:nowrap}
+.oer-cta::after{content:' ▾';}
+.ov-eng-ref[open] .oer-cta::after{content:' ▴'}
+.ov-eng-ref[open]>summary{border-bottom:1px solid rgba(255,255,255,.06)}
+.ov-eng-ref .ov-conf-strip{margin:12px 12px 0}
+.ov-eng-ref .ov-method-card{margin:12px}
+@media(max-width:700px){.oer-mini,.oer-cta{display:none}.ov-eng-ref>summary{flex-wrap:wrap;gap:4px 10px}.oer-v{white-space:normal}}
+.eg-more{margin-top:12px;border-top:1px solid rgba(255,255,255,.06)}
+.eg-more>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:11px 2px 4px;cursor:pointer}
+.eg-more>summary::-webkit-details-marker{display:none}
+.eg-more>summary span{font:700 9.5px var(--mono);letter-spacing:.09em;text-transform:uppercase;color:rgba(241,227,190,.7)}
+.eg-more>summary em{font-style:normal;font-size:11px;color:var(--dim)}
+.eg-more-cta{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--accent);padding:4px 10px;border:1px solid rgba(200,169,110,.3);border-radius:7px}
+.eg-more-cta::before{content:'Show'}
+.eg-more[open] .eg-more-cta::before{content:'Hide'}
+.eg-more[open]>summary{margin-bottom:10px}
+@media(max-width:700px){.eg-more>summary em{display:none}}
+.ov-jump{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 0 14px;padding:6px 8px;border-radius:12px;background:rgba(10,12,17,.86);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06)}
+.ov-jump::-webkit-scrollbar{display:none}
+.ov-jump.stuck{border-radius:0 0 12px 12px;box-shadow:0 10px 24px rgba(0,0,0,.45)}
+.ov-jump button{flex-shrink:0;height:26px;padding:0 11px;border-radius:7px;border:1px solid transparent;background:transparent;color:rgba(230,232,240,.62);font-size:11px;font-weight:600;cursor:pointer;transition:color .15s,background .15s}
+.ov-jump button:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.ov-jump button.on{color:#F1E3BE;background:rgba(200,169,110,.1);border-color:rgba(200,169,110,.28)}
+.ov-jump button.dim{opacity:.4}
+.ov-jump button.miss{animation:jmiss .5s}
+@keyframes jmiss{30%{transform:translateX(-2px)}60%{transform:translateX(2px)}}
+.ov-jump .kb-hint{margin-left:auto;flex-shrink:0;padding-left:12px;font-size:10px;color:var(--dim);display:flex;gap:5px;align-items:center}
+@media(max-width:1100px){.ov-jump .kb-hint{display:none}}
+@media(min-width:701px){#ov-wrap{overflow-x:clip!important;overflow-y:visible!important}}
+@media(max-width:700px){.ov-jump{display:none}}
+.cmdk-back{position:fixed;inset:0;z-index:9800;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;background:rgba(4,6,10,.6);backdrop-filter:blur(6px)}
+.cmdk-back.open{display:flex}
+.cmdk{width:min(620px,92vw);border-radius:14px;background:rgba(16,19,26,.98);border:1px solid rgba(200,169,110,.25);box-shadow:0 30px 80px rgba(0,0,0,.7);overflow:hidden;animation:up 160ms var(--ease)}
+.ck-in{width:100%;height:50px;padding:0 18px;border:0;border-bottom:1px solid rgba(255,255,255,.07);background:transparent;color:var(--text);font-size:15px;outline:none}
+.ck-list{max-height:52vh;overflow-y:auto;padding:6px}
+.ck-g{font:700 8.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:rgba(241,227,190,.5);padding:10px 10px 4px}
+.ck-i{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer}
+.ck-i b{font-size:12.5px;font-weight:650;color:var(--text);white-space:nowrap}
+.ck-i span{flex:1;min-width:0;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ck-i.on{background:rgba(200,169,110,.12)}
+.ck-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ck-empty{padding:18px;color:var(--dim);font-size:12px}
+.ck-foot{display:flex;flex-wrap:wrap;gap:6px 14px;padding:9px 14px;border-top:1px solid rgba(255,255,255,.06);font-size:10px;color:var(--dim)}
+.cmdk kbd{margin:0 1px}
+@media(max-width:700px){.ck-foot{display:none}.cmdk-back{padding-top:8vh}}
 </style>
 </head>
 <body>
@@ -25585,6 +25710,8 @@ canvas.fx-field{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:
             </div>
           </div>
         </div>
+        <!-- HOME-V6: sticky jump bar for the long overview page -->
+        <nav class="ov-jump" id="ov-jump" aria-label="Jump to section"></nav>
         <!-- This week: desk brief, live setups, event gate (filled by renderWeek) -->
         <div id="ov-week"><div class="wk wk-warm"><span class="wk-k">This week</span><span>Loading the weekly read.</span><div class="bar"></div></div></div>
         <!-- category summary bar -->
@@ -25690,7 +25817,7 @@ canvas.fx-field{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:
     <div class="modal-head">
       <div>
         <h2 id="lab-title">Seasonality Lab</h2>
-        <p>Pick any basket of years · calendar-aligned average · forward-window stats from today</p>
+        <p>Test the calendar against the desk read: any basket of years, any window, both sides <span class="lab-keys"><kbd>←</kbd><kbd>→</kbd> market <kbd>L</kbd><kbd>S</kbd> side <kbd>E</kbd> lens <kbd>Esc</kbd> close</span></p>
       </div>
       <button class="modal-close" onclick="closeSeasLab()">
         <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2">
@@ -25704,10 +25831,24 @@ canvas.fx-field{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:
         <span>Loading yearly paths…</span>
       </div>
       <div id="lab-content" style="display:none">
+        <div class="lab-ctx" id="lab-ctx"></div>
         <!-- V2: Blend controls + reliability grade -->
         <div class="lab-v2-head" id="lab-v2-head">
           <div class="lab-v2-grade" id="lab-v2-grade"></div>
-          <div class="lab-v2-blend">
+          <button type="button" class="lab-lens-sum" id="lab-lens-sum" onclick="_labLensToggle()" aria-expanded="false" aria-controls="lab-lens" title="Basket of years, blend weights and chart view"><span class="ll-k">Lens</span><span class="ll-v" id="lab-lens-txt">—</span><span class="ll-cta" id="lab-lens-cta">Adjust</span></button>
+          <div class="lab-v2-tag" id="lab-v2-tag"><span class="tag-dot"></span><span id="lab-v2-tag-label">—</span></div>
+          <div class="lab-v2-dir" id="lab-v2-dir" role="group" aria-label="Trade direction">
+            <button type="button" class="dir-btn dir-long active" aria-pressed="true" data-dir="long" onclick="_labV2SetDir('long')" title="Long-side stats — win = price rose">▲ Long</button>
+            <button type="button" class="dir-btn dir-short" aria-pressed="false" data-dir="short" onclick="_labV2SetDir('short')" title="Short-side stats — win = price fell">▼ Short</button>
+          </div>
+          <button class="lab-v2-savebtn" id="lab-v2-savebtn" onclick="_labV2SaveDefault()" style="display:none">Set as default</button>
+        </div>
+
+        <div class="lab-lens" id="lab-lens" hidden>
+          <div class="lab-lens-grid">
+            <div class="lab-lens-col">
+              <div class="lab-sec-label">Blend weights</div>
+              <div class="lab-v2-blend">
             <div class="lab-v2-blend-item">
               <div class="lbl">Election-cycle weight <b id="lab-v2-cw-val">2.5×</b></div>
               <input type="range" class="lab-v2-slider" id="lab-v2-cw" min="1" max="3" step="0.1" value="2.5">
@@ -25723,19 +25864,16 @@ canvas.fx-field{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:
               </select>
             </div>
           </div>
-          <div class="lab-v2-tag" id="lab-v2-tag"><span class="tag-dot"></span><span id="lab-v2-tag-label">—</span></div>
-          <div class="lab-v2-dir" id="lab-v2-dir" role="group" aria-label="Trade direction">
-            <button type="button" class="dir-btn dir-long active" aria-pressed="true" data-dir="long" onclick="_labV2SetDir('long')" title="Long-side stats — win = price rose">▲ Long</button>
-            <button type="button" class="dir-btn dir-short" aria-pressed="false" data-dir="short" onclick="_labV2SetDir('short')" title="Short-side stats — win = price fell">▼ Short</button>
+            </div>
+            <div class="lab-lens-col">
+              <div class="lab-sec-label">View</div>
+              <div class="lab-opts" id="lab-opts"></div>
+            </div>
           </div>
-          <button class="lab-v2-savebtn" id="lab-v2-savebtn" onclick="_labV2SaveDefault()" style="display:none">Set as default</button>
+          <div class="lab-sec-label">Basket · tap a preset or single years <span id="lab-year-count" style="color:var(--accent);font-weight:600"></span></div>
+          <div class="lab-presets" id="lab-presets"></div>
+          <div class="lab-years" id="lab-years"></div>
         </div>
-
-        <div class="lab-sec-label">Basket — tap presets or individual years <span id="lab-year-count" style="color:var(--accent);font-weight:600"></span></div>
-        <div class="lab-presets" id="lab-presets"></div>
-        <div class="lab-years" id="lab-years"></div>
-        <div class="lab-sec-label">View</div>
-        <div class="lab-opts" id="lab-opts"></div>
 
         <!-- V2 two-column body: chart + window stats sidebar -->
         <div class="lab-v2-body">
@@ -26363,6 +26501,8 @@ async function loadDesk(force){
 function _dkSchedule(ms){ clearTimeout(_deskPoll); _deskPoll=setTimeout(()=>loadDesk(),ms); }
 function _deskApplied(){
   setTimeout(()=>{ try{ _fxRoleUpdate(); }catch(e){} },0);
+  try{ const sl=document.getElementById('d-desk-slot'); if(sl&&DATA){ const mk=DATA.markets.find(x=>x.id===sl.dataset.dk); if(mk) sl.innerHTML=_dHeadDesk(mk); } }catch(e){}
+  try{ if(document.getElementById('lab-back')?.classList.contains('open')) _labCtxRender(); }catch(e){}
   try{ renderList(); }catch(e){ console.warn('list',e); }
   try{ renderWeek(); }catch(e){ console.warn('week',e); }
   document.querySelectorAll('[data-mread]').forEach(el=>{ try{ el.innerHTML=marketReadInner(el.dataset.mread); _fxMount(el); }catch(e){ console.warn('mread',e); } });
@@ -26790,8 +26930,11 @@ function _egLab(mob){
   let h='<section class="gl eg-lab'+(mob?' mob':'')+'"><div class="eg-top"><div><div class="wk-sub">Edge lab <span>'+_esc(E.span)+' replay · '+E.markets+' markets · '+E.h+'-week hold</span></div>'
     +'<div class="eg-lede">Where the rules have made money, where they have not, and where this week\'s setups sit.</div></div></div>';
   h+=_egFindings();
+  const _egOpen=(()=>{try{return localStorage.getItem('bh_eg_more')==='1';}catch(_){return false;}})();
+  h+='<details class="eg-more"'+(_egOpen?' open':'')+' ontoggle="try{localStorage.setItem(\'bh_eg_more\',this.open?\'1\':\'0\')}catch(_){}"><summary><span>The evidence</span><em>edge matrix · payoff asymmetry · replay record</em><b class="eg-more-cta"></b></summary>';
   h+='<div class="eg-g"><div class="eg-p"><div class="rp-t">Edge matrix: average R by archetype and state · live tickers placed in their cell</div>'+_egMatrix(mob)+'<div class="eg-key"><span><i class="rob"></i>robust: same sign in 2012–18, 2019–26 and after drift (each beyond ±0.02), n ≥ 150</span><span><i class="pr"></i>prime</span><span><i class="st"></i>setup</span><span><i class="dv"></i>developing</span></div></div>';
   h+='<div class="eg-rc"><div class="eg-p"><div class="rp-t">Payoff asymmetry: favourable vs adverse run inside 13 weeks</div>'+_egAsym(mob)+'<div class="wk-note">Above the dashed line the typical move for the side outruns the typical move against it. Halo marks archetypes with a live prime or setup this week.</div></div>'+_wkReplayInner(mob)+'</div></div>';
+  h+='</details>';
   h+='<div class="wk-note">'+_esc(E.note)+'</div></section>';
   return h;
 }
@@ -36684,7 +36827,9 @@ function buildOverview(m){
     <!-- MARKET READ: desk-built read (house COT, macro, trend, seasonality, valuation) -->
     ${marketReadHTML(m)}
 
-    <!-- CONFLUENCE STRIP — signal fingerprint bar + confluence summary -->
+    <!-- OV-V6: engine fingerprint + method folded into one reference drawer (closed by default) -->
+    <details class="ov-eng-ref"${(()=>{try{return localStorage.getItem('bh_ov_engref')==='1'?' open':'';}catch(_){return '';}})()} ontoggle="try{localStorage.setItem('bh_ov_engref',this.open?'1':'0')}catch(_){}">
+      <summary><span class="oer-k">Engine reference</span><span class="oer-v"><b style="color:${sHex(ws)}">${ws.toFixed(1)}</b>/10 · ${_esc(chipLabel)} · ${confTitle}</span><span class="oer-mini">${factorKeys.map(k=>{const sc=normalisedScores[k]?.score??5;return `<i style="background:${sHex(sc)}" title="${FACTOR_LABELS[k]||k} ${sc.toFixed(1)}"></i>`;}).join('')}</span><span class="oer-cta">Fingerprint and method</span></summary>
     <div class="ov-conf-strip" style="--ov-stripe-rgb:${stripeRgb}">
       <div class="ov-conf-summary" style="--ov-stripe-rgb:${stripeRgb}">
         <div class="ov-conf-summary-title"><span class="ov-conf-eng">Engine</span>${confTitle}</div>
@@ -36703,6 +36848,7 @@ function buildOverview(m){
         <b>How this page reads:</b> the market read is the desk view. House COT (futures-only, 156-report mid-rank) sets the payoff, macro and trend set the side, and seasonality and the Valuation Tool time it. The fingerprint above is the scoring engine's 1 to 10 composite, shown for reference and never inverted. Where the two disagree, both are shown and neither is adjusted to match. Nothing here is a probability.
       </div>
     </div>
+    </details>
 
   </div>`;
 }
@@ -36760,6 +36906,17 @@ function buildOvNav(m){
 
 /* ══════════════════════════════════════════════════════ */
 
+/* DETAIL-V6: the header leads with the desk read (what the board trades) and shows the
+   composite as a labelled engine reference. Pillar dots use the desk's own signs. */
+function _dHeadDesk(m){
+  const r=typeof deskRow==='function'?deskRow(m.id):null;
+  if(!r||!r.class) return typeof DESK!=='undefined'&&DESK?'<span class="d-desk none">No desk read</span>':'<span class="d-desk wait">Desk read loading</span>';
+  const k=r.class.key, side=r.side||0;
+  if(k==='none') return '<span class="d-desk none" title="No pillar combination qualifies as a setup">No setup</span>'+_dkDots(r);
+  const c=k==='prime'?'#F1E3BE':side>0?'#22C97A':side<0?'#E05252':'#c8a96e';
+  const arrow=side>0?'▲ ':side<0?'▼ ':'';
+  return `<span class="d-desk k-${k}" style="--dk:${c}" onclick="switchTab('overview')" title="Desk read: ${_esc(r.class.label)}${side?' '+(side>0?'long':'short'):''}${r.archetype?' · '+_esc(r.archetype):''}. Click for the overview.">${arrow}${_esc(r.class.label)}${side?' · '+(side>0?'Long':'Short'):''}${r.archetype?'<i>'+_esc(r.archetype)+'</i>':''}</span>${_dkDots(r)}`;
+}
 function dHead(m,ws,col,bg){
   const barPct=Math.min(100,Math.max(0,(ws/10)*100));
   const wts=m.weights||{};
@@ -36854,7 +37011,8 @@ function dHead(m,ws,col,bg){
       </div>
       <div class="d-name">${m.name}${iceLabel}</div>
       <div class="d-bias-row">
-        <div class="d-bias-pill" style="background:${bg};color:${col};border:1px solid ${col}40">${m.bias}</div>
+        <span class="d-desk-slot" id="d-desk-slot" data-dk="${m.id}">${_dHeadDesk(m)}</span>
+        <div class="d-bias-pill d-eng-pill" style="background:${bg};color:${col};border:1px solid ${col}40" title="Composite engine label. The engine is a reference read; the desk read on the left is what the board trades.">Engine · ${m.bias}</div>
       </div>
       ${iceThinWarn}
       <!-- COT Phase & Score History moved: Phase→Positioning tab, History→tab nav right end -->
@@ -36888,7 +37046,7 @@ function dHead(m,ws,col,bg){
       // Bias label — uppercase
       const biasUp=(m.bias||'').toUpperCase();
       return `<div class="d-score-hero" style="--score-glow-col:${col};--d-score-rgb:${hexToRgbStr(col)}">
-      <div style="font-size:7px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(190,200,220,0.40);font-family:var(--mono);margin-bottom:2px">COMPOSITE</div>
+      <div style="font-size:7px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(190,200,220,0.40);font-family:var(--mono);margin-bottom:2px" title="Composite engine score, 1 to 10. A reference read; the desk read sets the side.">ENGINE · COMPOSITE</div>
       <div class="d-score-hero-num" style="color:${col}">${ws.toFixed(1)}</div>
       <div class="d-score-hero-denom" style="color:${col}">/10</div>
       <div class="d-score-arc-wrap">
@@ -39395,7 +39553,9 @@ function seasTabStub(m){
       <div class="fx-read-c"><div class="fx-read-k">Trust</div><div class="fx-read-h" style="color:${gm.col}">${grade?grade+' · ':''}${_sxEsc(gm.label)}</div>
         <div class="fx-read-s">${trustTxt}${cons}</div></div>
       <div class="fx-read-c"><div class="fx-read-k">Next</div><div class="fx-read-h" style="color:${nxtC}">${nxtH}</div>
-        <div class="fx-read-s">${nxtS}</div></div></div>`;
+        <div class="fx-read-s">${nxtS}</div></div></div>
+      <button type="button" class="sx-labbar" onclick="openSeasLab('${m.id}','${_sxEsc(m.name)}')" title="Open the Seasonality Lab (shortcut L)">
+        <span class="sx-lb-k">Seasonality Lab</span><span class="sx-lb-t">Test any basket of years, window or side against ${(()=>{const r=typeof deskRow==='function'?deskRow(m.id):null;const sd=r&&r.side;return r&&r.class&&r.class.label&&sd?'the desk '+(sd>0?'long':'short'):'this market';})()}. The Lab opens on the planner leg.</span><span class="sx-lb-go">Open <kbd>L</kbd></span></button>`;
   })();
   const _seasPrefix = _tabSummary(_seasSummaryText, col) + _sxRead;
 
@@ -39484,7 +39644,7 @@ function seasTabStub(m){
       <!-- AUDIT-SEAS-R2-FRONTEND: the retired 'Full chart' modal is gone. This compact tab
            IS the Lab-mini; the single affordance below opens the full Seasonality Lab, so
            there is exactly ONE seasonal analysis system and no stat computed two ways. -->
-      <button class="ss-btn sx-btn" onclick="openSeasLab('${m.id}','${m.name}')">Open full analysis — Seasonality Lab ↗</button>
+      <button class="ss-btn sx-btn" onclick="openSeasLab('${m.id}','${m.name}')">Open in the Seasonality Lab ↗</button>
     </div>
   </div>
   ${seasWindowStripHTML(d)}
@@ -44617,6 +44777,7 @@ function _labV2SetDir(d){
   _labV2RenderWindowSidebar();   // donut, consensus, KPIs, per-year bars, entry strip, table
   _labV2RenderCallout();         // drawdown ⇄ rally risk / goldilocks countdown
   _labV2RenderBasketStats();     // equal-weight stat cards + per-year chips
+  _labCtxRender();
 }
 function _labV2LSKey(mkt){return 'seas_blend::'+mkt}
 
@@ -44645,8 +44806,14 @@ async function fetchSeasLab(id, opts){
 
 async function openSeasLab(marketId,marketName){
   closeModal();
+  const _wasOpen=document.getElementById('lab-back').classList.contains('open');
+  if(!_wasOpen){ _labV2._returnTab=(typeof selTab!=='undefined'&&selMkt)?selTab:null; _labV2._fromOutside=!selMkt; }
   document.getElementById('lab-back').classList.add('open');
-  document.getElementById('lab-title').textContent=(marketName||marketId)+' — Seasonality Lab';
+  document.body.classList.add('lab-on');
+  if(!marketName&&DATA&&DATA.markets){const _m=DATA.markets.find(x=>x.id===marketId); if(_m) marketName=_m.name;}
+  document.getElementById('lab-title').textContent=(marketName||marketId)+' · Seasonality Lab';
+  try{ history.replaceState(null,'','#lab='+encodeURIComponent(marketId)); }catch(_){}
+  _labV2.marketId=marketId; _labCtxRender(); _labLensToggle(_labLensPref());
   document.getElementById('lab-loading').style.display='flex';
   document.getElementById('lab-content').style.display='none';
   _labV2.marketId=marketId;_labV2.marketName=marketName||marketId;
@@ -44688,7 +44855,121 @@ async function openSeasLab(marketId,marketName){
     document.getElementById('lab-loading').innerHTML='<span style="color:var(--sm2);font-size:10px">Error: '+e.message+'</span>';
   }
 }
-function closeSeasLab(){document.getElementById('lab-back').classList.remove('open')}
+function closeSeasLab(){
+  const _lb=document.getElementById('lab-back'); if(!_lb||!_lb.classList.contains('open')) return;
+  _lb.classList.remove('open');
+  document.body.classList.remove('lab-on');
+  try{ if(/^#lab=/.test(location.hash)) history.replaceState(null,'',location.pathname+location.search); }catch(_){}
+  // LAB-V6: closing lands on the market you were studying, on its Seasonal tab.
+  const id=_labV2.marketId;
+  if(id&&_labV2._fromOutside!==true&&typeof selectMkt==='function'&&DATA&&DATA.markets.find(x=>x.id===id)){
+    if(selMkt!==id){ selectMkt(id); }
+    if(typeof switchTab==='function'&&selTab!=='seasonal'&&_labV2._returnTab==='seasonal') switchTab('seasonal');
+  }
+}
+
+
+/* ══ LAB-V6 · integrated workspace: desk context bar, market switcher, lens drawer,
+   keyboard, deep link (#lab=GC). The Lab answers "does the calendar help or hurt the
+   trade the desk is looking at?", so the desk read sits above the chart. ══ */
+const _LAB_LENS_LS='bh_lab_lens_open_v1';
+function _labLensPref(){ try{return localStorage.getItem(_LAB_LENS_LS)==='1';}catch(_){return false;} }
+function _labLensToggle(force){
+  const el=document.getElementById('lab-lens'), b=document.getElementById('lab-lens-sum'); if(!el||!b) return;
+  const open=(force===true||force===false)?force:el.hidden;
+  el.hidden=!open; b.setAttribute('aria-expanded',open?'true':'false'); b.classList.toggle('on',open);
+  const c=document.getElementById('lab-lens-cta'); if(c) c.textContent=open?'Done':'Adjust';
+  if(force!==true&&force!==false){ try{localStorage.setItem(_LAB_LENS_LS,open?'1':'0');}catch(_){} }
+}
+function _labLensSummary(){
+  const el=document.getElementById('lab-lens-txt'); if(!el||!_labData) return;
+  const n=_labSel?_labSel.size:0, tot=(_labData._yearList||[]).length;
+  const P={all:'All years',none:'No years',midterm:'Midterm years',pre_election:'Pre-election years',post_election:'Post-election years',election:'Election years',even:'Even years',odd:'Odd years',recent10:'Last 10 years',recent15:'Last 15 years'};
+  const pre=P[_labPresetOn]||'Custom basket';
+  const b=_labV2.blend||{}, def=_labV2.defaultBlend||{};
+  const hl=(+b.halflife>=999)?'no decay':(b.halflife+'y half-life');
+  const o=_labOpts||{};
+  const view=[o.avg==='mean'?'mean':'median',o.detrend?'detrended':null].filter(Boolean).join(', ');
+  const mod=_labPresetOn!=='all'||Math.abs((+b.cycle_w)-(+def.cycle_w))>0.05||(+b.halflife)!==(+def.halflife)||o.detrend||o.avg==='mean';
+  el.innerHTML=`${pre} <b>${n}/${tot}</b><span class="ll-sep">·</span>cycle ${Number(b.cycle_w||1).toFixed(1)}×<span class="ll-sep">·</span>${hl}<span class="ll-sep">·</span>${view}${mod?'<span class="ll-mod">modified</span>':''}`;
+}
+function _labOrder(){
+  const rows=[...document.querySelectorAll('#mkt-list .mkt-row[data-id]')].map(r=>r.dataset.id);
+  const all=(typeof DATA!=='undefined'&&DATA&&DATA.markets||[]).map(m=>m.id), seen=new Set(rows);
+  return rows.concat(all.filter(i=>!seen.has(i)));
+}
+function _labNav(delta){
+  const o=_labOrder(), i=o.indexOf(_labV2.marketId); if(!o.length) return;
+  _labJump(o[((i<0?0:i)+delta+o.length)%o.length]);
+}
+function _labJump(id){
+  if(!id||id===_labV2.marketId&&_labData) return;
+  const m=DATA&&DATA.markets.find(x=>x.id===id); if(!m) return;
+  // Keep the main view in step so closing lands on this market.
+  if(typeof selectMkt==='function'&&selMkt&&selMkt!==id){ try{ selectMkt(id); if(_labV2._returnTab==='seasonal'&&typeof switchTab==='function') switchTab('seasonal'); }catch(_){} }
+  openSeasLab(id,m.name);
+}
+function _labGoTab(tab){
+  const id=_labV2.marketId; _labV2._returnTab=null; _labV2._fromOutside=true;
+  closeSeasLab();
+  if(id&&typeof selectMkt==='function'){ if(selMkt!==id) selectMkt(id); if(tab&&tab!=='overview'&&typeof switchTab==='function') switchTab(tab); }
+}
+function _labCtxRender(){
+  const el=document.getElementById('lab-ctx'); if(!el||typeof DATA==='undefined'||!DATA) return;
+  const id=_labV2.marketId, m=DATA.markets.find(x=>x.id===id); if(!m){ el.innerHTML=''; return; }
+  const r=typeof deskRow==='function'?deskRow(id):null;
+  const o=_labOrder(), i=o.indexOf(id);
+  const nm=k=>{const x=DATA.markets.find(z=>z.id===k); return x?x.name:k;};
+  const prevN=o.length?nm(o[(i-1+o.length)%o.length]):'', nextN=o.length?nm(o[(i+1)%o.length]):'';
+  const opts=DATA.markets.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(x=>`<option value="${x.id}"${x.id===id?' selected':''}>${_esc(x.name)}</option>`).join('');
+  const side=r?(r.side||0):0, sideW=side>0?'long':side<0?'short':'';
+  const sCol=side>0?'#22C97A':side<0?'#E05252':'#8a93a8';
+  const stance=r&&r.class&&r.class.label?`${_esc(r.class.label)}${sideW?' · '+sideW:''}${r.archetype?' · '+_esc(r.archetype):''}`:'No desk setup';
+  const pl=r&&r.pillars&&r.pillars.seasonal||{}, rel=pl.rel||'neutral';
+  const relTxt=!side?(pl.sign>0?'leans bullish':pl.sign<0?'leans bearish':'no lean'):rel==='with'?'with the '+sideW:rel==='against'?'against the '+sideW:'neutral for the '+sideW;
+  const relCol=rel==='with'?sCol:rel==='against'?'#EAB850':'#8a93a8';
+  const sc=(m.scores||{}).seasonal||{}, scv=sc.score!=null?(+sc.score).toFixed(1):'—';
+  const g=_labData&&_labData.reliability&&_labData.reliability.grade||(sc.detail&&sc.detail.reliability&&sc.detail.reliability.grade)||null;
+  const sf=r&&r.seasonal_fwd||{}, fw=sf.fwd||{}, pr=sf.primary||60, p0=fw[pr]||fw[String(pr)]||null;
+  const pcx=v=>v==null?'—':(v>=0?'+':'')+(+v).toFixed(2)+'%';
+  const labDir=_labV2.dir||'long';
+  const diff=sideW&&sideW!==labDir;
+  el.innerHTML=`
+    <div class="lc-nav">
+      <button type="button" class="lc-arrow" onclick="_labNav(-1)" title="Previous market: ${_esc(prevN)} (←)" aria-label="Previous market">‹</button>
+      <select class="lc-sel" aria-label="Switch market" onchange="_labJump(this.value)">${opts}</select>
+      <button type="button" class="lc-arrow" onclick="_labNav(1)" title="Next market: ${_esc(nextN)} (→)" aria-label="Next market">›</button>
+    </div>
+    <div class="lc-cell"><em>Desk read</em><b style="color:${sCol}">${stance}</b></div>
+    <div class="lc-cell"><em>Seasonal pillar</em><b style="color:${relCol}">${relTxt}</b><i>${pl.role?_esc(pl.role==='minor tilt'?'minor tilt, never the reason':pl.role):'minor tilt, never the reason'}</i></div>
+    <div class="lc-cell"><em>Tab score · 1–4 wk</em><b>${scv}</b>${g?`<i class="lc-g g-${g}">grade ${g}</i>`:''}</div>
+    <div class="lc-cell"><em>Desk basis · ${pr} TD</em><b style="color:${p0&&p0.median!=null?(p0.median>=0?'#22C97A':'#E05252'):'inherit'}">${p0?pcx(p0.median):'—'}</b>${p0?`<i>${Math.round(p0.hit_up)}% up · ${p0.n} yrs</i>`:''}</div>
+    <div class="lc-acts">
+      ${diff?`<button type="button" class="lc-btn lc-side" onclick="_labV2SetDir('${sideW}')">Check the desk ${sideW}</button>`:''}
+      <button type="button" class="lc-btn" onclick="_labGoTab('seasonal')" title="Close the Lab and open the Seasonal tab">Seasonal tab</button>
+      <button type="button" class="lc-btn" onclick="_labGoTab('overview')" title="Close the Lab and open the market overview">Overview</button>
+    </div>`;
+}
+document.addEventListener('keydown',function(e){
+  const back=document.getElementById('lab-back'); if(!back||!back.classList.contains('open')) return;
+  const t=e.target, typing=t&&(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='TEXTAREA'||t.isContentEditable);
+  if(e.key==='Escape'){ e.preventDefault(); closeSeasLab(); return; }
+  if(typing||e.metaKey||e.ctrlKey||e.altKey) return;
+  if(e.key==='ArrowLeft'){ e.preventDefault(); _labNav(-1); }
+  else if(e.key==='ArrowRight'){ e.preventDefault(); _labNav(1); }
+  else if(e.key==='l'||e.key==='L'){ _labV2SetDir('long'); }
+  else if(e.key==='s'||e.key==='S'){ _labV2SetDir('short'); }
+  else if(e.key==='e'||e.key==='E'){ _labLensToggle(); }
+});
+// Deep link: #lab=GC opens the Lab once the market list has loaded.
+window.addEventListener('hashchange',()=>{ const w=(location.hash.match(/^#lab=([A-Za-z0-9_]+)/)||[])[1]; if(!w||typeof DATA==='undefined'||!DATA) return; const m=DATA.markets.find(x=>x.id===decodeURIComponent(w)); if(m&&_labV2.marketId!==m.id||m&&!document.getElementById('lab-back').classList.contains('open')) openSeasLab(m.id,m.name); });
+(function(){
+  const want=(location.hash.match(/^#lab=([A-Za-z0-9_]+)/)||[])[1]; if(!want) return;
+  let tries=0; const t=setInterval(()=>{
+    tries++; if(typeof DATA!=='undefined'&&DATA&&DATA.markets&&DATA.markets.length){ clearInterval(t); const m=DATA.markets.find(x=>x.id===decodeURIComponent(want)); if(m) openSeasLab(m.id,m.name); }
+    else if(tries>120) clearInterval(t);
+  },500);
+})();
 
 function _labApplyPreset(p){
   const d=_labData,yl=d._yearList;
@@ -44721,7 +45002,8 @@ function _labRenderControls(){
     const m=d.meta[y],on=_labSel.has(y);
     return `<div class="lab-year${on?'':' off'}" onclick="_labToggleYear(${y})" title="${_LAB_CYC_LBL[m.cycle]} year · full-year ${m.ret!=null?(m.ret>=0?'+':'')+m.ret.toFixed(1)+'%':'—'}"><span class="cyc-dot" style="background:${_LAB_CYC_COL[m.cycle]}"></span>${y}</div>`;
   }).join('');
-  const _lycEl=document.getElementById('lab-year-count'); if(_lycEl) _lycEl.textContent='— '+_labSel.size+' selected';
+  const _lycEl=document.getElementById('lab-year-count'); if(_lycEl) _lycEl.textContent='· '+_labSel.size+' selected';
+  _labLensSummary();
   const o=_labOpts;
   const opts=[
     ['avg-median','Median',o.avg==='median',"_labSetOpt('avg','median')"],
@@ -44938,7 +45220,13 @@ function _labVerdict(P,n){
     strength=(edge>=0.15&&mag>=1)?'strong':(edge>=0.08||mag>=1)?'moderate':'weak';
   }else if(dMed!==0&&dRate===0){dir=dMed;strength='weak';}
   const lensSplit=dir!==0&&dRaw!==0&&dRaw!==dir;
-  return {dir,strength,lensSplit,label:dir>0?'Favours longs':dir<0?'Favours shorts':'No clear edge',cls:dir>0?'up':dir<0?'dn':'flat'};
+  // LAB-V6: in-sample strength is capped by the out-of-sample reliability grade, so a
+  // D (mirage) basket can never read as 'strong'. The raw strength is kept for the tooltip.
+  const g=(typeof _labData!=='undefined'&&_labData&&_labData.reliability&&_labData.reliability.grade)||null;
+  const rank={none:0,weak:1,moderate:2,strong:3}, capTo=g==='D'?'weak':g==='C'?'moderate':null;
+  const rawStrength=strength; let capped=false;
+  if(dir!==0&&capTo&&rank[strength]>rank[capTo]){strength=capTo;capped=true;}
+  return {dir,strength,rawStrength,capped,grade:g,lensSplit,label:dir>0?'Favours longs':dir<0?'Favours shorts':'No clear edge',cls:dir>0?'up':dir<0?'dn':'flat'};
 }
 function _labServerCheck(M){
   M.srvCheck=null;
@@ -45150,10 +45438,10 @@ function _labV2RenderCallout(){
     cls='co-flat';kick='No seasonal edge in this window';pill='◆ '+V.label;
     txt=`Across <b>${_labYrs(M.n)}</b> the ${M.lens} median price move ${dates} is <b>${_labFmtPct(P.med)}</b> with <b>${P.nUp} up · ${P.nDown} down</b>${P.nTie?' · '+P.nTie+' flat':''}. Neither side clears the bar, so seasonality should not be a reason to hold a ${sideWord} here.`;
   }else if(with_){
-    cls=V.strength==='weak'?'co-gold':'co-good';kick=`Seasonality ${V.strength==='weak'?'leans':'is'} with your ${sideWord}`;pill=(V.dir>0?'▲ ':'▼ ')+V.label+' · '+V.strength;
+    cls=(V.strength==='weak'||V.grade==='D')?'co-gold':'co-good';kick=`Seasonality ${V.strength==='weak'?'leans':'is'} with your ${sideWord}${V.grade==='D'?', but the pattern is graded a mirage':''}`;pill=(V.dir>0?'▲ ':'▼ ')+V.label+' · '+V.strength+(V.capped?' (capped by '+V.grade+')':'');
     txt=`Price ${V.dir>0?'rose':'fell'} in <b>${win}</b> of ${_labYrs(M.n)} (${M.lens}) over ${dates}, median <b>${_labFmtPct(P.med)}</b>. Typical adverse excursion first: <b>${_labFmtPct(S.advMed)}</b> against a ${sideWord}, best case <b>${_labFmtPct(S.favMed)}</b> in your favour.`;
   }else{
-    cls='co-risk';kick=`Seasonality is against your ${sideWord}`;pill=(V.dir>0?'▲ ':'▼ ')+V.label+' · '+V.strength;
+    cls='co-risk';kick=`Seasonality is against your ${sideWord}${V.grade==='D'?', though the pattern is graded a mirage':''}`;pill=(V.dir>0?'▲ ':'▼ ')+V.label+' · '+V.strength+(V.capped?' (capped by '+V.grade+')':'');
     txt=`Price ${V.dir>0?'rose':'fell'} in <b>${Math.round((1-S.winRate)*100)}%</b> of ${_labYrs(M.n)} over ${dates}, median <b>${_labFmtPct(P.med)}</b>. A ${sideWord} won only <b>${win}</b> of years here. Flip the side toggle to see the leg the basket actually supports.`;
   }
   // Planner sentence for the selected side (server, full basket, next 45 TD)
@@ -45167,6 +45455,8 @@ function _labV2RenderCallout(){
         ((other&&(other.action==='enter_now'||other.action==='wait'))?` — it favours a <b>${isShort?'long':'short'}</b> (${other.action==='enter_now'?'enter now':'wait '+other.entry+' TD'}, out by ${_labPlanDateLbl(other.exitDate,other.exit)}).`:'.');
     }
   }
+  if(V.dir!==0&&V.grade==='D') txt+=` <span class="co-caveat">Reliability D: one or two outlier years, or a recent half that disagrees with the older half, are carrying this. Treat it as close to a coin flip.</span>`;
+  else if(V.capped) txt+=` <span class="co-caveat">Reliability ${V.grade} caps this at ${V.strength}: the years disagree a lot, so want price or another factor to confirm.</span>`;
   el.className='lab-callout '+cls;
   el.style.display='grid';
   el.innerHTML=`<div class="co-ic">${V.dir>0?'▲':V.dir<0?'▼':'◆'}</div><div class="co-body"><div class="co-kick">${kick}</div><div class="co-txt">${txt}${planTxt}</div></div><div class="co-pill">${pill}</div>`;
@@ -45213,6 +45503,8 @@ function _labV2RenderHead(){
   hlSel.value=_labV2.blend.halflife>=999?'999':String(_labV2.blend.halflife);
   if(hlSel.selectedIndex<0)hlSel.value='15';
   _labV2UpdateSaveBtn();
+  _labLensSummary();
+  _labCtxRender();
 }
 
 function _labV2UpdateSaveBtn(){
@@ -45248,7 +45540,7 @@ function _labV2WireBlend(){
     clearTimeout(_labV2BlendDebounce);
     _labV2BlendDebounce=setTimeout(()=>{_labV2BlendDebounce=null;_labV2ReFetch();},220);
   };
-  cw.oninput = ()=>{ cwVal.textContent=Number(cw.value).toFixed(1)+'×'; _labV2.blend.cycle_w=+cw.value; queue(); };
+  cw.oninput = ()=>{ cwVal.textContent=Number(cw.value).toFixed(1)+'×'; _labV2.blend.cycle_w=+cw.value; _labLensSummary(); queue(); };
   cw.onchange = ()=>{ _labV2.blend.cycle_w=+cw.value; queue(); };
   hl.onchange = ()=>{ _labV2.blend.halflife=+hl.value; clearTimeout(_labV2BlendDebounce); _labV2ReFetch(); };
 }
@@ -45468,7 +45760,7 @@ function _labV2RenderWindowSidebar(){
   const chkTxt=!chk?'':chk.state==='ok'?' · server check ✓':chk.state==='diff'?` · <span style="color:var(--sm2)">server differs (${_labFmtPct(chk.srvMed)})</span>`:chk.state==='na'?` · server check n/a (${chk.why})`:'';
   const winCard=`<div class="lab-v2-win">${donut}<div class="info">
       <div class="win-title">Window read · ${M.lens} · ${_labYrs(M.n)}</div>
-      <div class="win-sub"><b style="color:${donutCol}">${V.dir>0?'▲ ':V.dir<0?'▼ ':'◆ '}${V.label}</b>${V.dir!==0?' <span style="color:var(--dim);font-weight:600">· '+V.strength+'</span>':''}</div>
+      <div class="win-sub"><b style="color:${donutCol}">${V.dir>0?'▲ ':V.dir<0?'▼ ':'◆ '}${V.label}</b>${V.dir!==0?' <span style="color:var(--dim);font-weight:600" title="'+(V.capped?'In-sample '+V.rawStrength+', capped by reliability '+V.grade:'')+'">· '+V.strength+(V.capped?' · capped by '+V.grade:'')+'</span>':''}</div>
       <div class="win-sub">${_labWinLbl(M.ws,M.we)} · ${M.tdWin} TD · ${_labWkLbl(M.tdWin)}</div>
       <div class="win-sub">median price move <b class="${_labSignCls(P.med)}">${_labFmtPct(P.med)}</b> · ${upPct!=null?upPct+'% of weighted years up':'—'}</div>
       <div class="win-raw" style="font-size:8.5px;color:var(--dim);margin-top:3px">raw equal-weight: ${P.rawUpRate!=null?Math.round(P.rawUpRate*100)+'% up':'—'} (<span class="up">${P.nUp} up</span> · <span class="dn">${P.nDown} down</span>${P.nTie?' · '+P.nTie+' flat':''}) · median ${_labFmtPct(P.rawMed)}${V.lensSplit?' · <span style="color:var(--accent)">lenses disagree on direction</span>':''}${chkTxt}</div>
@@ -46959,5 +47251,122 @@ initNexusNoise();
   }
 }
 </style>
+
+<script>
+/* HOME-V6 · jump bar. Targets resolve lazily (panels render async), the active chip
+   follows the scroll position of whichever element scrolls the home pane. */
+(function(){
+  const T=[
+    ['week','This week',()=>document.querySelector('#ov-week .wk, #ov-week')],
+    ['board','Board',()=>document.querySelector('#ov-week .wkb')||document.querySelector('#ov-week .wkm')],
+    ['edge','Edge lab',()=>document.querySelector('#ov-week .eg-lab')],
+    ['macro','Economy',()=>document.querySelector('#ov-macro-env-strip > *')||document.querySelector('.ov-macro-sect-header')],
+    ['climate','Climate',()=>document.querySelector('#ov-climate-panel')],
+    ['narr','Narrative',()=>document.getElementById('ov-cp-narrative')],
+    ['rates','Rates',()=>{const h=document.querySelector('#ov-wrap .ov-rp-hdr');return h?(h.closest('.ov-macro-card,.ov-rp-card,section')||h):null;}],
+    ['cb','Central banks',()=>[...document.querySelectorAll('#ov-wrap div')].find(e=>e.childElementCount===0&&/^G10 central banks?$/i.test(e.textContent.trim()))],
+    ['news','News',()=>document.querySelector('#ov-wrap .ov-ai-brief-header')],
+    ['cal','Calendar',()=>{const h=document.querySelector('#ov-wrap .cal-header-lbl');return h?(h.parentElement||h):null;}]
+  ];
+  function scroller(el){ let e=el&&el.parentElement; while(e&&e!==document.body){ const o=getComputedStyle(e).overflowY; if((o==='auto'||o==='scroll')&&e.scrollHeight>e.clientHeight+4) return e; e=e.parentElement; } return document.scrollingElement; }
+  function render(){
+    const nav=document.getElementById('ov-jump'); if(!nav) return;
+    nav.innerHTML=T.map(([k,l])=>`<button type="button" data-j="${k}">${l}</button>`).join('')+'<span class="kb-hint" title="Keyboard shortcuts"><kbd>/</kbd> search <kbd>⌘K</kbd> commands</span>';
+    nav.addEventListener('click',e=>{
+      const b=e.target.closest('button[data-j]'); if(!b) return;
+      const t=T.find(x=>x[0]===b.dataset.j), el=t&&t[2](); if(!el){ b.classList.add('miss'); setTimeout(()=>b.classList.remove('miss'),600); return; }
+      const sc=scroller(nav), top=(sc===document.scrollingElement?window.scrollY:sc.scrollTop)+el.getBoundingClientRect().top-(sc===document.scrollingElement?0:sc.getBoundingClientRect().top)-nav.offsetHeight-12;
+      (sc===document.scrollingElement?window:sc).scrollTo({top:Math.max(0,top),behavior:'smooth'});
+    });
+    let raf=0;
+    const upd=()=>{ raf=0; const navB=nav.getBoundingClientRect().bottom+24; let cur=null, best=-1e9;
+      for(const [k,,f] of T){ const el=f(); const r=el&&el.getBoundingClientRect(); const ok=el&&r.height>0&&el.offsetParent!==null;
+        {const c=nav.querySelector(`[data-j="${k}"]`); if(c){c.classList.toggle('dim',!ok); c.hidden=!ok;}} if(!ok) continue;
+        if(r.top<=navB&&r.top>best){ best=r.top; cur=k; } }
+      nav.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.j===cur));
+      nav.classList.toggle('stuck',nav.getBoundingClientRect().top<=2);
+    };
+    const hook=()=>{ const sc=scroller(nav); (sc===document.scrollingElement?window:sc).addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(upd); },{passive:true}); upd(); };
+    setTimeout(hook,1500); setTimeout(upd,6000);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',render); else render();
+})();
+</script>
+
+<script>
+/* NAV-V6 · command palette (Ctrl/Cmd+K) and keyboard shortcuts.
+   /  search markets · 1–7 tabs · J/K next/previous market · L Seasonality Lab · H home · ? help */
+(function(){
+  const TABS=[['overview','Overview'],['cot','Positioning'],['seasonal','Seasonal'],['momentum','Trend'],['macro','Fundamentals'],['relval','Valuation'],['regime','Climate']];
+  let el=null, items=[], idx=0;
+  const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const anyModal=()=>!!document.querySelector('.modal-back.open, #meth-modal-back.open, #onboard-overlay[style*="flex"]');
+  function order(){ const rows=[...document.querySelectorAll('#mkt-list .mkt-row[data-id]')].map(r=>r.dataset.id); const all=((typeof DATA!=='undefined'&&DATA&&DATA.markets)||[]).map(m=>m.id); const seen=new Set(rows); return rows.concat(all.filter(i=>!seen.has(i))); }
+  function step(d){ if(typeof DATA==='undefined'||!DATA) return; const o=order(); if(!o.length) return; const i=o.indexOf(selMkt); const id=o[((i<0?(d>0?-1:0):i)+d+o.length)%o.length]; const keep=selTab; selectMkt(id); if(keep&&keep!=='overview') try{switchTab(keep);}catch(_){} }
+  function deskTxt(id){ try{ const r=deskRow(id); if(!r||!r.class||r.class.key==='none') return ''; return r.class.label+(r.side?(r.side>0?' · long':' · short'):'')+(r.archetype?' · '+r.archetype:''); }catch(_){ return ''; } }
+  function build(q){
+    q=(q||'').trim().toLowerCase(); const out=[];
+    const cur=selMkt&&DATA?DATA.markets.find(x=>x.id===selMkt):null;
+    if(cur){
+      TABS.forEach(([k,l],i)=>out.push({g:cur.name,t:l,s:'Tab '+(i+1),k:String(i+1),run:()=>switchTab(k)}));
+      out.push({g:cur.name,t:'Seasonality Lab',s:'Test baskets, windows and sides',k:'L',run:()=>openSeasLab(cur.id,cur.name)});
+    }
+    out.push({g:'Go',t:'Home overview',s:'This week, board, macro',k:'H',run:()=>goHome()});
+    if(typeof openMethModal==='function') out.push({g:'Go',t:'How the scores work',s:'Methodology',run:()=>openMethModal(cur?cur.id:undefined)});
+    out.push({g:'Go',t:'Search markets in the sidebar',s:'Filter the list',k:'/',run:()=>focusSearch()});
+    (DATA&&DATA.markets||[]).forEach(m=>{ const d=deskTxt(m.id); out.push({g:'Markets',t:m.name,s:(m.id+(d?' · '+d:'')),side:(()=>{try{return deskRow(m.id)?.side||0;}catch(_){return 0;}})(),run:()=>selectMkt(m.id),id:m.id});
+      out.push({g:'Seasonality Lab',t:m.name+' · Lab',s:'Open the Lab on '+m.id,run:()=>openSeasLab(m.id,m.name),id:m.id,lab:1}); });
+    if(!q) return out.filter(x=>!x.lab).slice(0,40);
+    const sc=x=>{ const t=x.t.toLowerCase(), s2=(x.s||'').toLowerCase(), id=(x.id||'').toLowerCase();
+      if(id===q) return x.lab?40:100; if(t.startsWith(q)) return x.lab?35:80; if(t.includes(q)) return x.lab?25:60; if(s2.includes(q)) return 30; return 0; };
+    const wantLab=/\blab\b/.test(q); const qq=q.replace(/\blab\b/,'').trim();
+    if(wantLab&&qq){ return out.filter(x=>x.lab&&(x.t.toLowerCase().includes(qq)||(x.id||'').toLowerCase()===qq)).slice(0,20); }
+    return out.map(x=>[sc(x),x]).filter(a=>a[0]>0).sort((a,b)=>b[0]-a[0]).map(a=>a[1]).slice(0,30);
+  }
+  function paint(){
+    const list=el.querySelector('.ck-list'); let g='';
+    list.innerHTML=items.length?items.map((x,i)=>{ const head=x.g!==g?`<div class="ck-g">${esc(x.g)}</div>`:''; g=x.g;
+      const dot=x.side?`<i class="ck-dot" style="background:${x.side>0?'#22C97A':'#E05252'}"></i>`:'';
+      return head+`<div class="ck-i${i===idx?' on':''}" data-i="${i}">${dot}<b>${esc(x.t)}</b><span>${esc(x.s||'')}</span>${x.k?`<kbd>${esc(x.k)}</kbd>`:''}</div>`; }).join(''):'<div class="ck-empty">No match</div>';
+    const on=list.querySelector('.ck-i.on'); if(on) on.scrollIntoView({block:'nearest'});
+  }
+  function open(q){
+    if(!el){ el=document.createElement('div'); el.className='cmdk-back'; el.innerHTML=`<div class="cmdk" role="dialog" aria-label="Command palette"><input class="ck-in" placeholder="Jump to a market, tab or the Lab…" autocomplete="off" spellcheck="false"><div class="ck-list"></div><div class="ck-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>/</kbd> search</span><span><kbd>1</kbd>–<kbd>7</kbd> tabs</span><span><kbd>J</kbd><kbd>K</kbd> markets</span><span><kbd>L</kbd> Lab</span><span><kbd>Esc</kbd> close</span></div></div>`;
+      document.body.appendChild(el);
+      el.addEventListener('mousedown',e=>{ if(e.target===el) close(); });
+      const inp=el.querySelector('.ck-in');
+      inp.addEventListener('input',()=>{ items=build(inp.value); idx=0; paint(); });
+      inp.addEventListener('keydown',e=>{
+        if(e.key==='ArrowDown'){ e.preventDefault(); idx=Math.min(items.length-1,idx+1); paint(); }
+        else if(e.key==='ArrowUp'){ e.preventDefault(); idx=Math.max(0,idx-1); paint(); }
+        else if(e.key==='Enter'){ e.preventDefault(); run(items[idx]); }
+        else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); close(); }
+      });
+      el.querySelector('.ck-list').addEventListener('click',e=>{ const r=e.target.closest('.ck-i'); if(r) run(items[+r.dataset.i]); });
+      el.querySelector('.ck-list').addEventListener('mousemove',e=>{ const r=e.target.closest('.ck-i'); if(r&&+r.dataset.i!==idx){ idx=+r.dataset.i; el.querySelectorAll('.ck-i').forEach(n=>n.classList.toggle('on',+n.dataset.i===idx)); } });
+    }
+    el.classList.add('open'); const inp=el.querySelector('.ck-in'); inp.value=q||''; items=build(inp.value); idx=0; paint(); setTimeout(()=>inp.focus(),0);
+  }
+  function close(){ if(el) el.classList.remove('open'); }
+  function run(x){ if(!x) return; close(); try{ x.run(); }catch(e){ console.warn('cmdk',e); } }
+  function focusSearch(){ const i=document.getElementById('sb-search'); if(!i) return; if(window.innerWidth<=700&&document.body.classList.contains('mob-detail-open')) try{goHome();}catch(_){} i.focus(); i.select(); }
+  window.bhCmdK=open;
+  document.addEventListener('keydown',e=>{
+    if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); if(el&&el.classList.contains('open')) close(); else open(); return; }
+    if(el&&el.classList.contains('open')) return;
+    const t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)) { if(e.key==='Escape'&&t.id==='sb-search') t.blur(); return; }
+    if(e.metaKey||e.ctrlKey||e.altKey||anyModal()) return;
+    if(typeof DATA==='undefined'||!DATA) return;
+    const k=e.key;
+    if(k==='/'){ e.preventDefault(); focusSearch(); }
+    else if(k==='?'){ e.preventDefault(); open(); }
+    else if(k==='j'||k==='J'){ e.preventDefault(); step(1); }
+    else if(k==='k'||k==='K'){ e.preventDefault(); step(-1); }
+    else if((k==='h'||k==='H')&&selMkt){ e.preventDefault(); goHome(); }
+    else if((k==='l'||k==='L')&&selMkt){ e.preventDefault(); const m=DATA.markets.find(x=>x.id===selMkt); if(m) openSeasLab(m.id,m.name); }
+    else if(/^[1-7]$/.test(k)&&selMkt){ e.preventDefault(); switchTab(TABS[+k-1][0]); }
+  });
+})();
+</script>
 </body>
 </html>
