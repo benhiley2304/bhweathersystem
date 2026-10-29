@@ -25952,7 +25952,7 @@ body.lab-on #app-status-bar{display:none}
       <!-- injected by openMethModal() -->
     </div>
     <div class="meth-footer">
-      <span class="meth-footer-note">Scores are directional bias indicators — not financial advice</span>
+      <span class="meth-footer-note">Scores are directional bias indicators, not financial advice</span>
     </div>
   </div>
 </div>
@@ -26600,7 +26600,7 @@ function _suPath(r,mob){
   const e=t.entry_td, pk=t.peak_td;
   if(e!=null&&pk!=null&&t.state!=='against'&&t.state!=='flat'){ g+='<rect x="'+X(e)+'" y="'+T+'" width="'+Math.max(2,X(pk)-X(e))+'" height="'+(H-T-B)+'" rx="4" fill="'+_suSideCol(side,.10)+'"/>'; }
   g+='<line x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Y(0)+'" y2="'+Y(0)+'" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 3"/>';
-  [0,20,40,60,80].forEach(k=>{ g+='<text x="'+X(k)+'" y="'+(H-6)+'" text-anchor="middle" class="su-ax">'+(k?k+' TD':'now')+'</text>'; });
+  [0,20,40,60,80].forEach(k=>{ g+='<text x="'+X(k)+'" y="'+(H-6)+'" text-anchor="'+(k===0?'start':k===80?'end':'middle')+'" class="su-ax">'+(k?k+' TD':'now')+'</text>'; });
   [lo,hi].forEach(v=>{ if(Math.abs(v)>1e-9) g+='<text x="'+(L-5)+'" y="'+(Y(v)+3)+'" text-anchor="end" class="su-ax">'+(v>0?'+':'')+v.toFixed(1)+'%</text>'; });
   const d=pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' ');
   const lc=t.state==='against'?'#EAB850':_suSideCol(side);
@@ -27582,7 +27582,7 @@ function renderOverview(){
   const markets=DATA.markets;
   const reg=DATA.regime||{};
   const regLabel=reg.regime||reg.label||'Unknown';
-  const regDesc=reg.regime_label||'';
+  const regDesc=(reg.regime_label||'').replace(/\s+[—–]\s+/g,': ');
   const regScore=reg.score_10!=null?reg.score_10:null;
   const regCol=regLabel.includes('Strong Risk-On')?'#00f09a':regLabel.includes('Risk-On')&&!regLabel.includes('Lean')?'#22c97a':regLabel.includes('Lean Risk-On')?'#5aaa7a':regLabel.includes('Strong Risk-Off')?'#c41a2e':regLabel.includes('Risk-Off')&&!regLabel.includes('Lean')?'#e03a2a':regLabel.includes('Lean Risk-Off')?'#d63a24':'#7b8ba8';
   const bull=markets.filter(m=>m.weighted_score>=6).length;
@@ -27689,7 +27689,7 @@ function renderOverview(){
       mhero.innerHTML=`
         <div class="mob-hero-eyebrow">
           <div class="mob-hero-pip" style="background:${regCol}"></div>
-          BH WEATHER SYSTEM &nbsp;·&nbsp; ${total} MARKETS &nbsp;·&nbsp; ${updStr}
+          ${total} MARKETS &nbsp;·&nbsp; ${updStr}
         </div>
         <div class="mob-hero-regime" style="--mob-regime-col:${regCol}">${(()=>{
           const up2 = regLabel.toUpperCase();
@@ -27700,7 +27700,7 @@ function renderOverview(){
           else if (up2.includes('STRONG') && (up2.includes('RISK-OFF') || up2.includes('RISK OFF'))){ w1 = 'STRONG'; w2 = 'RISK-OFF'; }
           else if (up2.includes('RISK-ON') || up2.includes('RISK ON'))   { w1 = 'RISK'; w2 = 'ON'; }
           else if (up2.includes('RISK-OFF') || up2.includes('RISK OFF')) { w1 = 'RISK'; w2 = 'OFF'; }
-          else { const parts = up2.replace(/-/g,' ').split(' '); w1 = parts.slice(0,-1).join(' ') || 'MARKET'; w2 = parts[parts.length-1]; }
+          else { const parts = up2.replace(/-/g,' ').split(' '); w1 = parts.slice(0,-1).join(' ') || 'RISK'; w2 = parts[parts.length-1]; }
           const szRem = w2.length > 4 ? '58px' : '72px';
           return `<span class="mob-regime-w1" style="font-size:${szRem}">${w1}</span><span class="mob-regime-w2" style="font-size:${szRem}">${w2}</span>`;
         })()}</div>
@@ -27708,7 +27708,7 @@ function renderOverview(){
         <div class="mob-hero-desc">${mobDesc}</div>
         <div class="mob-hero-pills">
           <div class="mob-hero-pill">
-            <span class="mob-hero-pill-lbl">Score</span>
+            <span class="mob-hero-pill-lbl">Avg bias</span>
             <span class="mob-hero-pill-val" style="color:${avgCol}">${avg}<span class="mob-hero-pill-denom">/10</span></span>
           </div>
           <div class="mob-hero-pill-div"></div>
@@ -27829,7 +27829,7 @@ function renderOverview(){
   const _heroLeftHtml = '';
 
   document.getElementById('ov-banner-inner').innerHTML=`
-    <div class="ov-banner-eyebrow nexus-reveal" style="animation-delay:0ms">BH Weather System &mdash; Market Overview</div>
+    <div class="ov-banner-eyebrow nexus-reveal" style="animation-delay:0ms">BH Weather System &middot; Market Overview</div>
     <div class="ov-banner-text-right nexus-reveal" style="animation-delay:60ms;color:${regCol};border-left-color:${regCol}20;--hero-accent:${regCol}" data-score="${regScore!=null?regScore.toFixed(1):''}">
       ${(()=>{
         // Big regime headline — show qualifier on line 1, direction on line 2
@@ -27857,7 +27857,7 @@ function renderOverview(){
                 </div>`;
       })()}
       <div class="ov-hero-bottom-block">
-        <span class="ov-hero-regime-label" style="color:${regCol}">${regScore!=null?regScore.toFixed(1)+' / 10 — Macro Regime Indicator':'Macro Regime Indicator'}</span>
+        <span class="ov-hero-regime-label" style="color:${regCol}">${regScore!=null?regScore.toFixed(1)+' / 10 · Macro regime':'Macro Regime Indicator'}</span>
         <span class="ov-hero-rule" style="background:linear-gradient(to left,${regCol},transparent)"></span>
         ${regDesc?`<div class="ov-banner-desc">${regDesc}</div>`:''}
         <div class="ov-banner-sub">
@@ -28315,7 +28315,7 @@ function renderOverview(){
           const metaStr = (fcstStr||prevStr) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1px">${[fcstStr,prevStr].filter(Boolean).join('')}</div>` : '';
           const isImminent = (ms - now) <= 4*3600000;
               return `<tr class="cal-row${isImminent?' cal-row-imminent':''}">
-            <td class="cal-td-flag">${ev.flag||ev.currency}</td>
+            <td class="cal-td-flag">${ev.currency||""}</td>
             <td class="cal-td-name"><span class="cal-name" style="font-weight:${isImminent?'700':'600'};${isImminent?'color:rgba(232,238,252,0.98)':''}">${ev.name}</span>${metaStr}</td>
             <td class="cal-td-time" style="${isImminent?'color:rgba(200,169,110,0.85);font-weight:700':''}">${fmtLocalTime(ms)}</td>
             <td class="cal-td-timer"><span class="${tc}">${fmtCountdown(ms)}</span></td>
@@ -34006,9 +34006,9 @@ function _drawLiveDot(canvas, data, phase) {
   // Arc: 80% ring visible, centred horizontally
   // CY=0.54, OR=0.64 → midpoint between old (0.62/0.72) and new (0.46/0.56)
   const ARC_OR_PRELIM = H * 0.64;
-  const ARC_CX  = W * 0.50;
-  const ARC_CY  = H * 0.54;
-  const ARC_OR  = H * 0.64;
+  const ARC_CX  = W * ((window._arcGeo||{}).cx||0.50);
+  const ARC_CY  = H * ((window._arcGeo||{}).cy||0.54);
+  const ARC_OR  = H * ((window._arcGeo||{}).or||0.64);
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S = 0, MAX_S = 10;
   const SWEEP = 210 * Math.PI / 180;
@@ -34099,7 +34099,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   const _iw = window.innerWidth;
   // MacBook Air M4 15" renders at ~1470px logical — use 1600px threshold to catch all laptop displays
   const _hRatio = _iw <= 700 ? 0 : _iw <= 1600 ? 0.46 : 0.38;
-  const H   = _iw <= 700 ? 200 : Math.max(380, Math.min(680, Math.round(W * _hRatio)));
+  // v8: on desktop the hero is a bounded band; draw at its real size instead of scaling a tall bitmap down
+  const _wrapH = (_iw > 700 && canvas.parentElement) ? canvas.parentElement.clientHeight : 0;
+  const COMPACT = _wrapH >= 160 && _wrapH < 380;
+  const H   = _iw <= 700 ? 200 : COMPACT ? _wrapH : Math.max(380, Math.min(680, Math.round(W * _hRatio)));
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
   canvas.style.width  = W + 'px';
@@ -34136,13 +34139,16 @@ function _renderClimateArc(canvas, data, progress, live={}) {
 
   // ── Layout constants ─────────────────────────────────────────────────
   const LEFT_W = 145;                      // jarvis data panel width
-  const ARC_X  = PAD_L + LEFT_W;           // arc zone starts right after data strip
+  const ARC_X  = COMPACT ? PAD_L : PAD_L + LEFT_W;           // arc zone starts right after data strip
   // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
   // CY=0.54, OR=0.64 → midpoint between old (0.62/0.72) and new (0.46/0.56)
   const ARC_OR_PRE = H * 0.64;
-  const ARC_CX  = W * 0.50;
-  const ARC_CY  = H * 0.54;
-  const ARC_OR  = H * 0.64;
+  const _cxF    = COMPACT ? (W < 800 ? Math.min(0.40, Math.max(0.28, (H * 0.46 + 110) / W)) : 0.40) : 0.50;
+  const ARC_CX  = W * _cxF;
+  // the sweep runs from just below 3 o'clock, under the hub, up to 10:30, so it needs ~1.71 OR of height
+  const ARC_CY  = COMPACT ? H * 0.41 : H * 0.54;
+  const ARC_OR  = COMPACT ? H * 0.46 : H * 0.64;
+  window._arcGeo = { cy: COMPACT ? 0.41 : 0.54, or: COMPACT ? 0.46 : 0.64, cx: _cxF };
   const ARC_IR = ARC_OR * 0.30;
   const MIN_S  = 0, MAX_S = 10;
   const SWEEP  = 210 * Math.PI / 180;
@@ -34172,7 +34178,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // LEFT PANEL — JARVIS CLIMATE READOUT
   // Premium holographic data spine: vertical energy bar, score hero, stats
   // ═══════════════════════════════════════════════════════════════════════
-  {
+  if (!COMPACT) {
     const lx  = PAD_L + 2;
     const lW  = LEFT_W - 6;
     const lCX = lx + lW / 2;
@@ -34551,10 +34557,10 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   const midArc = START_A + SWEEP * 0.5;
   const nlx = ARC_CX + Math.cos(midArc) * (zeroR + 12);
   const nly = ARC_CY + Math.sin(midArc) * (zeroR + 12);
-  if (nlx > ARC_X && nlx < W - 20 && nly > 5 && nly < H - 5) {
-    ctx.font = '600 7px "SF Mono",monospace';
+  if (!COMPACT && nlx > ARC_X && nlx < W - 20 && nly > 5 && nly < H - 5) {
+    ctx.font = '600 9px "JetBrains Mono",monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(140,180,240,0.65)';
+    ctx.fillStyle = 'rgba(151,161,181,0.75)';
     ctx.fillText('NEUTRAL', nlx, nly);
   }
   ctx.restore();
@@ -34610,13 +34616,13 @@ function _renderClimateArc(canvas, data, progress, live={}) {
       if (lx > ARC_X - 5 && lx < W - 5 && ly > 0 && ly < H + 5) {
         ctx.textAlign = 'center';
         ctx.shadowBlur = isJan ? 8 : 0;
-        ctx.shadowColor = 'rgba(200,169,110,0.65)';
+        ctx.shadowColor = 'rgba(0,0,0,0)';
         ctx.fillStyle = isJan
-          ? 'rgba(200,180,120,0.85)'
-          : 'rgba(160,140,100,0.4)';
+          ? 'rgba(241,227,190,0.85)'
+          : 'rgba(151,161,181,0.55)';
         ctx.font = isJan
-          ? `700 7.5px "SF Mono",monospace`
-          : `400 7px "SF Mono",monospace`;
+          ? `600 9px "JetBrains Mono",monospace`
+          : `500 9px "JetBrains Mono",monospace`;
         ctx.fillText(isJan ? `Jan '${String(yr).slice(2)}` : MONTHS[mo], lx, ly);
         ctx.shadowBlur = 0;
         // Spoke tick at outer edge
@@ -34639,13 +34645,13 @@ function _renderClimateArc(canvas, data, progress, live={}) {
     const ny = ARC_CY + Math.sin(needleA) * needleR;
     const lx = nx + 8, ly = ny - 12;
     ctx.save();
-    ctx.font = '700 6.5px "SF Mono",monospace';
+    ctx.font = '600 9px "JetBrains Mono",monospace';
     const lw = ctx.measureText('LIVE').width + 10;
     // Badge bg
     ctx.fillStyle = rgb(curC, 0.18);
     ctx.strokeStyle = rgb(curC, 0.6);
     ctx.lineWidth = 0.6;
-    ctx.beginPath(); ctx.roundRect(lx, ly - 8, lw, 10, 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(lx, ly - 10, lw, 14, 3); ctx.fill(); ctx.stroke();
     // Text
     ctx.fillStyle = rgb(curC, 0.95);
     ctx.textAlign = 'left';
@@ -34660,7 +34666,7 @@ function _renderClimateArc(canvas, data, progress, live={}) {
   // canvas bottom. This fade covers the bottom 32% of the canvas, blending
   // hard-clipped bar edges into the page background so no reflection
   // artifact is visible at any viewport size.
-  {
+  if (!COMPACT) {
     const fadeStart = H * 0.68;
     const fadeGrd = ctx.createLinearGradient(0, fadeStart, 0, H);
     fadeGrd.addColorStop(0,    'rgba(4,4,5,0)');
@@ -34835,9 +34841,9 @@ function _setupArcTooltip(canvas, data, live) {
     // Arc: fills right 2/3 of hero. Pivot lower-centre, massive radius.
     // CY=0.54, OR=0.64 → midpoint between old (0.62/0.72) and new (0.46/0.56)
     const ARC_OR_P = H * 0.64;
-    const ARC_CX  = W * 0.50;
-    const ARC_CY  = H * 0.54;
-    const ARC_OR  = H * 0.64;
+    const ARC_CX  = W * ((window._arcGeo||{}).cx||0.50);
+    const ARC_CY  = H * ((window._arcGeo||{}).cy||0.54);
+    const ARC_OR  = H * ((window._arcGeo||{}).or||0.64);
     const ARC_IR = ARC_OR * 0.30;
     const SWEEP  = 210 * Math.PI / 180;
     const START_A = Math.PI * 0.5 + (Math.PI * 2 - SWEEP) * 0.5 + SWEEP;
@@ -37440,7 +37446,7 @@ async function _loadDetailEvents(marketId){
       const sensLbl = sens==='bull'?'Bullish':sens==='bear'?'Bearish':'Neutral';
       const urg = urgCls(dtKey);
       return `<tr>
-        <td class="td-ev-flag">${ev.flag||ev.currency}</td>
+        <td class="td-ev-flag">${ev.currency||""}</td>
         <td class="td-ev-name">${ev.name}</td>
         <td class="td-ev-date">${fmtDt(dtKey)}</td>
         <td class="td-ev-num">${ev.forecast||'—'}</td>
@@ -47215,7 +47221,7 @@ initNexusNoise();
   <span class="asb-sep">|</span>
   <span class="asb-src">Data: CFTC COT · Fed &amp; G10 central banks · Market prices</span>
   <span class="asb-sep">|</span>
-  <span class="asb-disc">Directional bias indicators only — not financial advice</span>
+  <span class="asb-disc">Directional bias indicators only. Not financial advice.</span>
 </div>
 <style>
 #app-status-bar{
@@ -47601,7 +47607,1896 @@ initNexusNoise();
   .su-rc-row .d{display:none}
   .su-rc-row{grid-template-columns:minmax(0,1fr) 80px 34px}
 }
+/* ===== v8-layout ===== */
+/*
+ * A bounded trading desk, not a width-scaled cover.
+ * Layout-only tokens are deliberately namespaced for safe team integration.
+ * The mobile presentation is left intact.
+ */
+:root {
+  --v8-layout-1: 4px;
+  --v8-layout-2: 8px;
+  --v8-layout-3: 12px;
+  --v8-layout-4: 16px;
+  --v8-layout-6: 24px;
+  --v8-layout-8: 32px;
+  --v8-layout-10: 40px;
+  --v8-layout-shell: 2080px;
+  --v8-layout-content: 1680px;
+  --v8-layout-gutter: 24px;
+  --v8-layout-section: 24px;
+  --v8-layout-gap: 16px;
+  --v8-layout-card: 16px;
+  --v8-layout-hero: clamp(240px, 28vh, 336px);
+}
+
+@media (min-width: 701px) {
+  /* One centred desk keeps the market rail next to the working surface.
+     At QHD and ultrawide, extra pixels become outside margins, not huge cards. */
+  html { --sidebar-w: 288px !important; }
+  .main {
+    width: 100% !important;
+    max-width: var(--v8-layout-shell) !important;
+    margin-inline: auto !important;
+    zoom: 1 !important;
+  }
+  .sidebar {
+    width: var(--sidebar-w) !important;
+    min-width: var(--sidebar-w) !important;
+    max-width: var(--sidebar-w) !important;
+    flex: 0 0 var(--sidebar-w) !important;
+  }
+  .detail {
+    min-width: 0 !important;
+    align-items: stretch !important;
+    scrollbar-gutter: stable;
+  }
+  #d-empty {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #ov-wrap, #d-content {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: calc(var(--v8-layout-content) + 2 * var(--v8-layout-gutter)) !important;
+    margin-inline: auto !important;
+    padding-inline: var(--v8-layout-gutter) !important;
+    min-width: 0 !important;
+    container: bhws-content / inline-size;
+  }
+  #ov-wrap > *, #d-content > * { min-width: 0; }
+
+  /* Bounded climate summary. The history canvas uses contain, never a stretch. */
+  #ov-banner {
+    flex: 0 0 var(--v8-layout-hero) !important;
+    height: var(--v8-layout-hero) !important;
+    min-height: var(--v8-layout-hero) !important;
+    max-height: var(--v8-layout-hero) !important;
+    margin: 0 0 var(--v8-layout-4) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  .ov-banner-eyebrow {
+    top: var(--v8-layout-4) !important;
+    left: var(--v8-layout-6) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .ov-banner-text-right {
+    inset: var(--v8-layout-10) var(--v8-layout-6) var(--v8-layout-6) auto !important;
+    width: 40% !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    gap: var(--v8-layout-4) !important;
+  }
+  .ov-banner-text-right::before { content: none !important; }
+  .ov-hero-headline-block {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: baseline !important;
+    justify-content: flex-start !important;
+    gap: var(--v8-layout-2) !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .ov-hero-word1, .ov-hero-word2 {
+    font-size: clamp(24px, 1.6rem + 0.55vw, 36px) !important;
+    line-height: 1.1 !important;
+    text-align: left !important;
+  }
+  .ov-hero-word1 { -webkit-text-stroke-width: 1px !important; }
+  .ov-hero-bottom-block {
+    align-items: flex-start !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: var(--v8-layout-2) !important;
+  }
+  .ov-hero-regime-label {
+    text-align: left !important;
+    margin: 0 !important;
+    white-space: normal !important;
+    line-height: 1.5 !important;
+  }
+  .ov-hero-rule {
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  .ov-banner-desc {
+    max-width: 52ch !important;
+    margin: 0 !important;
+    text-align: left !important;
+    line-height: 1.6 !important;
+  }
+  .ov-banner-sub {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: var(--v8-layout-2) var(--v8-layout-4) !important;
+    margin: 0 !important;
+  }
+  #ov-charts {
+    inset: var(--v8-layout-10) auto var(--v8-layout-3) 0 !important;
+    width: 58% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  #ov-charts .ov-arc-canvas-wrap {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+  #ov-arc-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+  }
+  .ov-arc-footer { display: none !important; }
+
+  /* A single edge and section rhythm throughout the home page. */
+  #ov-jump {
+    margin: 0 0 var(--v8-layout-section) !important;
+    padding: var(--v8-layout-2) !important;
+    gap: var(--v8-layout-1) !important;
+  }
+  #ov-week, #ov-macro-env-strip, #ov-macro-panels-wrap,
+  #ov-climate-panel, #ov-ai-brief, #ov-signals-wrap, .ov-heatmap-wrap {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 0 var(--v8-layout-section) !important;
+    box-sizing: border-box !important;
+  }
+  #ov-cat-bar {
+    margin: 0 0 var(--v8-layout-section) !important;
+    padding-inline: 0 !important;
+  }
+  .ov-macro-sect-header {
+    margin: 0 0 var(--v8-layout-4) !important;
+    padding-inline: 0 !important;
+  }
+  .ov-macro-panels, .ov-menv-grid {
+    margin: 0 !important;
+    gap: var(--v8-layout-gap) !important;
+  }
+  .ov-menv-grid { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; }
+  .wk2 {
+    padding: var(--v8-layout-card) !important;
+    width: 100% !important;
+  }
+  .wk2-hd {
+    margin-bottom: var(--v8-layout-4) !important;
+    gap: var(--v8-layout-3) !important;
+  }
+  .wk2-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: var(--v8-layout-gap) !important;
+    margin-bottom: var(--v8-layout-4) !important;
+    align-items: stretch !important;
+  }
+  .wkk { padding: var(--v8-layout-card) !important; min-height: 144px; }
+  .wk2-main {
+    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.4fr) !important;
+    align-items: start !important;
+    gap: var(--v8-layout-gap) !important;
+    margin-bottom: var(--v8-layout-4) !important;
+  }
+  .wkm, .wkb, .wk2-low > section {
+    padding: var(--v8-layout-card) !important;
+  }
+  .wkm-svg {
+    height: clamp(320px, 38vh, 496px) !important;
+    max-height: 496px !important;
+    width: 100% !important;
+    object-fit: contain;
+  }
+  .wkb-prime {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--v8-layout-3) !important;
+  }
+  .wkb-card { padding: var(--v8-layout-3) !important; }
+  .wkb-card .t b {
+    white-space: normal !important;
+    overflow: visible !important;
+    min-width: 0;
+  }
+  .wkb-card .a, .su-c-rel {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+  .su-wait li {
+    grid-template-columns: minmax(0, 1fr) 128px 72px 48px !important;
+    gap: var(--v8-layout-2) !important;
+    margin-inline: 0 !important;
+    padding: var(--v8-layout-2) 0 !important;
+  }
+  .wk2-low {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--v8-layout-gap) !important;
+  }
+  .wk2-low > .wkn { grid-column: auto !important; }
+  .wk2 .eg-lab { margin-top: var(--v8-layout-4) !important; }
+
+  /* Macro fundamentals are readable panels, not four ultra-thin strips. */
+  .ov-macro-panels {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-auto-rows: auto !important;
+    align-items: stretch !important;
+  }
+  .ov-macro-panels > .ov-macro-card,
+  .ov-macro-panels > #ov-macro-yc,
+  .ov-macro-panels > #ov-macro-fedbs,
+  .ov-macro-panels > #ov-macro-credit,
+  .ov-macro-panels > #ov-macro-stock-climate {
+    grid-column: auto !important;
+    padding: var(--v8-layout-card) !important;
+    min-width: 0 !important;
+  }
+  .ov-macro-panels > #ov-macro-stock-climate { grid-column: 1 / -1 !important; }
+
+  /* Detail: a bounded identity band and one score column, not an empty middle. */
+  .d-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 224px !important;
+    min-height: clamp(192px, 20vh, 224px) !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .d-head-l {
+    grid-column: 1 !important;
+    padding: var(--v8-layout-6) !important;
+    min-width: 0 !important;
+    gap: var(--v8-layout-2) !important;
+  }
+  .d-head-l .d-name {
+    white-space: normal !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere;
+    max-width: 28ch !important;
+  }
+  .d-head-centre { display: none !important; }
+  .d-score-hero {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    align-self: stretch !important;
+    margin: 0 !important;
+    padding: var(--v8-layout-4) !important;
+  }
+  .d-score-hero-num { font-size: 40px !important; }
+  .su-hero .d-score-arc-wrap {
+    width: 128px !important;
+    max-width: 128px !important;
+    height: 52px !important;
+    margin: 0 auto !important;
+  }
+  .su-hero .d-score-arc-wrap svg { width: 100%; height: 100%; }
+  .su-h-rel { white-space: normal !important; overflow: visible !important; }
+  .d-head-graphic { width: 100% !important; }
+  #d-content .ov-nav {
+    margin: 0 0 var(--v8-layout-section) !important;
+    padding-inline: var(--v8-layout-2) !important;
+  }
+  #d-content > .tab, #d-content > #t-overview {
+    padding: 0 0 var(--v8-layout-8) !important;
+    max-width: 100% !important;
+  }
+  .mr2 {
+    padding: var(--v8-layout-card) !important;
+    margin: 0 0 var(--v8-layout-section) !important;
+  }
+  .mr3-top {
+    grid-template-columns: minmax(0, 1fr) 176px !important;
+    gap: var(--v8-layout-6) !important;
+    margin-bottom: var(--v8-layout-4) !important;
+  }
+  .mr3-top .mr2-txt { max-width: 76ch; }
+  .mrw { width: 168px !important; height: 168px !important; }
+  .su-panel {
+    padding: var(--v8-layout-card) !important;
+    margin-bottom: var(--v8-layout-4) !important;
+  }
+  .su-pg {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) !important;
+    gap: var(--v8-layout-6) !important;
+  }
+  .su-rc-row {
+    grid-template-columns: 112px minmax(0, 1fr) 64px 40px !important;
+    gap: var(--v8-layout-2) !important;
+    padding-block: var(--v8-layout-2) !important;
+  }
+  .su-rc-row .d { white-space: normal !important; overflow: visible !important; }
+  .su-path {
+    width: 100% !important;
+    max-height: 224px !important;
+    object-fit: contain;
+  }
+  .mr3-pills {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: var(--v8-layout-gap) !important;
+    margin-bottom: var(--v8-layout-4) !important;
+  }
+  .mr3-pills .mr2-p {
+    padding: var(--v8-layout-card) var(--v8-layout-card) var(--v8-layout-8) !important;
+  }
+  .mr3-low {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--v8-layout-gap) !important;
+  }
+  .mr3-box { padding: var(--v8-layout-card) !important; }
+  .mr3-col { gap: var(--v8-layout-gap) !important; }
+  .mr3-low > .eg-box { grid-column: auto !important; }
+
+  /* Content-based breakpoints also work when the app is placed in a split view. */
+  @container bhws-content (max-width: 1295px) {
+    .wk2-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .wkb-prime { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .ov-macro-panels { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .mr3-pills { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    .mr3-low, .wk2-low { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .wk2-low > .wkn { grid-column: 1 / -1 !important; }
+    .mr3-low > .mr3-col { grid-column: 1 / -1 !important; }
+  }
+  @container bhws-content (max-width: 959px) {
+    .wk2-main { grid-template-columns: minmax(0, 1fr) !important; }
+    .wkb-prime { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    .su-pg { grid-template-columns: minmax(0, 1fr) !important; }
+    .mr3-pills { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .ov-menv-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    .ov-jump .kb-hint { display: none !important; }
+  }
+  @container bhws-content (max-width: 639px) {
+    .wk2-kpis, .wk2-low, .mr3-low, .ov-macro-panels {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+    .wk2-low > .wkn, .mr3-low > .mr3-col { grid-column: auto !important; }
+    .wkb-prime { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .mr3-top { grid-template-columns: minmax(0, 1fr) !important; }
+    .mr3-wheel { order: -1; }
+    .su-wait li { grid-template-columns: minmax(0, 1fr) 88px 64px !important; }
+    .su-wait li .dk-side { display: none !important; }
+  }
+}
+@media (min-width: 1600px) {
+  html { --sidebar-w: 320px !important; }
+}
+@media (min-width: 2560px) {
+  :root { --v8-layout-gutter: 40px; }
+}
+@media (min-width: 701px) and (max-width: 1099px) {
+  html { --sidebar-w: 248px !important; }
+  :root { --v8-layout-gutter: 16px; }
+  .ov-banner-text-right { width: 47% !important; right: var(--v8-layout-4) !important; }
+  #ov-charts { width: 49% !important; }
+  .d-head { grid-template-columns: minmax(0, 1fr) 176px !important; }
+  .d-head-l { padding: var(--v8-layout-4) !important; }
+}
+/* ===== end v8-layout ===== */
+/* ===== v8-type ===== */
+/* BHWS type + colour system. Three font roles, a 7-step text scale plus one hero
+   size, four weights, four neutral inks, one canonical value per semantic hue.
+   The JS half (patch.js) snaps the long tail of legacy px sizes, weights and
+   near-duplicate colours in every stylesheet rule and inline style to these tokens. */
+
+/* 1. Real JetBrains Mono bold. Google's variable file (same URL as the 400-600 faces
+   already requested) covers 400-800, but the page only declared 400/500/600, so every
+   700/800/900 mono label was faux-bolded. One 700 face fixes it; 800/900 requests now
+   resolve to this true 700 instead of a smeared synthetic. */
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;
+  src:url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2) format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;
+  src:url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx7cwhsk.woff2) format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
+:root{
+  /* ── Font roles ── */
+  --f-display:'Space Grotesk','Inter',system-ui,sans-serif; /* titles, headline numbers. 14px and up only */
+  --f-text:'Inter',system-ui,sans-serif;                    /* names, prose, buttons, tabs */
+  --f-data:'JetBrains Mono',ui-monospace,monospace;         /* tickers, figures, uppercase labels, chips */
+
+  /* ── Type scale (desktop). 10px is the floor for real content ── */
+  --t-1:10px;   /* label: caps labels, chips, axis, legends */
+  --t-2:11px;   /* meta: secondary data, captions, archetype */
+  --t-3:12px;   /* ui: names, tabs, rows, buttons */
+  --t-4:13px;   /* body: prose in panels */
+  --t-5:15px;   /* title: card titles, row scores */
+  --t-6:clamp(18px,0.55vw + 10.5px,22px);  /* headline: panel headline, mid numbers */
+  --t-7:clamp(28px,1.25vw + 12px,40px);    /* display: page title, hero score */
+  --t-hero:clamp(64px,5.4vw,120px);        /* climate hero words only */
+
+  /* ── Weights. 800/900 retired; 300 only for display numerals ── */
+  --w-light:300; --w-reg:400; --w-med:500; --w-semi:600; --w-bold:700;
+
+  /* ── Tracking ── */
+  --ls-caps:.06em;   /* uppercase labels 10-12px */
+  --ls-wide:.12em;   /* eyebrow kickers only */
+  --ls-tight:-.02em; /* display 18px+ */
+
+  /* ── Neutral ink ramp. Contrast on #040405 / #161a22 / #222426 ── */
+  --ink-1:#F2F6FF;   /* 18.9 / 16.1 / 14.4  primary: values, names, headlines */
+  --ink-2:#C3CBDB;   /* 12.6 / 10.7 / 9.6   secondary: prose, row text */
+  --ink-3:#97A1B5;   /*  7.9 / 6.7 / 6.0    tertiary: labels, meta, captions */
+  --ink-4:#838DA2;   /*  6.0 / 5.1 / 4.6    quiet: tickers, axis, disabled. Still AA */
+
+  /* ── Semantic hues: one canonical each ── */
+  --bull:#22C97A;  --bull-soft:rgba(34,201,122,.12);  --bull-line:rgba(34,201,122,.38);
+  --bear:#E05252;  --bear-soft:rgba(224,82,82,.12);   --bear-line:rgba(224,82,82,.38);
+  --gold:#EAB850;  --gold-soft:rgba(234,184,80,.12);  --gold-line:rgba(234,184,80,.38);   /* caution, against the side, fund managers */
+  --ivory:#F1E3BE; --ivory-2:rgba(241,227,190,.72);   --ivory-soft:rgba(241,227,190,.08); --ivory-line:rgba(241,227,190,.22); /* prime, selection, kickers */
+  --blue:#3D7BD6;  --blue-ink:#79A3E6; --blue-soft:rgba(61,123,214,.14); --blue-line:rgba(61,123,214,.42); /* commercials, timing / waiting */
+
+  /* ── Legacy variables remapped onto the system ── */
+  --text:var(--ink-1); --dim:var(--ink-2); --faint:var(--ink-3); --text-dim:var(--ink-3);
+  --s2:var(--bull); --s1:var(--bull); --sm1:var(--bear); --sm2:var(--bear);
+  --gold-bg:var(--gold-soft); --gold-border:var(--gold-line);
+  --pos-muted:var(--bull); --neg-muted:var(--bear);
+  --pos-bg:var(--bull-soft); --neg-bg:var(--bear-soft);
+  --accent:var(--ivory-2); --accent2:var(--ivory); --adim:var(--ivory-soft);
+  --bdr:rgba(241,227,190,.09); --bdr2:rgba(241,227,190,.09);
+  --comm-c:var(--blue); --lspec-c:var(--gold); --sspec-c:var(--bear);
+  --mono:var(--f-data); --body:var(--f-text); --head:var(--f-display); --nexus-head:var(--f-display);
+}
+
+/* 2. Numbers line up everywhere */
+body{font-variant-numeric:tabular-nums lining-nums}
+
+/* ───────────── 3. Component normalisation (doubled-class specificity) ───────────── */
+
+/* Sidebar rows */
+html body .mr-id.mr-id{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important;color:var(--ink-4)!important}
+html body .mr-name.mr-name{font-family:var(--f-text)!important;font-size:var(--t-3)!important;font-weight:var(--w-semi)!important;letter-spacing:0!important;color:var(--ink-1)!important}
+html body .sb2-arch.sb2-arch{font-family:var(--f-text)!important;font-size:var(--t-2)!important;font-weight:var(--w-reg)!important;letter-spacing:0!important;color:var(--ink-3)!important}
+html body .sb2-su.sb2-su{font-family:var(--f-display)!important;font-size:var(--t-5)!important;font-weight:var(--w-bold)!important;letter-spacing:var(--ls-tight)!important}
+html body .sb2-tm.sb2-tm{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-med)!important;letter-spacing:0!important}
+html body .sb2-tm.wt{color:var(--blue-ink)!important}
+html body .sb2-tm.ok{color:var(--ivory)!important}
+html body .sb2-tm.ag{color:var(--gold)!important}
+html body .sb2-grp.sb2-grp b,html body .sb2-grp.sb2-grp>b{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-wide)!important}
+html body .sb2-grp.sb2-grp small{font-family:var(--f-text)!important;font-size:var(--t-2)!important;color:var(--ink-3)!important;letter-spacing:0!important}
+html body .cat-btn.cat-btn,html body .meth-q-btn.meth-q-btn{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important}
+html body .cat-btn.cat-btn{letter-spacing:.04em!important;padding-left:7px!important;padding-right:7px!important}
+html body .cat-btn.cat-btn:not(.on){color:var(--ink-3)!important}
+html body .cat-btn.cat-btn.on{color:var(--ivory)!important}
+html body .sb-sort.sb-sort button,html body #sb-scale-note{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important}
+html body #sb-scale-note{color:var(--ink-4)!important;font-weight:var(--w-med)!important}
+
+/* Chips: one geometry, one weight, colour carries the meaning */
+html body .dk-side.dk-side{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important;text-transform:uppercase}
+html body .dk-side.L{color:var(--bull)!important;border-color:var(--bull-line)!important;background:var(--bull-soft)!important}
+html body .dk-side.S{color:var(--bear)!important;border-color:var(--bear-line)!important;background:var(--bear-soft)!important}
+html body .dk-side.N{color:var(--ink-3)!important;border-color:rgba(151,161,181,.3)!important;background:transparent!important}
+html body .su-rd.su-rd,html body .su-tm.su-tm,html body .eg-chip.eg-chip,html body .tag.tag,html body .ov-mc-badge.ov-mc-badge,html body .ov-nchip.ov-nchip,html body .mr2-gates.mr2-gates>*{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important}
+html body .ov-mc-badge.ov-mc-badge{max-width:none!important;overflow:visible!important;letter-spacing:.03em!important;padding:3px 7px!important}
+html body .su-tm.su-tm{letter-spacing:0!important;font-weight:var(--w-med)!important}
+html body .su-rd.k-ready{color:var(--ivory)!important}
+
+/* Section labels and card headers: data font, caps, 10px, semibold, tertiary ink */
+html body .wk-sub.wk-sub,html body .wkb-sub.wkb-sub,html body .mr2-sub.mr2-sub,html body .su-pk.su-pk,html body .su-pt.su-pt,
+html body .wkk-k.wkk-k,html body .mc-sect-lbl.mc-sect-lbl,html body .ov-mc-eyebrow.ov-mc-eyebrow,html body .ov-fwm-hcell.ov-fwm-hcell,
+html body .eg-mh.eg-mh,html body .ov-cp-off-k.ov-cp-off-k,html body .rp-t.rp-t,html body .su-h-k.su-h-k,html body .ov-sig-name.ov-sig-name,
+html body .mr2-p-hd.mr2-p-hd .t,html body .ov-menv-lbl.ov-menv-lbl{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important;text-transform:uppercase!important;color:var(--ink-3)!important}
+/* Lowercase tails inside labels go back to the text face, untracked */
+html body .wk-sub.wk-sub>span,html body .wkb-sub.wkb-sub em,html body .wkk-k.wkk-k>span,html body .mr2-sub.mr2-sub>span:not(.eg-chip){font-family:var(--f-text)!important;font-size:var(--t-2)!important;font-weight:var(--w-reg)!important;letter-spacing:0!important;text-transform:none!important;color:var(--ink-3)!important}
+html body .wkb-sub.wkb-sub{color:var(--ivory-2)!important}
+html body .wkb-sub.ag{color:var(--gold)!important}
+/* Kickers: one per panel, the only place ivory text appears unprompted */
+html body .mr2-k.mr2-k,html body .wke-day.wke-day,html body .sb-head h2,html body #sidebar h2{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-wide)!important;text-transform:uppercase!important;color:var(--ivory-2)!important}
+html body .mr2-stamp.mr2-stamp{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-reg)!important;letter-spacing:0!important;color:var(--ink-4)!important;text-transform:none!important}
+html body .ov-mc-title.ov-mc-title{font-family:var(--f-display)!important;font-size:var(--t-5)!important;font-weight:var(--w-semi)!important;letter-spacing:-.01em!important;color:var(--ink-1)!important}
+
+/* Tabs */
+html body #ov-jump button,html body .ov-nt.ov-nt{font-family:var(--f-text)!important;font-size:var(--t-3)!important;font-weight:var(--w-med)!important;letter-spacing:0!important;color:var(--ink-3)!important}
+html body #ov-jump button.on,html body #ov-jump button[aria-current],html body .ov-nt.ov-nt.on{color:var(--ink-1)!important;font-weight:var(--w-semi)!important}
+html body .ov-nt.ov-nt .ov-nchip{margin-left:6px}
+
+/* Setup-score receipt rows */
+html body .su-rc-row.su-rc-row .l{font-family:var(--f-text)!important;font-size:var(--t-3)!important;font-weight:var(--w-med)!important;color:var(--ink-1)!important;letter-spacing:0!important;text-transform:none!important}
+html body .su-rc-row.su-rc-row .d{font-family:var(--f-text)!important;font-size:var(--t-2)!important;font-weight:var(--w-reg)!important;color:var(--ink-3)!important}
+html body .su-rc-row.su-rc-row b{font-family:var(--f-data)!important;font-size:var(--t-3)!important;font-weight:var(--w-semi)!important}
+html body .su-rc-row.su-rc-row:not(.tot) b{color:var(--ink-2)}
+html body .su-rc-row.su-rc-row b.p{color:var(--ivory)!important}
+html body .su-rc-row.su-rc-row b.n{color:var(--gold)!important}
+html body .su-rc-row.tot.tot b{font-family:var(--f-display)!important;font-size:var(--t-6)!important;font-weight:var(--w-bold)!important}
+html body .su-rc-row.tot.tot .l{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important;text-transform:uppercase!important;color:var(--ink-3)!important}
+
+/* Board cards */
+html body .wkb-card.wkb-card .t b{font-family:var(--f-text)!important;font-size:var(--t-4)!important;font-weight:var(--w-semi)!important;color:var(--ink-1)!important}
+html body .wkb-card.wkb-card .a span:not(.dk-side){font-family:var(--f-text)!important;font-size:var(--t-2)!important;color:var(--ink-2)!important}
+html body .su-c-rel.su-c-rel,html body .wkb-list.wkb-list .nm i,html body .su-cd.su-cd em{font-family:var(--f-text)!important;font-size:var(--t-2)!important;font-style:normal!important;font-weight:var(--w-reg)!important;letter-spacing:0!important;color:var(--ink-3)!important}
+html body .su-c-rel.k-counter{color:var(--gold)!important}
+html body .wkb-list.wkb-list .nm b{font-family:var(--f-text)!important;font-size:var(--t-3)!important;font-weight:var(--w-semi)!important;color:var(--ink-1)!important}
+html body .su-pj.su-pj b{font-family:var(--f-data)!important;font-size:var(--t-3)!important;font-weight:var(--w-bold)!important}
+html body .su-m.su-m{font-size:var(--t-1)!important}
+html body .su-m.su-m em,html body .su-m.su-m b{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;font-style:normal!important}
+html body .su-m.su-m em{color:var(--ink-2)!important}
+html body .wk-note.wk-note,html body .wkk-note.wkk-note,html body .su-foot.su-foot{font-family:var(--f-text)!important;font-size:var(--t-2)!important;line-height:1.5!important;color:var(--ink-3)!important;letter-spacing:0!important}
+
+/* Factor cards (market read pillars) */
+html body .mr2-p.mr2-p .rel{font-family:var(--f-text)!important;font-size:var(--t-2)!important;color:var(--ink-3)!important;letter-spacing:0!important}
+html body .mr2-p.ag .rel{color:var(--gold)!important}
+html body .mr2-p.mr2-p .mr2-p-w{font-family:var(--f-text)!important;font-size:var(--t-4)!important;font-weight:var(--w-semi)!important}
+html body .mr2-p.mr2-p.u .mr2-p-w{color:var(--bull)!important}
+html body .mr2-p.mr2-p.d .mr2-p-w{color:var(--bear)!important}
+html body .mr2-p.mr2-p li{font-family:var(--f-text)!important;font-size:var(--t-2)!important;color:var(--ink-2)!important}
+html body .mr2-p.mr2-p .go{font-family:var(--f-text)!important;font-size:var(--t-2)!important;color:var(--ink-4)!important;letter-spacing:0!important}
+html body .mr2-p.mr2-p:hover .go{color:var(--ivory)!important}
+html body .mr2-p.u{border-top-color:var(--bull)!important}
+html body .mr2-p.d{border-top-color:var(--bear)!important}
+html body .mr2-p.mr2-p:hover{border-color:var(--ivory-line)!important;background:var(--ivory-soft)!important}
+
+/* Market read headline + prose */
+html body .mr2-hl.mr2-hl{font-family:var(--f-display)!important;font-size:var(--t-6)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-tight)!important;color:var(--ink-1)!important}
+html body .mr2-txt.mr2-txt p,html body .mr2-prof.mr2-prof{font-family:var(--f-text)!important;font-size:var(--t-4)!important;line-height:1.55!important;color:var(--ink-2)!important}
+html body .mr2-ul.mr2-ul li{font-family:var(--f-text)!important;font-size:var(--t-3)!important;color:var(--ink-2)!important}
+html body .mr2-ul.mr2-ul li::before{color:var(--ivory-2)!important}
+html body .su-rel.su-rel,html body .su-h-rel.su-h-rel,html body .su-bl.su-bl,html body .dk-gate.dk-gate{font-family:var(--f-text)!important;font-size:var(--t-2)!important;font-weight:var(--w-reg)!important;letter-spacing:0!important}
+html body .su-h-rel.su-h-rel{font-size:var(--t-1)!important;white-space:normal!important;max-width:220px!important;line-height:1.35!important;color:var(--ink-3)!important}
+html body .su-h-lk.su-h-lk button{font-family:var(--f-text)!important;font-size:var(--t-2)!important;font-weight:var(--w-med)!important;letter-spacing:0!important}
+
+/* Detail head */
+html body .d-name.d-name{font-family:var(--f-display)!important;font-size:var(--t-7)!important;font-weight:var(--w-bold)!important;letter-spacing:var(--ls-tight)!important}
+html body .d-cat.d-cat,html body .d-cat.d-cat span{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-wide)!important;color:var(--ivory-2)!important}
+html body .d-score-hero-num.d-score-hero-num{font-size:var(--t-7)!important;font-weight:var(--w-light)!important;letter-spacing:var(--ls-tight)!important}
+html body .back-to-ov-btn.back-to-ov-btn{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important}
+
+/* Top bar */
+@media (min-width:701px){html body .nav-title.nav-title{font-family:var(--f-display)!important;font-size:var(--t-4)!important;font-weight:var(--w-bold)!important;letter-spacing:.08em!important;color:var(--ink-1)!important}}
+@media (max-width:700px){html body .nav-logo .nav-title::after{font-family:var(--f-display);font-size:var(--t-4);font-weight:var(--w-bold);letter-spacing:.1em}}
+html body .nav-sub.nav-sub{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-reg)!important;letter-spacing:0!important;color:var(--ink-4)!important}
+html body .nav-btn-label.nav-btn-label,html body #regime-text{font-family:var(--f-data)!important;font-size:var(--t-1)!important;font-weight:var(--w-semi)!important;letter-spacing:var(--ls-caps)!important}
+
+/* Climate hero words */
+html body .ov-hero-word1.ov-hero-word1,html body .ov-hero-word2.ov-hero-word2{font-size:var(--t-hero)!important;letter-spacing:-.03em!important;line-height:.9!important}
+
+/* Calendar + news */
+html body .cal-name.cal-name{font-family:var(--f-text)!important;font-size:var(--t-3)!important}
+html body .cal-td-time.cal-td-time{font-family:var(--f-data)!important;font-size:var(--t-2)!important;color:var(--ink-3)!important}
+
+/* Accent policy: focus ring in ivory, never gold */
+html body :focus-visible{outline-color:var(--ivory-2)}
+
+/* Mobile: same scale, 1px larger floor for the two smallest steps */
+@media (max-width:700px){
+  :root{--t-1:10.5px;--t-2:11.5px;--t-3:12.5px;--t-4:13.5px;--t-7:clamp(34px,11vw,46px)}
+  html body .ov-hero-word1.ov-hero-word1,html body .ov-hero-word2.ov-hero-word2{font-size:clamp(44px,14vw,64px)!important}
+}
+/* ===== end v8-type ===== */
+/* ===== v8-ux ===== */
+/* ---------- tokens ---------- */
+:root{
+  --ux-r-band:14px;   /* outer bands: This week, Market read */
+  --ux-r-card:12px;   /* cards */
+  --ux-r-inner:8px;   /* cards inside cards, viz wells */
+  --ux-r-chip:4px;    /* every chip, tag, badge, toggle */
+  --ux-chip-h:20px;
+  --ux-bdr:rgba(255,255,255,0.075);
+  --ux-bdr-soft:rgba(255,255,255,0.05);
+  --ux-ink:#f2f6ff;
+  --ux-ink-2:#cfd6e4;   /* secondary text */
+  --ux-ink-3:#8d95a8;   /* kickers, labels */
+  --ux-ink-4:#636b7d;   /* footnotes, meta */
+  --ux-accent:#c8a96e;
+  --ux-long:#30d988; --ux-short:#ff5c47;
+}
+
+/* ---------- 1. SECTION HEADERS: two levels only ----------
+   L1 band title  : mono 11px / 600 / .18em / accent, accent bar on the left
+   L2 card kicker : mono 10px / 600 / .14em / ink-3, right-hand meta ink-4
+   (mono only ships 400-600; every 700/800/900 label was faux-bold)      */
+.ov-macro-sect-header,.ov-cp-eyebrow,.cal-header-lbl,.ov-ai-brief-label,.wk-k,
+#ov-cp-signal-slot div[style*="var(--nexus-head)"][style*="font-size:9px"][style*="0.14em"],.eg-lab > .eg-top .wk-sub{
+  font-family:var(--mono)!important;font-size:11px!important;font-weight:600!important;letter-spacing:0.18em!important;
+  text-transform:uppercase!important;color:var(--ux-accent)!important;-webkit-text-fill-color:currentColor!important;background:none!important;
+}
+.wk-sub,.wkk-k,.wkb-sub,.mr2-k,.mr2-sub,.su-pk,.su-pt,.su-h-k,.ov-mc-eyebrow,.mc-sect-lbl,.mc-group-label,
+.ov-cp-narr-label,.ov-cp-con-label,.ov-cp-off-title,.ov-rp-eyebrow,.ov-rp-stat-lbl,.ov-section-title,.ov-macro-env-hdr-lbl,
+.rp-t,.eg-mh,.oer-k,.cal-day-hdr,.ov-cp-pillars > div:first-child > div:first-child,.d-cat,.lab-v2-kpi .lab-v2-kpi-l,
+.mr3-egd summary > span:first-child,.mr3-egd summary b,.wkn-h,.wke-h,.wkc-h,.wkb-h b,.wkm-h b,.ov-sig-eyebrow{
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;letter-spacing:0.14em!important;
+  text-transform:uppercase!important;color:var(--ux-ink-3)!important;opacity:1!important;
+}
+.wk-sub span,.wkk-k span,.mr2-k span,.mr2-sub span,.su-pt span,.ov-cp-narr-header > div:last-child,.ov-cp-con-ts,
+.cal-header-sub,.ov-ai-brief-sub,.ov-cp-timestamp,.wkb-sub span,.ov-cp-pillars > div:first-child > div:last-child,.mr2-stamp,.wk-stamp{
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:0.04em!important;
+  text-transform:none!important;color:var(--ux-ink-4)!important;opacity:1!important;
+}
+/* icons in front of Narrative / Consensus / News kickers are decoration: drop them */
+.ov-cp-narr-icon,.ov-ai-brief-icon,.ov-cp-con-icon{display:none!important}
+.ov-cp-header{height:auto!important;margin-bottom:16px!important}
+.ov-cp-header .ov-cp-eyebrow::before,.ov-macro-sect-header::before{width:3px;height:12px;border-radius:2px;background:var(--ux-accent);box-shadow:none!important}
+.ov-ai-brief-label::before,.cal-header-lbl::before{content:'';display:inline-block;width:3px;height:12px;border-radius:2px;background:var(--ux-accent);margin-right:10px;vertical-align:-1px}
+.cal-header{align-items:center!important;margin-bottom:12px!important}
+#ov-cp-signal-slot div[style*="var(--nexus-head)"][style*="font-size:9px"][style*="0.14em"]::before{content:'';display:inline-block;width:3px;height:12px;border-radius:2px;background:var(--ux-accent);margin-right:10px;vertical-align:-1px}
+#ov-cp-signal-slot .ov-rate-cb-wrap > div > div[style*="margin-top:16px"]{margin-top:22px!important;padding-top:0!important;border-top:none!important}
+
+/* ---------- 2. CARDS: band 14 / card 12 / inner 8, one border ---------- */
+.wk2,.mr2{border-radius:var(--ux-r-band)!important}
+.gl,.ov-macro-card,.ov-macro-card-tint,.ov-cp-pillars,.ov-cp-narrative,.ov-cp-consensus,.ov-rp-card,.rp-c,.eg-p,.ov-ai-brief,
+.ov-fwm-scroll,.lab-v2-kpi,.ov-conf-right,.ov-cp-signal-slot .ov-rate-cb-wrap > div > div > div.ov-cb-card,.cal-wrap,.ov-rp-chart-stage{
+  border-radius:var(--ux-r-card)!important;
+}
+.wkb-card,.ov-cp-off-card,.eg-f,.mr3-viz,.ov-rp-stat,.ov-mc-sub,.mc-card,.ov-rp-pricing,.sb-search,.wkk-funnel,.ov-rp-tbl-wrap,.mc-tile,.ov-cp-off-item{
+  border-radius:var(--ux-r-inner)!important;
+}
+.ov-macro-card,.ov-cp-pillars,.ov-cp-narrative,.ov-cp-consensus,.ov-rp-card,.ov-ai-brief,.eg-p,.cal-wrap{border:1px solid var(--ux-bdr)!important}
+/* Global Market Climate is one 2,900px card holding five sections: drop its outer chrome so
+   Pillars / Narrative / Consensus / Rate path / Central banks read as siblings of Economy */
+.ov-climate-panel{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border:none!important;
+  padding:22px 16px 8px!important;border-radius:0!important}
+.ov-climate-panel::after{display:none!important}
+#ov-cp-bg-canvas{opacity:0.35!important}
+.ov-cp-pillars{margin-bottom:14px!important}
+.ov-ai-brief{margin:14px 16px 0!important;padding-bottom:4px!important}
+.ov-ai-brief-header{padding:14px 18px 6px!important}
+#ai-brief-body{padding:0 18px 14px!important}
+.ov-ai-brief::after{display:none!important}
+.cal-wrap{margin:14px 16px 0!important;padding:16px 18px 14px!important}
+#ov-signals-wrap:empty,#ov-signals-wrap:not(:has(*)){display:none!important}
+
+/* ---------- 3. CHIPS: one geometry, three semantic kinds ----------
+   geometry : 20px tall, 0 7px, r4, mono 10px/600, .06em, uppercase
+   side     : LONG green tint / SHORT red tint
+   readiness: TRADE-READY ivory fill / WAIT blue / BUILDING gold / WEAK grey / AGAINST amber
+   timing   : dot + label (in window / wait / approaching / flat / against)                    */
+.dk-side,.su-rd,.su-tm,.eg-chip,.ov-mc-badge,.tag,.ov-cp-off-risk,.cal-timer,.ov-policy-badge,.ov-rp-meta-chip,.ov-rp-mtg-days,
+.ov-extreme-flag,.ov-fwm-next-tag,.sb2-trig,.dk-gate,.mr2-cls,.mr2-trig,.d-bias-pill,.su-m,.wk-chip,.ov-rp-next-chip,
+.ov-mc-badge-beat,.ov-mc-badge-miss,.mc-pill,.setup,.developing,.prime,.ov-cb-stance,.mc-badge,.wkk-pill,.wkc-tag,.eg-tag,.lab-v2 .wchip,
+.ov-cp-off-card .ov-cp-off-risk,.ov-rp-hdr .ov-mc-badge,.sb-grp-count,.wkb-card .dk-side,.d-desk{
+  display:inline-flex!important;align-items:center!important;gap:5px!important;
+  height:var(--ux-chip-h)!important;min-height:0!important;line-height:1!important;
+  padding:0 7px!important;border-radius:var(--ux-r-chip)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;letter-spacing:0.06em!important;
+  text-transform:uppercase!important;white-space:nowrap!important;box-shadow:none!important;text-shadow:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important; /* blur on a 20px chip hid its text in Chromium */
+  max-width:none!important;overflow:visible!important;text-overflow:clip!important;
+  justify-self:start!important;align-self:center!important;width:max-content!important; /* never stretch to a grid cell */
+}
+/* sizing notes are sentences, not states: let them wrap */
+.dk-gate,.mr2-cls,.mr2-trig{height:auto!important;min-height:var(--ux-chip-h)!important;padding:3px 7px!important;white-space:normal!important;line-height:1.3!important;width:auto!important;max-width:100%!important;text-transform:none!important;letter-spacing:0.02em!important}
+/* side */
+.dk-side.L,.d-desk.k-su[style*="--dk:#30d988"],.ov-cp-off-risk.long,.dir-btn.long.on{
+  background:rgba(48,217,136,0.12)!important;color:var(--ux-long)!important;border:1px solid rgba(48,217,136,0.35)!important}
+.dk-side.S,.d-desk.k-su[style*="--dk:#ff5c47"],.d-desk.k-su[style*="--dk:#d63a24"],.ov-cp-off-risk.short,.dir-btn.short.on{
+  background:rgba(255,92,71,0.12)!important;color:var(--ux-short)!important;border:1px solid rgba(255,92,71,0.35)!important}
+.d-desk.k-su{background:color-mix(in srgb,var(--dk) 12%,transparent)!important;color:var(--dk)!important;border:1px solid color-mix(in srgb,var(--dk) 38%,transparent)!important;padding:0 8px 0 7px!important;gap:7px!important}
+.d-desk.k-su i{font-style:normal!important;color:var(--ux-ink-2)!important;font-family:var(--body)!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;font-size:11px!important;border-left:1px solid var(--ux-bdr);padding-left:7px}
+/* readiness */
+.su-rd{border:1px solid transparent!important}
+.su-rd.k-ready{background:#e9eefb!important;color:#0d1017!important}
+.su-rd.k-wait{background:rgba(120,160,255,0.14)!important;color:#9fb7ff!important;border-color:rgba(120,160,255,0.35)!important}
+.su-rd.k-building{background:rgba(200,169,110,0.14)!important;color:var(--ux-accent)!important;border-color:rgba(200,169,110,0.35)!important}
+.su-rd.k-weak{background:rgba(255,255,255,0.06)!important;color:var(--ux-ink-3)!important;border-color:var(--ux-bdr)!important}
+.su-rd.k-against{background:rgba(255,160,60,0.14)!important;color:#ffb060!important;border-color:rgba(255,160,60,0.35)!important}
+/* timing */
+.su-tm{background:rgba(255,255,255,0.04)!important;border:1px solid var(--ux-bdr)!important;color:var(--ux-ink-2)!important}
+.su-tm i,.su-tm .dot{width:6px!important;height:6px!important;border-radius:50%!important;flex:none}
+/* archetype is a name, not a status: quiet text chip, no caps */
+.mr2-arch{display:inline-flex!important;align-items:center!important;height:var(--ux-chip-h)!important;padding:0 8px!important;border-radius:var(--ux-r-chip)!important;
+  font-family:var(--body)!important;font-size:11px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;
+  color:var(--ux-ink-2)!important;background:rgba(255,255,255,0.04)!important;border:1px solid var(--ux-bdr)!important}
+/* score numeral chip in the factor tab bar */
+.ov-nchip{height:18px!important;padding:0 6px!important;border-radius:var(--ux-r-chip)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;letter-spacing:0!important}
+
+/* ---------- 4. TOGGLES / TAB BARS: one look for the jump bar, factor tabs, sidebar filters, lab lenses ---------- */
+.ov-jump button,.ov-nt,.sb-sort button,.ov-fwm-tw-btn,.lab-v2 .lc-btn,.dir-btn,.cat-btn,.ov-rp-tf button,.wk-tog button,.eg-tog button{
+  font-family:var(--body)!important;font-weight:500!important;letter-spacing:0.01em!important;text-transform:none!important;
+  border-radius:6px!important;box-shadow:none!important;text-shadow:none!important;
+}
+.ov-jump button,.ov-nt{font-size:12.5px!important;height:28px!important;padding:0 11px!important;color:var(--ux-ink-3)!important;background:transparent!important;border:1px solid transparent!important}
+.ov-jump button:hover,.ov-nt:hover{color:var(--ux-ink)!important;background:rgba(255,255,255,0.04)!important}
+.ov-jump button.on,.ov-nt.on{color:var(--ux-ink)!important;background:rgba(200,169,110,0.10)!important;border-color:rgba(200,169,110,0.30)!important}
+.ov-jump{padding:6px 8px!important;border-radius:var(--ux-r-card)!important}
+.ov-nt.on .ov-nchip{box-shadow:none!important}
+.cat-btn,.sb-sort button{font-size:10.5px!important;height:22px!important;padding:0 9px!important;letter-spacing:0!important}
+.cat-btn{color:var(--ux-ink-3)!important;background:transparent!important;border:1px solid var(--ux-bdr)!important}
+.cat-btn.on,.sb-sort button.on{color:var(--ux-ink)!important;background:rgba(200,169,110,0.12)!important;border-color:rgba(200,169,110,0.32)!important}
+.sb-sort{border-radius:7px!important;padding:2px!important}
+#cat-row{gap:4px!important;flex-wrap:wrap}
+#sb-scale-note{font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:0.04em!important;text-transform:none!important;color:var(--ux-ink-4)!important}
+
+/* ---------- 5. BUTTONS & LINKS: one small secondary button ---------- */
+.back-to-ov-btn,.meth-q-btn,.su-h-lk button,.eg-more summary,.eg-show,.ov-cp-show,.wk-show,.ov-fwm-more,.su-h-lk a,.ov-ai-brief-toggle,.lab-v2 .lab-v2-btn,.ov-rp-show{
+  display:inline-flex!important;align-items:center!important;gap:6px!important;height:24px!important;padding:0 9px!important;
+  border-radius:6px!important;font-family:var(--body)!important;font-size:11px!important;font-weight:600!important;letter-spacing:0!important;
+  text-transform:none!important;color:var(--ux-ink-2)!important;background:rgba(255,255,255,0.03)!important;border:1px solid var(--ux-bdr)!important;
+  box-shadow:none!important;cursor:pointer;min-height:0!important;line-height:1!important;
+}
+.back-to-ov-btn:hover,.meth-q-btn:hover,.su-h-lk button:hover{color:var(--ux-ink)!important;background:rgba(255,255,255,0.06)!important;border-color:rgba(255,255,255,0.14)!important}
+.meth-q-btn{height:20px!important;font-size:10.5px!important}
+.su-h-lk{gap:6px!important}
+.ov-cp-show,.eg-show,.wk-show,.eg-more summary b{text-decoration:none!important}
+.sb-head h2{font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;letter-spacing:0.14em!important;color:var(--ux-ink-3)!important}
+
+/* ---------- 6. STAT BLOCKS: kicker / value / footnote ---------- */
+.wkk-note,.wk-note,.su-foot,.wkm-leg .x,.ov-rp-chart-src,.eg-note,.mr3-foot,.ov-rp-foot,.ov-cp-off-note,.wke-note,.ov-mc-foot,.cal-note,.wkb .wk-note{
+  font-family:var(--body)!important;font-size:10.5px!important;font-weight:400!important;letter-spacing:0!important;line-height:1.5!important;color:var(--ux-ink-4)!important;text-transform:none!important}
+.ov-mc-title,.ov-rp-hdr .ov-mc-title{font-family:var(--body)!important;font-size:15px!important;font-weight:600!important;letter-spacing:-0.01em!important;color:var(--ux-ink)!important}
+
+/* ---------- 7. METERS: 4px tracks everywhere ---------- */
+.su-bias .su-bt,.oer-mini i,.dk-bar,.wkb-bias,.su-h-bias .su-bt{height:4px!important;border-radius:2px!important}
+.su-bias{gap:8px!important}
+
+/* ---------- 8. TABLE ROWS ---------- */
+.su-rc-row{min-height:28px}
+.su-rc-row .l{font-family:var(--body)!important;font-size:11.5px!important;font-weight:500!important;color:var(--ux-ink)!important}
+.su-rc-row .r{font-family:var(--body)!important;font-size:11px!important;color:var(--ux-ink-3)!important}
+.mkt-row .mr-arch,.mkt-row small{font-family:var(--body)!important;font-size:10.5px!important;letter-spacing:0!important;color:var(--ux-ink-3)!important}
+
+/* ---------- 9. STRUCTURE: HOME ---------- */
+/* 9a. the Macro environment pill strip repeats the badge on each Economy card (and disagrees with two of them): collapse it,
+       keep it in the DOM so the "Economy" jump target still resolves */
+#ov-macro-env-strip{height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;opacity:0}
+.ov-macro-sect-header{margin-top:26px!important}
+/* 9b. Edge lab is replay evidence, not this week's action: collapsed to its header by default (toggle below, state remembered) */
+.eg-lab.ux-collapsed > :not(.eg-top){display:none!important}
+.eg-lab .eg-top{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:16px!important}
+.eg-lab.ux-collapsed{padding-bottom:16px!important}
+.eg-lab.ux-collapsed .eg-lede{margin-bottom:0!important;font-size:13px!important;color:var(--ux-ink-2)!important}
+.ux-eg-toggle{flex:none;margin-top:2px}
+/* 9c. the empty hidden-signals shell at the foot of the page */
+#ov-signals-wrap{display:none!important}
+
+/* ---------- 10. STRUCTURE: MARKET DETAIL ----------
+   Three-layer read lives in the hero: setup score + readiness (ring), side (header chip), timing (header chip), bias (meter).
+   Everything that repeats it within one screen is hidden on desktop; mobile keeps the Market-read chips because the header row is hidden there. */
+@media(min-width:701px){
+  .mr3-top .mr2-meta{display:none!important}                                    /* chip row under the headline: 5 duplicates */
+  .mr3-wheel .mrw-g,.mr3-wheel .mrw-n{display:none!important}                  /* ring keeps pillar segments + side; the 7.0 is already top-right */
+}
+.su-panel .su-ph .su-rd,.su-panel .su-ph .su-tm,.su-panel .su-ph .su-bias{display:none!important} /* receipt header repeated readiness, timing and bias from the hero / market read */
+.su-panel .su-ph{min-height:0!important}
+.mr3-egd{align-self:start!important}
+/* replay check is a one-line disclosure: give the row to "What would change it" + "Ahead", put the disclosure under them full width */
+@media(min-width:1181px){.mr3-low{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)!important}.mr3-low>.mr3-egd{grid-column:1/-1;order:9}}
+.mr3-egd summary{cursor:pointer}
+/* "Overview" back button goes home; relabelled "Home" in JS so it stops colliding with the market Overview tab */
+.back-to-ov-btn svg{width:11px;height:11px}
+/* detail factor tab bar: same geometry as the home jump bar */
+.ov-nav{padding:6px 8px!important;gap:2px!important}
+
+/* ---------- 11. MOBILE ---------- */
+@media(max-width:700px){
+  .ov-jump button,.ov-nt{height:30px!important;font-size:12.5px!important}
+  .dk-side,.su-rd,.su-tm,.eg-chip,.ov-mc-badge,.tag,.ov-cp-off-risk,.cal-timer{height:22px!important;font-size:10.5px!important}
+  .back-to-ov-btn,.meth-q-btn,.su-h-lk button{height:28px!important}
+  .eg-lab .eg-top{flex-direction:column!important}
+  .back-to-ov-btn.desk-only{display:none!important}   /* mobile has its own Back button */
+  .eg-lab > .eg-top .wk-sub{font-size:10px!important;letter-spacing:0.14em!important}
+}
+/* ===== end v8-ux ===== */
+/* ===== v8-motion ===== */
+/* ═══════════════════════════════════════════════════════════════════════════
+   BH WEATHER SYSTEM — v8-motion
+   Lens: LOADING CHOREOGRAPHY · MOTION TOKENS · AMBIENT POLICY · ELEVATION & SHADING
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── 1. Unified Motion Token Set (1 Easing Family + 3 Durations) ── */
+  --m-ease:       cubic-bezier(0.16, 1, 0.3, 1);     /* Primary institutional exponential out */
+  --m-ease-in:    cubic-bezier(0.4, 0, 1, 1);        /* Clean exit / dismiss */
+  --m-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);      /* State morphs & colour interpolation */
+  --m-fast:       140ms;                             /* Micro-interactions: hover, focus, press, chips */
+  --m-med:        260ms;                             /* Component transitions: tabs, modals, drawers */
+  --m-slow:       480ms;                             /* Boot choreography reveal & primary chart sweep */
+  --ease:         var(--m-ease);
+
+  /* ── 2. 4-Tier Surface Elevation & Shading Hierarchy ── */
+  --elev-0:       #07090d;                           /* Base application canvas */
+  --elev-1:       #0c1017;                           /* Primary structural shells (sidebar, nav, wk2, mr2) */
+  --elev-2:       #111620;                           /* Data cards, KPI tiles, chart panels */
+  --elev-3:       #171e2b;                           /* Floating modals, tooltips, active/hover cards */
+  --elev-hover:   #151c28;                           /* Interactive card hover step */
+
+  /* Map legacy surface vars to the unified 4-tier hierarchy */
+  --bg:           var(--elev-0);
+  --bg2:          #090c12;
+  --surf:         var(--elev-1);
+  --surf2:        var(--elev-2);
+  --surf3:        var(--elev-3);
+  --surf4:        #1d2636;
+
+  /* ── 3. Consistent Border & Specular Highlight Tokens ── */
+  --bdr-subtle:   rgba(255, 255, 255, 0.055);        /* Hairline row dividers & internal grids */
+  --bdr-default:  rgba(255, 255, 255, 0.085);        /* Standard card border */
+  --bdr-hover:    rgba(255, 255, 255, 0.16);         /* Interactive card hover border */
+  --bdr-strong:   rgba(200, 169, 110, 0.26);         /* Featured / active gold accent border */
+  --bdr-focus:    rgba(241, 227, 190, 0.72);         /* Accessible keyboard focus ring */
+
+  --shd-inset:    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  --shd-elev-1:   var(--shd-inset), 0 4px 16px -4px rgba(0, 0, 0, 0.55);
+  --shd-elev-2:   var(--shd-inset), 0 8px 24px -6px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.38);
+  --shd-elev-3:   var(--shd-inset), 0 20px 48px -12px rgba(0, 0, 0, 0.85), 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AMBIENT EFFECTS POLICY — REMOVE DISTRACTING / CPU-HEAVY GIMMICKS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Kill full-screen & per-card particle/noise canvases, CRT scanlines, bottom neon horizon */
+#app-particle-bg,
+#nexus-noise-canvas,
+#q-scanline,
+#nexus-horizon,
+#ov-canvas,
+#mob-hero-canvas,
+#dhead-canvas,
+#ov-cp-bg-canvas,
+.ov-mc-particles,
+canvas.fx-field,
+.glass-shimmer-wrap,
+.glass-shimmer-line,
+.d-head::after,
+#detail::after,
+.mkt-row::after,
+.sig-leader-card::after,
+.wkk-funnel::after {
+  display: none !important;
+  opacity: 0 !important;
+  animation: none !important;
+  pointer-events: none !important;
+}
+
+/* 2. Stop spinning rings, radar scan wipes, and pulsing halos on orbs & charts */
+.nexus-orb-ring,
+.nexus-orb-ring2,
+.nexus-orb-ring3,
+.nexus-orb::before,
+.nexus-orb::after,
+.nexus-orb-scan,
+.wkm-wait,
+.wkm-halo,
+.eg-asvg .eg-halo,
+.d-score-hero-glow,
+.nav-regime-pill,
+.ov-regime-score-pill,
+.regime-pip,
+.ov-banner-dot,
+.mob-hero-pip,
+.live-dot,
+.regime-live-dot,
+.wke-i.next .dot,
+.today-pip {
+  animation: none !important;
+}
+
+/* Keep .nexus-orb-ring as a clean, static precision instrument bezel */
+.nexus-orb-ring {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.nexus-orb-ring::before,
+.nexus-orb-ring2::before,
+.nexus-orb::before,
+.nexus-orb::after,
+.nexus-orb-scan {
+  display: none !important;
+}
+
+/* Keep Setup Map waiting ring as a crisp static dashed ring (no 14s continuous spin) */
+.wkm-wait {
+  stroke-dasharray: 3.5 2.5;
+  opacity: 0.85;
+}
+
+/* Keep live status dots crisp and static with a subtle halo ring */
+.live-dot,
+.wke-i.next .dot {
+  background: #22C97A !important;
+  box-shadow: 0 0 0 3px rgba(34, 201, 122, 0.16) !important;
+}
+
+/* 3. Stop infinite text-sheen, gradient-shimmer, and breathing background loops */
+.ov-banner-word2,
+.mob-regime-w2,
+#ov-banner,
+#regime-wash,
+.wk2-aura,
+.d-score-hero,
+.d-score-hero-bar-f::after {
+  -webkit-animation: none !important;
+  animation: none !important;
+}
+
+/* Keep subtle static atmospheric lighting in hero & primary workspace shells */
+.ov-banner-bg {
+  opacity: 0.52 !important;
+  transition: opacity var(--m-slow) var(--m-ease) !important;
+}
+.wk2 .wk2-aura {
+  opacity: 0.16 !important;
+  filter: blur(48px) !important;
+  transform: none !important;
+}
+.mr2::before {
+  opacity: 0.12 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONSISTENT 4-TIER SURFACE ELEVATION, SHADING & BORDERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body,
+.main,
+.detail {
+  background-color: var(--elev-0) !important;
+}
+
+/* Tier 1: Structural Chrome & Primary Shells */
+.nav {
+  background: rgba(10, 13, 20, 0.92) !important;
+  border-bottom: 1px solid var(--bdr-default) !important;
+  box-shadow: var(--shd-inset), 0 4px 20px rgba(0, 0, 0, 0.50) !important;
+}
+
+.sidebar {
+  background: var(--elev-1) !important;
+  border-right: 1px solid var(--bdr-default) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.sb-head {
+  background: var(--elev-1) !important;
+  border-bottom: 1px solid var(--bdr-subtle) !important;
+}
+
+.sb2-grp {
+  background: rgba(12, 16, 23, 0.96) !important;
+  border-bottom: 1px solid var(--bdr-subtle) !important;
+}
+
+.wk2,
+.mr2,
+.ov-climate-panel {
+  background: linear-gradient(180deg, rgba(16, 21, 31, 0.92), rgba(11, 14, 21, 0.96)) !important;
+  border: 1px solid rgba(200, 169, 110, 0.16) !important;
+  box-shadow: var(--shd-elev-2) !important;
+}
+
+/* Tier 2: Data Cards, KPI Tiles & Panels (crisp shading, no scroll-lagging blur) */
+.gl,
+.glass-card,
+.cot-card,
+.seas-card,
+.macro-card,
+.ov-macro-card,
+.ov-rp-card,
+.narr-panel,
+.sig-leader-card,
+.ctv,
+.ctv-an,
+.vh,
+.tr-house,
+.tr-rng,
+.tr-eng,
+.mx,
+.su-panel,
+.f-card,
+.rp-c,
+.eg-p,
+.eg-f {
+  background: linear-gradient(180deg, rgba(21, 27, 39, 0.90) 0%, rgba(15, 19, 28, 0.94) 100%) !important;
+  border: 1px solid var(--bdr-default) !important;
+  box-shadow: var(--shd-elev-1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.gl::after {
+  background: radial-gradient(100% 50% at 0% 0%, rgba(200, 169, 110, 0.035), transparent 55%) !important;
+}
+
+/* Preserve semantic left/top accent borders on factor & trend cards */
+.mr3-pills .mr2-p {
+  background: linear-gradient(180deg, rgba(21, 27, 39, 0.92) 0%, rgba(14, 18, 26, 0.96) 100%) !important;
+  border: 1px solid var(--bdr-default) !important;
+  border-top: 2px solid #3a4150 !important;
+  box-shadow: var(--shd-elev-1) !important;
+}
+.mr3-pills .mr2-p.u {
+  border-top-color: #22C97A !important;
+  background: linear-gradient(180deg, rgba(34, 201, 122, 0.06) 0%, rgba(14, 18, 26, 0.96) 48%) !important;
+}
+.mr3-pills .mr2-p.d {
+  border-top-color: #E05252 !important;
+  background: linear-gradient(180deg, rgba(224, 82, 82, 0.06) 0%, rgba(14, 18, 26, 0.96) 48%) !important;
+}
+.mr3-pills .mr2-p.ag {
+  border-color: rgba(234, 184, 80, 0.34) !important;
+  border-top-width: 2px !important;
+}
+
+/* Tier 3: Sticky Jump Bar, Floating Tooltips, Command Palette & Modals */
+.ov-jump {
+  background: rgba(12, 16, 23, 0.90) !important;
+  border: 1px solid var(--bdr-default) !important;
+  box-shadow: var(--shd-elev-1) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  transition: box-shadow var(--m-fast) var(--m-ease), border-color var(--m-fast) var(--m-ease) !important;
+}
+.ov-jump.stuck {
+  box-shadow: var(--shd-elev-3) !important;
+  border-color: rgba(200, 169, 110, 0.20) !important;
+}
+
+/* Prevent Jump Bar buttons ('Board', 'Edge lab', etc.) from ever popping out/in */
+#ov-jump button[data-j] {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  opacity: 1 !important;
+}
+
+.wkm-tip,
+.ov-arc-tooltip,
+.cmdk,
+.modal,
+.lab-modal {
+  background: var(--elev-3) !important;
+  border: 1px solid var(--bdr-strong) !important;
+  box-shadow: var(--shd-elev-3) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOTION NORMALIZATION & INTERACTIVE STATES (HOVER / ACTIVE / FOCUS-VISIBLE)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Remove bouncy overshoot and uncoordinated per-element load animations */
+.ov-banner-inner,
+.ov-charts,
+.ov-cat-bar,
+.ov-climate-panel,
+.ov-ai-brief,
+.ov-signals-wrap,
+.nexus-reveal,
+.mkt-row,
+.cot-card,
+.seas-card,
+.narr-panel,
+.sig-leader-card,
+.macro-card,
+.f-card,
+.ov-tile,
+.wkk,
+.wkm,
+.wkb,
+.wk2-low > section,
+.wkb-card,
+.wkm-pt,
+.mr3-pills .mr2-p,
+.mrw-seg,
+.vz-se .ln,
+.pg-c i,
+.wkk-funnel i,
+.wkk-split i,
+.vb i,
+.vz-tr .hb i,
+.wkk-needle,
+.fd-bar i,
+.wkk-cl .bars i,
+.rp-svg .rp-bar,
+.eg-dot,
+.eg-asvg .eg-b,
+.eg-f,
+.d-score-hero,
+.f-bar-f,
+.mr-bar-f,
+.d-sub-bar-f {
+  animation: none !important;
+}
+
+/* Ensure cards previously hidden by initNexusReveal or nexus-reveal are always visible */
+.nexus-reveal,
+.nexus-reveal-scale,
+.cot-card,
+.seas-card,
+.sig-leader-card,
+.macro-card,
+.narr-panel {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Non-interactive containers must NOT lift on hover */
+.mr3-pills .mr2-p:hover,
+.cot-card:hover,
+.seas-card:hover,
+.macro-card:hover {
+  transform: none !important;
+}
+
+/* Tab panel switch: crisp 260ms (--m-med) exponential ease-out */
+@keyframes bhTabEnter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tab.on,
+#t-overview.on {
+  animation: bhTabEnter var(--m-med) var(--m-ease) both !important;
+}
+
+/* Modal & Command Palette entrance */
+@keyframes bhModalEnter {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.cmdk,
+.lab-lens {
+  animation: bhModalEnter var(--m-med) var(--m-ease) both !important;
+}
+
+/* Unified micro-interaction transitions (--m-fast = 140ms, --m-ease) */
+.mkt-row,
+.cat-btn,
+.sb-sort button,
+.ov-jump button,
+.wkb-card,
+.wkb-list li,
+.wkc-l li,
+.su-m,
+.ov-cat-pill,
+.ov-tile,
+.ov-nt,
+.nav-btn,
+.fx-nb,
+.sx-labbar,
+.ctv-b,
+.lc-btn,
+.lc-arrow,
+.meth-q-btn,
+.back-to-ov-btn {
+  transition:
+    background-color var(--m-fast) var(--m-ease),
+    border-color var(--m-fast) var(--m-ease),
+    color var(--m-fast) var(--m-ease),
+    box-shadow var(--m-fast) var(--m-ease),
+    transform var(--m-fast) var(--m-ease),
+    opacity var(--m-fast) var(--m-ease) !important;
+}
+
+/* Sidebar Market Row hover / selected / active */
+.mkt-row {
+  border-bottom: 1px solid var(--bdr-subtle) !important;
+}
+.mkt-row:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+.mkt-row:active {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+.mkt-row.sel {
+  background: linear-gradient(90deg, rgba(200, 169, 110, 0.12) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+}
+
+/* Interactive Cards (On The Board Prime Cards, Heatmap Tiles, Footer Nav, Lab Bar) */
+.wkb-card {
+  background: linear-gradient(165deg, rgba(241, 227, 190, 0.065) 0%, rgba(17, 22, 32, 0.92) 60%) !important;
+  border: 1px solid rgba(241, 227, 190, 0.16) !important;
+  box-shadow: var(--shd-inset), 0 4px 12px -4px rgba(0, 0, 0, 0.5) !important;
+}
+.wkb-card:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(241, 227, 190, 0.38) !important;
+  box-shadow: var(--shd-inset), 0 10px 24px -8px rgba(0, 0, 0, 0.72) !important;
+}
+.wkb-card:active {
+  transform: translateY(0) scale(0.992) !important;
+}
+
+.wkb-list li:hover,
+.wkc-l li:hover {
+  background-color: rgba(241, 227, 190, 0.065) !important;
+}
+
+.fx-nb:hover,
+.sx-labbar:hover,
+.ov-tile:hover {
+  transform: translateY(-1px) !important;
+  border-color: var(--bdr-strong) !important;
+  box-shadow: var(--shd-elev-2) !important;
+}
+.fx-nb:active,
+.sx-labbar:active,
+.ov-tile:active,
+.cat-btn:active,
+.ov-jump button:active,
+.nav-btn:active {
+  transform: translateY(0) scale(0.988) !important;
+}
+
+/* Consistent Accessible Keyboard Focus Ring (:focus-visible) */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible,
+.mkt-row:focus-visible,
+.wkb-card:focus-visible,
+.wkb-list li:focus-visible,
+.wkc-l li:focus-visible,
+.su-m:focus-visible {
+  outline: 2px solid var(--bdr-focus) !important;
+  outline-offset: 2px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SINGLE BOOT SEQUENCE — GEOMETRY-MATCHED SKELETONS & COORDINATED REVEAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes bhSkelPulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.92; }
+}
+
+.bh-skel-bar,
+.bh-skel-pill,
+.bh-skel-dot,
+.bh-skel-block {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.095) 50%, rgba(255, 255, 255, 0.05) 100%);
+  border-radius: 4px;
+  animation: bhSkelPulse 1.6s var(--m-ease-inout) infinite;
+}
+.bh-skel-bar.gold,
+.bh-skel-pill.gold {
+  background: linear-gradient(90deg, rgba(200, 169, 110, 0.10) 0%, rgba(241, 227, 190, 0.20) 50%, rgba(200, 169, 110, 0.10) 100%);
+}
+.bh-skel-bar.green,
+.bh-skel-pill.green {
+  background: linear-gradient(90deg, rgba(34, 201, 122, 0.12) 0%, rgba(34, 201, 122, 0.24) 50%, rgba(34, 201, 122, 0.12) 100%);
+}
+
+/* Lock Setups button appearance during boot so it never flips to Bias and back */
+body.bh-booting .sb-sort button[data-s="setups"] {
+  background: rgba(200, 169, 110, 0.14) !important;
+  color: #F1E3BE !important;
+  border-color: rgba(200, 169, 110, 0.36) !important;
+}
+body.bh-booting .sb-sort button[data-s="score"] {
+  background: transparent !important;
+  color: var(--dim) !important;
+  border-color: transparent !important;
+}
+
+/* 1. Sidebar Setups-Mode Skeleton Overlay */
+#mkt-list {
+  position: relative !important;
+}
+.bh-sb-skel {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  background: var(--elev-1);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--m-med) var(--m-ease), visibility var(--m-med) var(--m-ease);
+}
+body.bh-booting .bh-sb-skel {
+  opacity: 1;
+  visibility: visible;
+}
+body.bh-booting #mkt-list > :not(.bh-sb-skel) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.bh-sb-skel-grp {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--bdr-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.bh-sb-skel-grp-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bh-sb-skel-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 38px 34px;
+  align-items: center;
+  gap: 8px;
+  height: 54px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--bdr-subtle);
+  position: relative;
+}
+.bh-sb-skel-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: rgba(34, 201, 122, 0.42);
+  border-radius: 0 2px 2px 0;
+}
+.bh-sb-skel-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.bh-sb-skel-sub {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.bh-sb-skel-sub i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(34, 201, 122, 0.28);
+  display: inline-block;
+}
+
+/* 2. Hero Banner Skeleton Overlay */
+.bh-hero-skel {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  padding: 28px 36px;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 380px;
+  align-items: stretch;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 65% at 50% 56%, rgba(234, 184, 80, 0.045) 0%, transparent 68%),
+    linear-gradient(180deg, #06090F 0%, #090D15 100%);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--m-med) var(--m-ease), visibility var(--m-med) var(--m-ease);
+}
+body.bh-booting .bh-hero-skel {
+  opacity: 1;
+  visibility: visible;
+}
+body.bh-booting #ov-banner-inner,
+body.bh-booting #ov-charts {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.bh-hs-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 44px;
+  gap: 8px;
+}
+.bh-hs-therm {
+  width: 12px;
+  height: 290px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(34, 201, 122, 0.14) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(224, 82, 82, 0.14) 100%);
+  border: 1px solid var(--bdr-subtle);
+  position: relative;
+  margin-top: 8px;
+}
+.bh-hs-therm::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  top: 46%;
+  height: 2px;
+  background: rgba(241, 227, 190, 0.45);
+}
+.bh-hs-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.bh-hs-arc-svg {
+  width: min(520px, 90%);
+  height: auto;
+  opacity: 0.72;
+}
+.bh-hs-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 14px;
+  padding-right: 8px;
+}
+
+/* 3. Week Band (.wk2) Full-Geometry Skeleton */
+#ov-week {
+  position: relative !important;
+}
+body.bh-booting #ov-week {
+  min-height: 760px !important;
+}
+body.bh-booting #ov-week > .wk-warm {
+  display: none !important;
+}
+body.bh-booting #ov-week > .wk2 {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.bh-week-skel {
+  border-radius: 18px;
+  padding: 18px 18px 16px;
+  background: linear-gradient(180deg, rgba(16, 21, 31, 0.92), rgba(11, 14, 21, 0.96));
+  border: 1px solid rgba(200, 169, 110, 0.16);
+  box-shadow: var(--shd-elev-2);
+  display: none;
+}
+body.bh-booting .bh-week-skel {
+  display: block;
+  position: relative;
+  z-index: 20;
+}
+body.bh-booting #ov-week > .wk2 + .bh-week-skel,
+body.bh-booting #ov-week.has-wk2 .bh-week-skel {
+  position: absolute;
+  inset: 0;
+}
+
+.bh-ws-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.bh-ws-kpis {
+  display: grid;
+  grid-template-columns: 1.25fr 1.1fr 1.15fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.bh-ws-card {
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(21, 27, 39, 0.90) 0%, rgba(15, 19, 28, 0.94) 100%);
+  border: 1px solid var(--bdr-default);
+  box-shadow: var(--shd-elev-1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bh-ws-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.bh-ws-prime-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+.bh-ws-prime-item {
+  height: 76px;
+  border-radius: 11px;
+  background: rgba(241, 227, 190, 0.04);
+  border: 1px solid rgba(241, 227, 190, 0.12);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.bh-ws-list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+  margin-top: 8px;
+}
+.bh-ws-low {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* Hold below-fold sections quietly during boot skeleton phase */
+body.bh-booting #ov-cat-bar,
+body.bh-booting #ov-macro-env-strip,
+body.bh-booting #ov-macro-panels-wrap,
+body.bh-booting #ov-climate-panel,
+body.bh-booting #ov-ai-brief,
+body.bh-booting #ov-signals-wrap {
+  opacity: 0.25 !important;
+  pointer-events: none !important;
+}
+
+/* 4. Coordinated Single-Wave Stagger on Reveal (body.bh-boot-ready) */
+@keyframes bhBootReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.bh-boot-ready #mkt-list > .sb2-grp,
+body.bh-boot-ready #mkt-list > .mkt-row {
+  animation: bhBootReveal var(--m-med) var(--m-ease) 0ms both !important;
+}
+body.bh-boot-ready #ov-banner-inner,
+body.bh-boot-ready #ov-charts,
+body.bh-boot-ready #mob-hero-inner {
+  animation: bhBootReveal var(--m-med) var(--m-ease) 35ms both !important;
+}
+body.bh-boot-ready #ov-jump {
+  animation: bhBootReveal var(--m-med) var(--m-ease) 65ms both !important;
+}
+body.bh-boot-ready #ov-week > .wk2,
+body.bh-boot-ready #mob-week > .wk2 {
+  animation: bhBootReveal var(--m-med) var(--m-ease) 95ms both !important;
+}
+body.bh-boot-ready #ov-macro-env-strip,
+body.bh-boot-ready #ov-macro-panels-wrap,
+body.bh-boot-ready #ov-climate-panel {
+  animation: bhBootReveal var(--m-med) var(--m-ease) 125ms both !important;
+}
+
+/* Responsive adjustments for skeleton grids */
+@media (max-width: 1380px) {
+  .bh-ws-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1180px) {
+  .bh-ws-main { grid-template-columns: 1fr; }
+  .bh-ws-low  { grid-template-columns: 1fr; }
+  .bh-hero-skel { grid-template-columns: 90px minmax(0, 1fr) 280px; padding: 20px; }
+}
+@media (max-width: 700px) {
+  .bh-hero-skel { display: none !important; }
+  .bh-ws-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bh-ws-list-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREFERS-REDUCED-MOTION POLICY — COMPLETE ACCESSIBILITY OVERRIDE
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --m-fast: 0.01ms !important;
+    --m-med:  0.01ms !important;
+    --m-slow: 0.01ms !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .wkb-card:hover,
+  .fx-nb:hover,
+  .sx-labbar:hover,
+  .ov-tile:hover {
+    transform: none !important;
+  }
+}
+/* ===== end v8-motion ===== */
+/* ===== v8-merge: integration fixes after the four specialist passes ===== */
+@media (min-width:701px){
+  /* Hero: one confident line, sized to the bounded band rather than the viewport */
+  html body #ov-banner .ov-hero-headline-block{flex-wrap:nowrap!important;gap:.28em!important;align-items:baseline!important}
+  html body #ov-banner .ov-hero-word1.ov-hero-word1,
+  html body #ov-banner .ov-hero-word2.ov-hero-word2{font-size:clamp(40px,3.1vw,68px)!important;line-height:1!important;letter-spacing:-.025em!important;white-space:nowrap!important}
+  html body #ov-banner .ov-banner-text-right{justify-content:center!important;gap:14px!important}
+  html body #ov-banner .ov-hero-bottom-block{gap:10px!important}
+  /* the arc is now drawn at the band's real size, so no letterboxing */
+  html body #ov-arc-canvas{object-fit:fill!important}
+
+  /* Ultrawide: header and status bar share the centred desk column */
+  html body .nav{padding-inline:max(16px,calc((100vw - 2080px)/2 + 16px))!important}
+  html body #app-status-bar{padding-inline:max(14px,calc((100vw - 2080px)/2 + 14px))!important}
+  @media (min-width:2200px){
+    html body .main{border-inline:1px solid rgba(255,255,255,.05)!important;box-shadow:0 0 120px rgba(0,0,0,.45)!important}
+  }
+
+  /* Sidebar: category chips wrap instead of clipping, rows align on a fixed right rail */
+  html body #cat-row.cat-row{flex-wrap:wrap!important;overflow:visible!important;row-gap:4px!important}
+  html body .sb2-row .mr-right{width:34px!important;flex:0 0 34px!important;justify-content:flex-end!important;text-align:right!important}
+  html body .sb2-row .dk-side{flex:0 0 auto!important}
+  /* sidebar rows: always two lines. Timing replaces the family label when present (family stays in the row tooltip) */
+  html body .sb2-row .sb2-sub{flex-wrap:nowrap!important;white-space:nowrap!important;overflow:hidden!important;min-width:0!important;gap:6px!important}
+  html body .sb2-row .sb2-sub .sb2-tm ~ .sb2-arch{display:none!important}
+  html body .sb2-row .sb2-sub .sb2-arch{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  html body .sb2-row .sb2-dots{gap:2.5px!important}
+  html body .sb2-row .sb2-dots i{width:6px!important;height:6px!important}
+  html body .sb2-row .mr-body{min-width:0!important;flex:1 1 auto!important}
+
+  /* Detail header score card: number and denominator read as one unit; the unreadable micro gauge goes */
+  html body .su-hero .d-score-arc-wrap{display:none!important}
+  html body .su-hero .su-h-nr{gap:4px!important;align-items:baseline!important;justify-content:center!important}
+  html body .su-hero .d-score-hero-denom{width:auto!important;min-width:0!important;margin:0!important;padding:0!important;text-align:left!important}
+  html body .su-hero .su-h-k{margin-bottom:2px!important}
+  html body .su-hero .su-h-bias{margin-top:10px!important}
+}
+
+/* 52-week climate key */
+#v8-arc-stats{position:absolute;top:50%;transform:translateY(-50%);display:grid;gap:7px;min-width:180px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);pointer-events:none}
+#v8-arc-stats .v8as-h{font:600 10px/1 var(--f-data,var(--mono));letter-spacing:.12em;text-transform:uppercase;color:rgba(241,227,190,.72);margin-bottom:3px}
+#v8-arc-stats .v8as-r{display:grid;grid-template-columns:62px 40px 1fr;align-items:baseline;gap:8px}
+#v8-arc-stats .v8as-k{font:500 11px/1.2 var(--f-text,var(--body));color:var(--ink-3,#97A1B5)}
+#v8-arc-stats .v8as-v{font:600 13px/1.2 var(--f-data,var(--mono));font-variant-numeric:tabular-nums;text-align:right}
+#v8-arc-stats .v8as-s{font:500 10px/1.2 var(--f-data,var(--mono));color:var(--ink-4,#838DA2);white-space:nowrap}
+@media (max-width:700px){#v8-arc-stats{display:none!important}}
+
+/* Readiness chips use the same colours as the readiness bar on home */
+html body .su-rd.su-rd,html body .su-rd.su-rd[class*="k-"]{color:var(--c)!important;background:color-mix(in srgb,var(--c) 12%,transparent)!important;border:1px solid color-mix(in srgb,var(--c) 40%,transparent)!important;box-shadow:none!important}
+
+/* Calendar rows: currency code instead of flag glyphs */
+html body .cal-td-flag,html body .td-ev-flag{font-family:var(--f-data,var(--mono))!important;font-size:10px!important;font-weight:600!important;letter-spacing:.04em!important;color:var(--ink-3,#97A1B5)!important;width:34px!important;padding-right:8px!important;white-space:nowrap!important}
+
+@media (max-width:700px){
+  /* keep the eyebrow clear of the climate dial */
+  html body .mob-hero-eyebrow{padding-right:86px!important;line-height:1.5!important}
+  html body .mob-regime-w1,html body .mob-regime-w2{font-size:clamp(40px,13vw,56px)!important;line-height:.95!important}
+  /* back button and ticker sit on one row without touching */
+  html body .d-head-l>.d-cat{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:nowrap!important}
+  html body .d-head-l>.d-cat .mob-back{flex:0 0 auto!important;margin:0!important}
+  html body .d-head-l>.d-cat > span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+}
+/* ===== end v8-merge ===== */
+
+/* compact hero: the old tall-hero fades ate the bottom of the arc */
+@media (min-width:701px){
+  html body #ov-banner .ov-arc-canvas-wrap{-webkit-mask-image:none!important;mask-image:none!important}
+  html body #ov-banner::after{background:linear-gradient(180deg,transparent 0%,transparent 70%,rgba(4,4,5,.35) 100%)!important}
+  #v8-arc-stats.v8as-tight .v8as-s{display:none}
+  html body #ov-banner .ov-banner-text-right.ov-banner-text-right{background:none!important;box-shadow:none!important}
+  html body #ov-banner .ov-banner-eyebrow.ov-banner-eyebrow{background:none!important}
+}
+@media (min-width:1100px) and (max-width:1599px){ html{--sidebar-w:304px!important} }
+@media (min-width:701px){ html body #mkt-list .sb2-row{min-height:50px!important;box-sizing:border-box!important} }
+/* factor tab scores: readable, still tinted by the factor's lean */
+html body .ov-nt .ov-nchip.ov-nchip{opacity:1!important;color:color-mix(in srgb,var(--chip-c,#97A1B5) 72%,#F2F6FF)!important;background:color-mix(in srgb,var(--chip-c,#97A1B5) 12%,transparent)!important;border:1px solid color-mix(in srgb,var(--chip-c,#97A1B5) 26%,transparent)!important}
+/* score number and its /10 sit together on every width */
+html body #d-score-hero .su-h-nr .d-score-hero-num{min-width:0!important;width:auto!important;padding:0!important}
+html body #d-score-hero .su-h-nr .d-score-hero-denom{width:auto!important;min-width:0!important;margin-left:4px!important;padding:0!important;font-family:var(--f-data)!important}
+@media (max-width:700px){ html body #d-score-hero .su-h-nr{justify-content:flex-start!important;align-items:baseline!important} }
+html body #d-score-hero .su-h-rel{text-wrap:balance;hyphens:manual;max-width:24ch;margin-inline:auto}
+@media (max-width:700px){ html body #d-score-hero .su-h-nr{margin-right:22px!important} html body #d-score-hero .su-h-rel{max-width:none;margin-inline:0} }
+/* boot skeleton follows the compact hero: arc on the left, headline on the right */
+@media (min-width:701px){
+  html body .bh-hero-skel{grid-template-columns:58% minmax(0,1fr)!important;padding:20px 24px!important;background:transparent!important}
+  html body .bh-hero-skel .bh-hs-left{display:none!important}
+  html body .bh-hero-skel .bh-hs-center{justify-content:flex-start!important;padding-left:8%}
+  html body .bh-hero-skel .bh-hs-arc-svg{width:auto!important;height:100%!important;max-height:calc(100% - 8px)}
+  html body .bh-hero-skel .bh-hs-right{align-items:flex-start!important;padding-left:5%}
+}
+
 </style>
+<script>
+/* ===== v8-type ===== */
+/* Token snapper. The CSS carries the system; this enforces it on the long tail:
+   ~930 KB of legacy rules and the inline styles that render functions write.
+   For every declaration it:
+     - snaps px font sizes onto the 7-step scale (10px floor), clamp()/calc() floors at 10px
+     - retires 800/900 (to 700), 650 (to 600), 100/200 (to 300)
+     - snaps letter-spacing to 0 / .06em / .12em / -.02em
+     - keeps Space Grotesk to 14px and up (smaller: Inter, or Mono when uppercase)
+     - collapses near-duplicate reds, greens, golds, blues onto the house values,
+       tan onto ivory, and neutral text greys onto the 4-step ink ramp.
+   Idempotent: canonical values map to themselves, so re-runs and observer echoes are no-ops.
+   SVG text classes (sized in viewBox units) are left alone. */
+(function(){
+  'use strict';
+  if (window.__bhType) return; window.__bhType = 1;
+  var SCALE = [[10.25,'var(--t-1)'],[11.5,'var(--t-2)'],[12.75,'var(--t-3)'],[14,'var(--t-4)'],[17,'var(--t-5)'],[28,'var(--t-6)'],[60,'var(--t-7)'],[1e9,'var(--t-hero)']];
+  function snapSize(v){
+    if (!v || v.indexOf('var(') > -1) return null;
+    var m = /^(\d*\.?\d+)px$/.exec(v);
+    if (m){ var n = +m[1]; if (n < 5.5) return null; for (var i=0;i<SCALE.length;i++) if (n < SCALE[i][0]) return SCALE[i][1]; }
+    if (/^(clamp|calc|min|max)\(/.test(v)) {
+      var o = v.replace(/(\d*\.?\d+)px/g, function(a,b){ return (+b >= 5.5 && +b < 10) ? '10px' : a; });
+      return o !== v ? o : null;
+    }
+    return null;
+  }
+  function pxOf(v){ var m=/^(\d*\.?\d+)px$/.exec(v||''); return m?+m[1]:null; }
+  var SCALEPX = {'var(--t-1)':10,'var(--t-2)':11,'var(--t-3)':12,'var(--t-4)':13,'var(--t-5)':15,'var(--t-6)':20,'var(--t-7)':36,'var(--t-hero)':100};
+  function snapWeight(v){
+    var n = v === 'bold' ? 700 : +v; if (!n) return null;
+    var t = n >= 750 ? 700 : n === 650 ? 600 : n <= 250 ? 300 : n === 350 ? 400 : n;
+    return t !== n ? String(t) : null;
+  }
+  function snapLs(v, fs, upper){
+    if (!v || v === 'normal' || v.indexOf('var(') > -1) return null;
+    var m = /^(-?\d*\.?\d+)(px|em|rem)$/.exec(v); if (!m) return null;
+    var n = +m[1], f = fs || 10, em = m[2] === 'em' ? n : m[2] === 'rem' ? n*16/f : n/f, t;
+    if (em <= -0.01) t = f >= 18 ? 'var(--ls-tight)' : '0';
+    else if (em < 0.025) t = '0';
+    else if (em < 0.09) t = upper === false ? '0' : 'var(--ls-caps)';
+    else t = upper === false ? '0' : 'var(--ls-wide)';
+    return t;
+  }
+  /* colour */
+  function hsl(r,g,b){ r/=255; g/=255; b/=255; var mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, d=mx-mn, h=0, s=0;
+    if (d){ s = l > .5 ? d/(2-mx-mn) : d/(mx+mn);
+      h = mx===r ? ((g-b)/d + (g<b?6:0)) : mx===g ? ((b-r)/d+2) : ((r-g)/d+4); h*=60; }
+    return [h,s,l]; }
+  function lin(c){ c/=255; return c <= .03928 ? c/12.92 : Math.pow((c+.055)/1.055, 2.4); }
+  function lum(r,g,b){ return .2126*lin(r)+.7152*lin(g)+.0722*lin(b); }
+  var BG = [11,13,18];
+  var INK = [[242,246,255],[195,203,219],[151,161,181],[131,141,162]];
+  var INKL = INK.map(function(c){ return Math.log((lum(c[0],c[1],c[2])+.05)/(lum(BG[0],BG[1],BG[2])+.05)); });
+  function snapNeutral(r,g,b,a){
+    if (a > .6 && hsl(r,g,b)[2] < .2) return null;   /* deliberate dark ink on a light chip: leave */
+    var R=r*a+BG[0]*(1-a), G=g*a+BG[1]*(1-a), B=b*a+BG[2]*(1-a);
+    var cr = (lum(R,G,B)+.05)/(lum(BG[0],BG[1],BG[2])+.05);
+    if (cr < 1.8) return null;                 /* decorative ghost text: leave */
+    var lc = Math.log(cr), bi = 0, bd = 1e9;
+    for (var i=0;i<4;i++){ var dd=Math.abs(lc-INKL[i]); if (dd<bd){bd=dd;bi=i;} }
+    if (cr < Math.exp(INKL[3])) bi = 3;        /* anything fainter than ink-4 rises to it */
+    return INK[bi];
+  }
+  function fam(r,g,b,a,isText){
+    var x = hsl(r,g,b), h=x[0], s=x[1], l=x[2];
+    if (s < .15 || Math.max(r,g,b)-Math.min(r,g,b) < 28 || (s < .36 && h >= 195 && h <= 240) || (s < .2 && h >= 20 && h <= 60)){ return isText ? snapNeutral(r,g,b,a) : null; }
+    if ((h >= 345 || h <= 12) && s > .4 && l > .38 && (l < .66 || (isText && l < .9))) return [224,82,82];
+    if (h >= 120 && h <= 170 && s > .3 && l > .3 && (l < .62 || (isText && l < .9))) return [34,201,122];
+    if (h >= 25 && h <= 55){
+      if (l >= .78 && s > .3) return [241,227,190];
+      if (s < .55 && l > .45 && l < .72) return 'tan';
+      if (s >= .55 && l > .5 && l < .72) return [234,184,80];
+      return null; }
+    if (h >= 200 && h <= 232 && s > .35 && l > .4 && l < .8) return isText ? [121,163,230] : [61,123,214];
+    return null;
+  }
+  var RX = /rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/g;
+  function snapColours(v, isText){
+    if (!v || v.indexOf('rgb') < 0) return null;
+    var o = v.replace(RX, function(all,r,g,b,a){
+      r=+r; g=+g; b=+b; var A = a === undefined ? 1 : +a; if (A === 0) return all;
+      var t = fam(r,g,b,A,isText); if (!t) return all;
+      if (t === 'tan'){ t=[241,227,190]; A = isText && A >= .5 ? .72 : Math.round(A*.72*100)/100; }
+      else if (isText && (t===INK[0]||t===INK[1]||t===INK[2]||t===INK[3])) A = 1;
+      else if (isText && A >= .5 && !(t[0]===241&&t[1]===227&&t[2]===190&&A===.72)) A = 1;  /* semantic text at full strength */
+      if (t[0]===r && t[1]===g && t[2]===b && (a===undefined || +a===A)) return all;
+      return A >= 1 ? 'rgb('+t[0]+', '+t[1]+', '+t[2]+')' : 'rgba('+t[0]+', '+t[1]+', '+t[2]+', '+A+')';
+    });
+    return o !== v ? o : null;
+  }
+  var CPROPS = ['background-color','border-top-color','border-right-color','border-bottom-color','border-left-color','outline-color','background-image','box-shadow','text-shadow','fill','stroke','stop-color','text-decoration-color','caret-color'];
+  var DISP = /Space Grotesk|--head|--nexus-head|--f-display/;
+  var stats = {rules:0, size:0, weight:0, ls:0, colour:0, fam:0, inline:0};
+  var CSET = {}; CPROPS.forEach(function(p){ CSET[p]=1; });
+  function fix(st, svgish){
+    if (!st || !st.length) return;
+    var fsv='', fw='', ls='', tt='', ff='', cols=[], cust=[], i, p;
+    for (i=0;i<st.length;i++){ p = st[i];
+      if (p === 'font-size') fsv = st.getPropertyValue(p);
+      else if (p === 'font-weight') fw = st.getPropertyValue(p);
+      else if (p === 'letter-spacing') ls = st.getPropertyValue(p);
+      else if (p === 'text-transform') tt = st.getPropertyValue(p);
+      else if (p === 'font-family') ff = st.getPropertyValue(p);
+      else if (p === 'color' || p === '-webkit-text-fill-color' || CSET[p]) cols.push(p);
+      else if (p.charCodeAt(0) === 45 && p.charCodeAt(1) === 45 && !/^--(ink|blue|bull|bear|gold|ivory|t-|f-|w-|ls-)/.test(p)) cust.push(p);
+    }
+    if (!fsv && !fw){ var fsh = st.getPropertyValue('font');
+      if (fsh && !svgish){ var fm = /^\s*((?:(?:normal|italic|oblique|small-caps|bold|\d{3})\s+)*)(\d*\.?\d+px)(\/\S+)?\s+(.+)$/.exec(fsh);
+        if (fm){ var pre = fm[1].replace(/\b(\d{3}|bold)\b/, function(w){ return snapWeight(w) || w; }), sz = snapSize(fm[2]) || fm[2], fam2 = fm[4];
+          var szPx = SCALEPX[sz] || pxOf(sz);
+          if (DISP.test(fam2) && szPx < 14) fam2 = 'var(--f-text)';
+          var nf = pre + sz + (fm[3]||'') + ' ' + fam2;
+          if (nf !== fsh){ st.setProperty('font', nf, st.getPropertyPriority('font')); stats.size++; } } } }
+    var nv;
+    if (fsv && !svgish){ nv = snapSize(fsv); if (nv){ st.setProperty('font-size', nv, st.getPropertyPriority('font-size')); stats.size++; fsv = nv; } }
+    var fsPx = SCALEPX[fsv] || pxOf(fsv);
+    if (fw){ nv = snapWeight(fw); if (nv){ st.setProperty('font-weight', nv, st.getPropertyPriority('font-weight')); stats.weight++; } }
+    var upper = tt ? tt === 'uppercase' : undefined;
+    if (ls && !svgish){ nv = snapLs(ls, fsPx, upper); if (nv !== null && nv !== ls){ st.setProperty('letter-spacing', nv, st.getPropertyPriority('letter-spacing')); stats.ls++; } }
+    if (ff && !svgish && fsPx){
+      if (DISP.test(ff) && fsPx < 14){ st.setProperty('font-family', upper ? 'var(--f-data)' : 'var(--f-text)', st.getPropertyPriority('font-family')); stats.fam++; }
+      else if (/Inter|--body|--f-text/.test(ff) && upper && fsPx <= 11){ st.setProperty('font-family', 'var(--f-data)', st.getPropertyPriority('font-family')); stats.fam++; }
+    }
+    for (i=0;i<cols.length;i++){ p = cols[i]; var v = st.getPropertyValue(p);
+      nv = snapColours(v, (p === 'color' || p === '-webkit-text-fill-color') && !(fsPx >= 40));
+      if (nv){ st.setProperty(p, nv, st.getPropertyPriority(p)); stats.colour++; } }
+    for (i=0;i<cust.length;i++){ p = cust[i]; var cv = st.getPropertyValue(p).trim();
+      if (/^#[0-9a-f]{6}$/i.test(cv)) cv = 'rgb('+parseInt(cv.slice(1,3),16)+', '+parseInt(cv.slice(3,5),16)+', '+parseInt(cv.slice(5,7),16)+')';
+      else if (!/^rgba?\(/.test(cv)) continue;
+      nv = snapColours(cv, false); if (nv){ st.setProperty(p, nv); stats.colour++; } }
+  }
+  /* classes used on SVG <text> by the render code: their sizes are viewBox units */
+  var SVGCLS = {};
+  try {
+    var src = ''; for (var s of document.scripts) if (!s.src) src += s.textContent;
+    var re = /<(?:text|tspan)[^>]*?class=\\?["']([^"'\\]+)/g, m;
+    while ((m = re.exec(src))) m[1].split(/\s+/).forEach(function(c){ if (c && !/[+$'"]/.test(c)) SVGCLS[c] = 1; });
+  } catch(e){}
+  var SVGKEYS = Object.keys(SVGCLS).map(function(c){ return c.replace(/[^\w-]/g,''); }).filter(function(c){ return c.length > 2 && !/-$/.test(c); });
+  var SVGRX = SVGKEYS.length ? new RegExp('\\.(' + SVGKEYS.join('|') + ')(?![\\w-])') : null;
+  function svgSel(sel){
+    if (/svg|\btext\b|tspan|canvas/i.test(sel)) return true;
+    return !!(SVGRX && SVGRX.test(sel));
+  }
+  window.__bhTypeSvg = SVGKEYS;
+  function walk(rules){
+    for (var i=0;i<rules.length;i++){
+      var r = rules[i];
+      if (r.cssRules && r.cssRules.length && !r.style) walk(r.cssRules);
+      else if (r.style){ stats.rules++; fix(r.style, r.selectorText ? svgSel(r.selectorText) : false); if (r.cssRules && r.cssRules.length) walk(r.cssRules); }
+    }
+  }
+  function doSheet(sh){ if (!sh || sh.__bhT) return; try { var rl = sh.cssRules; sh.__bhT = 1; walk(rl); } catch(e){} }
+  function doEl(el){
+    if (el.nodeType !== 1) return;
+    if (el.tagName === 'STYLE'){ doSheet(el.sheet); return; }
+    if (el.hasAttribute('style')){ stats.inline++; fix(el.style, el instanceof SVGElement); }
+    if (el instanceof SVGElement) doSvgAttr(el);
+    var kids = el.querySelectorAll('[style],style,[fill^="#"],[stroke^="#"],[stop-color^="#"]');
+    for (var k=0;k<kids.length;k++){ var e = kids[k];
+      if (e.tagName === 'STYLE') { doSheet(e.sheet); continue; }
+      if (e.hasAttribute('style')){ stats.inline++; fix(e.style, e instanceof SVGElement); }
+      if (e instanceof SVGElement && (e.hasAttribute('fill')||e.hasAttribute('stroke')||e.hasAttribute('stop-color'))) doSvgAttr(e);
+    }
+  }
+  function doSvgAttr(el){
+    ['fill','stroke','stop-color'].forEach(function(a){ var v = el.getAttribute(a); if (!v || v.charAt(0) !== '#') return; var h = v.slice(1); if (h.length===3) h=h.replace(/./g,'$&$&'); if (h.length!==6) return;
+      var n = snapColours('rgb('+parseInt(h.slice(0,2),16)+', '+parseInt(h.slice(2,4),16)+', '+parseInt(h.slice(4,6),16)+')', false);
+      if (n){ var q = n.match(/\d+/g); el.setAttribute(a, '#'+q.slice(0,3).map(function(x){return (+x).toString(16).padStart(2,'0')}).join('')); } });
+  }
+  var t0 = performance.now();
+  for (var i=0;i<document.styleSheets.length;i++) doSheet(document.styleSheets[i]);
+  doEl(document.documentElement);
+  stats.ms = Math.round(performance.now()-t0);
+  window.__bhTypeStats = stats;
+  /* render functions keep writing inline styles and the odd <style>: snap them as they land */
+  var pend = new Set(), raf = 0;
+  function flush(){ raf = 0; var list = Array.from(pend); pend.clear(); for (var j=0;j<list.length;j++) if (list[j].isConnected) doEl(list[j]); }
+  new MutationObserver(function(ms){
+    for (var j=0;j<ms.length;j++){ var mm = ms[j];
+      if (mm.type === 'attributes'){ if (mm.target.nodeType===1){ fix(mm.target.style, mm.target instanceof SVGElement); } continue; }
+      for (var k=0;k<mm.addedNodes.length;k++){ var n = mm.addedNodes[k]; if (n.nodeType===1) pend.add(n); }
+    }
+    if (pend.size) flush();
+  }).observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['style']});
+})();
+/* ===== end v8-type ===== */
+</script>
 
 <script>
 /* HOME-V6 · jump bar. Targets resolve lazily (panels render async), the active chip
@@ -47718,6 +49613,590 @@ initNexusNoise();
     else if(/^[1-7]$/.test(k)&&selMkt){ e.preventDefault(); switchTab(TABS[+k-1][0]); }
   });
 })();
+</script>
+<script>
+/* ===== v8-ux ===== */
+(function(){
+  'use strict';
+  var LS='bh_ux_eg_open';
+  /* --- copy: one name per thing ---------------------------------------------------
+     Factor tabs used engine names (Seasonal / Momentum / Fundamentals / Rel. Value) while the five pillar cards
+     directly above them say Seasonality / Trend / Macro / Valuation. Tabs now use the pillar names. */
+  var TAB_RENAME={'Seasonal':'Seasonality','Momentum':'Trend','Fundamentals':'Macro','Rel. Value':'Valuation'};
+  if(typeof buildOvNav==='function'){
+    var _bov=buildOvNav;
+    buildOvNav=function(m){
+      var h=_bov(m);
+      return h.replace(/(onclick="switchTab\('(seasonal|momentum|macro|relval)'\)">)(Seasonal|Momentum|Fundamentals|Rel\. Value)(?=<|$)/g,function(a,p,t,l){return p+(TAB_RENAME[l]||l)});
+    };
+  }
+  /* Back button said "Overview" (= home) one row above a tab called "Overview" (= this market). */
+  if(typeof dHead==='function'){
+    var _dh=dHead;
+    dHead=function(){
+      var h=_dh.apply(this,arguments);
+      return h.replace(/(<button class="back-to-ov-btn[^"]*"[^>]*>[\s\S]*?<\/svg>)\s*Overview/,'$1 Home');
+    };
+  }
+  function relabel(){
+    var mq=document.querySelector('.meth-q-btn'); if(mq&&/^methodology$/i.test(mq.textContent.trim())) mq.textContent='Method';
+    var note=document.getElementById('sb-scale-note'); if(note&&/by readiness/i.test(note.textContent)) note.textContent='0–10 · grouped by readiness';
+    document.querySelectorAll('.back-to-ov-btn').forEach(function(b){
+      for(var i=0;i<b.childNodes.length;i++){var n=b.childNodes[i]; if(n.nodeType===3&&/overview/i.test(n.textContent)) n.textContent=' Home';}
+    });
+  }
+  /* --- Edge lab: collapsed to header + lede, toggle remembers --- */
+  function egSetup(){
+    document.querySelectorAll('.eg-lab').forEach(function(lab){
+      var top=lab.querySelector('.eg-top'); if(!top) return;
+      var open=localStorage.getItem(LS)==='1';
+      lab.classList.toggle('ux-collapsed',!open);
+      var btn=top.querySelector('.ux-eg-toggle');
+      if(!btn){
+        btn=document.createElement('button'); btn.type='button'; btn.className='ux-eg-toggle back-to-ov-btn';
+        btn.addEventListener('click',function(){
+          var now=lab.classList.contains('ux-collapsed');
+          lab.classList.toggle('ux-collapsed',!now);
+          localStorage.setItem(LS,now?'1':'0');
+          btn.textContent=now?'Hide the replay':'Show the replay';
+        });
+        top.appendChild(btn);
+      }
+      btn.textContent=open?'Hide the replay':'Show the replay';
+    });
+  }
+  function run(){ try{relabel();egSetup(); var d=document.querySelector('.detail'); if(d) d.dispatchEvent(new Event('scroll'));}catch(e){} }  /* scroll event re-syncs the jump bar after late renders */
+  var t; function sched(){ clearTimeout(t); t=setTimeout(run,60); }
+  var mo=new MutationObserver(sched);
+  document.addEventListener('DOMContentLoaded',function(){
+    run();
+    ['ov-week','mob-week','d-content','sb-list','mkt-list'].forEach(function(id){var el=document.getElementById(id); if(el) mo.observe(el,{childList:true});});
+    var dc=document.querySelector('.detail'); if(dc) mo.observe(dc,{childList:true,subtree:false});
+    var sb=document.querySelector('.sidebar'); if(sb) mo.observe(sb,{childList:true,subtree:true});
+    var dcont=document.getElementById('d-content'); if(dcont) mo.observe(dcont,{childList:true,subtree:true});
+  });
+  if(document.readyState!=='loading'){ run(); }
+})();
+/* ===== end v8-ux ===== */
+</script>
+<script>
+/* ===== v8-motion ===== */
+(function () {
+  'use strict';
+
+  const REDUCED_MOTION =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── 1. Neutralize CPU-heavy ambient canvas loops & noisy scroll/tab animations ── */
+  try {
+    if (typeof window._nexusNoiseCancelId === 'function') window._nexusNoiseCancelId();
+    if (typeof _appBgAnimId !== 'undefined' && _appBgAnimId) { cancelAnimationFrame(_appBgAnimId); _appBgAnimId = null; }
+    if (typeof _ovAnimId !== 'undefined' && _ovAnimId) { cancelAnimationFrame(_ovAnimId); _ovAnimId = null; }
+    if (typeof _dHeadAnimId !== 'undefined' && _dHeadAnimId) { cancelAnimationFrame(_dHeadAnimId); _dHeadAnimId = null; }
+    if (typeof _mobHeroAnimId !== 'undefined' && _mobHeroAnimId) { cancelAnimationFrame(_mobHeroAnimId); _mobHeroAnimId = null; }
+    if (typeof _arcPulseId !== 'undefined' && _arcPulseId) { cancelAnimationFrame(_arcPulseId); _arcPulseId = null; }
+    if (typeof _arcOrbRedrawId !== 'undefined' && _arcOrbRedrawId) { cancelAnimationFrame(_arcOrbRedrawId); _arcOrbRedrawId = null; }
+  } catch (_) {}
+
+  window.initAppBg = function (regLabel) {
+    if (typeof setAppBgTint === 'function') try { setAppBgTint(regLabel); } catch (_) {}
+  };
+  window.initOvCanvas = function () {};
+  window.initDHeadCanvas = function () {};
+  window.initMobHeroCanvas = function () {};
+  window.initClimateBgCanvas = function () {};
+  window.initMacroParticles = function () {};
+  window._fxField = function () {};
+  window._startArcPulse = function () {};
+  window.animateTabScores = function () {};
+  window.animateHeatmapTiles = function () {};
+  window._cuRun = function () {};
+
+  /* Clean score hero update without bouncy overshoot or counting from 0 */
+  window.animateScoreHero = function (targetScore) {
+    const el = document.querySelector('.d-score-hero-num');
+    if (!el) return;
+    if (el.closest('.su-hero')) {
+      const v = parseFloat(el.dataset.v);
+      if (isNaN(v)) return;
+      targetScore = v;
+    }
+    el.dataset.score = Number(targetScore).toFixed(1);
+    el.textContent = Number(targetScore).toFixed(1);
+  };
+
+  /* Normalize switchTab aliases so 'positioning' and 'fundamentals' never blank the pane */
+  if (typeof window.switchTab === 'function') {
+    const _origSwitchTab = window.switchTab;
+    window.switchTab = function (tab) {
+      const map = {
+        positioning: 'cot',
+        fundamentals: 'macro',
+        climate: 'regime',
+        putcall: 'pcr',
+        valuation: 'relval',
+        trend: 'momentum'
+      };
+      return _origSwitchTab.call(this, map[tab] || tab);
+    };
+  }
+
+  /* Synchronize Climate Arc draw with --m-slow (480ms) and --m-ease */
+  if (typeof window._renderClimateArcAnimated === 'function') {
+    window._renderClimateArcAnimated = function (canvas, data, _unused, live) {
+      live = live || {};
+      if (typeof _arcAnimId !== 'undefined' && _arcAnimId) cancelAnimationFrame(_arcAnimId);
+      const setFooter = function () {
+        const note = document.getElementById('ov-arc-foot-note');
+        if (note && data && data.scores && data.scores.length) {
+          const hi = Math.max.apply(null, data.scores).toFixed(1);
+          const lo = Math.min.apply(null, data.scores).toFixed(1);
+          note.textContent = '52W CLIMATE HISTORY  ·  HI ' + hi + '  ·  LO ' + lo + '  ·  ' + data.scores.length + ' BARS';
+          note.style.color = 'rgba(255,255,255,0.28)';
+        }
+      };
+      if (REDUCED_MOTION) {
+        if (typeof _renderClimateArc === 'function') _renderClimateArc(canvas, data, 1, live);
+        setFooter();
+        return;
+      }
+      const DURATION = 480;
+      const start = performance.now();
+      function easeOut(u) { return 1 - Math.pow(1 - u, 3); }
+      function frame(now) {
+        const u = Math.min(1, Math.max(0, (now - start) / DURATION));
+        const p = easeOut(u);
+        if (typeof _renderClimateArc === 'function') _renderClimateArc(canvas, data, p, live);
+        if (u < 1) {
+          _arcAnimId = requestAnimationFrame(frame);
+        } else {
+          _arcAnimId = null;
+          setFooter();
+        }
+      }
+      _arcAnimId = requestAnimationFrame(frame);
+    };
+  }
+
+  /* ── 2. Build Composed Geometry-Matched Skeletons for Single Boot Choreography ── */
+  function buildSidebarSkeletonHTML() {
+    const widths = [68, 76, 82, 60, 64, 78, 58, 72, 74, 80, 66, 70, 62, 75];
+    let rows = '';
+    for (let i = 0; i < 14; i++) {
+      const w = widths[i % widths.length];
+      rows +=
+        '<div class="bh-sb-skel-row">' +
+          '<div class="bh-skel-bar" style="width:20px;height:10px"></div>' +
+          '<div class="bh-sb-skel-mid">' +
+            '<div class="bh-skel-bar" style="width:' + w + '%;height:11px"></div>' +
+            '<div class="bh-sb-skel-sub">' +
+              '<i></i><i></i><i></i><i></i><i></i>' +
+              '<span class="bh-skel-bar" style="width:48%;height:7px;margin-left:4px"></span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="bh-skel-pill green" style="width:36px;height:16px;border-radius:4px"></div>' +
+          '<div class="bh-skel-bar green" style="width:28px;height:14px;justify-self:end"></div>' +
+        '</div>';
+    }
+    return (
+      '<div class="bh-sb-skel-grp">' +
+        '<div class="bh-sb-skel-grp-top">' +
+          '<div class="bh-skel-bar gold" style="width:92px;height:9px"></div>' +
+          '<div class="bh-skel-bar" style="width:18px;height:9px"></div>' +
+        '</div>' +
+        '<div class="bh-skel-bar" style="width:148px;height:8px;opacity:0.45"></div>' +
+      '</div>' +
+      rows
+    );
+  }
+
+  function buildHeroSkeletonHTML() {
+    let bars = '';
+    const N = 36;
+    const cx = 260, cy = 220, rIn = 64;
+    const sweep = (210 * Math.PI) / 180;
+    const startA = Math.PI * 0.5 + (Math.PI * 2 - sweep) * 0.5 + sweep;
+    for (let i = 0; i < N; i++) {
+      const a = startA + (i + 0.5) * (sweep / N);
+      const len = 46 + Math.round(Math.sin(i * 0.35 + 0.8) * 28 + (i / N) * 24);
+      const x1 = (cx + Math.cos(a) * rIn).toFixed(1);
+      const y1 = (cy + Math.sin(a) * rIn).toFixed(1);
+      const x2 = (cx + Math.cos(a) * (rIn + len)).toFixed(1);
+      const y2 = (cy + Math.sin(a) * (rIn + len)).toFixed(1);
+      const col = i > 22 ? 'rgba(34,201,122,0.18)' : i < 10 ? 'rgba(224,82,82,0.16)' : 'rgba(148,163,184,0.15)';
+      bars += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + col + '" stroke-width="5.5" stroke-linecap="round"/>';
+    }
+    return (
+      '<div class="bh-hs-left">' +
+        '<div class="bh-skel-bar" style="width:66px;height:8px"></div>' +
+        '<div class="bh-skel-bar" style="width:74px;height:36px;border-radius:6px;margin-top:4px"></div>' +
+        '<div class="bh-skel-bar" style="width:46px;height:9px;margin-top:2px"></div>' +
+        '<div class="bh-hs-therm"></div>' +
+      '</div>' +
+      '<div class="bh-hs-center">' +
+        '<svg class="bh-hs-arc-svg" viewBox="0 0 520 420" fill="none">' +
+          '<circle cx="260" cy="220" r="168" stroke="rgba(255,255,255,0.04)" stroke-width="1" stroke-dasharray="3 5"/>' +
+          '<circle cx="260" cy="220" r="62" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>' +
+          bars +
+        '</svg>' +
+      '</div>' +
+      '<div class="bh-hs-right">' +
+        '<div class="bh-skel-bar gold" style="width:210px;height:9px;align-self:flex-start;margin-bottom:auto"></div>' +
+        '<div class="bh-skel-block" style="width:260px;height:78px;border-radius:10px;opacity:0.45"></div>' +
+        '<div class="bh-skel-block" style="width:340px;height:84px;border-radius:10px"></div>' +
+        '<div class="bh-skel-bar" style="width:180px;height:10px;margin-top:12px"></div>' +
+        '<div class="bh-skel-bar" style="width:260px;height:10px;margin-top:6px"></div>' +
+        '<div class="bh-skel-bar" style="width:140px;height:9px;margin-top:10px;margin-bottom:24px"></div>' +
+      '</div>'
+    );
+  }
+
+  function buildWeekSkeletonHTML() {
+    let primeCards = '';
+    for (let i = 0; i < 4; i++) {
+      primeCards +=
+        '<div class="bh-ws-prime-item">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center">' +
+            '<div class="bh-skel-bar" style="width:55%;height:12px"></div>' +
+            '<div class="bh-skel-pill green" style="width:36px;height:14px"></div>' +
+          '</div>' +
+          '<div class="bh-skel-bar" style="width:75%;height:9px"></div>' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-end">' +
+            '<div class="bh-skel-bar" style="width:42px;height:14px"></div>' +
+            '<div class="bh-skel-bar gold" style="width:28px;height:16px"></div>' +
+          '</div>' +
+        '</div>';
+    }
+    let listItems = '';
+    for (let i = 0; i < 8; i++) {
+      listItems +=
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.035)">' +
+          '<div class="bh-skel-bar" style="width:58%;height:11px"></div>' +
+          '<div class="bh-skel-pill green" style="width:32px;height:13px"></div>' +
+        '</div>';
+    }
+    return (
+      '<div class="bh-ws-hd">' +
+        '<div style="display:flex;align-items:center;gap:12px">' +
+          '<div class="bh-skel-bar gold" style="width:86px;height:12px"></div>' +
+          '<div class="bh-skel-bar" style="width:72px;height:11px"></div>' +
+        '</div>' +
+        '<div class="bh-skel-bar" style="width:210px;height:10px"></div>' +
+      '</div>' +
+      '<div class="bh-ws-kpis">' +
+        '<div class="bh-ws-card">' +
+          '<div style="display:flex;justify-content:space-between"><div class="bh-skel-bar" style="width:74px;height:9px"></div><div class="bh-skel-bar" style="width:52px;height:9px"></div></div>' +
+          '<div class="bh-skel-bar gold" style="width:100%;height:16px;border-radius:6px"></div>' +
+          '<div style="display:flex;justify-content:space-between;gap:6px;margin-top:4px">' +
+            '<div class="bh-skel-bar" style="width:36px;height:26px"></div>' +
+            '<div class="bh-skel-bar" style="width:36px;height:26px"></div>' +
+            '<div class="bh-skel-bar" style="width:36px;height:26px"></div>' +
+            '<div class="bh-skel-bar" style="width:36px;height:26px"></div>' +
+            '<div class="bh-skel-bar" style="width:36px;height:26px"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="bh-ws-card">' +
+          '<div style="display:flex;justify-content:space-between"><div class="bh-skel-bar" style="width:68px;height:9px"></div><div class="bh-skel-bar" style="width:76px;height:9px"></div></div>' +
+          '<div style="display:grid;grid-template-columns:36px 1fr 36px;align-items:center;gap:10px;margin-top:2px">' +
+            '<div class="bh-skel-bar green" style="height:26px"></div>' +
+            '<div class="bh-skel-bar green" style="height:8px;border-radius:4px"></div>' +
+            '<div class="bh-skel-bar" style="height:26px"></div>' +
+          '</div>' +
+          '<div class="bh-skel-bar" style="width:88%;height:10px;margin-top:6px"></div>' +
+          '<div class="bh-skel-bar" style="width:72%;height:10px"></div>' +
+        '</div>' +
+        '<div class="bh-ws-card">' +
+          '<div class="bh-skel-bar" style="width:128px;height:9px"></div>' +
+          '<div class="bh-skel-bar gold" style="width:78%;height:8px;margin-top:4px"></div>' +
+          '<div class="bh-skel-bar" style="width:64%;height:10px"></div>' +
+          '<div class="bh-skel-bar gold" style="width:52%;height:8px;margin-top:4px"></div>' +
+          '<div class="bh-skel-bar" style="width:58%;height:10px"></div>' +
+        '</div>' +
+        '<div class="bh-ws-card">' +
+          '<div class="bh-skel-bar" style="width:92px;height:9px"></div>' +
+          '<div style="display:flex;gap:12px;align-items:center;margin-top:4px">' +
+            '<div class="bh-skel-block" style="width:84px;height:52px;border-radius:42px 42px 6px 6px"></div>' +
+            '<div style="flex:1;display:flex;flex-direction:column;gap:8px">' +
+              '<div class="bh-skel-bar" style="width:100%;height:14px"></div>' +
+              '<div class="bh-skel-bar" style="width:85%;height:14px"></div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="bh-ws-main">' +
+        '<div class="bh-ws-card" style="min-height:310px">' +
+          '<div style="display:flex;justify-content:space-between"><div class="bh-skel-bar" style="width:76px;height:9px"></div><div class="bh-skel-bar" style="width:150px;height:9px"></div></div>' +
+          '<div class="bh-skel-block" style="flex:1;min-height:250px;border-radius:10px;opacity:0.45"></div>' +
+        '</div>' +
+        '<div class="bh-ws-card" style="min-height:310px">' +
+          '<div style="display:flex;justify-content:space-between"><div class="bh-skel-bar" style="width:88px;height:9px"></div><div class="bh-skel-bar" style="width:140px;height:9px"></div></div>' +
+          '<div class="bh-ws-prime-grid">' + primeCards + '</div>' +
+          '<div class="bh-skel-bar green" style="width:110px;height:8px;margin-top:8px"></div>' +
+          '<div class="bh-ws-list-grid">' + listItems + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="bh-ws-low">' +
+        '<div class="bh-ws-card" style="min-height:130px"><div class="bh-skel-bar" style="width:84px;height:9px"></div><div class="bh-skel-bar" style="width:94%;height:11px;margin-top:6px"></div><div class="bh-skel-bar" style="width:88%;height:11px"></div><div class="bh-skel-bar" style="width:76%;height:11px"></div></div>' +
+        '<div class="bh-ws-card" style="min-height:130px"><div class="bh-skel-bar" style="width:84px;height:9px"></div><div class="bh-skel-bar" style="width:90%;height:11px;margin-top:6px"></div><div class="bh-skel-bar" style="width:82%;height:11px"></div><div class="bh-skel-bar" style="width:86%;height:11px"></div></div>' +
+        '<div class="bh-ws-card" style="min-height:130px"><div class="bh-skel-bar" style="width:84px;height:9px"></div><div class="bh-skel-bar" style="width:88%;height:11px;margin-top:6px"></div><div class="bh-skel-bar" style="width:78%;height:11px"></div><div class="bh-skel-bar" style="width:84%;height:11px"></div></div>' +
+      '</div>'
+    );
+  }
+
+  function ensureSkeletonsMounted() {
+    const mktList = document.getElementById('mkt-list');
+    if (mktList && !document.getElementById('bh-sb-skel')) {
+      const sbSkel = document.createElement('div');
+      sbSkel.id = 'bh-sb-skel';
+      sbSkel.className = 'bh-sb-skel';
+      sbSkel.setAttribute('aria-hidden', 'true');
+      sbSkel.innerHTML = buildSidebarSkeletonHTML();
+      mktList.appendChild(sbSkel);
+    }
+
+    const banner = document.getElementById('ov-banner');
+    if (banner && !document.getElementById('bh-hero-skel')) {
+      const heroSkel = document.createElement('div');
+      heroSkel.id = 'bh-hero-skel';
+      heroSkel.className = 'bh-hero-skel';
+      heroSkel.setAttribute('aria-hidden', 'true');
+      heroSkel.innerHTML = buildHeroSkeletonHTML();
+      banner.appendChild(heroSkel);
+    }
+
+    const week = document.getElementById('ov-week');
+    if (week) {
+      if (week.querySelector('.wk2')) week.classList.add('has-wk2');
+      if (!document.getElementById('bh-week-skel')) {
+        const weekSkel = document.createElement('div');
+        weekSkel.id = 'bh-week-skel';
+        weekSkel.className = 'bh-week-skel';
+        weekSkel.setAttribute('aria-hidden', 'true');
+        weekSkel.innerHTML = buildWeekSkeletonHTML();
+        week.appendChild(weekSkel);
+      }
+    }
+  }
+
+  /* Stabilize Jump Bar so 'Board' and 'Edge lab' never hide/shift */
+  function stabilizeJumpBar() {
+    const nav = document.getElementById('ov-jump');
+    if (!nav) return;
+    nav.querySelectorAll('button[data-j]').forEach(function (b) {
+      b.hidden = false;
+      b.classList.remove('dim');
+    });
+    if (!nav.querySelector('button.on')) {
+      const first = nav.querySelector('button[data-j="week"]');
+      if (first) first.classList.add('on');
+    }
+  }
+
+  /* ── 3. Boot Gate Controller (DATA + DESK readiness + fallback timeout) ── */
+  const bootT0 = performance.now();
+  const MIN_NAV_MS  = REDUCED_MOTION ? 0 : 1260;  /* Synchronized with navigationStart so 800ms frame holds skeleton */
+  const MIN_HOLD_MS = REDUCED_MOTION ? 0 : 180;   /* Minimum hold after script init */
+  const MAX_WAIT_MS = 2400;                       /* Never block forever */
+  let bootReleased = false;
+
+  function getCoreData() {
+    const d = (typeof DATA !== 'undefined' && DATA) ? DATA : window.DATA;
+    if (d && !window.DATA) window.DATA = d;
+    return d;
+  }
+
+  function getCoreDesk() {
+    const k = (typeof DESK !== 'undefined' && DESK) ? DESK : window.DESK;
+    if (k && !window.DESK) window.DESK = k;
+    return k;
+  }
+
+  function getSbSort() {
+    return (typeof SB_SORT !== 'undefined' && SB_SORT) ? SB_SORT : (window.SB_SORT || 'setups');
+  }
+
+  if (!REDUCED_MOTION) {
+    document.body.classList.add('bh-booting');
+    ensureSkeletonsMounted();
+  }
+  stabilizeJumpBar();
+
+  /* Wrap renderList & renderWeek so re-renders during bh-booting preserve skeleton overlays */
+  if (typeof window.renderList === 'function') {
+    const _origRenderList = window.renderList;
+    window.renderList = function () {
+      const k = getCoreDesk();
+      /* While booting, skip the legacy BIAS fallback render before DESK is ready */
+      if (!bootReleased && (!k || !k.rows) && getSbSort() === 'setups') {
+        ensureSkeletonsMounted();
+        return;
+      }
+      const res = _origRenderList.apply(this, arguments);
+      if (!bootReleased) ensureSkeletonsMounted();
+      return res;
+    };
+  }
+
+  if (typeof window.renderWeek === 'function') {
+    const _origRenderWeek = window.renderWeek;
+    window.renderWeek = function () {
+      const res = _origRenderWeek.apply(this, arguments);
+      if (!bootReleased) ensureSkeletonsMounted();
+      stabilizeJumpBar();
+      return res;
+    };
+  }
+
+  /* Fire loadDesk() immediately in parallel with loadData(), guarding against the 1200ms duplicate timer */
+  if (typeof window.loadDesk === 'function') {
+    const _origLoadDesk = window.loadDesk;
+    let _deskInFlight = false;
+    window.loadDesk = async function (force) {
+      const k = getCoreDesk();
+      if (_deskInFlight && !force) return;
+      if (k && k.rows && !force) return;
+      _deskInFlight = true;
+      try {
+        const out = await _origLoadDesk.apply(this, arguments);
+        getCoreDesk();
+        return out;
+      } finally {
+        _deskInFlight = false;
+      }
+    };
+    window.loadDesk(false);
+  }
+
+  function isCoreReady() {
+    const d = getCoreData();
+    const k = getCoreDesk();
+    const hasData = d && Array.isArray(d.markets) && d.markets.length > 10;
+    const hasDesk = k && k.rows;
+    return Boolean(hasData && hasDesk);
+  }
+
+  function releaseBootGate() {
+    if (bootReleased) return;
+    bootReleased = true;
+
+    const d = getCoreData();
+    const k = getCoreDesk();
+
+    /* Ensure Setups list and Week band have rendered with DESK */
+    try {
+      if (d && k && k.rows) {
+        if (typeof window.renderList === 'function') window.renderList();
+        if (typeof window.renderWeek === 'function' && !document.querySelector('#ov-week .wk2')) {
+          window.renderWeek();
+        }
+      }
+    } catch (_) {}
+
+    /* Remove skeleton overlays cleanly */
+    ['bh-sb-skel', 'bh-hero-skel', 'bh-week-skel'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    const week = document.getElementById('ov-week');
+    if (week) week.classList.remove('has-wk2');
+
+    stabilizeJumpBar();
+
+    document.body.classList.remove('bh-booting');
+    if (!REDUCED_MOTION) {
+      document.body.classList.add('bh-boot-ready');
+      /* Replay synchronized 480ms Climate Arc sweep on reveal */
+      try {
+        const arcC = document.getElementById('ov-arc-canvas');
+        if (arcC && typeof _arcData !== 'undefined' && _arcData && typeof window._renderClimateArcAnimated === 'function') {
+          window._renderClimateArcAnimated(arcC, _arcData, 1, typeof _arcLive !== 'undefined' ? _arcLive : {});
+        }
+      } catch (_) {}
+      setTimeout(function () {
+        document.body.classList.remove('bh-boot-ready');
+        document.body.classList.add('bh-boot-done');
+        stabilizeJumpBar();
+      }, 420);
+    } else {
+      document.body.classList.add('bh-boot-done');
+    }
+  }
+
+  function checkBootGate() {
+    if (bootReleased) return;
+    const now = performance.now();
+    const elapsed = now - bootT0;
+    if (isCoreReady() && now >= MIN_NAV_MS && elapsed >= MIN_HOLD_MS) {
+      releaseBootGate();
+      return;
+    }
+    if (elapsed >= MAX_WAIT_MS) {
+      releaseBootGate();
+      return;
+    }
+    requestAnimationFrame(checkBootGate);
+  }
+
+  requestAnimationFrame(checkBootGate);
+  setTimeout(releaseBootGate, MAX_WAIT_MS);
+  setTimeout(stabilizeJumpBar, 1550);
+  setTimeout(stabilizeJumpBar, 6050);
+})();
+/* ===== end v8-motion ===== */
+</script>
+<script>
+/* ===== v8-merge js ===== */
+(function(){
+  'use strict';
+  /* 52-week climate key beside the compact hero arc (replaces the 6px canvas readout) */
+  function fmtD(d){ try{ var x=new Date(d); return x.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }catch(e){ return ''; } }
+  function arcStats(data, live, canvas){
+    if (window.innerWidth <= 700 || !data || !data.scores || data.scores.length < 2) return;
+    var host = document.getElementById('ov-charts'); if (!host) return;
+    var el = document.getElementById('v8-arc-stats');
+    if (!el){ el = document.createElement('div'); el.id = 'v8-arc-stats'; host.appendChild(el); }
+    var sc = data.scores, ds = data.dates || [], n = sc.length;
+    var hi = 0, lo = 0, sum = 0;
+    for (var i=0;i<n;i++){ if (sc[i] > sc[hi]) hi = i; if (sc[i] < sc[lo]) lo = i; sum += sc[i]; }
+    var avg = sum / n, now = (live && live.liveScore != null) ? +live.liveScore : sc[n-1];
+    var ch4 = n > 4 ? now - sc[n-5] : null;
+    /* place the key just outside the arc's labels; drop it if the band is too narrow */
+    var g = window._arcGeo || {}, W = canvas ? canvas.offsetWidth : host.clientWidth, H = canvas ? canvas.offsetHeight : host.clientHeight;
+    var left = W * (g.cx || .4) + H * (g.or || .46) + 56;
+    el.style.left = Math.round(left) + 'px'; el.style.right = 'auto';
+    function col(v){ return v >= 6 ? 'var(--bull,#22C97A)' : v <= 4 ? 'var(--bear,#E05252)' : 'var(--ink-1,#F2F6FF)'; }
+    function row(k, v, sub, c){ return '<div class="v8as-r"><span class="v8as-k">'+k+'</span><span class="v8as-v" style="color:'+(c||'var(--ink-1,#F2F6FF)')+'">'+v+'</span><span class="v8as-s">'+(sub||'')+'</span></div>'; }
+    el.innerHTML = '<div class="v8as-h">52-week climate</div>' +
+      row('Now', now.toFixed(1), ch4 == null ? '' : (ch4 >= 0 ? '+' : '') + ch4.toFixed(1) + ' in 4w', col(now)) +
+      row('High', sc[hi].toFixed(1), fmtD(ds[hi]), col(sc[hi])) +
+      row('Low', sc[lo].toFixed(1), fmtD(ds[lo]), col(sc[lo])) +
+      row('Average', avg.toFixed(1), n + ' weeks');
+    el.style.display = ''; el.classList.remove('v8as-tight');
+    if (left + el.offsetWidth + 8 > W){ left = W * (g.cx || .4) + H * (g.or || .46) + 30; el.style.left = Math.round(left) + 'px'; }
+    if (left + el.offsetWidth + 8 > W) el.classList.add('v8as-tight');
+    el.style.visibility = (left + el.offsetWidth + 8 > W) ? 'hidden' : '';
+  }
+  if (typeof window._renderClimateArc === 'function'){
+    var _rca = window._renderClimateArc;
+    window._renderClimateArc = function(canvas, data, progress){
+      var r = _rca.apply(this, arguments);
+      if (progress === undefined || progress >= 1) { try { arcStats(data, arguments[3], canvas); } catch(e){} }
+      return r;
+    };
+  }
+})();
+(function(){
+  /* the family label is hidden when a timing chip takes its place, so keep it in the tooltip */
+  function tag(){ var L=document.getElementById('mkt-list'); if(!L) return;
+    L.querySelectorAll('.sb2-row').forEach(function(r){ var a=r.querySelector('.sb2-arch'), t=r.querySelector('.sb2-tm');
+      if (a && t && !r.title) r.title = a.textContent + ' · ' + t.textContent; }); }
+  var mo = new MutationObserver(function(){ clearTimeout(mo._t); mo._t = setTimeout(tag, 60); });
+  function start(){ var L=document.getElementById('mkt-list'); if(!L){ return setTimeout(start, 300); } mo.observe(L,{childList:true,subtree:true}); tag(); }
+  start();
+})();
+/* ===== end v8-merge js ===== */
+
 </script>
 </body>
 </html>
