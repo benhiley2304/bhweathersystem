@@ -273,7 +273,7 @@ def _seasonal(row) -> Dict[str, Any]:
         n = (fw.get("60") or fw.get(60) or {}).get("n")
         facts.append("Forward path from today, weighted median of past years: " + ", ".join(bits)
                      + (f", {n} years" if n else "") + ". Positive means price tends to rise.")
-    facts.append("Read on 60 TD with 30 TD as the check; a minor tilt, never the reason for a trade.")
+    facts.append("In the setup score, seasonality is the timing gate: a path against the side over 4 to 8 weeks is a veto, and a dip before a window means wait.")
     return {"key": "seasonal", "title": "Seasonality", "sign": pil.get("sign") or 0,
             "rel": pil.get("rel") or "neutral", "role": pil.get("role"), "word": S.get("word") or "n/a",
             "facts": facts, "tab": "seasonal"}

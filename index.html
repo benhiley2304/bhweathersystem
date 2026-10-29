@@ -25404,7 +25404,7 @@ canvas.fx-field{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:
 .eg-fd{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .eg-f{position:relative;padding:10px 12px 10px 14px;border-radius:10px;background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.05);animation:v3Rise .6s both}
 .eg-f::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:2px;background:#9aa3b5}
-.eg-f.pos::before{background:#22C97A;box-shadow:0 0 10px #22C97A}.eg-f.neg::before{background:#E05252;box-shadow:0 0 10px #E05252}
+.eg-f.pos::before{background:#22C97A;box-shadow:0 0 10px #22C97A}.eg-f.mid::before{background:#c8a96e;box-shadow:0 0 10px rgba(200,169,110,.6)}.eg-f.neg::before{background:#E05252;box-shadow:0 0 10px #E05252}
 .eg-f b{display:block;font-size:12px;color:#eef2fa;margin-bottom:3px}
 .eg-f p{margin:0;font-size:11px;line-height:1.5;color:#b9c2d3}
 .eg-g{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;margin-bottom:10px;align-items:start}
@@ -25673,7 +25673,7 @@ body.lab-on #app-status-bar{display:none}
         <button class="cat-btn" data-cat="fx_cross">FX Cross</button>
         <button class="cat-btn" data-cat="crypto">Crypto</button>
       </div>
-      <div class="sb-sortrow"><div class="sb-sort" role="group" aria-label="Order the list"><button type="button" data-s="setups" onclick="setSbSort('setups')">Setups</button><button type="button" data-s="score" onclick="setSbSort('score')">Score</button></div><span id="sb-scale-note">composite, scored 1 to 10</span></div>
+      <div class="sb-sortrow"><div class="sb-sort" role="group" aria-label="Order the list"><button type="button" data-s="setups" onclick="setSbSort('setups')">Setups</button><button type="button" data-s="score" onclick="setSbSort('score')">Bias</button></div><span id="sb-scale-note">setup score 0 to 10, by readiness</span></div>
     </div>
     <div class="mkt-list" id="mkt-list">
       <div class="skel"></div><div class="skel"></div><div class="skel"></div>
@@ -26502,6 +26502,7 @@ function _dkSchedule(ms){ clearTimeout(_deskPoll); _deskPoll=setTimeout(()=>load
 function _deskApplied(){
   setTimeout(()=>{ try{ _fxRoleUpdate(); }catch(e){} },0);
   try{ const sl=document.getElementById('d-desk-slot'); if(sl&&DATA){ const mk=DATA.markets.find(x=>x.id===sl.dataset.dk); if(mk) sl.innerHTML=_dHeadDesk(mk); } }catch(e){}
+  try{ const hh=document.getElementById('d-score-hero'); if(hh&&DATA){ const mk=DATA.markets.find(x=>x.id===hh.dataset.dk); const rr=mk&&deskRow(mk.id); if(mk&&rr&&rr.setup){ hh.outerHTML=_dHeroSu(mk,mk.weighted_score,rr); document.querySelectorAll('.d-eng-pill').forEach(e=>e.remove()); } } }catch(e){ console.warn('hero',e); }
   try{ if(document.getElementById('lab-back')?.classList.contains('open')) _labCtxRender(); }catch(e){}
   try{ renderList(); }catch(e){ console.warn('list',e); }
   try{ renderWeek(); }catch(e){ console.warn('week',e); }
@@ -26520,6 +26521,122 @@ function _deskApplied(){
 }
 function deskRow(id){ return DESK&&DESK.rows?DESK.rows.find(x=>x.id===id):null; }
 function deskOpen(id){ if(typeof selectMkt==='function') selectMkt(id); }
+/* ── BHWS v7: one read, three layers ─────────────────────────────────────
+   Bias   = composite engine (directional weather, 1-10, never inverted)
+   Setup  = setup score 0-10 for the desk side (the headline number)
+   Timing = seasonal sweet spot: in window / approaching / wait / against / flat
+   Everything below reads r.setup from /api/desk; nothing is recomputed here. */
+const SU_READY={ready:{l:'Trade-ready',s:'Ready',c:'#F1E3BE',n:'Score 6+ and no seasonal block'},
+  wait:{l:'Wait for window',s:'Wait',c:'#9DB4DC',n:'Structure is there; the seasonal dip comes first'},
+  building:{l:'Building',s:'Building',c:'#B9A77E',n:'Score 4 to 5.5'},
+  weak:{l:'Weak',s:'Weak',c:'#7d879c',n:'Score under 4'},
+  veto:{l:'Seasonal against',s:'Against',c:'#EAB850',n:'The seasonal path runs against the side'},
+  none:{l:'No setup',s:'None',c:'#5d6678',n:'No payoff source qualifies'}};
+const SU_ORDER=['ready','wait','building','weak','veto','none'];
+function _su(r){ return r&&r.setup?r.setup:null; }
+function _suSide(r){ const s=_su(r); return s&&s.side?s.side:(r&&r.side)||0; }
+function _suKey(r){ const s=_su(r); return s&&s.ready?s.ready.key:(r&&r.side?'building':'none'); }
+function _suSideCol(side,a){ const c=side>0?'34,201,122':side<0?'224,82,82':'138,147,168'; return a==null?'rgb('+c+')':'rgba('+c+','+a+')'; }
+function _suNum(r){ const s=_su(r); return s&&s.score!=null?Number(s.score).toFixed(1):'—'; }
+/* score text colour: side colour, muted when weak */
+function _suCol(r){ const s=_su(r); if(!s||s.score==null) return '#6b7385'; const a=s.score>=6?1:s.score>=4?.78:.5; return _suSideCol(_suSide(r),a); }
+function _suTm(r){ const s=_su(r); return s&&s.timing?s.timing:{state:'na'}; }
+function _suTmShort(r){
+  const t=_suTm(r), st=t.state;
+  if(st==='wait'||st==='approaching') return t.entry_td?('window '+t.entry_td+' TD'):'window near';
+  return {in_window:'in window',with:'seasonal with',flat:'seasonal flat',against:'against',na:''}[st]||'';
+}
+function _suTmCls(st){ return st==='in_window'||st==='with'?'ok':st==='wait'||st==='approaching'?'wt':st==='against'?'ag':'fl'; }
+function _suTmChip(r,opt){
+  const t=_suTm(r), st=t.state; if(!st||st==='na') return '';
+  const o=opt||{}; let txt=t.label||'';
+  if((st==='wait'||st==='approaching')&&t.entry_td) txt=(st==='wait'?'Wait ':'Window in ')+t.entry_td+' TD';
+  if(st==='in_window'&&t.hold_weeks) txt='In window · '+t.hold_weeks[0]+'–'+t.hold_weeks[1]+' wk';
+  const tip=(t.label||'')+(t.entry_date?' · entry around '+t.entry_date:'')+(t.leg_pct!=null&&(st!=='against'&&st!=='flat')?' · seasonal leg '+(t.leg_pct>=0?'+':'')+t.leg_pct+'%':'')+(t.years?' · '+t.years+' yrs':'')+(t.evidence?'. '+t.evidence:'');
+  return '<span class="su-tm '+_suTmCls(st)+(o.sm?' sm':'')+'" title="'+_esc(tip)+'"><i></i>'+_esc(txt)+'</span>';
+}
+function _suReadyChip(r,sm){ const k=_suKey(r), d=SU_READY[k]||SU_READY.none; const s=_su(r);
+  const lbl=s&&s.ready&&s.ready.label?s.ready.label:d.l;
+  return '<span class="su-rd k-'+k+(sm?' sm':'')+'" style="--c:'+d.c+'" title="'+_esc(d.n)+'">'+_esc(sm?d.s:lbl)+'</span>'; }
+/* bias meter: composite 1-10 as a bear-bull tilt */
+function _suBias(ws,label,opt){
+  const o=opt||{}; if(ws==null) return '';
+  const p=Math.max(0,Math.min(100,(ws-1)/9*100)), col=sHex(ws);
+  return '<span class="su-bias'+(o.sm?' sm':'')+'" title="Bias: the composite engine read, 1 to 10. Context for the setup, never inverted. It does not set the side.">'
+    +'<em>Bias</em><span class="su-bt"><i class="mid"></i><b style="left:'+p.toFixed(1)+'%;background:'+col+';box-shadow:0 0 8px '+col+'"></b></span>'
+    +'<strong style="color:'+col+'">'+Number(ws).toFixed(1)+'</strong>'+(label&&!o.nolab?'<span class="su-bl">'+_esc(label)+'</span>':'')+'</span>';
+}
+function _suRel(r){ const s=_su(r); return s&&s.relation?s.relation:null; }
+function _suRelChip(r){ const x=_suRel(r); if(!x) return ''; return '<span class="su-rel k-'+x.key+'" title="How the setup side relates to the composite bias. Counter-trend disagreement is expected; it is where the replay found the cleanest edge.">'+_esc(x.text)+'</span>'; }
+/* score ring (small) for boards and lists */
+function _suRing(r,sz){
+  const s=_su(r), v=s&&s.score!=null?s.score:null, z=sz||38, R=z/2-3, C=2*Math.PI*R;
+  const col=v==null?'#4a5263':_suSideCol(_suSide(r), v>=6?1:v>=4?.8:.5);
+  const dash=v==null?0:C*v/10;
+  return '<svg class="su-ring" width="'+z+'" height="'+z+'" viewBox="0 0 '+z+' '+z+'" aria-label="Setup score '+(v==null?'none':v)+'"><circle cx="'+z/2+'" cy="'+z/2+'" r="'+R+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="3"/>'
+    +'<circle cx="'+z/2+'" cy="'+z/2+'" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+dash.toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 '+z/2+' '+z/2+')"/>'
+    +'<text x="50%" y="50%" dy=".35em" text-anchor="middle" fill="'+col+'" style="font:700 '+(z*0.3).toFixed(0)+'px var(--mono)">'+(v==null?'—':v.toFixed(1))+'</text></svg>';
+}
+/* receipt: what the score is made of */
+function _suReceipt(r){
+  const s=_su(r); if(!s||s.score==null||!s.parts) return '';
+  let h='<div class="su-rc"><div class="su-rc-row base"><span class="l">Base</span><span class="d"></span><span class="bar"></span><b>5.0</b></div>';
+  s.parts.forEach(p=>{ const v=p.pts||0, w=Math.min(1,Math.abs(v)/3)*50;
+    h+='<div class="su-rc-row'+(p.evidence?' ev':'')+'" title="'+_esc(p.evidence||'')+'"><span class="l">'+_esc(p.label)+'</span><span class="d">'+_esc((p.detail||'')+(p.key==='timing'&&['flat','with'].includes((s.timing||{}).state)?' · no veto':''))+'</span>'
+      +'<span class="bar"><i class="z"></i>'+(v?'<i class="f '+(v>0?'p':'n')+'" style="'+(v>0?'left:50%':'right:50%')+';width:'+w.toFixed(1)+'%"></i>':'')+'</span>'
+      +'<b class="'+(v>0?'p':v<0?'n':'')+'">'+(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'</b></div>'; });
+  h+='<div class="su-rc-row tot"><span class="l">Setup score</span><span class="d">'+((s.caps||[]).length?_esc(s.caps.join('; ')):'clipped 0 to 10')+'</span><span class="bar"></span><b style="color:'+_suCol(r)+'">'+_suNum(r)+'</b></div></div>';
+  return h;
+}
+/* seasonal path for the next 80 TD with the entry dip and the leg marked */
+function _suPath(r,mob){
+  const s=_su(r); if(!s||!s.path||!s.path.F) return '';
+  const F=s.path.F, st=s.path.step||2, t=s.timing||{}, side=s.side||s.timing_side||0;
+  const pts=F.map((v,i)=>[i*st,v]).filter(p=>p[1]!=null); if(pts.length<10) return '';
+  const W=mob?330:420, H=mob?120:132, L=34, Rr=10, T=14, B=20;
+  const lo=Math.min(0,...pts.map(p=>p[1])), hi=Math.max(0,...pts.map(p=>p[1])), pad=(hi-lo)*0.12||0.5;
+  const X=k=>L+k/80*(W-L-Rr), Y=v=>T+(1-(v-(lo-pad))/((hi+pad)-(lo-pad)))*(H-T-B);
+  let g='<svg class="su-path" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Seasonal path, next 80 trading days">';
+  const e=t.entry_td, pk=t.peak_td;
+  if(e!=null&&pk!=null&&t.state!=='against'&&t.state!=='flat'){ g+='<rect x="'+X(e)+'" y="'+T+'" width="'+Math.max(2,X(pk)-X(e))+'" height="'+(H-T-B)+'" rx="4" fill="'+_suSideCol(side,.10)+'"/>'; }
+  g+='<line x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Y(0)+'" y2="'+Y(0)+'" stroke="rgba(255,255,255,.14)" stroke-dasharray="3 3"/>';
+  [0,20,40,60,80].forEach(k=>{ g+='<text x="'+X(k)+'" y="'+(H-6)+'" text-anchor="middle" class="su-ax">'+(k?k+' TD':'now')+'</text>'; });
+  [lo,hi].forEach(v=>{ if(Math.abs(v)>1e-9) g+='<text x="'+(L-5)+'" y="'+(Y(v)+3)+'" text-anchor="end" class="su-ax">'+(v>0?'+':'')+v.toFixed(1)+'%</text>'; });
+  const d=pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' ');
+  const lc=t.state==='against'?'#EAB850':_suSideCol(side);
+  g+='<path d="'+d+'" fill="none" stroke="'+lc+'" stroke-width="1.8" stroke-linejoin="round" class="su-pl"/>';
+  const at=k=>{ let b=pts[0]; pts.forEach(p=>{ if(Math.abs(p[0]-k)<Math.abs(b[0]-k)) b=p; }); return b; };
+  if(e!=null&&t.state!=='against'){ const a=at(e); g+='<circle cx="'+X(a[0])+'" cy="'+Y(a[1])+'" r="4" fill="#0b0e14" stroke="#F1E3BE" stroke-width="1.6"/><text x="'+X(a[0])+'" y="'+(Y(a[1])+(side>0?15:-8))+'" text-anchor="middle" class="su-mk">'+(e?'entry ~'+e+' TD':'entry now')+'</text>'; }
+  if(pk!=null&&t.state!=='against'){ const b=at(pk); g+='<circle cx="'+X(b[0])+'" cy="'+Y(b[1])+'" r="3" fill="'+_suSideCol(side)+'"/><text x="'+Math.min(W-Rr-2,X(b[0]))+'" y="'+(Y(b[1])+(side>0?-7:14))+'" text-anchor="'+(X(b[0])>W-60?'end':'middle')+'" class="su-mk">leg end ~'+pk+' TD</text>'; }
+  g+='<circle cx="'+X(0)+'" cy="'+Y(0)+'" r="2.5" fill="#F1E3BE"/>';
+  return g+'</svg>';
+}
+function _suTimingText(r){
+  const t=_suTm(r), st=t.state, sw=(_suSide(r)||(_su(r)&&_su(r).timing_side)||0)>0?'long':'short';
+  if(st==='na') return 'No usable seasonal path for this market, so timing carries no points.';
+  if(st==='against') return 'The seasonal path runs against the '+sw+' over the next 4 to 8 weeks with no window ahead. In the replay this was the most reliable negative: treat it as a veto, not a size-down.';
+  if(st==='wait') return 'Near term the seasonal runs against the '+sw+', but a dip around '+t.entry_td+' TD ('+(t.entry_date||'')+') is followed by a '+(t.leg_pct>=0?'+':'')+t.leg_pct+'% leg. Waiting for the dip improved the replay result in both halves.';
+  if(st==='approaching') return 'The best seasonal entry is about '+t.entry_td+' TD out ('+(t.entry_date||'')+'), then a '+(t.leg_pct>=0?'+':'')+t.leg_pct+'% leg. Waiting for it was mixed in the replay, so this is a timing note, not a rule.';
+  if(st==='in_window') return 'The seasonal leg starts now: '+(t.leg_pct>=0?'+':'')+t.leg_pct+'% to around '+t.peak_td+' TD'+(t.hold_weeks?', a '+t.hold_weeks[0]+' to '+t.hold_weeks[1]+' week hold':'')+'.';
+  if(st==='with') return 'The seasonal path leans with the '+sw+', without a sharp window.';
+  return 'The seasonal path is flat over the next 4 to 8 weeks. No veto, no help.';
+}
+/* setup panel for the market read */
+function _suPanel(r,m){
+  const s=_su(r); if(!s) return '';
+  const ws=m?m.weighted_score:null;
+  let h='<section class="gl su-panel"><div class="su-ph"><div class="su-pk">Setup score</div>'+_suReadyChip(r)+_suTmChip(r)+'<span class="su-sp"></span>'+_suBias(ws,m&&m.bias)+'</div>';
+  if(s.score==null){
+    h+='<div class="su-none"><p>No payoff source qualifies, so there is no side to score. '+(s.timing_side?'The seasonal timing below is for the '+(s.timing_side>0?'long':'short')+' lean.':'')+'</p>'+(s.timing_side?_suPath(r):'')+'</div></section>';
+    return h;
+  }
+  h+='<div class="su-pg"><div class="su-pl1">'+_suReceipt(r)+'</div><div class="su-pl2"><div class="su-pt">Seasonal timing · next 80 trading days</div>'+_suPath(r)+'<p class="su-tt">'+_esc(_suTimingText(r))+'</p>'
+    +(s.projected?'<div class="su-proj">If structure, trend and positioning hold, the score moves to <b style="color:'+_suSideCol(_suSide(r))+'">'+Number(s.projected.score).toFixed(1)+'</b> at the window ('+_esc(s.projected.date||'')+').</div>':'')
+    +'</div></div>';
+  h+='<div class="su-foot">'+(_suRel(r)?'<span>'+_esc(_suRel(r).text)+'.</span> ':'')+'Points were set on the 2012–18 replay and tested on 2019–26, where the score sorted 4 to 8 week outcomes in the right order but weakly (top minus bottom +0.04 R after drift, range spans zero). A ranking aid, not a probability. Macro and the composite carry no points.</div></section>';
+  return h;
+}
+
 function _dkT(iso,opt){
   if(!iso) return '—'; const d=new Date(iso.length===10?iso+'T12:00:00Z':iso); if(isNaN(d)) return _esc(iso);
   return d.toLocaleString('en-GB',Object.assign({timeZone:'Europe/London'},opt||{day:'numeric',month:'short'}));
@@ -26604,10 +26721,11 @@ function _wkMap(rows,mob){
   const pw=W-L-R, ph=H-T-B;
   const X=p=>L+Math.max(0,Math.min(100,p))/100*pw, Y=v=>T+(1-(v+2)/4)*ph;
   const pts=rows.filter(r=>r.trend&&r.trend.pct_52w!=null).map((r,i)=>{
-    const k=r.class.key; const y0=_dkPayoff(r);
+    const su=r.setup; const sk=su?_suKey(r):null;
+    const k=su?({ready:'prime',wait:'setup',building:'developing',weak:'backdrop',veto:'none',none:'none'}[sk]||'none'):r.class.key; const y0=_dkPayoff(r);
     const jit=((i*37)%11-5)/5*0.07;
-    return {r:r,k:k,x:X(r.trend.pct_52w),y:Y(y0+(k==='none'||Math.abs(y0)<0.05?jit:0)),v:y0,
-      rad:(k==='prime'?(mob?7:8.5):k==='setup'?(mob?5.5:6.5):k==='developing'?(mob?4:4.6):k==='backdrop'?3.6:2.8)};
+    const rad=su?(su.score==null?2.6:(mob?2.2:2.6)+su.score*(mob?0.55:0.68)):(k==='prime'?(mob?7:8.5):k==='setup'?(mob?5.5:6.5):k==='developing'?(mob?4:4.6):k==='backdrop'?3.6:2.8);
+    return {r:r,k:k,sk:sk,x:X(r.trend.pct_52w),y:Y(y0+(k==='none'||Math.abs(y0)<0.05?jit:0)),v:y0,rad:rad};
   });
   const ord={none:0,backdrop:1,developing:2,setup:3,prime:4};
   pts.sort((a,b)=>ord[a.k]-ord[b.k]);
@@ -26637,7 +26755,9 @@ function _wkMap(rows,mob){
     const d=Math.round(120+i*9);
     s+='<g class="wkm-pt k-'+p.k+'" style="animation-delay:'+d+'ms" tabindex="'+(live?0:-1)+'" data-id="'+p.r.id+'" onmouseenter="wkTip(event,\''+p.r.id+'\')" onmousemove="wkTip(event,\''+p.r.id+'\')" onmouseleave="wkTipHide()" onfocus="wkTip(event,\''+p.r.id+'\')" onblur="wkTipHide()" onclick="deskOpen(\''+p.r.id+'\')">';
     if(p.k==='prime') s+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(p.rad*2.6).toFixed(1)+'" fill="url(#wkmGlow'+(mob?'m':'')+')" class="wkm-halo"/>';
-    s+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+p.rad+'" fill="'+col+'" fill-opacity="'+op+'"'+(p.k==='prime'?' stroke="#F1E3BE" stroke-width="1.6"':live?' stroke="rgba(255,255,255,0.55)" stroke-width="0.8"':'')+'/>';
+    s+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+p.rad.toFixed(1)+'" fill="'+col+'" fill-opacity="'+op+'"'+(p.k==='prime'?' stroke="#F1E3BE" stroke-width="1.6"':live?' stroke="rgba(255,255,255,0.55)" stroke-width="0.8"':'')+'/>';
+    if(p.sk==='wait') s+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(p.rad+3.5).toFixed(1)+'" fill="none" stroke="#9DB4DC" stroke-width="1.2" stroke-dasharray="2.5 2.5" class="wkm-wait"/>';
+    if(p.sk==='veto') s+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(p.rad+2.5).toFixed(1)+'" fill="none" stroke="#EAB850" stroke-opacity=".6" stroke-width="1" stroke-dasharray="1.5 2"/>';
     s+='</g>';
     if(live) lab.push(p);
     placed.push({x:p.x-p.rad,y:p.y-p.rad,w:p.rad*2,h:p.rad*2});
@@ -26664,7 +26784,8 @@ function wkTip(ev,id){
   let tip=host.querySelector('.wkm-tip'); if(!tip) return;
   const pay=_dkPayoff(r);
   tip.innerHTML='<div class="h"><b>'+_esc(r.name)+'</b>'+_dkSide(r.side,r.lean)+'</div>'
-    +'<div class="s" style="color:'+_dkGradeCol(r.class.key)+'">'+_esc(r.class.label)+(r.archetype&&r.class.key!=='none'?' &middot; '+_esc(r.archetype):'')+'</div>'
+    +(r.setup?'<div class="s"><b style="color:'+_suCol(r)+'">'+_suNum(r)+'</b> setup &middot; <span style="color:'+(SU_READY[_suKey(r)]||SU_READY.none).c+'">'+_esc((SU_READY[_suKey(r)]||SU_READY.none).l)+'</span>'+(r.archetype&&r.class.key!=='none'?' &middot; '+_esc(r.archetype):'')+'</div>'+(_suTmShort(r)?'<div class="t">'+_esc(_suTm(r).label||'')+(_suTm(r).entry_date&&_suTm(r).entry_td?' &middot; entry ~'+_esc(_dkT(_suTm(r).entry_date)):'')+'</div>':'')
+      :'<div class="s" style="color:'+_dkGradeCol(r.class.key)+'">'+_esc(r.class.label)+(r.archetype&&r.class.key!=='none'?' &middot; '+_esc(r.archetype):'')+'</div>')
     +'<div class="g">'+_dkGlyph(r,true)+'<span>52w range <b>'+Math.round(r.trend.pct_52w)+'%</b><br>payoff lean <b>'+(pay>0?'+':pay<0?'\u2212':'')+Math.abs(pay).toFixed(2)+'</b></span></div>'
     +(r.trigger?'<div class="t">'+_esc(r.trigger)+'</div>':'');
   const hb=host.getBoundingClientRect(); const cx=(ev.clientX||hb.left+hb.width/2)-hb.left, cy=(ev.clientY||hb.top+hb.height/2)-hb.top;
@@ -26688,11 +26809,12 @@ function _wkBuild(mob){
   const st=D.stamps||[]; const cotS=st.find(s=>/Positioning/.test(s.name))||{};
   const F=(D.brief&&D.brief.facts)||{};
   const reg=F.regime||null, fed=F.fed||null;
-  const skip=[/^Ordering is by/,/^Top-tier prints ahead/,/close to one bet/,/^Prime this week/,/^Setups?:/];
+  const skip=[/^Ordering is by/,/^Top-tier prints ahead/,/close to one bet/,/^Prime this week/,/^Setups?:/,/^Trade-ready on the setup score/,/^Waiting for a seasonal window/,/^Seasonal against, standing aside/];
   if(reg) skip.push(/^Risk backdrop/); if(fed&&fed.next) skip.push(/^Fed funds futures/);
   const br=((D.brief&&D.brief.paragraphs)||[]).filter(p=>!skip.some(rx=>rx.test(p)));
-  const live=rows.filter(r=>['prime','setup'].includes(r.class.key));
-  const prime=live.filter(r=>r.class.key==='prime'), setups=live.filter(r=>r.class.key==='setup');
+  const SU=rows.some(r=>r.setup);
+  const live=SU?rows.filter(r=>['ready','wait'].includes(_suKey(r))):rows.filter(r=>['prime','setup'].includes(r.class.key));
+  const prime=SU?live.filter(r=>_suKey(r)==='ready'):live.filter(r=>r.class.key==='prime'), setups=SU?live.filter(r=>_suKey(r)==='wait'):live.filter(r=>r.class.key==='setup');
   const now=Date.now();
   const evs=((F.events)||[]).filter(e=>new Date(e.datetime_utc).getTime()>now-3*36e5).slice(0,9);
   const nm={}; rows.forEach(r=>nm[r.id]=r.name);
@@ -26703,13 +26825,17 @@ function _wkBuild(mob){
   /* KPI row */
   const tot=DK_CLASS_ORDER.reduce((a,k)=>a+(cnt[k]||0),0)||1;
   h+='<div class="wk2-kpis">';
+  if(SU){ const sc={}; rows.forEach(r=>{ const k=_suKey(r); sc[k]=(sc[k]||0)+1; });
+    h+='<div class="gl wkk wkk-grade"><div class="wkk-k">Readiness <span>'+rows.length+' markets</span></div><div class="wkk-funnel">'+SU_ORDER.map(k=>{ const n=sc[k]||0; if(!n) return ''; return '<i style="flex:'+n+';--c:'+SU_READY[k].c+'" title="'+n+' '+_esc(SU_READY[k].l.toLowerCase())+'"></i>'; }).join('')+'</div>'
+      +'<div class="wkk-leg">'+SU_ORDER.filter(k=>k!=='none').map(k=>'<span><b style="color:'+SU_READY[k].c+'">'+_dkCount(sc[k]||0)+'</b>'+SU_READY[k].s.toLowerCase()+'</span>').join('')+'</div></div>';
+  } else
   h+='<div class="gl wkk wkk-grade"><div class="wkk-k">Grade spread <span>'+tot+' markets</span></div><div class="wkk-funnel">'+DK_CLASS_ORDER.map(k=>{ const n=cnt[k]||0; if(!n) return ''; return '<i style="flex:'+n+';--c:'+_dkGradeCol(k)+'" title="'+n+' '+k+'"></i>'; }).join('')+'</div>'
     +'<div class="wkk-leg">'+DK_CLASS_ORDER.map(k=>'<span><b style="color:'+_dkGradeCol(k)+'">'+_dkCount(cnt[k]||0)+'</b>'+(k==='none'?'no edge':k)+'</span>').join('')+'</div></div>';
   const L=live.filter(r=>r.side>0), S=live.filter(r=>r.side<0);
   const cats=['equity','bond','fx','fx_cross','commodity','crypto'];
-  h+='<div class="gl wkk wkk-book"><div class="wkk-k">Live book <span>prime + setup</span></div>'
+  h+='<div class="gl wkk wkk-book"><div class="wkk-k">Live book <span>'+(SU?'ready + waiting':'prime + setup')+'</span></div>'
     +'<div class="wkk-ls"><span class="u"><b>'+_dkCount(L.length)+'</b>long</span><div class="wkk-split"><i class="u" style="flex:'+(L.length||0.0001)+'"></i><i class="d" style="flex:'+(S.length||0.0001)+'"></i></div><span class="d"><b>'+_dkCount(S.length)+'</b>short</span></div>'
-    +'<div class="wkk-cats">'+cats.map(c=>{ const g=live.filter(r=>r.category===c); if(!g.length) return ''; return '<span class="c"><em>'+DK_CAT_LBL[c]+'</em>'+g.map(r=>'<i class="'+(r.side>0?'u':'d')+(r.class.key==='prime'?' p':'')+'" title="'+_esc(r.name)+' '+(r.side>0?'long':'short')+' ('+r.class.key+')" onclick="deskOpen(\''+r.id+'\')"></i>').join('')+'</span>'; }).join('')+'</div></div>';
+    +'<div class="wkk-cats">'+cats.map(c=>{ const g=live.filter(r=>r.category===c); if(!g.length) return ''; return '<span class="c"><em>'+DK_CAT_LBL[c]+'</em>'+g.map(r=>'<i class="'+(r.side>0?'u':'d')+((SU?_suKey(r)==='ready':r.class.key==='prime')?' p':'')+'" title="'+_esc(r.name)+' '+(r.side>0?'long':'short')+' ('+(SU?(SU_READY[_suKey(r)].l.toLowerCase()+', '+_suNum(r)):r.class.key)+')" onclick="deskOpen(\''+r.id+'\')"></i>').join('')+'</span>'; }).join('')+'</div></div>';
   const cls=((D.clusters||{}).clusters||[]).filter(c=>c.members.some(m=>live.find(r=>r.id===m))).slice(0,2);
   h+='<div class="gl wkk wkk-conc"><div class="wkk-k">Hidden concentration</div>';
   if(cls.length){
@@ -26731,8 +26857,9 @@ function _wkBuild(mob){
 
   /* map + board */
   h+='<div class="wk2-main">';
-  h+='<section class="gl wkm"><div class="wk-sub">Setup map <span>bubble size = grade &middot; colour = side</span></div>'+_wkMap(rows,mob)
-    +'<div class="wkm-leg"><span><i class="b p"></i>Prime</span><span><i class="b s"></i>Setup</span><span><i class="b dv"></i>Developing</span><span><i class="b n"></i>Backdrop or none</span><span class="x">Payoff lean = positioning (where it is a payoff source) plus valuation, signed. Not a probability.</span></div><div class="wkm-tip"></div></section>';
+  h+='<section class="gl wkm"><div class="wk-sub">Setup map <span>bubble size = '+(SU?'setup score':'grade')+' &middot; colour = side</span></div>'+_wkMap(rows,mob)
+    +'<div class="wkm-leg">'+(SU?'<span><i class="b p"></i>Trade-ready</span><span><i class="b s wt"></i>Waiting for window</span><span><i class="b dv"></i>Building</span><span><i class="b n ag"></i>Weak or seasonal against</span>':'<span><i class="b p"></i>Prime</span><span><i class="b s"></i>Setup</span><span><i class="b dv"></i>Developing</span><span><i class="b n"></i>Backdrop or none</span>')+'<span class="x">Payoff lean = positioning (where it is a payoff source) plus valuation, signed. Not a probability.</span></div><div class="wkm-tip"></div></section>';
+  if(SU) h+=_wkBoardSu(rows,mob); else {
   h+='<section class="gl wkb"><div class="wk-sub">On the board <span>'+(cnt.prime||0)+' prime &middot; '+(cnt.setup||0)+' setup &middot; '+(cnt.developing||0)+' developing</span></div>';
   if(prime.length){
     h+='<div class="wkb-prime">'+prime.map((r,i)=>'<div class="wkb-card '+(r.side>0?'u':'d')+'" style="animation-delay:'+(80+i*60)+'ms" tabindex="0" onclick="deskOpen(\''+r.id+'\')" onkeydown="if(event.key===\'Enter\')deskOpen(\''+r.id+'\')">'
@@ -26743,7 +26870,8 @@ function _wkBuild(mob){
     h+='<div class="wkb-sub">Setups</div><ul class="wkb-list">'+setups.map(r=>'<li tabindex="0" onclick="deskOpen(\''+r.id+'\')" onkeydown="if(event.key===\'Enter\')deskOpen(\''+r.id+'\')"><span class="nm"><b>'+_esc(r.name)+'</b><i>'+_esc(r.archetype||'')+' '+_egChip(r,true)+'</i></span>'+_dkGlyph(r,false)+_dkTrigTag(r)+_dkSide(r.side)+'</li>').join('')+'</ul>';
   }
   if(!live.length) h+='<div class="wk-empty">No prime or setup-grade markets this week.</div>';
-  h+='</section></div>';
+  h+='</section>'; }
+  h+='</div>';
 
   /* lower: notes, events, changes */
   h+='<div class="wk2-low">';
@@ -26771,7 +26899,32 @@ function _wkBuild(mob){
   h+='</div>';
   return h;
 }
-window.BHWS_EDGE={"span":"2012\u20132026","start":"2012-01-06","end":"2026-10-23","markets":57,"h":13,"grades":[{"k":"Prime","n":2447,"R":0.047,"lo":-0.028,"hi":0.115,"hit":0.522},{"k":"Setup","n":8493,"R":-0.006,"lo":-0.058,"hi":0.042,"hit":0.489},{"k":"Developing","n":16136,"R":0.051,"lo":0.016,"hi":0.089,"hit":0.53}],"base":[{"k":"Always long","n":42439,"R":0.069,"lo":0.012,"hi":0.128,"hit":0.524,"base":1},{"k":"Trend sign","n":33322,"R":0.013,"lo":-0.048,"hi":0.082,"hit":0.502,"base":1}],"grade_asym":{"prime":{"n":2447,"R":0.047,"Rd":-0.02,"p1":0.029,"p2":0.061,"mfe":0.58,"mae":0.52,"skew":1.1,"up":0.166,"dn":0.138},"setup":{"n":8493,"R":-0.006,"Rd":-0.007,"p1":-0.021,"p2":0.006,"mfe":0.52,"mae":0.56,"skew":0.94,"up":0.152,"dn":0.148},"developing":{"n":16136,"R":0.051,"Rd":0.022,"p1":0.001,"p2":0.098,"mfe":0.59,"mae":0.52,"skew":1.14,"up":0.152,"dn":0.13},"ALL graded":{"n":27076,"R":0.033,"Rd":0.009,"p1":-0.004,"p2":0.065,"mfe":0.57,"mae":0.53,"skew":1.07,"up":0.153,"dn":0.136}},"cells":{"c:Counter-trend|Confirmed":{"n":382,"mk":57,"R":-0.009,"lo":-0.112,"hi":0.092,"hit":0.448,"p1":-0.067,"p2":0.048,"Rd":-0.042,"mfe":0.55,"mae":0.53,"skew":1.05,"up":0.115,"dn":0.107},"c:Counter-trend|Waiting":{"n":3487,"mk":57,"R":0.097,"lo":0.015,"hi":0.181,"hit":0.537,"p1":0.061,"p2":0.134,"Rd":0.09,"mfe":0.64,"mae":0.49,"skew":1.29,"up":0.166,"dn":0.118},"c:Crowd fade|Not turned":{"n":2868,"mk":34,"R":0.044,"lo":-0.037,"hi":0.121,"hit":0.531,"p1":0.003,"p2":0.084,"Rd":0.05,"mfe":0.59,"mae":0.5,"skew":1.18,"up":0.151,"dn":0.146},"c:Crowd fade|One more week":{"n":1578,"mk":34,"R":-0.009,"lo":-0.096,"hi":0.08,"hit":0.518,"p1":-0.008,"p2":-0.01,"Rd":-0.004,"mfe":0.6,"mae":0.51,"skew":1.18,"up":0.132,"dn":0.152},"c:Crowd fade|Past test window":{"n":1648,"mk":34,"R":0.049,"lo":-0.05,"hi":0.142,"hit":0.51,"p1":0.01,"p2":0.089,"Rd":0.05,"mfe":0.59,"mae":0.56,"skew":1.07,"up":0.16,"dn":0.14},"c:Crowd fade|Turned":{"n":1445,"mk":34,"R":-0.068,"lo":-0.14,"hi":0.013,"hit":0.44,"p1":-0.061,"p2":-0.075,"Rd":-0.082,"mfe":0.47,"mae":0.57,"skew":0.82,"up":0.127,"dn":0.145},"c:Divergence fade|Waiting":{"n":1237,"mk":37,"R":-0.107,"lo":-0.269,"hi":0.065,"hit":0.479,"p1":-0.098,"p2":-0.114,"Rd":-0.016,"mfe":0.58,"mae":0.71,"skew":0.81,"up":0.187,"dn":0.204},"c:Exhaustion fade|Confirmed":{"n":63,"mk":29,"R":0.096,"lo":-0.095,"hi":0.316,"hit":0.492,"p1":-0.064,"p2":0.188,"Rd":0.13,"mfe":0.5,"mae":0.57,"skew":0.88,"up":0.143,"dn":0.079},"c:Exhaustion fade|Waiting":{"n":965,"mk":57,"R":-0.024,"lo":-0.124,"hi":0.07,"hit":0.473,"p1":-0.005,"p2":-0.038,"Rd":0.01,"mfe":0.51,"mae":0.55,"skew":0.93,"up":0.143,"dn":0.128},"c:Pullback in trend|Confirmed":{"n":845,"mk":56,"R":0.199,"lo":0.05,"hi":0.327,"hit":0.594,"p1":0.186,"p2":0.208,"Rd":0.044,"mfe":0.64,"mae":0.52,"skew":1.24,"up":0.198,"dn":0.127},"c:Pullback in trend|Waiting":{"n":2882,"mk":57,"R":0.04,"lo":-0.047,"hi":0.119,"hit":0.524,"p1":0.065,"p2":0.013,"Rd":-0.015,"mfe":0.55,"mae":0.55,"skew":1.01,"up":0.154,"dn":0.129},"c:Trend with value|Confirmed":{"n":1661,"mk":57,"R":0.011,"lo":-0.112,"hi":0.119,"hit":0.505,"p1":-0.011,"p2":0.027,"Rd":-0.073,"mfe":0.52,"mae":0.56,"skew":0.92,"up":0.154,"dn":0.156},"c:Trend with value|Waiting":{"n":1188,"mk":57,"R":0.078,"lo":-0.028,"hi":0.159,"hit":0.516,"p1":0.026,"p2":0.124,"Rd":0.02,"mfe":0.57,"mae":0.53,"skew":1.08,"up":0.151,"dn":0.102},"c:With trend|Confirmed":{"n":2281,"mk":56,"R":0.074,"lo":-0.005,"hi":0.167,"hit":0.548,"p1":-0.032,"p2":0.155,"Rd":-0.045,"mfe":0.57,"mae":0.49,"skew":1.16,"up":0.146,"dn":0.132},"c:With trend|Waiting":{"n":483,"mk":56,"R":0.094,"lo":-0.013,"hi":0.2,"hit":0.576,"p1":-0.055,"p2":0.246,"Rd":0.039,"mfe":0.64,"mae":0.41,"skew":1.55,"up":0.151,"dn":0.104},"s:Counter-trend|short":{"n":1749,"mk":56,"R":0.004,"lo":-0.099,"hi":0.105,"hit":0.498,"p1":0.029,"p2":-0.021,"Rd":0.095,"mfe":0.56,"mae":0.54,"skew":1.05,"up":0.148,"dn":0.136},"s:Counter-trend|long":{"n":2120,"mk":57,"R":0.155,"lo":0.059,"hi":0.251,"hit":0.552,"p1":0.065,"p2":0.251,"Rd":0.062,"mfe":0.68,"mae":0.47,"skew":1.45,"up":0.172,"dn":0.102},"s:Crowd fade|short":{"n":3060,"mk":34,"R":-0.034,"lo":-0.161,"hi":0.081,"hit":0.49,"p1":0.06,"p2":-0.124,"Rd":-0.005,"mfe":0.54,"mae":0.57,"skew":0.94,"up":0.139,"dn":0.171},"s:Crowd fade|long":{"n":4479,"mk":34,"R":0.044,"lo":-0.049,"hi":0.139,"hit":0.518,"p1":-0.058,"p2":0.146,"Rd":0.026,"mfe":0.6,"mae":0.5,"skew":1.19,"up":0.148,"dn":0.129},"s:Divergence fade|short":{"n":680,"mk":37,"R":-0.269,"lo":-0.456,"hi":-0.09,"hit":0.431,"p1":-0.195,"p2":-0.318,"Rd":-0.102,"mfe":0.47,"mae":0.75,"skew":0.63,"up":0.144,"dn":0.222},"s:Divergence fade|long":{"n":585,"mk":37,"R":0.088,"lo":-0.172,"hi":0.38,"hit":0.538,"p1":-0.011,"p2":0.207,"Rd":0.088,"mfe":0.76,"mae":0.65,"skew":1.17,"up":0.238,"dn":0.185},"s:Exhaustion fade|short":{"n":523,"mk":54,"R":-0.065,"lo":-0.164,"hi":0.047,"hit":0.432,"p1":0.032,"p2":-0.119,"Rd":0.014,"mfe":0.41,"mae":0.57,"skew":0.72,"up":0.126,"dn":0.136},"s:Exhaustion fade|long":{"n":505,"mk":55,"R":0.033,"lo":-0.128,"hi":0.164,"hit":0.517,"p1":-0.038,"p2":0.101,"Rd":0.021,"mfe":0.61,"mae":0.53,"skew":1.16,"up":0.16,"dn":0.115},"s:Pullback in trend|short":{"n":1542,"mk":57,"R":-0.055,"lo":-0.183,"hi":0.097,"hit":0.506,"p1":0.073,"p2":-0.203,"Rd":-0.007,"mfe":0.5,"mae":0.58,"skew":0.87,"up":0.128,"dn":0.156},"s:Pullback in trend|long":{"n":2196,"mk":56,"R":0.174,"lo":0.087,"hi":0.27,"hit":0.566,"p1":0.11,"p2":0.23,"Rd":0.007,"mfe":0.63,"mae":0.51,"skew":1.23,"up":0.193,"dn":0.109},"s:Range|short":{"n":1827,"mk":55,"R":0.062,"lo":-0.036,"hi":0.174,"hit":0.528,"p1":0.049,"p2":0.072,"Rd":0.04,"mfe":0.56,"mae":0.49,"skew":1.13,"up":0.155,"dn":0.128},"s:Range|long":{"n":2196,"mk":56,"R":-0.061,"lo":-0.197,"hi":0.04,"hit":0.48,"p1":-0.224,"p2":0.066,"Rd":-0.021,"mfe":0.53,"mae":0.59,"skew":0.9,"up":0.138,"dn":0.139},"s:Trend with value|short":{"n":1211,"mk":57,"R":-0.006,"lo":-0.153,"hi":0.146,"hit":0.511,"p1":0.063,"p2":-0.078,"Rd":0.004,"mfe":0.53,"mae":0.58,"skew":0.92,"up":0.147,"dn":0.143},"s:Trend with value|long":{"n":1639,"mk":56,"R":0.072,"lo":-0.019,"hi":0.169,"hit":0.508,"p1":-0.049,"p2":0.152,"Rd":-0.062,"mfe":0.53,"mae":0.53,"skew":1.0,"up":0.156,"dn":0.126},"s:With trend|short":{"n":836,"mk":52,"R":-0.114,"lo":-0.233,"hi":-0.003,"hit":0.48,"p1":-0.127,"p2":-0.098,"Rd":-0.067,"mfe":0.54,"mae":0.58,"skew":0.93,"up":0.117,"dn":0.157},"s:With trend|long":{"n":1928,"mk":56,"R":0.16,"lo":0.062,"hi":0.272,"hit":0.585,"p1":0.015,"p2":0.261,"Rd":-0.014,"mfe":0.6,"mae":0.44,"skew":1.37,"up":0.16,"dn":0.114},"a:Counter-trend":{"n":3869,"mk":57,"R":0.086,"lo":0.016,"hi":0.165,"hit":0.528,"p1":0.049,"p2":0.125,"Rd":0.077,"mfe":0.63,"mae":0.5,"skew":1.27,"up":0.161,"dn":0.117},"a:Crowd fade":{"n":7539,"mk":34,"R":0.013,"lo":-0.044,"hi":0.062,"hit":0.506,"p1":-0.011,"p2":0.036,"Rd":0.013,"mfe":0.57,"mae":0.53,"skew":1.08,"up":0.144,"dn":0.146},"a:Divergence fade":{"n":1265,"mk":37,"R":-0.104,"lo":-0.281,"hi":0.066,"hit":0.481,"p1":-0.095,"p2":-0.112,"Rd":-0.014,"mfe":0.58,"mae":0.71,"skew":0.82,"up":0.187,"dn":0.205},"a:Exhaustion fade":{"n":1028,"mk":57,"R":-0.017,"lo":-0.107,"hi":0.082,"hit":0.474,"p1":-0.008,"p2":-0.023,"Rd":0.017,"mfe":0.51,"mae":0.55,"skew":0.92,"up":0.143,"dn":0.125},"a:Pullback in trend":{"n":3738,"mk":57,"R":0.079,"lo":0.004,"hi":0.17,"hit":0.541,"p1":0.093,"p2":0.066,"Rd":0.001,"mfe":0.58,"mae":0.54,"skew":1.06,"up":0.166,"dn":0.128},"a:Range":{"n":4023,"mk":57,"R":-0.005,"lo":-0.086,"hi":0.067,"hit":0.502,"p1":-0.102,"p2":0.069,"Rd":0.007,"mfe":0.54,"mae":0.54,"skew":1.0,"up":0.146,"dn":0.134},"a:Trend with value":{"n":2850,"mk":57,"R":0.039,"lo":-0.039,"hi":0.113,"hit":0.509,"p1":0.005,"p2":0.066,"Rd":-0.034,"mfe":0.53,"mae":0.55,"skew":0.97,"up":0.152,"dn":0.133},"a:With trend":{"n":2764,"mk":56,"R":0.077,"lo":-0.003,"hi":0.161,"hit":0.553,"p1":-0.036,"p2":0.17,"Rd":-0.03,"mfe":0.58,"mae":0.49,"skew":1.2,"up":0.147,"dn":0.127},"k:Counter-trend|bond":{"n":110,"mk":4,"R":-0.281,"lo":-0.609,"hi":-0.004,"hit":0.391,"p1":0.1,"p2":-0.565},"k:Counter-trend|commodity":{"n":1769,"mk":19,"R":0.102,"lo":0.019,"hi":0.178,"hit":0.548,"p1":0.111,"p2":0.093},"k:Counter-trend|crypto":{"n":71,"mk":2,"R":-0.314,"lo":-0.694,"hi":0.055,"hit":0.408,"p1":-0.793,"p2":-0.069},"k:Counter-trend|equity":{"n":195,"mk":4,"R":0.369,"lo":0.059,"hi":0.699,"hit":0.585,"p1":0.349,"p2":0.382},"k:Counter-trend|fx":{"n":545,"mk":9,"R":0.075,"lo":-0.099,"hi":0.253,"hit":0.517,"p1":-0.068,"p2":0.26},"k:Counter-trend|fx_cross":{"n":1179,"mk":19,"R":0.08,"lo":-0.06,"hi":0.233,"hit":0.513,"p1":0.014,"p2":0.166},"k:Crowd fade|bond":{"n":1102,"mk":4,"R":0.131,"lo":-0.041,"hi":0.324,"hit":0.495,"p1":-0.004,"p2":0.277},"k:Crowd fade|commodity":{"n":4149,"mk":19,"R":-0.024,"lo":-0.094,"hi":0.038,"hit":0.498,"p1":0.019,"p2":-0.07},"k:Crowd fade|crypto":{"n":254,"mk":2,"R":0.172,"lo":-0.21,"hi":0.684,"hit":0.496,"p1":null,"p2":0.172},"k:Crowd fade|fx":{"n":2034,"mk":9,"R":0.004,"lo":-0.111,"hi":0.115,"hit":0.53,"p1":-0.075,"p2":0.087},"k:Divergence fade|bond":{"n":131,"mk":3,"R":-0.192,"lo":-0.628,"hi":0.237,"hit":0.473,"p1":-0.029,"p2":-0.267},"k:Divergence fade|commodity":{"n":627,"mk":19,"R":-0.049,"lo":-0.262,"hi":0.202,"hit":0.528,"p1":0.048,"p2":-0.136},"k:Divergence fade|equity":{"n":154,"mk":4,"R":-0.322,"lo":-0.542,"hi":-0.06,"hit":0.266,"p1":-0.517,"p2":-0.07},"k:Divergence fade|fx":{"n":329,"mk":9,"R":-0.077,"lo":-0.428,"hi":0.24,"hit":0.498,"p1":-0.148,"p2":-0.011},"k:Exhaustion fade|bond":{"n":83,"mk":4,"R":-0.233,"lo":-0.719,"hi":0.143,"hit":0.506,"p1":0.097,"p2":-0.473},"k:Exhaustion fade|commodity":{"n":303,"mk":19,"R":-0.05,"lo":-0.161,"hi":0.062,"hit":0.439,"p1":-0.01,"p2":-0.089},"k:Exhaustion fade|equity":{"n":52,"mk":4,"R":-0.41,"lo":-0.577,"hi":-0.207,"hit":0.269,"p1":-0.402,"p2":-0.415},"k:Exhaustion fade|fx":{"n":199,"mk":9,"R":0.091,"lo":-0.069,"hi":0.327,"hit":0.523,"p1":-0.007,"p2":0.163},"k:Exhaustion fade|fx_cross":{"n":378,"mk":19,"R":0.049,"lo":-0.091,"hi":0.18,"hit":0.495,"p1":0.034,"p2":0.057},"k:Pullback in trend|bond":{"n":118,"mk":4,"R":0.343,"lo":0.005,"hi":0.682,"hit":0.619,"p1":0.139,"p2":0.464},"k:Pullback in trend|commodity":{"n":1685,"mk":19,"R":-0.001,"lo":-0.1,"hi":0.113,"hit":0.504,"p1":-0.079,"p2":0.073},"k:Pullback in trend|crypto":{"n":100,"mk":2,"R":0.306,"lo":-0.194,"hi":0.953,"hit":0.46,"p1":3.098,"p2":-0.111},"k:Pullback in trend|equity":{"n":356,"mk":4,"R":0.562,"lo":0.368,"hi":0.718,"hit":0.775,"p1":0.768,"p2":0.383},"k:Pullback in trend|fx":{"n":403,"mk":9,"R":-0.038,"lo":-0.242,"hi":0.169,"hit":0.491,"p1":0.179,"p2":-0.295},"k:Pullback in trend|fx_cross":{"n":1076,"mk":19,"R":0.039,"lo":-0.096,"hi":0.175,"hit":0.538,"p1":0.04,"p2":0.037},"k:Range|bond":{"n":780,"mk":4,"R":-0.048,"lo":-0.191,"hi":0.109,"hit":0.482,"p1":-0.004,"p2":-0.098},"k:Range|commodity":{"n":279,"mk":19,"R":-0.036,"lo":-0.199,"hi":0.117,"hit":0.502,"p1":-0.188,"p2":0.138},"k:Range|equity":{"n":69,"mk":4,"R":0.458,"lo":0.14,"hi":0.791,"hit":0.667,"p1":0.942,"p2":0.107},"k:Range|fx":{"n":889,"mk":9,"R":-0.01,"lo":-0.119,"hi":0.072,"hit":0.502,"p1":-0.079,"p2":0.027},"k:Range|fx_cross":{"n":2004,"mk":19,"R":0.001,"lo":-0.114,"hi":0.115,"hit":0.503,"p1":-0.18,"p2":0.13},"k:Trend with value|bond":{"n":116,"mk":4,"R":0.352,"lo":-0.008,"hi":0.646,"hit":0.586,"p1":0.063,"p2":0.536},"k:Trend with value|commodity":{"n":786,"mk":19,"R":-0.01,"lo":-0.102,"hi":0.095,"hit":0.475,"p1":-0.098,"p2":0.067},"k:Trend with value|crypto":{"n":97,"mk":2,"R":0.376,"lo":-0.001,"hi":0.746,"hit":0.515,"p1":1.008,"p2":0.251},"k:Trend with value|equity":{"n":164,"mk":4,"R":0.463,"lo":0.289,"hi":0.635,"hit":0.756,"p1":0.495,"p2":0.447},"k:Trend with value|fx":{"n":501,"mk":9,"R":-0.111,"lo":-0.32,"hi":0.062,"hit":0.439,"p1":-0.001,"p2":-0.217},"k:Trend with value|fx_cross":{"n":1186,"mk":19,"R":0.017,"lo":-0.093,"hi":0.152,"hit":0.52,"p1":-0.007,"p2":0.038},"k:With trend|bond":{"n":104,"mk":3,"R":0.042,"lo":-0.201,"hi":0.31,"hit":0.442,"p1":-0.224,"p2":0.216},"k:With trend|commodity":{"n":1185,"mk":19,"R":0.085,"lo":-0.039,"hi":0.199,"hit":0.542,"p1":-0.021,"p2":0.171},"k:With trend|crypto":{"n":53,"mk":2,"R":0.315,"lo":-0.122,"hi":0.985,"hit":0.547,"p1":null,"p2":0.315},"k:With trend|equity":{"n":439,"mk":4,"R":0.369,"lo":0.22,"hi":0.521,"hit":0.759,"p1":0.465,"p2":0.294},"k:With trend|fx":{"n":257,"mk":9,"R":-0.179,"lo":-0.368,"hi":-0.009,"hit":0.42,"p1":-0.351,"p2":-0.014},"k:With trend|fx_cross":{"n":726,"mk":19,"R":-0.033,"lo":-0.152,"hi":0.083,"hit":0.511,"p1":-0.197,"p2":0.12}},"flags":{"seasonal_against":{"n":2674,"R":-0.12,"lo":-0.206,"hi":-0.032,"p1":-0.049,"p2":-0.182,"Rd":-0.049,"skew":0.89},"trend_exhausted":{"n":2889,"R":-0.088,"lo":-0.206,"hi":0.04,"p1":-0.04,"p2":-0.129,"Rd":-0.031,"skew":0.91},"positioning_against":{"n":520,"R":0.169,"lo":0.026,"hi":0.314,"p1":0.199,"p2":0.137,"Rd":0.024,"skew":1.13},"seasonal_with":{"n":4171,"R":0.038,"lo":-0.02,"hi":0.107,"p1":-0.036,"p2":0.105,"Rd":0.017,"skew":1.21}},"arch":[{"k":"Crowd fade","n":3220,"R":-0.006,"lo":-0.085,"hi":0.08,"hit":0.479},{"k":"Pullback in trend","n":2093,"R":0.072,"lo":-0.032,"hi":0.175,"hit":0.529},{"k":"Trend with value","n":1950,"R":0.061,"lo":-0.024,"hi":0.143,"hit":0.518},{"k":"Divergence fade","n":1212,"R":-0.113,"lo":-0.297,"hi":0.066,"hit":0.479},{"k":"Range","n":1165,"R":-0.027,"lo":-0.123,"hi":0.065,"hit":0.485},{"k":"Exhaustion fade","n":1004,"R":-0.011,"lo":-0.101,"hi":0.077,"hit":0.477},{"k":"With trend","n":296,"R":-0.039,"lo":-0.211,"hi":0.128,"hit":0.493}],"note":"Point-in-time weekly replay of the Desk rules on 57 markets, 2012-01-06 to 2026-10-23. R is the side-signed 13-week return divided by trailing 52-week volatility; bars are 90% block-bootstrap ranges. Macro pillar excluded, continuous futures with roll gaps, no costs. Evidence about the rules, not a forecast for any trade. About 60 cells were tested, so a few will pass by chance; trust the ones that hold in both halves and after drift.","findings":[{"v":"neg","h":"The grade is not the edge yet","t":"Prime and setup together averaged +0.01 R over 13 weeks, against +0.07 for simply being long every market. Prime alone was +0.05, and \u22120.02 once each market's own drift is taken out."},{"v":"pos","h":"Counter-trend, early","t":"Payoff sources against a running trend, before the weekly close turns: +0.10 R, +0.09 after drift, positive in both halves. Waiting for the 10-week close took it to -0.01. The Desk currently never grades this above developing."},{"v":"pos","h":"Pullbacks that have turned","t":"Pullback in trend once the weekly close is back through the 10-week average: +0.20 R, positive in both halves, skew 1.24. Most of it is drift (+0.04 after drift)."},{"v":"neg","h":"Fades after the turn are late","t":"Crowd fades once the managers had turned: -0.07 R, -0.08 after drift, negative in both halves. The same fades before the turn: +0.04."},{"v":"neg","h":"Divergence-fade shorts","t":"-0.27 R, -0.10 after drift, negative in both halves, and the typical run against was bigger than the run for (skew 0.63)."},{"v":"neg","h":"Seasonal against is a real veto","t":"Prime and setup rows with the seasonal against averaged -0.12 R, negative in both halves. Seasonal with: +0.04."}]};
+
+function _wkBoardSu(rows,mob){
+  const rk=k=>rows.filter(r=>_suKey(r)===k);
+  const ready=rk('ready').sort((a,b)=>b.setup.score-a.setup.score), wait=rk('wait').sort((a,b)=>(a.setup.timing.entry_td||99)-(b.setup.timing.entry_td||99));
+  const bld=rk('building').sort((a,b)=>b.setup.score-a.setup.score), veto=rk('veto');
+  const open=id=>' tabindex="0" onclick="deskOpen(\''+id+'\')" onkeydown="if(event.key===\'Enter\')deskOpen(\''+id+'\')"';
+  let h='<section class="gl wkb su-board"><div class="wk-sub">On the board <span>'+ready.length+' trade-ready &middot; '+wait.length+' waiting &middot; '+bld.length+' building</span></div>';
+  if(ready.length){
+    h+='<div class="wkb-prime">'+ready.slice(0,mob?4:6).map((r,i)=>'<div class="wkb-card su '+(r.side>0?'u':'d')+'" style="animation-delay:'+(80+i*60)+'ms"'+open(r.id)+'>'
+      +'<div class="t"><b>'+_esc(r.name)+'</b>'+_suRing(r,40)+'</div><div class="a">'+_dkSide(r.side)+'<span>'+_esc(r.archetype||'')+'</span></div>'
+      +(_suTm(r).state!=='flat'&&_suTm(r).state!=='na'?'<div class="su-c-tm">'+_suTmChip(r,{sm:1})+'</div>':'<div class="su-c-tm"></div>')
+      +'<div class="f">'+_dkGlyph(r,true)+(r.setup.relation&&r.setup.relation.key!=='none'?'<span class="su-c-rel k-'+r.setup.relation.key+'">'+_esc(r.setup.relation.key==='counter'?'counter-trend to bias':r.setup.relation.key==='aligned'?'with the bias':'bias neutral')+'</span>':'')+'</div></div>').join('')+'</div>';
+  } else h+='<div class="wk-empty">Nothing scores 6 or more without a seasonal block this week.</div>';
+  if(wait.length){
+    const mx=Math.max(26,...wait.map(r=>r.setup.timing.entry_td||0));
+    h+='<div class="wkb-sub">Waiting for a seasonal window <em>structure is there, the seasonal dip comes first</em></div><ul class="wkb-list su-wait">'+wait.map(r=>{ const t=r.setup.timing, pj=r.setup.projected;
+      return '<li'+open(r.id)+'><span class="nm"><b>'+_esc(r.name)+'</b><i>'+_esc(r.archetype||'')+'</i></span>'
+        +'<span class="su-cd" title="Seasonal entry around '+_esc(t.entry_date||'')+', then a '+(t.leg_pct>=0?'+':'')+t.leg_pct+'% leg"><span class="tr"><i style="width:'+Math.max(4,(t.entry_td||0)/mx*100).toFixed(0)+'%"></i></span><em>'+t.entry_td+' TD &middot; '+_esc(_dkT(t.entry_date))+'</em></span>'
+        +'<span class="su-pj"><b style="color:'+_suCol(r)+'">'+_suNum(r)+'</b>'+(pj?'<span>&rarr;</span><b style="color:'+_suSideCol(r.side)+'">'+Number(pj.score).toFixed(1)+'</b>':'')+'</span>'+_dkSide(r.side)+'</li>'; }).join('')+'</ul>';
+  }
+  if(bld.length) h+='<div class="wkb-sub">Building <em>score 4 to 5.5</em></div><div class="su-mini">'+bld.slice(0,mob?8:12).map(r=>'<span class="su-m '+(r.side>0?'u':'d')+'"'+open(r.id)+' title="'+_esc(r.name+' · '+(r.archetype||'')+' · '+(_suTm(r).label||''))+'"><em>'+_esc(r.id)+'</em><b>'+_suNum(r)+'</b></span>').join('')+'</div>';
+  if(veto.length) h+='<div class="wkb-sub ag">Seasonal against, standing aside</div><div class="su-mini">'+veto.map(r=>'<span class="su-m ag"'+open(r.id)+' title="'+_esc(r.name+' '+(r.side>0?'long':'short')+': the seasonal path runs against the side over 4 to 8 weeks')+'"><em>'+_esc(r.id)+'</em>'+(r.side>0?'&#9650;':'&#9660;')+'</span>').join('')+'</div>';
+  h+='<div class="wk-note">Setup score 0 to 10 for the desk side. It ranks; it is not a probability. Waiting rows are scored now with the projected score at the window.</div></section>';
+  return h;
+}
+window.BHWS_EDGE={"span":"2012\u20132026","start":"2012-01-06","end":"2026-10-23","markets":57,"h":13,"grades":[{"k":"Prime","n":2447,"R":0.047,"lo":-0.028,"hi":0.115,"hit":0.522},{"k":"Setup","n":8493,"R":-0.006,"lo":-0.058,"hi":0.042,"hit":0.489},{"k":"Developing","n":16136,"R":0.051,"lo":0.016,"hi":0.089,"hit":0.53}],"base":[{"k":"Always long","n":42439,"R":0.069,"lo":0.012,"hi":0.128,"hit":0.524,"base":1},{"k":"Trend sign","n":33322,"R":0.013,"lo":-0.048,"hi":0.082,"hit":0.502,"base":1}],"grade_asym":{"prime":{"n":2447,"R":0.047,"Rd":-0.02,"p1":0.029,"p2":0.061,"mfe":0.58,"mae":0.52,"skew":1.1,"up":0.166,"dn":0.138},"setup":{"n":8493,"R":-0.006,"Rd":-0.007,"p1":-0.021,"p2":0.006,"mfe":0.52,"mae":0.56,"skew":0.94,"up":0.152,"dn":0.148},"developing":{"n":16136,"R":0.051,"Rd":0.022,"p1":0.001,"p2":0.098,"mfe":0.59,"mae":0.52,"skew":1.14,"up":0.152,"dn":0.13},"ALL graded":{"n":27076,"R":0.033,"Rd":0.009,"p1":-0.004,"p2":0.065,"mfe":0.57,"mae":0.53,"skew":1.07,"up":0.153,"dn":0.136}},"cells":{"c:Counter-trend|Confirmed":{"n":382,"mk":57,"R":-0.009,"lo":-0.112,"hi":0.092,"hit":0.448,"p1":-0.067,"p2":0.048,"Rd":-0.042,"mfe":0.55,"mae":0.53,"skew":1.05,"up":0.115,"dn":0.107},"c:Counter-trend|Waiting":{"n":3487,"mk":57,"R":0.097,"lo":0.015,"hi":0.181,"hit":0.537,"p1":0.061,"p2":0.134,"Rd":0.09,"mfe":0.64,"mae":0.49,"skew":1.29,"up":0.166,"dn":0.118},"c:Crowd fade|Not turned":{"n":2868,"mk":34,"R":0.044,"lo":-0.037,"hi":0.121,"hit":0.531,"p1":0.003,"p2":0.084,"Rd":0.05,"mfe":0.59,"mae":0.5,"skew":1.18,"up":0.151,"dn":0.146},"c:Crowd fade|One more week":{"n":1578,"mk":34,"R":-0.009,"lo":-0.096,"hi":0.08,"hit":0.518,"p1":-0.008,"p2":-0.01,"Rd":-0.004,"mfe":0.6,"mae":0.51,"skew":1.18,"up":0.132,"dn":0.152},"c:Crowd fade|Past test window":{"n":1648,"mk":34,"R":0.049,"lo":-0.05,"hi":0.142,"hit":0.51,"p1":0.01,"p2":0.089,"Rd":0.05,"mfe":0.59,"mae":0.56,"skew":1.07,"up":0.16,"dn":0.14},"c:Crowd fade|Turned":{"n":1445,"mk":34,"R":-0.068,"lo":-0.14,"hi":0.013,"hit":0.44,"p1":-0.061,"p2":-0.075,"Rd":-0.082,"mfe":0.47,"mae":0.57,"skew":0.82,"up":0.127,"dn":0.145},"c:Divergence fade|Waiting":{"n":1237,"mk":37,"R":-0.107,"lo":-0.269,"hi":0.065,"hit":0.479,"p1":-0.098,"p2":-0.114,"Rd":-0.016,"mfe":0.58,"mae":0.71,"skew":0.81,"up":0.187,"dn":0.204},"c:Exhaustion fade|Confirmed":{"n":63,"mk":29,"R":0.096,"lo":-0.095,"hi":0.316,"hit":0.492,"p1":-0.064,"p2":0.188,"Rd":0.13,"mfe":0.5,"mae":0.57,"skew":0.88,"up":0.143,"dn":0.079},"c:Exhaustion fade|Waiting":{"n":965,"mk":57,"R":-0.024,"lo":-0.124,"hi":0.07,"hit":0.473,"p1":-0.005,"p2":-0.038,"Rd":0.01,"mfe":0.51,"mae":0.55,"skew":0.93,"up":0.143,"dn":0.128},"c:Pullback in trend|Confirmed":{"n":845,"mk":56,"R":0.199,"lo":0.05,"hi":0.327,"hit":0.594,"p1":0.186,"p2":0.208,"Rd":0.044,"mfe":0.64,"mae":0.52,"skew":1.24,"up":0.198,"dn":0.127},"c:Pullback in trend|Waiting":{"n":2882,"mk":57,"R":0.04,"lo":-0.047,"hi":0.119,"hit":0.524,"p1":0.065,"p2":0.013,"Rd":-0.015,"mfe":0.55,"mae":0.55,"skew":1.01,"up":0.154,"dn":0.129},"c:Trend with value|Confirmed":{"n":1661,"mk":57,"R":0.011,"lo":-0.112,"hi":0.119,"hit":0.505,"p1":-0.011,"p2":0.027,"Rd":-0.073,"mfe":0.52,"mae":0.56,"skew":0.92,"up":0.154,"dn":0.156},"c:Trend with value|Waiting":{"n":1188,"mk":57,"R":0.078,"lo":-0.028,"hi":0.159,"hit":0.516,"p1":0.026,"p2":0.124,"Rd":0.02,"mfe":0.57,"mae":0.53,"skew":1.08,"up":0.151,"dn":0.102},"c:With trend|Confirmed":{"n":2281,"mk":56,"R":0.074,"lo":-0.005,"hi":0.167,"hit":0.548,"p1":-0.032,"p2":0.155,"Rd":-0.045,"mfe":0.57,"mae":0.49,"skew":1.16,"up":0.146,"dn":0.132},"c:With trend|Waiting":{"n":483,"mk":56,"R":0.094,"lo":-0.013,"hi":0.2,"hit":0.576,"p1":-0.055,"p2":0.246,"Rd":0.039,"mfe":0.64,"mae":0.41,"skew":1.55,"up":0.151,"dn":0.104},"s:Counter-trend|short":{"n":1749,"mk":56,"R":0.004,"lo":-0.099,"hi":0.105,"hit":0.498,"p1":0.029,"p2":-0.021,"Rd":0.095,"mfe":0.56,"mae":0.54,"skew":1.05,"up":0.148,"dn":0.136},"s:Counter-trend|long":{"n":2120,"mk":57,"R":0.155,"lo":0.059,"hi":0.251,"hit":0.552,"p1":0.065,"p2":0.251,"Rd":0.062,"mfe":0.68,"mae":0.47,"skew":1.45,"up":0.172,"dn":0.102},"s:Crowd fade|short":{"n":3060,"mk":34,"R":-0.034,"lo":-0.161,"hi":0.081,"hit":0.49,"p1":0.06,"p2":-0.124,"Rd":-0.005,"mfe":0.54,"mae":0.57,"skew":0.94,"up":0.139,"dn":0.171},"s:Crowd fade|long":{"n":4479,"mk":34,"R":0.044,"lo":-0.049,"hi":0.139,"hit":0.518,"p1":-0.058,"p2":0.146,"Rd":0.026,"mfe":0.6,"mae":0.5,"skew":1.19,"up":0.148,"dn":0.129},"s:Divergence fade|short":{"n":680,"mk":37,"R":-0.269,"lo":-0.456,"hi":-0.09,"hit":0.431,"p1":-0.195,"p2":-0.318,"Rd":-0.102,"mfe":0.47,"mae":0.75,"skew":0.63,"up":0.144,"dn":0.222},"s:Divergence fade|long":{"n":585,"mk":37,"R":0.088,"lo":-0.172,"hi":0.38,"hit":0.538,"p1":-0.011,"p2":0.207,"Rd":0.088,"mfe":0.76,"mae":0.65,"skew":1.17,"up":0.238,"dn":0.185},"s:Exhaustion fade|short":{"n":523,"mk":54,"R":-0.065,"lo":-0.164,"hi":0.047,"hit":0.432,"p1":0.032,"p2":-0.119,"Rd":0.014,"mfe":0.41,"mae":0.57,"skew":0.72,"up":0.126,"dn":0.136},"s:Exhaustion fade|long":{"n":505,"mk":55,"R":0.033,"lo":-0.128,"hi":0.164,"hit":0.517,"p1":-0.038,"p2":0.101,"Rd":0.021,"mfe":0.61,"mae":0.53,"skew":1.16,"up":0.16,"dn":0.115},"s:Pullback in trend|short":{"n":1542,"mk":57,"R":-0.055,"lo":-0.183,"hi":0.097,"hit":0.506,"p1":0.073,"p2":-0.203,"Rd":-0.007,"mfe":0.5,"mae":0.58,"skew":0.87,"up":0.128,"dn":0.156},"s:Pullback in trend|long":{"n":2196,"mk":56,"R":0.174,"lo":0.087,"hi":0.27,"hit":0.566,"p1":0.11,"p2":0.23,"Rd":0.007,"mfe":0.63,"mae":0.51,"skew":1.23,"up":0.193,"dn":0.109},"s:Range|short":{"n":1827,"mk":55,"R":0.062,"lo":-0.036,"hi":0.174,"hit":0.528,"p1":0.049,"p2":0.072,"Rd":0.04,"mfe":0.56,"mae":0.49,"skew":1.13,"up":0.155,"dn":0.128},"s:Range|long":{"n":2196,"mk":56,"R":-0.061,"lo":-0.197,"hi":0.04,"hit":0.48,"p1":-0.224,"p2":0.066,"Rd":-0.021,"mfe":0.53,"mae":0.59,"skew":0.9,"up":0.138,"dn":0.139},"s:Trend with value|short":{"n":1211,"mk":57,"R":-0.006,"lo":-0.153,"hi":0.146,"hit":0.511,"p1":0.063,"p2":-0.078,"Rd":0.004,"mfe":0.53,"mae":0.58,"skew":0.92,"up":0.147,"dn":0.143},"s:Trend with value|long":{"n":1639,"mk":56,"R":0.072,"lo":-0.019,"hi":0.169,"hit":0.508,"p1":-0.049,"p2":0.152,"Rd":-0.062,"mfe":0.53,"mae":0.53,"skew":1.0,"up":0.156,"dn":0.126},"s:With trend|short":{"n":836,"mk":52,"R":-0.114,"lo":-0.233,"hi":-0.003,"hit":0.48,"p1":-0.127,"p2":-0.098,"Rd":-0.067,"mfe":0.54,"mae":0.58,"skew":0.93,"up":0.117,"dn":0.157},"s:With trend|long":{"n":1928,"mk":56,"R":0.16,"lo":0.062,"hi":0.272,"hit":0.585,"p1":0.015,"p2":0.261,"Rd":-0.014,"mfe":0.6,"mae":0.44,"skew":1.37,"up":0.16,"dn":0.114},"a:Counter-trend":{"n":3869,"mk":57,"R":0.086,"lo":0.016,"hi":0.165,"hit":0.528,"p1":0.049,"p2":0.125,"Rd":0.077,"mfe":0.63,"mae":0.5,"skew":1.27,"up":0.161,"dn":0.117},"a:Crowd fade":{"n":7539,"mk":34,"R":0.013,"lo":-0.044,"hi":0.062,"hit":0.506,"p1":-0.011,"p2":0.036,"Rd":0.013,"mfe":0.57,"mae":0.53,"skew":1.08,"up":0.144,"dn":0.146},"a:Divergence fade":{"n":1265,"mk":37,"R":-0.104,"lo":-0.281,"hi":0.066,"hit":0.481,"p1":-0.095,"p2":-0.112,"Rd":-0.014,"mfe":0.58,"mae":0.71,"skew":0.82,"up":0.187,"dn":0.205},"a:Exhaustion fade":{"n":1028,"mk":57,"R":-0.017,"lo":-0.107,"hi":0.082,"hit":0.474,"p1":-0.008,"p2":-0.023,"Rd":0.017,"mfe":0.51,"mae":0.55,"skew":0.92,"up":0.143,"dn":0.125},"a:Pullback in trend":{"n":3738,"mk":57,"R":0.079,"lo":0.004,"hi":0.17,"hit":0.541,"p1":0.093,"p2":0.066,"Rd":0.001,"mfe":0.58,"mae":0.54,"skew":1.06,"up":0.166,"dn":0.128},"a:Range":{"n":4023,"mk":57,"R":-0.005,"lo":-0.086,"hi":0.067,"hit":0.502,"p1":-0.102,"p2":0.069,"Rd":0.007,"mfe":0.54,"mae":0.54,"skew":1.0,"up":0.146,"dn":0.134},"a:Trend with value":{"n":2850,"mk":57,"R":0.039,"lo":-0.039,"hi":0.113,"hit":0.509,"p1":0.005,"p2":0.066,"Rd":-0.034,"mfe":0.53,"mae":0.55,"skew":0.97,"up":0.152,"dn":0.133},"a:With trend":{"n":2764,"mk":56,"R":0.077,"lo":-0.003,"hi":0.161,"hit":0.553,"p1":-0.036,"p2":0.17,"Rd":-0.03,"mfe":0.58,"mae":0.49,"skew":1.2,"up":0.147,"dn":0.127},"k:Counter-trend|bond":{"n":110,"mk":4,"R":-0.281,"lo":-0.609,"hi":-0.004,"hit":0.391,"p1":0.1,"p2":-0.565},"k:Counter-trend|commodity":{"n":1769,"mk":19,"R":0.102,"lo":0.019,"hi":0.178,"hit":0.548,"p1":0.111,"p2":0.093},"k:Counter-trend|crypto":{"n":71,"mk":2,"R":-0.314,"lo":-0.694,"hi":0.055,"hit":0.408,"p1":-0.793,"p2":-0.069},"k:Counter-trend|equity":{"n":195,"mk":4,"R":0.369,"lo":0.059,"hi":0.699,"hit":0.585,"p1":0.349,"p2":0.382},"k:Counter-trend|fx":{"n":545,"mk":9,"R":0.075,"lo":-0.099,"hi":0.253,"hit":0.517,"p1":-0.068,"p2":0.26},"k:Counter-trend|fx_cross":{"n":1179,"mk":19,"R":0.08,"lo":-0.06,"hi":0.233,"hit":0.513,"p1":0.014,"p2":0.166},"k:Crowd fade|bond":{"n":1102,"mk":4,"R":0.131,"lo":-0.041,"hi":0.324,"hit":0.495,"p1":-0.004,"p2":0.277},"k:Crowd fade|commodity":{"n":4149,"mk":19,"R":-0.024,"lo":-0.094,"hi":0.038,"hit":0.498,"p1":0.019,"p2":-0.07},"k:Crowd fade|crypto":{"n":254,"mk":2,"R":0.172,"lo":-0.21,"hi":0.684,"hit":0.496,"p1":null,"p2":0.172},"k:Crowd fade|fx":{"n":2034,"mk":9,"R":0.004,"lo":-0.111,"hi":0.115,"hit":0.53,"p1":-0.075,"p2":0.087},"k:Divergence fade|bond":{"n":131,"mk":3,"R":-0.192,"lo":-0.628,"hi":0.237,"hit":0.473,"p1":-0.029,"p2":-0.267},"k:Divergence fade|commodity":{"n":627,"mk":19,"R":-0.049,"lo":-0.262,"hi":0.202,"hit":0.528,"p1":0.048,"p2":-0.136},"k:Divergence fade|equity":{"n":154,"mk":4,"R":-0.322,"lo":-0.542,"hi":-0.06,"hit":0.266,"p1":-0.517,"p2":-0.07},"k:Divergence fade|fx":{"n":329,"mk":9,"R":-0.077,"lo":-0.428,"hi":0.24,"hit":0.498,"p1":-0.148,"p2":-0.011},"k:Exhaustion fade|bond":{"n":83,"mk":4,"R":-0.233,"lo":-0.719,"hi":0.143,"hit":0.506,"p1":0.097,"p2":-0.473},"k:Exhaustion fade|commodity":{"n":303,"mk":19,"R":-0.05,"lo":-0.161,"hi":0.062,"hit":0.439,"p1":-0.01,"p2":-0.089},"k:Exhaustion fade|equity":{"n":52,"mk":4,"R":-0.41,"lo":-0.577,"hi":-0.207,"hit":0.269,"p1":-0.402,"p2":-0.415},"k:Exhaustion fade|fx":{"n":199,"mk":9,"R":0.091,"lo":-0.069,"hi":0.327,"hit":0.523,"p1":-0.007,"p2":0.163},"k:Exhaustion fade|fx_cross":{"n":378,"mk":19,"R":0.049,"lo":-0.091,"hi":0.18,"hit":0.495,"p1":0.034,"p2":0.057},"k:Pullback in trend|bond":{"n":118,"mk":4,"R":0.343,"lo":0.005,"hi":0.682,"hit":0.619,"p1":0.139,"p2":0.464},"k:Pullback in trend|commodity":{"n":1685,"mk":19,"R":-0.001,"lo":-0.1,"hi":0.113,"hit":0.504,"p1":-0.079,"p2":0.073},"k:Pullback in trend|crypto":{"n":100,"mk":2,"R":0.306,"lo":-0.194,"hi":0.953,"hit":0.46,"p1":3.098,"p2":-0.111},"k:Pullback in trend|equity":{"n":356,"mk":4,"R":0.562,"lo":0.368,"hi":0.718,"hit":0.775,"p1":0.768,"p2":0.383},"k:Pullback in trend|fx":{"n":403,"mk":9,"R":-0.038,"lo":-0.242,"hi":0.169,"hit":0.491,"p1":0.179,"p2":-0.295},"k:Pullback in trend|fx_cross":{"n":1076,"mk":19,"R":0.039,"lo":-0.096,"hi":0.175,"hit":0.538,"p1":0.04,"p2":0.037},"k:Range|bond":{"n":780,"mk":4,"R":-0.048,"lo":-0.191,"hi":0.109,"hit":0.482,"p1":-0.004,"p2":-0.098},"k:Range|commodity":{"n":279,"mk":19,"R":-0.036,"lo":-0.199,"hi":0.117,"hit":0.502,"p1":-0.188,"p2":0.138},"k:Range|equity":{"n":69,"mk":4,"R":0.458,"lo":0.14,"hi":0.791,"hit":0.667,"p1":0.942,"p2":0.107},"k:Range|fx":{"n":889,"mk":9,"R":-0.01,"lo":-0.119,"hi":0.072,"hit":0.502,"p1":-0.079,"p2":0.027},"k:Range|fx_cross":{"n":2004,"mk":19,"R":0.001,"lo":-0.114,"hi":0.115,"hit":0.503,"p1":-0.18,"p2":0.13},"k:Trend with value|bond":{"n":116,"mk":4,"R":0.352,"lo":-0.008,"hi":0.646,"hit":0.586,"p1":0.063,"p2":0.536},"k:Trend with value|commodity":{"n":786,"mk":19,"R":-0.01,"lo":-0.102,"hi":0.095,"hit":0.475,"p1":-0.098,"p2":0.067},"k:Trend with value|crypto":{"n":97,"mk":2,"R":0.376,"lo":-0.001,"hi":0.746,"hit":0.515,"p1":1.008,"p2":0.251},"k:Trend with value|equity":{"n":164,"mk":4,"R":0.463,"lo":0.289,"hi":0.635,"hit":0.756,"p1":0.495,"p2":0.447},"k:Trend with value|fx":{"n":501,"mk":9,"R":-0.111,"lo":-0.32,"hi":0.062,"hit":0.439,"p1":-0.001,"p2":-0.217},"k:Trend with value|fx_cross":{"n":1186,"mk":19,"R":0.017,"lo":-0.093,"hi":0.152,"hit":0.52,"p1":-0.007,"p2":0.038},"k:With trend|bond":{"n":104,"mk":3,"R":0.042,"lo":-0.201,"hi":0.31,"hit":0.442,"p1":-0.224,"p2":0.216},"k:With trend|commodity":{"n":1185,"mk":19,"R":0.085,"lo":-0.039,"hi":0.199,"hit":0.542,"p1":-0.021,"p2":0.171},"k:With trend|crypto":{"n":53,"mk":2,"R":0.315,"lo":-0.122,"hi":0.985,"hit":0.547,"p1":null,"p2":0.315},"k:With trend|equity":{"n":439,"mk":4,"R":0.369,"lo":0.22,"hi":0.521,"hit":0.759,"p1":0.465,"p2":0.294},"k:With trend|fx":{"n":257,"mk":9,"R":-0.179,"lo":-0.368,"hi":-0.009,"hit":0.42,"p1":-0.351,"p2":-0.014},"k:With trend|fx_cross":{"n":726,"mk":19,"R":-0.033,"lo":-0.152,"hi":0.083,"hit":0.511,"p1":-0.197,"p2":0.12}},"flags":{"seasonal_against":{"n":2674,"R":-0.12,"lo":-0.206,"hi":-0.032,"p1":-0.049,"p2":-0.182,"Rd":-0.049,"skew":0.89},"trend_exhausted":{"n":2889,"R":-0.088,"lo":-0.206,"hi":0.04,"p1":-0.04,"p2":-0.129,"Rd":-0.031,"skew":0.91},"positioning_against":{"n":520,"R":0.169,"lo":0.026,"hi":0.314,"p1":0.199,"p2":0.137,"Rd":0.024,"skew":1.13},"seasonal_with":{"n":4171,"R":0.038,"lo":-0.02,"hi":0.107,"p1":-0.036,"p2":0.105,"Rd":0.017,"skew":1.21}},"arch":[{"k":"Crowd fade","n":3220,"R":-0.006,"lo":-0.085,"hi":0.08,"hit":0.479},{"k":"Pullback in trend","n":2093,"R":0.072,"lo":-0.032,"hi":0.175,"hit":0.529},{"k":"Trend with value","n":1950,"R":0.061,"lo":-0.024,"hi":0.143,"hit":0.518},{"k":"Divergence fade","n":1212,"R":-0.113,"lo":-0.297,"hi":0.066,"hit":0.479},{"k":"Range","n":1165,"R":-0.027,"lo":-0.123,"hi":0.065,"hit":0.485},{"k":"Exhaustion fade","n":1004,"R":-0.011,"lo":-0.101,"hi":0.077,"hit":0.477},{"k":"With trend","n":296,"R":-0.039,"lo":-0.211,"hi":0.128,"hit":0.493}],"note":"Point-in-time weekly replay of the Desk rules on 57 markets, 2012-01-06 to 2026-10-23. R is the side-signed 13-week return divided by trailing 52-week volatility; bars are 90% block-bootstrap ranges. Macro pillar excluded, continuous futures with roll gaps, no costs. Evidence about the rules, not a forecast for any trade. About 60 cells were tested, so a few will pass by chance; trust the ones that hold in both halves and after drift.","findings":[{"v":"neg","h":"The old grade sorted backwards","t":"Held out 2019 to 2026, after drift, 4 to 8 weeks: developing +0.05 R, prime \u22120.04, setup \u22120.04. It no longer orders the board; the setup score does."},{"v":"mid","h":"Setup score: right order, small spread","t":"Points fitted on 2012 to 2018 only. Held out, after drift, R over 4 to 8 weeks: score 0 to 3.5 \u22120.01, 4 to 5.5 \u22120.00, 6 to 7 +0.03, 7.5 to 10 +0.04. Top minus bottom +0.04, range \u22120.04 to +0.12, so not significant. Hit rate about 50% in every bucket. At 13 weeks it does not sort."},{"v":"pos","h":"Counter-trend, early","t":"Payoff sources against a running trend, before the weekly close turns: +0.10 R, +0.09 after drift, positive in both halves. Waiting for the 10-week close took it to -0.01. The Desk currently never grades this above developing."},{"v":"pos","h":"Pullbacks that have turned","t":"Pullback in trend once the weekly close is back through the 10-week average: +0.20 R, positive in both halves, skew 1.24. Most of it is drift (+0.04 after drift)."},{"v":"neg","h":"Fades after the turn are late","t":"Crowd fades once the managers had turned: -0.07 R, -0.08 after drift, negative in both halves. The same fades before the turn: +0.04."},{"v":"neg","h":"Divergence-fade shorts","t":"-0.27 R, -0.10 after drift, negative in both halves, and the typical run against was bigger than the run for (skew 0.63)."},{"v":"neg","h":"Seasonal against is a real veto","t":"Rows where the seasonal path runs against the side over 4 to 8 weeks: \u22120.11 R in 2012 to 2018 and \u22120.19 in 2019 to 2026, negative at 4, 8 and 13 weeks. Waiting for a seasonal dip that is followed by a window lifted results in both halves (+0.09 and +0.06), clearly only in the first. State thresholds were chosen after seeing both halves."}],"score":{"buckets":[{"k":"Score 0\u20133.5","n":5090,"R":-0.008,"lo":-0.066,"hi":0.05,"hit":0.504},{"k":"Score 4\u20135.5","n":2951,"R":-0.002,"lo":-0.052,"hi":0.057,"hit":0.481},{"k":"Score 6\u20137","n":2668,"R":0.031,"lo":-0.025,"hi":0.086,"hit":0.493},{"k":"Score 7.5\u201310","n":3621,"R":0.038,"lo":-0.015,"hi":0.098,"hit":0.504}],"design":[{"k":"Score 0\u20133.5","n":4342,"R":-0.106,"lo":-0.172,"hi":-0.049,"hit":0.484},{"k":"Score 4\u20135.5","n":2978,"R":-0.032,"lo":-0.086,"hi":0.028,"hit":0.488},{"k":"Score 6\u20137","n":2224,"R":0.049,"lo":0.005,"hi":0.104,"hit":0.525},{"k":"Score 7.5\u201310","n":3027,"R":0.058,"lo":-0.016,"hi":0.123,"hit":0.538}],"timing":[{"k":"Seasonal against","p1":-0.089,"p2":-0.153},{"k":"Wait for window (now)","p1":-0.079,"p2":0.004},{"k":"Approaching","p1":-0.034,"p2":0.105},{"k":"In window / with / flat","p1":0.023,"p2":0.0}],"note":"R = side-signed return over 4 to 8 weeks divided by trailing weekly volatility, after each market's own drift. Ranges are 90% block bootstrap. A ranking aid, not a probability, and no expectancy is implied."}};
 /* ── Replay record (point-in-time backtest of the Desk rules; static, refreshed by hand) ── */
 function _rpBars(rows,opt){
   opt=opt||{}; const W=opt.w||560, rh=opt.rh||26, lw=opt.lw||150, rw=opt.rw||118, top=18;
@@ -26794,7 +26947,7 @@ function _rpBars(rows,opt){
       s+='<line x1="'+l+'" x2="'+h+'" y1="'+cy+'" y2="'+cy+'" stroke="rgba(255,255,255,.55)" stroke-width="1"/><line x1="'+l+'" x2="'+l+'" y1="'+(cy-4)+'" y2="'+(cy+4)+'" stroke="rgba(255,255,255,.55)"/><line x1="'+h+'" x2="'+h+'" y1="'+(cy-4)+'" y2="'+(cy+4)+'" stroke="rgba(255,255,255,.55)"/>'; }
     const sig=r.lo!=null&&(r.lo>0||r.hi<0);
     s+='<text x="'+(W-rw+8)+'" y="'+(y+rh/2+4)+'" class="rp-v '+(r.R>=0?'u':'d')+(sig?' s':'')+'">'+(r.R>=0?'+':'')+r.R.toFixed(2)+'</text>'
-      +'<text x="'+(W-6)+'" y="'+(y+rh/2+4)+'" text-anchor="end" class="rp-n">'+(r.hit!=null?Math.round(r.hit*100)+'% · ':'')+'n '+r.n+'</text>';
+      +'<text x="'+(W-6)+'" y="'+(y+rh/2+4)+'" text-anchor="end" class="rp-n">'+(r.hit!=null?Math.round(r.hit*100)+'% · ':'')+(r.n===''?'':'n '+r.n)+'</text>';
   });
   return s+'</svg>';
 }
@@ -26928,8 +27081,14 @@ function _egFindings(){
 function _egLab(mob){
   const E=window.BHWS_EDGE; if(!E) return '';
   let h='<section class="gl eg-lab'+(mob?' mob':'')+'"><div class="eg-top"><div><div class="wk-sub">Edge lab <span>'+_esc(E.span)+' replay · '+E.markets+' markets · '+E.h+'-week hold</span></div>'
-    +'<div class="eg-lede">Where the rules have made money, where they have not, and where this week\'s setups sit.</div></div></div>';
+    +'<div class="eg-lede">What the setup score and its parts did on a held-out replay, including what did not work.</div></div></div>';
   h+=_egFindings();
+  if(E.score){ const S=E.score;
+    const tr=[{sep:'Held out 2019–26 · after drift · R over 4–8 weeks'}].concat(S.buckets).concat([{sep:'Design half 2012–18 (points fitted here)'}]).concat(S.design);
+    const tm=[{sep:'Seasonal timing state · after drift · 2019–26'}].concat(S.timing.map(t=>({k:t.k,R:t.p2,n:'',base:0}))).concat([{sep:'Same states · 2012–18'}]).concat(S.timing.map(t=>({k:t.k,R:t.p1,n:'',base:0})));
+    h+='<div class="eg-g su-eg"><div class="eg-p"><div class="rp-t">Setup score test: does a higher score sort the next 4 to 8 weeks?</div>'+_rpBars(tr,{w:mob?340:560,lw:mob?96:120,rw:mob?92:118,title:'Setup score buckets'})+'</div>'
+      +'<div class="eg-p"><div class="rp-t">Seasonal timing states: the veto and the sweet spot</div>'+_rpBars(tm,{w:mob?340:560,lw:mob?120:150,rw:mob?60:80,title:'Seasonal timing states'})+'</div></div><div class="wk-note">'+_esc(S.note)+'</div>';
+  }
   const _egOpen=(()=>{try{return localStorage.getItem('bh_eg_more')==='1';}catch(_){return false;}})();
   h+='<details class="eg-more"'+(_egOpen?' open':'')+' ontoggle="try{localStorage.setItem(\'bh_eg_more\',this.open?\'1\':\'0\')}catch(_){}"><summary><span>The evidence</span><em>edge matrix · payoff asymmetry · replay record</em><b class="eg-more-cta"></b></summary>';
   h+='<div class="eg-g"><div class="eg-p"><div class="rp-t">Edge matrix: average R by archetype and state · live tickers placed in their cell</div>'+_egMatrix(mob)+'<div class="eg-key"><span><i class="rob"></i>robust: same sign in 2012–18, 2019–26 and after drift (each beyond ±0.02), n ≥ 150</span><span><i class="pr"></i>prime</span><span><i class="st"></i>setup</span><span><i class="dv"></i>developing</span></div></div>';
@@ -27008,6 +27167,13 @@ function _mrWheel(r,S){
     s+='<text x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="middle" class="mrw-l'+(v.rel==='against'?' ag':'')+'">'+DK_PL_SHORT[k]+'</text>';
   });
   const side=S.side||0; const g=(r.class&&r.class.key)||'none';
+  if(r.setup&&r.setup.score!=null){
+    const k=_suKey(r), d=SU_READY[k];
+    s+='<text x="100" y="86" text-anchor="middle" class="mrw-g" fill="'+d.c+'">'+_esc((k==='wait'&&r.setup.timing&&r.setup.timing.entry_td?'WAIT '+r.setup.timing.entry_td+' TD':d.l).toUpperCase())+'</text>';
+    s+='<text x="100" y="111" text-anchor="middle" class="mrw-n" fill="'+_suCol(r)+'">'+_suNum(r)+'</text>';
+    s+='<text x="100" y="127" text-anchor="middle" class="mrw-s '+(side>0?'u':side<0?'d':'')+'" style="font-size:11px">'+(side>0?'\u25B2 LONG':'\u25BC SHORT')+'</text>';
+    s+='</svg>'; return s;
+  }
   s+='<text x="100" y="92" text-anchor="middle" class="mrw-g" fill="'+_dkGradeCol(g)+'">'+_esc((r.class.label||'').replace(/ setup$/i,'').toUpperCase())+'</text>';
   s+='<text x="100" y="117" text-anchor="middle" class="mrw-s '+(side>0?'u':side<0?'d':'')+'">'+(side>0?'\u25B2 LONG':side<0?'\u25BC SHORT':(S.lean>0?'LEANS LONG':S.lean<0?'LEANS SHORT':'FLAT'))+'</text>';
   s+='<text x="100" y="133" text-anchor="middle" class="mrw-a">align '+(r.alignment!=null?Number(r.alignment).toFixed(1):'—')+'</text>';
@@ -27072,10 +27238,12 @@ function marketReadInner(id){
   let h='<canvas class="fx-field" data-fx="1" aria-hidden="true"></canvas><div class="mr3-top" style="--tone:'+tone+'"><div class="mr2-hd">';
   h+='<div class="mr2-k">Market read &middot; '+_esc(r.name)+'<span class="mr2-stamp">built '+_dkAgo(DESK.generated_at)+(r.positioning?' &middot; COT obs '+_dkT(r.positioning.observed):'')+'</span></div>';
   h+='<div class="mr2-hl">'+_esc(R.headline)+'</div>';
-  h+='<div class="mr2-meta"><span class="mr2-cls" style="--c:'+tone+'">'+_esc(S.label||'')+'</span>'+(R.archetype&&S.key!=='none'?'<span class="mr2-arch">'+_esc(R.archetype)+'</span>':'')+_dkSide(side,lean)
+  if(r.setup) h+='<div class="mr2-meta">'+_suReadyChip(r)+_dkSide(side,lean)+(R.archetype&&S.key!=='none'?'<span class="mr2-arch">'+_esc(R.archetype)+'</span>':'')+_suTmChip(r)+_suRelChip(r)+'</div>';
+  else h+='<div class="mr2-meta"><span class="mr2-cls" style="--c:'+tone+'">'+_esc(S.label||'')+'</span>'+(R.archetype&&S.key!=='none'?'<span class="mr2-arch">'+_esc(R.archetype)+'</span>':'')+_dkSide(side,lean)
     +(S.trigger?'<span class="mr2-trig">'+_esc(S.trigger)+'</span>':'')+comp+'</div>';
   h+='<div class="mr2-txt">'+(prof?'<p class="mr2-prof">'+_esc(prof)+'</p>':'')+(R.summary||[]).map(t=>'<p>'+_esc(t)+'</p>').join('')+'</div></div>';
   h+='<div class="mr3-wheel">'+_mrWheel(r,S)+'</div></div>';
+  if(r.setup) h+=_suPanel(r,m);
   const now=Date.now(); const evs=(R.events||[]).filter(e=>new Date(e.datetime_utc).getTime()>now-36e5);
   h+='<div class="mr3-pills">'+(R.pillars||[]).map((p,i)=>{
     const s=p.sign||0; const cls=s>0?'u':s<0?'d':'z';
@@ -27088,12 +27256,12 @@ function marketReadInner(id){
       +(viz?'<div class="mr3-viz">'+viz+'</div>':'')
       +'<ul>'+facts.slice(0,3).map(f=>'<li>'+_esc(f)+'</li>').join('')+'</ul>'+(facts.length>3?'<details class="mr3-more" onclick="event.stopPropagation()"><summary>'+(facts.length-3)+' more</summary><ul>'+facts.slice(3).map(f=>'<li>'+_esc(f)+'</li>').join('')+'</ul></details>':'')+'<span class="go">Open tab &rarr;</span></div>';
   }).join('')+'</div>';
-  h+='<div class="mr3-low">'+_egCard(r);
+  h+='<div class="mr3-low">'+(r.setup?'<details class="mr3-egd"><summary>Archetype replay check · 13 weeks</summary>'+_egCard(r)+'</details>':_egCard(r));
   h+='<div class="gl mr3-box"><div class="mr2-sub">What would change it</div><ul class="mr2-ul">'+((R.watch||[]).length?R.watch.map(w=>'<li>'+_esc(w)+'</li>').join(''):'<li>Nothing close to a threshold this week.</li>')+'</ul>'
     +((R.risks||[]).length?'<div class="mr2-gates">'+R.risks.map(g=>'<span class="dk-gate">'+_esc(g)+'</span>').join('')+'</div>':'')+'</div>';
   h+='<div class="mr3-col">';
   h+='<div class="gl mr3-box"><div class="mr2-sub">Ahead for '+_esc((r.currencies||[]).join(', ')||'this market')+'</div>'+(evs.length?'<div class="wke-tl sm">'+evs.slice(0,5).map((e,i)=>'<div class="wke-i'+(i===0?' next':'')+'"><span class="dot"></span><span class="tm">'+_dkT(e.datetime_utc,{weekday:'short',hour:'2-digit',minute:'2-digit'})+'</span><span class="cc">'+_esc(e.currency)+'</span><span class="nm">'+_esc(e.name)+(e.forecast?' <span class="x">f '+_esc(e.forecast)+'</span>':'')+'</span></div>').join('')+'</div>':'<div class="wk-empty">No top-tier prints in the feed for these currencies.</div>')+'</div>';
-  if(R.engine&&R.engine.text) h+='<details class="gl mr3-box mr3-eng'+(R.engine.disagrees?' dis':'')+'"><summary><span>Composite engine</span>'+(ws!=null?'<b style="color:'+sHex(ws)+'">'+ws.toFixed(1)+'</b>/10':'')+(R.engine.disagrees?' <em>disagrees with the desk</em>':'')+'</summary><p>'+_esc(R.engine.text)+'</p></details>';
+  if(R.engine&&R.engine.text&&!r.setup) h+='<details class="gl mr3-box mr3-eng'+(R.engine.disagrees?' dis':'')+'"><summary><span>Bias · composite engine</span>'+(ws!=null?'<b style="color:'+sHex(ws)+'">'+ws.toFixed(1)+'</b>/10':'')+(R.engine.disagrees?' <em>'+(r.setup?'counter-trend to the setup':'disagrees with the desk')+'</em>':'')+'</summary><p>'+_esc(R.engine.text)+'</p></details>';
   h+='</div></div>';
   return h;
 }
@@ -27155,6 +27323,17 @@ function renderSetupList(){
   const el=document.getElementById('mkt-list');
   if(!rows.length&&!extra.length){ el.innerHTML='<div class="sb-no-results">'+(q?'No markets match \u201c'+_esc(q)+'\u201d':'No markets in this category')+'</div>'; return; }
   let h='';
+  const _hasSu=rows.some(r=>r.setup);
+  if(_hasSu){
+    SU_ORDER.forEach(k=>{
+      const g=rows.filter(r=>_suKey(r)===k); if(!g.length) return;
+      if(k!=='wait') g.sort((a,b)=>((b.setup&&b.setup.score)||0)-((a.setup&&a.setup.score)||0));
+      else g.sort((a,b)=>((a.setup.timing||{}).entry_td||99)-((b.setup.timing||{}).entry_td||99));
+      const d=SU_READY[k];
+      h+='<div class="sb2-grp" style="--gc:'+d.c+'"><div><b>'+_esc(d.l)+'</b><small>'+_esc(d.n)+'</small></div><span>'+g.length+'</span></div>';
+      h+=g.map(r=>_sbRow(byId[r.id],r,k==='none'||k==='weak'||k==='veto')).join('');
+    });
+  } else
   DK_CLASS_ORDER.forEach(k=>{
     const g=rows.filter(r=>r.class.key===k); if(!g.length) return;
     const tone=_dkToneCol(g[0].class.tone);
@@ -27173,15 +27352,17 @@ function _sbRow(m,r,dim){
   return '<div class="mkt-row sb2-row'+(dim?' dim':'')+(selMkt===m.id?' sel':'')+'" data-id="'+m.id+'" onclick="selectMkt(\''+m.id+'\')" style="--mob-row-col:'+sc+';--row-accent:'+sc+'">'
     +'<span class="mr-id" style="color:'+catCol+'">'+tid+'</span>'
     +'<div class="mr-body"><div class="mr-name-row"><div class="mr-name">'+_esc(m.name)+'</div></div>'
-    +(r?'<div class="sb2-sub">'+_dkDots(r)+_dkTrigTag(r)+_dkArch(r)+'</div>':'')+'</div>'
+    +(r?'<div class="sb2-sub">'+_dkDots(r)+(r.setup?(_suTmShort(r)&&!['flat','with'].includes(_suTm(r).state)?'<span class="sb2-tm '+_suTmCls(_suTm(r).state)+'">'+_esc(_suTmShort(r))+'</span>':''):_dkTrigTag(r))+_dkArch(r)+'</div>':'')+'</div>'
     +(r?_dkSide(r.side,dim?0:lean):'')
-    +'<div class="mr-right"><span class="sb2-score" style="color:'+col+'" title="Composite score, for reference">'+(ws!=null?ws.toFixed(1):'—')+'</span></div></div>';
+    +(r&&r.setup&&SB_SORT==='setups'
+      ?'<div class="mr-right"><span class="sb2-su" style="color:'+_suCol(r)+'" title="Setup score for the desk side, 0 to 10. Bias (composite) '+(ws!=null?ws.toFixed(1):'n/a')+'">'+_suNum(r)+'</span></div></div>'
+      :'<div class="mr-right"><span class="sb2-score" style="color:'+col+'" title="Bias (composite), for reference">'+(ws!=null?ws.toFixed(1):'—')+'</span></div></div>');
 }
 
 function renderList(){
   if(!DATA)return;
   document.querySelectorAll('.sb-sort button').forEach(b=>{ const on=b.dataset.s===(DESK?SB_SORT:'score'); b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false'); });
-  const _sn=document.getElementById('sb-scale-note'); if(_sn) _sn.textContent=(DESK&&SB_SORT==='setups')?'grouped by desk read':'composite, scored 1 to 10';
+  const _sn=document.getElementById('sb-scale-note'); if(_sn) _sn.textContent=(DESK&&SB_SORT==='setups')?'setup score 0 to 10, by readiness':'bias (composite), 1 to 10';
   if(DESK&&DESK.rows&&SB_SORT==='setups') return renderSetupList();
 
   const _srchQ = (document.getElementById('sb-search')?.value||'').trim().toLowerCase();
@@ -35623,6 +35804,7 @@ function initDHeadCanvas(scoreCol, ws){
 function animateScoreHero(targetScore, col){
   const el=document.querySelector('.d-score-hero-num');
   if(!el)return;
+  if(el.closest('.su-hero')){ const v=parseFloat(el.dataset.v); if(isNaN(v)) return; targetScore=v; col=el.style.color||col; }
   el.dataset.score=targetScore.toFixed(1);           // true value — never read animated text
   const gen=(el._animGen=(el._animGen||0)+1);        // cancel any in-flight animation
   const start=0, dur=600;
@@ -36829,7 +37011,7 @@ function buildOverview(m){
 
     <!-- OV-V6: engine fingerprint + method folded into one reference drawer (closed by default) -->
     <details class="ov-eng-ref"${(()=>{try{return localStorage.getItem('bh_ov_engref')==='1'?' open':'';}catch(_){return '';}})()} ontoggle="try{localStorage.setItem('bh_ov_engref',this.open?'1':'0')}catch(_){}">
-      <summary><span class="oer-k">Engine reference</span><span class="oer-v"><b style="color:${sHex(ws)}">${ws.toFixed(1)}</b>/10 · ${_esc(chipLabel)} · ${confTitle}</span><span class="oer-mini">${factorKeys.map(k=>{const sc=normalisedScores[k]?.score??5;return `<i style="background:${sHex(sc)}" title="${FACTOR_LABELS[k]||k} ${sc.toFixed(1)}"></i>`;}).join('')}</span><span class="oer-cta">Fingerprint and method</span></summary>
+      <summary><span class="oer-k">Bias · composite engine</span><span class="oer-v"><b style="color:${sHex(ws)}">${ws.toFixed(1)}</b>/10 · ${_esc(chipLabel)} · ${confTitle}</span><span class="oer-mini">${factorKeys.map(k=>{const sc=normalisedScores[k]?.score??5;return `<i style="background:${sHex(sc)}" title="${FACTOR_LABELS[k]||k} ${sc.toFixed(1)}"></i>`;}).join('')}</span><span class="oer-cta">Fingerprint and method</span></summary>
     <div class="ov-conf-strip" style="--ov-stripe-rgb:${stripeRgb}">
       <div class="ov-conf-summary" style="--ov-stripe-rgb:${stripeRgb}">
         <div class="ov-conf-summary-title"><span class="ov-conf-eng">Engine</span>${confTitle}</div>
@@ -36912,6 +37094,11 @@ function _dHeadDesk(m){
   const r=typeof deskRow==='function'?deskRow(m.id):null;
   if(!r||!r.class) return typeof DESK!=='undefined'&&DESK?'<span class="d-desk none">No desk read</span>':'<span class="d-desk wait">Desk read loading</span>';
   const k=r.class.key, side=r.side||0;
+  if(r.setup){
+    if(!side||r.setup.score==null) return '<span class="d-desk none" title="No payoff source qualifies, so there is no side to score">No setup</span>'+_dkDots(r);
+    const c2=side>0?'#22C97A':'#E05252';
+    return '<span class="d-desk k-su" style="--dk:'+c2+'" onclick="switchTab(\'overview\')" title="Desk side and archetype. Click for the market read.">'+(side>0?'▲ Long':'▼ Short')+(r.archetype?'<i>'+_esc(r.archetype)+'</i>':'')+'</span>'+_suTmChip(r,{sm:1})+_dkDots(r);
+  }
   if(k==='none') return '<span class="d-desk none" title="No pillar combination qualifies as a setup">No setup</span>'+_dkDots(r);
   const c=k==='prime'?'#F1E3BE':side>0?'#22C97A':side<0?'#E05252':'#c8a96e';
   const arrow=side>0?'▲ ':side<0?'▼ ':'';
@@ -37012,7 +37199,7 @@ function dHead(m,ws,col,bg){
       <div class="d-name">${m.name}${iceLabel}</div>
       <div class="d-bias-row">
         <span class="d-desk-slot" id="d-desk-slot" data-dk="${m.id}">${_dHeadDesk(m)}</span>
-        <div class="d-bias-pill d-eng-pill" style="background:${bg};color:${col};border:1px solid ${col}40" title="Composite engine label. The engine is a reference read; the desk read on the left is what the board trades.">Engine · ${m.bias}</div>
+        ${(typeof deskRow==='function'&&deskRow(m.id)&&deskRow(m.id).setup)?'':`<div class="d-bias-pill d-eng-pill" style="background:${bg};color:${col};border:1px solid ${col}40">Bias · ${m.bias}</div>`}
       </div>
       ${iceThinWarn}
       <!-- COT Phase & Score History moved: Phase→Positioning tab, History→tab nav right end -->
@@ -37023,8 +37210,19 @@ function dHead(m,ws,col,bg){
       ${_confHtml}
     </div>
 
-    <!-- RIGHT: composite score (R38 — premium arc gauge) -->
-    ${(()=>{
+    <!-- RIGHT: setup score hero (v7) with the composite as the bias meter; falls back to the composite arc -->
+    ${_dHero(m,ws,col,_confHtml)}
+
+    <!-- keep wheel in DOM for drawWheel compat -->
+    <div class="d-wheel"><canvas id="wheel-c" width="1" height="1"></canvas></div>
+    ${assetGraphic(m)}
+  </div>`;
+}
+function _dHero(m,ws,col,_confHtml){
+  const _r=typeof deskRow==='function'?deskRow(m.id):null;
+  if(_r&&_r.setup) return _dHeroSu(m,ws,_r);
+  _confHtml=_confHtml||'';
+  return (()=>{
       // Arc gauge SVG — large horseshoe arc, red→neutral→green
       // Designed to fill the score panel width (~180px)
       // viewBox: 160 wide x 100 tall. Arc centre at (80, 88), R=62
@@ -37045,7 +37243,7 @@ function dHead(m,ws,col,bg){
       const arcUid='a'+(Math.random()*0xFFFFF|0).toString(16);
       // Bias label — uppercase
       const biasUp=(m.bias||'').toUpperCase();
-      return `<div class="d-score-hero" style="--score-glow-col:${col};--d-score-rgb:${hexToRgbStr(col)}">
+      return `<div class="d-score-hero" id="d-score-hero" data-dk="${m.id}" style="--score-glow-col:${col};--d-score-rgb:${hexToRgbStr(col)}">
       <div style="font-size:7px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(190,200,220,0.40);font-family:var(--mono);margin-bottom:2px" title="Composite engine score, 1 to 10. A reference read; the desk read sets the side.">ENGINE · COMPOSITE</div>
       <div class="d-score-hero-num" style="color:${col}">${ws.toFixed(1)}</div>
       <div class="d-score-hero-denom" style="color:${col}">/10</div>
@@ -37094,13 +37292,37 @@ function dHead(m,ws,col,bg){
       ${_confHtml}
       <button onclick="openMethModal('${m.id}')" style="margin-top:5px;font-size:7px;color:var(--faint);background:none;border:none;cursor:pointer;letter-spacing:0.04em;text-decoration:underline;text-underline-offset:2px;padding:0;opacity:0.45">How is this scored?</button>
     </div>`;
-    })()}
-
-    <!-- keep wheel in DOM for drawWheel compat -->
-    <div class="d-wheel"><canvas id="wheel-c" width="1" height="1"></canvas></div>
-    ${assetGraphic(m)}
-  </div>`;
+    })();
 }
+function _dHeroSu(m,ws,r){
+  const su=r.setup, side=su.side||0, v=su.score;
+  const col=v==null?'#7d879c':_suSideCol(side), rgb=v==null?'125,135,156':side>0?'34,201,122':'224,82,82';
+  const R=62,cx=80,cy=88,st=210,sw=120,tr=d=>d*Math.PI/180;
+  const P=(d,rr)=>(cx+rr*Math.cos(tr(d))).toFixed(2)+','+(cy+rr*Math.sin(tr(d))).toFixed(2);
+  const fr=v==null?0:Math.max(0,Math.min(1,v/10)), dd=st+fr*sw;
+  const uid='s'+(Math.random()*0xFFFFF|0).toString(16);
+  const k=_suKey(r), rd=SU_READY[k]||SU_READY.none;
+  const rl=(k==='wait'&&su.timing&&su.timing.entry_td)?('WAIT '+su.timing.entry_td+' TD'):rd.l.toUpperCase();
+  const ticks=[0,.4,.6,1].map(f=>{const t=st+f*sw; return '<line x1="'+P(t,R).split(',')[0]+'" y1="'+P(t,R).split(',')[1]+'" x2="'+P(t,R-7).split(',')[0]+'" y2="'+P(t,R-7).split(',')[1]+'" stroke="rgba(255,255,255,'+(f===.6?.34:.16)+')" stroke-width="'+(f===.6?1.3:.9)+'"/>';}).join('');
+  return '<div class="d-score-hero su-hero" id="d-score-hero" data-dk="'+m.id+'" style="--score-glow-col:'+col+';--d-score-rgb:'+rgb+'">'
+    +'<div class="su-h-k" title="Setup score, 0 to 10, for the desk side. Points from structure, trend location, positioning and seasonal timing. A ranking aid tested on a held-out replay, not a probability.">SETUP SCORE'+(side?' · '+(side>0?'LONG':'SHORT'):'')+'</div>'
+    +'<div class="su-h-nr"><div class="d-score-hero-num"'+(v==null?'':' data-v="'+v.toFixed(1)+'"')+' style="color:'+col+'">'+(v==null?'—':v.toFixed(1))+'</div>'
+    +'<div class="d-score-hero-denom" style="color:'+col+'">/10</div></div>'
+    +'<div class="d-score-arc-wrap"><svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg" overflow="visible"><defs>'
+    +'<linearGradient id="g'+uid+'" gradientUnits="userSpaceOnUse" x1="'+(cx-R)+'" y1="0" x2="'+(cx+R)+'" y2="0"><stop offset="0%" stop-color="rgb('+rgb+')" stop-opacity=".18"/><stop offset="100%" stop-color="rgb('+rgb+')" stop-opacity="1"/></linearGradient>'
+    +'<filter id="f'+uid+'" x="-150%" y="-150%" width="500%" height="500%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
+    +'<path d="M'+P(st,R)+' A'+R+','+R+' 0 0 1 '+P(st+sw,R)+'" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="9" stroke-linecap="round"/>'
+    +'<path d="M'+P(st,R)+' A'+R+','+R+' 0 0 1 '+P(st+sw,R)+'" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="5" stroke-linecap="round"/>'
+    +(fr>0.005?'<path d="M'+P(st,R)+' A'+R+','+R+' 0 0 1 '+P(dd,R)+'" fill="none" stroke="url(#g'+uid+')" stroke-width="5" stroke-linecap="round"/>':'')+ticks
+    +(v!=null?'<circle cx="'+P(dd,R).split(',')[0]+'" cy="'+P(dd,R).split(',')[1]+'" r="8" fill="'+col+'" opacity=".18" filter="url(#f'+uid+')"/><circle cx="'+P(dd,R).split(',')[0]+'" cy="'+P(dd,R).split(',')[1]+'" r="4.5" fill="'+col+'"/><circle cx="'+P(dd,R).split(',')[0]+'" cy="'+P(dd,R).split(',')[1]+'" r="1.8" fill="rgba(255,255,255,.75)"/>':'')
+    +'<text x="'+cx+'" y="'+(cy+8)+'" text-anchor="middle" font-family="var(--head)" font-size="8.5" font-weight="700" letter-spacing="0.12em" fill="'+rd.c+'" opacity=".9">'+_esc(rl)+'</text></svg></div>'
+    +(su.projected?'<div class="su-h-proj" title="'+_esc(su.projected.note||'')+'">'+Number(su.projected.score).toFixed(1)+' at the window · '+_esc(_dkT(su.projected.date))+'</div>':'')
+    +'<div class="su-h-bias">'+_suBias(ws,null,{sm:1})+'</div>'
+    +(su.relation&&su.relation.key!=='none'?'<div class="su-h-rel k-'+su.relation.key+'">'+_esc(su.relation.text)+'</div>':'')
+    +'<div class="su-h-lk"><button onclick="_suGo()">Score receipt</button><button onclick="openMethModal(\''+m.id+'\')">Bias method</button></div>'
+    +'</div>';
+}
+function _suGo(){ try{ switchTab('overview'); }catch(e){} setTimeout(()=>{ const el=document.querySelector('.su-panel'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },160); }
 
 /* ═════════════════════════════════════════════
    SCORE ANATOMY RECEIPT
@@ -37828,7 +38050,8 @@ function _fxRoleHTML(m,tab){
   const rel=pl.rel||'neutral';
   const relTxt=!side?(pl.sign>0?'leans bullish':pl.sign<0?'leans bearish':'no lean'):rel==='with'?'with the '+sideW:rel==='against'?'against the '+sideW:rel==='exhausted'?'tired, not counted against':'neutral for the '+sideW;
   const relCol=rel==='with'?(side>0?'#22C97A':'#E05252'):rel==='against'?'#EAB850':rel==='exhausted'?'#F1E3BE':'#8a93a8';
-  const roleTxt={payoff:'payoff source','context and timing':'context and timing','minor tilt':'minor tilt, never the reason','hit rate':'hit rate, sets the side'}[pl.role]||pl.role||'';
+  let roleTxt={payoff:'payoff source','context and timing':'context and timing','minor tilt':'minor tilt, never the reason','hit rate':'hit rate, sets the side'}[pl.role]||pl.role||'';
+  if(P==='seasonal'&&r.setup&&r.setup.timing&&r.setup.timing.state!=='na') roleTxt='timing gate · '+String(r.setup.timing.label||'').toLowerCase();
   const pos=r.positioning||{};
   const addD=(iso,n)=>{ if(!iso) return null; const d=new Date(iso+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
   let asof='', chg='';
@@ -44940,8 +45163,10 @@ function _labCtxRender(){
       <select class="lc-sel" aria-label="Switch market" onchange="_labJump(this.value)">${opts}</select>
       <button type="button" class="lc-arrow" onclick="_labNav(1)" title="Next market: ${_esc(nextN)} (→)" aria-label="Next market">›</button>
     </div>
-    <div class="lc-cell"><em>Desk read</em><b style="color:${sCol}">${stance}</b></div>
-    <div class="lc-cell"><em>Seasonal pillar</em><b style="color:${relCol}">${relTxt}</b><i>${pl.role?_esc(pl.role==='minor tilt'?'minor tilt, never the reason':pl.role):'minor tilt, never the reason'}</i></div>
+    ${r&&r.setup?`<div class="lc-cell"><em>Setup score</em><b style="color:${_suCol(r)}">${_suNum(r)}${sideW?' · '+sideW:''}</b><i>${_esc((SU_READY[_suKey(r)]||SU_READY.none).l)}${r.archetype?' · '+_esc(r.archetype):''}</i></div>
+    <div class="lc-cell"><em>Seasonal timing</em>${_suTmChip(r,{sm:1})||'<b>no path</b>'}<i>against = veto; a window ahead = wait</i></div>`
+    :`<div class="lc-cell"><em>Desk read</em><b style="color:${sCol}">${stance}</b></div>
+    <div class="lc-cell"><em>Seasonal pillar</em><b style="color:${relCol}">${relTxt}</b><i>${pl.role?_esc(pl.role==='minor tilt'?'minor tilt, never the reason':pl.role):'minor tilt, never the reason'}</i></div>`}
     <div class="lc-cell"><em>Tab score · 1–4 wk</em><b>${scv}</b>${g?`<i class="lc-g g-${g}">grade ${g}</i>`:''}</div>
     <div class="lc-cell"><em>Desk basis · ${pr} TD</em><b style="color:${p0&&p0.median!=null?(p0.median>=0?'#22C97A':'#E05252'):'inherit'}">${p0?pcx(p0.median):'—'}</b>${p0?`<i>${Math.round(p0.hit_up)}% up · ${p0.n} yrs</i>`:''}</div>
     <div class="lc-acts">
@@ -47250,6 +47475,132 @@ initNexusNoise();
     background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);
   }
 }
+/* ── BHWS v7: setup score, timing, bias (one read, three layers) ── */
+:root{--su-ready:#F1E3BE;--su-wait:#9DB4DC;--su-ag:#EAB850}
+.su-tm{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em;padding:3px 9px 3px 7px;border-radius:999px;white-space:nowrap;line-height:1.25;color:#cfd6e4;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03)}
+.su-tm i{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.su-tm.ok{color:#F1E3BE;border-color:rgba(241,227,190,.32);background:rgba(241,227,190,.06)}
+.su-tm.wt{color:#9DB4DC;border-color:rgba(157,180,220,.36);background:rgba(157,180,220,.07)}
+.su-tm.wt i{background:transparent;box-shadow:inset 0 0 0 1.4px currentColor}
+.su-tm.ag{color:#EAB850;border-color:rgba(234,184,80,.4);background:rgba(234,184,80,.07)}
+.su-tm.fl{color:#8b93a5}
+.su-tm.sm{font-size:8.5px;padding:2px 8px 2px 6px}
+.su-rd{display:inline-flex;align-items:center;font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 42%,transparent);background:color-mix(in srgb,var(--c) 9%,transparent);padding:3px 9px;border-radius:5px;white-space:nowrap}
+.su-rd.k-ready{box-shadow:0 0 14px rgba(241,227,190,.14)}
+.su-rd.sm{font-size:8px;padding:2px 6px}
+.su-rel{font-size:11px;color:#aab3c5;padding:2px 0;white-space:nowrap}
+.su-rel.k-counter{color:#cfd6e4}
+.su-bias{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;color:var(--faint);white-space:nowrap}
+.su-bias em{font-style:normal;letter-spacing:.12em;text-transform:uppercase;font-size:8px;font-weight:800}
+.su-bt{position:relative;width:74px;height:4px;border-radius:2px;background:linear-gradient(90deg,rgba(224,82,82,.55),rgba(120,128,146,.28) 50%,rgba(34,201,122,.55))}
+.su-bt .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:rgba(255,255,255,.28)}
+.su-bt b{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;transform:translate(-50%,-50%);border:1.5px solid #0b0e14}
+.su-bias strong{font-size:11px;font-weight:800}
+.su-bl{color:#aab3c5;font-size:9.5px}
+.su-bias.sm .su-bt{width:56px}
+.su-ring{display:block;flex-shrink:0}
+/* panel */
+.su-panel{padding:14px 16px 12px;margin:0 0 14px;animation:v3Rise .6s both}
+.su-ph{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:12px}
+.su-pk{font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-right:2px}
+.su-sp{flex:1}
+.su-pg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:22px;align-items:start}
+.su-rc{display:flex;flex-direction:column;gap:1px}
+.su-rc-row{display:grid;grid-template-columns:118px minmax(0,1fr) 96px 38px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11.5px}
+.su-rc-row .l{color:#dfe4ee;font-weight:600}
+.su-rc-row .d{color:#8b93a5;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.su-rc-row.ev{cursor:help}
+.su-rc-row .bar{position:relative;height:8px}
+.su-rc-row .bar .z{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:rgba(255,255,255,.2)}
+.su-rc-row .bar .f{position:absolute;top:1px;height:6px;border-radius:3px}
+.su-rc-row .bar .f.p{background:linear-gradient(90deg,rgba(241,227,190,.35),#F1E3BE)}
+.su-rc-row .bar .f.n{background:linear-gradient(270deg,rgba(234,184,80,.35),#EAB850)}
+.su-rc-row b{font-family:var(--mono);font-size:11px;text-align:right;color:#8b93a5}
+.su-rc-row b.p{color:#F1E3BE}.su-rc-row b.n{color:#EAB850}
+.su-rc-row.base{opacity:.7}
+.su-rc-row.tot{border-bottom:0;border-top:1px solid rgba(255,255,255,.12);margin-top:3px;padding-top:9px}
+.su-rc-row.tot .l{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.su-rc-row.tot b{font-size:20px;font-family:var(--head)}
+.su-pt{font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.su-path{width:100%;height:auto;display:block}
+.su-path .su-ax{font-family:var(--mono);font-size:8px;fill:var(--faint)}
+.su-path .su-mk{font-family:var(--mono);font-size:8.5px;fill:#cfd6e4}
+.su-path .su-pl{stroke-dasharray:1200;animation:v3Draw 1.2s cubic-bezier(.3,.8,.2,1) both}
+.su-tt{font-size:12px;line-height:1.5;color:#c3cad8;margin:6px 0 0}
+.su-proj{margin-top:7px;font-size:11.5px;color:#aab3c5}
+.su-proj b{font-family:var(--mono)}
+.su-foot{margin-top:12px;padding-top:9px;border-top:1px solid rgba(255,255,255,.05);font-size:10.5px;line-height:1.5;color:var(--faint)}
+.su-foot span{color:#c3cad8}
+.su-none p{font-size:12px;color:#aab3c5;margin:0 0 8px}
+/* sidebar */
+.sb2-row .sb2-su{font-family:var(--head);font-size:15px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.sb2-row .sb2-bias{font-family:var(--mono);font-size:8px;opacity:.6}
+.sb2-tm{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.03em;white-space:nowrap;flex-shrink:0;color:#8b93a5}
+.sb2-tm.ok{color:#F1E3BE}.sb2-tm.wt{color:#9DB4DC}.sb2-tm.ag{color:#EAB850}
+/* detail hero */
+.su-hero .su-h-k{font-size:7px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(190,200,220,.5);font-family:var(--mono);margin-bottom:2px;cursor:help}
+.su-h-nr{display:flex;align-items:baseline;justify-content:center;gap:4px}
+.su-h-nr .d-score-hero-denom{margin:0 !important}
+.su-hero .d-score-arc-wrap{max-width:168px;height:78px;margin:-2px auto 0}
+.su-h-proj{font-family:var(--mono);font-size:8.5px;color:#9DB4DC;margin-top:2px;white-space:nowrap}
+.su-h-bias{margin-top:6px}
+.su-h-rel{font-size:9px;color:#9aa3b5;margin-top:3px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.su-h-lk{display:flex;gap:10px;justify-content:center;margin-top:5px}
+.su-h-lk button{font-size:7.5px;color:var(--faint);background:none;border:none;cursor:pointer;letter-spacing:.04em;text-decoration:underline;text-underline-offset:2px;padding:0;opacity:.6}
+.su-h-lk button:hover{opacity:1;color:#F1E3BE}
+.d-desk.k-su{font-weight:800}
+.d-desk-slot .su-tm{cursor:help}
+/* market read */
+.mrw-n{font-family:var(--head);font-size:30px;font-weight:700;letter-spacing:-.03em}
+.mr3-egd{min-width:0}
+.mr3-egd>summary{list-style:none;cursor:pointer;font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(16,19,27,.4)}
+.mr3-egd>summary::-webkit-details-marker{display:none}
+.mr3-egd>summary::before{content:'+ '}
+.mr3-egd[open]>summary{margin-bottom:8px}.mr3-egd[open]>summary::before{content:'\2212 '}
+/* board */
+.su-board .wkb-card.su .t{align-items:flex-start}
+.su-board .wkb-card.su .a span{color:#cfd6e4;overflow:hidden;text-overflow:ellipsis}
+.su-c-tm{margin:-2px 0 8px}
+.su-c-rel{font-family:var(--mono);font-size:8px;color:var(--faint);letter-spacing:.04em}
+.su-c-rel.k-counter{color:#cfd6e4}
+.su-board .wkb-card.su .f{flex-wrap:wrap;row-gap:4px;display:flex;align-items:flex-end}
+.su-c-rel{white-space:nowrap;margin-left:auto}
+.wkb-sub em{font-style:normal;font-weight:600;letter-spacing:.02em;text-transform:none;color:var(--faint);margin-left:6px}
+.su-board .wkb-sub{color:#F1E3BE}
+.su-board .wkb-sub.ag{color:#EAB850}
+.su-wait{grid-template-columns:1fr !important}
+.su-wait li{grid-template-columns:minmax(0,1fr) 150px 86px 46px !important}
+.su-pj{justify-content:flex-end}
+.su-cd{display:flex;flex-direction:column;gap:3px;min-width:0}
+.su-cd .tr{height:4px;border-radius:2px;background:rgba(157,180,220,.12);overflow:hidden}
+.su-cd .tr i{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,rgba(157,180,220,.3),#9DB4DC)}
+.su-cd em{font-style:normal;font-family:var(--mono);font-size:8.5px;color:#9DB4DC;white-space:nowrap}
+.su-pj{display:inline-flex;align-items:baseline;gap:4px;font-family:var(--mono);font-size:11px}
+.su-pj span{color:var(--faint);font-size:9px}
+.su-mini{display:flex;flex-wrap:wrap;gap:5px}
+.su-m{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;padding:3px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);cursor:pointer}
+.su-m em{font-style:normal;color:#cfd6e4;font-weight:700}
+.su-m.u b{color:rgba(34,201,122,.8)}.su-m.d b{color:rgba(224,82,82,.8)}
+.su-m.ag{border-color:rgba(234,184,80,.3);color:#EAB850}
+.su-m:hover{border-color:rgba(241,227,190,.4)}
+.wkm-leg .b.s.wt{box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 0 0 2px #0b0e14,0 0 0 3px rgba(157,180,220,.7)}
+.wkm-leg .b.n.ag{width:6px;height:6px;opacity:.8;box-shadow:0 0 0 1.5px rgba(234,184,80,.6)}
+.wkm-wait{animation:suSpin 14s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes suSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.wkm-wait{animation:none}}
+@media(max-width:900px){
+  .su-pg{grid-template-columns:1fr;gap:14px}
+  .su-rc-row{grid-template-columns:104px minmax(0,1fr) 70px 34px;gap:8px}
+  .su-ph .su-sp{display:none}
+  .su-wait li{grid-template-columns:minmax(0,1fr) 90px auto !important}
+  .su-wait li .dk-side{display:none}
+}
+@media(max-width:700px){
+  .su-h-lk,.su-h-rel,.su-h-k{display:none}
+  .su-h-bias{margin-top:2px}
+  .su-rc-row .d{display:none}
+  .su-rc-row{grid-template-columns:minmax(0,1fr) 80px 34px}
+}
 </style>
 
 <script>
@@ -47303,7 +47654,7 @@ initNexusNoise();
   const anyModal=()=>!!document.querySelector('.modal-back.open, #meth-modal-back.open, #onboard-overlay[style*="flex"]');
   function order(){ const rows=[...document.querySelectorAll('#mkt-list .mkt-row[data-id]')].map(r=>r.dataset.id); const all=((typeof DATA!=='undefined'&&DATA&&DATA.markets)||[]).map(m=>m.id); const seen=new Set(rows); return rows.concat(all.filter(i=>!seen.has(i))); }
   function step(d){ if(typeof DATA==='undefined'||!DATA) return; const o=order(); if(!o.length) return; const i=o.indexOf(selMkt); const id=o[((i<0?(d>0?-1:0):i)+d+o.length)%o.length]; const keep=selTab; selectMkt(id); if(keep&&keep!=='overview') try{switchTab(keep);}catch(_){} }
-  function deskTxt(id){ try{ const r=deskRow(id); if(!r||!r.class||r.class.key==='none') return ''; return r.class.label+(r.side?(r.side>0?' · long':' · short'):'')+(r.archetype?' · '+r.archetype:''); }catch(_){ return ''; } }
+  function deskTxt(id){ try{ const r=deskRow(id); if(r&&r.setup){ const su=r.setup; if(su.score==null) return 'no setup'; return 'setup '+su.score.toFixed(1)+(su.side>0?' long':' short')+' · '+(SU_READY[_suKey(r)]||SU_READY.none).l.toLowerCase()+(r.archetype?' · '+r.archetype:''); } if(!r||!r.class||r.class.key==='none') return ''; return r.class.label+(r.side?(r.side>0?' · long':' · short'):'')+(r.archetype?' · '+r.archetype:''); }catch(_){ return ''; } }
   function build(q){
     q=(q||'').trim().toLowerCase(); const out=[];
     const cur=selMkt&&DATA?DATA.markets.find(x=>x.id===selMkt):null;

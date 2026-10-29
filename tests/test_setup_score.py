@@ -80,3 +80,14 @@ def test_seasonal_path_basic():
     # crosses year end
     p2 = S.seasonal_path(years, w, 240, 2026)
     assert p2["F"][40] is not None
+
+
+def test_approaching_is_a_note_not_a_gate():
+    from bhws_core import setup_score as ss
+    # dip at 8 TD, then a strong leg; near term not against
+    F = [0.0] * 81
+    for k in range(81):
+        F[k] = -0.2 * min(k, 8) / 8 if k <= 8 else -0.2 + 0.25 * (k - 8)
+    t = ss.timing_state({"F": F, "n": 20}, 1, 0.02)
+    assert t["state"] == "approaching"
+    assert t["pool"] == "approaching"

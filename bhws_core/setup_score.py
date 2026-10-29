@@ -35,6 +35,9 @@ PTS_STRUCTURE = {
     ("With trend", "Waiting"): 0.0, ("With trend", "Confirmed"): -2.0,
     ("Range", None): -2.0,
 }
+_CSTATE_WORD = {"Waiting": "trigger pending", "Confirmed": "trigger confirmed", "In zone": "in the zone",
+                "Not turned": "crowd not turned", "Turned": "crowd turned", "One more week": "one more week",
+                "Past test window": "past test window"}
 PTS_TREND = {"against": 1.5, "exhausted": 0.0, "neutral": -1.0, "with": -1.5,
              "with_late": 0.0, "with_pullback": 0.0}
 PTS_POSITIONING = {"with": 1.0, "against": 0.5, "neutral": -0.5, "na": -1.5}
@@ -240,7 +243,7 @@ def compute(row: Dict[str, Any], path: Optional[Dict[str, Any]], sd_weekly: Opti
         return {"with": "with", "against": "against", "neutral": "neutral", "na": "no COT",
                 "exhausted": "exhausted", "with_late": "late", "with_pullback": "pullback"}.get(r, r or "n/a")
     parts = [
-        {"key": "structure", "label": "Structure", "detail": f"{arch or 'none'} · {cstate or 'n/a'}",
+        {"key": "structure", "label": "Structure", "detail": f"{arch or 'none'} · {_CSTATE_WORD.get(cstate, cstate or 'n/a')}",
          "pts": p_s, "evidence": STRUCT_EVIDENCE.get(key)},
         {"key": "trend", "label": "Trend location", "detail": word(trel), "pts": p_t,
          "evidence": "Fading the trend sorted better than joining it in both halves." if trel in ("against", "with") else None},
@@ -269,10 +272,12 @@ def compute(row: Dict[str, Any], path: Optional[Dict[str, Any]], sd_weekly: Opti
         ready = {"key": "veto", "label": "Stand aside: seasonal against"}
     elif score < 4:
         ready = {"key": "weak", "label": "Weak setup"}
-    elif pool in ("wait", "approaching") and tm.get("entry_td"):
+    elif pool == "wait" and tm.get("entry_td"):
+        # replay: entering at the dip rescued the "against now, window ahead" rows in both halves
         ready = {"key": "wait", "label": f"Wait {tm['entry_td']} TD for window"}
     elif score >= 6:
-        ready = {"key": "ready", "label": "Trade-ready" + (" · event this week" if events else "")}
+        # approaching: delaying was mixed in the replay, so the window is a timing note, not a gate
+        ready = {"key": "ready", "label": "Trade-ready" + (f" · window in {tm['entry_td']} TD" if pool == "approaching" and tm.get("entry_td") else "") + (" · event this week" if events else "")}
     else:
         ready = {"key": "building", "label": "Building"}
     return {"score": score, "side": side, "parts": parts, "caps": caps, "projected": projected,
