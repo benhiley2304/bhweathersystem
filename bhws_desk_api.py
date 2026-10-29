@@ -30,6 +30,12 @@ REFS = {"zb": "ZB=F", "dxy": "DX-Y.NYB", "gc": "GC=F", "eur": "6E=F"}
 DESK_TTL = 30 * 60
 _STATE: Dict[str, Any] = {"data": None, "built": 0.0, "key": None, "building": False,
                           "error": None, "started": None}
+_STATE_STORE = None   # set by backend.py via set_state_store(); optional
+
+
+def set_state_store(store) -> None:
+    global _STATE_STORE
+    _STATE_STORE = store
 _LOCK = threading.Lock()
 
 
@@ -326,10 +332,32 @@ def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
         {"name": "Fed funds pricing", "observed": (((fed_payload or {}).get("snapshots") or {}).get("now") or {}).get("date")},
     ]
     classes = {}
+    classes_v1 = {}
     for r in rows:
         classes[r["class"]["key"]] = classes.get(r["class"]["key"], 0) + 1
+        k1 = r.get("class_v1") or r["class"]["key"]
+        classes_v1[k1] = classes_v1.get(k1, 0) + 1
+    # Forward record: one row per market per build day, both rule sets, so
+    # v1 and v2 can be compared on live outcomes later without a re-run.
+    try:
+        from bhws_core import ledger as _ledger
+        if _STATE_STORE is not None:
+            day = now.date().isoformat()
+            grows = []
+            for r in rows:
+                s_ = px.get(next((m.get("yf") for m in markets if m["id"] == r["id"]), None))
+                close = float(s_.iloc[-1]) if s_ is not None and len(s_) else None
+                grows.append(_ledger.grade_row(r["id"], {"grade": r["class"], "grade_v1": r.get("class_v1"),
+                                                         "side": r["side"], "lean": r.get("lean"),
+                                                         "archetype": r.get("archetype"), "confirm": r.get("confirm"),
+                                                         "caps": r.get("caps")}, r.get("setup"), close))
+            _STATE_STORE.save("ledger_grades", _ledger.append_grades(_STATE_STORE.load("ledger_grades"), day, grows))
+    except Exception as e:
+        notes.append(f"grade record not written ({e.__class__.__name__})")
     return {
         "generated_at": now.isoformat(),
+        "ruleset": strategy.RULESET,
+        "counts_v1": classes_v1,
         "build_seconds": round(time.time() - t0, 1),
         "method": {
             "positioning": evapi.METHOD_NOTE,

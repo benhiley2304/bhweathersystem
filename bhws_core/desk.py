@@ -241,7 +241,7 @@ def build_row(*, market: Dict[str, Any], engine: Optional[Dict[str, Any]],
     trig = None
     cf = A.get("confirm") or {}
     if cf.get("kind") == "playbook":
-        trig = TRIGGER_TEXT.get(cf.get("state"))
+        trig = cf.get("text") or TRIGGER_TEXT.get(cf.get("state"))
     elif cf.get("text"):
         trig = cf["text"]
     order = g["rank"] * 100 - int(round(A["total"] * 10))
@@ -250,7 +250,8 @@ def build_row(*, market: Dict[str, Any], engine: Optional[Dict[str, Any]],
     row = {
         "id": market["id"], "name": market.get("name"), "category": market.get("category"),
         "currencies": ccys,
-        "class": g, "side": side, "lean": A["lean"], "archetype": A["archetype"],
+        "class": g, "class_v1": A.get("grade_v1"), "ruleset": A.get("ruleset"), "caps": A.get("caps") or [],
+        "side": side, "lean": A["lean"], "archetype": A["archetype"],
         "side_basis": ("+".join(A["anchors"]) if A["anchors"] else ("trend+macro" if g["key"] == "backdrop" else None)),
         "primary_edge": ", ".join(A["anchors"]) or None,
         "trigger": trig, "confirm": A.get("confirm"), "order": order,

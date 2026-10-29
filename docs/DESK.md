@@ -18,7 +18,7 @@ The Desk follows the report hierarchy rather than the composite score (`bhws_cor
 
 ## Grades and setup types
 
-Prime: two payoff sources agree, or one plus a healthy trend and the seasonal, with seasonality not against. Setup: one payoff source with support (trend, seasonality or macro), an exhausted trend, or a live playbook extreme. Developing: a payoff source fighting a healthy trend or with nothing behind it. Backdrop only: trend and macro agree with no payoff edge. A payoff pillar firmly on the other side, low data confidence, or macro and seasonality both against each cost one grade.
+Prime: two payoff sources agree, or one plus a healthy trend and the seasonal, with seasonality not against. Setup: one payoff source with support (trend, seasonality or macro), an exhausted trend, or a live playbook extreme. Developing: a payoff source with nothing behind it, or a Prime or Setup row capped by a replay veto (see `RULES_V2.md`; under the v1 ladder also a payoff source fighting a healthy trend). Backdrop only: trend and macro agree with no payoff edge. A payoff pillar firmly on the other side, low data confidence, or macro and seasonality both against each cost one grade. Rules v2 (live from 29 October 2026) adds three caps, each with its reason on the row: seasonal against on Prime and Setup, divergence-fade shorts, and crowd fades once the managers have turned. The v1 grade is still computed as `class_v1` and both are written to the daily grade record.
 
 Setup types: Crowd fade, Divergence fade, Exhaustion fade, Pullback in trend, Trend with value, With trend, Counter-trend, Range. Confirmation is stated per type: the playbook state for crowd fades, a completed weekly close through the 10-week average for fades and counter-trend ideas, and the daily buy point (or both daily lines under -40, "In zone") for index pullbacks.
 
@@ -30,7 +30,7 @@ ES, NQ, YM and RTY show the daily Pine buy-point state: BUY when the ZB and DXY 
 
 ## Plan form
 
-The House read has a plan form (side, starter date, zone, entry, stop, target, costs). It is stored on this device only (`bhws_plan_<id>`) and sent to `/api/evidence` as query parameters. BHWS never fills these in. With a zone it applies the 25% depth stop rule; with levels it reports net reward to risk and the break-even hit rate. Reward to risk alone is not expectancy.
+The House read has a plan form (side, starter date, zone, entry, stop, target, costs). It includes the zone type (RBR or DBR demand, DBD or RBD supply). It is stored on this device (`bhws_plan_<id>`) and sent to `/api/evidence` as query parameters. When a desk key is set on the device (the Ledger key button) each Apply also writes the plan to the private ledger on the server (`POST /api/admin/ledger`, then `PATCH` on later edits), freezing the Desk grade, caps, setup score and timing at plan time so outcomes can later be compared with what the system said. The ledger is admin-only and lives in the durable state layer (`bhws_core/state.py`), never in the repository. BHWS never fills these in. With a zone it applies the 25% depth stop rule; with levels it reports net reward to risk and the break-even hit rate. Reward to risk alone is not expectancy.
 
 ## Limitations
 

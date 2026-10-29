@@ -33,6 +33,15 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from . import percentile
 
+# Grading rules. "v2" applies the four replay-backed changes (see
+# docs/RULES_V2.md and research/replay/REPORT.md): early counter-trend is
+# graded on its anchors, seasonal against is a hard veto for prime and setup,
+# the managers' turn closes the crowd-fade window, and divergence-fade shorts
+# are capped at developing. "v1" is the original ladder, kept for the forward
+# record and the Edge lab. Override with BHWS_RULESET=v1.
+import os as _os
+RULESET = _os.environ.get("BHWS_RULESET", "v2").strip().lower() or "v2"
+
 EQUITY_IDS = {"ES", "NQ", "YM", "RTY", "Z"}
 
 # Role weights for the ordering number only (Issue 10 hierarchy).
@@ -41,16 +50,20 @@ W_POS_EQUITY = 1.0
 
 LIVE = ("Not turned", "One more week", "Turned", "Past test window", "Add eligible", "Hold; no add")
 LAPSED = ("Extreme persisting", "Expired")
+# Playbook states in which the fund managers have already turned against the
+# extreme. v2 treats these as the end of the crowd-fade window, not as
+# confirmation of it.
+TURNED = ("Turned", "Past test window", "Add eligible", "Hold; no add")
 
 GRADES = [
     # key, label, rank, tone, note
     ("prime", "Prime setup", 0, "prime",
      "Two payoff sources agree (positioning, valuation) or one plus a healthy trend and the seasonal, "
-     "and the trend is not running hard the other way."),
+     "with the seasonal not against."),
     ("setup", "Setup", 1, "neutral",
-     "One payoff source with support from trend, seasonality or macro, and no healthy trend against."),
+     "One payoff source with support from trend, seasonality or macro. Early counter-trend qualifies on its anchor."),
     ("developing", "Developing", 2, "warn",
-     "A payoff source is there but it is fighting a healthy trend or has nothing behind it yet."),
+     "A payoff source is there but nothing supports it yet, or a replay veto caps it here."),
     ("backdrop", "Backdrop only", 3, "muted",
      "Trend and macro agree, but there is no crowd and no valuation edge. Your level or nothing."),
     ("none", "Nothing to do", 4, "muted", "No payoff source and no aligned backdrop."),
@@ -463,7 +476,11 @@ def _is_for(rel: str) -> bool:
     return rel in ("with", "with_pullback", "with_late")
 
 
-def grade(ev: Dict[str, Any], *, P, V, S, M, T, pb_live: bool, conf: str) -> Dict[str, Any]:
+def grade(ev: Dict[str, Any], *, P, V, S, M, T, pb_live: bool, conf: str,
+          arch: Optional[str] = None, pb: Optional[Dict[str, Any]] = None,
+          ruleset: Optional[str] = None) -> Dict[str, Any]:
+    rs = (ruleset or RULESET)
+    v2 = rs != "v1"
     rel, side = ev["rel"], ev["side"]
     anchors = []
     if rel["positioning"] == "with" and (P.get("strength") or 0) >= 0.5 and not P.get("equity"):
@@ -474,7 +491,12 @@ def grade(ev: Dict[str, Any], *, P, V, S, M, T, pb_live: bool, conf: str) -> Dic
     veto = rel["trend"] == "against"
     seas_for, seas_against = rel["seasonal"] == "with", rel["seasonal"] == "against"
     supports = sum([trend_for, seas_for, rel["macro"] == "with"])
-    if veto:
+    # v2: a healthy trend against the side no longer caps a setup that has a
+    # payoff anchor. Early counter-trend (+0.097 R before the weekly close
+    # turns, both halves positive) is graded on its anchors like any other.
+    # Without an anchor it is still nothing to do.
+    cap_trend = veto and not (v2 and anchors)
+    if cap_trend:
         k = "developing" if anchors else "none"
     elif (len(anchors) >= 2 or (anchors and trend_for and seas_for)) and not seas_against:
         k = "prime"
@@ -505,7 +527,19 @@ def grade(ev: Dict[str, Any], *, P, V, S, M, T, pb_live: bool, conf: str) -> Dic
         downs.append(f"data confidence {conf.lower()}")
     for _ in downs:
         k = ORDER[min(ORDER.index(k) + 1, ORDER.index("developing"))] if k != "developing" else "developing"
-    return {"key": k, "anchors": anchors, "veto": veto, "downgrades": downs}
+    caps: List[str] = []
+    if v2 and k in ("prime", "setup"):
+        # Replay vetoes (research/replay/REPORT.md). Each caps at developing;
+        # the setup is still shown, with the reason, so nothing disappears.
+        if seas_against:
+            caps.append("seasonal against: replay -0.120 R on prime and setup, negative in both halves")
+        if arch == "Divergence fade" and side < 0:
+            caps.append("divergence-fade short: replay -0.269 R, adverse run 0.75 vs favourable 0.47")
+        if arch == "Crowd fade" and (pb or {}).get("status") in TURNED:
+            caps.append("managers have turned: crowd fade window closed (replay -0.068 R after the turn)")
+        if caps:
+            k = "developing"
+    return {"key": k, "anchors": anchors, "veto": veto, "downgrades": downs, "caps": caps, "ruleset": rs}
 
 
 def archetype(ev, *, P, V, T, pb_live: bool, div) -> Optional[str]:
@@ -530,7 +564,8 @@ def archetype(ev, *, P, V, T, pb_live: bool, div) -> Optional[str]:
 def assess(*, market: Dict[str, Any], engine: Dict[str, Any], pos: Optional[Dict[str, Any]],
            pb: Optional[Dict[str, Any]], div: Optional[Dict[str, Any]], val: Optional[Dict[str, Any]],
            seas_fwd: Optional[Dict[int, Dict[str, Any]]], macro: Optional[int], macro_marginal: bool,
-           conf: str, weekly: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+           conf: str, weekly: Optional[Dict[str, Any]] = None,
+           ruleset: Optional[str] = None) -> Dict[str, Any]:
     eq = is_equity(market)
     P = positioning_read(pos, pb, div, eq)
     V = valuation_read(val)
@@ -542,12 +577,16 @@ def assess(*, market: Dict[str, Any], engine: Dict[str, Any], pos: Optional[Dict
     evs = {s: evaluate_side(s, P=P, V=V, T=T, M=M, S=S, div=div) for s in (1, -1)}
     best = max(evs.values(), key=lambda e: e["total"])
     other = evs[-best["side"]]
+    rs = ruleset or RULESET
+    def _g(ev, r=rs):
+        a = archetype(ev, P=P, V=V, T=T, pb_live=pb_live, div=div)
+        return grade(ev, P=P, V=V, S=S, M=M, T=T, pb_live=pb_live, conf=conf, arch=a, pb=pb, ruleset=r)
     if abs(best["total"] - other["total"]) < 0.25:
         # Genuinely split: grade both and keep the better-graded side.
-        g1 = grade(evs[1], P=P, V=V, S=S, M=M, T=T, pb_live=pb_live, conf=conf)
-        g2 = grade(evs[-1], P=P, V=V, S=S, M=M, T=T, pb_live=pb_live, conf=conf)
+        g1, g2 = _g(evs[1]), _g(evs[-1])
         best = evs[1] if ORDER.index(g1["key"]) <= ORDER.index(g2["key"]) else evs[-1]
-    g = grade(best, P=P, V=V, S=S, M=M, T=T, pb_live=pb_live, conf=conf)
+    g = _g(best)
+    g_v1 = _g(best, "v1") if rs != "v1" else g
     side = best["side"] if g["key"] != "none" else 0
     lean = best["side"] if best["total"] >= 1.0 else 0
     arch = archetype(best, P=P, V=V, T=T, pb_live=pb_live, div=div) if side else None
@@ -564,8 +603,9 @@ def assess(*, market: Dict[str, Any], engine: Dict[str, Any], pos: Optional[Dict
             sizing.append("fading a trend: starter size until it confirms")
         if rel["seasonal"] == "against":
             sizing.append("seasonality against: no adds")
-    confirm = confirmation(side, arch, pb, weekly, val, T)
-    return {"grade": dict(GRADE[g["key"]]), "side": side, "lean": lean, "archetype": arch,
+    confirm = confirmation(side, arch, pb, weekly, val, T, ruleset=rs)
+    return {"grade": dict(GRADE[g["key"]]), "grade_v1": g_v1["key"], "ruleset": rs,
+            "caps": g.get("caps") or [], "side": side, "lean": lean, "archetype": arch,
             "total": best["total"], "other_side_total": evs[-best["side"]]["total"],
             "rel": rel, "pts": best["pts"], "anchors": g["anchors"], "downgrades": g["downgrades"],
             "for": for_list, "against": against_list, "sizing": sizing, "confirm": confirm,
@@ -575,17 +615,45 @@ def assess(*, market: Dict[str, Any], engine: Dict[str, Any], pos: Optional[Dict
 
 def confirmation(side: int, arch: Optional[str], pb: Optional[Dict[str, Any]],
                  weekly: Optional[Dict[str, Any]], val: Optional[Dict[str, Any]],
-                 T: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+                 T: Dict[str, Any], ruleset: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """What turns the setup into a trade (Issue 10 step 5). States only what
     the data shows; the zone and the entry are Ben's."""
     if not side:
         return None
     pb = pb or {}
+    v2 = (ruleset or RULESET) != "v1"
     if arch == "Crowd fade" and pb.get("status"):
-        return {"state": pb.get("status"), "text": None, "kind": "playbook"}
+        out = {"state": pb.get("status"), "text": None, "kind": "playbook"}
+        if v2 and pb.get("status") in TURNED:
+            out["window"] = "closed"
+            out["text"] = ("Fund managers have turned against the extreme. In the replay the fade worked "
+                           "before the turn (+0.044 R) and lost after it (-0.068 R), so the turn closes "
+                           "the window rather than confirming the trade.")
+        elif v2 and pb.get("status") in ("Not turned", "One more week"):
+            out["window"] = "open"
+            out["text"] = "Extreme in place and the managers have not turned: the window the replay favoured."
+        return out
     w = weekly or {}
     c, a = _num(w.get("close")), _num(w.get("sma10"))
     bp = (val or {}).get("daily_buy_point") or {}
+    if v2 and arch == "Counter-trend":
+        # v2: the 10-week close is not required. The replay's edge sat before
+        # the turn (+0.097 R, both halves positive); waiting for it gave the
+        # edge away (-0.01). The state keys stay Waiting/Confirmed for the
+        # setup score; the label says what they mean here.
+        if c is not None and a is not None:
+            done = (c < a) if side < 0 else (c > a)
+            return {"state": "Confirmed" if done else "Waiting", "kind": "close_10w",
+                    "label": "Turned" if done else "Early window", "window": "closing" if done else "open",
+                    "text": (f"Weekly close already {'below' if side < 0 else 'above'} the 10-week average "
+                             f"(close {c:g}, average {a:.4g}). The early window the replay favoured has passed; "
+                             "what is left is mostly the market's own drift."
+                             if done else
+                             f"Weekly close still {'above' if side < 0 else 'below'} the 10-week average "
+                             f"(close {c:g}, average {a:.4g}). This is the window the replay favoured. "
+                             "The entry is your zone; the turn is not required.")}
+        return {"state": "Waiting", "kind": "close_10w", "label": "Early window", "window": "open",
+                "text": "No weekly close data; the entry is your zone and the 10-week turn is not required."}
     if arch in ("Exhaustion fade", "Divergence fade", "Counter-trend"):
         if c is not None and a is not None:
             done = (c < a) if side < 0 else (c > a)

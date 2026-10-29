@@ -32,7 +32,7 @@ from bhws_core import cot_calendar, percentile, playbook, readout, riskreward
 from bhws_core.provenance import InputStamp, data_confidence
 
 FUTURES_ONLY_API = "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
-PROTECTED_PREFIXES = ("/api/inject-", "/api/clear-")
+PROTECTED_PREFIXES = ("/api/inject-", "/api/clear-", "/api/admin/")
 ADMIN_HEADER = "x-bhws-admin-token"
 _CACHE_TTL = 6 * 3600
 _FO_CACHE: Dict[str, Any] = {}

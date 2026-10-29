@@ -26,6 +26,16 @@ import orjson
 import gc, glob, os, pathlib, re
 DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# ── Durable state (bhws_core/state.py). Local files always; Postgres when
+# DATABASE_URL is set, or a private GitHub repo when BHWS_STATE_REPO and
+# BHWS_STATE_TOKEN are set. Restored at startup (see the end of this file).
+try:
+    from bhws_core.state import StateStore as _StateStore
+    STATE = _StateStore(DATA_DIR)
+except Exception as _st_err:  # pragma: no cover
+    STATE = None
+    print(f"[startup] state store unavailable: {_st_err!r}", flush=True)
+
 def _memory_mb() -> float:
     """Return current process RSS in MB. Returns 0 if psutil not available."""
     try:
@@ -4325,6 +4335,9 @@ def _fed_pricing_load() -> dict:
         return {}
 
 def _fed_pricing_save(d: dict) -> None:
+    if STATE is not None:
+        STATE.save("fed_pricing", d)
+        return
     try:
         with open(_FED_PRICING_PATH, "w") as f:
             json.dump(d, f)
@@ -4339,6 +4352,9 @@ def _fed_pricing_history_load() -> list:
         return []
 
 def _fed_pricing_history_save(rows: list) -> None:
+    if STATE is not None:
+        STATE.save("fed_pricing_history", rows)
+        return
     try:
         with open(_FED_PRICING_HIST_PATH, "w") as f:
             json.dump(rows, f)
@@ -4420,6 +4436,9 @@ def _ff_store_load() -> dict:
         return {}
 
 def _ff_store_save(store: dict) -> None:
+    if STATE is not None:
+        STATE.save("ff_event_store", store)
+        return
     try:
         with open(_FF_STORE_PATH, "w") as f:
             json.dump(store, f)
@@ -6612,6 +6631,9 @@ def _supply_store_load() -> dict:
 
 
 def _supply_store_save(store: dict) -> None:
+    if STATE is not None:
+        STATE.save("supply_event_store", store)
+        return
     try:
         with open(_SUPPLY_STORE_PATH, "w") as f:
             json.dump(store, f)
@@ -19288,6 +19310,13 @@ async def inject_ff_macro(payload: dict):
             injected.pop("z", None)
     # Write into _FRED_CCY_CACHE with source=ff_injected so the TTL check uses 24h
     _FRED_CCY_CACHE[currency] = {"data": injected, "time": now}
+    if STATE is not None:
+        try:
+            _mi = STATE.load("ff_macro_injected") or {}
+            _mi[currency] = {"data": injected, "time": now}
+            STATE.save("ff_macro_injected", _mi)
+        except Exception as _pe:
+            print(f"[FF MACRO INJECT] persist error: {_pe!r}", flush=True)
 
     # Bust FF_MACRO_CACHE so next scores request recomputes with new ff_injected data
     FF_MACRO_CACHE["data"] = None
@@ -19657,6 +19686,45 @@ try:
     print("[startup] desk registered (/api/desk)", flush=True)
 except Exception as _desk_err:  # pragma: no cover
     print(f"[startup] desk NOT registered: {_desk_err!r}", flush=True)
+
+# ── Durable state: restore, hooks and the ledger API ────────────────────────
+try:
+    if STATE is not None:
+        def _restore_ff_macro(doc):
+            n = 0
+            for _ccy, _ent in (doc or {}).items():
+                if isinstance(_ent, dict) and _ent.get("data") and _ent.get("time"):
+                    _FRED_CCY_CACHE[_ccy] = {"data": _ent["data"], "time": float(_ent["time"])}
+                    n += 1
+            if n:
+                FF_MACRO_CACHE["data"] = None; FF_MACRO_CACHE["time"] = 0
+                ALL_DATA_CACHE["data"] = None; ALL_DATA_CACHE["time"] = 0; _INJECT_GEN[0] += 1
+                print(f"[state] ff macro injections restored for {n} currencies", flush=True)
+        def _restore_supply(doc):
+            _SUPPLY_CACHE["data"] = None; _SUPPLY_CACHE["time"] = 0
+        STATE.on_restore("ff_macro_injected", _restore_ff_macro)
+        STATE.on_restore("supply_event_store", _restore_supply)
+        STATE.restore_all()
+        from bhws_state_api import register as _bhws_register_state
+        import bhws_desk_api as _bhws_desk_mod
+        _bhws_desk_mod.set_state_store(STATE)
+        def _sd_weekly_for(mid: str):
+            try:
+                m = next((x for x in MARKETS if x["id"] == mid), None)
+                hit = _bhws_evidence_mod._PX_CACHE.get((m or {}).get("yf")) if m else None
+                s_ = hit[1] if hit else None
+                if s_ is None or len(s_) < 300:
+                    return None
+                w = s_.resample("W-FRI").last().pct_change().dropna().iloc[-52:]
+                return float(w.std()) if len(w) >= 40 else None
+            except Exception:
+                return None
+        import bhws_evidence_api as _bhws_evidence_mod
+        _bhws_register_state(app, store=STATE, desk_state_getter=lambda: _bhws_desk_mod._STATE,
+                             sd_weekly_getter=_sd_weekly_for)
+        print(f"[startup] state layer registered (/api/state/status, /api/admin/ledger); remote={STATE.remote_kind}", flush=True)
+except Exception as _state_err:  # pragma: no cover
+    print(f"[startup] state layer NOT registered: {_state_err!r}", flush=True)
 
 if __name__ == "__main__":
     import uvicorn

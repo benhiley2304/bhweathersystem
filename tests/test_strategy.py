@@ -17,6 +17,9 @@ NQ_ENGINE = {"trend_state": "Uptrend · short-term pullback (entry-watch for lon
 RUN_DOWN = {"trend_state": "Downtrend · momentum aligned (continuation)",
             "scores": {"momentum": {"detail": {"pct_range": 7.0, "roc4w_pct": -0.1, "roc13w_pct": -3.8,
                                                 "roc26w_pct": -7.3, "sma200_pct_diff": -10.4}}}}
+RUN_UP = {"trend_state": "Uptrend · momentum aligned (continuation)",
+          "scores": {"momentum": {"detail": {"pct_range": 72.0, "roc4w_pct": 1.2, "roc13w_pct": 4.1,
+                                              "roc26w_pct": 8.0, "sma200_pct_diff": 9.5}}}}
 
 
 def _fwd(m30, m60, spread=1.0):
@@ -75,21 +78,79 @@ def test_seasonal_flat_band():
     assert S.seasonal_read(_fwd(1.0, -1.0, 0.5))["sign"] == 0      # 30 and 60 disagree
 
 
-def _assess(engine, pos, pb, div, val, fwd, macro, equity=False):
+def _assess(engine, pos, pb, div, val, fwd, macro, equity=False, ruleset=None, weekly=None):
     m = {"id": "NQ" if equity else "DX", "category": "equity" if equity else "fx"}
     return S.assess(market=m, engine=engine, pos=pos, pb=pb, div=div, val=val, seas_fwd=fwd,
-                    macro=macro, macro_marginal=False, conf="High")
+                    macro=macro, macro_marginal=False, conf="High", ruleset=ruleset, weekly=weekly)
 
 
-def test_dx_like_exhaustion_fade_grades_prime_short():
+def test_dx_like_divergence_fade_short_prime_under_v1_capped_under_v2():
+    # Issue 07 style: the structure still grades prime on the original ladder,
+    # and rules v2 caps it at developing because divergence-fade shorts were
+    # the worst cell in the replay (-0.269 R, skew 0.63). The read is kept.
     pos = {"commercials": 18, "managers": 79, "retail": 89}
     div = {"dir": -1, "text": "lower high"}
     val = _val({"zb": -57, "gc": 39, "eur": -5}, {"zb": 27, "gc": 69})
-    a = _assess(DX_ENGINE, pos, {"status": "No extreme", "direction": -1}, div, val, _fwd(-0.34, -0.38, 2.7), 1)
-    assert a["side"] == -1 and a["grade"]["key"] == "prime"
-    assert a["archetype"] == "Divergence fade"
-    assert a["rel"]["trend"] == "exhausted" and a["rel"]["macro"] == "against"
-    assert any("size down" in x for x in a["sizing"])
+    pb = {"status": "No extreme", "direction": -1}
+    v1 = _assess(DX_ENGINE, pos, pb, div, val, _fwd(-0.34, -0.38, 2.7), 1, ruleset="v1")
+    assert v1["side"] == -1 and v1["grade"]["key"] == "prime" and v1["ruleset"] == "v1"
+    assert v1["archetype"] == "Divergence fade"
+    assert v1["rel"]["trend"] == "exhausted" and v1["rel"]["macro"] == "against"
+    assert any("size down" in x for x in v1["sizing"])
+    v2 = _assess(DX_ENGINE, pos, pb, div, val, _fwd(-0.34, -0.38, 2.7), 1, ruleset="v2")
+    assert v2["side"] == -1 and v2["grade"]["key"] == "developing"
+    assert v2["grade_v1"] == "prime"
+    assert any("divergence-fade short" in c for c in v2["caps"])
+    assert v2["archetype"] == "Divergence fade"
+
+
+def test_default_ruleset_is_v2():
+    assert S.RULESET == "v2"
+
+
+def test_v2_counter_trend_with_anchor_is_graded_on_its_anchor():
+    # A healthy trend against the side used to cap everything at developing.
+    # v2 grades an anchored counter-trend like any other setup (replay +0.097 R
+    # before the weekly close turns) and says which window it is in.
+    pos = {"commercials": 92, "managers": 8, "retail": 12}       # crowd short, commercials long: pays long
+    val = _val({"zb": 10, "dxy": 5}, {"zb": 0, "dxy": 0})
+    weekly = {"close": 95.0, "sma10": 100.0}
+    pb = {"status": "No extreme", "direction": 0}
+    v1 = _assess(RUN_DOWN, pos, pb, None, val, _fwd(2.0, 2.5, 2.0), 1, ruleset="v1", weekly=weekly)
+    v2 = _assess(RUN_DOWN, pos, pb, None, val, _fwd(2.0, 2.5, 2.0), 1, ruleset="v2", weekly=weekly)
+    assert v1["side"] == 1 and v1["grade"]["key"] == "developing"
+    assert v2["side"] == 1 and v2["grade"]["key"] == "setup"
+    assert v2["grade_v1"] == "developing" and v2["archetype"] == "Counter-trend"
+    assert v2["confirm"]["label"] == "Early window" and v2["confirm"]["window"] == "open"
+    turned = _assess(RUN_DOWN, pos, pb, None, val, _fwd(2.0, 2.5, 2.0), 1, ruleset="v2",
+                     weekly={"close": 101.0, "sma10": 100.0})
+    assert turned["confirm"]["label"] == "Turned" and turned["confirm"]["window"] == "closing"
+
+
+def test_v2_seasonal_against_caps_prime_and_setup():
+    pos = {"commercials": 92, "managers": 8, "retail": 12}
+    val = _val({"zb": -70, "dxy": -60}, {"zb": -50, "dxy": -40})
+    v1 = _assess(RUN_UP, pos, {"status": "No extreme", "direction": 1}, None, val, _fwd(-3.0, -3.5, 2.0), 1,
+                 ruleset="v1")
+    v2 = _assess(RUN_UP, pos, {"status": "No extreme", "direction": 1}, None, val, _fwd(-3.0, -3.5, 2.0), 1,
+                 ruleset="v2")
+    assert v1["side"] == 1 and v1["grade"]["key"] in ("prime", "setup")
+    assert v2["grade"]["key"] == "developing"
+    assert any("seasonal against" in c for c in v2["caps"])
+
+
+def test_v2_crowd_fade_window_closes_when_managers_turn():
+    pos = {"commercials": 95, "managers": 4, "retail": 10}
+    val = _val({"zb": -70, "dxy": -60}, {"zb": -50, "dxy": -40})
+    before = _assess(RUN_UP, pos, {"status": "Not turned", "direction": 1}, None, val, _fwd(2.0, 2.5, 2.0), 1,
+                     ruleset="v2")
+    after = _assess(RUN_UP, pos, {"status": "Turned", "direction": 1}, None, val, _fwd(2.0, 2.5, 2.0), 1,
+                    ruleset="v2")
+    assert before["archetype"] == "Crowd fade" and after["archetype"] == "Crowd fade"
+    assert before["confirm"]["window"] == "open" and after["confirm"]["window"] == "closed"
+    assert S.ORDER.index(before["grade"]["key"]) < S.ORDER.index("developing")
+    assert after["grade"]["key"] == "developing"
+    assert any("managers have turned" in c for c in after["caps"])
 
 
 def test_nq_like_pullback_is_prime_long_and_positioning_only_warns():
