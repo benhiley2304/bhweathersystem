@@ -415,13 +415,32 @@ def brief(*, regime: Optional[Dict[str, Any]], fed: Optional[Dict[str, Any]],
 
     def _lbl(r):
         return f"{r['name']} {_side_word(r['side'])}" + (f" ({r['archetype'].lower()})" if r.get("archetype") else "")
-    if prime:
-        paras.append(f"Prime this week: " + ", ".join(_lbl(r) for r in prime[:6]) + ". "
-                     "Two payoff sources agree, or one plus a healthy trend and the seasonal, with no healthy trend against.")
-    if setups:
-        paras.append(f"Setups: " + ", ".join(_lbl(r) for r in setups[:8]) + ".")
+    def _sc(r):
+        return ((r.get("setup") or {}).get("score"))
+    scored = [r for r in rows if r.get("side") and _sc(r) is not None]
+    if scored:
+        ready = sorted([r for r in scored if (r["setup"].get("ready") or {}).get("key") == "ready"],
+                       key=lambda r: -_sc(r))
+        waits = sorted([r for r in scored if (r["setup"].get("ready") or {}).get("key") == "wait"],
+                       key=lambda r: (r["setup"]["timing"].get("entry_td") or 99))
+        vetoed = [r for r in scored if (r["setup"].get("ready") or {}).get("key") == "veto"]
+        facts["counts"].update({"ready": len(ready), "wait": len(waits), "veto": len(vetoed)})
+        live = ready
+        if ready:
+            paras.append("Trade-ready on the setup score: " + ", ".join(
+                f"{_lbl(r)} {_sc(r):.1f}" for r in ready[:6]) + ".")
+        if waits:
+            paras.append("Waiting for a seasonal window: " + ", ".join(
+                f"{r['name']} {_side_word(r['side'])} in {r['setup']['timing']['entry_td']} TD" for r in waits[:6]) + ".")
+        if vetoed:
+            paras.append(f"Seasonal against, standing aside: {_names(vetoed)}.")
+    else:
+        if prime:
+            paras.append(f"Prime this week: " + ", ".join(_lbl(r) for r in prime[:6]) + ".")
+        if setups:
+            paras.append(f"Setups: " + ", ".join(_lbl(r) for r in setups[:8]) + ".")
     if not live:
-        paras.append("Nothing grades as a setup this week. That is a result, not a gap.")
+        paras.append("Nothing is trade-ready on the setup score this week. That is a result, not a gap.")
     against_macro = [r for r in live if (r.get("pillars") or {}).get("macro", {}).get("rel") == "against"]
     if against_macro:
         paras.append(f"{_names(against_macro)} {'runs' if len(against_macro) == 1 else 'run'} against the macro read, "
@@ -453,5 +472,5 @@ def brief(*, regime: Optional[Dict[str, Any]], fed: Optional[Dict[str, Any]],
         facts["events"] = [e for _, e in hi_up[:8]]
         txt = ", ".join(f"{e['currency']} {e['name']} {t.strftime('%a %H:%M')} UTC" for t, e in hi_up[:5])
         paras.append(f"Top-tier prints ahead: {txt}. No adds into them.")
-    paras.append("Ordering is by grade, then by how the evidence lines up. Not a probability. Zones are yours.")
+    paras.append("Ordering is by setup score. A ranking aid tested on a held-out replay. Not a probability. Zones are yours.")
     return {"paragraphs": paras, "facts": facts}

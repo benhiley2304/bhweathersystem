@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, Optional
 import pandas as pd
 
 import bhws_evidence_api as evapi
-from bhws_core import desk, marketread, percentile, strategy, valuation
+from bhws_core import desk, marketread, percentile, setup_score, strategy, valuation
 
 REFS = {"zb": "ZB=F", "dxy": "DX-Y.NYB", "gc": "GC=F", "eur": "6E=F"}
 DESK_TTL = 30 * 60
@@ -254,18 +254,36 @@ def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
             div = None
             notes.append(f"{mid}: divergence failed ({e.__class__.__name__})")
         sf = None
+        spath = None
         if seasonal_provider is not None:
             try:
                 sy = seasonal_provider(mid)
                 if sy and sy.get("years"):
                     sf = strategy.seasonal_forward(sy["years"], sy["weights"], sy["current_td"], sy["year"])
+                    spath = setup_score.seasonal_path(sy["years"], sy["weights"], sy["current_td"], sy["year"])
             except Exception as e:
                 notes.append(f"{mid}: seasonal path failed ({e.__class__.__name__})")
         row = desk.build_row(market=m, engine=eng, evidence=ev, macro=evapi._macro_sign(eng),
                              changes=changes, valuation=val, events=events, now=now,
                              divergence=div, seas_fwd=sf, weekly=_weekly_state(daily))
+        try:
+            sdw = None
+            if daily is not None and len(daily) > 300:
+                wr = _weekly(daily).pct_change().dropna().iloc[-52:]
+                sdw = float(wr.std()) if len(wr) >= 40 else None
+            row["setup"] = setup_score.compute(row, spath, sdw, now)
+            if spath:
+                row["setup"]["path"] = {"F": spath["F"][::2], "step": 2, "n": spath["n"]}
+        except Exception as e:
+            row["setup"] = None
+            notes.append(f"{mid}: setup score failed ({e.__class__.__name__})")
         rows.append(row)
-    rows.sort(key=lambda r: (r["order"], r["name"] or ""))
+    def _rk(r):
+        su = r.get("setup") or {}
+        sc = su.get("score")
+        rk = {"ready": 0, "wait": 1, "building": 2, "weak": 3, "veto": 4}.get((su.get("ready") or {}).get("key"), 5)
+        return (0 if (r.get("side") and sc is not None) else 1, rk, -(sc or 0), r["order"], r["name"] or "")
+    rows.sort(key=_rk)
 
     # Clusters among markets that currently have a side worth acting on
     acting = {r["id"]: r["side"] for r in rows
@@ -315,9 +333,14 @@ def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
         "build_seconds": round(time.time() - t0, 1),
         "method": {
             "positioning": evapi.METHOD_NOTE,
-            "ordering": ("Sorted by grade, then by an alignment number (role-weighted: positioning 3, "
-                         "valuation 2.5, trend 2, macro 1.5, seasonality 1; index positioning 1). "
-                         "A ranking aid, not a probability, and not backtested."),
+            "ordering": ("Sorted by readiness (trade-ready, wait for window, building, weak, seasonal veto), "
+                         "then by setup score. Setup score points were set on the 2012-18 replay and tested on "
+                         "2019-26; it sorts weakly in the right direction out of sample. Not a probability."),
+            "setup_score": ("5 + structure (archetype x confirmation) + trend location + positioning payoff + "
+                            "valuation + seasonal timing, clipped 0-10, half-point steps. Timing comes from the "
+                            "weighted-median seasonal path over the next 80 TD in units of one weekly standard "
+                            "deviation: against (path falls >1 sd within 20-40 TD), wait (dip now, leg >=1.5 sd "
+                            "after it within 25 TD), approaching, in window, with or flat."),
             "seasonal": ("Forward path from today: blend-weighted median of each completed year's move over "
                          "the next 20/30/60/90 trading days (crosses the year end). Positive means price tends to "
                          "rise. 60 TD is primary, 30 TD must not disagree."),
