@@ -26538,11 +26538,11 @@ function deskOpen(id){ if(typeof selectMkt==='function') selectMkt(id); }
    Setup  = setup score 0-10 for the desk side (the headline number)
    Timing = seasonal sweet spot: in window / approaching / wait / against / flat
    Everything below reads r.setup from /api/desk; nothing is recomputed here. */
-const SU_READY={ready:{l:'Trade-ready',s:'Ready',c:'#F1E3BE',n:'Score 6+ and no seasonal block'},
+const SU_READY={ready:{l:'Trade-ready',s:'Ready',c:'#F1E3BE',n:'Score 6+, no seasonal block, no replay veto'},
   wait:{l:'Wait for window',s:'Wait',c:'#9DB4DC',n:'Structure is there; the seasonal dip comes first'},
   building:{l:'Building',s:'Building',c:'#B9A77E',n:'Score 4 to 5.5'},
   weak:{l:'Weak',s:'Weak',c:'#7d879c',n:'Score under 4'},
-  veto:{l:'Seasonal against',s:'Against',c:'#EAB850',n:'The seasonal path runs against the side'},
+  veto:{l:'Stand aside',s:'Against',c:'#EAB850',n:'Seasonal timing against, or a replay veto on the grade'},
   none:{l:'No setup',s:'None',c:'#5d6678',n:'No payoff source qualifies'}};
 const SU_ORDER=['ready','wait','building','weak','veto','none'];
 function _su(r){ return r&&r.setup?r.setup:null; }
@@ -26830,7 +26830,7 @@ function _wkBuild(mob){
   const st=D.stamps||[]; const cotS=st.find(s=>/Positioning/.test(s.name))||{};
   const F=(D.brief&&D.brief.facts)||{};
   const reg=F.regime||null, fed=F.fed||null;
-  const skip=[/^Ordering is by/,/^Top-tier prints ahead/,/close to one bet/,/^Prime this week/,/^Setups?:/,/^Trade-ready on the setup score/,/^Waiting for a seasonal window/,/^Seasonal against, standing aside/];
+  const skip=[/^Ordering is by/,/^Top-tier prints ahead/,/close to one bet/,/^Prime this week/,/^Setups?:/,/^Trade-ready on the setup score/,/^Waiting for a seasonal window/,/^Standing aside/];
   if(reg) skip.push(/^Risk backdrop/); if(fed&&fed.next) skip.push(/^Fed funds futures/);
   const br=((D.brief&&D.brief.paragraphs)||[]).filter(p=>!skip.some(rx=>rx.test(p)));
   const SU=rows.some(r=>r.setup);
@@ -26945,7 +26945,7 @@ function _wkBoardSu(rows,mob){
         +'<span class="su-pj"><b style="color:'+_suCol(r)+'">'+_suNum(r)+'</b>'+(pj?'<span>&rarr;</span><b style="color:'+_suSideCol(r.side)+'">'+Number(pj.score).toFixed(1)+'</b>':'')+'</span>'+_dkSide(r.side)+'</li>'; }).join('')+'</ul>';
   }
   if(bld.length) h+='<div class="wkb-sub">Building <em>score 4 to 5.5</em></div><div class="su-mini">'+bld.slice(0,mob?8:12).map(r=>'<span class="su-m '+(r.side>0?'u':'d')+'"'+open(r.id)+' title="'+_esc(r.name+' · '+(r.archetype||'')+' · '+(_suTm(r).label||''))+'"><em>'+_esc(r.id)+'</em><b>'+_suNum(r)+'</b></span>').join('')+'</div>';
-  if(veto.length) h+='<div class="wkb-sub ag">Seasonal against, standing aside</div><div class="su-mini">'+veto.map(r=>'<span class="su-m ag"'+open(r.id)+' title="'+_esc(r.name+' '+(r.side>0?'long':'short')+': the seasonal path runs against the side over 4 to 8 weeks')+'"><em>'+_esc(r.id)+'</em>'+(r.side>0?'&#9650;':'&#9660;')+'</span>').join('')+'</div>';
+  if(veto.length) h+='<div class="wkb-sub ag">Standing aside</div><div class="su-mini">'+veto.map(r=>'<span class="su-m ag"'+open(r.id)+' title="'+_esc(r.name+' '+(r.side>0?'long':'short')+': '+((r.setup&&r.setup.ready&&r.setup.ready.label)||'the seasonal path runs against the side over 4 to 8 weeks'))+'"><em>'+_esc(r.id)+'</em>'+(r.side>0?'&#9650;':'&#9660;')+'</span>').join('')+'</div>';
   h+=bhCap('Setup score 0 to 10, ranked for the desk side','The setup score ranks; it is not a probability. Waiting rows show today\'s score with the projected score at the window.')+'</section>';
   return h;
 }

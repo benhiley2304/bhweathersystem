@@ -434,7 +434,7 @@ def brief(*, regime: Optional[Dict[str, Any]], fed: Optional[Dict[str, Any]],
             paras.append("Waiting for a seasonal window: " + ", ".join(
                 f"{r['name']} {_side_word(r['side'])} in {r['setup']['timing']['entry_td']} TD" for r in waits[:6]) + ".")
         if vetoed:
-            paras.append(f"Seasonal against, standing aside: {_names(vetoed)}.")
+            paras.append(f"Standing aside (seasonal timing against or a replay veto): {_names(vetoed)}.")
     else:
         if prime:
             paras.append(f"Prime this week: " + ", ".join(_lbl(r) for r in prime[:6]) + ".")

@@ -136,3 +136,11 @@ def test_state_api_routes(tmp_path):
                                                 [{"market": "GC", "grade": "setup", "grade_v1": "developing", "caps": []}]))
     g = c.get("/api/admin/ledger/grades", params={"market": "gc"}).json()
     assert g["days"][0]["v2"] == {"setup": 1} and g["days"][0]["v1"] == {"developing": 1}
+
+
+def test_cap_short_labels():
+    from bhws_desk_api import _cap_short
+    assert _cap_short("seasonal against: replay -0.120 R on prime and setup") == "seasonal path against"
+    assert _cap_short("divergence-fade short: replay -0.269 R") == "divergence short"
+    assert _cap_short("managers have turned: crowd fade window closed") == "managers turned"
+    assert _cap_short("something new: detail") == "something new"

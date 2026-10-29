@@ -33,6 +33,17 @@ _STATE: Dict[str, Any] = {"data": None, "built": 0.0, "key": None, "building": F
 _STATE_STORE = None   # set by backend.py via set_state_store(); optional
 
 
+_CAP_SHORT = (("seasonal against", "seasonal path against"), ("divergence-fade short", "divergence short"),
+              ("managers have turned", "managers turned"))
+
+
+def _cap_short(c: str) -> str:
+    for k, v in _CAP_SHORT:
+        if str(c).startswith(k):
+            return v
+    return str(c).split(":")[0]
+
+
 def set_state_store(store) -> None:
     global _STATE_STORE
     _STATE_STORE = store
@@ -280,6 +291,13 @@ def build_desk(markets, scores_payload, cot_cache, events_payload, fed_payload,
             row["setup"] = setup_score.compute(row, spath, sdw, now)
             if spath:
                 row["setup"]["path"] = {"F": spath["F"][::2], "step": 2, "n": spath["n"]}
+            # A replay veto on the grade also takes the row off the trade-ready
+            # list: the readiness label cannot say "ready" while the grade says
+            # stand aside. Wait rows are left alone (the replay found waiting for
+            # the seasonal window rescued seasonal-against rows in both halves).
+            if row.get("caps") and (row["setup"].get("ready") or {}).get("key") == "ready":
+                row["setup"]["ready"] = {"key": "veto", "label": "Stand aside: " + "; ".join(_cap_short(c) for c in row["caps"]),
+                                         "from": "ready", "reason": "replay veto on the grade"}
         except Exception as e:
             row["setup"] = None
             notes.append(f"{mid}: setup score failed ({e.__class__.__name__})")
