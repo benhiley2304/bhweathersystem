@@ -59,3 +59,7 @@ There is no separate Desk view any more. One `/api/desk` build (polled on load, 
 - the sidebar, ordered by setup class by default (toggle to Score for the composite ranking);
 - the "This week" band on the home page (brief, live setups, event gate, what changed, concentration);
 - the market read on each Overview tab.
+
+## Does it pay (payoff profiles)
+
+`GET /api/payoff?market=ID[&entry&stop&target&side]` returns the replay payoff profile for the market's current setup class (archetype, side, confirmation state, asset class) with a fallback chain to broader cells (minimum 120 rows for the primary cell), the market's own history (colour only below 40 rows), the any-week baseline, and, when a plan is passed, a stress read of the stop and target against the nearest stop row. `GET /api/payoff/table?k=1.0&level_max=2` returns the cross-archetype table used by the Edge lab. Built from `research/payoff/build.py`; method and findings in `research/payoff/REPORT.md`. Everything is replay history for a class of setups, never a probability for a live trade, and the engine never proposes a level.

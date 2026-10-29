@@ -49,9 +49,13 @@ Replace the single MFE/MAE median with a full first-passage study per setup clas
 
 Displayed as a **payoff cone** (section 6) with your plan overlaid. The cone is labelled as replay history for setups like this one, never as the probability for this trade.
 
+**Status (29 Oct 2026): built.** `research/payoff/build.py` → `payoff_profiles.json`, served by `GET /api/payoff` and `/api/payoff/table`, module `bhws_core/payoff.py`. Findings in `research/payoff/REPORT.md`; the short version is that graded setups as a whole sit at the any-week baseline (34.8% against 34.0% for 2R before 1R at a 1σ stop), so the table is a filter for classes that depart from it, not a reason to trade the ladder.
+
 ### 3.3 Plan stress test
 
 The plan form already takes zone, entry, stop and target. v12 evaluates them, never generates them: "In 212 past setups of this class, a stop this far from entry (0.8σ) was hit before the target in 46% of cases; median time to target 5 weeks; 31% saw a better entry within 2 weeks." It also flags when the stop sits inside the historical noise band (MAE 25th percentile) and when the target sits beyond the MFE 75th percentile. Levels and zones remain yours; the engine only reports how similar structures resolved.
+
+**Status (29 Oct 2026): built.** Shown in the market read as the Does it pay panel; the stress block appears once entry, stop and target are saved under Your plan. The engine reads the nearest stop row, never proposes a level, and says so in the caption.
 
 ### 3.4 Timing and catalysts
 

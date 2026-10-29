@@ -19726,6 +19726,16 @@ try:
 except Exception as _state_err:  # pragma: no cover
     print(f"[startup] state layer NOT registered: {_state_err!r}", flush=True)
 
+# ── Payoff profiles ("does it pay"): GET /api/payoff, /api/payoff/table ─────
+try:
+    from bhws_payoff_api import register as _bhws_register_payoff
+    import bhws_desk_api as _bhws_desk_mod2
+    _bhws_register_payoff(app, markets=MARKETS, desk_state_getter=lambda: _bhws_desk_mod2._STATE,
+                          sd_weekly_getter=globals().get("_sd_weekly_for"))
+    print("[startup] payoff profiles registered (/api/payoff)", flush=True)
+except Exception as _po_err:  # pragma: no cover
+    print(f"[startup] payoff profiles NOT registered: {_po_err!r}", flush=True)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
