@@ -27,6 +27,95 @@ import time
 import traceback
 from typing import Any, Callable, Dict, List, Optional
 
+# ── merge semantics ──────────────────────────────────────────────────────
+# Keyed stores are unions: a copy that is missing keys the other has (a repo
+# seed after a deploy, or a store refreshed from a short live feed before the
+# longer injected history arrived) must never erase them. `newer` wins on a
+# key both sides hold. Snapshot stores (fed_pricing) are newest-wins.
+def _merge_keyed(older, newer):
+    if isinstance(older, dict) and isinstance(newer, dict):
+        out = dict(older)
+        out.update(newer)
+        return out
+    return newer if newer is not None else older
+
+
+def _merge_by_time(older, newer, key="time"):
+    if isinstance(older, dict) and isinstance(newer, dict):
+        out = dict(older)
+        for k, v in newer.items():
+            o = out.get(k)
+            try:
+                if o is None or float((v or {}).get(key) or 0) >= float((o or {}).get(key) or 0):
+                    out[k] = v
+            except Exception:
+                out[k] = v
+        return out
+    return newer if newer is not None else older
+
+
+def _merge_history(older, newer):
+    """fed_pricing_history: list of {date, months}; union by date, newer wins."""
+    if isinstance(older, list) and isinstance(newer, list):
+        by = {str(x.get("date")): x for x in older if isinstance(x, dict)}
+        by.update({str(x.get("date")): x for x in newer if isinstance(x, dict)})
+        return [by[k] for k in sorted(by)]
+    return newer if newer is not None else older
+
+
+def _merge_ledger(older, newer):
+    """ledger: {entries:[...]} union by id, the later updated_at wins."""
+    if isinstance(older, dict) and isinstance(newer, dict):
+        by = {}
+        for src in (older.get("entries") or [], newer.get("entries") or []):
+            for e in src:
+                if not isinstance(e, dict) or not e.get("id"):
+                    continue
+                o = by.get(e["id"])
+                if o is None or float(e.get("updated_at") or 0) >= float(o.get("updated_at") or 0):
+                    by[e["id"]] = e
+        out = dict(older)
+        out.update(newer)
+        out["entries"] = sorted(by.values(), key=lambda e: float(e.get("created_at") or 0))
+        return out
+    return newer if newer is not None else older
+
+
+def _merge_grades(older, newer):
+    """ledger_grades: {rows:[...]} union by (day, market), newer wins."""
+    if isinstance(older, dict) and isinstance(newer, dict):
+        by = {}
+        for src in (older.get("rows") or [], newer.get("rows") or []):
+            for r in src:
+                if isinstance(r, dict) and r.get("day") and r.get("market"):
+                    by[(str(r["day"]), str(r["market"]))] = r
+        out = dict(older)
+        out.update(newer)
+        out["rows"] = [by[k] for k in sorted(by)]
+        return out
+    return newer if newer is not None else older
+
+
+MERGE = {
+    "ff_event_store": _merge_keyed,
+    "supply_event_store": _merge_keyed,
+    "ff_macro_injected": _merge_by_time,
+    "fed_pricing_history": _merge_history,
+    "ledger": _merge_ledger,
+    "ledger_grades": _merge_grades,
+}
+
+
+def merge(name: str, local, incoming, incoming_is_newer: bool):
+    """Combine the local copy with an incoming one. Returns (body, changed)."""
+    fn = MERGE.get(name)
+    if fn is None:
+        return (incoming, incoming != local) if incoming_is_newer else (local, False)
+    older, newer = (local, incoming) if incoming_is_newer else (incoming, local)
+    out = fn(older, newer)
+    return out, out != local
+
+
 STAMP_FILE = ".bhws_state_stamps.json"
 NAMES = (
     "ff_event_store", "supply_event_store", "fed_pricing", "fed_pricing_history",
@@ -245,7 +334,7 @@ class StateStore:
         out: Dict[str, str] = {}
         for n in names:
             out[n] = "no remote" if self.remote is None else self._restore_one(n)
-            if out[n] in ("restored", "local newer", "local only") or self.remote is None:
+            if out[n] in ("restored", "merged", "local newer", "local only") or self.remote is None:
                 body = self.load(n)
                 fn = self._on_restore.get(n)
                 if fn is not None and body is not None:
@@ -265,11 +354,18 @@ class StateStore:
             return "remote error"
         if rem is None or rem.get("body") is None:
             return "local only"
-        if rem["updated_at"] > self.local_mtime(name) + 1:
-            self.save(name, rem["body"], mirror=False)
+        lm = self.local_mtime(name)
+        local = self.load(name)
+        newer = float(rem["updated_at"] or 0) > lm + 1
+        body, changed = merge(name, local, rem["body"], incoming_is_newer=newer)
+        if not changed:
+            return "local newer" if not newer else "restored"
+        # a merged body is newer than either side; mirror it back so the remote
+        # also carries the union
+        self.save(name, body, mirror=(name in MERGE))
+        if not (name in MERGE):
             self._stamp(name, rem["updated_at"])
-            return "restored"
-        return "local newer"
+        return "restored" if newer else "merged"
 
     # ── bookkeeping ──────────────────────────────────────────────────────
     def _err(self, msg: str) -> None:
@@ -306,17 +402,20 @@ class StateStore:
                 continue
             mt = float(item.get("mtime") or 0)
             lm = self.local_mtime(n)   # 0 for a seed file or nothing on disk
-            if only_newer and lm > 0 and mt <= lm + 1:
-                out[n] = "local newer"
+            newer = (not only_newer) or lm == 0 or mt > lm + 1
+            local = self.load(n)
+            body, changed = merge(n, local, item["body"], incoming_is_newer=newer)
+            if not changed:
+                out[n] = "local newer" if not newer else "unchanged"
                 continue
-            self.save(n, item["body"])
-            if mt:
+            self.save(n, body)
+            if mt and n not in MERGE:
                 self._stamp(n, mt)
             fn = self._on_restore.get(n)
             if fn is not None:
                 try:
-                    fn(item["body"])
+                    fn(body)
                 except Exception as e:
                     self._err(f"import hook {n}: {e!r}")
-            out[n] = "imported"
+            out[n] = "imported" if newer else "merged"
         return out

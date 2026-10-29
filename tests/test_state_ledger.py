@@ -155,3 +155,29 @@ def test_cap_short_labels():
     assert _cap_short("divergence-fade short: replay -0.269 R") == "divergence short"
     assert _cap_short("managers have turned: crowd fade window closed") == "managers turned"
     assert _cap_short("something new: detail") == "something new"
+
+
+def test_state_import_merges_keyed_stores(tmp_path):
+    from bhws_core.state import merge
+    a, b = tmp_path / "a", tmp_path / "b"
+    a.mkdir(); b.mkdir()
+    sa, sb = StateStore(str(a), env={}), StateStore(str(b), env={})
+    # a holds the long injected history, b was refreshed from a short live feed after boot
+    sa.save("ff_event_store", {"USD|NFP|2026-03-06": {"actual": "1"}, "USD|CPI|2026-10-14": {"actual": "old"}})
+    sb.save("ff_event_store", {"USD|CPI|2026-10-14": {"actual": "new"}, "USD|CPI|2026-11-12": {"actual": "2"}})
+    out = sb.import_bundle(sa.export())          # a's export is older than b's local copy
+    assert out["ff_event_store"] == "merged"
+    got = sb.load("ff_event_store")
+    assert set(got) == {"USD|NFP|2026-03-06", "USD|CPI|2026-10-14", "USD|CPI|2026-11-12"}
+    assert got["USD|CPI|2026-10-14"] == {"actual": "new"}   # local (newer) wins the shared key
+    # snapshot stores stay newest-wins
+    sa.save("fed_pricing", {"months": [1], "time": 1})
+    sb.save("fed_pricing", {"months": [2], "time": 2})
+    assert sb.import_bundle(sa.export())["fed_pricing"] == "local newer" and sb.load("fed_pricing")["months"] == [2]
+    # per-currency macro injections keep the later time per key
+    m, ch = merge("ff_macro_injected", {"GBP": {"time": 5}, "EUR": {"time": 1}}, {"EUR": {"time": 9}}, incoming_is_newer=False)
+    assert m == {"GBP": {"time": 5}, "EUR": {"time": 9}} and ch
+    # grade record unions by day and market
+    g, _ = merge("ledger_grades", {"rows": [{"day": "2026-10-28", "market": "GC", "grade": "setup"}]},
+                 {"rows": [{"day": "2026-10-29", "market": "GC", "grade": "prime"}]}, incoming_is_newer=True)
+    assert [(r["day"], r["grade"]) for r in g["rows"]] == [("2026-10-28", "setup"), ("2026-10-29", "prime")]
