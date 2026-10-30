@@ -15,8 +15,14 @@ filesystem to the committed files) no longer loses injected feeds, plans or
 the ledger. Remote writes run on a background thread so a slow remote never
 blocks a request. Failures are logged and never raised into the request path.
 
+A fourth input is the committed seed bundle `state/seed_bundle.json`: the
+public-data part of an export (never the ledger), refreshed with
+`tools/refresh_seed.py` before a push and applied at boot with the same union
+merge as any import, so a deploy without a remote tier still comes up with
+the injected histories instead of the stale per-file seeds.
+
 Nothing here invents data: when no remote is configured the behaviour is the
-same as before (local files only) and `status()` says so.
+same as before (local files plus the committed seed) and `status()` says so.
 """
 from __future__ import annotations
 
@@ -230,6 +236,7 @@ class StateStore:
         self._pending: Dict[str, float] = {}
         self._errors: List[str] = []
         self.last_restore: Dict[str, str] = {}
+        self.last_seed: Dict[str, Any] = {}
         self._on_restore: Dict[str, Callable[[Any], None]] = {}
         url = env.get("DATABASE_URL")
         repo, tok = env.get("BHWS_STATE_REPO"), env.get("BHWS_STATE_TOKEN")
@@ -329,11 +336,55 @@ class StateStore:
         """Register a hook that re-hydrates an in-memory cache after a restore."""
         self._on_restore[name] = fn
 
+    # ── committed seed bundle ────────────────────────────────────────────
+    # `state/seed_bundle.json` is an export bundle committed with the code so a
+    # deploy without a remote tier comes up with the injected histories instead
+    # of the stale per-file seeds. It is applied with the same union merge as
+    # any import (newer keys win, nothing erased), so live data always beats it.
+    # The ledger (Ben's levels) is never read from the seed: it is private and
+    # only lives in the local tier or a private remote.
+    SEED_EXCLUDE = ("ledger",)
+
+    def seed_path(self) -> str:
+        return os.path.join(self.data_dir, "state", "seed_bundle.json")
+
+    def seed_bundle(self) -> Dict[str, Any]:
+        """Export bundle minus the private ledger, for committing as the seed."""
+        b = self.export()
+        b["items"] = {n: v for n, v in b["items"].items() if n not in self.SEED_EXCLUDE}
+        b["seed"] = True
+        return b
+
+    def apply_seed(self) -> Dict[str, str]:
+        p = self.seed_path()
+        if not os.path.exists(p):
+            return {}
+        try:
+            with open(p) as f:
+                bundle = json.load(f)
+            items = bundle.get("items") or {}
+            bundle = {"items": {n: v for n, v in items.items() if n not in self.SEED_EXCLUDE}}
+            out = self.import_bundle(bundle, only_newer=True)
+            self.last_seed = {"applied_at": time.time(), "exported_at": None, "out": out}
+            try:
+                with open(p) as f:
+                    self.last_seed["exported_at"] = json.load(f).get("exported_at")
+            except Exception:
+                pass
+            _log("seed: " + ", ".join(f"{k}={v}" for k, v in out.items()))
+            return out
+        except Exception as e:
+            self._err(f"seed bundle: {e!r}")
+            return {}
+
     def restore_all(self, names=NAMES) -> Dict[str, str]:
-        """Overlay local files with newer remote copies. Returns name -> outcome."""
+        """Apply the committed seed, then overlay local files with newer remote copies. Returns name -> outcome."""
+        seed = self.apply_seed()
         out: Dict[str, str] = {}
         for n in names:
             out[n] = "no remote" if self.remote is None else self._restore_one(n)
+            if seed.get(n) in ("imported", "merged"):
+                out[n] = f"seed {seed[n]}" if self.remote is None else out[n]
             if out[n] in ("restored", "merged", "local newer", "local only") or self.remote is None:
                 body = self.load(n)
                 fn = self._on_restore.get(n)
@@ -385,9 +436,14 @@ class StateStore:
             files[n] = {"present": present, "mtime": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(mt)) if mt else None,
                         "seed": present and not mt,   # came with the checkout, not written by this store
                         "bytes": os.path.getsize(self.path(n)) if present else 0}
+        sp = self.seed_path()
+        seed = {"present": os.path.exists(sp), "bytes": os.path.getsize(sp) if os.path.exists(sp) else 0,
+                "exported_at": None, "last_apply": self.last_seed.get("out") or {}}
+        if self.last_seed.get("exported_at"):
+            seed["exported_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(float(self.last_seed["exported_at"])))
         return {"remote": self.remote_kind, "durable": self.remote is not None,
                 "pending_mirrors": len(pend), "errors": errs[-5:], "last_restore": self.last_restore,
-                "files": files}
+                "seed_bundle": seed, "files": files}
 
     def export(self) -> Dict[str, Any]:
         return {"exported_at": time.time(),

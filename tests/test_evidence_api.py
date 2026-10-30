@@ -158,3 +158,20 @@ def test_cot_fo_series_no_code_is_422(client):
     if m is None:
         pytest.skip("every market has a CFTC code")
     assert client.get(f"/api/cot-fo-series?market={m['id']}").status_code == 422
+
+
+def test_security_headers_on_every_route(client):
+    r = client.get("/api/health")
+    assert r.headers.get("x-content-type-options") == "nosniff"
+    assert r.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
+    assert r.headers.get("x-frame-options") == "DENY"
+    assert "max-age=" in r.headers.get("strict-transport-security", "")
+    # admin routes are never cacheable; public routes keep their own cache policy
+    ra = client.get("/api/admin/state/export")
+    assert ra.headers.get("cache-control") == "no-store"
+    assert r.headers.get("cache-control") != "no-store"
+
+
+def test_state_status_reports_seed_bundle(client):
+    j = client.get("/api/state/status").json()
+    assert "seed_bundle" in j and isinstance(j["seed_bundle"].get("present"), bool)

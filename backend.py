@@ -111,6 +111,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class _SecurityHeaders:
+    """Thin ASGI wrapper: defensive response headers on every route, no-store on admin routes.
+
+    Pure ASGI (not BaseHTTPMiddleware) so streaming and the GZip layer are untouched."""
+    _COMMON = [(b"x-content-type-options", b"nosniff"),
+               (b"referrer-policy", b"strict-origin-when-cross-origin"),
+               (b"x-frame-options", b"DENY"),
+               (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), interest-cohort=()"),
+               (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
+               (b"cross-origin-resource-policy", b"cross-origin")]
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            return await self.app(scope, receive, send)
+        admin = (scope.get("path") or "").startswith("/api/admin/")
+
+        async def _send(message):
+            if message.get("type") == "http.response.start":
+                headers = list(message.get("headers") or [])
+                have = {k.lower() for k, _ in headers}
+                for k, v in self._COMMON:
+                    if k not in have:
+                        headers.append((k, v))
+                if admin and b"cache-control" not in have:
+                    headers.append((b"cache-control", b"no-store"))
+                message["headers"] = headers
+            await send(message)
+        await self.app(scope, receive, _send)
+
+
+app.add_middleware(_SecurityHeaders)
+
 # Global exception handler: ensures score_history in-progress locks are always
 # released even when an unhandled exception escapes the endpoint.
 from fastapi import Request
@@ -19640,6 +19676,24 @@ async def warmup_cache():
             # occurred above, so the backend never gets stuck in permanent 202 state.
             _WARMING["done"] = True
             print("[startup] _WARMING[done]=True set (try/finally guaranteed)")
+        # ── Desk and zones board: build at boot so a deploy or restart comes up
+        # ready instead of waiting for the first visitor to trigger a 202 warm.
+        try:
+            await _warm_desk_and_board()
+        except Exception as _e:
+            print(f"[startup] desk/board warm error (non-fatal): {_e!r}")
+
+    async def _warm_desk_and_board():
+        import bhws_desk_api as _dk
+        import bhws_zones_api as _zn
+        if not _dk.kick():
+            print("[startup] desk kick skipped (already building or not registered)")
+        t0 = time.time()
+        while not _dk.is_ready() and time.time() - t0 < 600:
+            await _astart.sleep(5)
+        print(f"[startup] desk ready={_dk.is_ready()} after {round(time.time() - t0)}s; warming zones board")
+        r = _zn.warm_board()
+        print(f"[startup] zones board warm: {r}")
     _astart.ensure_future(_warm())
     print("[startup] Backend ready — full cache pre-warming in background")
 

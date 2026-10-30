@@ -48,6 +48,17 @@ def set_state_store(store) -> None:
     global _STATE_STORE
     _STATE_STORE = store
 _LOCK = threading.Lock()
+_KICK: Optional[Callable[[], bool]] = None   # set by register(); lets backend warm the desk at boot
+
+
+def kick() -> bool:
+    """Start a desk rebuild if one is not running. Must be called on the event loop thread."""
+    return bool(_KICK and _KICK())
+
+
+def is_ready() -> bool:
+    with _LOCK:
+        return _STATE["data"] is not None
 
 
 def _prep_fo(df: pd.DataFrame) -> pd.DataFrame:
@@ -457,6 +468,9 @@ def register(app, *, markets, scores_cache, cot_cache=None,
             _STATE["started"] = time.time()
         asyncio.get_event_loop().create_task(_rebuild())
         return True
+
+    global _KICK
+    _KICK = _kick
 
     @app.get("/api/desk")
     async def get_desk(refresh: int = 0):

@@ -361,8 +361,29 @@ def _warm(items: List[Any], yf_with_timeout: Callable) -> None:
         _BOARD["finished"] = time.time()
 
 
+_WARM_ARGS: Dict[str, Any] = {}   # set by register(); lets backend warm the board at boot
+
+
+def warm_board() -> Dict[str, Any]:
+    """Start the paced background board warm for markets not cached (no-op if running or complete)."""
+    markets, yf = _WARM_ARGS.get("markets"), _WARM_ARGS.get("yf")
+    if not markets or not yf:
+        return {"started": False, "reason": "not registered"}
+    items = [(m["id"], FUTURES_OVERRIDE.get(m["id"]) or m.get("yf")) for m in markets]
+    items = [(mid, sym) for mid, sym in items if sym]
+    now = time.time()
+    with _LOCK:
+        missing = [(mid, sym) for mid, sym in items if not (mid in _CACHE and now - _CACHE[mid]["t"] < CACHE_TTL)]
+        if not missing or _BOARD["building"]:
+            return {"started": False, "missing": len(missing), "building": bool(_BOARD["building"])}
+        _BOARD.update(building=True, started=now, done=0, total=len(missing), failed=[])
+    threading.Thread(target=_warm, args=(missing, yf), daemon=True, name="zones-board-warm").start()
+    return {"started": True, "missing": len(missing)}
+
+
 def register(app, *, markets, yf_with_timeout: Callable) -> None:
     by_id = {m["id"]: m for m in markets}
+    _WARM_ARGS.update(markets=markets, yf=yf_with_timeout)
 
     def _symbol(mid: str) -> Optional[str]:
         m = by_id.get(mid)

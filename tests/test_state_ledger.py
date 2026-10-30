@@ -181,3 +181,33 @@ def test_state_import_merges_keyed_stores(tmp_path):
     g, _ = merge("ledger_grades", {"rows": [{"day": "2026-10-28", "market": "GC", "grade": "setup"}]},
                  {"rows": [{"day": "2026-10-29", "market": "GC", "grade": "prime"}]}, incoming_is_newer=True)
     assert [(r["day"], r["grade"]) for r in g["rows"]] == [("2026-10-28", "setup"), ("2026-10-29", "prime")]
+
+
+def test_state_seed_bundle_applies_on_fresh_checkout_and_never_imports_ledger(tmp_path):
+    # a live store with injected histories and a private ledger
+    live = tmp_path / "live"; live.mkdir()
+    sl = StateStore(str(live), env={})
+    sl.save("fed_pricing", {"months": [1, 2, 3]})
+    sl.save("ledger", {"entries": [{"id": "x", "market": "SI"}]})
+    seed = sl.seed_bundle()
+    assert seed["seed"] is True and "ledger" not in seed["items"] and "fed_pricing" in seed["items"]
+    # a fresh checkout with a stale per-file seed and the committed bundle
+    fresh = tmp_path / "fresh"; (fresh / "state").mkdir(parents=True)
+    (fresh / "fed_pricing.json").write_text('{"months": ["stale"]}')
+    bundle_with_ledger = dict(seed); bundle_with_ledger["items"] = dict(seed["items"])
+    bundle_with_ledger["items"]["ledger"] = {"body": {"entries": [{"id": "leak"}]}, "mtime": time.time()}
+    (fresh / "state" / "seed_bundle.json").write_text(json.dumps(bundle_with_ledger))
+    sf = StateStore(str(fresh), env={})
+    out = sf.restore_all(["fed_pricing", "ledger"])
+    assert out["fed_pricing"] == "seed imported" and sf.load("fed_pricing") == {"months": [1, 2, 3]}
+    assert out["ledger"] == "no remote" and sf.load("ledger") is None   # ledger never read from the seed
+    st = sf.status()
+    assert st["seed_bundle"]["present"] is True and st["seed_bundle"]["last_apply"]["fed_pricing"] == "imported"
+    # a restart with newer local data keeps the local copy
+    sf.save("fed_pricing", {"months": [9]})
+    sf._stamp("fed_pricing", time.time() + 10)
+    out2 = sf.restore_all(["fed_pricing"])
+    assert out2["fed_pricing"] == "no remote" and sf.load("fed_pricing") == {"months": [9]}
+    # no bundle on disk is a quiet no-op
+    bare = tmp_path / "bare"; bare.mkdir()
+    assert StateStore(str(bare), env={}).apply_seed() == {}
