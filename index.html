@@ -52736,8 +52736,10 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   function money(v){ if(v==null||!isFinite(v)) return '—'; var a=Math.abs(v); return '$'+v.toLocaleString('en-GB',{maximumFractionDigits:a>=100?0:2,minimumFractionDigits:a>=100?0:2}); }
   function crossQuote(id){ var m=/^[A-Z]{3}([A-Z]{3})$/.exec(id); return m?m[1]:null; }
   function plan(id){ try{ return (typeof _planGet==='function'?_planGet(id):JSON.parse(localStorage.getItem('bhws_plan_'+id)||'null'))||{}; }catch(e){ return {}; } }
+  /* saved plan with whatever is currently typed in the plan form layered on top (entry and stop before Apply) */
+  function livePlan(id){ var p=Object.assign({},plan(id)); var f=document.getElementById('hrp-'+id); if(f){ var en=f.querySelector('[name=entry]'), st=f.querySelector('[name=stop]'); if(en&&String(en.value).trim()!=='') p.entry=en.value; if(st&&String(st.value).trim()!=='') p.stop=st.value; } return p; }
   function compute(id,pOverride){
-    var p=pOverride||plan(id), c=cfg(), e=num(p.entry), st=num(p.stop);
+    var p=pOverride||livePlan(id), c=cfg(), e=num(p.entry), st=num(p.stop);
     var r={id:id,ok:false,msg:'',lines:[]};
     if(e==null||st==null){ r.msg='Enter an entry and a stop above and the size appears here.'; return r; }
     var dist=Math.abs(e-st); if(!(dist>0)){ r.msg='Entry and stop are the same price.'; return r; }
@@ -52798,8 +52800,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   document.addEventListener('input',function(e){
     var t=e.target; if(!t||!t.name||(t.name!=='entry'&&t.name!=='stop')) return; var f=t.closest('form[id^="hrp-"]'); if(!f) return;
     var id=f.id.slice(4), box=document.getElementById('hrsz-'+id); if(!box) return;
-    var p=Object.assign({},plan(id)); var en=f.querySelector('[name=entry]'), st=f.querySelector('[name=stop]'); if(en) p.entry=en.value; if(st) p.stop=st.value;
-    window._v13SizeRefresh(id,p);
+    window._v13SizeRefresh(id);
   },true);
 
   /* ---------- 3) quiet error toast ---------- */
