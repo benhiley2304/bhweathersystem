@@ -19753,6 +19753,14 @@ try:
 except Exception as _cx_err:  # pragma: no cover
     print(f"[startup] crowd map NOT registered: {_cx_err!r}", flush=True)
 
+# ── Crowd phase artifact (positioning phase plot history): GET /api/phase ───
+try:
+    from bhws_phase_api import register as _bhws_register_phase
+    _bhws_register_phase(app)
+    print("[startup] crowd phase registered (/api/phase)", flush=True)
+except Exception as _ph_err:  # pragma: no cover
+    print(f"[startup] crowd phase NOT registered: {_ph_err!r}", flush=True)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)

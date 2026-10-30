@@ -38442,7 +38442,7 @@ function cotTab(m){
     : '';
 
   let html=cotNoteHtml+iceBadgeHtml+cryptoMethodologyHtml+`<div data-house-read="${m.id}"></div>`
-    +`<div class="ctv" data-ctv="${m.id}"></div><div class="ctv-an" data-ctv-an="${m.id}"></div>`;
+    +`<div class="ctv" data-ctv="${m.id}"></div><div class="ctv-an" data-ctv-an="${m.id}"></div><div class="v12-ph-host" data-ph="${m.id}"></div>`;
   let engHtml=`<div class="cot-cards eng-scale">`;
   for(const g of groups){
     const ix=g.idx;
@@ -38729,6 +38729,7 @@ async function _ctvLoad(id){
   }
   _ctvRender(id);
   try{ _ctvAnalytics(id); }catch(e){ console.warn('ctv analytics',e); }
+  try{ if(window._v12PhaseLoad) _v12PhaseLoad(id); }catch(e){ console.warn('crowd phase',e); }
 }
 /* BHWS-R9 positioning analytics: computed in the browser from the same futures-only series the
    chart draws, so every number here can be read off the panes above. No thresholds are tuned. */
@@ -49910,8 +49911,8 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-cm-hd .ld{font-size:12px;color:rgba(151,161,181,.7)}
 .v12-cm-g{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px 24px;align-items:start}
 .v12-cm-ax{display:grid;grid-template-columns:118px minmax(0,1fr) 92px;gap:0 12px;padding:0 10px 4px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(151,161,181,.55)}
-.v12-cm-ax .tk{position:relative;height:12px}
-.v12-cm-ax .tk i{position:absolute;top:0;transform:translateX(-50%);font-style:normal}.v12-cm-ax .tk i:first-child{transform:none}.v12-cm-ax .tk i:last-child{transform:translateX(-100%)}
+.v12-cm-ax .tk{position:relative;height:14px}
+.v12-cm-ax .tk i{position:absolute;top:0;transform:translateX(-50%);font-style:normal}.v12-cm-ax .tk i.e{transform:translateX(-100%)}.v12-cm-ax .tk i.s{transform:none}.v12-cm-ax .tk i::after{content:"";position:absolute;left:50%;top:11px;width:1px;height:3px;background:rgba(151,161,181,.35)}.v12-cm-ax .tk i.e::after{left:auto;right:0}.v12-cm-ax .tk i.s::after{left:0}
 .v12-cm-ls{display:grid;gap:6px}
 .v12-cm-row{display:grid;grid-template-columns:118px minmax(0,1fr) 92px;gap:2px 12px;align-items:center;padding:9px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);cursor:pointer;transition:border-color .15s,background .15s}
 .v12-cm-row:hover{border-color:rgba(241,227,190,.22);background:rgba(241,227,190,.03)}
@@ -49971,9 +49972,79 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-cm-err{font-size:12px;color:rgba(151,161,181,.8)}
 @media (max-width:1100px){.v12-cm-g{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:700px){.v12-cm{padding:14px 12px 12px;border-radius:12px}.v12-cm-h .br{grid-column:1/3}.v12-cm-h .mt{grid-column:1/3;text-align:left}.v12-cm-pr{grid-template-columns:auto minmax(0,1fr);gap:2px 12px}.v12-cm-pr .pl{grid-column:1/3}.v12-cm-pr .pl i{display:block;margin-left:0}.v12-cm-pr span:last-child{text-align:right}.v12-cm-row,.v12-cm-ax{grid-template-columns:92px minmax(0,1fr) 72px;gap:2px 8px}.v12-cm-row .id em{display:none}.v12-cm-row .pv{font-size:10px}}
-@media (max-width:480px){.v12-cm-row,.v12-cm-ax{grid-template-columns:78px minmax(0,1fr)}.v12-cm-ax .tk i:nth-child(2),.v12-cm-ax .tk i:nth-child(4){display:none}.v12-cm-ax .pvh{display:none}.v12-cm-row .pv{grid-column:1/3;flex-direction:row;justify-content:flex-start;gap:10px;margin-top:2px}.v12-cm-row .tg{grid-column:1/3}
+@media (max-width:480px){.v12-cm-row,.v12-cm-ax{grid-template-columns:78px minmax(0,1fr)}.v12-cm-ax .pvh{display:none}.v12-cm-row .pv{grid-column:1/3;flex-direction:row;justify-content:flex-start;gap:10px;margin-top:2px}.v12-cm-row .tg{grid-column:1/3}
 .v12-zn-row{grid-template-columns:18px minmax(0,1fr)}.v12-zn-row .sc{grid-column:1/3;grid-row:auto;flex-direction:row;align-items:center;justify-content:space-between;width:100%;margin-top:4px}.v12-zn-row .scb{flex:1;width:auto;margin-right:12px}.v12-zn-row .use{flex:0 0 auto}}
 /* ===== end v12 css: crowd map ===== */
+/* ===== v12 css: crowd phase (positioning phase plot) ===== */
+.v12-ph-host:empty{display:none}
+.v12-ph{margin:-4px 0 16px;padding:14px 14px 12px;border-radius:14px;background:linear-gradient(180deg,rgba(20,24,34,.6),rgba(12,15,22,.6));border:1px solid rgba(255,255,255,.07);position:relative}
+.v12-ph-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.v12-ph-sub{font:500 10px/1.4 var(--mono);color:rgba(241,227,190,.48);margin-top:3px;letter-spacing:.02em}
+.v12-ph-tb{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.v12-ph-tb .lbl{font:600 9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:rgba(151,161,181,.6);margin-right:-2px}
+.v12-ph-grid{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px 22px;align-items:start}
+.v12-ph-wrap{position:relative;width:100%;max-width:440px}
+.v12-ph-svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+.v12-ph-pane{fill:rgba(255,255,255,.012);stroke:rgba(255,255,255,.07)}
+.v12-ph-band{fill:rgba(241,227,190,.035)}
+.v12-ph-corner{fill:rgba(234,184,80,.10);stroke:rgba(234,184,80,.28);stroke-width:1}
+.v12-ph-corner.on{fill:rgba(234,184,80,.16);stroke:rgba(234,184,80,.55)}
+.v12-ph-ct{font:600 8.5px var(--mono);letter-spacing:.1em;fill:rgba(234,184,80,.78)}
+.v12-ph-mid{stroke:rgba(230,232,240,.22);stroke-width:1;stroke-dasharray:2 3}
+.v12-ph-tk{font:500 9px var(--mono);fill:rgba(230,232,240,.42)}
+.v12-ph-ax{font:600 9px var(--mono);letter-spacing:.1em;text-transform:uppercase;fill:rgba(151,161,181,.7)}
+.v12-ph-dot{stroke:none}
+.v12-ph-dot.na{fill:none;stroke:rgba(230,232,240,.32);stroke-width:1}
+.v12-ph-path{fill:none;stroke:#F1E3BE;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.v12-ph-now{fill:#F1E3BE;stroke:#0b0d12;stroke-width:1.6;filter:drop-shadow(0 0 6px rgba(241,227,190,.75))}
+.v12-ph-ago{fill:#0d1018;stroke:#F1E3BE;stroke-width:1.4}
+.v12-ph-lab{font:600 9px var(--mono);fill:#F1E3BE;letter-spacing:.04em}
+.v12-ph-lab.dim{fill:rgba(241,227,190,.6);font-weight:500}
+.v12-ph-hl{fill:none;stroke:#fff;stroke-width:1.4;pointer-events:none}
+.v12-ph-ov{fill:transparent;cursor:crosshair}
+.v12-ph-tip{position:absolute;pointer-events:none;z-index:4;min-width:150px;padding:8px 10px;border-radius:9px;background:rgba(10,12,18,.96);border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 28px rgba(0,0,0,.45);font:500 10.5px/1.5 var(--mono);color:rgba(236,238,244,.9);display:none}
+.v12-ph-tip b{color:#F1E3BE;font-weight:600}
+.v12-ph-tip .u{color:#22C97A}.v12-ph-tip .d{color:#E05252}
+.v12-ph-tip .k{color:rgba(151,161,181,.8)}
+.v12-ph-leg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font:500 9.5px var(--mono);color:rgba(151,161,181,.75);letter-spacing:.02em}
+.v12-ph-leg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.v12-ph-leg i.u{background:#22C97A}.v12-ph-leg i.d{background:#E05252}.v12-ph-leg i.na{border:1px solid rgba(230,232,240,.4);width:6px;height:6px}
+.v12-ph-leg i.p{width:14px;height:2px;border-radius:1px;background:#F1E3BE;vertical-align:2px}
+.v12-ph-side{display:grid;gap:10px}
+.v12-ph-now-c{padding:10px 12px;border-radius:10px;background:rgba(241,227,190,.04);border:1px solid rgba(241,227,190,.16)}
+.v12-ph-k{font:600 9.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:rgba(241,227,190,.72)}
+.v12-ph-now-v{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.v12-ph-now-v span{font:600 16px var(--mono);color:#eef0f5}
+.v12-ph-now-v span small{display:block;font:500 9px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.v12-ph-now-v span.c small{color:#3D7BD6}.v12-ph-now-v span.m small{color:#EAB850}.v12-ph-now-v span.r small{color:#E05252}
+.v12-ph-now-t{font-size:12px;line-height:1.5;color:rgba(236,238,244,.84);margin-top:6px}
+.v12-ph-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.v12-ph-c{padding:10px 11px;border-radius:10px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-top:2px solid var(--gc,rgba(230,232,240,.35))}
+.v12-ph-c.on{border-color:rgba(241,227,190,.35);border-top-color:var(--gc,#F1E3BE);background:rgba(241,227,190,.035)}
+.v12-ph-c .h{font:600 9px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--gc,rgba(230,232,240,.6))}
+.v12-ph-c .v{font:600 19px var(--mono);margin:5px 0 4px;color:#eef0f5}
+.v12-ph-c .v.u{color:#22C97A}.v12-ph-c .v.d{color:#E05252}
+.v12-ph-c .v small{font-size:9.5px;color:var(--faint);font-weight:500;margin-left:4px}
+.v12-ph-c .r{display:flex;justify-content:space-between;gap:8px;font:500 10px/1.5 var(--mono);color:var(--faint);border-top:1px solid rgba(255,255,255,.04);padding-top:3px;margin-top:3px}
+.v12-ph-c .r b{color:rgba(236,238,244,.85);font-weight:600;text-align:right}
+.v12-ph-c .thin{color:#EAB850}
+.v12-ph-rd{font-size:12.5px;line-height:1.55;color:rgba(236,238,244,.86);margin:0}
+.v12-ph-rd b{color:#F1E3BE;font-weight:600}
+.v12-ph-note{display:inline-flex;align-items:center;gap:6px;font:500 9.5px var(--mono);color:#EAB850;background:rgba(234,184,80,.08);border:1px solid rgba(234,184,80,.25);border-radius:6px;padding:3px 8px;margin-right:6px}
+.v12-ph-note.ok{color:rgba(151,161,181,.8);background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08)}
+.v12-ph-notes{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.v12-ph-err{font:500 11px var(--mono);color:var(--faint);padding:14px 4px}
+@media (max-width:1100px){.v12-ph-grid{grid-template-columns:minmax(0,1fr)}.v12-ph-wrap{max-width:460px}}
+@media (max-width:700px){.v12-ph{padding:12px 12px 10px;border-radius:12px}.v12-ph-cards{grid-template-columns:minmax(0,1fr)}.v12-ph-c .v{font-size:17px}.v12-ph-now-v span{font-size:15px}}
+.v12-ph-ep{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06)}
+.v12-ph-er{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr);gap:8px;font:500 10.5px/1.6 var(--mono);color:rgba(236,238,244,.84);border-top:1px solid rgba(255,255,255,.04)}
+.v12-ph-er span:not(:first-child){text-align:right}
+.v12-ph-er.hd{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:rgba(151,161,181,.65);border-top:0;margin-top:6px}
+.v12-ph-er .u{color:#22C97A}.v12-ph-er .d{color:#E05252}
+.v12-ph-em{font:500 9.5px var(--mono);color:rgba(151,161,181,.6);margin-top:4px}
+.v12-ph-es{font-size:11.5px;line-height:1.5;color:rgba(236,238,244,.78);margin-top:8px;border-top:1px solid rgba(255,255,255,.05);padding-top:7px}
+.v12-ph-es b{font-weight:600}.v12-ph-es .u{color:#22C97A}.v12-ph-es .d{color:#E05252}
+/* ===== end v12 css: crowd phase ===== */
 
 </style>
 <script>
@@ -52097,7 +52168,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       +'<span class="st'+(st==='none'?' none':'')+'">'+esc(id)+' \u00b7 '+esc(STATE_WORD[st]||st)+'</span>'
       +'<span class="sp"></span><span class="ld">Where the crowd sits across the complex, and what that state paid here. Location, not a signal.</span></div>';
     h+='<div class="v12-cm-g"><div>'
-      +'<div class="v12-cm-ax"><span>Market</span><span class="tk"><i style="left:0">0</i><i style="left:10%">10</i><i style="left:50%">50</i><i style="left:90%">90</i><i style="left:100%">100</i></span><span class="pvh" style="text-align:right">percentile</span></div>'
+      +'<div class="v12-cm-ax"><span>Market</span><span class="tk"><i class="e" style="left:10%">10</i><i style="left:50%">50</i><i class="s" style="left:90%">90</i></span><span class="pvh" style="text-align:right">percentile</span></div>'
       +'<div class="v12-cm-ls">';
     (D.peers||[]).forEach(function(p){ h+=peerRow(p,id); });
     h+='</div><div class="v12-cm-leg"><span><s class="c"></s>Commercials</span><span><s class="m"></s>Fund managers</span><span><s class="r"></s>Retail</span><span><s class="x"></s>Extreme bands, 10 and 90</span><span>Sorted by managers \u00b7 tap a row to open it</span></div></div>';
@@ -52138,6 +52209,156 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   }
 })();
 /* ===== end v12 js: crowd map ===== */
+/* ===== v12 js: crowd phase (positioning phase plot) ===== */
+(function(){
+  const PH={cache:{},st:{h:13,path:26}};
+  const COL={u:'#22C97A',d:'#E05252'};
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const ord=n=>{ const r=Math.round(n), t=r%100; return r+((t>=11&&t<=13)?'th':({1:'st',2:'nd',3:'rd'})[r%10]||'th'); };
+  const pc=(v,dp)=>(v==null||!isFinite(v))?'\u2014':(v>0?'+':'')+(100*v).toFixed(dp==null?1:dp)+'%';
+  const dmy=iso=>{ const t=new Date(iso+'T12:00:00Z'); return t.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}); };
+  const my=iso=>{ const t=new Date(iso+'T12:00:00Z'); return t.toLocaleDateString('en-GB',{month:'short',year:'numeric',timeZone:'UTC'}); };
+  function region(c,m){ if(c==null||m==null) return 'none'; if(m>=90&&c<=10) return 'cl'; if(m<=10&&c>=90) return 'cs'; if(m>=90||m<=10) return 'me'; if(c>=90||c<=10) return 'ce'; return 'none'; }
+  const RNAME={cl:'Crowded long corner',cs:'Crowded short corner',me:'Managers at an extreme, hedgers not',ce:'Hedgers at an extreme, managers not',none:'No 90/10 extreme'};
+  function stats(pts,h){
+    const rs=pts.map(p=>p['r'+h]).filter(v=>v!=null&&isFinite(v)); const n=rs.length; if(!n) return {n:0,nAll:pts.length};
+    const s=rs.slice().sort((a,b)=>a-b); const mean=rs.reduce((a,b)=>a+b,0)/n; const med=n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;
+    return {n,nAll:pts.length,mean,med,pos:rs.filter(v=>v>0).length/n,thin:Math.ceil(pts.length/8)};
+  }
+  function episodes(pts,key,h){
+    const eps=[]; let cur=null;
+    pts.forEach((p,i)=>{ if(region(p.c,p.m)!==key) return; if(cur&&i-cur.last<=3){ cur.idx.push(i); cur.last=i; } else { cur={idx:[i],last:i}; eps.push(cur); } });
+    return eps.map(e=>{ const a=pts[e.idx[0]], b=pts[e.idx[e.idx.length-1]]; return {start:a.d,end:b.d,n:e.idx.length,rFirst:a['r'+h],rLast:b['r'+h]}; });
+  }
+  async function load(id){
+    const host=document.querySelector('[data-ph="'+id+'"]'); if(!host) return;
+    if(PH.cache[id]){ render(id); return; }
+    host.innerHTML='<div class="v12-ph"><div class="v12-ph-err">Loading crowd phase\u2026</div></div>';
+    let art=null, artStatus='none';
+    try{ const r=await fetch(API+'/api/phase?market='+encodeURIComponent(id)); if(r.ok){ art=await r.json(); artStatus='ok'; } else artStatus=(r.status===404?'missing':'error'); }catch(e){ artStatus='error'; }
+    const live=(window.CTV&&CTV.cache&&CTV.cache[id])||null;
+    const pts=[]; let src='';
+    if(art&&art.dates&&art.dates.length&&art.comm&&art.mgr){
+      for(let i=0;i<art.dates.length;i++){ const c=art.comm[i], m=art.mgr[i]; if(c==null||m==null) continue;
+        pts.push({d:art.dates[i],c,m,rt:art.retail?art.retail[i]:null,r4:art.r4?art.r4[i]:null,r8:art.r8?art.r8[i]:null,r13:art.r13?art.r13[i]:null}); }
+      src='art';
+    } else if(live&&live.dates&&live.comm&&live.mgr){
+      const N=live.dates.length, cl=live.close||[];
+      for(let i=0;i<N;i++){ const c=live.comm.pct[i], m=live.mgr.pct[i]; if(c==null||m==null) continue;
+        const p={d:live.dates[i],c,m,rt:live.retail?live.retail.pct[i]:null};
+        [4,8,13].forEach(h=>{ const a=cl[i], b=cl[i+h]; p['r'+h]=(a!=null&&b!=null&&isFinite(a)&&isFinite(b)&&a)?b/a-1:null; });
+        pts.push(p); }
+      src='live';
+    }
+    if(!pts.length){
+      host.innerHTML='<div class="v12-ph"><div class="v12-ph-err">Crowd phase did not load'+(artStatus==='error'?' (the backend may be busy)':'')+'. Nothing is filled in. <button class="ctv-b" onclick="_v12PhaseRetry(\''+esc(id)+'\')">Retry</button></div></div>'; return; }
+    let path=[], liveTo=null, pathSrc='';
+    if(live&&live.dates&&live.comm&&live.mgr){
+      for(let i=0;i<live.dates.length;i++){ const c=live.comm.pct[i], m=live.mgr.pct[i]; if(c==null||m==null) continue; path.push({d:live.dates[i],c,m,rt:live.retail?live.retail.pct[i]:null}); }
+      liveTo=live.dates[live.dates.length-1]; pathSrc='live';
+    }
+    if(!path.length){ path=pts.map(p=>({d:p.d,c:p.c,m:p.m,rt:p.rt})); pathSrc=src; liveTo=path[path.length-1].d; }
+    let diff=null;
+    if(src==='art'&&pathSrc==='live'){ const byD={}; pts.forEach(p=>{ byD[p.d]=p; });
+      for(let i=path.length-1;i>=0;i--){ const q=byD[path[i].d]; if(q){ diff={d:path[i].d,dm:path[i].m-q.m,dc:path[i].c-q.c}; break; } } }
+    PH.cache[id]={id,art,src,pts,path,liveTo,pathSrc,diff,artStatus,name:(art&&art.name)||(live&&live.name)||id};
+    render(id);
+  }
+  function render(id){
+    const host=document.querySelector('[data-ph="'+id+'"]'), D=PH.cache[id]; if(!host||!D) return;
+    const h=PH.st.h, P=PH.st.path, pts=D.pts, path=D.path.slice(-P);
+    const now=path[path.length-1];
+    const reg=region(now.c,now.m);
+    let streak=0; for(let i=D.path.length-1;i>=0&&region(D.path[i].c,D.path[i].m)===reg;i--) streak++;
+    const sCL=stats(pts.filter(p=>region(p.c,p.m)==='cl'),h), sCS=stats(pts.filter(p=>region(p.c,p.m)==='cs'),h), sAll=stats(pts,h);
+    const abs=pts.map(p=>p['r'+h]).filter(v=>v!=null&&isFinite(v)).map(Math.abs).sort((a,b)=>a-b);
+    const cap=abs.length?Math.max(0.01,abs[Math.min(abs.length-1,Math.floor(abs.length*0.9))]):0.1;
+    const S=440, L=40, R=14, T=16, B=36, iw=S-L-R, ih=S-T-B;
+    const X=c=>L+c/100*iw, Y=m=>T+(1-m/100)*ih;
+    const f1=v=>(+v).toFixed(1);
+    const label=(x,y,t,dim,flip)=>{ const right=x<S*0.7; const tx=right?x+9:x-9; let ty=y<T+24?y+15:y-9; if(flip) ty=(ty>y)?y-9:y+15; return '<text class="v12-ph-lab'+(dim?' dim':'')+'" x="'+f1(tx)+'" y="'+f1(ty)+'" text-anchor="'+(right?'start':'end')+'">'+t+'</text>'; };
+    let s='<svg class="v12-ph-svg" viewBox="0 0 '+S+' '+S+'" width="'+S+'" height="'+S+'" role="img" aria-label="Crowd phase plot">';
+    s+='<rect class="v12-ph-pane" x="'+L+'" y="'+T+'" width="'+iw+'" height="'+ih+'" rx="6"/>';
+    s+='<rect class="v12-ph-band" x="'+f1(X(0))+'" y="'+f1(Y(100))+'" width="'+f1(X(10)-X(0))+'" height="'+f1(ih)+'"/>';
+    s+='<rect class="v12-ph-band" x="'+f1(X(90))+'" y="'+f1(Y(100))+'" width="'+f1(X(100)-X(90))+'" height="'+f1(ih)+'"/>';
+    s+='<rect class="v12-ph-band" x="'+L+'" y="'+f1(Y(100))+'" width="'+iw+'" height="'+f1(Y(90)-Y(100))+'"/>';
+    s+='<rect class="v12-ph-band" x="'+L+'" y="'+f1(Y(10))+'" width="'+iw+'" height="'+f1(Y(0)-Y(10))+'"/>';
+    s+='<rect class="v12-ph-corner'+(reg==='cl'?' on':'')+'" x="'+f1(X(0))+'" y="'+f1(Y(100))+'" width="'+f1(X(10)-X(0))+'" height="'+f1(Y(90)-Y(100))+'" rx="3"/>';
+    s+='<rect class="v12-ph-corner'+(reg==='cs'?' on':'')+'" x="'+f1(X(90))+'" y="'+f1(Y(10))+'" width="'+f1(X(100)-X(90))+'" height="'+f1(Y(0)-Y(10))+'" rx="3"/>';
+    s+='<text class="v12-ph-ct" x="'+f1(X(12.5))+'" y="'+f1(Y(95)+3)+'">CROWDED LONG</text>';
+    s+='<text class="v12-ph-ct" x="'+f1(X(87.5))+'" y="'+f1(Y(5)+3)+'" text-anchor="end">CROWDED SHORT</text>';
+    s+='<line class="v12-ph-mid" x1="'+f1(X(50))+'" x2="'+f1(X(50))+'" y1="'+T+'" y2="'+(T+ih)+'"/><line class="v12-ph-mid" x1="'+L+'" x2="'+(L+iw)+'" y1="'+f1(Y(50))+'" y2="'+f1(Y(50))+'"/>';
+    [0,10,50,90,100].forEach(v=>{ s+='<text class="v12-ph-tk" x="'+f1(X(v))+'" y="'+(T+ih+13)+'" text-anchor="middle">'+v+'</text><text class="v12-ph-tk" x="'+(L-6)+'" y="'+f1(Y(v)+3)+'" text-anchor="end">'+v+'</text>'; });
+    s+='<text class="v12-ph-ax" x="'+f1(L+iw/2)+'" y="'+(S-5)+'" text-anchor="middle" style="fill:#3D7BD6">Commercials percentile</text>';
+    s+='<text class="v12-ph-ax" transform="translate(11 '+f1(T+ih/2)+') rotate(-90)" text-anchor="middle" style="fill:#EAB850">Fund managers percentile</text>';
+    const dotR=2.6; let dots='';
+    const xy=new Array(pts.length);
+    pts.forEach((p,i)=>{ const r=p['r'+h]; const x=X(p.c), y=Y(p.m); xy[i]=[x,y];
+      if(r==null||!isFinite(r)) dots+='<circle class="v12-ph-dot na" cx="'+f1(x)+'" cy="'+f1(y)+'" r="'+(dotR-0.5)+'"/>';
+      else { const a=(0.16+0.64*Math.min(1,Math.abs(r)/cap)).toFixed(2); dots+='<circle class="v12-ph-dot" cx="'+f1(x)+'" cy="'+f1(y)+'" r="'+dotR+'" fill="'+(r>0?COL.u:COL.d)+'" fill-opacity="'+a+'"/>'; } });
+    s+='<g>'+dots+'</g>';
+    for(let i=1;i<path.length;i++){ const a=(0.12+0.78*i/Math.max(1,path.length-1)).toFixed(2);
+      s+='<line class="v12-ph-path" x1="'+f1(X(path[i-1].c))+'" y1="'+f1(Y(path[i-1].m))+'" x2="'+f1(X(path[i].c))+'" y2="'+f1(Y(path[i].m))+'" stroke-opacity="'+a+'"/>'; }
+    const ago=path.length>13?path[path.length-14]:null;
+    if(ago){ const flip=Math.abs(X(ago.c)-X(now.c))<80&&Math.abs(Y(ago.m)-Y(now.m))<20; s+='<circle class="v12-ph-ago" cx="'+f1(X(ago.c))+'" cy="'+f1(Y(ago.m))+'" r="3.6"/>'+label(X(ago.c),Y(ago.m),'13w ago',true,flip); }
+    s+='<circle class="v12-ph-now" cx="'+f1(X(now.c))+'" cy="'+f1(Y(now.m))+'" r="6"/>'+label(X(now.c),Y(now.m),'now',false);
+    s+='<circle class="v12-ph-hl" r="5.5" style="display:none"/>';
+    s+='<rect class="v12-ph-ov" x="'+L+'" y="'+T+'" width="'+iw+'" height="'+ih+'"/>';
+    s+='</svg><div class="v12-ph-tip"></div>';
+    const leg='<div class="v12-ph-leg"><span><i class="u"></i>price rose over the next '+h+'w</span><span><i class="d"></i>price fell</span><span><i class="na"></i>outcome not known yet</span><span><i class="p"></i>last '+path.length+' reports</span><span>full colour at \u00b1'+(100*cap).toFixed(0)+'%</span></div>';
+    const btn=(k,v,t)=>'<button class="ctv-b'+(PH.st[k]===v?' on':'')+'" onclick="_v12PhaseSet(\''+esc(id)+'\',\''+k+'\','+v+')">'+t+'</button>';
+    const tb='<div class="v12-ph-tb"><span class="lbl">Outcome</span><div class="ctv-g">'+btn('h',4,'4w')+btn('h',8,'8w')+btn('h',13,'13w')+'</div><span class="lbl">Path</span><div class="ctv-g">'+btn('path',26,'26w')+btn('path',52,'52w')+btn('path',104,'104w')+'</div></div>';
+    const card=(title,st,gc,on,key)=>{ if(!st.n) return '<div class="v12-ph-c'+(on?' on':'')+'" style="--gc:'+gc+'"><div class="h">'+title+'</div><div class="v">\u2014<small>no weeks</small></div><div class="r"><span>This market has not sat in this corner in the series.</span></div></div>';
+      const cmp=key!=='all'&&sAll.n?'<div class="r"><span>All weeks</span><b>'+pc(sAll.mean)+'</b></div>':'';
+      return '<div class="v12-ph-c'+(on?' on':'')+'" style="--gc:'+gc+'"><div class="h">'+title+'</div><div class="v '+(st.mean>0?'u':st.mean<0?'d':'')+'">'+pc(st.mean)+'<small>mean '+h+'w</small></div>'
+        +'<div class="r"><span>Median</span><b>'+pc(st.med)+'</b></div><div class="r"><span>Positive</span><b>'+Math.round(100*st.pos)+'%</b></div>'
+        +'<div class="r"><span>Weeks</span><b>'+st.n+' <span class="'+(st.thin<12?'thin':'')+'">\u00b7 about '+st.thin+' independent</span></b></div>'+cmp+'</div>'; };
+    const curSt=reg==='cl'?sCL:reg==='cs'?sCS:null;
+    let readTxt;
+    if(curSt&&curSt.n){ readTxt='<b>'+RNAME[reg]+(streak>1?' for '+streak+' reports':'')+'.</b> In this market, '+h+'-week returns from this corner averaged '+pc(curSt.mean)+' ('+Math.round(100*curSt.pos)+'% positive, '+curSt.n+' weeks, about '+curSt.thin+' independent) against '+pc(sAll.mean)+' for all weeks'+(sAll.n?' ('+Math.round(100*sAll.pos)+'% positive)':'')+'.'; }
+    else if(curSt){ readTxt='<b>'+RNAME[reg]+'.</b> First time in the series that this market sits here, so there is no history to show for the corner.'; }
+    else { readTxt='<b>'+RNAME[reg]+(streak>1&&reg!=='none'?' for '+streak+' reports':'')+'.</b> Neither corner is in play, so positioning is not offering a crowd payoff on its own; the corner cards show what each corner paid historically in this market.'; }
+    const nowCard='<div class="v12-ph-now-c"><div class="v12-ph-k">Now \u00b7 report '+esc(dmy(now.d))+'</div><div class="v12-ph-now-v">'
+      +'<span class="c">'+ord(now.c)+'<small>Commercials</small></span><span class="m">'+ord(now.m)+'<small>Fund managers</small></span>'+(now.rt!=null?'<span class="r">'+ord(now.rt)+'<small>Retail</small></span>':'')
+      +'</div><div class="v12-ph-now-t">'+readTxt+'</div></div>';
+    const cards='<div class="v12-ph-cards">'+card('Crowded long corner',sCL,'#EAB850',reg==='cl','cl')+card('Crowded short corner',sCS,'#EAB850',reg==='cs','cs')+card('All weeks',sAll,'rgba(241,227,190,.7)',false,'all')+'</div>';
+    let epKey=reg==='cl'||reg==='cs'?reg:null, epWhy='';
+    if(!epKey){ let li=-1; for(let i=pts.length-1;i>=0;i--){ const r=region(pts[i].c,pts[i].m); if(r==='cl'||r==='cs'){ epKey=r; li=i; break; } } epWhy=li>=0?' \u00b7 last visited '+esc(my(pts[li].d)):''; }
+    let epHtml='';
+    if(epKey){ const eps=episodes(pts,epKey,h); const known=eps.filter(e=>e.rFirst!=null&&isFinite(e.rFirst));
+      const em=known.length?known.reduce((a,e)=>a+e.rFirst,0)/known.length:null, ep=known.length?known.filter(e=>e.rFirst>0).length/known.length:null;
+      const rows=eps.slice().reverse().slice(0,8).map(e=>'<div class="v12-ph-er"><span>'+esc(my(e.start))+'</span><span>'+e.n+'</span><span class="'+(e.rFirst==null?'':e.rFirst>0?'u':'d')+'">'+(e.rFirst==null?'\u2014':pc(e.rFirst))+'</span><span class="'+(e.rLast==null?'':e.rLast>0?'u':'d')+'">'+(e.rLast==null?'\u2014':pc(e.rLast))+'</span></div>').join('');
+      epHtml='<div class="v12-ph-ep"><div class="v12-ph-k">Episodes \u00b7 '+RNAME[epKey].replace(' corner','')+' \u00b7 '+eps.length+' visit'+(eps.length===1?'':'s')+' since '+esc(pts[0].d.slice(0,4))+epWhy+'</div>'
+        +'<div class="v12-ph-er hd"><span>Entered</span><span>Reports</span><span>'+h+'w after first</span><span>'+h+'w after last</span></div>'+rows
+        +(eps.length>8?'<div class="v12-ph-em">'+(eps.length-8)+' earlier visit'+(eps.length-8===1?'':'s')+' not shown</div>':'')
+        +(em!=null?'<div class="v12-ph-es">Entering on the first report of each visit: mean <b class="'+(em>0?'u':'d')+'">'+pc(em)+'</b>, '+Math.round(100*ep)+'% positive across '+known.length+' visits. Visits are the independent sample; weeks inside them overlap.</div>':''); }
+    const notes=[]; const from=pts[0].d, to=pts[pts.length-1].d;
+    if(D.src==='art'&&D.liveTo&&D.art&&D.art.to&&D.liveTo>D.art.to){ const wk=Math.round((new Date(D.liveTo)-new Date(D.art.to))/6.048e8); notes.push('<span class="v12-ph-note">history to '+esc(dmy(D.art.to))+' \u00b7 '+wk+' report'+(wk===1?'':'s')+' behind the live series</span>'); }
+    else if(D.src==='art') notes.push('<span class="v12-ph-note ok">history to '+esc(dmy(to))+' \u00b7 matches the live series</span>');
+    if(D.src==='live') notes.push('<span class="v12-ph-note">no research history for this market \u00b7 cloud from the live series '+esc(my(from))+' to '+esc(my(to))+'</span>');
+    if(D.diff&&(Math.abs(D.diff.dm)>2||Math.abs(D.diff.dc)>2)) notes.push('<span class="v12-ph-note">live and research percentiles differ on '+esc(dmy(D.diff.d))+': managers '+(D.diff.dm>0?'+':'')+D.diff.dm.toFixed(1)+' pts, commercials '+(D.diff.dc>0?'+':'')+D.diff.dc.toFixed(1)+' pts</span>');
+    const capTxt='Each dot is one weekly report placed by the commercials\u2019 (x) and fund managers\u2019 (y) percentiles: 156-report mid-rank, futures-only, the same numbers as the TradingView COT indicators. Colour is the simple return over the following '+h+' weeks from the Friday close after the report; green means price rose. Hollow dots have no outcome yet. History '+esc(my(from))+' to '+esc(my(to))+(D.art&&D.art.built?', research frame built '+esc(D.art.built.slice(0,10)):'')+'; the path and the current point are the live series to '+esc(dmy(D.liveTo||to))+'. History for this market, not a probability for a trade.';
+    const capHtml=(typeof bhCap==='function')?bhCap('Crowd phase \u00b7 '+pts.length+' reports \u00b7 overlapping '+h+'-week windows','about n independent keeps every eighth qualifying week. '+capTxt):'<div class="v12-ph-sub">'+capTxt+'</div>';
+    host.innerHTML='<div class="v12-ph"><div class="v12-ph-top"><div><div class="ctv-t">Crowd phase</div><div class="v12-ph-sub">Where the crowd stood, and what price did next \u00b7 '+esc(D.name)+'</div></div>'+tb+'</div>'
+      +'<div class="v12-ph-grid"><div><div class="v12-ph-wrap">'+s+'</div>'+leg+'</div><div class="v12-ph-side">'+nowCard+cards+epHtml+'<div class="v12-ph-notes">'+notes.join('')+'</div></div></div>'+capHtml+'</div>';
+    const svg=host.querySelector('svg'), ov=host.querySelector('.v12-ph-ov'), tip=host.querySelector('.v12-ph-tip'), hl=host.querySelector('.v12-ph-hl'), wrap=host.querySelector('.v12-ph-wrap');
+    const hide=()=>{ tip.style.display='none'; hl.style.display='none'; };
+    const move=e=>{ const r=svg.getBoundingClientRect(); const px=(e.clientX-r.left)/r.width*S, py=(e.clientY-r.top)/r.height*S;
+      let best=-1, bd=10*10; for(let i=0;i<xy.length;i++){ const dx=xy[i][0]-px, dy=xy[i][1]-py, d2=dx*dx+dy*dy; if(d2<bd){ bd=d2; best=i; } }
+      if(best<0){ hide(); return; }
+      const p=pts[best], rv=p['r'+h];
+      hl.setAttribute('cx',f1(xy[best][0])); hl.setAttribute('cy',f1(xy[best][1])); hl.style.display='';
+      tip.innerHTML='<b>'+esc(dmy(p.d))+'</b><br><span class="k">Comm</span> '+ord(p.c)+' \u00b7 <span class="k">Mgrs</span> '+ord(p.m)+(p.rt!=null?' \u00b7 <span class="k">Retail</span> '+ord(p.rt):'')+'<br><span class="k">Next '+h+'w</span> '+(rv==null?'not known yet':'<span class="'+(rv>0?'u':'d')+'">'+pc(rv)+'</span>');
+      const wr=wrap.getBoundingClientRect(); let lx=e.clientX-wr.left+14, ly=e.clientY-wr.top-12; if(lx>wr.width-170) lx=e.clientX-wr.left-172; if(ly<0) ly=0;
+      tip.style.left=lx+'px'; tip.style.top=ly+'px'; tip.style.display='block'; };
+    ov.addEventListener('pointermove',move); ov.addEventListener('pointerdown',move); ov.addEventListener('pointerleave',hide);
+  }
+  window._v12PhaseLoad=load;
+  window._v12PhaseSet=function(id,k,v){ PH.st[k]=v; render(id); };
+  window._v12PhaseRetry=function(id){ delete PH.cache[id]; load(id); };
+  window._v12Phase=PH;
+})();
+/* ===== end v12 js: crowd phase ===== */
 
 </script>
 </body>
