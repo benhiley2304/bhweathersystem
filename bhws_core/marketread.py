@@ -111,6 +111,9 @@ def _positioning(row) -> Dict[str, Any]:
     facts.append(f"Commercials {_ord(p.get('commercials'))}, fund managers {_ord(p.get('managers'))}, "
                  f"retail {_ord(p.get('retail'))} percentile (futures-only, 156-report mid-rank, "
                  f"observed {_date(p.get('observed'))}).")
+    chist = row.get("crowd_history") or {}
+    if chist.get("fact"):
+        facts.append(chist["fact"])     # measured history first, so it is visible without expanding
     ch = (p.get("changes") or {}).get("managers") or {}
     if ch.get("chg_1") is not None:
         facts.append(f"Fund managers {_f(ch.get('chg_1'), 1, True)} pts on the latest report, "
@@ -120,9 +123,6 @@ def _positioning(row) -> Dict[str, Any]:
         facts.append(dv.get("text"))
     if pb.get("explain"):
         facts.append(pb["explain"])
-    chist = row.get("crowd_history") or {}
-    if chist.get("fact"):
-        facts.append(chist["fact"])
     if R.get("equity"):
         facts.append("Equity index: positioning sets the size here, never the side."
                      if chist.get("fact") else "Equity index: positioning is a size warning here, never the side.")

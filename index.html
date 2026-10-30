@@ -49971,7 +49971,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-cm-err{font-size:12px;color:rgba(151,161,181,.8)}
 @media (max-width:1100px){.v12-cm-g{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:700px){.v12-cm{padding:14px 12px 12px;border-radius:12px}.v12-cm-h .br{grid-column:1/3}.v12-cm-h .mt{grid-column:1/3;text-align:left}.v12-cm-pr{grid-template-columns:auto minmax(0,1fr);gap:2px 12px}.v12-cm-pr .pl{grid-column:1/3}.v12-cm-pr .pl i{display:block;margin-left:0}.v12-cm-pr span:last-child{text-align:right}.v12-cm-row,.v12-cm-ax{grid-template-columns:92px minmax(0,1fr) 72px;gap:2px 8px}.v12-cm-row .id em{display:none}.v12-cm-row .pv{font-size:10px}}
-@media (max-width:480px){.v12-cm-row,.v12-cm-ax{grid-template-columns:78px minmax(0,1fr)}.v12-cm-ax .pvh{display:none}.v12-cm-row .pv{grid-column:1/3;flex-direction:row;justify-content:flex-start;gap:10px;margin-top:2px}.v12-cm-row .tg{grid-column:1/3}
+@media (max-width:480px){.v12-cm-row,.v12-cm-ax{grid-template-columns:78px minmax(0,1fr)}.v12-cm-ax .tk i:nth-child(2),.v12-cm-ax .tk i:nth-child(4){display:none}.v12-cm-ax .pvh{display:none}.v12-cm-row .pv{grid-column:1/3;flex-direction:row;justify-content:flex-start;gap:10px;margin-top:2px}.v12-cm-row .tg{grid-column:1/3}
 .v12-zn-row{grid-template-columns:18px minmax(0,1fr)}.v12-zn-row .sc{grid-column:1/3;grid-row:auto;flex-direction:row;align-items:center;justify-content:space-between;width:100%;margin-top:4px}.v12-zn-row .scb{flex:1;width:auto;margin-right:12px}.v12-zn-row .use{flex:0 0 auto}}
 /* ===== end v12 css: crowd map ===== */
 
@@ -52082,7 +52082,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       ks.sort(function(x,y){ return ((R.pairs[y].cond_13||{}).n||0)-((R.pairs[x].cond_13||{}).n||0); }).forEach(function(k){
         var p=R.pairs[k], cc=p.cond_13||{}, bb=p.base_13||{}; if(!cc.n) return;
         var ab=k.split('>'), thin=(p.n_thin||0)<10;
-        h+='<div class="v12-cm-pr"><span class="pl">'+esc(ab[1])+' over '+esc(ab[0])+'<i>when '+esc(ab[0])+' managers \u2265 '+esc(ab[1])+' + 50</i></span>'
+        h+='<div class="v12-cm-pr" title="Weeks when '+esc(ab[0])+' managers percentile sat 50 or more points above '+esc(ab[1])+'; '+esc(ab[1])+' forward 13-week return minus '+esc(ab[0])+', against the pair\u2019s unconditional spread"><span class="pl">'+esc(ab[1])+' over '+esc(ab[0])+'<i>'+esc(ab[0])+' mgrs +50</i></span>'
           +'<span class="'+((cc.mean_pct||0)>0?'up':'dn')+'">'+pct(cc.mean_pct)+' <span class="mu">vs '+pct(bb.mean_pct)+'</span></span>'
           +'<span class="'+(thin?'thin':'mu')+'">'+pos(cc.pos)+' \u00b7 n '+cc.n+(thin?' \u00b7 thin':'')+'</span></div>';
       });
@@ -52097,10 +52097,10 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       +'<span class="st'+(st==='none'?' none':'')+'">'+esc(id)+' \u00b7 '+esc(STATE_WORD[st]||st)+'</span>'
       +'<span class="sp"></span><span class="ld">Where the crowd sits across the complex, and what that state paid here. Location, not a signal.</span></div>';
     h+='<div class="v12-cm-g"><div>'
-      +'<div class="v12-cm-ax"><span>Market \u00b7 Desk</span><span class="tk"><i style="left:0">0</i><i style="left:10%">10</i><i style="left:50%">50</i><i style="left:90%">90</i><i style="left:100%">100</i></span><span class="pvh" style="text-align:right">percentile</span></div>'
+      +'<div class="v12-cm-ax"><span>Market</span><span class="tk"><i style="left:0">0</i><i style="left:10%">10</i><i style="left:50%">50</i><i style="left:90%">90</i><i style="left:100%">100</i></span><span class="pvh" style="text-align:right">percentile</span></div>'
       +'<div class="v12-cm-ls">';
     (D.peers||[]).forEach(function(p){ h+=peerRow(p,id); });
-    h+='</div><div class="v12-cm-leg"><span><s class="c"></s>Commercials</span><span><s class="m"></s>Fund managers</span><span><s class="r"></s>Retail</span><span><s class="x"></s>Extreme bands, 10 and 90</span><span>Sorted by managers; click a row to open it</span></div></div>';
+    h+='</div><div class="v12-cm-leg"><span><s class="c"></s>Commercials</span><span><s class="m"></s>Fund managers</span><span><s class="r"></s>Retail</span><span><s class="x"></s>Extreme bands, 10 and 90</span><span>Sorted by managers \u00b7 tap a row to open it</span></div></div>';
     h+='<div>'+historyHTML(D,id)+pairsHTML(D)+'</div></div>';
     var df=D.definitions||{};
     h+='<div class="v12-cm-cap"><b>Crowded long</b>: '+esc(df.crowded_long||'')+' <b>Crowded short</b>: '+esc(df.crowded_short||'')+' '+esc(df.history||'')+' Same percentiles as the TradingView COT indicators; the crowd rows use the Desk\u2019s positioning read, the history uses the research file ('+esc((D.evidence_built||'').slice(0,10))+').</div>';
