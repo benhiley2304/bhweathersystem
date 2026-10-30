@@ -18,14 +18,29 @@ Some futures print single-price daily bars; those markets are flagged and the we
 """
 from __future__ import annotations
 
+import json
 import threading
 import time
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+import numpy as np
 import pandas as pd
 from fastapi.responses import JSONResponse
 
 from bhws_core import zones_v2 as Z
+
+REPLAY_PATH = Path(__file__).resolve().parent / "research" / "zones" / "zone_replay_v2.json"
+
+
+def _load_replay() -> Dict[str, Any]:
+    try:
+        return json.loads(REPLAY_PATH.read_text())
+    except Exception:
+        return {"meta": {}, "cells": {}}
+
+
+REPLAY = _load_replay()
 
 # Futures series where the backend scores a cash proxy, and spot FX where Ben charts the cash pair.
 FUTURES_OVERRIDE = {
@@ -62,22 +77,72 @@ DEFINITIONS = {
              "with trend) is the method's rule, reported as such, not as measured evidence.",
     "suggestion": "'Use this zone' pre-fills entry at the proximal edge and a stop a quarter of the zone height beyond "
                   "the distal edge, which is the convention in Ben's reports. Both remain his to set.",
-    "evidence": "Replay 2012-2026, 57 markets, weekly zones (first detector): a graded Desk read with a resting order at "
-                "the nearest fresh weekly zone paid 1.13 profit factor at 2R when filled (39% of orders filled), level "
-                "with the engine's Monday-close entry. Zone confluence is a location and risk tool here, not a measured "
-                "lift in win rate. The second detector has not been replayed yet. See docs/SUPPLY_DEMAND_SPEC.md.",
+    "evidence": "Point-in-time replay of this detector, 58 markets (weekly 2011-2026, two-day and daily 2020-2026): a resting "
+                "order at the proximal edge on the first visit after the zone became knowable, stop a quarter height beyond "
+                "the distal edge, 2R target, time-outs marked at the final close. All zones: profit factor 1.05 weekly, 1.10 "
+                "two-day, 1.12 daily before costs. Zones that pass the method's own grade (matrix allows it, base of six bars "
+                "or fewer, departure of three heights or more, covered by a weekly zone on lower timeframes): 1.29, 1.27 and "
+                "1.34, with 38 to 40% of resolved visits reaching 2R first, and both halves of the sample above 1.2. The rest: "
+                "0.98 to 1.08. High-volume leg outs did not hold better where Yahoo volume is coherent. Half then add at 1R "
+                "trailed full size. Replay history, not a track record; parameters were tuned on nine of Ben's zones.",
+    "grade": "The method's grade is its own four rules applied to the zone now: the action matrix allows it at today's curve "
+             "location and weekly direction, the base is six bars or fewer, the leg out ran at least three zone heights before "
+             "the first return, and on the two-day and daily the zone sits inside a weekly zone of the same kind. Pass or fail "
+             "per rule; it is a filter the replay was split on, not a probability.",
+    "volume": "Volume candles: candle width follows the bar's volume against the median of the previous twenty bars in the same "
+              "volume regime (thick is loud, thin is quiet), the TradingView volume-candle cue. Yahoo continuous futures switch "
+              "contracts, so volume is coherent on about four series in ten; where it is not, candles are drawn at a fixed width "
+              "and no volume tier is shown.",
 }
+GRADE_SWING = 3.0
+GRADE_BASE = 6
 
 _CACHE: Dict[str, Dict[str, Any]] = {}
 _LOCK = threading.Lock()
+_BOARD: Dict[str, Any] = {"building": False, "started": 0.0, "finished": 0.0, "done": 0, "total": 0, "failed": []}
+BOARD_PACE = 2.0          # seconds between markets in the background warm (Yahoo is shared with the engine)
+NEAR_TYP = 1.5            # "near" a zone: within this many typical ranges of the proximal edge
 
 
 def _candles(df: pd.DataFrame, n: int) -> List[Dict[str, Any]]:
     d = df.tail(n)
+    vol, ref = Z.volume_reference(df)
+    rv = None
+    if vol is not None:
+        r = np.clip(vol / ref, 0.15, 6.0)
+        rv = pd.Series(r, index=df.index).tail(n)
     out = []
-    for ts, r in d.iterrows():
-        out.append({"t": ts.strftime("%Y-%m-%d"), "o": round(float(r["Open"]), 6), "h": round(float(r["High"]), 6),
-                    "l": round(float(r["Low"]), 6), "c": round(float(r["Close"]), 6)})
+    for i, (ts, r) in enumerate(d.iterrows()):
+        c = {"t": ts.strftime("%Y-%m-%d"), "o": round(float(r["Open"]), 6), "h": round(float(r["High"]), 6),
+             "l": round(float(r["Low"]), 6), "c": round(float(r["Close"]), 6)}
+        if rv is not None:
+            x = float(rv.iloc[i])
+            c["v"] = float(r.get("Volume", 0) or 0)
+            c["rv"] = round(x, 2) if np.isfinite(x) else None
+        out.append(c)
+    return out
+
+
+def _grade(z: Z.Zone, act: Dict[str, Any], covered: bool) -> Dict[str, Any]:
+    rules = [
+        {"k": "matrix", "ok": bool(act.get("allowed")), "t": "action matrix allows it" if act.get("allowed") else ("matrix: stand aside" if act.get("allowed") is False else "matrix: location unknown")},
+        {"k": "base", "ok": z.base_bars <= GRADE_BASE, "t": f"base {z.base_bars} bars" + ("" if z.base_bars <= GRADE_BASE else " (over six)")},
+        {"k": "departure", "ok": z.swing_h >= GRADE_SWING, "t": f"departure {'30+' if z.swing_h >= 30 else f'{z.swing_h:.1f}'} heights" + ("" if z.swing_h >= GRADE_SWING else " (under three)")},
+    ]
+    if z.tf != "W":
+        rules.append({"k": "covered", "ok": bool(covered), "t": "covered by a weekly zone" if covered else "not covered by a weekly zone"})
+    return {"ok": all(r["ok"] for r in rules), "rules": rules}
+
+
+def _evidence_for(tf: str) -> Dict[str, Any]:
+    cells = REPLAY.get("cells", {})
+    pick = {"all": tf, "grade": f"{tf}|grade", "rest": f"{tf}|rest", "grade_first": f"{tf}|grade|half|first",
+            "grade_second": f"{tf}|grade|half|second", "grade_demand": f"{tf}|grade|demand", "grade_supply": f"{tf}|grade|supply",
+            "vol_high": f"{tf}|grade|vol|high", "vol_not_high": f"{tf}|grade|vol|not_high"}
+    keep = ("n", "markets", "win1", "win2", "win3", "pf_full_2", "pf_full_3", "pf_scale_2", "pf_scale_3", "exp_full_2", "held", "control_pf_2", "control_win2")
+    out = {k: {kk: v.get(kk) for kk in keep} for k, key in pick.items() if (v := cells.get(key))}
+    out["horizon"] = (REPLAY.get("meta", {}).get("horizon") or {}).get(tf)
+    out["built"] = REPLAY.get("meta", {}).get("built")
     return out
 
 
@@ -130,6 +195,7 @@ def _zone_dict(z: Z.Zone, price: float, weekly: List[Z.Zone], opposing: List[Z.Z
     cov = Z.covered(z, weekly) if z.tf != "W" else None
     d["covered_by"] = None if cov is None else {"lo": float(cov.lo), "hi": float(cov.hi), "base_start": pd.Timestamp(cov.base_start).strftime("%Y-%m-%d"), "fresh_state": cov.fresh_state}
     d["action"] = Z.action(z.kind, curve_label, trend)
+    d["grade"] = _grade(z, d["action"], cov is not None)
     d["title"] = f"{'Weekly' if z.tf == 'W' else 'Two-day' if z.tf == '2D' else 'Daily'} {z.kind}"
     return d
 
@@ -144,7 +210,8 @@ def _build(mid: str, symbol: str, yf_with_timeout: Callable) -> Dict[str, Any]:
     price = float(ref["Close"].iloc[-1])
     out: Dict[str, Any] = {"market": mid, "symbol": symbol, "built": pd.Timestamp.now("UTC").strftime("%Y-%m-%d %H:%M UTC"),
                            "price": round(price, 6), "asof": ref.index[-1].strftime("%Y-%m-%d"), "detector": "v2",
-                           "zones": {}, "candidates": {}, "candles": {}, "typ": {}, "all_counts": {}, "nearest": {}}
+                           "zones": {}, "candidates": {}, "candles": {}, "typ": {}, "all_counts": {}, "nearest": {},
+                           "volume": {}, "evidence": {}}
     detected: Dict[str, List[Z.Zone]] = {}
     live: Dict[str, List[Z.Zone]] = {}
     for tf, df in frames.items():
@@ -174,6 +241,10 @@ def _build(mid: str, symbol: str, yf_with_timeout: Callable) -> Dict[str, Any]:
             pos = int(df.index.searchsorted(first))
             n = max(n, min(CANDLES_MAX, len(df) - pos + 12))
         out["candles"][tf] = _candles(df, n)
+        out["volume"][tf] = bool(Z.volume_reference(df)[0] is not None)
+        out["evidence"][tf] = _evidence_for(tf)
+    if not any(out["volume"].values()):
+        notes.append("Yahoo volume is not coherent for this series (contract switches or a cash series); candles are drawn at a fixed width")
     out["curve"] = cur
     out["direction"] = trend
     out["read"] = _read(mid, price, cur, trend, out["zones"])
@@ -225,8 +296,96 @@ def _read(mid: str, price: float, cur: Dict, trend: Dict, zones: Dict[str, List[
     return lines
 
 
+def _nearest_by_kind(zs: List[Dict[str, Any]], price: float, kind: str) -> Optional[Dict[str, Any]]:
+    """Nearest key zone of a kind: the one containing price, else the closest on its own side of price."""
+    cands = [z for z in zs if z.get("kind") == kind]
+    inside = [z for z in cands if z.get("inside")]
+    if inside:
+        return inside[0]
+    side = [z for z in cands if (z["hi"] <= price if kind == "demand" else z["lo"] >= price)]
+    if not side:
+        return None
+    return max(side, key=lambda z: z["proximal"]) if kind == "demand" else min(side, key=lambda z: z["proximal"])
+
+
+def _board_entry(res: Dict[str, Any]) -> Dict[str, Any]:
+    """Compact per-market summary for the board: nearest demand and supply per timeframe, and the best 'at a level'
+    state per kind (inside beats near; weekly beats daily beats two-day)."""
+    price = res.get("price")
+    out: Dict[str, Any] = {"price": price, "asof": res.get("asof"), "tf": {}, "at": {}}
+    order = {"W": 0, "D": 1, "2D": 2}
+    for tf, zs in (res.get("zones") or {}).items():
+        row = {}
+        for kind in ("demand", "supply"):
+            z = _nearest_by_kind(zs or [], price, kind)
+            if not z:
+                continue
+            d = {"lo": z["lo"], "hi": z["hi"], "proximal": z["proximal"], "fresh": z.get("fresh_state"), "inside": bool(z.get("inside")),
+                 "dist_typ": z.get("dist_typ"), "grade": bool((z.get("grade") or {}).get("ok")), "pattern": z.get("pattern"),
+                 "covered": bool(z.get("covered_by")) if tf != "W" else None}
+            d["state"] = "inside" if d["inside"] else ("near" if d["dist_typ"] is not None and abs(d["dist_typ"]) <= NEAR_TYP else "far")
+            row[kind] = d
+            if d["state"] != "far":
+                cur = out["at"].get(kind)
+                rank = (0 if d["state"] == "inside" else 1, order.get(tf, 9))
+                if cur is None or rank < cur["_rank"]:
+                    out["at"][kind] = {**d, "tf": tf, "_rank": rank}
+        out["tf"][tf] = row
+    for kind in list(out["at"]):
+        out["at"][kind].pop("_rank", None)
+    return out
+
+
+def _warm(items: List[Any], yf_with_timeout: Callable) -> None:
+    try:
+        for mid, symbol in items:
+            now = time.time()
+            with _LOCK:
+                hit = _CACHE.get(mid)
+            if hit and now - hit["t"] < CACHE_TTL:
+                _BOARD["done"] += 1
+                continue
+            try:
+                res = _build(mid, symbol, yf_with_timeout)
+                if "error" not in res:
+                    with _LOCK:
+                        _CACHE[mid] = {"t": time.time(), "v": res}
+                else:
+                    _BOARD["failed"].append(mid)
+            except Exception:
+                _BOARD["failed"].append(mid)
+            _BOARD["done"] += 1
+            time.sleep(BOARD_PACE)
+    finally:
+        _BOARD["building"] = False
+        _BOARD["finished"] = time.time()
+
+
 def register(app, *, markets, yf_with_timeout: Callable) -> None:
     by_id = {m["id"]: m for m in markets}
+
+    def _symbol(mid: str) -> Optional[str]:
+        m = by_id.get(mid)
+        return (FUTURES_OVERRIDE.get(mid) or m.get("yf")) if m else None
+
+    @app.get("/api/zones/board")
+    def zones_board(warm: Optional[str] = "1"):
+        """Board summary across markets from the zone cache; kicks a paced background warm for markets not cached."""
+        items = [(m["id"], _symbol(m["id"])) for m in markets if _symbol(m["id"])]
+        now = time.time()
+        with _LOCK:
+            cached = {mid: _CACHE[mid] for mid, _ in items if mid in _CACHE and now - _CACHE[mid]["t"] < CACHE_TTL}
+        missing = [(mid, sym) for mid, sym in items if mid not in cached]
+        if missing and warm != "0" and not _BOARD["building"]:
+            _BOARD.update(building=True, started=now, done=0, total=len(missing), failed=[])
+            threading.Thread(target=_warm, args=(missing, yf_with_timeout), daemon=True, name="zones-board-warm").start()
+        out = {mid: _board_entry(c["v"]) for mid, c in cached.items()}
+        complete = not missing
+        body = {"markets": out, "complete": complete, "building": bool(_BOARD["building"]), "cached": len(cached),
+                "total": len(items), "progress": {"done": _BOARD["done"], "total": _BOARD["total"], "failed": list(_BOARD["failed"])},
+                "near_typ": NEAR_TYP, "note": "Nearest key demand and supply zone per timeframe from the same detector as /api/zones; "
+                "state is inside, near (within 1.5 typical ranges of the proximal edge) or far. Location, not a signal."}
+        return JSONResponse(body, status_code=200 if complete else 202, headers={"Cache-Control": "no-store"})
 
     @app.get("/api/zones")
     def zones(market: str, tf: Optional[str] = "both", refresh: Optional[str] = None):
@@ -255,6 +414,6 @@ def register(app, *, markets, yf_with_timeout: Callable) -> None:
         want = (tf or "both").upper()
         if want in ("D", "W", "2D"):
             res = dict(res)
-            for k in ("zones", "candidates", "candles", "nearest"):
-                res[k] = {want: res[k].get(want)}
+            for k in ("zones", "candidates", "candles", "nearest", "volume", "evidence"):
+                res[k] = {want: (res.get(k) or {}).get(want)}
         return JSONResponse(res, headers={"Cache-Control": "public, max-age=1800"})

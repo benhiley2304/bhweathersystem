@@ -88,8 +88,87 @@ SB 21.08 to 24.62 (two bases; the Sep 23 to Dec 2 2024 base shallow-tested), BTC
 research frame; the live Yahoo two-day frame for EUR/USD gives a narrower 1.1141 to 1.1188 because one base
 bar's body falls outside the body band (the detector's version of his zone is the preferred one, not the wider).
 
-Not replayed: the second detector has no payoff replay yet. The evidence line in the panel still quotes the
-first detector's weekly replay (section 4) and says so. Nothing in sections 0 to 3 is a claim of edge.
+Nothing in sections 0 to 3 is a claim of edge. The second detector's own replay is section 0.1 below.
+
+### 0.1 Replay of the second detector, point in time (30 Oct 2026, night; `research/zones/replay_v2.py`)
+
+Setup. 58 markets, weekly bars from 2011, two-day and daily bars for six years (`/tmp/zones/ohlc.pkl` on the
+research box, Yahoo continuous futures, spot FX for the euro, pound, aussie and kiwi). Every zone the detector
+finds carries `known_at`, the bar at whose close the leg out first qualified by any accepted path (explosive
+candle, two decisive candles, strong run, slow travel or swing origin); nothing about the zone's edges depends
+on later bars. The replay then takes the first visit to the proximal edge after `known_at`, places a resting
+order at the edge with the stop a quarter of the zone height beyond the distal edge (Ben's convention), and
+marks two execution models in R: full (one unit, stop -1R, target +2R or +3R) and half then add (half a unit at
+the edge, the other half at the first close at or beyond +1R with the stop for the whole position moved to the
+entry). Horizon 12 weekly, 20 two-day, 25 daily bars; time-outs are marked at the final close. Same-bar
+ambiguity goes against the trade. 14,690 visits; 462 of them had been visited before the zone was knowable
+and are excluded from the headline cells. Control: the same band moved 1.5 heights away from its base, towards
+price, so it is met before the zone and carries its own stop (a level with no base behind it). Profit factor =
+gross R won / gross R lost. "2R first" = share of resolved visits that reached +2R before the stop. Before costs.
+Replay history on parameters tuned in-sample on nine of Ben's zones, not a track record.
+
+Headline (all unbroken zones, first visit at a knowable time):
+
+| frame | visits | 2R first | PF full 2R | PF half then add | held one height | control PF |
+|---|---|---|---|---|---|---|
+| weekly | 3,717 | 31% | 1.05 | 0.95 | 44% | 0.46 |
+| two-day | 3,431 | 33% | 1.10 | 1.00 | 48% | 0.46 |
+| daily | 7,080 | 34% | 1.12 | 1.01 | 49% | 0.49 |
+
+The method's own grade, pre-specified by its rules and not fitted here (the action matrix allows the zone at
+today's curve location and weekly direction; base of six bars or fewer; departure of three zone heights or
+more before the first return; on the two-day and daily, covered by a weekly zone of the same kind):
+
+| frame | graded visits | 2R first | PF full 2R | first half / second half | the rest: PF | control PF graded / rest |
+|---|---|---|---|---|---|---|
+| weekly | 861 | 38% | 1.29 | 1.22 / 1.37 | 0.98 | 1.60 / 0.25 |
+| two-day | 724 | 38% | 1.27 | 1.23 / 1.31 | 1.06 | 1.31 / 0.31 |
+| daily | 1,217 | 40% | 1.34 | 1.25 / 1.44 | 1.08 | 1.57 / 0.35 |
+
+Readings, negative first.
+
+- Blind, the detector is close to break-even: 1.05 to 1.12 before costs with about one visit in three reaching
+  2R first. Zones alone do not pick trades.
+- The grade lifts every frame to 1.27 to 1.34 and holds in both halves of each sample. But the control rises
+  with it (1.31 to 1.60 in graded contexts against 0.25 to 0.35 in the rest): a level 1.5 heights before the
+  zone, with no base behind it, pays in the same contexts. Location on the curve and weekly direction do most
+  of the work; the zone sets the stop. That is the same conclusion as the first detector, with better numbers
+  for the contexts the method tells you to trade.
+- Volume. Yahoo continuous-futures volume jumps a hundredfold at contract switches and tracks a thin deferred
+  contract on some series (silver's daily series prints 3 to 300 lots). `volume_reference` builds a
+  regime-segmented median (segments split where log volume jumps by more than 1.386) and declares volume
+  unusable when the series is zero, missing, or still incoherent; 45 of 116 series pass (NQ, ES, YM, RTY, CL,
+  NG, RB, HO, SB, GF, HE, BTC, ETH, 6N, 6S on both frames; LE, 6B, ZB, GC, 6E, 6A, HG, 6J, KC, ZC, ZS, ZW, ZN,
+  ZF, ZT daily only). On those, a loud leg out (1.5 times the regime median or more) did not hold better:
+  graded weekly 1.22 (n 76) against 1.57 for the rest, two-day 1.49 (65) against 1.31, daily 1.47 (190)
+  against 1.30; all zones weekly 0.83 against 1.08, two-day 1.07 against 1.12, daily 1.09 against 1.22. No
+  reliable lift, so volume is a display feature (volume candles, leg-out volume on the cards) and is not in
+  the rank. A proper exchange volume feed would be needed to test this properly.
+- Half then add at 1R with the stop to entry trailed full size at the edge in every cell (0.95 to 1.01 blind,
+  1.04 to 1.08 graded). The add happens after a 1R move and the stop at entry is then hit often. Its merit is
+  the smaller initial risk, not the profit factor. This is a different definition from the payoff engine's
+  scale model (`bhws_core/payoff.py`, stop to the lowest close of the prior ten sessions), so the two tables
+  are not directly comparable.
+- Demand outperformed supply on every frame (weekly 1.12 against 0.99, two-day 1.18 against 1.03, daily 1.22
+  against 1.02); the sample is 2011 to 2026 with an upward drift in equities, metals and crypto, so part of
+  that is drift. Graded, the gap narrows (weekly 1.35 against 1.23, daily 1.34 both).
+- Structure checks that agree with the method's teaching: matrix allowed against not allowed 1.18 / 0.89
+  weekly, 1.21 / 0.89 two-day, 1.16 / 1.02 daily; covered against not covered 1.25 / 1.00 two-day, 1.24 / 1.06
+  daily; base of three bars or fewer reached 2R first more often than bases over six (weekly 32% against 27%,
+  two-day 36% against 26%, daily 36% against 28%); score quartile four against one 1.22 / 1.03, 1.32 / 1.15,
+  1.26 / 1.11. Departure of three heights or more is the strongest single split (1.25 / 0.89 weekly) but the
+  control rises there too (1.47), so it is a trend effect as much as a zone effect.
+- By category, graded: equities 1.49, energy 1.47, FX 1.38, rates 1.36, ags 1.11, metals 1.06, crypto 1.06.
+  Metals and crypto carried no graded edge in this replay.
+
+What changed in the product. `/api/zones` now returns `known_at`, `vol_out`, `vol_base`, `vol_tier` and a
+`grade` object (pass or fail per rule) on every zone, `volume[tf]` flags, per-candle `v` and `rv` (volume
+against the regime median) where volume is coherent, and `evidence[tf]` cells from `zone_replay_v2.json`.
+`/api/zones/board` summarises the nearest demand and supply per frame for every market from the same cache
+(a paced background warm fills it, two seconds between markets) so the setup rows carry an at-a-level chip.
+The Levels panel draws volume candles (width by `rv`, the TradingView cue), a leg-out marker per key zone with
+the leg-out volume when loud, the grade on each card and in the read chips, the replay table above, and the
+house read's Desk line gains a level sentence coloured by its agreement with the desk side.
 
 ## 1. What a zone is (the rules the first detector applied)
 

@@ -105,6 +105,10 @@ class Zone:
     notes: List[str] = field(default_factory=list)
     parts: List[Dict] = field(default_factory=list)   # component zones when stacked levels are shown as one structure
     inside_older: Optional[str] = None                  # an older zone of the same kind this one formed inside (shown instead)
+    known_at: Optional[pd.Timestamp] = None             # first bar close at which the leg out qualified (point in time)
+    vol_out: Optional[float] = None                     # leg-out volume: largest of the first three run bars over the median of the prior 20
+    vol_base: Optional[float] = None                    # base volume: mean of the base bars over the same median
+    vol_tier: Optional[str] = None                      # high (>= 1.5x) | normal | low (< 0.8x) | None when volume is unavailable
 
     @property
     def lo(self) -> float:
@@ -116,7 +120,7 @@ class Zone:
 
     def to_dict(self) -> Dict:
         d = asdict(self)
-        for k in ("base_start", "base_end", "legout_start", "legout_end", "last_test", "broken"):
+        for k in ("base_start", "base_end", "legout_start", "legout_end", "last_test", "broken", "known_at"):
             v = d.get(k)
             d[k] = None if v is None else pd.Timestamp(v).strftime("%Y-%m-%d")
         d["lo"], d["hi"] = float(self.lo), float(self.hi)
@@ -221,6 +225,7 @@ def detect(df: pd.DataFrame, tf: str = "D", params: Optional[dict] = None) -> Li
     R = H - L
     idx = df.index
     n = len(df)
+    Vol, Vref = volume_reference(df, p["typ_n"])
     zones: List[Zone] = []
     for j in range(8, n):
         a = T[j - 1]
@@ -256,6 +261,25 @@ def detect(df: pd.DataFrame, tf: str = "D", params: Optional[dict] = None) -> Li
             continue
         if run < p["run_min"] and not (run_slow or run_swing):
             continue
+        # point in time: the bar at whose close the leg out first qualified by any accepted path. The replay only
+        # counts visits after this bar; nothing about the zone's edges depends on later bars.
+        trav = (C[j:le + 1] - C[j - 1]) * d
+        k_min = j + int(np.argmax(trav >= p["run_min"] * a)) if (trav >= p["run_min"] * a).any() else le
+        known: List[int] = []
+        if explosive:
+            known.append(max(j, k_min))
+        if decisive2:
+            known.append(max(j + 1, k_min))
+        if run_strong:
+            hits = np.where(trav >= p["run_strong"] * a)[0]
+            known.append(j + int(hits[0]) if len(hits) else le)
+        if run_slow:
+            hs = np.where((C[j:w_end] - C[j - 1]) * d >= p["slow_travel"] * a)[0]
+            known.append(j + int(hs[0]) if len(hs) else w_end - 1)
+        if run_swing:
+            hs = np.where(rel >= p["swing_travel"] * a)[0]
+            known.append(j + int(hs[0]) if len(hs) else s_end - 1)
+        known_at = min(known) if known else le
         if (run_slow or run_swing) and not (explosive or decisive2 or run_strong):
             # extend the run to the bar with the furthest close inside the slow window
             le = j + int(np.argmax((C[j:w_end] - C[j - 1]) * d))
@@ -329,7 +353,8 @@ def detect(df: pd.DataFrame, tf: str = "D", params: Optional[dict] = None) -> Li
                  pref_proximal=pref, base_start=idx[b0], base_end=idx[b1], legout_start=idx[j], legout_end=idx[le],
                  base_bars=len(base), height=float(height), height_atr=float(height / a), atr=float(a),
                  run_atr=float(run), run_bars=m, swing_h=0.0, body_ratio=_body_ratio(O, H, L, C, j),
-                 explosive=bool(explosive), base_small=base_small, legin_atr=float(legin))
+                 explosive=bool(explosive), base_small=base_small, legin_atr=float(legin), known_at=idx[min(n - 1, known_at)])
+        _volume_read(z, Vol, Vref, j, le, b0, b1)
         if len(base) > p["base_pref"]:
             z.notes.append(f"wide base: {len(base)} bars")
         if not explosive:
@@ -343,6 +368,79 @@ def detect(df: pd.DataFrame, tf: str = "D", params: Optional[dict] = None) -> Li
     for z in zones:
         z.score = score(z)
     return zones
+
+
+def volume_reference(df: pd.DataFrame, n: int = 20, shift_log: float = 1.386, max_bad: float = 0.03
+                     ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+    """Volume and its yardstick: the median of the previous ``n`` bars in the same volume regime.
+
+    Yahoo continuous futures switch contracts, so volume can jump a hundredfold from one bar to the next and
+    back; a plain rolling median would call every switch a climax. A regime boundary is a bar where the median
+    of the next five bars sits more than ``shift_log`` (a factor of four) away from the median of the previous
+    five, in log volume; the reference for a bar never reaches back across a boundary, and the first six bars of
+    a regime have no reference. Boundaries are found on the volume series alone, with a five-bar look-ahead on
+    volume (a data-cleaning step; no price information is used).
+
+    Returns (None, None) when the series has no usable volume (spot FX and cash indices print zero) or when more
+    than ``max_bad`` of the bars still sit beyond eightfold or under an eighth of their reference after cleaning.
+    """
+    if "Volume" not in df.columns:
+        return None, None
+    v = df["Volume"].to_numpy(float)
+    v = np.where(np.isfinite(v), v, 0.0)
+    m = len(v)
+    if m < 30 or (v > 0).mean() < 0.6:
+        return None, None
+    lv = pd.Series(np.where(v > 0, np.log(np.where(v > 0, v, 1.0)), np.nan))
+    prev5 = lv.rolling(5, min_periods=3).median().shift(1).to_numpy(float)
+    next5 = lv[::-1].rolling(5, min_periods=3).median()[::-1].to_numpy(float)
+    jump = np.abs(next5 - prev5) > shift_log
+    seg = np.zeros(m, dtype=int)
+    start, last_b = 0, -10
+    for i in range(m):
+        if jump[i] and i - last_b >= 5 and i >= 5:
+            start, last_b = i, i
+        seg[i] = start
+    ref = np.full(m, np.nan)
+    for i in range(1, m):
+        lo = max(seg[i], i - n)
+        w = v[lo:i]
+        w = w[w > 0]
+        if len(w) >= 6:
+            ref[i] = float(np.median(w))
+    ratio = v / ref
+    ok = np.isfinite(ratio) & (v > 0)
+    if ok.sum() < 0.5 * m:
+        return None, None
+    bad = ((ratio[ok] > 8) | (ratio[ok] < 0.125)).mean()
+    if bad > max_bad:
+        return None, None
+    return v, ref
+
+
+def _volume_read(z: Zone, Vol, Vref, j: int, le: int, b0: int, b1: int) -> None:
+    """Leg-out volume (largest of the first three run bars) and base volume (mean), both over the median of the
+    twenty bars before the leg out. Ben's cue: a base is quiet, the exit is loud; a high-volume leg out is the
+    thick candle on a TradingView volume-candle chart."""
+    if Vol is None or Vref is None:
+        return
+    ref = Vref[j]
+    if not np.isfinite(ref) or ref <= 0:
+        return
+    out = Vol[j:min(le, j + 2) + 1]
+    out = out[out > 0]
+    base = Vol[b0:b1 + 1]
+    base = base[base > 0]
+    if len(out) == 0:
+        return
+    z.vol_out = round(float(min(6.0, out.max() / ref)), 2)
+    if len(base):
+        z.vol_base = round(float(min(6.0, base.mean() / ref)), 2)
+    z.vol_tier = "high" if z.vol_out >= 1.5 else "low" if z.vol_out < 0.8 else "normal"
+    if z.vol_tier == "high":
+        z.notes.append(f"leg out on {z.vol_out:.1f}x the usual volume")
+    elif z.vol_tier == "low":
+        z.notes.append(f"leg out on thin volume ({z.vol_out:.1f}x)")
 
 
 def _walk_forward(z: Zone, H, L, C, idx, le: int, d: int, p: dict) -> None:
@@ -593,7 +691,8 @@ def stack(zones: List[Zone], price: float) -> List[Zone]:
                      fresh_state=near.fresh_state, visiting_now=near.visiting_now, wide_touches=near.wide_touches,
                      deep_touches=near.deep_touches, original=all(z.original or z.origin_ref in part_refs for z in g),
                      origin_note=near.origin_note if not (near.original or near.origin_ref in part_refs) else "",
-                     score=max(z.score for z in g), inside_older=near.inside_older)
+                     score=max(z.score for z in g), inside_older=near.inside_older, known_at=near.known_at,
+                     vol_out=near.vol_out, vol_base=near.vol_base, vol_tier=near.vol_tier)
             m.notes = [f"level on level: {len(g)} bases ({', '.join(pd.Timestamp(z.base_start).strftime('%b %y') for z in g)})"] + list(near.notes)
             m.parts = [z.to_dict() for z in g]
             out.append(m)
@@ -791,3 +890,109 @@ def covered(z: Zone, weekly: List[Zone]) -> Optional[Zone]:
         if overlap >= 0.5 * max(1e-12, z.hi - z.lo):
             return w
     return None
+
+
+# ----------------------------------------------------------------------------------------------- replay
+
+def first_visit(df: pd.DataFrame, z: Zone, horizon: int, start_after: Optional[pd.Timestamp] = None,
+                stop_frac: float = 0.25, targets: Tuple[int, ...] = (1, 2, 3)) -> Optional[Dict]:
+    """What price did at the first visit to the zone after it became knowable (point in time).
+
+    The visit search starts after the later of the leg-out end and ``start_after`` (normally ``z.known_at``).
+    Entry is a resting order at the proximal edge, the stop a quarter of the zone height beyond the distal edge
+    (Ben's convention). Two execution models are marked in R (risk = entry to stop):
+
+      full    one unit at the edge; stop -1R; target +T R; otherwise marked at the final close of the horizon.
+      scale   half a unit at the edge; when a bar closes at or beyond +1R before the stop is hit, the other half is
+              added at that close and the stop for the whole position moves to the entry; target +T R for both
+              halves; otherwise marked at the final close.
+
+    Same-bar ambiguity (target and stop inside one bar) is resolved against the trade. Returns None when the zone
+    was never visited; otherwise a dict with the touch date, whether a visit happened before the zone was knowable
+    (``pre_visited``), hit flags per target, held/failed by the one-height rule, excursions, and R outcomes per model.
+    """
+    H, L, C = df["High"].to_numpy(float), df["Low"].to_numpy(float), df["Close"].to_numpy(float)
+    idx = df.index
+    sgn = 1 if z.kind == "demand" else -1
+    h = z.hi - z.lo
+    if h <= 0:
+        return None
+    le = int(idx.searchsorted(z.legout_end, side="right"))
+    start = le
+    if start_after is not None:
+        start = max(start, int(idx.searchsorted(start_after, side="right")))
+    touch_fn = (lambda t: L[t] <= z.proximal) if sgn > 0 else (lambda t: H[t] >= z.proximal)
+    pre = any(touch_fn(t) for t in range(le, min(start, len(df))))
+    stop = z.distal - sgn * stop_frac * h
+    risk = abs(z.proximal - stop)
+    for t in range(start, len(df)):
+        if not touch_fn(t):
+            continue
+        hit = {k: False for k in targets}
+        stopped = held = failed = False
+        mfe = mae = 0.0
+        end = min(len(df) - 1, t + horizon)
+        full = {k: None for k in targets}
+        scale = {k: None for k in targets}
+        added_at = None             # R at which the second half was added
+        scale_stopped = {k: False for k in targets}
+        last_r = 0.0
+        for u in range(t, end + 1):
+            r_hi = (H[u] - z.proximal) / risk if sgn > 0 else (z.proximal - L[u]) / risk
+            r_lo = (L[u] - z.proximal) / risk if sgn > 0 else (z.proximal - H[u]) / risk
+            r_c = sgn * (C[u] - z.proximal) / risk
+            last_r = r_c
+            mfe, mae = max(mfe, r_hi), min(mae, r_lo)
+            stop_hit = r_lo <= -1.0
+            # full model
+            for k in targets:
+                if full[k] is None:
+                    if stop_hit:
+                        full[k] = -1.0
+                    elif r_hi >= k:
+                        full[k] = float(k)
+                        hit[k] = True
+            if stop_hit and not stopped:
+                stopped = True
+            # scale model
+            for k in targets:
+                if scale[k] is not None:
+                    continue
+                if added_at is None:
+                    if stop_hit:
+                        scale[k] = -0.5
+                    elif r_hi >= k and k <= 1:
+                        scale[k] = 0.5 * k
+                    elif r_hi >= k and r_c < 1.0:
+                        scale[k] = 0.5 * k           # target before any close at +1R: only the first half was on
+                else:
+                    if r_lo <= 0.0:                   # stop at entry for the whole position after the add
+                        scale[k] = round(float(-0.5 * added_at), 3)
+                        scale_stopped[k] = True
+                    elif r_hi >= k:
+                        scale[k] = round(float(0.5 * k + 0.5 * (k - added_at)), 3)
+            if added_at is None and not stop_hit and r_c >= 1.0:
+                added_at = float(r_c)
+            ex_h = sgn * (C[u] - z.proximal) / h
+            broke = (C[u] < z.distal) if sgn > 0 else (C[u] > z.distal)
+            if broke and not held and not failed:
+                failed = True
+            if ex_h >= 1.0 and not held and not failed:
+                held = True
+        for k in targets:
+            if full[k] is None:
+                full[k] = round(float(last_r), 3)
+            if scale[k] is None:
+                scale[k] = round(float(0.5 * last_r + (0.5 * (last_r - added_at) if added_at is not None else 0.0)), 3)
+        return {"touch": idx[t], "touch_i": int(t), "pre_visited": bool(pre), "hit": hit, "stopped": stopped,
+                "held": held, "failed": failed, "mfe_r": round(float(mfe), 3), "mae_r": round(float(mae), 3),
+                "full": full, "scale": scale, "added": added_at is not None, "scale_stopped": scale_stopped,
+                "bars": int(end - t)}
+    return None
+
+
+def shifted(z: Zone, k: float = 1.5) -> Zone:
+    """Control band: the same zone moved ``k`` heights away from the base (a level with no base behind it)."""
+    h = z.hi - z.lo
+    s = h * k if z.kind == "demand" else -h * k
+    return Zone(**{**asdict(z), "proximal": z.proximal + s, "distal": z.distal + s, "pref_proximal": z.pref_proximal + s})

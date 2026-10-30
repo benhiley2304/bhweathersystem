@@ -250,4 +250,111 @@ def test_api_build_with_fake_fetcher(monkeypatch):
             assert z["fresh_state"] in ("fresh", "shallow", "tested")
     assert isinstance(res["read"], list) and res["read"]
     assert res["read"][-1].startswith("These are the method's rules")
-    assert "evidence" in res["definitions"] and "not been replayed" in res["definitions"]["evidence"]
+    assert "evidence" in res["definitions"] and "Point-in-time replay" in res["definitions"]["evidence"]
+    # v2 surface: volume flags, per-timeframe evidence from the replay file, a grade per zone
+    assert set(res["volume"]) == {"D", "2D", "W"}
+    for tf in ("D", "2D", "W"):
+        ev = res["evidence"][tf]
+        assert ev["all"]["n"] > 1000 and ev["grade"]["n"] > 500 and ev["rest"]["n"] > ev["grade"]["n"]
+        assert ev["grade"]["pf_full_2"] > ev["rest"]["pf_full_2"]
+        for z in res["zones"][tf]:
+            g = z["grade"]
+            assert isinstance(g["ok"], bool) and len(g["rules"]) == (3 if tf == "W" else 4)
+            assert g["ok"] == all(r["ok"] for r in g["rules"])
+            assert "known_at" in z and "vol_tier" in z
+    for tf in ("D", "2D", "W"):
+        if res["volume"][tf]:
+            assert any("rv" in c for c in res["candles"][tf])
+        else:
+            assert not any("rv" in c for c in res["candles"][tf])
+
+
+def test_volume_reference_handles_contract_switches_and_zero_volume():
+    daily = _bars(_dbr(400), start="2023-03-01")
+    # coherent volume: a mild random walk around 10,000
+    rng = np.random.default_rng(3)
+    daily["Volume"] = (10_000 * np.exp(np.cumsum(rng.normal(0, 0.05, len(daily))))).round()
+    vol, ref = Z.volume_reference(daily)
+    assert vol is not None and ref is not None and len(ref) == len(daily)
+    assert np.nanmedian(vol / ref) > 0.5 and np.nanmedian(vol / ref) < 2.0
+    # a hundredfold jump (continuous-contract switch) must not flood every bar after it with a huge ratio
+    jump = daily.copy()
+    jump.loc[jump.index[200]:, "Volume"] *= 100
+    vol2, ref2 = Z.volume_reference(jump)
+    assert vol2 is not None
+    r2 = vol2 / ref2
+    assert np.nanmedian(r2[220:]) < 2.0
+    # zero or missing volume: unusable
+    zero = daily.copy()
+    zero["Volume"] = 0
+    assert Z.volume_reference(zero)[0] is None
+    assert Z.volume_reference(daily.drop(columns=["Volume"]))[0] is None
+
+
+def test_known_at_is_point_in_time_and_vol_fields():
+    daily = _bars(_dbr(400), start="2023-03-01")
+    rng = np.random.default_rng(5)
+    daily["Volume"] = (10_000 * np.exp(np.cumsum(rng.normal(0, 0.05, len(daily))))).round()
+    zones = Z.detect(daily, "D")
+    assert zones
+    for z in zones:
+        # the leg out can only be known once it has started, and for a sustained path only once it has travelled
+        assert z.known_at is not None and z.legout_start <= z.known_at
+        if z.explosive:
+            assert z.known_at <= z.legout_end
+        if z.vol_out is not None:
+            assert z.vol_out > 0 and z.vol_tier in ("low", "normal", "high")
+    d = zones[0].to_dict()
+    assert "known_at" in d and "vol_out" in d and "vol_base" in d and "vol_tier" in d
+
+
+def test_first_visit_outcomes_on_synthetic_dbr():
+    daily = _bars(_dbr(400), start="2023-03-01")
+    zones = [z for z in Z.detect(daily, "D") if z.kind == "demand" and z.lo < 93.2 and z.hi > 92.2]
+    assert zones, "the synthetic drop-base-rally demand zone must be detected"
+    z = zones[0]
+    o = Z.first_visit(daily, z, 60, start_after=z.known_at)
+    assert o is not None
+    assert o["touch"] > z.known_at and o["pre_visited"] is False
+    # the synthetic path rallies away after the touch: a full-size entry at the proximal edge reaches 2R before the stop
+    assert o["hit"][2] is True and o["full"][2] == 2.0 and o["held"] is True and o["stopped"] is False
+    assert o["scale"][2] > 0
+    # the control band is the same zone moved 1.5 heights away from its base, towards price: a level with no base
+    # behind it, met on the way down before the zone itself, with its own stop just above the real zone
+    s = Z.shifted(z)
+    assert s.proximal > z.proximal and s.distal - 0.25 * (s.hi - s.lo) > z.proximal
+    c = Z.first_visit(daily, s, 60, start_after=z.known_at)
+    assert c is not None and c["touch"] <= o["touch"]
+
+
+def test_board_endpoint_warms_and_summarises(monkeypatch):
+    import bhws_zones_api as A
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    import time as _t
+
+    daily = _bars(_dbr(400), start="2023-03-01")
+    weekly = daily.resample("W-FRI").agg({"Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum"}).dropna()
+    monkeypatch.setattr(A, "_fetch", lambda symbol, yfw: {"D": daily, "W": weekly})
+    monkeypatch.setattr(A, "BOARD_PACE", 0.0)
+    A._CACHE.clear()
+    app = FastAPI()
+    A.register(app, markets=[{"id": "AAA", "yf": "AAA=F"}, {"id": "BBB", "yf": "BBB=F"}], yf_with_timeout=lambda fn, *a, **k: fn(*a, **k))
+    c = TestClient(app)
+    r = c.get("/api/zones/board")
+    assert r.status_code in (200, 202)
+    for _ in range(100):
+        r = c.get("/api/zones/board")
+        if r.status_code == 200:
+            break
+        _t.sleep(0.05)
+    j = r.json()
+    assert r.status_code == 200 and j["complete"] and set(j["markets"]) == {"AAA", "BBB"}
+    e = j["markets"]["AAA"]
+    assert "at" in e and "tf" in e and e["price"] is not None
+    for tf, row in e["tf"].items():
+        for kind, d in row.items():
+            assert d["state"] in ("inside", "near", "far") and d["lo"] < d["hi"]
+    for kind, d in e["at"].items():
+        assert d["state"] in ("inside", "near") and d["tf"] in ("W", "2D", "D")
+    A._CACHE.clear()
