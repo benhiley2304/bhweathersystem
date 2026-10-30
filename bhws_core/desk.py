@@ -22,6 +22,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 import numpy as np
 
+from . import crowd as _crowd
 from . import exposure, percentile, strategy
 
 FX_CCY = {"6E": "EUR", "6J": "JPY", "6B": "GBP", "6A": "AUD", "6C": "CAD",
@@ -174,6 +175,38 @@ def event_gate(ccys: Iterable[str], events: Sequence[Dict[str, Any]], now: datet
     return out
 
 
+def _crowd_history(mid: str, side: int, posd: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Measured crowd history for the row: state, the sentence for the gate list (same side, haircut) and the
+    sentence for the positioning facts (same side persistence, or a fade). None when there is no research file
+    or no COT, so callers keep the generic wording."""
+    if not posd or not side:
+        return None
+    try:
+        mg, cm = posd.get("managers"), posd.get("commercials")
+        state = _crowd.crowd_state(mg, cm)
+        same = (state == "crowded_long" and side == 1) or (state == "crowded_short" and side == -1)
+        fade = (state == "crowded_long" and side == -1) or (state == "crowded_short" and side == 1)
+        out: Dict[str, Any] = {"state": state, "complex": _crowd.complex_of(mid), "gate": None, "fact": None,
+                               "same_side": same, "fade": fade}
+        sh = _crowd.side_history(mid, side)
+        if sh:
+            out["same_side_13"] = {"crowd": sh["crowd"], "base": sh["base"], "n": sh["n"], "n_thin": sh["n_thin"],
+                                   "lift_pct": sh["lift_pct"]}
+        if same:
+            txt = _crowd.same_side_text(mid, side)
+            if txt:
+                out["fact"] = txt[0].upper() + txt[1:]
+                if sh and (sh.get("lift_pct") or 0) < 0:
+                    out["gate"] = txt
+        elif fade:
+            txt = _crowd.fade_text(mid, side)
+            if txt:
+                out["fact"] = txt[0].upper() + txt[1:]
+        return out
+    except Exception:
+        return None
+
+
 def _macro_marginal(engine: Dict[str, Any]) -> bool:
     sc = engine.get("scores") or {}
     out = False
@@ -230,6 +263,11 @@ def build_row(*, market: Dict[str, Any], engine: Optional[Dict[str, Any]],
         "macro": {"rel": rel["macro"], "sign": macro, "role": "hit rate"},
     }
     gates = list(A["sizing"])
+    crowd_hist = _crowd_history(market["id"], side, posd)
+    if crowd_hist and crowd_hist.get("gate"):
+        # measured history replaces the generic index wording; the generic line stays when there is no evidence
+        gates = [x for x in gates if not x.startswith("crowd on the same side")]
+        gates.append(crowd_hist["gate"])
     if conf in ("Low", "Insufficient"):
         gates.append(f"data confidence {conf.lower()}")
     ccys = currencies(market)
@@ -261,6 +299,7 @@ def build_row(*, market: Dict[str, Any], engine: Optional[Dict[str, Any]],
         "gates": gates,
         "positioning": posd,
         "positioning_read": rd["positioning"],
+        "crowd_history": crowd_hist,
         "divergence": A["divergence"],
         "playbook": {k: pb.get(k) for k in ("status", "direction", "fade_side", "managers_turning_reports",
                                              "close_through_10w", "sma10", "price", "reports_since_extreme",

@@ -120,8 +120,12 @@ def _positioning(row) -> Dict[str, Any]:
         facts.append(dv.get("text"))
     if pb.get("explain"):
         facts.append(pb["explain"])
+    chist = row.get("crowd_history") or {}
+    if chist.get("fact"):
+        facts.append(chist["fact"])
     if R.get("equity"):
-        facts.append("Equity index: positioning is a size warning here, never the side.")
+        facts.append("Equity index: positioning sets the size here, never the side."
+                     if chist.get("fact") else "Equity index: positioning is a size warning here, never the side.")
     word = R.get("word") or "no extreme"
     return {"key": "positioning", "title": "Positioning", "sign": pil.get("sign") or 0,
             "rel": pil.get("rel") or "none", "role": pil.get("role"), "word": word, "facts": facts, "tab": "cot"}

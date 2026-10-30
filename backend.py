@@ -19744,6 +19744,15 @@ try:
 except Exception as _zn_err:  # pragma: no cover
     print(f"[startup] zones NOT registered: {_zn_err!r}", flush=True)
 
+# ── Crowd map (positioning across the complex): GET /api/complex ─────────────
+try:
+    from bhws_complex_api import register as _bhws_register_complex
+    import bhws_desk_api as _bhws_desk_mod3
+    _bhws_register_complex(app, markets=MARKETS, desk_state_getter=lambda: _bhws_desk_mod3._STATE)
+    print("[startup] crowd map registered (/api/complex)", flush=True)
+except Exception as _cx_err:  # pragma: no cover
+    print(f"[startup] crowd map NOT registered: {_cx_err!r}", flush=True)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
