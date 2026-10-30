@@ -49,3 +49,32 @@ def test_table_is_sorted_and_has_baseline():
     assert t["baseline"]["k"] == 1.0
     assert all(r["level"] <= 2 for r in t["rows"])
     assert abs(t["baseline"]["target2"] - 1 / 3) < 0.05   # unconditional walk sits near the gambler's-ruin share
+
+
+def test_execution_rows_and_profit_factor_definition():
+    from bhws_core import payoff as PO
+    prof = PO.lookup("Counter-trend", 1, "Waiting", "fx_cross", market="6E")
+    assert prof["available"]
+    S = PO.stress(prof, 1.0, 2.0, 2.0)
+    ex = S["execution"]
+    assert ex and ex["T"] == 2 and ex["k"] == 1.0
+    for m in ("full", "scale"):
+        assert ex[m]["pf"] is None or ex[m]["pf"] > 0
+        assert -1.0 <= ex[m]["exp"] <= 3.0
+        assert 0 <= ex[m]["win"] <= 1
+    assert 0 <= ex["scale"]["added"] <= 1
+    assert "gross R won" in S["definitions"]["profit_factor"]
+    assert any("profit factor" in s for s in S["sentences"])
+    # a 3R plan uses the 3R execution row
+    S3 = PO.stress(prof, 1.0, 3.2, 3.2)
+    assert S3["execution"]["T"] == 3
+
+
+def test_table_carries_execution_and_baseline_exec():
+    from bhws_core import payoff as PO
+    T = PO.table(level_max=2, k=1.0)
+    assert T["baseline_exec"]["2"]["full"]["pf"] > 0 and T["baseline_exec"]["3"]["scale"]["pf"] > 0
+    r = next(r for r in T["rows"] if r["key"] == "all")
+    assert r["exec"]["2"]["full"]["win"] is not None and r["exec"]["3"]["scale"]["exp"] is not None
+    # full-size profit factor must be consistent with win rate and payoff up to time-outs: PF within [0.5, 3]
+    assert 0.5 < r["exec"]["2"]["full"]["pf"] < 3

@@ -68,7 +68,8 @@ def register(app, *, markets, desk_state_getter: Callable[[], Optional[Dict[str,
             elif sdw is None:
                 prof["plan"]["warnings"] = list(d.get("warnings") or []) + ["weekly volatility unavailable for this market, so levels cannot be expressed in sigma"]
         # trim meta on the per-market response
-        prof["meta"] = {k: v for k, v in (prof.get("meta") or {}).items() if k in ("built", "signals", "markets", "first", "last", "unit", "caveat", "baseline_note")}
+        prof["meta"] = {k: v for k, v in (prof.get("meta") or {}).items() if k in ("built", "signals", "markets", "first", "last", "unit", "caveat", "baseline_note", "execution")}
+        prof["definitions"] = {"profit_factor": PO.PF_DEFINITION, "scale": PO.SCALE_DEFINITION}
         return prof
 
     @app.get("/api/payoff/table")

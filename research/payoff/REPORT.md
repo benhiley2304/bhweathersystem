@@ -1,6 +1,6 @@
 # Payoff profiles ("does it pay"), replay 2012 to 2026
 
-Built 29 Oct 2026 from the point-in-time Desk replay (`research/replay`, fixed variant). 27,076 graded rows
+Built 29 Oct 2026 (execution models added 30 Oct) from the point-in-time Desk replay (`research/replay`, fixed variant). 27,076 graded rows
 (prime, setup, developing with a side) across 57 markets. Script: `build.py`. Artifact: `payoff_profiles.json`,
 served by `GET /api/payoff` and `GET /api/payoff/table`. Module: `bhws_core/payoff.py`.
 
@@ -61,6 +61,46 @@ Negative first.
     carry little drift. Pullback in trend long confirmed in equities (n 201: 49.3%) is the bull market.
     Crowd fade long not turned in bonds (n 287: 23.3%) and divergence fade short waiting in equities (n 134:
     16.4%) are the worst; both are fading a decade-long move.
+
+## Execution models and profit factor (added 30 Oct 2026)
+
+Every path is also scored in R units of the original stop under two execution models, at each stop size and
+for 2R and 3R targets. Full: one unit at the entry close, stop at minus 1R, target as set, time-outs at 13 weeks
+marked at the final close. Half then add: half a unit at entry; when a close reaches plus 1R before minus 1R
+the other half is added at that close and the stop for the whole position moves to the lowest close of the
+prior ten sessions (never below the original stop); the target stays at the original 2R or 3R.
+
+Profit factor is gross R won divided by gross R lost across all trades in the cell, including time-outs.
+1.0 is break-even before costs. For a fixed T:1 payoff with win rate w, PF = wT / (1 - w), so 34% at 2:1 is
+1.03 and 24% at 3:1 is 0.95. Expectancy is the mean R per trade.
+
+1. **The any-week row is above 1.0.** At a 1 sigma stop and 2R target, every Friday since 2012 on both sides
+   gives PF 1.12 and expectancy +0.07R full size, 1.08 and +0.03R scaled. The sample drifts, time-outs are
+   marked at the close and no costs are charged, so an absolute profit factor above one is not edge. Read the
+   gap to the any-week row.
+2. **All graded setups: PF 1.15 full, 1.11 scaled at 2R** (3R: 1.22 and 1.21). Three to four points above the
+   any-week row, which is the same picture as the first-passage shares.
+3. **Scaling in at 1:1 does not raise the profit factor.** In 14 of 16 archetype x side classes at 2R the
+   scaled PF is level with or below the full-size PF (all graded 1.11 against 1.15); at 3R it is level
+   (1.21 against 1.22). The add fires in about half of trades, and 37% of those are then stopped at the
+   moved stop. What the model does change is the shape: average loss falls from -0.99R to -0.57R and
+   average win from 1.92R to 1.31R, expectancy per unit of initial risk is about the same. It is a sizing
+   choice, not an edge. Moving the stop under the prior ten-session low is one reading of "below the new
+   low"; a breakeven stop or a swing low from intraday data would give different numbers and are not tested.
+4. **3R beats 2R on profit factor almost everywhere** (all graded 1.22 against 1.15; any week 1.17 against
+   1.12) at the cost of a win rate near 31% and longer holds. Consistent with the positive 13-week skew in
+   the long classes.
+5. **Ranking by PF matches ranking by 2R-first.** With trend long 1.44, counter-trend long 1.41, divergence
+   fade long 1.36 and exhaustion fade long 1.30 at the top; trend with value short 0.99, pullback in trend
+   short 0.97, exhaustion fade short 0.79 and divergence fade short 0.77 at the bottom. Shorts sit at or
+   below the any-week row almost everywhere, as before.
+6. **Stability of the scaled PF by half:** with trend long 1.05 / 1.83 (the second half is the equity bull
+   run); counter-trend long 1.23 / 1.38 and divergence fade long 1.23 / 1.35 are steadier; crowd fade short
+   1.14 / 0.93 and trend with value short 1.07 / 0.76 decay. After drift removal the long classes fall to
+   1.0 to 1.2.
+
+The Edge lab shows the table with a 2R / 3R switch; the market panel shows the two models at the plan's
+stop row and target multiple, and the stress read adds a sentence with the same numbers.
 
 ## How it is shown
 

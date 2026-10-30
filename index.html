@@ -49836,6 +49836,17 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-paytab .rp-t{margin-bottom:6px}
 .v12-paytab .v12-pay-tb td:first-child{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .v12-paytab .lv1 td:first-child{color:rgba(241,227,190,.88)}
+.v12-pay-exec{margin-top:7px;padding-top:7px;border-top:1px dashed rgba(255,255,255,.06)}
+.v12-pay-exec .lb{color:rgba(241,227,190,.8);letter-spacing:.08em;font-size:9px}
+.v12-pay-exec i{font-style:normal;color:rgba(151,161,181,.78)}
+.v12-pay-exec b.up{color:#22C97A}.v12-pay-exec b.dn{color:#E05252}
+.v12-pay-seg{display:inline-flex;gap:2px;margin-left:10px;vertical-align:middle;border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:2px}
+.v12-pay-seg button{font:500 10px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;color:rgba(151,161,181,.85);background:transparent;border:0;border-radius:4px;padding:4px 8px;cursor:pointer}
+.v12-pay-seg button.on{background:rgba(241,227,190,.12);color:#F1E3BE}
+.v12-paytab .rp-t .v12-pay-seg{text-transform:none}
+.v12-paytab+.v12-paytab{margin-top:18px}
+.v12-pay-tb th.grp{color:rgba(241,227,190,.75);border-bottom:0;padding-bottom:2px;text-align:center}
+.v12-pay-tb td.exp{font-size:10.5px}
 /* ===== end v12 css: payoff ===== */
 
 </style>
@@ -51509,8 +51520,21 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     h+='</tbody></table></div>';
     var r1=(S&&S.row)||row(P,1.0);
     if(r1&&r1.target2_h1!=null){ h+='<div class="v12-pay-stab"><span>2R first at '+r1.k+'\u03c3 \u2192</span><span>2012\u201318 <b>'+pc(r1.target2_h1)+'</b></span><span>2019\u201326 <b>'+pc(r1.target2_h2)+'</b></span><span>after drift <b>'+pc(r1.target2_drift)+'</b></span>'+(B&&row(B,r1.k)?'<span>any week <b>'+pc(row(B,r1.k).target2)+'</b></span>':'')+'</div>'; }
+    /* execution: full size vs half then add at 1:1, at the plan's stop row (or 1σ) and target multiple (or 2R) */
+    var xk=(S&&S.k)||1.0, xT=(S&&S.uses==='3R')?3:2, xr=xrow(P,xk,xT), bx=xrow(B,xk,xT);
+    if(xr&&xr.full&&xr.scale){
+      var defs=(prof.definitions||{}); var tip=esc((defs.profit_factor||'')+' '+(defs.scale||''));
+      h+='<div class="v12-pay-stab v12-pay-exec" title="'+tip+'"><span class="lb">EXECUTION \u00b7 '+xk+'\u03c3 STOP \u00b7 '+xT+'R TARGET</span>'
+        +'<span>Full size <b class="'+pfc(xr.full.pf,bx&&bx.full)+'">PF '+pf(xr.full.pf)+'</b> <i>'+rx(xr.full.exp)+' \u00b7 win '+pc(xr.full.win)+'</i></span>'
+        +'<span>Half then add at 1:1 <b class="'+pfc(xr.scale.pf,bx&&bx.scale)+'">PF '+pf(xr.scale.pf)+'</b> <i>'+rx(xr.scale.exp)+' \u00b7 win '+pc(xr.scale.win)+' \u00b7 add fired '+pc(xr.scale.added)+'</i></span>'
+        +(bx&&bx.full?'<span>any week <b>'+pf(bx.full.pf)+'</b> / <b>'+pf(bx.scale.pf)+'</b></span>':'')+'</div>';
+    }
     return h;
   }
+  function xrow(cell,k,T){ var ex=(cell&&cell.execution)||[]; for(var i=0;i<ex.length;i++){ if(Math.abs(ex[i].k-k)<1e-9&&ex[i].T===T) return ex[i]; } return null; }
+  function pf(v){ return v==null?'n/a':Number(v).toFixed(2); }
+  function rx(v){ return v==null?'\u00b7':(v>=0?'+':'\u2212')+Math.abs(v).toFixed(2)+'R'; }
+  function pfc(v,b){ if(v==null||!b||b.pf==null) return ''; return v>=b.pf+0.05?'up':v<=b.pf-0.05?'dn':''; }
   function ownHTML(prof){
     var o=prof.own; if(!o) return '';
     var r=row(o,1.0); if(!r) return '';
@@ -51576,6 +51600,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       try{
         var r=(typeof deskRow==='function')?deskRow(id):null;
         if(!r||!r.archetype||!r.side||!r.read) return h;
+        if(h.indexOf('data-pay="')>=0){ setTimeout(function(){ mount(id); },40); return h; }
         var i=h.indexOf('<div class="mr3-pills">'); if(i<0) return h;
         var ph='<section class="gl v12-pay" data-pay="'+id+'"><div class="v12-pay-hd"><span class="k">Does it pay</span><span class="ld">Loading replay history for setups like this one\u2026</span></div></section>';
         setTimeout(function(){ mount(id); },40);
@@ -51601,8 +51626,31 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     });
     if(b) h+='<tr class="base"><td>Any week, both sides (84,854 paths)</td><td></td><td>'+pc(b.target2)+'</td><td>'+pc(b.stop)+'</td><td>'+pc(b.target3)+'</td><td></td><td></td><td></td><td></td></tr>';
     h+='</tbody></table></div><div class="wk-note">\u25c6 green: above the any-week share in both halves and after drift; \u25c6 red: below in all three. The unconditional share sits near one third, which is what a driftless walk gives for a 2:1 target. Most classes sit within a few points of it, so the table is mainly a filter for the ones that do not. Replay history, not a probability for any trade.</div></div>';
+    h+=execTabHTML(T);
     return h;
   }
+  function execTabHTML(T){
+    var Tm=T._T||2, key=String(Tm), bx=(T.baseline_exec||{})[key]||null, bf=bx&&bx.full, bs=bx&&bx.scale;
+    var rows=T.rows.filter(function(r){ return r.level===2&&r.label.indexOf('both sides')<0&&r.exec&&r.exec[key]&&r.exec[key].full; }).slice();
+    rows.sort(function(a,b){ return (b.exec[key].full.pf||0)-(a.exec[key].full.pf||0); });
+    var h='<div class="v12-paytab v12-paytab-exec"><div class="rp-t">Does it pay in R: full size at entry against half size then the other half added at 1:1 \u00b7 1-sigma stop'
+      +'<span class="v12-pay-seg" role="group" aria-label="target multiple"><button type="button" class="'+(Tm===2?'on':'')+'" onclick="window._v12PayT(2)">2R</button><button type="button" class="'+(Tm===3?'on':'')+'" onclick="window._v12PayT(3)">3R</button></span></div>'
+      +'<div class="v12-pay-tw"><table class="v12-pay-tb"><thead><tr><th></th><th></th><th class="grp" colspan="3">Full size at entry</th><th class="grp" colspan="4">Half, then add at 1:1</th><th class="grp" colspan="3">Scaled PF stability</th></tr>'
+      +'<tr><th>Class</th><th>n</th><th>Win</th><th>PF</th><th>Exp</th><th>Win</th><th>PF</th><th>Exp</th><th>Add fired</th><th>2012\u201318</th><th>2019\u201326</th><th>After drift</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      var x=r.exec[key], f=x.full, sc=x.scale, hh=x.scale_pf_h||[null,null];
+      h+='<tr><td>'+esc(r.label)+'</td><td class="mute">'+r.n.toLocaleString()+'</td>'
+        +'<td class="mute">'+pc(f.win)+'</td><td class="'+pfc(f.pf,bf)+'">'+pf(f.pf)+'</td><td class="exp mute">'+rx(f.exp)+'</td>'
+        +'<td class="mute">'+pc(sc.win)+'</td><td class="'+pfc(sc.pf,bs)+'">'+pf(sc.pf)+'</td><td class="exp mute">'+rx(sc.exp)+'</td><td class="mute">'+pc(sc.added)+'</td>'
+        +'<td class="mute">'+pf(hh[0])+'</td><td class="mute">'+pf(hh[1])+'</td><td class="mute">'+pf(x.scale_drift_pf)+'</td></tr>';
+    });
+    if(bf&&bs) h+='<tr class="base"><td>Any week, both sides</td><td></td><td>'+pc(bf.win)+'</td><td>'+pf(bf.pf)+'</td><td class="exp">'+rx(bf.exp)+'</td><td>'+pc(bs.win)+'</td><td>'+pf(bs.pf)+'</td><td class="exp">'+rx(bs.exp)+'</td><td>'+pc(bs.added)+'</td><td></td><td></td><td></td></tr>';
+    var d=T.definitions||{};
+    h+='</tbody></table></div><div class="wk-note">'+esc(d.profit_factor||'')+'</div><div class="wk-note">'+esc(d.scale||'')+' Time-outs at 13 weeks are marked at the final close. Green and red mark a profit factor at least 0.05 above or below the any-week figure for the same model. Note that even the any-week row is above 1.0 here: the sample drifts and no costs are charged, so read the gap to the any-week row, not the absolute number. Replay history, not a track record.</div></div>';
+    return h;
+  }
+  window._v12PayT=function(t){ if(!TAB) return; TAB._T=t; document.querySelectorAll('[data-paytab]').forEach(function(e2){ e2.innerHTML=tabHTML(TAB); }); };
+  window._v12PayTab=function(force){ if(force){ TAB=null; document.querySelectorAll('[data-paytab]').forEach(function(e){ delete e.dataset.done; }); } mountTab(); };
   function mountTab(){
     document.querySelectorAll('[data-paytab]').forEach(function(el){
       if(el.dataset.done) return;
@@ -51615,7 +51663,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     var _eg=window._egLab;
     window._egLab=function(mob){
       var h=_eg(mob);
-      try{ var i=h.indexOf('<details class="eg-more"'); if(i<0) return h; setTimeout(mountTab,60); return h.slice(0,i)+'<div data-paytab></div>'+h.slice(i); }catch(e){ return h; }
+      try{ if(h.indexOf('data-paytab')>=0){ setTimeout(mountTab,60); return h; } var i=h.indexOf('<details class="eg-more"'); if(i<0) return h; setTimeout(mountTab,60); return h.slice(0,i)+'<div data-paytab></div>'+h.slice(i); }catch(e){ return h; }
     };
   }
 })();

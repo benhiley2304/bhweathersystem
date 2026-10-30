@@ -91,6 +91,21 @@ def lookup(arch: Optional[str], side: Optional[int], confirm: Optional[str], cat
     return out
 
 
+def _xrow(cell: Optional[Dict[str, Any]], k: float, T: int) -> Optional[Dict[str, Any]]:
+    for r in (cell or {}).get("execution") or []:
+        if abs(float(r["k"]) - k) < 1e-9 and int(r["T"]) == int(T):
+            return r
+    return None
+
+
+PF_DEFINITION = ("Profit factor = gross R won \u00f7 gross R lost across all trades in the cell, time-outs marked at the final close; "
+                 "1.0 is break-even before costs. With win rate w and a fixed T:1 payoff, PF = wT \u00f7 (1 \u2212 w): "
+                 "34% at 2:1 gives 1.03, 24% at 3:1 gives 0.95. Expectancy is the mean R per trade.")
+SCALE_DEFINITION = ("Half then add: half a unit at entry; when a close reaches +1R before \u22121R the other half is added at that close and the stop "
+                    "for the whole position moves to the lowest close of the prior ten sessions (never below the original stop); the target stays at "
+                    "the original 2R or 3R. Full: one unit at entry, stop \u22121R, target as set.")
+
+
 def _nearest_k(stop_sd: float, ks: List[float]) -> float:
     return min(ks, key=lambda k: abs(k - stop_sd))
 
@@ -156,13 +171,29 @@ def stress(profile: Dict[str, Any], stop_sd: Optional[float], target_sd: Optiona
             flags.append({"v": "mid", "t": f"Target between the median ({mfe50:.2f}\u03c3) and 75th percentile ({mfe75:.2f}\u03c3) favourable run at 13 weeks: reached by fewer than half of past setups inside the window."})
         else:
             flags.append({"v": "pos", "t": f"Target inside the median 13-week favourable run ({mfe50:.2f}\u03c3): more than half of past setups in this class travelled that far, though not always before the stop."})
+    T = 3 if use3 else 2
+    xr = _xrow(cell, k, T); bx = _xrow(base, k, T) if base else None
+    execution = None
+    if xr and xr.get("full") and xr.get("scale"):
+        f, sc = xr["full"], xr["scale"]
+        def _pf(v): return "n/a" if v is None else f"{v:.2f}"
+        s_ex = (f"On a {T}R target at the {k:g}\u03c3 row, full size at entry: win rate {_pct(f.get('win'))}%, profit factor {_pf(f.get('pf'))}, "
+                f"expectancy {f.get('exp'):+.2f}R per trade. Half at entry and the other half added at 1:1 with the stop moved under the prior ten-session low: "
+                f"win rate {_pct(sc.get('win'))}%, profit factor {_pf(sc.get('pf'))}, expectancy {sc.get('exp'):+.2f}R; the add was triggered in {_pct(sc.get('added'))}% of cases")
+        if bx and bx.get("full") and bx.get("scale"):
+            s_ex += f" (any week, same rules: {_pf(bx['full'].get('pf'))} full, {_pf(bx['scale'].get('pf'))} scaled)"
+        s_ex += "."
+        sentences.append(s_ex)
+        execution = {"k": k, "T": T, "full": f, "scale": sc, "baseline_full": (bx or {}).get("full"), "baseline_scale": (bx or {}).get("scale"),
+                     "full_pf_h": xr.get("full_pf_h"), "scale_pf_h": xr.get("scale_pf_h"), "full_drift_pf": xr.get("full_drift_pf"), "scale_drift_pf": xr.get("scale_drift_pf")}
     stab = None
     if row.get("target2_h1") is not None and row.get("target2_h2") is not None:
         stab = {"h1": row["target2_h1"], "h2": row["target2_h2"], "drift": row.get("target2_drift"),
                 "stop_h1": row.get("stop_h1"), "stop_h2": row.get("stop_h2")}
     return {"k": k, "row": row, "baseline_row": brow, "stop_sd": round(stop_sd, 2),
             "target_sd": (round(target_sd, 2) if target_sd else None), "r_multiple": r_multiple,
-            "uses": tword, "sentences": sentences, "flags": flags, "notes": notes, "stability": stab,
+            "uses": tword, "sentences": sentences, "flags": flags, "notes": notes, "stability": stab, "execution": execution,
+            "definitions": {"profit_factor": PF_DEFINITION, "scale": SCALE_DEFINITION},
             "caveat": "Replay history for setups like this one, tested on daily closes with no costs. Not a probability for this trade; it does not say whether the zone will hold."}
 
 
@@ -175,7 +206,9 @@ def table(level_max: int = 2, k: float = 1.0) -> List[Dict[str, Any]]:
             continue
         r = _row(c, k) or {}
         e13 = (c.get("excursion") or {}).get("13") or {}
+        x2 = _xrow(c, k, 2) or {}; x3 = _xrow(c, k, 3) or {}
         rows.append({"key": key, "label": c["label"], "level": c["level"], "n": c["n"], "markets": c["markets"],
+                     "exec": {"2": x2, "3": x3},
                      "target2": r.get("target2"), "stop": r.get("stop"), "neither": r.get("neither"), "target3": r.get("target3"),
                      "target2_drift": r.get("target2_drift"), "h1": r.get("target2_h1"), "h2": r.get("target2_h2"),
                      "weeks": (r.get("weeks_to_target") or [None, None, None])[1], "better_entry": r.get("better_entry_2w"),
@@ -183,7 +216,9 @@ def table(level_max: int = 2, k: float = 1.0) -> List[Dict[str, Any]]:
     rows.sort(key=lambda x: (x["level"], -(x["target2"] or 0)))
     base = ((D.get("baseline") or {}).get("all") or {})
     br = _row(base, k) if base else None
-    return {"k": k, "rows": rows, "baseline": br, "meta": D.get("meta") or {}, "modifiers": {
+    bx = {"2": _xrow(base, k, 2), "3": _xrow(base, k, 3)} if base else None
+    return {"k": k, "rows": rows, "baseline": br, "baseline_exec": bx, "definitions": {"profit_factor": PF_DEFINITION, "scale": SCALE_DEFINITION},
+            "meta": D.get("meta") or {}, "modifiers": {
         name: {"n": m["n"], "target2": (_row(m, k) or {}).get("target2"), "stop": (_row(m, k) or {}).get("stop"),
                "skew13": ((m.get("excursion") or {}).get("13") or {}).get("skew")}
         for name, m in (D.get("modifiers") or {}).items()}}

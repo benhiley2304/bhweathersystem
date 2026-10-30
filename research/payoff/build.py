@@ -17,6 +17,48 @@ V = V[V.sd > 0].reset_index(drop=True)
 KS = [0.5, 0.75, 1.0, 1.5]
 HW = {1: 7, 2: 14, 4: 28, 8: 56, 13: 91}
 MIN_N = 40
+TS = (2, 3)
+BIG = 10 ** 6
+
+def exec_r(r, T):
+    """R-unit outcomes for one path under two execution models.
+    full : one unit at the entry close, stop at -1R, target at +T R, otherwise marked at the final close.
+    scale: half a unit at entry; if the close reaches +1R before -1R the other half is added at that close and the
+           stop for the whole position moves to the lowest close of the prior ten sessions (never below the original
+           stop); target stays at +T R from the original entry; otherwise marked at the final close.
+    Returns (full_R, scale_R, added, stopped_after_add)."""
+    x = r[1:]
+    hs = np.where(x <= -1)[0]; ht = np.where(x >= T)[0]; h1 = np.where(x >= 1)[0]
+    fs = hs[0] if len(hs) else BIG; ft = ht[0] if len(ht) else BIG; f1 = h1[0] if len(h1) else BIG
+    full = float(T) if ft < fs else (-1.0 if fs < BIG else float(x[-1]))
+    if f1 >= fs:
+        return full, (-0.5 if fs < BIG else 0.5 * float(x[-1])), False, False
+    a = f1 + 1; ra = float(r[a])
+    if ra >= T:
+        return full, 0.5 * T, False, False
+    L = max(float(r[max(0, a - 10):a].min()), -1.0)
+    y = r[a + 1:]
+    if len(y) == 0:
+        return full, 0.5 * ra, True, False
+    hs2 = np.where(y <= L)[0]; ht2 = np.where(y >= T)[0]
+    fs2 = hs2[0] if len(hs2) else BIG; ft2 = ht2[0] if len(ht2) else BIG
+    if ft2 < fs2: return full, T - 0.5 * ra, True, False
+    if fs2 < BIG: return full, L - 0.5 * ra, True, True
+    return full, float(y[-1]) - 0.5 * ra, True, False
+
+def exec_stats(g, k, T, lab=''):
+    f = g[f'xf{lab}_{k}_{T}']; sc = g[f'xs{lab}_{k}_{T}']
+    def st(x):
+        x = x.dropna(); n = len(x)
+        if n == 0: return None
+        gp = float(x[x > 0].sum()); gl = float(-x[x < 0].sum())
+        return dict(win=round(float((x > 0).mean()), 3), pf=(round(gp / gl, 2) if gl > 0 else None), exp=round(float(x.mean()), 3),
+                    avg_win=(round(float(x[x > 0].mean()), 2) if (x > 0).any() else None), avg_loss=(round(float(x[x < 0].mean()), 2) if (x < 0).any() else None))
+    out = dict(full=st(f), scale=st(sc))
+    if lab == '' and f'xa_{k}_{T}' in g:
+        out['scale']['added'] = round(float(g[f'xa_{k}_{T}'].mean()), 3)
+        out['scale']['stopped_after_add'] = round(float(g[f'xq_{k}_{T}'].mean()), 3)
+    return out
 
 # ── per-signal paths ──
 recs = []
@@ -51,6 +93,10 @@ for mid, g in V.groupby('id'):
                 o3 = 'target' if f3 < fs else 'stop' if fs < 10 ** 6 else 'neither'
                 rec[f'o2{lab}_{k}'] = o2; rec[f'o3{lab}_{k}'] = o3
                 rec[f't2{lab}_{k}'] = (days[1:][f2] / 7.0) if o2 == 'target' else np.nan
+                for T in TS:
+                    fr, sr, ad, sq = exec_r(arr / k, T)
+                    rec[f'xf{lab}_{k}_{T}'] = fr; rec[f'xs{lab}_{k}_{T}'] = sr
+                    if lab == '': rec[f'xa_{k}_{T}'] = ad; rec[f'xq_{k}_{T}'] = sq
                 if lab == '':
                     # did the path offer a better entry (half the stop distance against) within two weeks, before the target?
                     first_half = np.where(arr[1:] <= -0.5 * k)[0]
@@ -90,6 +136,9 @@ for mid in sorted(P.id.unique()):
                 r[f't2_{k}'] = (days[1:][f2] / 7.0) if r[f'o2_{k}'] == 'target' else np.nan
                 fh = np.where(p[1:] <= -0.5 * k)[0]
                 r[f'be_{k}'] = bool(len(fh) and days[1:][fh[0]] <= 14 and fh[0] < f2)
+                for T in TS:
+                    fr, sr, ad, sq = exec_r(p / k, T)
+                    r[f'xf_{k}_{T}'] = fr; r[f'xs_{k}_{T}'] = sr; r[f'xa_{k}_{T}'] = ad; r[f'xq_{k}_{T}'] = sq
             brec.append(r)
 B = pd.DataFrame(brec)
 print('baseline paths', len(B), flush=True)
@@ -105,6 +154,7 @@ def base_cell(g):
                          target3=round(float(o3.get('target', 0)), 3), stop3=round(float(o3.get('stop', 0)), 3), neither3=round(float(o3.get('neither', 0)), 3), weeks_to_target=[round(pct(tt, q), 1) for q in (25, 50, 75)], within4=round(float((tt <= 4).sum() / n), 3), within8=round(float((tt <= 8).sum() / n), 3),
                          better_entry_2w=round(float(g[f'be_{k}'].mean()), 3), theory_target2=round(1 / 3, 3), theory_target3=0.25))
     out['first_passage'] = rows
+    out['execution'] = [dict(k=k, T=T, **exec_stats(g, k, T)) for k in KS for T in TS]
     return out
 def pct(x, q): x = x.dropna(); return float(np.percentile(x, q)) if len(x) else None
 BASE = {'all': base_cell(B), 'long': base_cell(B[B.side == 1]), 'short': base_cell(B[B.side == -1])}
@@ -141,6 +191,17 @@ def cell(g, label, level):
                          better_entry_2w=round(float(g[f'be_{k}'].mean()), 3),
                          neither_r_med=(round(float(g[f'rn_{k}'].median()), 2) if g[f'rn_{k}'].notna().sum() >= 10 else None)))
     out['first_passage'] = rows
+    ex = []
+    a = g[g.period == '2012-2018']; b = g[g.period == '2019-2026']
+    for k in KS:
+        for T in TS:
+            e = dict(k=k, T=T, **exec_stats(g, k, T))
+            d = exec_stats(g, k, T, 'd'); e['full_drift_pf'] = d['full']['pf']; e['scale_drift_pf'] = d['scale']['pf']
+            if len(a) >= 20 and len(b) >= 20:
+                ea, eb = exec_stats(a, k, T), exec_stats(b, k, T)
+                e['full_pf_h'] = [ea['full']['pf'], eb['full']['pf']]; e['scale_pf_h'] = [ea['scale']['pf'], eb['scale']['pf']]
+            ex.append(e)
+    out['execution'] = ex
     return out
 
 SIDE = {1: 'long', -1: 'short'}
@@ -167,12 +228,14 @@ for (mid, a), g in P.groupby(['id', 'arch']):
         if c is None:
             n = int(len(g)); c = dict(label=f'{mid} {a}', level=9, n=n, markets=1, hit13=round(float((g.r13 > 0).mean()), 3), excursion={str(h): dict(mfe=[round(pct(g[f'mfe{h}'], q), 2) for q in (25, 50, 75)], mae=[round(pct(g[f'mae{h}'], q), 2) for q in (25, 50, 75)]) for h in HW},
                      first_passage=[dict(k=k, target2=round(float((g[f'o2_{k}'] == 'target').mean()), 3), stop=round(float((g[f'o2_{k}'] == 'stop').mean()), 3), neither=round(float((g[f'o2_{k}'] == 'neither').mean()), 3), target3=round(float((g[f'o3_{k}'] == 'target').mean()), 3), stop3=round(float((g[f'o3_{k}'] == 'stop').mean()), 3)) for k in KS])
+        c['execution'] = [dict(k=1.0, T=T, **exec_stats(g, 1.0, T)) for T in TS]
         own[f'{mid}|{a}'] = c
         for sd, g2 in g.groupby('side'):
             if len(g2) >= 15:
                 c2 = cell(g2, f'{mid} {a}, {SIDE[sd]}', 9) or dict(label=f'{mid} {a}, {SIDE[sd]}', level=9, n=int(len(g2)), markets=1, hit13=round(float((g2.r13 > 0).mean()), 3),
                      excursion={str(h): dict(mfe=[round(pct(g2[f'mfe{h}'], q), 2) for q in (25, 50, 75)], mae=[round(pct(g2[f'mae{h}'], q), 2) for q in (25, 50, 75)]) for h in HW},
                      first_passage=[dict(k=k, target2=round(float((g2[f'o2_{k}'] == 'target').mean()), 3), stop=round(float((g2[f'o2_{k}'] == 'stop').mean()), 3), neither=round(float((g2[f'o2_{k}'] == 'neither').mean()), 3), target3=round(float((g2[f'o3_{k}'] == 'target').mean()), 3), stop3=round(float((g2[f'o3_{k}'] == 'stop').mean()), 3)) for k in KS])
+                c2['execution'] = [dict(k=1.0, T=T, **exec_stats(g2, 1.0, T)) for T in TS]
                 own[f'{mid}|{a}|{SIDE[sd]}'] = c2
 # context modifiers on the whole graded set, at k=1.0 (reported, not applied)
 mods = {}
@@ -186,6 +249,9 @@ meta = dict(built=pd.Timestamp.utcnow().strftime('%Y-%m-%dT%H:%MZ'), signals=int
             method='Point-in-time Desk replay (research/replay), fixed variant, graded prime/setup/developing rows with a side. Entry: close of the first trading day after the signal Friday. '
                    'Stops at k sigma and targets at 2k and 3k are tested on closes over 91 calendar days. Drift rows remove each market\'s own in-sample mean daily return. No costs, no slippage, no intraday fills.',
             baseline_note='Baseline cells run the same first-passage rules on every Friday since 2012 for both sides, so they show what a stop at k sigma and a target at 2k would have done with no setup at all. For a driftless walk the target-first share is 1/3 at 2R and 1/4 at 3R before the time cap.',
+            execution='Two execution models in R units of the original stop. full: one unit at the entry close, stop -1R, target +T R, otherwise marked at the final close. '
+                      'scale: half a unit at entry; when a close reaches +1R before -1R the other half is added at that close and the stop for the whole position moves to the lowest close of the prior ten sessions (never below the original stop); target stays at +T R; otherwise marked at the final close. '
+                      'Profit factor = gross R won / gross R lost; 1.0 is break-even before costs. For a fixed T:1 payoff with win rate w, PF = wT/(1-w).',
             caveat='Replay history for a class of setups. Not a probability for any live trade. Cells with n under 40 are not reported; market-own cells (level 9) use n >= 15 and are labelled.')
 json.dump(dict(meta=meta, cells=cells, own=own, modifiers=mods, baseline=BASE), open(OUT, 'w'), separators=(',', ':'))
 P.to_pickle('/tmp/bt/payoff_paths.pkl')
