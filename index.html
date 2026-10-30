@@ -49851,7 +49851,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 /* ===== end v12 css: payoff ===== */
 /* ===== v12 css: zones (supply and demand levels) ===== */
 /* ===== v12 css: zones (supply and demand levels) ===== */
-.v12-zn{position:relative;margin:10px 0 2px;padding:16px 18px 14px;border-radius:14px;overflow:hidden}
+.v12-zn{position:relative;margin:10px 0 2px;padding:16px 18px 14px;border-radius:14px;overflow:hidden;container-type:inline-size}
 .v12-zn-hd{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin-bottom:10px}
 .v12-zn-hd .k{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,227,190,.62);font-weight:600}
 .v12-zn-hd .px{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--text,#e8ecf3);font-variant-numeric:tabular-nums}
@@ -49860,7 +49860,8 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-zn-hd .sp{flex:1}
 .v12-zn-all{display:inline-flex;align-items:center;gap:6px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.06em;color:rgba(151,161,181,.85);cursor:pointer;user-select:none}
 .v12-zn-all input{accent-color:#F1E3BE;width:12px;height:12px;margin:0}
-.v12-zn-g{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px 22px;align-items:start}
+.v12-zn-g{display:grid;grid-template-columns:minmax(0,1fr);gap:14px 22px;align-items:start}
+.v12-zn-now{grid-column:1/-1}
 .v12-zn-ch{position:relative;min-height:520px;background:linear-gradient(180deg,rgba(255,255,255,.015),rgba(0,0,0,.12));border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden}
 .v12-zn-ch canvas{display:block;width:100%;height:520px}
 .v12-zn-ch canvas.v12-zn-xh{position:absolute;inset:0;cursor:crosshair}
@@ -49880,7 +49881,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-zn-read .ch i{font-style:normal;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(151,161,181,.7)}
 .v12-zn-read .ch.dem{border-color:rgba(34,201,122,.35)}.v12-zn-read .ch.sup{border-color:rgba(224,82,82,.35)}
 .v12-zn-read .ch.wide{border-radius:10px;font-family:inherit;font-size:11.5px;letter-spacing:0;color:rgba(200,208,222,.9);flex-basis:100%}
-.v12-zn-ls{display:grid;gap:6px}
+.v12-zn-ls{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:8px}
 .v12-zn-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);transition:border-color .15s,background .15s}
 .v12-zn-row:hover,.v12-zn-row.hot{border-color:rgba(241,227,190,.28);background:rgba(241,227,190,.04)}
 .v12-zn-row.dem{box-shadow:inset 2px 0 0 #22C97A}.v12-zn-row.sup{box-shadow:inset 2px 0 0 #E05252}
@@ -49910,8 +49911,12 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-zn-empty{font-size:12px;color:rgba(151,161,181,.8);padding:8px 10px}
 .hr-plan.v12-zn-flash{animation:v12znFlash 1.6s ease-out}
 @keyframes v12znFlash{0%{box-shadow:0 0 0 2px rgba(241,227,190,.55)}100%{box-shadow:0 0 0 2px rgba(241,227,190,0)}}
-@media (max-width:1100px){.v12-zn-g{grid-template-columns:minmax(0,1fr)}}
+/* the chart always takes the full panel width (the levels are read on a wide chart); zone cards sit under it */
+@container (min-width:1000px){.v12-zn-ch{min-height:580px}.v12-zn-ch canvas{height:580px}}
+@media (max-width:760px){.v12-zn-ls{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:700px){.v12-zn{padding:14px 12px 12px;border-radius:12px}.v12-zn-ch canvas{height:360px}.v12-zn-ch{min-height:360px}.v12-zn-row{padding:7px 8px}.v12-zn-row .scb{width:40px}.v12-zn-hd .ld{display:none}}
+/* ===== end v12 css: zones ===== */
+/* ===== end v12 css: zones ===== */
 /* ===== end v12 css: zones ===== */
 /* ===== end v12 css: zones ===== */
 /* ===== v12 css: crowd map (positioning across the complex) ===== */
@@ -52155,6 +52160,8 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     if(typeof window[fn]==='function'){ var o=window[fn]; window[fn]=function(id){ var r=o.apply(this,arguments); try{ setTimeout(function(){ mount(id); },100); }catch(e){} return r; }; }
   });
 })();
+/* ===== end v12 js: zones ===== */
+/* ===== end v12 js: zones ===== */
 /* ===== end v12 js: zones ===== */
 /* ===== end v12 js: zones ===== */
 /* ===== v12 js: crowd map (positioning across the complex) ===== */
