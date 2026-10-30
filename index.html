@@ -49848,6 +49848,57 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-pay-tb th.grp{color:rgba(241,227,190,.75);border-bottom:0;padding-bottom:2px;text-align:center}
 .v12-pay-tb td.exp{font-size:10.5px}
 /* ===== end v12 css: payoff ===== */
+/* ===== v12 css: zones (supply and demand levels) ===== */
+.v12-zn{position:relative;margin:10px 0 2px;padding:16px 18px 14px;border-radius:14px;overflow:hidden}
+.v12-zn-hd{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin-bottom:10px}
+.v12-zn-hd .k{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,227,190,.62);font-weight:600}
+.v12-zn-hd .px{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--text,#e8ecf3);font-variant-numeric:tabular-nums}
+.v12-zn-hd .px i{font-style:normal;color:rgba(151,161,181,.7);margin-left:6px;font-size:10.5px}
+.v12-zn-hd .ld{font-size:12px;color:rgba(151,161,181,.7)}
+.v12-zn-hd .sp{flex:1}
+.v12-zn-g{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:14px 22px;align-items:start}
+.v12-zn-ch{position:relative;min-height:320px}
+.v12-zn-ch canvas{display:block;width:100%;height:320px;cursor:crosshair}
+.v12-zn-tip{position:absolute;pointer-events:none;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;line-height:1.4;color:#F1E3BE;background:rgba(10,12,18,.92);border:1px solid rgba(241,227,190,.18);border-radius:6px;padding:6px 8px;white-space:nowrap;display:none;z-index:3}
+.v12-zn-leg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:rgba(151,161,181,.7)}
+.v12-zn-leg s{display:inline-block;width:14px;height:9px;vertical-align:middle;margin-right:6px;border-radius:2px;text-decoration:none}
+.v12-zn-leg s.dem{background:rgba(34,201,122,.22);box-shadow:inset 0 0 0 1px rgba(34,201,122,.7)}
+.v12-zn-leg s.sup{background:rgba(224,82,82,.2);box-shadow:inset 0 0 0 1px rgba(224,82,82,.7)}
+.v12-zn-leg s.wide{background:rgba(158,168,186,.08);box-shadow:inset 0 0 0 1px rgba(158,168,186,.45)}
+.v12-zn-leg i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px;border-radius:1px}
+.v12-zn-leg i.you{border-color:#F1E3BE;border-top-style:dashed}.v12-zn-leg i.stop{border-color:#E05252}.v12-zn-leg i.tgt{border-color:#22C97A}
+.v12-zn-ls{display:grid;gap:6px}
+.v12-zn-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);transition:border-color .15s,background .15s}
+.v12-zn-row:hover,.v12-zn-row.hot{border-color:rgba(241,227,190,.28);background:rgba(241,227,190,.04)}
+.v12-zn-row.dem{box-shadow:inset 2px 0 0 #22C97A}.v12-zn-row.sup{box-shadow:inset 2px 0 0 #E05252}
+.v12-zn-row.in{border-color:rgba(241,227,190,.22)}
+.v12-zn-row .ar{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;text-align:center}
+.v12-zn-row.dem .ar{color:#22C97A}.v12-zn-row.sup .ar{color:#E05252}
+.v12-zn-row .bd{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px;color:var(--text,#e8ecf3);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.v12-zn-row .bd em{font-style:normal;color:rgba(151,161,181,.75);font-size:10.5px;margin-left:6px}
+.v12-zn-row .mt{grid-column:2;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:rgba(151,161,181,.75);display:flex;flex-wrap:wrap;gap:3px 10px}
+.v12-zn-row .mt b{font-weight:600;color:rgba(241,227,190,.85)}
+.v12-zn-row .mt b.fresh{color:#22C97A}.v12-zn-row .mt b.tested{color:#EAB850}
+.v12-zn-row .mt .tf{color:rgba(241,227,190,.6)}
+.v12-zn-row .sc{grid-column:3;grid-row:1/3;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.v12-zn-row .scb{width:56px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+.v12-zn-row .scb i{display:block;height:100%;background:linear-gradient(90deg,rgba(241,227,190,.35),#F1E3BE)}
+.v12-zn-row .use{font:500 10px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;color:rgba(241,227,190,.9);background:transparent;border:1px solid rgba(241,227,190,.22);border-radius:6px;padding:5px 8px;cursor:pointer}
+.v12-zn-row .use:hover{background:rgba(241,227,190,.1)}
+.v12-zn-now{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(241,227,190,.55);padding:2px 10px;display:flex;align-items:center;gap:8px}
+.v12-zn-now::before,.v12-zn-now::after{content:"";flex:1;height:0;border-top:1px dashed rgba(241,227,190,.25)}
+.v12-zn-cap{margin-top:10px;font-size:10.5px;line-height:1.45;color:rgba(151,161,181,.66)}
+.v12-zn-cap b{color:rgba(200,208,222,.85);font-weight:500}
+.v12-zn-ev{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07);font-size:12px;line-height:1.5;color:rgba(200,208,222,.88)}
+.v12-zn-ev .t{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(241,227,190,.62);font-weight:600;margin-bottom:4px}
+.v12-zn-note{font-size:11px;color:#EAB850;opacity:.9;margin-top:6px}
+.v12-zn-err{font-size:12px;color:rgba(151,161,181,.8)}
+.v12-zn-empty{font-size:12px;color:rgba(151,161,181,.8);padding:8px 10px}
+.hr-plan.v12-zn-flash{animation:v12znFlash 1.6s ease-out}
+@keyframes v12znFlash{0%{box-shadow:0 0 0 2px rgba(241,227,190,.55)}100%{box-shadow:0 0 0 2px rgba(241,227,190,0)}}
+@media (max-width:1100px){.v12-zn-g{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:700px){.v12-zn{padding:14px 12px 12px;border-radius:12px}.v12-zn-ch canvas{height:260px}.v12-zn-ch{min-height:260px}.v12-zn-row{padding:7px 8px}.v12-zn-row .scb{width:40px}}
+/* ===== end v12 css: zones ===== */
 
 </style>
 <script>
@@ -51668,6 +51719,220 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   }
 })();
 /* ===== end v12 js: payoff ===== */
+/* ===== v12 js: zones (supply and demand levels) ===== */
+(function(){
+  'use strict';
+  var CACHE={}, TTL=30*60*1000, TF={}, PENDING={};
+  var BULL='#22C97A', BEAR='#E05252', IVORY='#F1E3BE';
+  function esc(s){ return (typeof _esc==='function')?_esc(s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function dec(p){ p=Math.abs(p||0); return p<0.1?5:p<2?4:p<10?3:p<1000?2:p<10000?1:0; }
+  function fp(v,ref){ if(v==null||!isFinite(v)) return '\u00b7'; var d=dec(ref==null?v:ref); return d===0?Math.round(v).toLocaleString():Number(v).toFixed(d); }
+  function planOf(id){ try{ return (typeof _planGet==='function')?(_planGet(id)||{}):{}; }catch(e){ return {}; } }
+  function num(x){ var v=parseFloat(x); return isFinite(v)?v:null; }
+  function mon(iso){ var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; var d=new Date(iso+'T00:00:00Z'); return m[d.getUTCMonth()]+' '+String(d.getUTCFullYear()).slice(2); }
+
+  /* ---------- chart ---------- */
+  function chart(canvas, Z, tf, id){
+    var C=(Z.candles&&Z.candles[tf])||[], zs=(Z.zones&&Z.zones[tf])||[];
+    if(!C.length) return null;
+    var N=tf==='W'?96:120, F=tf==='W'?22:45; C=C.slice(-N);
+    var d=Math.min(2,window.devicePixelRatio||1), W=canvas.clientWidth||600, H=canvas.clientHeight||320;
+    canvas.width=Math.round(W*d); canvas.height=Math.round(H*d);
+    var ctx=canvas.getContext('2d'); ctx.setTransform(d,0,0,d,0,0); ctx.clearRect(0,0,W,H);
+    var mL=8, mR=W<560?62:78, mT=12, mB=22, x0=mL, x1=W-mR, y0=mT, y1=H-mB;
+    // the scale is fitted to the recent bars so one old spike cannot squash the levels; older bars may clip
+    var lo=Infinity, hi=-Infinity;
+    C.slice(-F).forEach(function(c){ if(c.l<lo) lo=c.l; if(c.h>hi) hi=c.h; });
+    var span=hi-lo||1, price=Z.price;
+    // bring the nearest zones on each side into view when they sit just outside the candles
+    var near=Z.nearest&&Z.nearest[tf]||{};
+    [near.demand,near.supply].forEach(function(z){ if(!z) return; if(z.lo<lo&&lo-z.lo<span*0.6) lo=z.lo; if(z.hi>hi&&z.hi-hi<span*0.6) hi=z.hi; });
+    var plan=planOf(id), pl=[num(plan.entry),num(plan.stop),num(plan.target)];
+    pl.forEach(function(v){ if(v==null) return; if(v<lo&&lo-v<span*0.8) lo=v; if(v>hi&&v-hi<span*0.8) hi=v; });
+    span=hi-lo||1; lo-=span*0.04; hi+=span*0.04;
+    var X=function(i){ return x0+(x1-x0)*((i+0.5)/C.length); }, Y=function(p){ return y1-(y1-y0)*((p-lo)/(hi-lo)); };
+    var bw=Math.max(1.5,Math.min(9,(x1-x0)/C.length*0.62));
+    var first=C[0].t, byDate={}; C.forEach(function(c,i){ byDate[c.t]=i; });
+    function xStart(z){
+      var s=z.base_start; if(s<first) return x0;
+      var i=byDate[s]; if(i==null){ for(var k=0;k<C.length;k++){ if(C[k].t>=s){ i=k; break; } } }
+      return i==null?x1:X(i)-bw;
+    }
+    ctx.font='500 9.5px "JetBrains Mono",ui-monospace,monospace';
+    // grid
+    ctx.strokeStyle='rgba(255,255,255,.045)'; ctx.lineWidth=1; ctx.fillStyle='rgba(151,161,181,.6)'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    var step=niceStep((hi-lo)/5), g0=Math.ceil(lo/step)*step;
+    for(var g=g0; g<hi; g+=step){ var yy=Math.round(Y(g))+0.5; ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke(); ctx.fillText(fp(g,price),x1+8,yy); }
+    // date ticks
+    ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillStyle='rgba(151,161,181,.55)';
+    var every=tf==='W'?Math.round(C.length/5):Math.round(C.length/5);
+    for(var t=C.length-1-Math.floor(every/2); t>=0; t-=every){ if(X(t)-18<x0) break; ctx.fillText(mon(C[t].t),X(t),y1+6); }
+    ctx.save(); ctx.beginPath(); ctx.rect(x0,y0-1,x1-x0,y1-y0+2); ctx.clip();
+    // zones (wide first so tight draws on top)
+    var hot=[];
+    zs.slice().sort(function(a,b){ return (a.scale==='wide'?0:1)-(b.scale==='wide'?0:1); }).forEach(function(z){
+      var yt=Y(z.hi), yb=Y(z.lo); if(yb<y0||yt>y1) return;
+      yt=Math.max(y0,yt); yb=Math.min(y1,yb);
+      var xs=xStart(z), col=z.kind==='demand'?BULL:BEAR, tight=z.scale==='tight';
+      ctx.fillStyle=z.kind==='demand'?(tight?'rgba(34,201,122,.17)':'rgba(34,201,122,.07)'):(tight?'rgba(224,82,82,.16)':'rgba(224,82,82,.065)');
+      ctx.fillRect(xs,yt,x1-xs,Math.max(1,yb-yt));
+      ctx.strokeStyle=col; ctx.globalAlpha=tight?.85:.45; ctx.lineWidth=1; ctx.setLineDash(tight?[]:[3,3]);
+      // proximal edge solid, distal edge faint
+      var yp=Y(z.proximal), yd=Y(z.distal);
+      if(yp>=y0&&yp<=y1){ ctx.beginPath(); ctx.moveTo(xs,Math.round(yp)+0.5); ctx.lineTo(x1,Math.round(yp)+0.5); ctx.stroke(); }
+      ctx.globalAlpha=tight?.4:.25;
+      if(yd>=y0&&yd<=y1){ ctx.beginPath(); ctx.moveTo(xs,Math.round(yd)+0.5); ctx.lineTo(x1,Math.round(yd)+0.5); ctx.stroke(); }
+      ctx.setLineDash([]); ctx.globalAlpha=1;
+      if(z.broken){ ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.beginPath(); ctx.moveTo(xs,yt); ctx.lineTo(x1,yb); ctx.stroke(); }
+      hot.push({z:z,yt:yt,yb:yb,xs:xs});
+    });
+    // candles
+    C.forEach(function(c,i){
+      var up=c.c>=c.o, col=up?BULL:BEAR, x=X(i);
+      ctx.strokeStyle=col; ctx.globalAlpha=.85; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(Math.round(x)+0.5,Y(c.h)); ctx.lineTo(Math.round(x)+0.5,Y(c.l)); ctx.stroke();
+      var yo=Y(c.o), yc=Y(c.c), top=Math.min(yo,yc), hh=Math.max(1,Math.abs(yc-yo));
+      ctx.globalAlpha=up?.55:.75; ctx.fillStyle=up?'rgba(34,201,122,.55)':col; ctx.fillRect(x-bw/2,top,bw,hh);
+      ctx.globalAlpha=1;
+    });
+    // plan levels
+    var plDef=[[pl[0],IVORY,[5,4]],[pl[1],BEAR,[]],[pl[2],BULL,[]]], tags=[];
+    plDef.forEach(function(p){ var v=p[0]; if(v==null||v<lo||v>hi) return; var yy=Math.round(Y(v))+0.5; ctx.strokeStyle=p[1]; ctx.setLineDash(p[2]); ctx.lineWidth=1.2; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+      tags.push({y:yy,txt:fp(v,price),fg:p[1],bg:'rgba(10,12,18,.95)'}); });
+    // last price
+    if(price!=null&&price>=lo&&price<=hi){ var py=Math.round(Y(price))+0.5; ctx.strokeStyle='rgba(241,227,190,.55)'; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(x0,py); ctx.lineTo(x1,py); ctx.stroke(); ctx.setLineDash([]); tags.push({y:py,txt:fp(price,price),fg:'rgba(10,12,18,1)',bg:IVORY,prio:1}); }
+    ctx.restore();
+    // price tags in the right margin, nudged apart when they collide
+    tags.sort(function(a,b){ return a.y-b.y; });
+    for(var k=1;k<tags.length;k++){ if(tags[k].y-tags[k-1].y<16) tags[k].y=tags[k-1].y+16; }
+    for(var k2=tags.length-2;k2>=0;k2--){ if(tags[k2+1].y-tags[k2].y<16) tags[k2].y=tags[k2+1].y-16; }
+    tags.forEach(function(t){ tag(ctx,x1,t.y,t.txt,t.fg,t.bg); });
+    ctx.globalAlpha=1;
+    return {hot:hot,Y:Y,lo:lo,hi:hi,x0:x0,x1:x1,y0:y0,y1:y1};
+  }
+  function niceStep(r){ var p=Math.pow(10,Math.floor(Math.log(r)/Math.LN10)), m=r/p; return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p; }
+  function tag(ctx,x,y,txt,fg,bg){
+    ctx.font='600 9.5px "JetBrains Mono",ui-monospace,monospace'; var w=ctx.measureText(txt).width+10, h=15;
+    ctx.fillStyle=bg; ctx.fillRect(x+2,y-h/2,w,h); ctx.strokeStyle=fg; ctx.lineWidth=1; ctx.strokeRect(x+2.5,y-h/2+.5,w-1,h-1);
+    ctx.fillStyle=fg; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(txt,x+7,y+0.5);
+  }
+
+  /* ---------- list ---------- */
+  function rowHTML(z, Z, tf, id, i){
+    var price=Z.price, atr=Z.atr&&Z.atr[tf], dem=z.kind==='demand', inside=z.lo<=price&&price<=z.hi;
+    var dist=atr?Math.abs(z.proximal-price)/atr:null;
+    var fresh=z.tests===0;
+    var st=fresh?'<b class="fresh">fresh</b>':'<b class="tested">tested \u00d7'+z.tests+'</b>';
+    var nest=(z.notes||[]).filter(function(n){ return n.indexOf('inside weekly')===0; }).length?'<span>inside weekly</span>':'';
+    return '<div class="v12-zn-row '+(dem?'dem':'sup')+(inside?' in':'')+'" data-zi="'+i+'">'
+      +'<span class="ar">'+(dem?'\u25b2':'\u25bc')+'</span>'
+      +'<span class="bd">'+fp(z.lo,price)+' \u2013 '+fp(z.hi,price)+'<em>'+(inside?'price inside':dist!=null?(dist.toFixed(1)+' ATR '+(dem?'below':'above')):'')+'</em></span>'
+      +'<span class="sc"><span class="scb" title="Quality rank 0 to 100, ordinal"><i style="width:'+Math.max(4,Math.round(z.score))+'%"></i></span><button type="button" class="use" onclick="window._v12ZoneUse(\''+id+'\','+i+',\''+tf+'\')">Use this zone</button></span>'
+      +'<span class="mt"><span class="tf">'+(tf==='W'?'weekly':'daily')+' \u00b7 '+esc(z.pattern)+' \u00b7 '+esc(z.scale)+'</span>'+st+'<span>leg out <b>'+(z.departure_base>=10?'10+':z.departure_base.toFixed(1))+'\u00d7 base</b></span><span>base '+z.base_bars+(z.base_bars===1?' bar':' bars')+'</span>'+nest+'</span>'
+      +'</div>';
+  }
+  function listHTML(Z, tf, id){
+    var zs=(Z.zones&&Z.zones[tf])||[], price=Z.price;
+    if(!zs.length) return '<div class="v12-zn-empty">No unbroken '+(tf==='W'?'weekly':'daily')+' zone within '+(tf==='W'?'5':'6')+' ATR of price. That is a finding, not a gap: price is between levels.</div>';
+    var above=zs.filter(function(z){ return z.proximal>price&&!(z.lo<=price&&price<=z.hi); }).sort(function(a,b){ return a.proximal-b.proximal; });
+    var inside=zs.filter(function(z){ return z.lo<=price&&price<=z.hi; });
+    var below=zs.filter(function(z){ return z.proximal<=price&&!(z.lo<=price&&price<=z.hi); }).sort(function(a,b){ return b.proximal-a.proximal; });
+    var idx=function(z){ return zs.indexOf(z); };
+    var h='<div class="v12-zn-ls">';
+    above.reverse().forEach(function(z){ h+=rowHTML(z,Z,tf,id,idx(z)); });
+    h+='<div class="v12-zn-now">price '+fp(price,price)+(inside.length?' \u00b7 inside a zone':'')+'</div>';
+    inside.forEach(function(z){ h+=rowHTML(z,Z,tf,id,idx(z)); });
+    below.forEach(function(z){ h+=rowHTML(z,Z,tf,id,idx(z)); });
+    return h+'</div>';
+  }
+
+  /* ---------- panel ---------- */
+  function render(el, Z, id){
+    var tf=TF[id]||'W'; if(!(Z.candles&&Z.candles[tf]&&Z.candles[tf].length)) tf=tf==='W'?'D':'W';
+    var nW=(Z.zones.W||[]).length, nD=(Z.zones.D||[]).length;
+    var h='<div class="v12-zn-hd"><span class="k">Levels</span>'
+      +'<span class="px">'+fp(Z.price,Z.price)+'<i>'+esc(Z.symbol||'')+' \u00b7 '+esc(Z.asof||'')+'</i></span>'
+      +'<span class="v12-pay-seg" role="group" aria-label="timeframe"><button type="button" class="'+(tf==='W'?'on':'')+'" onclick="window._v12ZoneTF(\''+id+'\',\'W\')">Weekly \u00b7 '+nW+'</button><button type="button" class="'+(tf==='D'?'on':'')+'" onclick="window._v12ZoneTF(\''+id+'\',\'D\')">Daily \u00b7 '+nD+'</button></span>'
+      +'<span class="sp"></span><span class="ld">Supply and demand zones detected with the report rules. Candidates for your chart, not signals.</span></div>';
+    h+='<div class="v12-zn-g"><div><div class="v12-zn-ch"><canvas></canvas><div class="v12-zn-tip"></div></div>'
+      +'<div class="v12-zn-leg"><span><s class="dem"></s>Demand (DBR, RBR)</span><span><s class="sup"></s>Supply (RBD, DBD)</span><span><s class="wide"></s>Wide scale, dashed</span><span><i class="you"></i>Your entry</span><span><i class="stop"></i>Your stop</span><span><i class="tgt"></i>Your target</span></div></div>';
+    h+='<div>'+listHTML(Z,tf,id)
+      +'<div class="v12-zn-cap"><b>Proximal</b> edge is the body extreme of the base nearest price, <b>distal</b> the wick extreme behind it. <b>Fresh</b> means untouched since the leg out. Score ranks candidates by leg-out strength, tightness, reversal shape and freshness; it is ordinal and carries no payoff evidence. '
+      +'<b>Use this zone</b> only pre-fills your plan: entry at the proximal edge, stop a quarter of the zone height beyond the distal edge. Apply or edit it yourself.'
+      +(Z.data_note&&Z.data_note.indexOf('single prints')>=0?'<div class="v12-zn-note">'+esc(Z.data_note)+'</div>':'')+'</div></div></div>';
+    h+='<div class="v12-zn-ev"><div class="t">What the replay says</div>'+esc((Z.definitions&&Z.definitions.evidence)||'')+'</div>';
+    el.innerHTML=h;
+    var cv=el.querySelector('canvas'), tip=el.querySelector('.v12-zn-tip');
+    var geo=null;
+    function draw(){ try{ geo=chart(cv,Z,tf,id); }catch(e){ console.warn('zones chart',e); } }
+    draw();
+    if(window.ResizeObserver&&!el._znRO){ el._znRO=new ResizeObserver(function(){ draw(); }); el._znRO.observe(cv.parentNode); }
+    cv.onmousemove=function(ev){
+      if(!geo) return; var r=cv.getBoundingClientRect(), y=ev.clientY-r.top, x=ev.clientX-r.left, hit=null;
+      for(var i=geo.hot.length-1;i>=0;i--){ var hz=geo.hot[i]; if(y>=hz.yt&&y<=hz.yb&&x>=hz.xs){ if(!hit||hz.z.scale==='tight') hit=hz; } }
+      el.querySelectorAll('.v12-zn-row.hot').forEach(function(n){ n.classList.remove('hot'); });
+      if(!hit){ tip.style.display='none'; return; }
+      var z=hit.z, zi=((Z.zones&&Z.zones[tf])||[]).indexOf(z); var row=el.querySelector('.v12-zn-row[data-zi="'+zi+'"]'); if(row) row.classList.add('hot');
+      tip.innerHTML=(z.kind==='demand'?'<span style="color:#22C97A">\u25b2 demand</span>':'<span style="color:#E05252">\u25bc supply</span>')+' '+esc(z.pattern)+' \u00b7 '+esc(z.scale)+'<br>'+fp(z.lo,Z.price)+' \u2013 '+fp(z.hi,Z.price)+' \u00b7 '+(z.tests===0?'fresh':'tested \u00d7'+z.tests)+'<br>base '+esc(z.base_start)+' \u2192 leg out '+esc(z.legout_end);
+      tip.style.display='block'; tip.style.left=Math.min(x+12,r.width-170)+'px'; tip.style.top=Math.max(4,y-44)+'px';
+    };
+    cv.onmouseleave=function(){ tip.style.display='none'; el.querySelectorAll('.v12-zn-row.hot').forEach(function(n){ n.classList.remove('hot'); }); };
+  }
+  function mount(id, force){
+    var el=document.querySelector('[data-zones="'+id+'"]'); if(!el) return;
+    var key=id, hit=CACHE[key];
+    if(hit&&!force&&Date.now()-hit.t<TTL){ render(el,hit.z,id); return; }
+    if(typeof API==='undefined') return;
+    fetch(API+'/api/zones?market='+encodeURIComponent(id)).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); }).then(function(x){
+      var el2=document.querySelector('[data-zones="'+id+'"]'); if(!el2) return;
+      if(!x.ok||!x.j||x.j.error){ el2.innerHTML='<div class="v12-zn-hd"><span class="k">Levels</span><span class="v12-zn-err">'+esc((x.j&&x.j.error)||'Zone data unavailable')+'</span></div>'; return; }
+      CACHE[key]={t:Date.now(),z:x.j}; render(el2,x.j,id);
+    }).catch(function(){ var el2=document.querySelector('[data-zones="'+id+'"]'); if(el2) el2.innerHTML='<div class="v12-zn-hd"><span class="k">Levels</span><span class="v12-zn-err">Zone data unreachable</span></div>'; });
+  }
+  window._v12ZoneMount=mount;
+  window._v12ZoneTF=function(id,tf){ TF[id]=tf; mount(id); };
+
+  /* ---------- Use this zone: pre-fill the plan form, never save ---------- */
+  function fill(id, z){
+    var f=document.getElementById('hrp-'+id); if(!f) return false;
+    var dem=z.kind==='demand', h=z.hi-z.lo, d=dec(z.proximal);
+    var stop=dem?z.distal-0.25*h:z.distal+0.25*h;
+    var set=function(k,v){ var i=f.querySelector('[name="'+k+'"]'); if(i){ i.value=v; i.dispatchEvent(new Event('input',{bubbles:true})); } };
+    set('side',dem?'long':'short'); set('zone_type',z.pattern); set('zone_proximal',z.proximal.toFixed(d)); set('zone_distal',z.distal.toFixed(d));
+    set('entry',z.proximal.toFixed(d)); set('stop',stop.toFixed(d));
+    var det=f.closest('details'); if(det) det.open=true;
+    var wrap=det||f; wrap.classList.remove('v12-zn-flash'); void wrap.offsetWidth; wrap.classList.add('v12-zn-flash');
+    try{ wrap.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+    var note=document.getElementById('hrp-sync-'+id); if(note) note.textContent='Pre-filled from the '+(z.tf==='W'?'weekly':'daily')+' '+z.kind+' zone: entry at the proximal edge, stop a quarter height beyond the distal. Set your target, then Apply.';
+    return true;
+  }
+  window._v12ZoneUse=function(id,i,tf){
+    var hit=CACHE[id]; if(!hit) return; var z=((hit.z.zones||{})[tf]||[])[i]; if(!z) return;
+    if(fill(id,z)) return;
+    PENDING[id]=z;
+    if(typeof switchTab==='function'){ try{ switchTab('cot'); }catch(e){} }
+    var tries=0, iv=setInterval(function(){ tries++; if(fill(id,PENDING[id])||tries>30){ clearInterval(iv); delete PENDING[id]; } },120);
+  };
+
+  /* ---------- hook: market read ---------- */
+  if(typeof window.marketReadInner==='function'){
+    var _mri=window.marketReadInner;
+    window.marketReadInner=function(id){
+      var h=_mri(id);
+      try{
+        if(h.indexOf('data-zones="')>=0){ setTimeout(function(){ mount(id); },60); return h; }
+        var i=h.indexOf('<div class="mr3-pills">'); if(i<0) return h;
+        var ph='<section class="gl v12-zn" data-zones="'+id+'"><div class="v12-zn-hd"><span class="k">Levels</span><span class="ld">Reading weekly and daily supply and demand zones\u2026</span></div></section>';
+        setTimeout(function(){ mount(id); },60);
+        return h.slice(0,i)+ph+h.slice(i);
+      }catch(e){ return h; }
+    };
+  }
+  /* plan changes redraw the chart lines */
+  ['planSave','planClear'].forEach(function(fn){
+    if(typeof window[fn]==='function'){ var o=window[fn]; window[fn]=function(id){ var r=o.apply(this,arguments); try{ setTimeout(function(){ mount(id); },100); }catch(e){} return r; }; }
+  });
+})();
+/* ===== end v12 js: zones ===== */
 
 </script>
 </body>

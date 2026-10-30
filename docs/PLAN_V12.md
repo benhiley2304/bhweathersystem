@@ -154,3 +154,9 @@ Phases 0 and 1 are where the edge work lives. Phase 2 and 3 are where the visual
 3. **Persistence.** The free `bhws-state` repository now, or a paid Render Postgres plus disk? My recommendation is the repository now; the interface is the same either way.
 
 Everything else in this plan I will take under the existing authorisation, in the order above, verifying each step live before reporting it done.
+
+## 10. Progress log
+
+- Phase 0 and the premium design pass shipped (9fd5f74). Payoff engine and Does-it-pay panel (e4154d1). Execution models (full size at Monday close against scale-in at 1R) and the profit factor definition in the Edge lab (8a504ba): scale-in does not raise the profit factor, it halves both the average loss and the average win.
+- Supply and demand zones (this commit): detector in `bhws_core/zones.py`, `/api/zones`, the Levels panel, `research/zones/` replay and confluence tests, `docs/SUPPLY_DEMAND_SPEC.md`. Finding: zones are a location and risk tool here, not a measured lift in win rate; the first confluence result (1.39) used future information and is kept in the spec as a warning.
+- Open: persistence (decision 3 above), 4-hour zones, daily-bar fills for the resting-order test, the TradingView zone indicator, the relative-positioning view across the equity complex (RTY vs NQ vs ES).

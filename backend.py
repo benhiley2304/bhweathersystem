@@ -19736,6 +19736,14 @@ try:
 except Exception as _po_err:  # pragma: no cover
     print(f"[startup] payoff profiles NOT registered: {_po_err!r}", flush=True)
 
+# ── Supply and demand zones: GET /api/zones ─────────────────────────────────
+try:
+    from bhws_zones_api import register as _bhws_register_zones
+    _bhws_register_zones(app, markets=MARKETS, yf_with_timeout=_yf_with_timeout)
+    print("[startup] zones registered (/api/zones)", flush=True)
+except Exception as _zn_err:  # pragma: no cover
+    print(f"[startup] zones NOT registered: {_zn_err!r}", flush=True)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
