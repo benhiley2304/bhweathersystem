@@ -52222,7 +52222,10 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     });
   }
   var FAILED={};
-  if(window.MutationObserver){ var _lvT=null; new MutationObserver(function(){ clearTimeout(_lvT); _lvT=setTimeout(fillLevelLines,150); }).observe(document.documentElement,{childList:true,subtree:true}); }
+  /* the app mutates the DOM many times a second, so this is a throttle (not a debounce) with a slow interval behind it */
+  var _lvT=null; function fillSoon(){ if(_lvT) return; _lvT=setTimeout(function(){ _lvT=null; try{ fillLevelLines(); }catch(e){} },200); }
+  if(window.MutationObserver){ new MutationObserver(fillSoon).observe(document.documentElement,{childList:true,subtree:true}); }
+  setInterval(fillSoon,2000);
   window._v12ZoneMount=mount;
   window._v12ZoneTF=function(id,tf){ TF[id]=tf; mount(id); };
   window._v12ZoneAll=function(id,on){ ALL[id]=!!on; mount(id); };
