@@ -27429,8 +27429,8 @@ function _sbRow(m,r,dim){
   const lean=r?(r.lean||(r.read&&r.read.stance?r.read.stance.lean:0)):0;
   return '<div class="mkt-row sb2-row'+(dim?' dim':'')+(selMkt===m.id?' sel':'')+'" data-id="'+m.id+'" onclick="selectMkt(\''+m.id+'\')" style="--mob-row-col:'+sc+';--row-accent:'+sc+'">'
     +'<span class="mr-id" style="color:'+catCol+'">'+tid+'</span>'
-    +'<div class="mr-body"><div class="mr-name-row"><div class="mr-name">'+_esc(m.name)+'</div></div>'
-    +(r?'<div class="sb2-sub">'+_dkDots(r)+(r.setup?(_suTmShort(r)&&!['flat','with'].includes(_suTm(r).state)?'<span class="sb2-tm '+_suTmCls(_suTm(r).state)+'">'+_esc(_suTmShort(r))+'</span>':''):_dkTrigTag(r))+_dkArch(r)+(window._v12LvlTag?window._v12LvlTag(m.id,r):'')+'</div>':'')+'</div>'
+    +'<div class="mr-body"><div class="mr-name-row"><div class="mr-name">'+_esc(m.name)+'</div>'+(r&&window._v12LvlTag?window._v12LvlTag(m.id,r):'')+'</div>'
+    +(r?'<div class="sb2-sub">'+_dkDots(r)+(r.setup?(_suTmShort(r)&&!['flat','with'].includes(_suTm(r).state)?'<span class="sb2-tm '+_suTmCls(_suTm(r).state)+'">'+_esc(_suTmShort(r))+'</span>':''):_dkTrigTag(r))+_dkArch(r)+'</div>':'')+'</div>'
     +(r?_dkSide(r.side,dim?0:lean):'')
     +(r&&r.setup&&SB_SORT==='setups'
       ?'<div class="mr-right"><span class="sb2-su" style="color:'+_suCol(r)+'" title="Setup score for the desk side, 0 to 10. Bias (composite) '+(ws!=null?ws.toFixed(1):'n/a')+'">'+_suNum(r)+'</span></div></div>'
@@ -49934,10 +49934,8 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .hr-lvl.dem{color:#22C97A}.hr-lvl.sup{color:#E05252}.hr-lvl.opp{color:#EAB850}
 .sb2-lvl{display:inline-flex;align-items:center;font-family:var(--mono,"JetBrains Mono",monospace);font-size:8.5px;font-weight:700;letter-spacing:.02em;padding:0 4px;border-radius:3px;border:1px dashed rgba(241,227,190,.4);color:rgba(241,227,190,.8);line-height:13px;margin-left:4px;vertical-align:middle}
 .sb2-lvl.in{border-style:solid}
+.mr-name-row .sb2-lvl{margin-left:auto;flex:0 0 auto}
 .sb2-lvl.dem{color:#22C97A;border-color:rgba(34,201,122,.6)}.sb2-lvl.sup{color:#E05252;border-color:rgba(224,82,82,.6)}.sb2-lvl.opp{color:#EAB850;border-color:rgba(234,184,80,.6)}
-/* ===== end v12 css: zones ===== */
-/* ===== end v12 css: zones ===== */
-/* ===== end v12 css: zones ===== */
 /* ===== end v12 css: zones ===== */
 /* ===== v12 css: crowd map (positioning across the complex) ===== */
 .v12-cm{position:relative;margin:10px 0 2px;padding:16px 18px 14px;border-radius:14px;overflow:hidden}
@@ -51974,7 +51972,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     marks.forEach(function(m){ if(every>1&&(m.d.getUTCMonth()%every)) return; var x=X(m.i)-slot/2; ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.beginPath(); ctx.moveTo(Math.round(x)+0.5,y0); ctx.lineTo(Math.round(x)+0.5,y1); ctx.stroke();
       var jan=m.d.getUTCMonth()===0; ctx.fillStyle=jan?'rgba(241,227,190,.8)':'rgba(151,161,181,.6)'; ctx.fillText(jan?String(m.d.getUTCFullYear()):MON[m.d.getUTCMonth()],x,y1+7); });
     ctx.save(); ctx.beginPath(); ctx.rect(x0,y0-1,x1-x0,y1-y0+2); ctx.clip();
-    var hot=[], tags=[], labelYs=[];
+    var hot=[], tags=[], labelYs=[], vol=volOn(Z,tf,id), labelsOn=(x1-x0)>=420;
     function band(z, faint){
       var col=z.kind==='demand'?BULL:BEAR, st=state(z), tested=(st==='tested'), yt=Y(z.hi), yb=Y(z.lo);
       var ie=idxOf(z.base_end), xs=ie==null?x0:X(ie)+bw/2+1; if(xs<x0) xs=x0;
@@ -51995,10 +51993,16 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
         ctx.fillStyle=faint?'rgba(190,166,74,.08)':OLIVE_FILL; ctx.fillRect(bx0,pt,bx1-bx0,Math.max(1,pb-pt));
         ctx.strokeStyle=faint?'rgba(214,190,96,.35)':OLIVE; ctx.lineWidth=1; ctx.strokeRect(Math.round(bx0)+0.5,Math.round(pt)+0.5,Math.round(bx1-bx0),Math.max(1,Math.round(pb-pt))); });
       // label at the left end of the extended band (just after the base), inside when the band is tall enough
-      if(!faint){ var lab=(TFSHORT[tf]||tf)+' '+z.kind.toUpperCase()+' \u00b7 '+stateWord(z).toUpperCase(); ctx.font='600 9px '+mono; ctx.textAlign='left'; ctx.textBaseline='middle';
-        var ly=(yb-yt>=16)?(yt+yb)/2:(z.kind==='demand'?yb+8:yt-8), guard=0;
+      // label at the left end of the extended band (just after the base), inside when the band is tall enough,
+      // otherwise beyond the leg-out marker on the open side. Loud leg-out volume rides on the label in gold.
+      // Narrow canvases (phones) drop the labels; the cards below carry the same facts.
+      if(!faint&&labelsOn){ var lab=(TFSHORT[tf]||tf)+' '+z.kind.toUpperCase()+' \u00b7 '+stateWord(z).toUpperCase(), loud=(vol&&z.vol_out!=null&&z.vol_out>=1.5)?' \u00b7 \u00d7'+Number(z.vol_out).toFixed(1):'';
+        ctx.font='600 9px '+mono; ctx.textAlign='left'; ctx.textBaseline='middle';
+        var inside=(yb-yt>=16), ly=inside?(yt+yb)/2:(z.kind==='demand'?yb+9:yt-9), guard=0;
         while(guard++<8&&labelYs.some(function(v){ return Math.abs(v-ly)<13; })) ly+=(z.kind==='demand'?13:-13);
-        labelYs.push(ly); var lx=Math.min(xs+8,x1-120), lw=ctx.measureText(lab).width; ctx.fillStyle='rgba(10,12,18,.72)'; ctx.fillRect(lx-3,ly-7,lw+6,14); ctx.fillStyle=rgba(col,.95); ctx.fillText(lab,lx,ly); }
+        labelYs.push(ly); var lw=ctx.measureText(lab).width, lw2=loud?ctx.measureText(loud).width:0, lx=Math.min(xs+(inside?8:16),x1-lw-lw2-8);
+        ctx.fillStyle='rgba(10,12,18,.72)'; ctx.fillRect(lx-3,ly-7,lw+lw2+6,14); ctx.fillStyle=rgba(col,.95); ctx.fillText(lab,lx,ly);
+        if(loud){ ctx.fillStyle=GOLD; ctx.fillText(loud,lx+lw,ly); } }
       if(!faint){ tags.push({y:Y(z.proximal),txt:fp(z.proximal,price),fg:'#0b0d12',bg:rgba(col,.92),bd:col}); tags.push({y:Y(z.distal),txt:fp(z.distal,price),fg:rgba(col,.9),bg:'rgba(10,12,18,.95)',bd:rgba(col,.6)}); }
       hot.push({z:z,yt:Math.min(yt,yb),yb:Math.max(yt,yb),xs:xs,faint:!!faint});
     }
@@ -52006,7 +52010,6 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     zs.slice().sort(function(a,b){ return (state(a)==='tested'?0:1)-(state(b)==='tested'?0:1); }).forEach(function(z){ band(z,false); });
     // candles; with coherent volume the body width follows the bar's volume against its recent regime median
     // (thick is loud, thin is quiet), the TradingView volume-candle cue. Without it, a fixed width.
-    var vol=volOn(Z,tf,id);
     V.forEach(function(c,j){
       var i=i0+j, up=c.c>=c.o, col=up?BULL:BEAR, x=Math.round(X(i))+0.5, w=bw, a=up?.85:.95;
       if(vol&&c.rv!=null){ var f=Math.max(0.5,Math.min(1.6,Math.sqrt(c.rv))); w=Math.max(1.5,Math.min(slot*0.96,slot*0.68*f)); a=c.rv>=1.5?1:c.rv<0.6?a*0.72:a; }
@@ -52014,15 +52017,14 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       var yo=Y(c.o), yc=Y(c.c), top=Math.min(yo,yc), hh=Math.max(1,Math.abs(yc-yo));
       ctx.fillStyle=col; ctx.globalAlpha=a; ctx.fillRect(Math.round(x-w/2),Math.round(top),Math.max(1,Math.round(w)),Math.round(hh)); ctx.globalAlpha=1;
     });
-    // leg-out markers: a small arrow at the first leg-out candle of each key zone, with the leg-out volume when it
-    // was loud (1.5 times the regime median or more)
+    // leg-out markers: a small arrow under (demand) or over (supply) the first leg-out candle of each key zone,
+    // kept on the open side of the band so it never sits on the band label. Loud volume is on the label itself.
     var seen={};
     zs.forEach(function(z){ var li=idxOf(z.legout_start); if(li==null||li<i0||seen[li+z.kind]) return; seen[li+z.kind]=1; var c=C[li]; if(!c) return;
-      var dem=z.kind==='demand', col=dem?BULL:BEAR, mx=X(li), my=dem?Y(c.l)+5:Y(c.h)-5;
+      var dem=z.kind==='demand', col=dem?BULL:BEAR, mx=X(li), my=dem?Math.max(Y(c.l),Y(z.lo))+4:Math.min(Y(c.h),Y(z.hi))-4;
       ctx.fillStyle=rgba(col,.95); ctx.beginPath();
-      if(dem){ ctx.moveTo(mx,my); ctx.lineTo(mx-4,my+6); ctx.lineTo(mx+4,my+6); } else { ctx.moveTo(mx,my); ctx.lineTo(mx-4,my-6); ctx.lineTo(mx+4,my-6); }
+      if(dem){ ctx.moveTo(mx,my); ctx.lineTo(mx-3.5,my+6); ctx.lineTo(mx+3.5,my+6); } else { ctx.moveTo(mx,my); ctx.lineTo(mx-3.5,my-6); ctx.lineTo(mx+3.5,my-6); }
       ctx.closePath(); ctx.fill();
-      if(vol&&W>=560&&z.vol_out!=null&&z.vol_out>=1.5){ ctx.font='600 8.5px '+mono; ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillStyle=GOLD; ctx.fillText('\u00d7'+Number(z.vol_out).toFixed(1),mx-6,dem?my+3:my-3); }
     });
     // plan levels
     var plDef=[[pl[0],IVORY,[5,4]],[pl[1],BEAR,[]],[pl[2],BULL,[]]];
@@ -52138,7 +52140,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     return best;
   }
   function lvlLine(Z, id){
-    var el=document.getElementById('hr-lvl-'+id); if(!el) return;
+    var el=document.getElementById('hr-lvl-'+id); if(!el) return; el.dataset.done='1';
     var row=null; try{ row=(typeof DESK!=='undefined'&&DESK&&DESK.rows)?DESK.rows.filter(function(x){ return x.id===id; })[0]:null; }catch(e){}
     var side=row&&row.side?(row.side>0?'long':'short'):null, b=nearLevel(Z,side), p=Z.price;
     if(!b){ var zs=[].concat((Z.zones&&Z.zones.W)||[]).filter(function(z){ return z.dist_typ!=null; }).sort(function(a,c){ return Math.abs(a.dist_typ)-Math.abs(c.dist_typ); })[0];
@@ -52160,7 +52162,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       +(Z.volume&&Z.volume[tf]?'<label class="v12-zn-all"><input type="checkbox" '+(VOL[id]!==false?'checked':'')+' onchange="window._v12ZoneVol(\''+id+'\',this.checked)"> volume candles</label>':'')
       +'<span class="sp"></span><span class="ld">Supply and demand zones by the three-step method: leg out first, then base, then leg in. Candidates for your chart, not signals.</span></div>';
     h+='<div class="v12-zn-g"><div><div class="v12-zn-ch"><canvas></canvas><canvas class="v12-zn-xh"></canvas><div class="v12-zn-ohlc"></div><div class="v12-zn-tip"></div></div>'
-      +'<div class="v12-zn-leg"><span><s class="base"></s>Base candles</span><span><s class="dem"></s>Demand band</span><span><s class="sup"></s>Supply band</span><span><s class="tested"></s>Tested, dashed</span><span><i class="pref"></i>Preferred edge</span><span><i class="you"></i>Your entry</span><span><i class="stop"></i>Your stop</span><span><i class="tgt"></i>Your target</span>'+(volOn(Z,tf,id)?'<span><s class="vol"></s>Thick candle, loud volume</span><span><b class="lo">\u25b2</b> Leg out, \u00d7 volume when loud</span>':'<span class="dim">Fixed-width candles: no coherent volume on this Yahoo series</span><span><b class="lo">\u25b2</b> Leg out</span>')+'</div>'
+      +'<div class="v12-zn-leg"><span><s class="base"></s>Base candles</span><span><s class="dem"></s>Demand band</span><span><s class="sup"></s>Supply band</span><span><s class="tested"></s>Tested, dashed</span><span><i class="pref"></i>Preferred edge</span><span><i class="you"></i>Your entry</span><span><i class="stop"></i>Your stop</span><span><i class="tgt"></i>Your target</span>'+(volOn(Z,tf,id)?'<span><s class="vol"></s>Thick candle, loud volume</span><span><b class="lo">\u25b2</b> Leg out (\u00d7vol on the label when loud)</span>':'<span class="dim">Fixed-width candles: no coherent volume on this Yahoo series</span><span><b class="lo">\u25b2</b> Leg out</span>')+'</div>'
       +readHTML(Z,tf)+'</div>';
     h+='<div>'+listHTML(Z,tf,id,showAll)
       +'<div class="v12-zn-cap"><b>Proximal</b> edge is the body extreme of the base nearest price, <b>distal</b> the wick extreme behind it; the thin inner line is the preferred version (last base candles). <b>Fresh</b> means no prior visit reached it since the leg out; a visit in progress is the arrival, not a test. <b>Room</b> is the distance to the next opposing zone in units of your risk (stop a quarter height beyond the distal edge). '
@@ -52187,17 +52189,40 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     xh.onmouseleave=function(){ tip.style.display='none'; if(geo) crosshair(cv,geo,null,null,Z); var o=el.querySelector('.v12-zn-ohlc'); if(o) o.style.display='none'; el.querySelectorAll('.v12-zn-row.hot').forEach(function(n){ n.classList.remove('hot'); }); };
     el.querySelectorAll('.v12-zn-row').forEach(function(row){ row.onmouseenter=function(){ row.classList.add('hot'); }; row.onmouseleave=function(){ row.classList.remove('hot'); }; });
   }
+  var LOADING={};
+  function load(id, cb){
+    if(typeof API==='undefined') return;
+    if(LOADING[id]){ LOADING[id].push(cb); return; }
+    LOADING[id]=[cb];
+    fetch(API+'/api/zones?market='+encodeURIComponent(id)).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); }).then(function(x){
+      if(x.ok&&x.j&&!x.j.error) CACHE[id]={t:Date.now(),z:x.j};
+      var cbs=LOADING[id]||[]; delete LOADING[id]; cbs.forEach(function(f){ try{ f(x); }catch(e){} });
+    }).catch(function(){ var cbs=LOADING[id]||[]; delete LOADING[id]; cbs.forEach(function(f){ try{ f(null); }catch(e){} }); });
+  }
   function mount(id, force){
     var el=document.querySelector('[data-zones="'+id+'"]'); if(!el) return;
-    var key=id, hit=CACHE[key];
+    var hit=CACHE[id];
     if(hit&&!force&&Date.now()-hit.t<TTL){ render(el,hit.z,id); return; }
-    if(typeof API==='undefined') return;
-    fetch(API+'/api/zones?market='+encodeURIComponent(id)).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); }).then(function(x){
+    load(id,function(x){
       var el2=document.querySelector('[data-zones="'+id+'"]'); if(!el2) return;
+      if(!x){ el2.innerHTML='<div class="v12-zn-hd"><span class="k">Levels</span><span class="v12-zn-err">Zone data unreachable</span></div>'; return; }
       if(!x.ok||!x.j||x.j.error){ el2.innerHTML='<div class="v12-zn-hd"><span class="k">Levels</span><span class="v12-zn-err">'+esc((x.j&&x.j.error)||'Zone data unavailable')+'</span></div>'; return; }
-      CACHE[key]={t:Date.now(),z:x.j}; render(el2,x.j,id);
-    }).catch(function(){ var el2=document.querySelector('[data-zones="'+id+'"]'); if(el2) el2.innerHTML='<div class="v12-zn-hd"><span class="k">Levels</span><span class="v12-zn-err">Zone data unreachable</span></div>'; });
+      render(el2,x.j,id);
+    });
   }
+  /* the Desk line's level sentence lives in the house read, which renders on its own schedule: fill any empty
+     placeholder from the cache, fetching once when the market has not been read yet */
+  function fillLevelLines(){
+    document.querySelectorAll('.hr-lvl').forEach(function(el){
+      if(el.dataset.done) return; var id=el.id.replace('hr-lvl-',''); if(!id) return;
+      var hit=CACHE[id];
+      if(hit&&Date.now()-hit.t<TTL){ try{ lvlLine(hit.z,id); }catch(e){} return; }
+      if(FAILED[id]&&Date.now()-FAILED[id]<300000) return;
+      load(id,function(x){ if(x&&x.ok&&x.j&&!x.j.error) fillLevelLines(); else FAILED[id]=Date.now(); });
+    });
+  }
+  var FAILED={};
+  if(window.MutationObserver){ var _lvT=null; new MutationObserver(function(){ clearTimeout(_lvT); _lvT=setTimeout(fillLevelLines,150); }).observe(document.documentElement,{childList:true,subtree:true}); }
   window._v12ZoneMount=mount;
   window._v12ZoneTF=function(id,tf){ TF[id]=tf; mount(id); };
   window._v12ZoneAll=function(id,on){ ALL[id]=!!on; mount(id); };
@@ -52268,9 +52293,6 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     if(typeof window[fn]==='function'){ var o=window[fn]; window[fn]=function(id){ var r=o.apply(this,arguments); try{ setTimeout(function(){ mount(id); },100); }catch(e){} return r; }; }
   });
 })();
-/* ===== end v12 js: zones ===== */
-/* ===== end v12 js: zones ===== */
-/* ===== end v12 js: zones ===== */
 /* ===== end v12 js: zones ===== */
 /* ===== v12 js: crowd map (positioning across the complex) ===== */
 (function(){
