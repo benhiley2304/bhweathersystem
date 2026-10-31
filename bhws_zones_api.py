@@ -14,7 +14,9 @@ Data: Yahoo Finance continuous futures where available (NQ=F rather than ^NDX an
 euro, pound, aussie and kiwi so the levels match the EUR/USD style charts Ben draws. Six years of daily bars,
 fifteen years of weekly bars, cached in memory for six hours per market. Yahoo spot FX daily bars print the
 open equal to the close and lag the close by a day; they are repaired before detection (see zones_v2.repair_spot_fx).
-Some futures print single-price daily bars; those markets are flagged and the weekly read is preferred.
+Many futures print settlement-only daily bars on Yahoo (platinum two days in three); the last two years of daily
+and weekly bars are therefore rebuilt from hourly trades by exchange session (bhws_core.prices), and four-hour and
+eight-hour bars are served for the zoom views and the lower-timeframe refinement of each level (bhws_core.zones_intraday).
 """
 from __future__ import annotations
 
@@ -28,6 +30,8 @@ import numpy as np
 import pandas as pd
 from fastapi.responses import JSONResponse
 
+from bhws_core import prices as P
+from bhws_core import zones_intraday as ZI
 from bhws_core import zones_v2 as Z
 
 REPLAY_PATH = Path(__file__).resolve().parent / "research" / "zones" / "zone_replay_v2.json"
@@ -54,6 +58,7 @@ DAILY_YEARS = 6
 WEEKLY_YEARS = 15
 MAX_DIST = 8.0                      # typical ranges from price to the proximal edge
 CANDLES = {"W": 260, "2D": 260, "D": 320}
+INTRADAY_CANDLES = {"4H": 180, "8H": 240}   # about 30 and 80 trading days
 CANDLES_MAX = 420
 PER_SIDE = 2
 
@@ -93,6 +98,16 @@ DEFINITIONS = {
               "volume regime (thick is loud, thin is quiet), the TradingView volume-candle cue. Yahoo continuous futures switch "
               "contracts, so volume is coherent on about four series in ten; where it is not, candles are drawn at a fixed width "
               "and no volume tier is shown.",
+    "data": "Yahoo's daily feed prints settlement-only bars (high equal to low) on many COMEX, NYMEX and ICE contracts and no "
+            "volume on most of them, which is why some daily charts looked like dots. Daily and weekly bars over the last two "
+            "years are rebuilt from Yahoo hourly trades by exchange session (a CME day runs 18:00 to 17:00 New York, forex 17:00 "
+            "to 17:00) and spliced onto the feed for older history; on series whose feed is clean the rebuilt highs and lows match "
+            "the feed to the tick. Older daily history on the affected series stays less precise, and the quality badge says so.",
+    "intraday": "Four-hour and eight-hour bars, anchored at the Globex open, are zoom views inside a daily or weekly level: the "
+                "same leg-in, base, leg-out read one timeframe down tightens the level when the lower-timeframe base sits in "
+                "part of it (weekly levels from daily bars, daily and two-day levels from four-hour bars). Drawn as a dashed inner "
+                "box and quoted on the zone card. A level that is not visible on the daily is not traded, so intraday bars never "
+                "produce levels of their own.",
 }
 GRADE_SWING = 3.0
 GRADE_BASE = 6
@@ -104,7 +119,7 @@ BOARD_PACE = 2.0          # seconds between markets in the background warm (Yaho
 NEAR_TYP = 1.5            # "near" a zone: within this many typical ranges of the proximal edge
 
 
-def _candles(df: pd.DataFrame, n: int) -> List[Dict[str, Any]]:
+def _candles(df: pd.DataFrame, n: int, fmt: str = "%Y-%m-%d") -> List[Dict[str, Any]]:
     d = df.tail(n)
     vol, ref = Z.volume_reference(df)
     rv = None
@@ -113,7 +128,7 @@ def _candles(df: pd.DataFrame, n: int) -> List[Dict[str, Any]]:
         rv = pd.Series(r, index=df.index).tail(n)
     out = []
     for i, (ts, r) in enumerate(d.iterrows()):
-        c = {"t": ts.strftime("%Y-%m-%d"), "o": round(float(r["Open"]), 6), "h": round(float(r["High"]), 6),
+        c = {"t": ts.strftime(fmt), "o": round(float(r["Open"]), 6), "h": round(float(r["High"]), 6),
              "l": round(float(r["Low"]), 6), "c": round(float(r["Close"]), 6)}
         if rv is not None:
             x = float(rv.iloc[i])
@@ -161,25 +176,36 @@ def _clean(df: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
     return df if len(df) >= 60 else None
 
 
-def _fetch(symbol: str, yf_with_timeout: Callable) -> Dict[str, Optional[pd.DataFrame]]:
-    import yfinance as yf
-    tk = yf.Ticker(symbol)
-    daily = yf_with_timeout(tk.history, period=f"{DAILY_YEARS}y", interval="1d", auto_adjust=False, label=f"zones {symbol} D")
-    time.sleep(0.5)
-    weekly = yf_with_timeout(tk.history, period=f"{WEEKLY_YEARS}y", interval="1wk", auto_adjust=False, label=f"zones {symbol} W")
-    return {"D": _clean(daily), "W": _clean(weekly)}
+def _fetch(symbol: str, yf_with_timeout: Callable) -> Dict[str, Any]:
+    """Daily (last two years rebuilt from hourly bars by session), weekly, 4-hour and 8-hour frames and a provenance
+    record. See bhws_core.prices for why the daily feed is not used as printed."""
+    def repair(d: pd.DataFrame) -> Optional[pd.DataFrame]:
+        return Z.repair_spot_fx(d) if Z.looks_like_spot_fx_defect(d) else None
+    return P.fetch_series(symbol, yf_with_timeout, daily_repair=repair)
 
 
-def _frames(data: Dict[str, Optional[pd.DataFrame]], notes: List[str]) -> Dict[str, pd.DataFrame]:
+def _frames(data: Dict[str, Any], notes: List[str]) -> Dict[str, pd.DataFrame]:
     out: Dict[str, pd.DataFrame] = {}
+    meta = data.get("meta") or {}
     d = data.get("D")
     if d is not None:
-        if Z.looks_like_spot_fx_defect(d):
+        if not meta and Z.looks_like_spot_fx_defect(d):      # frames handed in without provenance (tests, tools)
             d = Z.repair_spot_fx(d)
+            meta = {"feed_repaired": True}
+        if meta.get("feed_repaired"):
             notes.append("daily spot FX bars repaired (Yahoo prints open equal to close and lags the close by a day)")
-        single = float((d["High"] == d["Low"]).mean())
-        if single > 0.05:
-            notes.append(f"daily: {single:.0%} of bars are single prints on Yahoo; weekly zones are more reliable here")
+        if meta.get("spliced"):
+            start = pd.Timestamp(meta["rebuilt_from"])
+            old = d[d.index < start]
+            single_old = float((old["High"] == old["Low"]).mean()) if len(old) else 0.0
+            msg = f"daily and weekly bars from {start:%b %Y} are rebuilt from hourly trades by exchange session"
+            if single_old > 0.05:
+                msg += f"; before that the Yahoo daily feed prints {single_old:.0%} settlement-only bars, so older daily levels are less precise"
+            notes.append(msg)
+        else:
+            single = float((d["High"] == d["Low"]).mean())
+            if single > 0.05:
+                notes.append(f"daily: {single:.0%} of bars are single prints on Yahoo; weekly zones are more reliable here")
         out["D"] = d
         out["2D"] = Z.resample_2d(d)
     if data.get("W") is not None:
@@ -245,12 +271,66 @@ def _build(mid: str, symbol: str, yf_with_timeout: Callable) -> Dict[str, Any]:
         out["evidence"][tf] = _evidence_for(tf)
     if not any(out["volume"].values()):
         notes.append("Yahoo volume is not coherent for this series (contract switches or a cash series); candles are drawn at a fixed width")
+    _attach_intraday(out, data, frames, notes)
     out["curve"] = cur
     out["direction"] = trend
     out["read"] = _read(mid, price, cur, trend, out["zones"])
     out["data_note"] = "; ".join(notes) if notes else "Yahoo continuous futures / cash series."
     out["definitions"] = DEFINITIONS
+    out["quality"] = _quality(data, frames)
     return out
+
+
+def _attach_intraday(out: Dict[str, Any], data: Dict[str, Any], frames: Dict[str, pd.DataFrame], notes: List[str]) -> None:
+    """Four-hour and eight-hour candles for the zoom views, and a lower-timeframe refinement on every key zone and
+    candidate: weekly zones from daily bars, daily and two-day zones from four-hour bars. Refinements only tighten a
+    level that already exists on the higher timeframe; they are never levels of their own."""
+    symbol = out.get("symbol") or ""
+    cutoff = P.cutoff_hour(symbol) or 18
+    h4 = data.get("4H")
+    for key in ("4H", "8H"):
+        df = data.get(key)
+        if df is not None and len(df) >= 60:
+            out["candles"][key] = _candles(df, INTRADAY_CANDLES[key], fmt="%Y-%m-%d %H:%M")
+            out["volume"][key] = bool(Z.volume_reference(df)[0] is not None)
+    out["intraday"] = {"available": h4 is not None and len(h4) >= 60,
+                       "from": h4.index[0].strftime("%Y-%m-%d") if h4 is not None and len(h4) else None,
+                       "asof": h4.index[-1].strftime("%Y-%m-%d %H:%M") if h4 is not None and len(h4) else None,
+                       "anchor": f"{cutoff:02d}:00 New York",
+                       "note": "Intraday bars refine a daily or weekly level and show the structure inside it. A level that is not "
+                               "visible on the daily is not traded."}
+    n_ref = 0
+    for tf in list(out["zones"].keys()):
+        lower, label = (frames.get("D"), "D") if tf == "W" else (h4, "4H")
+        for z in list(out["zones"].get(tf) or []) + list(out["candidates"].get(tf) or []):
+            try:
+                r = ZI.refine(z, lower, label, cutoff=cutoff)
+            except Exception as e:  # pragma: no cover
+                r = {"tf": label, "available": False, "note": f"refinement failed: {e!r}"}
+            z["refined"] = r
+            if r and r.get("tightens"):
+                n_ref += 1
+    out["intraday"]["refined_count"] = n_ref
+
+
+def _quality(data: Dict[str, Any], frames: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
+    """Provenance for the Levels panel: what the feed printed, what was rebuilt and what is in use."""
+    meta = dict(data.get("meta") or {})
+    d = frames.get("D")
+    used = P.quality(d) if d is not None else {"n": 0, "single_pct": None, "zero_volume_pct": None}
+    recent = P.quality(d.tail(250)) if d is not None else used
+    feed = meta.get("feed") or {}
+    label = "rebuilt" if meta.get("spliced") else ("feed" if d is not None else "none")
+    grade = "good"
+    sp = recent.get("single_pct")
+    if sp is not None and sp > 20:
+        grade = "poor"
+    elif sp is not None and sp > 5:
+        grade = "fair"
+    return {"source": meta.get("source", "Yahoo daily feed"), "spliced": bool(meta.get("spliced")), "rebuilt_from": meta.get("rebuilt_from"),
+            "feed_single_pct": feed.get("single_pct"), "used_single_pct_1y": sp, "used_zero_volume_pct_1y": recent.get("zero_volume_pct"),
+            "intraday": bool(meta.get("intraday")), "intraday_from": meta.get("intraday_from"), "label": label, "grade": grade,
+            "note": meta.get("note"), "symbol": meta.get("symbol")}
 
 
 def _fmt(v: float, price: float) -> str:
@@ -437,4 +517,7 @@ def register(app, *, markets, yf_with_timeout: Callable) -> None:
             res = dict(res)
             for k in ("zones", "candidates", "candles", "nearest", "volume", "evidence"):
                 res[k] = {want: (res.get(k) or {}).get(want)}
+        elif want in ("4H", "8H"):
+            res = dict(res)
+            res["candles"] = {want: (res.get("candles") or {}).get(want)}
         return JSONResponse(res, headers={"Cache-Control": "public, max-age=1800"})

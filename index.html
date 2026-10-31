@@ -49938,6 +49938,27 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .sb2-lvl.in{border-style:solid}
 .mr-name-row .sb2-lvl{margin-left:auto;flex:0 0 auto}
 .sb2-lvl.dem{color:#22C97A;border-color:rgba(34,201,122,.6)}.sb2-lvl.sup{color:#E05252;border-color:rgba(224,82,82,.6)}.sb2-lvl.opp{color:#EAB850;border-color:rgba(234,184,80,.6)}
+/* v13: zoom views, lower-timeframe refinement, data provenance and the disclosure */
+.v12-pay-seg.zm{margin-left:0;align-items:center}
+.v12-pay-seg.zm i{font:500 9px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(151,161,181,.55);padding:0 4px 0 6px;font-style:normal}
+.v12-zn-q{display:inline-flex;align-items:center;gap:6px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.05em;color:rgba(151,161,181,.8);cursor:help;white-space:nowrap}
+.v12-zn-q i{width:6px;height:6px;border-radius:50%;background:#22C97A;box-shadow:0 0 6px rgba(34,201,122,.5)}
+.v12-zn-q.fair i{background:#EAB850;box-shadow:0 0 6px rgba(234,184,80,.5)}.v12-zn-q.poor i{background:#E05252;box-shadow:0 0 6px rgba(224,82,82,.5)}
+.v12-zn-zm{margin:-4px 0 10px;font-size:11.5px;line-height:1.5;color:rgba(200,208,222,.8)}
+.v12-zn-zm i{font-style:normal;color:rgba(151,161,181,.65)}
+.v12-zn-leg s.ref{background:rgba(241,227,190,.06);box-shadow:none;border:1px dashed rgba(241,227,190,.75);box-sizing:border-box}
+.v12-zn-row .mt .ref{color:rgba(232,236,243,.85)}.v12-zn-row .mt .ref b{color:#F1E3BE}.v12-zn-row .mt .ref.dim{color:rgba(151,161,181,.5)}.v12-zn-row .mt b.thin{color:#EAB850}
+.v12-zn-row .uses{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.v12-zn-row .use.ref{border-style:dashed;color:rgba(241,227,190,.75)}
+.v12-zn-how{margin-top:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
+.v12-zn-how summary{cursor:pointer;list-style:none;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(151,161,181,.6);display:inline-flex;align-items:center;gap:7px;padding:2px 0}
+.v12-zn-how summary::-webkit-details-marker{display:none}
+.v12-zn-how summary::before{content:"";width:5px;height:5px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(-45deg);transition:transform .15s;margin-left:1px}
+.v12-zn-how[open] summary::before{transform:rotate(45deg)}
+.v12-zn-how summary:hover{color:rgba(241,227,190,.85)}
+.v12-zn-how .v12-zn-cap{margin-top:6px}.v12-zn-how .v12-zn-cap>div{margin-bottom:6px}
+.v12-zn-how.sm{border-top:0;margin-top:6px;padding-top:0}
+.v12-zn-how.sm .nt{margin-top:6px;font-size:11px;color:rgba(151,161,181,.75)}.v12-zn-how.sm .nt div{margin-bottom:4px}
 /* ===== end v12 css: zones ===== */
 /* ===== v12 css: crowd map (positioning across the complex) ===== */
 .v12-cm{position:relative;margin:10px 0 2px;padding:16px 18px 14px;border-radius:14px;overflow:hidden}
@@ -51950,20 +51971,25 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 })();
 /* ===== end v12 js: payoff ===== */
 /* ===== v12 js: zones (supply and demand levels) ===== */
-/* ===== v12 js: zones (supply and demand levels) ===== */
 (function(){
   'use strict';
-  var CACHE={}, TTL=30*60*1000, TF={}, ALL={}, VOL={}, PENDING={}, BOARD={data:null,t:0,polls:0,timer:null};
+  var CACHE={}, TTL=30*60*1000, TF={}, ZOOM={}, ALL={}, VOL={}, PENDING={}, BOARD={data:null,t:0,polls:0,timer:null};
   var BULL='#22C97A', BEAR='#E05252', IVORY='#F1E3BE', GOLD='#EAB850', OLIVE='rgba(214,190,96,.9)', OLIVE_FILL='rgba(190,166,74,.2)';
-  var TFNAME={W:'Weekly','2D':'Two-day',D:'Daily'}, TFSHORT={W:'W','2D':'2D',D:'D'};
+  var TFNAME={W:'Weekly','2D':'Two-day',D:'Daily','8H':'8-hour','4H':'4-hour'}, TFSHORT={W:'W','2D':'2D',D:'D','8H':'8h','4H':'4h'}, LOWER={D:'daily','4H':'4h','8H':'8h'};
   var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function esc(s){ return (typeof _esc==='function')?_esc(s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function dec(p){ p=Math.abs(p||0); return p<0.1?5:p<2?4:p<10?3:p<1000?2:p<10000?1:0; }
   function fp(v,ref){ if(v==null||!isFinite(v)) return '\u00b7'; var d=dec(ref==null?v:ref); return d===0?Math.round(v).toLocaleString():Number(v).toFixed(d); }
   function planOf(id){ try{ return (typeof _planGet==='function')?(_planGet(id)||{}):{}; }catch(e){ return {}; } }
   function num(x){ var v=parseFloat(x); return isFinite(v)?v:null; }
-  function dt(iso){ return new Date(iso+'T00:00:00Z'); }
-  function dLong(iso){ var d=dt(iso); return d.getUTCDate()+' '+MON[d.getUTCMonth()]+' '+String(d.getUTCFullYear()).slice(2); }
+  function dt(iso){ return new Date(String(iso).slice(0,10)+'T00:00:00Z'); }
+  function dLong(iso){ var d=dt(iso), hm=String(iso).length>10?' '+String(iso).slice(11,16):''; return d.getUTCDate()+' '+MON[d.getUTCMonth()]+(hm?hm:' '+String(d.getUTCFullYear()).slice(2)); }
+  /* intraday bars are stamped at their start in New York time; a bar at or after the session cut-off belongs to the next session day */
+  function cutHour(Z){ var m=/^(\d{1,2}):/.exec((Z.intraday&&Z.intraday.anchor)||''); return m?parseInt(m[1],10):18; }
+  function sday(t,cut){ if(String(t).length<=10) return String(t); var h=parseInt(String(t).slice(11,13),10); if(h>=cut){ var d=dt(t); d.setUTCDate(d.getUTCDate()+1); return d.toISOString().slice(0,10); } return String(t).slice(0,10); }
+  function zooms(Z){ return ['8H','4H'].filter(function(t){ return Z.candles&&Z.candles[t]&&Z.candles[t].length>=60; }); }
+  function pickZoom(Z,id){ var z=ZOOM[id]||null; return z&&zooms(Z).indexOf(z)>=0?z:null; }
+  function refOf(z){ var r=z&&z.refined; return (r&&r.available&&r.tightens)?r:null; }
   function state(z){ return z.fresh_state||(z.tests===0?'fresh':'tested'); }
   function stateWord(z){ var s=state(z); return s==='tested'?('tested \u00d7'+(z.tests||1)):s==='shallow'?'shallow test':s; }
   function tfs(Z){ return ['W','2D','D'].filter(function(t){ return Z.candles&&Z.candles[t]&&Z.candles[t].length; }); }
@@ -51977,15 +52003,17 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   function volHTML(z,Z,tf){ if(!(Z.volume&&Z.volume[tf])) return ''; if(z.vol_out==null) return '<span>vol \u00b7</span>'; var c=z.vol_out>=1.5?'volhi':z.vol_out<0.7?'vollo':''; return '<span>vol <b class="'+c+'">\u00d7'+Number(z.vol_out).toFixed(1)+'</b></span>'; }
 
   /* ---------- chart ---------- */
-  function chart(canvas, Z, tf, id, showAll){
-    var C=(Z.candles&&Z.candles[tf])||[], zs=((Z.zones&&Z.zones[tf])||[]).slice(), cands=showAll?(((Z.candidates&&Z.candidates[tf])||[]).slice()):[];
+  function chart(canvas, Z, tf, id, showAll, zoom){
+    var intra=!!zoom, cut=cutHour(Z), C=(Z.candles&&Z.candles[zoom||tf])||[], zs=((Z.zones&&Z.zones[tf])||[]).slice(), cands=showAll?(((Z.candidates&&Z.candidates[tf])||[]).slice()):[];
     if(!C.length) return null;
-    var byDate={}; C.forEach(function(c,i){ byDate[c.t]=i; });
-    function idxOf(iso){ if(iso==null) return null; if(byDate[iso]!=null) return byDate[iso]; for(var k=0;k<C.length;k++){ if(C[k].t>=iso) return k; } return C.length-1; }
-    // window: from eight bars before the earliest key base to now, at least 60 bars, at most the series
+    var byDate={}, SD=C.map(function(c){ return intra?sday(c.t,cut):c.t; }); SD.forEach(function(d,i){ if(byDate[d]==null) byDate[d]=i; });
+    function idxOf(iso){ if(iso==null) return null; iso=String(iso).slice(0,10); if(byDate[iso]!=null) return byDate[iso]; for(var k=0;k<C.length;k++){ if(SD[k]>=iso) return k; } return C.length-1; }
+    function idxIn(iso){ if(iso==null) return null; if(String(iso).slice(0,10)<SD[0]) return null; return idxOf(iso); }
+    // window: from eight bars before the earliest key base to now, at least 60 bars, at most the series.
+    // Intraday zoom shows the whole intraday series (about 40 trading days of 4h bars, 80 of 8h bars).
     var first=C.length-1;
-    zs.concat(cands).forEach(function(z){ var i=idxOf(z.base_start); if(i!=null&&i<first) first=i; });
-    var i0=Math.max(0,Math.min(first-8,C.length-60)); if(C.length-i0>340) i0=C.length-340;
+    if(!intra) zs.concat(cands).forEach(function(z){ var i=idxOf(z.base_start); if(i!=null&&i<first) first=i; });
+    var i0=intra?0:Math.max(0,Math.min(first-8,C.length-60)); if(C.length-i0>340) i0=C.length-340;
     var V=C.slice(i0);
     var d=Math.min(2,window.devicePixelRatio||1), W=canvas.clientWidth||600, H=canvas.clientHeight||440;
     canvas.width=Math.round(W*d); canvas.height=Math.round(H*d);
@@ -51994,7 +52022,9 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     var xc=x0+(x1-x0)*(W<560?0.86:0.84);           // candles end here; the band runs on into the margin
     var lo=Infinity, hi=-Infinity, price=Z.price;
     V.forEach(function(c){ if(c.l<lo) lo=c.l; if(c.h>hi) hi=c.h; });
-    zs.forEach(function(z){ if(z.lo<lo) lo=z.lo; if(z.hi>hi) hi=z.hi; });
+    if(intra){ var cs=hi-lo||1, cl=lo, ch=hi; var keep=function(z){ return z.hi>=cl-0.6*cs&&z.lo<=ch+0.6*cs; }; zs=zs.filter(keep); cands=cands.filter(keep);
+      zs.forEach(function(z){ if(z.lo<lo) lo=Math.max(z.lo,cl-0.6*cs); if(z.hi>hi) hi=Math.min(z.hi,ch+0.6*cs); }); }
+    else zs.forEach(function(z){ if(z.lo<lo) lo=z.lo; if(z.hi>hi) hi=z.hi; });
     var span=hi-lo||1, plan=planOf(id), pl=[num(plan.entry),num(plan.stop),num(plan.target)];
     pl.forEach(function(v){ if(v==null) return; if(v<lo&&lo-v<span*0.5) lo=v; if(v>hi&&v-hi<span*0.5) hi=v; });
     if(price!=null){ if(price<lo) lo=price; if(price>hi) hi=price; }
@@ -52014,10 +52044,15 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     }
     ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.beginPath(); ctx.moveTo(x1+0.5,y0); ctx.lineTo(x1+0.5,y1); ctx.stroke();
     // date axis: month starts, thinned to the space available
-    var marks=[]; for(var i=1;i<V.length;i++){ var a=dt(V[i-1].t), b=dt(V[i].t); if(a.getUTCMonth()!==b.getUTCMonth()||a.getUTCFullYear()!==b.getUTCFullYear()) marks.push({i:i0+i,d:b}); }
+    var marks=[];
+    if(intra){ for(var i=1;i<V.length;i++){ if(SD[i0+i]!==SD[i0+i-1]) marks.push({i:i0+i,d:dt(SD[i0+i]),first:dt(SD[i0+i]).getUTCMonth()!==dt(SD[i0+i-1]).getUTCMonth()}); } }
+    else { for(var i=1;i<V.length;i++){ var a=dt(V[i-1].t), b=dt(V[i].t); if(a.getUTCMonth()!==b.getUTCMonth()||a.getUTCFullYear()!==b.getUTCFullYear()) marks.push({i:i0+i,d:b}); } }
     var maxLab=Math.max(2,Math.floor((xc-x0)/64)), every=[1,2,3,4,6,12].filter(function(e){ return marks.length/e<=maxLab; })[0]||12;
     ctx.textAlign='center'; ctx.textBaseline='top'; ctx.font='500 9.5px '+mono;
-    marks.forEach(function(m){ if(every>1&&(m.d.getUTCMonth()%every)) return; var x=X(m.i)-slot/2; ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.beginPath(); ctx.moveTo(Math.round(x)+0.5,y0); ctx.lineTo(Math.round(x)+0.5,y1); ctx.stroke();
+    if(intra){ var evI=[1,2,3,5,10,20].filter(function(e){ return marks.length/e<=maxLab; })[0]||20;
+      marks.forEach(function(m,k){ var x=X(m.i)-slot/2; ctx.strokeStyle=m.first?'rgba(255,255,255,.07)':'rgba(255,255,255,.035)'; ctx.beginPath(); ctx.moveTo(Math.round(x)+0.5,y0); ctx.lineTo(Math.round(x)+0.5,y1); ctx.stroke();
+        if(!m.first&&(k%evI)) return; ctx.fillStyle=m.first?'rgba(241,227,190,.8)':'rgba(151,161,181,.6)'; ctx.fillText(m.first?(m.d.getUTCDate()+' '+MON[m.d.getUTCMonth()]):String(m.d.getUTCDate()),x,y1+7); }); }
+    else marks.forEach(function(m){ if(every>1&&(m.d.getUTCMonth()%every)) return; var x=X(m.i)-slot/2; ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.beginPath(); ctx.moveTo(Math.round(x)+0.5,y0); ctx.lineTo(Math.round(x)+0.5,y1); ctx.stroke();
       var jan=m.d.getUTCMonth()===0; ctx.fillStyle=jan?'rgba(241,227,190,.8)':'rgba(151,161,181,.6)'; ctx.fillText(jan?String(m.d.getUTCFullYear()):MON[m.d.getUTCMonth()],x,y1+7); });
     ctx.save(); ctx.beginPath(); ctx.rect(x0,y0-1,x1-x0,y1-y0+2); ctx.clip();
     var hot=[], tags=[], labelYs=[], vol=volOn(Z,tf,id), labelsOn=(x1-x0)>=420;
@@ -52035,11 +52070,17 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       // base boxes: the consolidation candles only, distal wick to proximal body. Stacked bases that sit next to
       // each other are boxed as one structure; bases apart in time get their own box.
       var parts=(z.parts&&z.parts.length)?z.parts.slice().sort(function(a,b){ return a.base_start<b.base_start?-1:1; }):[z];
-      var boxes=[]; parts.forEach(function(p){ var a=idxOf(p.base_start), b=idxOf(p.base_end); if(a==null||b==null) return; var last=boxes[boxes.length-1];
+      var boxes=[]; parts.forEach(function(p){ var a=idxIn(p.base_start), b=idxIn(p.base_end); if(a==null||b==null) return; var last=boxes[boxes.length-1];
         if(last&&a-last.b<=3){ last.b=Math.max(last.b,b); last.lo=Math.min(last.lo,p.lo); last.hi=Math.max(last.hi,p.hi); } else boxes.push({a:a,b:b,lo:p.lo,hi:p.hi}); });
       boxes.forEach(function(bx){ var bx0=X(bx.a)-bw/2-1.5, bx1=X(bx.b)+bw/2+1.5, pt=Y(bx.hi), pb=Y(bx.lo);
         ctx.fillStyle=faint?'rgba(190,166,74,.08)':OLIVE_FILL; ctx.fillRect(bx0,pt,bx1-bx0,Math.max(1,pb-pt));
         ctx.strokeStyle=faint?'rgba(214,190,96,.35)':OLIVE; ctx.lineWidth=1; ctx.strokeRect(Math.round(bx0)+0.5,Math.round(pt)+0.5,Math.round(bx1-bx0),Math.max(1,Math.round(pb-pt))); });
+      // the lower-timeframe base inside the level (daily bars inside a weekly level, 4h bars inside a daily one):
+      // a dashed inner box from the base onwards. It tightens the level; it is never a level of its own.
+      var rf=faint?null:refOf(z);
+      if(rf){ var rt=Y(rf.hi), rb=Y(rf.lo), rx=xs; if(rb-rt>=2){ ctx.fillStyle=rgba(col,tested?.07:.11); ctx.fillRect(rx,rt,x1-rx,rb-rt);
+        ctx.strokeStyle=rgba(col,.95); ctx.lineWidth=1; ctx.setLineDash([3,2]); ctx.strokeRect(Math.round(rx)+0.5,Math.round(rt)+0.5,Math.round(x1-rx)-1,Math.max(1,Math.round(rb-rt))); ctx.setLineDash([]);
+        if(labelsOn&&rb-rt>=11){ var rl=(LOWER[rf.tf]||rf.tf)+' base'; ctx.font='600 8.5px '+mono; ctx.textAlign='right'; ctx.textBaseline='middle'; var rlw=ctx.measureText(rl).width; ctx.fillStyle='rgba(10,12,18,.72)'; ctx.fillRect(x1-rlw-9,(rt+rb)/2-6,rlw+6,12); ctx.fillStyle=rgba(col,.95); ctx.fillText(rl,x1-6,(rt+rb)/2); ctx.textAlign='left'; } } }
       // label at the left end of the extended band (just after the base), inside when the band is tall enough
       // label at the left end of the extended band (just after the base), inside when the band is tall enough,
       // otherwise beyond the leg-out marker on the open side. Loud leg-out volume rides on the label in gold.
@@ -52068,7 +52109,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     // leg-out markers: a small arrow under (demand) or over (supply) the first leg-out candle of each key zone,
     // kept on the open side of the band so it never sits on the band label. Loud volume is on the label itself.
     var seen={};
-    zs.forEach(function(z){ var li=idxOf(z.legout_start); if(li==null||li<i0||seen[li+z.kind]) return; seen[li+z.kind]=1; var c=C[li]; if(!c) return;
+    zs.forEach(function(z){ var li=idxIn(z.legout_start); if(li==null||li<i0||seen[li+z.kind]) return; seen[li+z.kind]=1; var c=C[li]; if(!c) return;
       var dem=z.kind==='demand', col=dem?BULL:BEAR, mx=X(li), my=dem?Math.max(Y(c.l),Y(z.lo))+4:Math.min(Y(c.h),Y(z.hi))-4;
       ctx.fillStyle=rgba(col,.95); ctx.beginPath();
       if(dem){ ctx.moveTo(mx,my); ctx.lineTo(mx-3.5,my+6); ctx.lineTo(mx+3.5,my+6); } else { ctx.moveTo(mx,my); ctx.lineTo(mx-3.5,my-6); ctx.lineTo(mx+3.5,my-6); }
@@ -52123,10 +52164,15 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     if(tf!=='W') meta.push(z.covered_by?'<span><b class="fresh">covered</b> by weekly '+fp(z.covered_by.lo,price)+'\u2013'+fp(z.covered_by.hi,price)+'</span>':'<span>not covered by a weekly zone</span>');
     if(z.original===false) meta.push('<span>not original</span>');
     if(z.inside_older) meta.push('<span>'+esc(z.inside_older)+'</span>');
+    var rf=z.refined, rfOn=refOf(z);
+    if(rfOn) meta.push('<span class="ref" title="'+esc(rf.note||'')+'">'+esc(LOWER[rf.tf]||rf.tf)+' base <b>'+fp(rf.lo,price)+'\u2013'+fp(rf.hi,price)+'</b> \u00b7 '+Math.round(100*(rf.frac||0))+'% of the level'+(rf.thin?' \u00b7 <b class="thin">thin</b>':'')+'</span>');
+    else if(rf&&rf.available) meta.push('<span class="ref dim" title="'+esc(rf.note||'')+'">'+esc(LOWER[rf.tf]||rf.tf)+': edges stand</span>');
+    else if(rf&&rf.available===false) meta.push('<span class="ref dim" title="'+esc(rf.note||'')+'">'+esc(LOWER[rf.tf]||rf.tf)+' bars: not back to this base</span>');
     return '<div class="v12-zn-row '+(dem?'dem':'sup')+(inside?' in':'')+(src==='c'?' cand':'')+'" data-zi="'+src+i+'">'
       +'<span class="ar">'+(dem?'\u25b2':'\u25bc')+'</span>'
       +'<span class="bd">'+fp(z.lo,price)+' \u2013 '+fp(z.hi,price)+'<em>'+(inside?'price inside':dist!=null?(dist.toFixed(1)+' ranges '+(dem?'below':'above')):'')+'</em></span>'
-      +'<span class="sc"><span class="scb" title="Quality rank 0 to 100, ordinal"><i style="width:'+Math.max(4,Math.round(z.score||0))+'%"></i></span><button type="button" class="use" onclick="window._v12ZoneUse(\''+id+'\','+i+',\''+tf+'\',\''+src+'\')">Use this zone</button></span>'
+      +'<span class="sc"><span class="scb" title="Quality rank 0 to 100, ordinal"><i style="width:'+Math.max(4,Math.round(z.score||0))+'%"></i></span><span class="uses"><button type="button" class="use" onclick="window._v12ZoneUse(\''+id+'\','+i+',\''+tf+'\',\''+src+'\')">Use level</button>'
+      +(rfOn?'<button type="button" class="use ref" title="'+esc(rf.note||'')+'" onclick="window._v12ZoneUse(\''+id+'\','+i+',\''+tf+'\',\''+src+'\',1)">Use '+esc(LOWER[rf.tf]||rf.tf)+' base</button>':'')+'</span></span>'
       +'<span class="mt">'+meta.join('')+'</span>'
       +'</div>';
   }
@@ -52173,7 +52219,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     n.push('No-base level: the same band moved 1.5 heights towards price, met before the zone with its own stop. It pays in the same contexts the grade selects, so location and direction do most of the work; the zone itself sets the risk.');
     if(ev.vol_high&&ev.vol_not_high&&ev.vol_high.n>=50) n.push('Loud leg outs (graded zones, coherent volume only): profit factor '+pf(ev.vol_high.pf_full_2)+' over '+ev.vol_high.n+' visits against '+pf(ev.vol_not_high.pf_full_2)+' for the rest. No reliable lift from Yahoo volume, so volume stays a visual cue here and is not in the rank.');
     n.push('Half then add at 1R with the stop to entry trailed full size at the edge in every cell. Fills at the proximal edge, 2R target, time-outs marked at the final close, parameters tuned on nine of your zones. Replay history, not a track record.');
-    return h+'<div class="nt">'+n.map(function(t){ return '<div>'+esc(t)+'</div>'; }).join('')+'</div>';
+    return h+'<details class="v12-zn-how sm"><summary>Replay notes</summary><div class="nt">'+n.map(function(t){ return '<div>'+esc(t)+'</div>'; }).join('')+'</div></details>';
   }
 
   /* ---------- the level line in the house read (Desk line) ---------- */
@@ -52199,29 +52245,44 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   }
 
   /* ---------- panel ---------- */
+  function qualityHTML(Z){
+    var q=Z.quality; if(!q) return '';
+    var cls=q.grade||'good', txt, tip;
+    if(q.spliced){ var from=q.rebuilt_from?(MON[dt(q.rebuilt_from).getUTCMonth()]+' '+dt(q.rebuilt_from).getUTCFullYear()):''; txt='bars rebuilt from hourly trades'+(from?' since '+from:''); tip='Daily and weekly bars from '+(q.rebuilt_from||'')+' are rebuilt from Yahoo hourly trades by exchange session. The daily feed printed '+(q.feed_single_pct!=null?q.feed_single_pct+'%':'some')+' settlement-only bars; over the last year the bars in use have '+(q.used_single_pct_1y!=null?q.used_single_pct_1y+'%':'\u00b7')+'.'; }
+    else { txt='Yahoo daily feed'+(q.used_single_pct_1y?' \u00b7 '+q.used_single_pct_1y+'% single prints':''); tip=q.note||'Daily feed used as printed.'; }
+    return '<span class="v12-zn-q '+cls+'" title="'+esc(tip)+'"><i></i>'+esc(txt)+'</span>';
+  }
   function render(el, Z, id){
-    var tf=pickTF(Z,id), showAll=!!ALL[id], av=tfs(Z);
+    var tf=pickTF(Z,id), zoom=pickZoom(Z,id), showAll=!!ALL[id], av=tfs(Z), zv=zooms(Z);
     var seg=av.map(function(t){ var n=((Z.zones&&Z.zones[t])||[]).length; return '<button type="button" class="'+(tf===t?'on':'')+'" onclick="window._v12ZoneTF(\''+id+'\',\''+t+'\')">'+esc(TFNAME[t])+' \u00b7 '+n+'</button>'; }).join('');
-    var nC=((Z.candidates&&Z.candidates[tf])||[]).length;
+    var zseg=zv.length?'<span class="v12-pay-seg zm" role="group" aria-label="zoom"><i>zoom</i>'+zv.map(function(t){ return '<button type="button" class="'+(zoom===t?'on':'')+'" onclick="window._v12ZoneZoom(\''+id+'\',\''+t+'\')">'+esc(TFSHORT[t])+'</button>'; }).join('')+'</span>':'';
+    var nC=((Z.candidates&&Z.candidates[tf])||[]).length, nRef=((Z.zones&&Z.zones[tf])||[]).filter(refOf).length;
     var h='<div class="v12-zn-hd"><span class="k">Levels</span>'
       +'<span class="px">'+fp(Z.price,Z.price)+'<i>'+esc(Z.symbol||'')+' \u00b7 '+esc(Z.asof||'')+'</i></span>'
-      +'<span class="v12-pay-seg" role="group" aria-label="timeframe">'+seg+'</span>'
+      +'<span class="v12-pay-seg" role="group" aria-label="timeframe">'+seg+'</span>'+zseg
       +'<label class="v12-zn-all"><input type="checkbox" '+(showAll?'checked':'')+' onchange="window._v12ZoneAll(\''+id+'\',this.checked)"> all candidates'+(nC?' ('+nC+')':'')+'</label>'
-      +(Z.volume&&Z.volume[tf]?'<label class="v12-zn-all"><input type="checkbox" '+(VOL[id]!==false?'checked':'')+' onchange="window._v12ZoneVol(\''+id+'\',this.checked)"> volume candles</label>':'')
-      +'<span class="sp"></span><span class="ld">Supply and demand zones by the three-step method: leg out first, then base, then leg in. Candidates for your chart, not signals.</span></div>';
+      +(Z.volume&&Z.volume[zoom||tf]?'<label class="v12-zn-all"><input type="checkbox" '+(VOL[id]!==false?'checked':'')+' onchange="window._v12ZoneVol(\''+id+'\',this.checked)"> volume candles</label>':'')
+      +'<span class="sp"></span>'+qualityHTML(Z)+'</div>';
+    if(zoom) h+='<div class="v12-zn-zm">'+esc(TFNAME[zoom])+' bars, '+esc(TFNAME[tf]).toLowerCase()+' levels. Intraday bars show the structure inside a level and tighten it where a '+esc(LOWER[tf==='W'?'D':'4H'])+' base sits in part of it; a level that is not visible on the daily is not traded.'+(Z.intraday&&Z.intraday.asof?' <i>Bars to '+esc(dLong(Z.intraday.asof))+' New York.</i>':'')+'</div>';
     h+='<div class="v12-zn-g"><div><div class="v12-zn-ch"><canvas></canvas><canvas class="v12-zn-xh"></canvas><div class="v12-zn-ohlc"></div><div class="v12-zn-tip"></div></div>'
-      +'<div class="v12-zn-leg"><span><s class="base"></s>Base candles</span><span><s class="dem"></s>Demand band</span><span><s class="sup"></s>Supply band</span><span><s class="tested"></s>Tested, dashed</span><span><i class="pref"></i>Preferred edge</span><span><i class="you"></i>Your entry</span><span><i class="stop"></i>Your stop</span><span><i class="tgt"></i>Your target</span>'+(volOn(Z,tf,id)?'<span><s class="vol"></s>Thick candle, loud volume</span><span><b class="lo">\u25b2</b> Leg out (\u00d7vol on the label when loud)</span>':'<span class="dim">Fixed-width candles: no coherent volume on this Yahoo series</span><span><b class="lo">\u25b2</b> Leg out</span>')+'</div>'
+      +'<div class="v12-zn-leg"><span><s class="base"></s>Base candles</span><span><s class="dem"></s>Demand</span><span><s class="sup"></s>Supply</span><span><s class="tested"></s>Tested, dashed</span>'+(nRef?'<span><s class="ref"></s>'+(tf==='W'?'Daily':'4h')+' base inside the level</span>':'')+'<span><i class="pref"></i>Preferred edge</span><span><i class="you"></i>Your entry</span><span><i class="stop"></i>Your stop</span><span><i class="tgt"></i>Your target</span>'+(volOn(Z,zoom||tf,id)?'<span><s class="vol"></s>Thick candle, loud volume</span><span><b class="lo">\u25b2</b> Leg out</span>':'<span class="dim">Fixed-width candles: no coherent volume on this series</span><span><b class="lo">\u25b2</b> Leg out</span>')+'</div>'
       +readHTML(Z,tf)+'</div>';
-    h+='<div>'+listHTML(Z,tf,id,showAll)
-      +'<div class="v12-zn-cap"><b>Proximal</b> edge is the body extreme of the base nearest price, <b>distal</b> the wick extreme behind it; the thin inner line is the preferred version (last base candles). <b>Fresh</b> means no prior visit reached it since the leg out; a visit in progress is the arrival, not a test. <b>Room</b> is the distance to the next opposing zone in units of your risk (stop a quarter height beyond the distal edge). '
-      +'<b>Use this zone</b> only pre-fills your plan. Entries, stops and targets stay yours.'
-      +(Z.data_note&&/repaired|single prints/.test(Z.data_note)?'<div class="v12-zn-note">'+esc(Z.data_note)+'</div>':'')+'</div></div></div>';
+    h+='<div>'+listHTML(Z,tf,id,showAll)+'</div></div>';
     var rd=(Z.read||[]).filter(function(s){ return !/^These are the method/.test(s); });
     h+='<div class="v12-zn-ev"><div class="t">Method read</div>'+rd.map(function(s){ return '<div>'+esc(s)+'</div>'; }).join('')+evidenceHTML(Z,tf)+'</div>';
+    // method notes, data provenance and definitions live behind one disclosure so the panel reads once
+    var defs=Z.definitions||{};
+    h+='<details class="v12-zn-how"><summary>How this panel is built</summary><div class="v12-zn-cap">'
+      +'<div><b>Zones.</b> Leg out first, then base, then leg in (rally-base-rally, drop-base-drop, rally-base-drop, drop-base-rally). <b>Proximal</b> edge is the body extreme of the base nearest price, <b>distal</b> the wick extreme behind it; the thin inner line is the preferred version (last base candles). <b>Fresh</b> means no prior visit reached it since the leg out; a visit in progress is the arrival, not a test. <b>Room</b> is the distance to the next opposing zone in units of your risk (stop a quarter height beyond the distal edge). <b>Use level</b> and <b>Use 4h base</b> only pre-fill your plan; entries, stops and targets stay yours.</div>'
+      +(defs.intraday?'<div><b>Intraday.</b> '+esc(defs.intraday)+'</div>':'')
+      +(defs.data?'<div><b>Price data.</b> '+esc(defs.data)+'</div>':'')
+      +(Z.data_note?'<div class="v12-zn-note">This market: '+esc(Z.data_note)+'</div>':'')
+      +(defs.evidence?'<div><b>Replay.</b> '+esc(defs.evidence)+'</div>':'')
+      +'</div></details>';
     el.innerHTML=h;
     try{ lvlLine(Z,id); }catch(e){}
     var cv=el.querySelector('canvas'), xh=el.querySelector('.v12-zn-xh'), tip=el.querySelector('.v12-zn-tip'), geo=null;
-    function draw(){ try{ geo=chart(cv,Z,tf,id,showAll); }catch(e){ console.warn('zones chart',e); } }
+    function draw(){ try{ geo=chart(cv,Z,tf,id,showAll,zoom); }catch(e){ console.warn('zones chart',e); } }
     draw();
     if(window.ResizeObserver){ if(el._znRO) el._znRO.disconnect(); el._znRO=new ResizeObserver(function(){ draw(); }); el._znRO.observe(cv.parentNode); }
     xh.onmousemove=function(ev){
@@ -52231,8 +52292,9 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       el.querySelectorAll('.v12-zn-row.hot').forEach(function(n){ n.classList.remove('hot'); });
       if(!hit){ tip.style.display='none'; return; }
       var z=hit.z, src=hit.faint?'c':'z', zi=(((hit.faint?Z.candidates:Z.zones)||{})[tf]||[]).indexOf(z); var row=el.querySelector('.v12-zn-row[data-zi="'+src+zi+'"]'); if(row) row.classList.add('hot');
-      tip.innerHTML=(z.kind==='demand'?'<span style="color:#22C97A">\u25b2 demand</span>':'<span style="color:#E05252">\u25bc supply</span>')+' '+esc(z.pattern||'')+' \u00b7 '+esc(stateWord(z))+'<br>'+fp(z.lo,Z.price)+' \u2013 '+fp(z.hi,Z.price)+' \u00b7 base '+dLong(z.base_start)+(z.base_end&&z.base_end!==z.base_start?' to '+dLong(z.base_end):'')+(z.parts&&z.parts.length>1?'<br>level on level: '+z.parts.length+' bases':'')+(z.room&&z.room.r!=null?'<br>room '+Number(z.room.r).toFixed(1)+'R to '+fp(z.room.to,Z.price):'')+(z.grade&&z.grade.rules?'<br>'+(z.grade.ok?'method grade: all rules pass':'grade: '+esc(gradeFails(z).join(', '))):'')+(volOn(Z,tf,id)&&z.vol_out!=null?'<br>leg-out volume \u00d7'+Number(z.vol_out).toFixed(1)+' ('+esc(z.vol_tier||'')+')':'');
-      tip.style.display='block'; tip.style.left=Math.min(x+14,r.width-210)+'px'; tip.style.top=Math.max(4,Math.min(y-54,r.height-70))+'px';
+      var rf=refOf(z);
+      tip.innerHTML=(z.kind==='demand'?'<span style="color:#22C97A">\u25b2 demand</span>':'<span style="color:#E05252">\u25bc supply</span>')+' '+esc(z.pattern||'')+' \u00b7 '+esc(stateWord(z))+'<br>'+fp(z.lo,Z.price)+' \u2013 '+fp(z.hi,Z.price)+' \u00b7 base '+dLong(z.base_start)+(z.base_end&&z.base_end!==z.base_start?' to '+dLong(z.base_end):'')+(z.parts&&z.parts.length>1?'<br>level on level: '+z.parts.length+' bases':'')+(rf?'<br>'+esc(LOWER[rf.tf]||rf.tf)+' base '+fp(rf.lo,Z.price)+' \u2013 '+fp(rf.hi,Z.price)+' ('+Math.round(100*(rf.frac||0))+'% of the level'+(rf.thin?', thin':'')+')':'')+(z.room&&z.room.r!=null?'<br>room '+Number(z.room.r).toFixed(1)+'R to '+fp(z.room.to,Z.price):'')+(z.grade&&z.grade.rules?'<br>'+(z.grade.ok?'method grade: all rules pass':'grade: '+esc(gradeFails(z).join(', '))):'')+(volOn(Z,zoom||tf,id)&&z.vol_out!=null?'<br>leg-out volume \u00d7'+Number(z.vol_out).toFixed(1)+' ('+esc(z.vol_tier||'')+')':'');
+      tip.style.display='block'; tip.style.left=Math.min(x+14,r.width-230)+'px'; tip.style.top=Math.max(4,Math.min(y-54,r.height-84))+'px';
     };
     xh.onmouseleave=function(){ tip.style.display='none'; if(geo) crosshair(cv,geo,null,null,Z); var o=el.querySelector('.v12-zn-ohlc'); if(o) o.style.display='none'; el.querySelectorAll('.v12-zn-row.hot').forEach(function(n){ n.classList.remove('hot'); }); };
     el.querySelectorAll('.v12-zn-row').forEach(function(row){ row.onmouseenter=function(){ row.classList.add('hot'); }; row.onmouseleave=function(){ row.classList.remove('hot'); }; });
@@ -52276,6 +52338,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   setInterval(fillSoon,2000);
   window._v12ZoneMount=mount;
   window._v12ZoneTF=function(id,tf){ TF[id]=tf; mount(id); };
+  window._v12ZoneZoom=function(id,z){ ZOOM[id]=(ZOOM[id]===z)?null:z; mount(id); };
   window._v12ZoneAll=function(id,on){ ALL[id]=!!on; mount(id); };
   window._v12ZoneVol=function(id,on){ VOL[id]=!!on; mount(id); };
 
@@ -52306,25 +52369,26 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   setTimeout(loadBoard,9000);
 
   /* ---------- Use this zone: pre-fill the plan form, never save ---------- */
-  function fill(id, z){
+  function fill(id, z, useRef){
     var f=document.getElementById('hrp-'+id); if(!f) return false;
-    var dem=z.kind==='demand', h=z.hi-z.lo, d=dec(z.proximal);
-    var stop=dem?z.distal-0.25*h:z.distal+0.25*h;
+    var rf=useRef?refOf(z):null, dem=z.kind==='demand', d=dec(z.proximal);
+    var prox=rf?rf.proximal:z.proximal, dist=rf?rf.distal:z.distal, h=Math.abs(prox-dist)||(z.hi-z.lo);
+    var stop=dem?dist-0.25*h:dist+0.25*h;
     var set=function(k,v){ var i=f.querySelector('[name="'+k+'"]'); if(i){ i.value=v; i.dispatchEvent(new Event('input',{bubbles:true})); } };
-    set('side',dem?'long':'short'); set('zone_type',z.pattern); set('zone_proximal',z.proximal.toFixed(d)); set('zone_distal',z.distal.toFixed(d));
-    set('entry',z.proximal.toFixed(d)); set('stop',stop.toFixed(d));
+    set('side',dem?'long':'short'); set('zone_type',z.pattern); set('zone_proximal',prox.toFixed(d)); set('zone_distal',dist.toFixed(d));
+    set('entry',prox.toFixed(d)); set('stop',stop.toFixed(d));
     var det=f.closest('details'); if(det) det.open=true;
     var wrap=det||f; wrap.classList.remove('v12-zn-flash'); void wrap.offsetWidth; wrap.classList.add('v12-zn-flash');
     try{ wrap.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
-    var note=document.getElementById('hrp-sync-'+id); if(note) note.textContent='Pre-filled from the '+(TFNAME[z.tf]||z.tf).toLowerCase()+' '+z.kind+' zone: entry at the proximal edge, stop a quarter height beyond the distal. Set your target, then Apply.';
+    var note=document.getElementById('hrp-sync-'+id); if(note) note.textContent=rf?('Pre-filled from the '+(LOWER[rf.tf]||rf.tf)+' base inside the '+(TFNAME[z.tf]||z.tf).toLowerCase()+' '+z.kind+' zone: entry at its proximal edge, stop a quarter of its height beyond its distal edge'+(rf.thin?' (a thin base: that stop sits inside normal '+(LOWER[rf.tf]||rf.tf)+' noise)':'')+'. Set your target, then Apply.'):('Pre-filled from the '+(TFNAME[z.tf]||z.tf).toLowerCase()+' '+z.kind+' zone: entry at the proximal edge, stop a quarter height beyond the distal. Set your target, then Apply.');
     return true;
   }
-  window._v12ZoneUse=function(id,i,tf,src){
+  window._v12ZoneUse=function(id,i,tf,src,useRef){
     var hit=CACHE[id]; if(!hit) return; var z=(((src==='c'?hit.z.candidates:hit.z.zones)||{})[tf]||[])[i]; if(!z) return;
-    if(fill(id,z)) return;
-    PENDING[id]=z;
+    if(fill(id,z,useRef)) return;
+    PENDING[id]={z:z,r:!!useRef};
     if(typeof switchTab==='function'){ try{ switchTab('cot'); }catch(e){} }
-    var tries=0, iv=setInterval(function(){ tries++; if(fill(id,PENDING[id])||tries>30){ clearInterval(iv); delete PENDING[id]; } },120);
+    var tries=0, iv=setInterval(function(){ tries++; var pz=PENDING[id]; if(!pz||fill(id,pz.z,pz.r)||tries>30){ clearInterval(iv); delete PENDING[id]; } },120);
   };
 
   /* ---------- hook: market read ---------- */
@@ -52346,7 +52410,6 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     if(typeof window[fn]==='function'){ var o=window[fn]; window[fn]=function(id){ var r=o.apply(this,arguments); try{ setTimeout(function(){ mount(id); },100); }catch(e){} return r; }; }
   });
 })();
-/* ===== end v12 js: zones ===== */
 /* ===== end v12 js: zones ===== */
 /* ===== v12 js: crowd map (positioning across the complex) ===== */
 (function(){
