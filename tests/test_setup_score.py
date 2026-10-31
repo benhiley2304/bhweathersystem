@@ -9,9 +9,12 @@ def _path(fn, n=20):
 
 
 def _row(side=1, arch="Counter-trend", cstate="Waiting", tr="against", p="with", v="with",
-         eng="Bearish", conf="High", gates=None):
+         eng="Bearish", conf="High", gates=None, trend_dir=None, macro=None, state="running"):
+    if trend_dir is None:
+        trend_dir = -side if tr == "against" else side if tr == "with" else 0
     return {"side": side, "lean": side, "archetype": arch, "confirm": {"state": cstate},
             "pillars": {"trend": {"rel": tr}, "positioning": {"rel": p}, "valuation": {"rel": v}},
+            "trend": {"dir": trend_dir, "state": state}, "macro_sign": macro,
             "engine": {"direction": eng}, "data_confidence": conf, "gates": gates or []}
 
 
@@ -43,10 +46,29 @@ def test_in_window_now():
 
 
 def test_short_side_flips_path():
-    o = S.compute(_row(side=-1, eng="Bullish"), _path(lambda k: -0.15 * k), SD)
+    o = S.compute(_row(side=-1, eng="Bullish", macro=1), _path(lambda k: -0.15 * k), SD)
     assert o["timing"]["state"] == "in_window"
     assert o["relation"]["key"] == "counter"
-    assert "Bias bullish, setup short" in o["relation"]["text"]
+    assert "Setup short against the backdrop" in o["relation"]["text"]
+
+
+def test_backdrop_reads_trend_and_macro_together():
+    # trend down and macro short: bearish; a long against it is counter-trend
+    bd = S.backdrop({"trend": {"dir": -1, "state": "running"}, "macro_sign": -1})
+    assert bd["label"] == "bearish" and bd["dir"] == -1 and bd["total"] == -2
+    assert bd["text"].startswith("Backdrop bearish: trend down, running, macro leans short")
+    # one pillar only is a lean; opposite signs are mixed; nothing is neutral
+    assert S.backdrop({"trend": {"dir": 1, "state": "pullback"}, "macro_sign": None})["label"] == "leans bullish"
+    mixed = S.backdrop({"trend": {"dir": 1, "state": "running"}, "macro_sign": -1})
+    assert mixed["label"] == "mixed" and mixed["dir"] == 0
+    assert S.backdrop({"trend": {"dir": 0, "state": "range"}, "macro_sign": 0})["label"] == "neutral"
+    marginal = S.backdrop({"trend": {"dir": 0, "state": "range"}, "macro_sign": 1, "macro_marginal": True})
+    assert "marginally leans long" in marginal["text"]
+    # the relation is built from the backdrop, never from the engine composite
+    o = S.compute(_row(side=1, eng="Bearish", trend_dir=1, macro=1), _path(lambda k: 0.15 * k), SD)
+    assert o["relation"]["key"] == "aligned" and o["backdrop"]["label"] == "bullish"
+    o2 = S.compute(_row(side=1, eng="Bullish", trend_dir=1, macro=-1), _path(lambda k: 0.15 * k), SD)
+    assert o2["relation"]["key"] == "mixed"
 
 
 def test_score_bounds_and_parts():

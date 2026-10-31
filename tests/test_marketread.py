@@ -56,7 +56,7 @@ def test_es_marginal_macro_and_dx_engine_disagreement_are_stated():
     assert any("marginal" in s for s in out["summary"])
     _, dx = _read("DX")
     assert dx["engine"]["disagrees"] is True
-    assert "neither is adjusted" in dx["engine"]["text"]
+    assert "Neither is adjusted" in dx["engine"]["text"]
     # composite is quoted, never inverted
     assert f"{FX['eng']['DX']['weighted_score']:.1f}" in dx["engine"]["text"]
 

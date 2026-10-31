@@ -167,8 +167,7 @@ def _macro(row, eng, fed) -> Dict[str, Any]:
     rs, rdet = _score(eng, "regime")
     ms, mdet = _score(eng, "macro")
     facts: List[str] = []
-    facts.append(f"Risk regime {_f(rs)} ({_vote_word(rs)}), macro data {_f(ms)} ({_vote_word(ms)}). "
-                 "Together they set the macro direction.")
+    facts.append(f"Risk regime {_f(rs)} ({_vote_word(rs)}), macro data {_f(ms)} ({_vote_word(ms)}).")
     rl = (rdet or {}).get("label")
     if rl and rl not in ("Neutral", ""):
         facts.append(f"Regime read for this market: {rl}.")
@@ -242,8 +241,6 @@ def _trend(row, eng) -> Dict[str, Any]:
                      "so it does not count against a fade.")
     elif T.get("state") == "pullback":
         facts.append("Last four weeks against an intact trend: a pullback, the entry window for trend trades.")
-    if T.get("state_text"):
-        facts.append(f"Engine trend state: {T['state_text']}.")
     d = T.get("dir") or 0
     dw = "up" if d > 0 else "down" if d < 0 else ""
     st = T.get("state") or "n/a"
@@ -277,7 +274,6 @@ def _seasonal(row) -> Dict[str, Any]:
         n = (fw.get("60") or fw.get(60) or {}).get("n")
         facts.append("Forward path from today, weighted median of past years: " + ", ".join(bits)
                      + (f", {n} years" if n else "") + ". Positive means price tends to rise.")
-    facts.append("In the setup score, seasonality is the timing gate: a path against the side over 4 to 8 weeks is a veto, and a dip before a window means wait.")
     return {"key": "seasonal", "title": "Seasonality", "sign": pil.get("sign") or 0,
             "rel": pil.get("rel") or "neutral", "role": pil.get("role"), "word": S.get("word") or "n/a",
             "facts": facts, "tab": "seasonal"}
@@ -374,11 +370,7 @@ def build_read(row: Dict[str, Any], eng: Optional[Dict[str, Any]], fed: Optional
     summary: List[str] = []
     if arch and ck != "none":
         summary.append(_ARCH_NOTE.get(arch, ""))
-    if row.get("for_list"):
-        summary.append(f"For the {_SIDE.get(side or lean, '')}: {names(row['for_list'])}."
-                       + (f" Against: {names(row.get('against_list'))}." if row.get("against_list") else ""))
-    elif row.get("against_list"):
-        summary.append(f"Against: {names(row['against_list'])}.")
+    # The for/against pillar list is drawn as the strip under the read; it is not repeated in prose.
     for d in row.get("downgrades") or []:
         summary.append(f"Marked down a grade: {d}.")
     sz = [g for g in (row.get("gates") or []) if "size" in g or "starter" in g or "adds" in g]
@@ -407,9 +399,8 @@ def build_read(row: Dict[str, Any], eng: Optional[Dict[str, Any]], fed: Optional
         watch.append("The pullback case breaks if price closes through the 200-day.")
     if P["macro"].get("marginal"):
         watch.append("A small move in the risk regime or macro score would remove the macro lean.")
-    watch.append("Zones and stops are yours; the Desk does not draw levels.")
 
-    risks = list(row.get("gates") or [])
+    risks = [g for g in (row.get("gates") or []) if g not in sz]
     evs = []
     for e in (row.get("events") or [])[:4]:
         try:
@@ -431,12 +422,12 @@ def build_read(row: Dict[str, Any], eng: Optional[Dict[str, Any]], fed: Optional
               "momentum": "momentum", "relval": "relative value", "pcr": "put/call"}
     eb = [vnames.get(k, k) for k, v in votes.items() if v > 0]
     es = [vnames.get(k, k) for k, v in votes.items() if v < 0]
-    et = (f"The 1 to 10 composite is {_f(ws)} ({eng.get('bias') or 'n/a'}). Its engine leans "
-          f"{(edir or 'neutral').lower()} at conviction {_f(eg.get('conviction'), 2, True)}, tier {eg.get('tier') or 'n/a'}"
+    et = (f"Engine composite {_f(ws)} of 10, leaning {(edir or 'neutral').lower()} at conviction "
+          f"{_f(eg.get('conviction'), 2, True)}"
           + (f"; bullish votes: {_join(eb)}" if eb else "") + (f"; bearish votes: {_join(es)}" if es else "") + ".")
     if disagree:
-        et += (" That differs from the read above, which weighs positioning and valuation as the payoff and "
-               "treats an extended trend as tired rather than as a vote. Both are shown; neither is adjusted to match.")
+        et += (" It differs from the Desk read, which treats positioning and valuation as the payoff and an "
+               "extended trend as tired rather than as a vote. Neither is adjusted to match the other.")
     out = {
         "id": row.get("id"),
         "headline": headline,

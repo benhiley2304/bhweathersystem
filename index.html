@@ -25682,7 +25682,7 @@ body.lab-on #app-status-bar{display:none}
         <button class="cat-btn" data-cat="fx_cross">FX Cross</button>
         <button class="cat-btn" data-cat="crypto">Crypto</button>
       </div>
-      <div class="sb-sortrow"><div class="sb-sort" role="group" aria-label="Order the list"><button type="button" data-s="setups" onclick="setSbSort('setups')">Setups</button><button type="button" data-s="score" onclick="setSbSort('score')">Bias</button></div><span id="sb-scale-note">setup score 0 to 10, by readiness</span></div>
+      <div class="sb-sortrow"><div class="sb-sort" role="group" aria-label="Order the list"><button type="button" data-s="setups" onclick="setSbSort('setups')">Setups</button><button type="button" data-s="score" onclick="setSbSort('score')">Engine</button></div><span id="sb-scale-note">setup score 0 to 10, by readiness</span></div>
     </div>
     <div class="mkt-list" id="mkt-list">
       <div class="skel"></div><div class="skel"></div><div class="skel"></div>
@@ -26425,25 +26425,23 @@ function renderHouseRead(id){
   const grade=dc.grade||'Unknown';
   let html='<div class="hr-wrap">'+head;
   if(pos){
-    const g=[['Commercials','#3D7BD6',pos.commercials],['Fund managers','#EAB850',pos.managers],['Retail','#E05252',pos.retail]];
-    html+='<div class="hr-pcts">'+g.map(([k,c,v])=>{
-      const p=v&&v.percentile!=null?v.percentile:null;
-      return '<div class="hr-pct" style="--hr-c:'+c+'"><div class="hr-pct-k">'+k+'</div>'
-        +'<div class="hr-pct-v">'+(p!=null?Math.round(p)+'<sup>'+_hrOrd(Math.round(p))+'</sup>':'—')+'</div>'
-        +'<div class="hr-pct-s">'+(v&&v.label?_esc(v.label):'')+(v&&v.net!=null?' &middot; net '+fmtK(v.net):'')+'</div></div>';
-    }).join('')+'</div>';
+    /* v13: the three percentiles are drawn once, on the positioning chart cards below; the house read keeps the provenance line */
     const fr=pos.freshness==='fresh'?'current report':pos.freshness==='stale'?'<span style="color:#E05252">stale, '+(pos.reports_behind||'?')+' report(s) behind</span>':_esc(pos.freshness||'');
     html+='<div class="hr-meta"><span>Observed '+_hrDate(pos.observed)+'</span><span>Released '+_hrDate(pos.released)+'</span><span>'+fr+'</span><span class="hr-conf '+_esc(grade)+'">Data '+_esc(grade)+'</span></div>';
   }else{
     html+='<div class="hr-warn">Futures-only positioning could not be fetched. No house percentiles are shown rather than substituting the engine figures.</div>';
   }
   const b=rd.bias||{}, st=rd.setup||{}, tr=rd.trade||{};
-  const bCol=_hrDirCol(b.state);
   const fade=st.fade_side?(' &middot; fade '+_esc(st.fade_side)):'';
   const setCol=/^Positioning setup|clock runs/.test(st.state||'')?'#EAB850':'var(--text)';
+  /* v13: backdrop (trend plus macro) from the Desk row where it exists; the evidence-layer bias stays as the fallback */
+  const dkr=deskRow(id), bd=dkr&&dkr.setup&&dkr.setup.backdrop?dkr.setup.backdrop:null;
+  const bdLabel=bd?bd.label:(b.state||'—'), bdCol=bd?_suBdCol(bd.label):_hrDirCol(b.state);
+  const bdNote=bd?(bd.parts||[]).map(x=>_esc(x.text)).join(', ')+'. Judged without positioning.'
+      :(b.note?_esc(b.note):'Engine label '+_esc(b.engine_direction||'—')+(b.engine_conviction!=null?(Math.abs(Number(b.engine_conviction))<0.005?' at zero conviction':' (conviction '+Math.abs(Number(b.engine_conviction)).toFixed(2)+')'):'')+'. Judged without positioning.');
   html+='<div class="hr-rows">'
-    +'<div class="hr-row"><div class="hr-row-k">Bias</div><div class="hr-row-v" style="color:'+bCol+'">'+_esc(b.state||'—')+'</div>'
-      +'<div class="hr-row-d">'+(b.note?_esc(b.note):'Engine label '+_esc(b.engine_direction||'—')+(b.engine_conviction!=null?(Math.abs(Number(b.engine_conviction))<0.005?' at zero conviction':' (conviction '+Math.abs(Number(b.engine_conviction)).toFixed(2)+')'):'')+'. Judged without positioning.')
+    +'<div class="hr-row"><div class="hr-row-k">Backdrop</div><div class="hr-row-v" style="color:'+bdCol+';text-transform:capitalize">'+_esc(bdLabel)+'</div>'
+      +'<div class="hr-row-d">'+bdNote
       +((rd.support||[]).length?'<br>For: '+rd.support.map(x=>_esc(x.family)).join(', '):'')
       +((rd.conflict||[]).length?'<br>Against: '+rd.conflict.map(x=>_esc(x.family)).join(', '):'')+'</div></div>'
     +'<div class="hr-row"><div class="hr-row-k">Setup</div><div class="hr-row-v" style="color:'+setCol+'">'+_esc(st.state||'—')+'</div>'
@@ -26519,6 +26517,7 @@ function _deskApplied(){
   try{ renderList(); }catch(e){ console.warn('list',e); }
   try{ renderWeek(); }catch(e){ console.warn('week',e); }
   try{ if(window._v13Visit) window._v13Visit(); }catch(e){ console.warn('visit',e); }
+  try{ if(window._mobPillsRefresh) window._mobPillsRefresh(); }catch(e){}
   document.querySelectorAll('[data-mread]').forEach(el=>{ try{ el.innerHTML=marketReadInner(el.dataset.mread); _fxMount(el); }catch(e){ console.warn('mread',e); } });
   // BHWS-R8: the trend tab leads with the desk's weekly read; fill it in if the desk landed after the tab rendered
   try{
@@ -26581,7 +26580,21 @@ function _suBias(ws,label,opt){
     +'<strong style="color:'+col+'">'+Number(ws).toFixed(1)+'</strong>'+(label&&!o.nolab?'<span class="su-bl">'+_esc(label)+'</span>':'')+'</span>';
 }
 function _suRel(r){ const s=_su(r); return s&&s.relation?s.relation:null; }
-function _suRelChip(r){ const x=_suRel(r); if(!x) return ''; return '<span class="su-rel k-'+x.key+'" title="How the setup side relates to the composite bias. Counter-trend disagreement is expected; it is where the replay found the cleanest edge.">'+_esc(x.text)+'</span>'; }
+function _suRelChip(r){ const x=_suRel(r); if(!x) return ''; return '<span class="su-rel k-'+x.key+'" title="How the setup side sits against the backdrop (trend plus macro). Against it is expected for fades; that is where the replay found the cleanest edge.">'+_esc(x.text)+'</span>'; }
+/* v13 backdrop: trend and macro read together as the context for the side. Replaces the composite bias meter. */
+function _suBd(r){ const s=_su(r); return s&&s.backdrop?s.backdrop:null; }
+function _suRelShort(k){ return k==='counter'?'against the backdrop':k==='aligned'?'with the backdrop':k==='mixed'?'backdrop mixed':'backdrop neutral'; }
+function _suBdCol(label){ label=String(label||''); return /bullish/.test(label)?'#22C97A':/bearish/.test(label)?'#E05252':label==='mixed'?'#EAB850':'#7d879c'; }
+function _suBackdrop(r,opt){
+  const o=opt||{}, bd=_suBd(r); if(!bd) return '';
+  const col=_suBdCol(bd.label), lean=/leans/.test(bd.label||'');
+  const pills=(bd.parts||[]).map(p=>{ const c=p.sign>0?'#22C97A':p.sign<0?'#E05252':'#6c7588', g=p.sign>0?'\u25B2':p.sign<0?'\u25BC':'\u25A0';
+    return '<i class="su-bd-p" style="color:'+c+'" title="'+_esc(p.text)+'">'+g+' '+_esc(p.key)+'</i>'; }).join('');
+  const tip=_esc(bd.text)+' Trend is the weekly house read, macro the hit-rate sign for this market. Context for the side, never a verdict; the setup score does not use it.';
+  const lab='<em>Backdrop</em>', val='<strong style="color:'+col+(lean?';opacity:.85':'')+'">'+_esc(bd.label)+'</strong>';
+  if(o.sm) return '<span class="su-bd sm" title="'+tip+'"><span class="su-bd-l">'+lab+val+'</span><span class="su-bd-pills">'+pills+'</span></span>';
+  return '<span class="su-bd" title="'+tip+'">'+lab+pills+val+'</span>';
+}
 /* score ring (small) for boards and lists */
 function _suRing(r,sz){
   /* v9: HUD tick dial. Lit ticks = setup score out of 10, colour = side */
@@ -26642,7 +26655,7 @@ function _suTimingText(r){
 function _suPanel(r,m){
   const s=_su(r); if(!s) return '';
   const ws=m?m.weighted_score:null;
-  let h='<section class="gl su-panel"><div class="su-ph"><div class="su-pk">Setup score</div>'+_suReadyChip(r)+_suTmChip(r)+'<span class="su-sp"></span>'+_suBias(ws,m&&m.bias)+'</div>';
+  let h='<section class="gl su-panel"><div class="su-ph"><div class="su-pk">Setup score</div>'+_suReadyChip(r)+_suTmChip(r)+'<span class="su-sp"></span></div>';
   if(s.score==null){
     h+='<div class="su-none"><p>No payoff source qualifies, so there is no side to score. '+(s.timing_side?'The seasonal timing below is for the '+(s.timing_side>0?'long':'short')+' lean.':'')+'</p>'+(s.timing_side?_suPath(r):'')+'</div></section>';
     return h;
@@ -26650,7 +26663,7 @@ function _suPanel(r,m){
   h+='<div class="su-pg"><div class="su-pl1">'+_suReceipt(r)+'</div><div class="su-pl2"><div class="su-pt">Seasonal timing · next 80 trading days</div>'+_suPath(r)+'<p class="su-tt">'+_esc(_suTimingText(r))+'</p>'
     +(s.projected?'<div class="su-proj">If structure, trend and positioning hold, the score moves to <b style="color:'+_suSideCol(_suSide(r))+'">'+Number(s.projected.score).toFixed(1)+'</b> at the window ('+_esc(s.projected.date||'')+').</div>':'')
     +'</div></div>';
-  h+=bhCap((_suRel(r)?_esc(_suRel(r).text):'Ranking aid, set on 2012\u201318 and tested on 2019\u201326'),'Points were set on the 2012\u201318 replay and tested on 2019\u201326, where the score sorted 4 to 8 week outcomes in the right order but weakly (top minus bottom +0.04 R after drift; the range spans zero). It ranks setups; it is not a probability. Macro and the composite carry no points.')+'</section>';
+  h+=bhCap('Ranking aid, set on 2012\u201318 and tested on 2019\u201326','Points were set on the 2012\u201318 replay and tested on 2019\u201326, where the score sorted 4 to 8 week outcomes in the right order but weakly (top minus bottom +0.04 R after drift; the range spans zero). It ranks setups; it is not a probability. Macro and the composite carry no points.')+'</section>';
   return h;
 }
 
@@ -26736,7 +26749,7 @@ function _dkCount(n,dec){ return '<span class="cu" data-cu="'+n+'" data-dec="'+(
 
 /* Setup map: x = where price sits in its 52-week range, y = payoff lean (positioning + valuation, signed) */
 function _wkMap(rows,mob){
-  const W=mob?360:640, H=mob?340:540, L=mob?38:52, R=12, T=16, B=32;
+  const W=mob?360:960, H=mob?340:400, L=mob?38:58, R=mob?12:16, T=mob?16:20, B=mob?32:36;
   const pw=W-L-R, ph=H-T-B;
   const X=p=>L+Math.max(0,Math.min(100,p))/100*pw, Y=v=>T+(1-(v+2)/4)*ph;
   const pts=rows.filter(r=>r.trend&&r.trend.pct_52w!=null).map((r,i)=>{
@@ -26756,17 +26769,17 @@ function _wkMap(rows,mob){
   s+='<rect x="'+L+'" y="'+T+'" width="'+(pw*0.15)+'" height="'+ph+'" fill="rgba(255,255,255,0.025)"/><rect x="'+(L+pw*0.85)+'" y="'+T+'" width="'+(pw*0.15)+'" height="'+ph+'" fill="rgba(255,255,255,0.025)"/>';
   [0,15,50,85,100].forEach(p=>{ s+='<line x1="'+X(p)+'" x2="'+X(p)+'" y1="'+T+'" y2="'+(T+ph)+'" class="wkm-g'+(p===50?' mid':'')+'"/>'; });
   [-2,-1,0,1,2].forEach(v=>{ s+='<line x1="'+L+'" x2="'+(L+pw)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" class="wkm-g'+(v===0?' zero':'')+'"/>'; });
-  const fs=mob?8.5:9.5;
+  const fs=mob?8.5:10.5;
   s+='<text x="'+(L+6)+'" y="'+(T+13)+'" class="wkm-q u" font-size="'+fs+'">PAYOFF LONG, NEAR LOWS</text>';
   s+='<text x="'+(L+pw-6)+'" y="'+(T+13)+'" class="wkm-q u" text-anchor="end" font-size="'+fs+'">PAYOFF LONG, NEAR HIGHS</text>';
   s+='<text x="'+(L+6)+'" y="'+(T+ph-7)+'" class="wkm-q d" font-size="'+fs+'">PAYOFF SHORT, NEAR LOWS</text>';
   s+='<text x="'+(L+pw-6)+'" y="'+(T+ph-7)+'" class="wkm-q d" text-anchor="end" font-size="'+fs+'">PAYOFF SHORT, NEAR HIGHS</text>';
-  [0,15,50,85,100].forEach(p=>{ s+='<text x="'+X(p)+'" y="'+(H-12)+'" class="wkm-ax" text-anchor="middle" font-size="'+(mob?8:9)+'">'+p+'</text>'; });
-  s+='<text x="'+(L+pw/2)+'" y="'+(H-1)+'" class="wkm-ax t" text-anchor="middle" font-size="'+(mob?8:9)+'">WHERE PRICE SITS IN ITS 52-WEEK RANGE (%)</text>';
-  s+='<text x="'+L+'" y="'+(H-1)+'" class="wkm-ax e" text-anchor="start" font-size="'+(mob?8:9)+'">\u25C2 LOWS</text><text x="'+(L+pw)+'" y="'+(H-1)+'" class="wkm-ax e" text-anchor="end" font-size="'+(mob?8:9)+'">HIGHS \u25B8</text>';
-  s+='<text transform="rotate(-90)" x="'+(-(T+ph/2))+'" y="'+(mob?9:11)+'" class="wkm-ax t" text-anchor="middle" font-size="'+(mob?8:9)+'">PAYOFF LEAN</text>';
-  s+='<text transform="rotate(-90)" x="'+(-(T+4))+'" y="'+(mob?9:11)+'" class="wkm-ax e u" text-anchor="end" font-size="'+(mob?8:9)+'">LONG \u25B8</text><text transform="rotate(-90)" x="'+(-(T+ph-4))+'" y="'+(mob?9:11)+'" class="wkm-ax e d" text-anchor="start" font-size="'+(mob?8:9)+'">\u25C2 SHORT</text>';
-  [-2,-1,0,1,2].forEach(v=>{ s+='<text x="'+(L-6)+'" y="'+(Y(v)+3)+'" class="wkm-ax" text-anchor="end" font-size="'+(mob?8:9)+'">'+(v>0?'+':v<0?'\u2212':'')+Math.abs(v)+'</text>'; });
+  [0,15,50,85,100].forEach(p=>{ s+='<text x="'+X(p)+'" y="'+(H-12)+'" class="wkm-ax" text-anchor="middle" font-size="'+(mob?8:10)+'">'+p+'</text>'; });
+  s+='<text x="'+(L+pw/2)+'" y="'+(H-1)+'" class="wkm-ax t" text-anchor="middle" font-size="'+(mob?8:10)+'">WHERE PRICE SITS IN ITS 52-WEEK RANGE (%)</text>';
+  s+='<text x="'+L+'" y="'+(H-1)+'" class="wkm-ax e" text-anchor="start" font-size="'+(mob?8:10)+'">\u25C2 LOWS</text><text x="'+(L+pw)+'" y="'+(H-1)+'" class="wkm-ax e" text-anchor="end" font-size="'+(mob?8:10)+'">HIGHS \u25B8</text>';
+  s+='<text transform="rotate(-90)" x="'+(-(T+ph/2))+'" y="'+(mob?9:11)+'" class="wkm-ax t" text-anchor="middle" font-size="'+(mob?8:10)+'">PAYOFF LEAN</text>';
+  s+='<text transform="rotate(-90)" x="'+(-(T+4))+'" y="'+(mob?9:11)+'" class="wkm-ax e u" text-anchor="end" font-size="'+(mob?8:10)+'">LONG \u25B8</text><text transform="rotate(-90)" x="'+(-(T+ph-4))+'" y="'+(mob?9:11)+'" class="wkm-ax e d" text-anchor="start" font-size="'+(mob?8:10)+'">\u25C2 SHORT</text>';
+  [-2,-1,0,1,2].forEach(v=>{ s+='<text x="'+(L-6)+'" y="'+(Y(v)+3)+'" class="wkm-ax" text-anchor="end" font-size="'+(mob?8:10)+'">'+(v>0?'+':v<0?'\u2212':'')+Math.abs(v)+'</text>'; });
   // points
   const placed=[];
   const lab=[];
@@ -26789,13 +26802,13 @@ function _wkMap(rows,mob){
   const hit=(b)=>boxes.some(o=>b.x<o.x+o.w&&b.x+b.w>o.x&&b.y<o.y+o.h&&b.y+b.h>o.y);
   lab.sort((a,b)=>(a.k==='prime'?0:1)-(b.k==='prime'?0:1));
   lab.forEach(p=>{
-    const t=p.r.id.length>4?p.r.id.slice(0,3)+'/'+p.r.id.slice(3):p.r.id; const w=t.length*(mob?5.4:6.2)+2, h=mob?9:10;
+    const t=p.r.id.length>4?p.r.id.slice(0,3)+'/'+p.r.id.slice(3):p.r.id; const w=t.length*(mob?5.4:6.6)+2, h=mob?9:11;
     const c=[[p.rad+3,3.5,'start'],[-p.rad-3,3.5,'end'],[0,-p.rad-4,'middle'],[0,p.rad+11,'middle'],[p.rad+2,-p.rad-1,'start'],[p.rad+2,p.rad+8,'start']];
     let pick=c[0], ok=false;
     for(const o of c){ const bx=o[2]==='start'?p.x+o[0]:o[2]==='end'?p.x+o[0]-w:p.x-w/2; const b={x:bx,y:p.y+o[1]-h+2,w:w,h:h};
       if(b.x>=L&&b.x+b.w<=L+pw&&b.y>=T&&!hit(b)){ pick=o; boxes.push(b); ok=true; break; } }
-    if(!ok&&p.k!=='prime') return;
-    s+='<text x="'+(p.x+pick[0]).toFixed(1)+'" y="'+(p.y+pick[1]).toFixed(1)+'" text-anchor="'+pick[2]+'" class="wkm-lb k-'+p.k+'" font-size="'+(mob?8.5:9.5)+'">'+_esc(t)+'</text>';
+    if(!ok){ if(p.k!=='prime') return; pick=p.x>L+pw/2?c[1]:c[0]; }
+    s+='<text x="'+(p.x+pick[0]).toFixed(1)+'" y="'+(p.y+pick[1]).toFixed(1)+'" text-anchor="'+pick[2]+'" class="wkm-lb k-'+p.k+'" font-size="'+(mob?8.5:10.5)+'">'+_esc(t)+'</text>';
   });
   s+='</svg>';
   return s;
@@ -26881,9 +26894,9 @@ function _wkBuild(mob){
   h+='</div></div>';
   h+='</div>';
 
-  /* map + board */
-  h+='<div class="wk2-main">';
-  h+='<section class="gl wkm"><div class="wk-sub">Setup map <span>bubble size = '+(SU?'setup score':'grade')+' &middot; colour = side</span></div>'+_wkMap(rows,mob)
+  /* v13: board first at full width, then the map as a wide strip (the side-by-side map was too small to read) */
+  h+='<div class="wk2-main v13-stack">';
+  const _mapH='<section class="gl wkm"><div class="wk-sub">Setup map <span>bubble size = '+(SU?'setup score':'grade')+' &middot; colour = side</span></div>'+_wkMap(rows,mob)
     +'<div class="wkm-leg">'+(SU?'<span><i class="b p"></i>Trade-ready</span><span><i class="b s wt"></i>Waiting for window</span><span><i class="b dv"></i>Building</span><span><i class="b n ag"></i>Weak or seasonal against</span>':'<span><i class="b p"></i>Prime</span><span><i class="b s"></i>Setup</span><span><i class="b dv"></i>Developing</span><span><i class="b n"></i>Backdrop or none</span>')+'<span class="x">Payoff lean'+bhI('Payoff lean is positioning (where it is a payoff source) plus valuation, signed for the side. It ranks setups; it is not a probability.')+'</span></div><div class="wkm-tip"></div></section>';
   if(SU) h+=_wkBoardSu(rows,mob); else {
   h+='<section class="gl wkb"><div class="wk-sub">On the board <span>'+(cnt.prime||0)+' prime &middot; '+(cnt.setup||0)+' setup &middot; '+(cnt.developing||0)+' developing</span></div>';
@@ -26897,6 +26910,7 @@ function _wkBuild(mob){
   }
   if(!live.length) h+='<div class="wk-empty">No prime or setup-grade markets this week.</div>';
   h+='</section>'; }
+  h+=_mapH;
   h+='</div>';
 
   /* lower: notes, events, changes */
@@ -26937,7 +26951,7 @@ function _wkBoardSu(rows,mob){
     h+='<div class="wkb-prime">'+ready.slice(0,mob?4:6).map((r,i)=>'<div class="wkb-card su '+(r.side>0?'u':'d')+'" style="animation-delay:'+(80+i*60)+'ms"'+open(r.id)+'>'
       +'<div class="t"><b>'+_esc(r.name)+'</b>'+_suRing(r,40)+'</div><div class="a">'+_dkSide(r.side)+'<span>'+_esc(r.archetype||'')+'</span></div>'
       +(_suTm(r).state!=='flat'&&_suTm(r).state!=='na'?'<div class="su-c-tm">'+_suTmChip(r,{sm:1})+'</div>':'<div class="su-c-tm"></div>')
-      +'<div class="f">'+_dkGlyph(r,true)+(r.setup.relation&&r.setup.relation.key!=='none'?'<span class="su-c-rel k-'+r.setup.relation.key+'">'+_esc(r.setup.relation.key==='counter'?'counter-trend to bias':r.setup.relation.key==='aligned'?'with the bias':'bias neutral')+'</span>':'')+'</div></div>').join('')+'</div>';
+      +'<div class="f">'+_dkGlyph(r,true)+(r.setup.relation&&r.setup.relation.key!=='none'?'<span class="su-c-rel k-'+r.setup.relation.key+'">'+_esc(_suRelShort(r.setup.relation.key))+'</span>':'')+'</div></div>').join('')+'</div>';
   } else h+='<div class="wk-empty">Nothing scores 6 or more without a seasonal block this week.</div>';
   if(wait.length){
     const mx=Math.max(26,...wait.map(r=>r.setup.timing.entry_td||0));
@@ -27017,8 +27031,8 @@ function _egChip(r,small){
 }
 function _egScale(v,mx,x0,x1){ return x0+(Math.max(-mx,Math.min(mx,v))+mx)/(2*mx)*(x1-x0); }
 /* market read card */
-function _egCard(r){
-  const e=_egFor(r); const E=window.BHWS_EDGE;
+function _egCard(r,o){
+  o=o||{}; const e=_egFor(r); const E=window.BHWS_EDGE;
   if(!E) return '';
   if(!e) return '<div class="gl mr3-box eg-box"><div class="mr2-sub">Replay edge check</div><div class="wk-empty">No directional archetype to match against the replay.</div></div>';
   const c=e.c, W=330, mx=0.4, sc=v=>_egScale(v,mx,14,W-14);
@@ -27040,7 +27054,7 @@ function _egCard(r){
     +(c.lo!=null?' (90% range '+(c.lo>=0?'+':'')+c.lo.toFixed(2)+' to '+(c.hi>=0?'+':'')+c.hi.toFixed(2)+')':'')+(c.Rd!=null?', '+(c.Rd>=0?'+':'')+c.Rd.toFixed(2)+' after each market\'s drift':'')+'; hit '+Math.round(c.hit*100)+'%.</p>';
   if(e.v==='drift') t+='<p class="eg-fl drift">Holds in both halves, but nearly all of it is the market\'s own drift. Take away each market\'s average 13-week move and it is '+(c.Rd>=0?'+':'')+c.Rd.toFixed(2)+' R, so most of the result comes from the market\'s usual direction rather than the setup.</p>';
   if(e.flags.length) t+=e.flags.map(f=>'<p class="eg-fl '+f.v+'">'+_esc(f.t)+': '+(f.c?'prime and setup rows averaged '+(f.c.R>=0?'+':'')+f.c.R.toFixed(2)+' R ('+f.c.n.toLocaleString()+' weeks)':'')+'.</p>').join('');
-  return '<div class="gl mr3-box eg-box '+e.v+'"><div class="mr2-sub">Replay edge check <span class="eg-chip '+e.v+'"><i></i>'+_EG_TXT[e.v]+'</span></div>'+s+x+t+bhCap('2012\u20132026 replay, macro excluded','Rule evidence from the walk-forward replay. It describes how the rule behaved on past weeks; it is not a probability for this trade.')+'</div>';
+  return '<div class="gl mr3-box eg-box '+e.v+'">'+(o.inner?'':'<div class="mr2-sub">Replay edge check <span class="eg-chip '+e.v+'"><i></i>'+_EG_TXT[e.v]+'</span></div>')+s+x+t+bhCap('2012\u20132026 replay, macro excluded','Rule evidence from the walk-forward replay. It describes how the rule behaved on past weeks; it is not a probability for this trade.')+'</div>';
 }
 /* home: edge matrix with this week's live markets placed in it */
 function _egMatrix(mob){
@@ -27303,12 +27317,12 @@ function marketReadInner(id){
       +(viz?'<div class="mr3-viz">'+viz+'</div>':'')
       +'<ul>'+facts.slice(0,3).map(f=>'<li>'+_esc(f)+'</li>').join('')+'</ul>'+(facts.length>3?'<details class="mr3-more" onclick="event.stopPropagation()"><summary>'+(facts.length-3)+' more</summary><ul>'+facts.slice(3).map(f=>'<li>'+_esc(f)+'</li>').join('')+'</ul></details>':'')+'<span class="go">Open tab &rarr;</span></div>';
   }).join('')+'</div>';
-  h+='<div class="mr3-low">'+(r.setup?'<details class="mr3-egd"><summary>Archetype replay check · 13 weeks</summary>'+_egCard(r)+'</details>':_egCard(r));
+  h+='<div class="mr3-low">'+(r.setup?(function(){ const e=_egFor(r), chip=e?' <span class="eg-chip '+e.v+'"><i></i>'+_EG_TXT[e.v]+'</span>':''; return '<details class="mr3-egd"><summary>Archetype replay check · 13 weeks'+chip+'</summary>'+_egCard(r,{inner:1})+'</details>'; })():_egCard(r));
   h+='<div class="gl mr3-box"><div class="mr2-sub">What would change it</div><ul class="mr2-ul">'+((R.watch||[]).length?R.watch.map(w=>'<li>'+_esc(w)+'</li>').join(''):'<li>Nothing close to a threshold this week.</li>')+'</ul>'
     +((R.risks||[]).length?'<div class="mr2-gates">'+R.risks.map(g=>'<span class="dk-gate">'+_esc(g)+'</span>').join('')+'</div>':'')+'</div>';
   h+='<div class="mr3-col">';
   h+='<div class="gl mr3-box"><div class="mr2-sub">Ahead for '+_esc((r.currencies||[]).join(', ')||'this market')+'</div>'+(evs.length?'<div class="wke-tl sm">'+evs.slice(0,5).map((e,i)=>'<div class="wke-i'+(i===0?' next':'')+'"><span class="dot"></span><span class="tm">'+_dkT(e.datetime_utc,{weekday:'short',hour:'2-digit',minute:'2-digit'})+'</span><span class="cc">'+_esc(e.currency)+'</span><span class="nm">'+_esc(e.name)+(e.forecast?' <span class="x">f '+_esc(e.forecast)+'</span>':'')+'</span></div>').join('')+'</div>':'<div class="wk-empty">No top-tier prints in the feed for these currencies.</div>')+'</div>';
-  if(R.engine&&R.engine.text&&!r.setup) h+='<details class="gl mr3-box mr3-eng'+(R.engine.disagrees?' dis':'')+'"><summary><span>Bias · composite engine</span>'+(ws!=null?'<b style="color:'+sHex(ws)+'">'+ws.toFixed(1)+'</b>/10':'')+(R.engine.disagrees?' <em>'+(r.setup?'counter-trend to the setup':'disagrees with the desk')+'</em>':'')+'</summary><p>'+_esc(R.engine.text)+'</p></details>';
+  if(R.engine&&R.engine.text&&!r.setup) h+='<details class="gl mr3-box mr3-eng'+(R.engine.disagrees?' dis':'')+'"><summary><span>Engine composite · reference</span>'+(ws!=null?'<b style="color:'+sHex(ws)+'">'+ws.toFixed(1)+'</b>/10':'')+(R.engine.disagrees?' <em>differs from the Desk read</em>':'')+'</summary><p>'+_esc(R.engine.text)+'</p></details>';
   h+='</div></div>';
   return h;
 }
@@ -27435,14 +27449,14 @@ function _sbRow(m,r,dim){
     +(r?'<div class="sb2-sub">'+_dkDots(r)+(r.setup?(_suTmShort(r)&&!['flat','with'].includes(_suTm(r).state)?'<span class="sb2-tm '+_suTmCls(_suTm(r).state)+'">'+_esc(_suTmShort(r))+'</span>':''):_dkTrigTag(r))+_dkArch(r)+'</div>':'')+'</div>'
     +(r?_dkSide(r.side,dim?0:lean):'')
     +(r&&r.setup&&SB_SORT==='setups'
-      ?'<div class="mr-right"><span class="sb2-su" style="color:'+_suCol(r)+'" title="Setup score for the desk side, 0 to 10. Bias (composite) '+(ws!=null?ws.toFixed(1):'n/a')+'">'+_suNum(r)+'</span></div></div>'
-      :'<div class="mr-right"><span class="sb2-score" style="color:'+col+'" title="Bias (composite), for reference">'+(ws!=null?ws.toFixed(1):'—')+'</span></div></div>');
+      ?'<div class="mr-right"><span class="sb2-su" style="color:'+_suCol(r)+'" title="Setup score for the desk side, 0 to 10. Engine composite '+(ws!=null?ws.toFixed(1):'n/a')+' for reference">'+_suNum(r)+'</span></div></div>'
+      :'<div class="mr-right"><span class="sb2-score" style="color:'+col+'" title="Engine composite, for reference">'+(ws!=null?ws.toFixed(1):'—')+'</span></div></div>');
 }
 
 function renderList(){
   if(!DATA)return;
   document.querySelectorAll('.sb-sort button').forEach(b=>{ const on=b.dataset.s===(DESK?SB_SORT:'score'); b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false'); });
-  const _sn=document.getElementById('sb-scale-note'); if(_sn) _sn.textContent=(DESK&&SB_SORT==='setups')?'setup score 0 to 10, by readiness':'bias (composite), 1 to 10';
+  const _sn=document.getElementById('sb-scale-note'); if(_sn) _sn.textContent=(DESK&&SB_SORT==='setups')?'setup score 0 to 10, by readiness':'engine composite 1 to 10, reference only';
   if(DESK&&DESK.rows&&SB_SORT==='setups') return renderSetupList();
 
   const _srchQ = (document.getElementById('sb-search')?.value||'').trim().toLowerCase();
@@ -27764,6 +27778,21 @@ function renderOverview(){
       // Drive the score arc
       // Arc ring: regime score (-4..+4) normalised to 0-10, matching the climate label
       const _arcScore = regScore!=null ? Math.max(0,Math.min(10,regScore)) : parseFloat(avg);
+      const _mobPills=()=>{
+          /* v13: desk figures on the phone hero; the engine average is no longer a headline */
+          const DK=(typeof DESK!=='undefined'&&DESK&&DESK.rows)?DESK.rows:null;
+          if(DK){ const rd=DK.filter(r=>r.setup&&_suKey(r)==='ready'), nl=rd.filter(r=>r.side>0).length, ns=rd.filter(r=>r.side<0).length;
+            return `<div class="mob-hero-pill"><span class="mob-hero-pill-lbl">Trade-ready</span><span class="mob-hero-pill-val" style="color:#F1E3BE">${rd.length}<span class="mob-hero-pill-denom">/${DK.length}</span></span></div>
+          <div class="mob-hero-pill-div"></div>
+          <div class="mob-hero-pill"><span class="mob-hero-pill-lbl">Climate</span><span class="mob-hero-pill-val" style="color:${regCol}">${regScore!=null?regScore.toFixed(1):'—'}<span class="mob-hero-pill-denom">/10</span></span></div>
+          <div class="mob-hero-pill-div"></div>
+          <div class="mob-hero-pill"><span class="mob-hero-pill-lbl">Ready book</span><span class="mob-hero-pill-val"><span style="color:#26c97a">↑${nl}</span><span style="color:rgba(255,255,255,0.20);font-size:10px;margin:0 3px">·</span><span style="color:#d63a24">↓${ns}</span></span></div>`; }
+          return `<div class="mob-hero-pill"><span class="mob-hero-pill-lbl">Engine avg</span><span class="mob-hero-pill-val" style="color:${avgCol}">${avg}<span class="mob-hero-pill-denom">/10</span></span></div>
+          <div class="mob-hero-pill-div"></div>
+          <div class="mob-hero-pill"><span class="mob-hero-pill-lbl">Climate</span><span class="mob-hero-pill-val" style="color:${regCol}">${regScore!=null?regScore.toFixed(1):'—'}<span class="mob-hero-pill-denom">/10</span></span></div>
+          <div class="mob-hero-pill-div"></div>
+          <div class="mob-hero-pill"><span class="mob-hero-pill-lbl">Bull / Bear</span><span class="mob-hero-pill-val"><span style="color:#26c97a">↑${bull}</span><span style="color:rgba(255,255,255,0.20);font-size:10px;margin:0 3px">·</span><span style="color:#d63a24">↓${bear}</span></span></div>`; };
+      window._mobPillsRefresh=()=>{ try{ const el=mhero.querySelector('.mob-hero-pills'); if(el) el.innerHTML=_mobPills(); }catch(e){} };
       initMobHeroArc(_arcScore, regCol);
 
       mhero.innerHTML=`
@@ -27786,22 +27815,7 @@ function renderOverview(){
         })()}</div>
         <div class="mob-hero-rule"></div>
         <div class="mob-hero-desc">${mobDesc}</div>
-        <div class="mob-hero-pills">
-          <div class="mob-hero-pill">
-            <span class="mob-hero-pill-lbl">Avg bias</span>
-            <span class="mob-hero-pill-val" style="color:${avgCol}">${avg}<span class="mob-hero-pill-denom">/10</span></span>
-          </div>
-          <div class="mob-hero-pill-div"></div>
-          <div class="mob-hero-pill">
-            <span class="mob-hero-pill-lbl">Climate</span>
-            <span class="mob-hero-pill-val" style="color:${regCol}">${regScore!=null?regScore.toFixed(1):'—'}<span class="mob-hero-pill-denom">/10</span></span>
-          </div>
-          <div class="mob-hero-pill-div"></div>
-          <div class="mob-hero-pill">
-            <span class="mob-hero-pill-lbl">Bull / Bear</span>
-            <span class="mob-hero-pill-val"><span style="color:#26c97a">↑${bull}</span><span style="color:rgba(255,255,255,0.20);font-size:10px;margin:0 3px">·</span><span style="color:#d63a24">↓${bear}</span><span style="font-size:9px;color:var(--faint);font-weight:400;margin-left:3px">mkts</span></span>
-          </div>
-        </div>
+        <div class="mob-hero-pills">${_mobPills()}</div>
         <div class="mob-hero-sent">
           <div class="mob-hero-sent-seg" style="width:${bullPct2}%;background:#26c97a"></div>
           <div class="mob-hero-sent-seg" style="width:${neutPct2}%;background:#4a5268"></div>
@@ -37109,7 +37123,7 @@ function buildOverview(m){
 
     <!-- OV-V6: engine fingerprint + method folded into one reference drawer (closed by default) -->
     <details class="ov-eng-ref"${(()=>{try{return localStorage.getItem('bh_ov_engref')==='1'?' open':'';}catch(_){return '';}})()} ontoggle="try{localStorage.setItem('bh_ov_engref',this.open?'1':'0')}catch(_){}">
-      <summary><span class="oer-k">Bias · composite engine</span><span class="oer-v"><b style="color:${sHex(ws)}">${ws.toFixed(1)}</b>/10 · ${_esc(chipLabel)} · ${confTitle}</span><span class="oer-mini">${factorKeys.map(k=>{const sc=normalisedScores[k]?.score??5;return `<i style="background:${sHex(sc)}" title="${FACTOR_LABELS[k]||k} ${sc.toFixed(1)}"></i>`;}).join('')}</span><span class="oer-cta">Fingerprint and method</span></summary>
+      <summary><span class="oer-k">Engine composite · reference</span><span class="oer-v"><b style="color:${sHex(ws)}">${ws.toFixed(1)}</b>/10 · ${_esc(chipLabel)} · ${confTitle}</span><span class="oer-mini">${factorKeys.map(k=>{const sc=normalisedScores[k]?.score??5;return `<i style="background:${sHex(sc)}" title="${FACTOR_LABELS[k]||k} ${sc.toFixed(1)}"></i>`;}).join('')}</span><span class="oer-cta">Fingerprint and method</span></summary>
     <div class="ov-conf-strip" style="--ov-stripe-rgb:${stripeRgb}">
       <div class="ov-conf-summary" style="--ov-stripe-rgb:${stripeRgb}">
         <div class="ov-conf-summary-title"><span class="ov-conf-eng">Engine</span>${confTitle}</div>
@@ -37125,7 +37139,7 @@ function buildOverview(m){
     <div class="ov-method-card">
       <span class="ov-method-accent"></span>
       <div class="ov-method-txt">
-        <b>How this page reads:</b> the market read is the desk view. House COT (futures-only, 156-report mid-rank) sets the payoff, macro and trend set the side, and seasonality and the Valuation Tool time it. The fingerprint above is the scoring engine's 1 to 10 composite, shown for reference and never inverted. Where the two disagree, both are shown and neither is adjusted to match. Nothing here is a probability.
+        <b>How this page reads:</b> the market read is the desk view. House COT (futures-only, 156-report mid-rank) sets the payoff, trend and macro are the backdrop the side is judged against, and seasonality and the Valuation Tool time it. The fingerprint above is the scoring engine's 1 to 10 composite, shown for reference and never inverted. Where the two disagree, both are shown and neither is adjusted to match. Nothing here is a probability.
       </div>
     </div>
     </details>
@@ -37297,7 +37311,7 @@ function dHead(m,ws,col,bg){
       <div class="d-name">${m.name}${iceLabel}</div>
       <div class="d-bias-row">
         <span class="d-desk-slot" id="d-desk-slot" data-dk="${m.id}">${_dHeadDesk(m)}</span>
-        ${(typeof deskRow==='function'&&deskRow(m.id)&&deskRow(m.id).setup)?'':`<div class="d-bias-pill d-eng-pill" style="background:${bg};color:${col};border:1px solid ${col}40">Bias · ${m.bias}</div>`}
+        ${(typeof deskRow==='function'&&deskRow(m.id)&&deskRow(m.id).setup)?'':`<div class="d-bias-pill d-eng-pill" style="background:${bg};color:${col};border:1px solid ${col}40">Engine · ${m.bias}</div>`}
       </div>
       ${iceThinWarn}
       <!-- COT Phase & Score History moved: Phase→Positioning tab, History→tab nav right end -->
@@ -37424,9 +37438,9 @@ function _dHeroSu(m,ws,r){
     +(v!=null?'<circle cx="'+P(dd,R).split(',')[0]+'" cy="'+P(dd,R).split(',')[1]+'" r="8" fill="'+col+'" opacity=".18" filter="url(#f'+uid+')"/><circle cx="'+P(dd,R).split(',')[0]+'" cy="'+P(dd,R).split(',')[1]+'" r="4.5" fill="'+col+'"/><circle cx="'+P(dd,R).split(',')[0]+'" cy="'+P(dd,R).split(',')[1]+'" r="1.8" fill="rgba(255,255,255,.75)"/>':'')
     +'<text x="'+cx+'" y="'+(cy+8)+'" text-anchor="middle" font-family="var(--head)" font-size="8.5" font-weight="700" letter-spacing="0.12em" fill="'+rd.c+'" opacity=".9">'+_esc(rl)+'</text></svg></div>'
     +(su.projected?'<div class="su-h-proj" title="'+_esc(su.projected.note||'')+'">'+Number(su.projected.score).toFixed(1)+' at the window · '+_esc(_dkT(su.projected.date))+'</div>':'')
-    +'<div class="su-h-bias">'+_suBias(ws,null,{sm:1})+'</div>'
+    +'<div class="su-h-bias">'+_suBackdrop(r,{sm:1})+'</div>'
     +(su.relation&&su.relation.key!=='none'?'<div class="su-h-rel k-'+su.relation.key+'">'+_esc(su.relation.text)+'</div>':'')
-    +'<div class="su-h-lk"><button onclick="_suGo()">Score receipt</button><button onclick="openMethModal(\''+m.id+'\')">Bias method</button></div>'
+    +'<div class="su-h-lk"><button onclick="_suGo()">Score receipt</button><button onclick="openMethModal(\''+m.id+'\')">Method</button></div>'
     +'</div>';
 }
 function _suGo(){ try{ switchTab('overview'); }catch(e){} setTimeout(()=>{ const el=document.querySelector('.su-panel'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },160); }
@@ -39415,7 +39429,7 @@ function seasGoldilocksHTML(g,sd){
     head=`${g.tdsAway} trading days to the seasonal entry`;
     body=`History ${g.dir>0?'bottoms':'tops'} around <strong>${g.targetLabel}</strong>, then ${runWord} a median <strong style="color:${accent}">${pc(priceLeg)}</strong> into <strong>${g.legEndLabel}</strong>${g.consistency!=null?`, ${g.legSrc==='planner'?'paid':'held'} in <strong>${g.consistency}%</strong> of years`:''}.${caveat}`;
   } else if(g.state==='now'){
-    tag='ENTER NOW';tagCol=accent;tagRgb=rgb;
+    tag='WINDOW OPEN';tagCol=accent;tagRgb=rgb;
     big='NOW';bigSub='zone open';
     head='Seasonal entry window open';
     body=g.legSrc==='planner'
@@ -39448,7 +39462,7 @@ function seasGoldilocksHTML(g,sd){
       <div class="sx-gold-top">
         <span class="sx-gold-kicker">Goldilocks entry</span>
         <span class="sx-gold-tag">${tag}</span>
-        ${(g.dir!==0&&g.state!=='none')?`<span class="sx-gold-dir">${arrow} ${dirWord.toUpperCase()} SETUP</span>`:''}
+        ${(g.dir!==0&&g.state!=='none')?`<span class="sx-gold-dir">${arrow} ${dirWord.toUpperCase()} LEG</span>`:''}
       </div>
       <div class="sx-gold-head">${head}</div>
       <div class="sx-gold-text">${body}</div>
@@ -39553,7 +39567,7 @@ function seasPerYearHTML(sd,canvasId){
     <div class="sx-panel-head"><div class="t">Every year in the window</div>
       <span class="sx-panel-r">${py.length} yrs · ${good} ${dir<0?'down':'up'} · sorted worst → best${dir<0?' for a short':''}</span></div>
     ${_sxPyBars(py,dir)}
-    ${bhCap('Green = price rose \u00b7 red = fell \u00b7 solid = with the '+(dir<0?'short':'long'),'Raw per-year returns of the current forward window. Faded bars went against the bias. Hover a bar for the year and its recency and cycle weight.')}
+    ${bhCap('Green = price rose \u00b7 red = fell \u00b7 solid = with the '+(dir<0?'short':'long'),'Raw per-year returns of the current forward window. Faded bars went against the seasonal lean. Hover a bar for the year and its recency and cycle weight.')}
   </div>`;
 }
 
@@ -39572,7 +39586,7 @@ function _sxPyBars(py,dir){
   const cols=sorted.map((p,i)=>{
     const up=p.r>=0, h=Math.max(2,Math.abs(p.r)/mx*100), withBias=dir<0?p.r<0:p.r>0, a=(dir===0||withBias)?.9:.35;
     const c=up?`rgba(34,201,122,${a})`:`rgba(224,82,82,${a})`;
-    const t=`${p.y}: ${pc(p.r)}${p.w!=null?' · weight '+(+p.w).toFixed(2):''}${dir!==0?(withBias?' · with the bias':' · against the bias'):''}`;
+    const t=`${p.y}: ${pc(p.r)}${p.w!=null?' · weight '+(+p.w).toFixed(2):''}${dir!==0?(withBias?' · with the seasonal lean':' · against the seasonal lean'):''}`;
     return `<div class="sxpb-c" title="${_sxEsc(t)}"><div class="sxpb-u">${up?`<i style="height:${h}%;background:${c}"></i>`:''}</div><div class="sxpb-d">${!up?`<i style="height:${h}%;background:${c}"></i>`:''}</div><b>${i%lblEvery===0?"'"+String(p.y).slice(2):''}</b></div>`;
   }).join('');
   return `<div class="sxpb"><div class="sxpb-ax"><span>${pc(mx)}</span><span>0</span><span>${pc(-mx)}</span></div><div class="sxpb-g">${cols}</div></div>
@@ -39602,7 +39616,7 @@ function seasDrawPerYearBars(canvasId,sd){
       plugins:{legend:{display:false},tooltip:{callbacks:{
         title:i=>i.length?String(sorted[i[0].dataIndex].y):'',
         label:i=>{const p=sorted[i.dataIndex];const withBias=dir<0?p.r<0:p.r>0;
-          return (i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'% · weight '+(p.w!=null?(+p.w).toFixed(2):'—')+(dir!==0?(withBias?' · with the bias':' · against the bias'):'');}}}},
+          return (i.parsed.y>=0?'+':'')+i.parsed.y.toFixed(2)+'% · weight '+(p.w!=null?(+p.w).toFixed(2):'—')+(dir!==0?(withBias?' · with the seasonal lean':' · against the seasonal lean'):'');}}}},
       scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:8},autoSkip:true,maxTicksLimit:12,maxRotation:0}},
         y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a93a8',font:{size:8},callback:v=>(v>=0?'+':'')+v+'%'}}}}});
 }
@@ -39811,10 +39825,9 @@ function seasTabStub(m){
       nxtH=`${d.plan_dir>0?'Long':'Short'} window open now`; nxtC=d.plan_dir>0?'#22C97A':'#E05252';
       nxtS=`${d.exit_by_date?'Seasonal exit by '+_sxEsc((()=>{const t=new Date(String(d.exit_by_date).slice(0,10)+'T12:00:00Z');return isNaN(t)?d.exit_by_date:t.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});})())+'.':''}${d.expected_move_pct!=null?` Median leg ${pc(d.expected_move_pct)}.`:''}`;
     }
-    if(d.far_median_pct!=null) nxtS+=` Weeks 4–8 context ${pc(d.far_median_pct)}${d.far_hit_rate!=null?` (${d.far_hit_rate}% up)`:''}, not scored.`;
     return `<div class="fx-read">
       <div class="fx-read-c"><div class="fx-read-k">Now · scored 1–4 weeks</div><div class="fx-read-h" style="color:${nowC}">${dir>0?'▲ ':dir<0?'▼ ':''}${nowW} <span>${sc.toFixed(1)}/10</span></div>
-        <div class="fx-read-s">1–2w ${pc(m12)} · 3–4w ${pc(m34)}, ${hit??'—'}% of years up. Positive = price tends to rise.</div></div>
+        <div class="fx-read-s">3–4 week window, ${hit??'—'}% of years up. Positive = price tends to rise; the horizon cards below carry the figures.</div></div>
       <div class="fx-read-c"><div class="fx-read-k">Trust</div><div class="fx-read-h" style="color:${gm.col}">${grade?grade+' · ':''}${_sxEsc(gm.label)}</div>
         <div class="fx-read-s">${trustTxt}${cons}</div></div>
       <div class="fx-read-c"><div class="fx-read-k">Next</div><div class="fx-read-h" style="color:${nxtC}">${nxtH}</div>
@@ -39915,7 +39928,8 @@ function seasTabStub(m){
   ${seasWindowStripHTML(d)}
   <div class="seas-legend">
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2.5px solid #6b7cff"></span>Hist. Median (past)</span>
-    <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:1.5px dashed rgba(107,124,255,0.5)"></span>Projected</span>
+    <span class="seas-leg-item" data-leg-proj><span class="seas-leg-line" style="border-top:1.5px dashed rgba(107,124,255,0.5)"></span>Projected</span>
+    <span class="seas-leg-item sx-chip-tap" data-leg-fwd hidden onclick="sxTip(this,event)" data-tip-title="Forward path" data-tip="Every past year rebased to zero at today, weighted median of the moves from here, hung off today\u2019s median level. The same numbers as the consensus cells; the colour carries no verdict."><span class="seas-leg-line" style="border-top:2.2px solid #F1E3BE"></span>Forward path from today</span>
     <span class="seas-leg-item sx-chip-tap" onclick="sxTip(this,event)" data-tip-title="Plausible range" data-tip="The 15–85% envelope of median curves rebuilt under ~14 other reasonable framings (window length, recency decay, cycle blend, odd/even splits). Wide means the framings disagree and the curve is fragile; narrow means the shape is robust."><span class="seas-leg-line" style="height:7px;background:rgba(107,124,255,0.16);border-top:none;border-radius:2px"></span>Plausible range</span>
     <span class="seas-leg-item"><span class="seas-leg-line" style="border-top:2px solid rgba(255,255,255,0.85)"></span>${new Date().getFullYear()}&nbsp;YTD actual<span class="seas-leg-ax" data-ax-note></span></span>
     <span class="seas-leg-item"><span class="seas-leg-dot" style="background:#e03a2a"></span>Today</span>
@@ -46690,15 +46704,18 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
   // Projected (future) — dashed, faded. This is the median OF LEVELS continued past
   // today; composition-dependent, kept as a faint reference only when a forward path exists.
   const _hasFwd=!!(fwd&&Array.isArray(fwd.median)&&fwd.median.length>=252);
-  datasets.push({
-    label:_hasFwd?'Hist. Median (levels)':'Projected',
+  /* v13: one line leaves today. The dashed median-of-levels continuation is drawn only when there is no
+     forward path to show; two diverging lines from the same point read as a glitch. */
+  if(!_hasFwd) datasets.push({
+    label:'Projected',
     data:histFuture,
-    borderColor:isModal?(_hasFwd?'rgba(107,124,255,0.22)':'rgba(107,124,255,0.4)'):(_hasFwd?'rgba(91,110,245,0.18)':'rgba(91,110,245,0.32)'),
+    borderColor:isModal?'rgba(107,124,255,0.4)':'rgba(91,110,245,0.32)',
     borderWidth:isModal?1.6:1.3,
     borderDash:[6,4],
     pointRadius:0,tension:0,fill:false,
     order:3
   });
+  setTimeout(()=>{ document.querySelectorAll('[data-leg-proj]').forEach(e=>{ e.hidden=_hasFwd; }); document.querySelectorAll('[data-leg-fwd]').forEach(e=>{ e.hidden=!_hasFwd; }); },0);
   // SEAS-V3b: FORWARD PATH — every year rebased to 0 at today, weighted median of the
   // moves (same lens + same quantile routine as the score / consensus / planner), hung
   // off today's median level. Its value at +10/+15/+20 TD equals the consensus cells.
@@ -46709,12 +46726,11 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
     let _L0=null; for(let i=0;i<labels.length;i++){ if(labels[i]===_anchorTD&&allV[i]!=null){_L0=1+allV[i]/100;break;} }
     if(_L0!=null){
       const fwdV=labels.map(td=>{ const r=fwd.median[td-1]; return (td>=_anchorTD&&r!=null)?((_L0*(1+r/100))-1)*100:null; });
-      const _r20=fwd.median[Math.min(251,_ai+20)]; const _upF=(_r20==null)?true:_r20>=0;
       datasets.push({
         label:'Forward path (rebased to today)',
         data:fwdV,
-        borderColor:_upF?(isModal?'rgba(62,207,142,0.95)':'rgba(62,207,142,0.9)'):(isModal?'rgba(229,72,77,0.95)':'rgba(229,72,77,0.9)'),
-        borderWidth:isModal?2.4:2,
+        borderColor:isModal?'rgba(241,227,190,0.95)':'rgba(241,227,190,0.9)',
+        borderWidth:isModal?2.4:2.1,
         pointRadius:0,tension:0.15,fill:false,
         order:1
       });
@@ -46810,7 +46826,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
         y:{
           position:'left',
           min:_yClampMin,max:_yClampMax,
-          title:_dualScales&&isModal?{display:true,text:'SEASONAL %',color:'rgba(107,124,255,0.55)',font:{size:8,weight:'600',family:'Inter,sans-serif'},padding:{bottom:4}}:{display:false},
+          title:_dualScales?{display:true,text:'SEASONAL %',color:'rgba(107,124,255,0.6)',font:{size:isModal?8:7.5,weight:'600',family:'Inter,sans-serif'},padding:{bottom:4}}:{display:false},
           ticks:{
             color:_dualScales?'rgba(107,124,255,0.5)':'rgba(255,255,255,0.28)',
             font:{size:isModal?8:7.5,family:'JetBrains Mono,monospace'},
@@ -46826,7 +46842,7 @@ function buildSeasChart(ctx,labels,allV,band,cyActual,months,todayTD,prefix,scor
           position:'right',
           min:_dualScales?_yAClampMin:_yClampMin,
           max:_dualScales?_yAClampMax:_yClampMax,
-          title:_dualScales&&isModal?{display:true,text:'YTD %',color:'rgba(255,255,255,0.55)',font:{size:8,weight:'600',family:'Inter,sans-serif'},padding:{bottom:4}}:{display:false},
+          title:_dualScales?{display:true,text:(new Date().getFullYear())+' YTD %',color:'rgba(255,255,255,0.6)',font:{size:isModal?8:7.5,weight:'600',family:'Inter,sans-serif'},padding:{bottom:4}}:{display:false},
           ticks:{
             color:'rgba(255,255,255,0.45)',
             font:{size:isModal?8:7.5,family:'JetBrains Mono,monospace'},
@@ -46962,29 +46978,29 @@ function renderSeasStats(all,mt,todayTD,sd,cya,containerId){
 /* ════════════════════════════════════════════
    ONBOARDING
 ════════════════════════════════════════════ */
-const OB_KEY = 'bh_onboarding_complete_v2';
+const OB_KEY = 'bh_onboarding_complete_v3';
 let obStep = 0;
 
 const OB_STEPS = [
   {
-    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="rgba(200,169,110,0.5)" stroke-width="1.5"/><text x="16" y="21" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#c8a96e">7.2</text></svg>`,
-    title: 'What the Score Means',
-    body: 'Each of 57 markets gets a 1–10 composite. <strong style="color:var(--s1)">Above 6 = bullish</strong>, <strong style="color:var(--sm1)">below 4 = bearish</strong>, around 5 = no clear signal. It is <strong style="color:var(--text)">not a weighted average</strong> — edge-bearing factors (macro, climate, seasonality) vote only when they have a clear view and abstain otherwise; their agreement is scaled by a trend/regime gate (clean trend = high conviction, chop = stand aside). COT positioning rides alongside as a separate risk/reward setup.'
+    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="rgba(241,227,190,0.5)" stroke-width="1.5"/><text x="16" y="21" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#F1E3BE">8.5</text></svg>`,
+    title: 'The setup score',
+    body: 'Every market carries a <strong style="color:var(--text)">setup score, 0 to 10, for the desk side</strong>. House COT (futures-only, 156-report mid-rank, the same basis as the TradingView indicators) sets the payoff, the Valuation Tool and seasonality time it, structure confirms it. <strong style="color:var(--text)">Trade-ready</strong> means 6 or more with no seasonal block and no replay veto. It ranks setups; it is not a probability.'
   },
   {
-    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="3" rx="1.5" fill="rgba(200,169,110,0.6)"/><rect x="4" y="15" width="18" height="3" rx="1.5" fill="rgba(200,169,110,0.35)"/><rect x="4" y="22" width="21" height="3" rx="1.5" fill="rgba(200,169,110,0.25)"/></svg>`,
-    title: 'How to Use the Home Screen',
-    body: 'The rankings list shows all markets sorted by composite score — the strongest setups rise to the top, the weakest sink to the bottom. A gold ◉ glyph flags markets with an active COT risk/reward setup. Use the category filters or search bar to quickly find a specific market.'
+    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M6 20l6-7 5 4 9-10" stroke="rgba(34,201,122,0.8)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 26h20" stroke="rgba(241,227,190,0.35)" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    title: 'Backdrop, not bias',
+    body: 'Trend and macro are read together as the <strong style="color:var(--text)">backdrop</strong> the side is judged against: with it or against it. A fade against the backdrop is normal and is where the replay found the cleanest edge; it sizes down when macro is against, it never flips the side. The old 1 to 10 engine composite is kept for reference only.'
   },
   {
-    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="5" stroke="rgba(200,169,110,0.7)" stroke-width="1.5"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="rgba(200,169,110,0.4)" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-    title: 'Factor Tabs — Full Depth',
-    body: 'Tap any market to open the detail page. Each tab — Positioning, Seasonal, Momentum, Fundamentals — shows the raw data behind each score. When factors align you’ll see the <strong style="color:var(--accent)">Confluence Active</strong> callout. Tap “How is this scored?” for the full methodology.'
+    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="5" y="11" width="22" height="6" rx="1.5" fill="rgba(34,201,122,0.18)" stroke="rgba(34,201,122,0.6)" stroke-width="1.2"/><path d="M8 24l4-5 3 3 4-7 5 3" stroke="rgba(241,227,190,0.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    title: 'Levels are yours',
+    body: 'The Levels panel draws supply and demand bases (rally-base-rally, drop-base-drop and the reversals) from session-built CME, COMEX and CBOT bars on the weekly, two-day and daily, with a 4h and 8h zoom to refine the base. Zones and stops stay your call; the desk tells you what history did at graded levels, not where to enter.'
   },
   {
-    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 6l2 7h7l-5.5 4 2 7L16 20l-5.5 4 2-7L7 13h7z" stroke="rgba(200,169,110,0.6)" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
-    title: 'A Note on Usage',
-    body: 'BH Weather System provides <strong style="color:var(--text)">directional bias indicators</strong> built from publicly available data (CFTC COT, macroeconomic releases, market prices). Scores are a research tool only — <strong style="color:var(--accent)">not financial advice</strong>. Always combine with your own analysis and risk management.'
+    icon: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 6l2 7h7l-5.5 4 2 7L16 20l-5.5 4 2-7L7 13h7z" stroke="rgba(241,227,190,0.6)" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
+    title: 'What the evidence is',
+    body: 'Replay tables, payoff cones and the Edge lab are <strong style="color:var(--text)">descriptive history of setups like this one</strong> on 2012 to 2026 data, failures included, no costs. Nothing here is a probability for a given trade and nothing is financial advice. The system is there to sharpen judgement, not to replace it.'
   }
 ];
 
@@ -47459,6 +47475,18 @@ initNexusNoise();
 .su-rd{display:inline-flex;align-items:center;font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 42%,transparent);background:color-mix(in srgb,var(--c) 9%,transparent);padding:3px 9px;border-radius:5px;white-space:nowrap}
 .su-rd.k-ready{box-shadow:0 0 14px rgba(241,227,190,.14)}
 .su-rd.sm{font-size:8px;padding:2px 6px}
+/* v13 backdrop chip: trend and macro pills plus the combined label */
+.su-bd{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;color:var(--faint);white-space:nowrap}
+.su-bd em{font-style:normal;letter-spacing:.12em;text-transform:uppercase;font-size:8px;font-weight:800}
+.su-bd .su-bd-p{font-style:normal;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);line-height:1.2}
+.su-bd strong{font-size:11px;font-weight:800;text-transform:capitalize;letter-spacing:.01em}
+.su-bd.sm{display:inline-flex;flex-direction:column;align-items:center;gap:5px}
+.su-bd.sm .su-bd-l{display:inline-flex;align-items:center;gap:7px}
+.su-bd.sm .su-bd-pills{display:inline-flex;gap:5px}
+.su-bd.sm .su-bd-p{font-size:8px;padding:1px 6px}
+.su-h-bias .su-bd.sm{align-items:center}
+#d-score-hero .su-h-bias .su-bd.sm{align-items:center}
+@media (max-width:700px){ .su-h-bias .su-bd.sm{align-items:flex-start} }
 .su-rel{font-size:11px;color:#aab3c5;padding:2px 0;white-space:nowrap}
 .su-rel.k-counter{color:#cfd6e4}
 .su-bias{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;color:var(--faint);white-space:nowrap}
@@ -49959,6 +49987,23 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
 .v12-zn-how .v12-zn-cap{margin-top:6px}.v12-zn-how .v12-zn-cap>div{margin-bottom:6px}
 .v12-zn-how.sm{border-top:0;margin-top:6px;padding-top:0}
 .v12-zn-how.sm .nt{margin-top:6px;font-size:11px;color:rgba(151,161,181,.75)}.v12-zn-how.sm .nt div{margin-bottom:4px}
+/* v13 shared disclosure for panel footnotes (does it pay, crowd map, replay tables) */
+.bh-how{margin-top:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
+.bh-how summary{cursor:pointer;list-style:none;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(151,161,181,.6);display:inline-flex;align-items:center;gap:7px;padding:2px 0}
+.bh-how summary::-webkit-details-marker{display:none}
+.bh-how summary::before{content:"";width:5px;height:5px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(-45deg);transition:transform .15s;margin-left:1px}
+.bh-how[open] summary::before{transform:rotate(45deg)}
+.bh-how summary:hover{color:rgba(241,227,190,.85)}
+.bh-how>.v12-pay-cap,.bh-how>.v12-cm-cap{margin-top:6px}
+/* v13 home: lower panels size to their content */
+.wk2-low{align-items:start}
+/* v13 home: board above a wide setup map */
+.wk2-main.v13-stack{grid-template-columns:minmax(0,1fr)!important;align-items:stretch!important}
+html body .wk2-main.v13-stack>.wkm{position:static!important;top:auto!important}
+.wk2-main.v13-stack .wkb-prime{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.wk2-main.v13-stack .wkm-svg{width:100%;height:auto!important;max-height:460px!important}
+@container bhws-content (max-width:959px){ .wk2-main.v13-stack .wkb-prime{grid-template-columns:repeat(2,minmax(0,1fr))!important} }
+@container bhws-content (max-width:639px){ .wk2-main.v13-stack .wkb-prime{grid-template-columns:repeat(2,minmax(0,1fr))!important} }
 /* ===== end v12 css: zones ===== */
 /* ===== v12 css: crowd map (positioning across the complex) ===== */
 .v12-cm{position:relative;margin:10px 0 2px;padding:16px 18px 14px;border-radius:14px;overflow:hidden}
@@ -51878,7 +51923,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
       +'<div class="v12-pay-leg"><span><s></s>middle half of setups</span><span><i class="for"></i>run for the side</span><span><i class="ag"></i>run against</span><span><i class="any"></i>any week</span>'+(prof.plan&&prof.plan.stop_sd!=null?'<span><i class="you"></i>your levels</span>':'')+'</div>'+ownHTML(prof)+'</div>'
       +'<div>'+tableHTML(prof)+'</div></div>';
     body+=stressHTML(prof,id);
-    body+='<div class="v12-pay-cap">Point-in-time replay of the Desk rules, entry at the close after the signal Friday, stops and targets tested on daily closes for 13 weeks, no costs. One \u03c3 is the market\u2019s trailing 52-week weekly standard deviation'+(prof.sd_weekly?' (now '+(prof.sd_weekly*100).toFixed(1)+'% a week)':'')+'. \u201cDip \u00bdR\u201d is how often price traded at least half the stop distance against the entry inside two weeks before any target. History for setups like this one, not a probability for this trade; it does not know whether your zone will hold.</div>';
+    body+='<details class="bh-how"><summary>How this was measured</summary><div class="v12-pay-cap">Point-in-time replay of the Desk rules, entry at the close after the signal Friday, stops and targets tested on daily closes for 13 weeks, no costs. One \u03c3 is the market\u2019s trailing 52-week weekly standard deviation'+(prof.sd_weekly?' (now '+(prof.sd_weekly*100).toFixed(1)+'% a week)':'')+'. \u201cDip \u00bdR\u201d is how often price traded at least half the stop distance against the entry inside two weeks before any target. History for setups like this one, not a probability for this trade; it does not know whether your zone will hold.</div></details>';
     el.innerHTML=hd+body;
     var cv=el.querySelector('canvas'); if(cv){ var draw=function(){ try{ cone(cv,prof); }catch(e){} }; draw(); if(!el._ro&&window.ResizeObserver){ el._ro=new ResizeObserver(function(){ draw(); }); el._ro.observe(cv.parentElement); } }
   }
@@ -52506,7 +52551,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
     h+='</div><div class="v12-cm-leg"><span><s class="c"></s>Commercials</span><span><s class="m"></s>Fund managers</span><span><s class="r"></s>Retail</span><span><s class="x"></s>Extreme bands, 10 and 90</span><span>Sorted by managers \u00b7 tap a row to open it</span></div></div>';
     h+='<div>'+historyHTML(D,id)+pairsHTML(D)+'</div></div>';
     var df=D.definitions||{};
-    h+='<div class="v12-cm-cap"><b>Crowded long</b>: '+esc(df.crowded_long||'')+' <b>Crowded short</b>: '+esc(df.crowded_short||'')+' '+esc(df.history||'')+' Same percentiles as the TradingView COT indicators; the crowd rows use the Desk\u2019s positioning read, the history uses the research file ('+esc((D.evidence_built||'').slice(0,10))+').</div>';
+    h+='<details class="bh-how"><summary>Definitions and sources</summary><div class="v12-cm-cap"><b>Crowded long</b>: '+esc(df.crowded_long||'')+' <b>Crowded short</b>: '+esc(df.crowded_short||'')+' '+esc(df.history||'')+' Same percentiles as the TradingView COT indicators; the crowd rows use the Desk\u2019s positioning read, the history uses the research file ('+esc((D.evidence_built||'').slice(0,10))+').</div></details>';
     el.innerHTML=h;
   }
   function mount(id, force){
@@ -52763,7 +52808,7 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   }
   function build(prev,cur){
     var head='<div class="wk-sub">Since your last visit'+(prev?' <span>'+esc(fmtDay(prev.t))+' to now</span>':'')+'</div>';
-    if(!prev){ return head+'<div class="wk-empty">First visit on this device. The board as it stands is saved; from your next visit on another day this panel lists what moved: trade-ready entrants and exits, side flips, score moves of '+MOVE.toFixed(1)+' or more and price arriving inside a graded level.</div>'; }
+    if(!prev){ return head+'<div class="wk-empty">Board saved for this device. From your next visit on another day this lists what moved: trade-ready entrants and exits, side flips, score moves of '+MOVE.toFixed(1)+' or more, price inside a graded level.</div>'; }
     var items=diff(prev,cur);
     var cotNote=(prev.cot&&cur.cot&&prev.cot!==cur.cot)?'<div class="wkv-cot">New positioning report since then (observed '+esc(cur.cot)+')</div>':'';
     if(!items.length){ return head+cotNote+'<div class="wk-empty">Nothing on the board changed class, side or level since '+esc(fmtDay(prev.t))+'.</div>'; }
@@ -52882,6 +52927,49 @@ html body .nexus-reveal{animation:none!important;opacity:1!important}
   window._v13Toast=toast;
 })();
 /* ===== end v13 js: desk polish ===== */
+
+/* ===== v13 js: plain prose ===== */
+/* The factor explainers were written with spaced em dashes. House style is plain punctuation, so rendered text
+   is normalised once it lands in the page: a parenthetical pair becomes commas, a single dash a semicolon or a
+   full stop, and a dash inside a short label becomes a middle dot. Ranges (2012–2026) and bare placeholders
+   (—) are left alone. Text nodes only; markup, attributes and inputs are never touched. */
+(function(){
+  var DASH=/\s\u2014\s/g, ONE=/\s\u2014\s/;
+  function plain(t){
+    if(t.indexOf(' \u2014 ')<0) return t;
+    var prose=/[.!?]\s|[.!?]$/.test(t.trim())||t.length>70;
+    if(!prose) return t.replace(DASH,' \u00b7 ');
+    return t.replace(/([.!?])\s+(?=[A-Z0-9(\u201c"'])/g,'$1\n').split('\n').map(function(sn){
+      var n=(sn.match(DASH)||[]).length;
+      if(!n) return sn;
+      if(n===2){ var a=sn.search(ONE), b=sn.indexOf(' \u2014 ',a+3), inner=sn.slice(a+3,b), tail=sn.slice(b+3);
+        if(inner.length<60&&/^[a-z]/.test(tail.trim())) return sn.slice(0,a)+', '+inner+', '+tail; }
+      return sn.replace(DASH,function(m,off){ var nx=sn.charAt(off+3); return /[A-Z0-9]/.test(nx)?'. ':'; '; });
+    }).join(' ');
+  }
+  var SKIP={SCRIPT:1,STYLE:1,TEXTAREA:1,INPUT:1,CODE:1,PRE:1,svg:1,SVG:1};
+  function walk(root){
+    if(!root) return;
+    if(root.nodeType===3){ if(root.nodeValue&&root.nodeValue.indexOf('\u2014')>=0){ var v=plain(root.nodeValue); if(v!==root.nodeValue) root.nodeValue=v; } return; }
+    if(root.nodeType!==1||SKIP[root.nodeName]||root.hasAttribute('data-keep-dash')) return;
+    var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){ var p=n.parentNode; if(!p||SKIP[p.nodeName]||p.closest&&p.closest('[data-keep-dash],svg')) return NodeFilter.FILTER_REJECT; return n.nodeValue.indexOf('\u2014')>=0?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_SKIP; }});
+    var n, list=[]; while((n=w.nextNode())) list.push(n);
+    list.forEach(function(x){ var v=plain(x.nodeValue); if(v!==x.nodeValue) x.nodeValue=v; });
+  }
+  var pending=[], raf=0;
+  function flush(){ raf=0; var l=pending; pending=[]; l.forEach(walk); }
+  try{
+    new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){ var m=ms[i];
+        if(m.type==='characterData'){ pending.push(m.target); continue; }
+        for(var j=0;j<m.addedNodes.length;j++) pending.push(m.addedNodes[j]); }
+      if(pending.length&&!raf) raf=requestAnimationFrame(flush);
+    }).observe(document.body,{childList:true,subtree:true,characterData:true});
+  }catch(e){}
+  walk(document.body);
+  window._bhPlain=plain;
+})();
+/* ===== end v13 js: plain prose ===== */
 
 </script>
 </body>

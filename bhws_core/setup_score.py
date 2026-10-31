@@ -1,5 +1,5 @@
 """Setup score: one transparent 0-10 number for the Desk's side, plus the
-seasonal timing state ("sweet spot") and the relation to the engine bias.
+seasonal timing state ("sweet spot") and the relation to the backdrop (trend plus macro).
 
 Three layers, one read:
   Bias   - the engine composite (directional weather). Context, never inverted.
@@ -181,23 +181,64 @@ def timing_state(path: Optional[Dict[str, Any]], side: int, sd_weekly: Optional[
 
 
 def _bias(row: Dict[str, Any]) -> Dict[str, Any]:
+    """The engine composite's direction. Kept for reference only; the relation below no longer uses it."""
     eng = row.get("engine") or {}
     d = (eng.get("direction") or "").lower()
     s = 1 if d.startswith("bull") else -1 if d.startswith("bear") else 0
     return {"dir": s, "label": eng.get("direction") or "Neutral", "conviction": eng.get("conviction")}
 
 
-def _relation(bias: int, side: int, arch: Optional[str]) -> Dict[str, str]:
-    bw = {1: "bullish", -1: "bearish", 0: "neutral"}[bias]
+_BD_LABEL = {2: "bullish", 1: "leans bullish", 0: "neutral", -1: "leans bearish", -2: "bearish"}
+
+
+def backdrop(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Trend plus macro, the two context pillars, read as one backdrop for the setup.
+
+    Trend is the weekly house read (direction and state), macro the hit-rate sign for this market. Each counts
+    plus or minus one; both the same way is bullish or bearish, one of them is a lean, opposite signs are mixed.
+    It is context for the side, never inverted and never a verdict: the setup score does not use it.
+    """
+    tr = row.get("trend") or {}
+    td = int(tr.get("dir") or tr.get("sign") or 0)
+    tstate = tr.get("state") or "n/a"
+    ms = row.get("macro_sign")
+    ms = int(ms) if ms in (1, -1) else 0
+    marginal = bool(row.get("macro_marginal"))
+    total = td + ms
+    if td and ms and td != ms:
+        label, d = "mixed", 0
+    else:
+        d = 1 if total > 0 else -1 if total < 0 else 0
+        label = _BD_LABEL[max(-2, min(2, total))]
+    state_word = {"running": "running", "pullback": "pulling back", "extended": "extended", "range": "range"}.get(tstate, "")
+    if td:
+        tt = f"trend {'up' if td > 0 else 'down'}" + (f", {state_word}" if state_word and state_word != "range" else "")
+    else:
+        tt = "trend sideways" if tstate == "range" else "no trend read"
+    if ms:
+        mt = f"macro {'marginally ' if marginal else ''}{'leans long' if ms > 0 else 'leans short'}"
+    else:
+        mt = "macro abstains"
+    parts = [{"key": "trend", "sign": td, "text": tt, "state": tstate},
+             {"key": "macro", "sign": ms, "text": mt, "marginal": marginal}]
+    return {"dir": d, "total": total, "label": label, "parts": parts, "text": f"Backdrop {label}: {tt}, {mt}."}
+
+
+def _relation(bd: Dict[str, Any], side: int, arch: Optional[str]) -> Dict[str, str]:
+    label = bd.get("label") or "neutral"
+    d = int(bd.get("dir") or 0)
     sw = {1: "long", -1: "short", 0: "none"}[side]
+    # short texts: the chip above already names the backdrop, so the line says only how the side sits against it
     if not side:
-        return {"key": "none", "text": f"Bias {bw}, no setup"}
-    if bias == side:
-        return {"key": "aligned", "text": f"Bias {bw}, setup {sw}: aligned"}
-    if bias == 0:
-        return {"key": "neutral", "text": f"Bias neutral, setup {sw}"}
+        return {"key": "none", "text": "No setup to relate"}
+    if label == "mixed":
+        return {"key": "mixed", "text": f"Setup {sw}; trend and macro disagree"}
+    if d == 0:
+        return {"key": "neutral", "text": f"Setup {sw}; backdrop neutral"}
+    if d == side:
+        return {"key": "aligned", "text": f"Setup {sw} with the backdrop"}
     why = "counter-trend" if arch in ("Counter-trend", "Crowd fade", "Exhaustion fade", "Divergence fade") else "against the weather"
-    return {"key": "counter", "text": f"Bias {bw}, setup {sw} ({why})"}
+    return {"key": "counter", "text": f"Setup {sw} against the backdrop ({why})"}
 
 
 def _add_days(now: datetime, td: int) -> str:
@@ -218,7 +259,8 @@ def compute(row: Dict[str, Any], path: Optional[Dict[str, Any]], sd_weekly: Opti
     cstate = (cf.get("state") or cf.get("status") or cf.get("label")) if isinstance(cf, dict) else cf
     pil = row.get("pillars") or {}
     bias = _bias(row)
-    rel = _relation(bias["dir"], side, arch)
+    bd = backdrop(row)
+    rel = _relation(bd, side, arch)
     lean = int(row.get("lean") or 0)
     tside = side or lean
     tm = timing_state(path, tside, sd_weekly)
@@ -226,7 +268,7 @@ def compute(row: Dict[str, Any], path: Optional[Dict[str, Any]], sd_weekly: Opti
         tm["entry_date"] = _add_days(now, tm["entry_td"]) if tm["entry_td"] else now.date().isoformat()
     if not side:
         return {"score": None, "side": 0, "ready": {"key": "none", "label": "No setup"},
-                "timing": tm, "timing_side": tside, "bias": bias, "relation": rel, "parts": []}
+                "timing": tm, "timing_side": tside, "bias": bias, "backdrop": bd, "relation": rel, "parts": []}
 
     key = (arch, None if arch == "Range" else cstate)
     p_s = PTS_STRUCTURE.get(key, 0.0)
@@ -281,6 +323,6 @@ def compute(row: Dict[str, Any], path: Optional[Dict[str, Any]], sd_weekly: Opti
     else:
         ready = {"key": "building", "label": "Building"}
     return {"score": score, "side": side, "parts": parts, "caps": caps, "projected": projected,
-            "ready": ready, "timing": tm, "timing_side": tside, "bias": bias, "relation": rel,
+            "ready": ready, "timing": tm, "timing_side": tside, "bias": bias, "backdrop": bd, "relation": rel,
             "event_flags": events,
             "basis": "Points set on the 2012-18 replay only; 2019-26 held out. Macro and the composite carry no points."}

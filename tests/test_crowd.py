@@ -39,7 +39,7 @@ def test_same_side_text_reports_haircut_for_nq_longs():
     assert sh and sh["lift_pct"] < 0
     txt = crowd.same_side_text("NQ", 1)
     assert txt.startswith("crowd on the same side") and "Size down." in txt
-    assert "13 weeks" in txt and "independent" in txt
+    assert "13 wk" in txt and "independent" in txt
 
 
 def test_same_side_text_reports_persistence_when_no_penalty():

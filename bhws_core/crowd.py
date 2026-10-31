@@ -110,10 +110,10 @@ def same_side_text(mid: str, side: int, horizon: int = 13) -> Optional[str]:
         return None
     word = "longs" if side == 1 else "shorts"
     c, b = sh["crowd"], sh["base"]
-    return (f"crowd on the same side: in this market {word} taken with the managers at the extreme returned "
-            f"{_pct(c.get('mean_pct'))} over {horizon} weeks against {_pct(b.get('mean_pct'))} for all weeks "
-            f"({_pos(c.get('pos'))} vs {_pos(b.get('pos'))} positive, {sh['n']} weeks, about {sh['n_thin']} independent). "
-            f"{'Size down.' if (sh['lift_pct'] or 0) < 0 else 'No measured penalty: the crowd has tended to persist in this market.'}")
+    return (f"crowd on the same side: {word} with managers at this extreme returned "
+            f"{_pct(c.get('mean_pct'))} over {horizon} wk vs {_pct(b.get('mean_pct'))} all weeks "
+            f"({_pos(c.get('pos'))} vs {_pos(b.get('pos'))} positive, {sh['n']} wk, ~{sh['n_thin']} independent). "
+            f"{'Size down.' if (sh['lift_pct'] or 0) < 0 else 'No measured penalty; the crowd has tended to persist here.'}")
 
 
 def fade_text(mid: str, side: int, horizon: int = 13) -> Optional[str]:
@@ -135,6 +135,6 @@ def fade_text(mid: str, side: int, horizon: int = 13) -> Optional[str]:
         verdict = "no measured difference"
     else:
         verdict = "a measured drag"
-    return (f"fading the crowd: in this market {word} taken with the managers at the opposite extreme returned "
-            f"{_pct(mean)} over {horizon} weeks against {_pct(bmean)} for all weeks ({_pos(pos)} vs {_pos(bpos)} positive, "
-            f"{sh['n']} weeks, about {sh['n_thin']} independent): {verdict} on this crude test.")
+    return (f"fading the crowd: {word} with managers at the opposite extreme returned "
+            f"{_pct(mean)} over {horizon} wk vs {_pct(bmean)} all weeks ({_pos(pos)} vs {_pos(bpos)} positive, "
+            f"{sh['n']} wk, ~{sh['n_thin']} independent): {verdict} on this crude test.")
