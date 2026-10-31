@@ -27649,7 +27649,7 @@ function renderSmartMoney(markets){
     return `<div class="ov-smart-item" onclick="selectMkt('${m.id}')">
       <div class="ov-smart-id">${m.id}</div>
       <div class="ov-smart-dir" style="color:${col}">${isLong?'Long':'Short'}</div>
-      <div class="ov-smart-idx">${idx.toFixed(0)}th pctl</div>
+      <div class="ov-smart-idx">${_ctvOrd(idx)} pctl</div>
       <div class="ov-smart-bar">
         <div class="ov-smart-bar-f" style="width:${barW}%;background:${col};left:${isLong?50:50-barW}%"></div>
       </div>
@@ -28286,7 +28286,7 @@ function renderOverview(){
       (()=>{
         const t=_creditTier(cr.hy_trend, cr.hy_score);const l=_creditLabel(cr.hy_trend, cr.hy_oas_bps);
         return{label:'Credit',val:l,cls:t.cls,col:t.col,pip:t.pip,
-          title:`HY spreads ${cr.hy_oas_bps!=null?Math.round(cr.hy_oas_bps)+'bps':'—'} (${cr.hy_pct!=null?Math.round(cr.hy_pct)+'th pct':'—'}) — ${cr.hy_trend||'Stable'}`};
+          title:`HY spreads ${cr.hy_oas_bps!=null?Math.round(cr.hy_oas_bps)+'bps':'—'} (${cr.hy_pct!=null?_ctvOrd(cr.hy_pct)+' pct':'—'}) — ${cr.hy_trend||'Stable'}`};
       })(),
       (()=>{
         // Equity conditions — mirrors PANEL 6 verdict (overall −3..+3)
@@ -33142,7 +33142,7 @@ function _drawCreditDistribution(hyOas, igOas, hyCol, igCol){
       const zs=(val-mu)/sigma;
       const cdf=0.5*(1+Math.sign(zs)*Math.sqrt(1-Math.exp(-0.7854*zs*zs)));
       const pct=Math.round(Math.min(99,Math.max(1,cdf*100)));
-      const pStr=pct+'th pctile';
+      const pStr=_ctvOrd(pct)+' pctile';
       c.save(); c.font='800 7px "JetBrains Mono",monospace'; c.textAlign='center';
       const tw1=c.measureText(vStr).width;
       c.font='500 5.5px "JetBrains Mono",monospace'; const tw2=c.measureText(pStr).width;
@@ -40107,7 +40107,7 @@ function momTab(m){
     if(sma200!=null) _mk.push({v:sma200,l:'200-day',c:'#EAB850'});
     if(_wk&&_wk.sma10) _mk.push({v:_wk.sma10,l:'10-week',c:'#8fb4ff'});
     _ruler=`<section class="tr-rng">
-      <div class="tr-rh"><span class="tr-k">52-week range</span><span class="tr-rp" style="color:${col}">${pctRange!=null?pctRange.toFixed(0)+'th pct of range':''}</span></div>
+      <div class="tr-rh"><span class="tr-k">52-week range</span><span class="tr-rp" style="color:${col}">${pctRange!=null?_ctvOrd(pctRange)+' pct of range':''}</span></div>
       <div class="tr-rbar"><div class="tr-rfill" style="width:${_P(_cur)}%"></div>
         ${_mk.map(k=>`<div class="tr-rmk" style="left:${_P(k.v)}%;--mc:${k.c}" title="${k.l} ${_px(k.v)}"><i></i><span>${k.l}</span></div>`).join('')}
         <div class="tr-rcur" style="left:${_P(_cur)}%"><b>${_px(_cur)}</b></div>
